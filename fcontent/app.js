@@ -108,16 +108,16 @@ ES6Module.prototype = {add_class: function (cls) {
     if (allow_override===undefined) {
         allow_override = false;
     }
-    if (object!=undefined)
+    if (object!==undefined)
       this.already_processed[name] = object;
-    if (!allow_override&&name in this.exports&&this.exports[name]!=undefined) {
+    if (!allow_override&&name in this.exports&&this.exports[name]!==undefined) {
         return this.exports[name];
     }
     this.exports[name] = object;
     return object;
   }, 
   add_global: function (name, object) {
-    if (object!=undefined)
+    if (object!==undefined)
       this.already_processed[name] = object;
     if (name in this.exports) {
         return ;
@@ -134,12 +134,12 @@ ES6Module.prototype = {add_class: function (cls) {
     _es6_pop_basepath();
   }, 
   set_default_export: function (name, object) {
-    if (this.default_export!=undefined) {
+    if (this.default_export!==undefined) {
         throw new Error("Can only have one default export");
     }
     this.exports["default"] = object;
     this.default_export = object;
-    if (name!=undefined&&name!='') {
+    if (name!==undefined&&name!=='') {
         return this.add_export(name, object);
     }
     return object;
@@ -153,9 +153,12 @@ function _es6_get_basename(path) {
   name = name.slice(0, name.length-3);
   return name;
 }
-function es6_get_module_meta(path, compatibility_mode) {
+function es6_get_module_meta(path, compatibility_mode, autoAdd) {
   if (compatibility_mode===undefined) {
       compatibility_mode = false;
+  }
+  if (autoAdd===undefined) {
+      autoAdd = true;
   }
   path = path.replace(/\\/g, "/");
   if (!compatibility_mode&&!path.startsWith("\.")&&path.search("/")<0) {
@@ -190,7 +193,7 @@ function es6_get_module_meta(path, compatibility_mode) {
   }
   path = _normpath(path, _es6_get_basepath());
   path = _normpath1(path);
-  if (!(path in _defined_modules)) {
+  if (autoAdd&&!(path in _defined_modules)) {
       let name=_es6_get_basename(path);
       let mod=new ES6Module(name, path);
       _defined_modules[path] = mod;
@@ -210,7 +213,12 @@ function _es6_pop_basepath(path) {
 }
 function es6_module_define(name, depends, callback, path) {
   path = path===undefined ? name : path;
-  debug("defining module ", name, "with dependencies", JSON.stringify(depends));
+  if (_debug_modules===2) {
+      debug("defining module ", path, "with dependencies", JSON.stringify(depends));
+  }
+  else {
+    debug("defining module ", path);
+  }
   let mod;
   path = _normpath(path, _es6_get_basepath());
   if (!(path in _defined_modules)) {
@@ -231,7 +239,7 @@ function sort_modules() {
   for (var k in _defined_modules) {
       var mod=_defined_modules[k];
       if (mod.callback===undefined) {
-          debug('module "'+mod.path+'" does not exist', mod);
+          console.warn('module "'+mod.path+'" does not exist', mod);
           throw new Error('module "'+mod.path+'" does not exist');
       }
       mod.flag = 0;
@@ -278,6 +286,29 @@ function sort_modules() {
   window.module_order = namelist;
   return sortlist;
 }
+function _es_dynamic_import(_es6_module, path) {
+  let mod=es6_get_module_meta(path, undefined, false);
+  if (mod) {
+      return new Promise((accept, reject) =>        {
+        accept(mod.exports);
+      });
+  }
+  else {
+    console.log("PATH", path, "BASEPATH", _rootpath_src);
+    path = _normpath(path, _es6_get_basepath());
+    while (path.length>0&&path[0]==="/"||path[0]==="\\") {
+      path = path.slice(1, path.length).trim();
+    }
+    console.log(path, _rootpath_src);
+    path = path.slice(_rootpath_src.length, path.length);
+    while (path.startsWith("/")||path.startsWith("\\")) {
+      path = path.slice(1, path.length).trim();
+    }
+    path = "./"+path;
+    console.log(path);
+    return import(path);
+  }
+}
 function _load_module_cyclic(mod, visitmap, modstack) {
   window.es6_import = function es6_import(_es6_module, name) {
     var mod=_es6_get_module(name);
@@ -297,7 +328,7 @@ function _load_module_cyclic(mod, visitmap, modstack) {
     if (!mod.loaded) {
         _load_module_cyclic(mod, visitmap, modstack);
     }
-    return mod.default_export!==undefined ? mod.default_export : mod.exports;
+    return mod.exports;
   }
   window.es6_import_item = function es6_import_item(_es6_module, modname, name) {
     var mod=_es6_get_module(modname);
@@ -1049,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local", "../path.ux/scripts/config/const.js", "./config_local.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1063,6 +1094,8 @@ es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/
   ORIGIN = _es6_module.add_export('ORIGIN', ORIGIN);
   var MANIPULATOR_MOUSEOVER_LIMIT=25;
   MANIPULATOR_MOUSEOVER_LIMIT = _es6_module.add_export('MANIPULATOR_MOUSEOVER_LIMIT', MANIPULATOR_MOUSEOVER_LIMIT);
+  var NO_RENDER_WORKERS=false;
+  NO_RENDER_WORKERS = _es6_module.add_export('NO_RENDER_WORKERS', NO_RENDER_WORKERS);
   var ELECTRON_APP_MODE=document.getElementById("ElectronAppMode")!==null;
   ELECTRON_APP_MODE = _es6_module.add_export('ELECTRON_APP_MODE', ELECTRON_APP_MODE);
   var CHROME_APP_MODE=document.getElementById("GoogleChromeAppMode")!==null;
@@ -1178,6 +1211,8 @@ es6_module_define('config_local', [], function _config_local_module(_es6_module)
   'use strict';
   let HAVE_EVAL=true;
   HAVE_EVAL = _es6_module.add_export('HAVE_EVAL', HAVE_EVAL);
+  let NO_RENDER_WORKERS=false;
+  NO_RENDER_WORKERS = _es6_module.add_export('NO_RENDER_WORKERS', NO_RENDER_WORKERS);
   let DEBUG={fastDrawMode: false}
   DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');
@@ -1185,9 +1220,11 @@ es6_module_define('config_local', [], function _config_local_module(_es6_module)
 es6_module_define('const', ["../config/config.js"], function _const_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../config/config.js');
+  const USE_PATHUX_API=true;
+  _es6_module.add_export('USE_PATHUX_API', USE_PATHUX_API);
   window.fairmotion_file_ext = ".fmo";
   window.fairmotion_settings_filename = ".settings.bin";
-  window.g_app_version = 0.052;
+  window.g_app_version = 0.053;
   window.UNIT_TESTER = false;
   window.FEATURES = {save_toolstack: false}
   window.use_octree_select = true;
@@ -1209,14 +1246,15 @@ es6_module_define('const', ["../config/config.js"], function _const_module(_es6_
   }
 }, '/dev/fairmotion/src/core/const.js');
 
-es6_module_define('const', [], function _const_module(_es6_module) {
+es6_module_define('const', ["../path-controller/config/config.js"], function _const_module(_es6_module) {
   let _clipdata={name: "nothing", 
    mime: "nothing", 
    data: undefined}
   let _clipboards={}
+  var ctrlconfig=es6_import(_es6_module, '../path-controller/config/config.js');
   window.setInterval(() =>    {
     let cb=navigator.clipboard;
-    if (!cb) {
+    if (!cb||!cb.read) {
         return ;
     }
     cb.read().then((data) =>      {
@@ -1279,6 +1317,8 @@ es6_module_define('const', [], function _const_module(_es6_module) {
    colorSchemeType: "light", 
    docManualPath: "../simple_docsys/doc_build/", 
    useNumSliderTextboxes: true, 
+   numSliderArrowLimit: 6, 
+   simpleNumSliders: false, 
    menu_close_time: 500, 
    doubleClickTime: 500, 
    doubleClickHoldTime: 750, 
@@ -1295,22 +1335,47 @@ es6_module_define('const', [], function _const_module(_es6_module) {
     debugUIUpdatePerf: false, 
     screenAreaPosSizeAccesses: false, 
     buttonEvents: false}, 
+   autoLoadSplineTemplates: true, 
    addHelpPickers: true, 
-   useAreaTabSwitcher: true, 
+   useAreaTabSwitcher: false, 
    autoSizeUpdate: true, 
    showPathsInToolTips: true, 
+   enableThemeAutoUpdate: true, 
    loadConstants: function (args) {
       for (let k in args) {
           if (k==="loadConstants")
             continue;
           this[k] = args[k];
       }
+      ctrlconfig.setConfig(this);
     }}
   exports;
   exports = _es6_module.set_default_export('exports', exports);
   
   window.DEBUG = exports.DEBUG;
+  let cfg=document.getElementById("pathux-config");
+  if (cfg) {
+      console.error("CONFIG CONFIG", cfg.innerText);
+      exports.loadConstants(JSON.parse(cfg.innerText));
+  }
 }, '/dev/fairmotion/src/path.ux/scripts/config/const.js');
+
+es6_module_define('config', [], function _config_module(_es6_module) {
+  let config={doubleClickTime: 500, 
+   autoLoadSplineTemplates: true, 
+   doubleClickHoldTime: 750, 
+   DEBUG: {}}
+  config = _es6_module.add_export('config', config);
+  function setConfig(obj) {
+    for (let k in obj) {
+        config[k] = obj[k];
+    }
+  }
+  setConfig = _es6_module.add_export('setConfig', setConfig);
+  config;
+  config = _es6_module.set_default_export('config', config);
+  
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/config/config.js');
 
 es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   if (typeof window==="undefined"&&typeof global!=="undefined") {
@@ -1558,9 +1623,9 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
         this.pop_i(i);
       };
   }
-  if (String.prototype.contains==undefined) {
+  if (String.prototype.contains===undefined) {
       String.prototype.contains = function (substr) {
-        return String.search(substr)!=null;
+        return String.search(substr)>=0;
       };
   }
   String.prototype[Symbol.keystr] = function () {
@@ -1576,12 +1641,27 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
     }
     return key;
   }
-}, '/dev/fairmotion/src/path.ux/scripts/util/polyfill.js');
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/polyfill.js');
 
-es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
+  var nstructjs=es6_import_item(_es6_module, './struct.js', 'default');
+  let f64tmp=new Float64Array(1);
+  let u16tmp=new Uint16Array(f64tmp.buffer);
+  function isDenormal(f) {
+    f64tmp[0] = f;
+    let a=u16tmp[0], b=u16tmp[1], c=u16tmp[2], d=u16tmp[3];
+    if (a===0&&b===0&&c===0&&(d===0||d===32768)) {
+        return false;
+    }
+    let test=d&~(1<<15);
+    test = test>>4;
+    return test===0;
+  }
+  isDenormal = _es6_module.add_export('isDenormal', isDenormal);
+  globalThis._isDenormal = isDenormal;
   let colormap={"black": 30, 
    "red": 31, 
    "green": 32, 
@@ -1589,9 +1669,11 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
    "blue": 34, 
    "magenta": 35, 
    "cyan": 36, 
+   "teal": 36, 
    "white": 37, 
    "reset": 0, 
    "grey": 2, 
+   "gray": 2, 
    "orange": 202, 
    "pink": 198, 
    "brown": 314, 
@@ -1603,7 +1685,10 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
       termColorMap[k] = colormap[k];
       termColorMap[colormap[k]] = k;
   }
-  function termColor(s, c) {
+  function termColor(s, c, d) {
+    if (d===undefined) {
+        d = 0;
+    }
     if (typeof s==="symbol") {
         s = s.toString();
     }
@@ -1613,14 +1698,89 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
     if (c in colormap)
       c = colormap[c];
     if (c>107) {
-        s2 = '\u001b[38;5;'+str(c)+"m";
-        return s2+s+'\u001b[0m';
+        let s2='\u001b[38;5;'+c+"m";
+        return s2+s+'\u001b[39m';
     }
-    return '\u001b['+c+'m'+s+'\u001b[0m';
+    return '\u001b['+c+'m'+s+'\u001b[39m';
   }
   termColor = _es6_module.add_export('termColor', termColor);
   
-  window.termColor = termColor;
+  function termPrint() {
+    let s='';
+    for (let i=0; i<arguments.length; i++) {
+        if (i>0) {
+            s+=' ';
+        }
+        s+=arguments[i];
+    }
+    let re1a=/\u001b\[[1-9][0-9]?m/;
+    let re1b=/\u001b\[[1-9][0-9];[0-9][0-9]?;[0-9]+m/;
+    let re2=/\u001b\[39m/;
+    let endtag='\u001b[39m';
+    function tok(s, type) {
+      return {type: type, 
+     value: s}
+    }
+    let tokdef=[[re1a, "start"], [re1b, "start"], [re2, "end"]];
+    let s2=s;
+    let i=0;
+    let tokens=[];
+    while (s2.length>0) {
+      let ok=false;
+      let mintk=undefined, mini=undefined;
+      let minslice=undefined, mintype=undefined;
+      for (let tk of tokdef) {
+          let i=s2.search(tk[0]);
+          if (i>=0&&(mini===undefined||i<mini)) {
+              minslice = s2.slice(i, s2.length).match(tk[0])[0];
+              mini = i;
+              mintype = tk[1];
+              mintk = tk;
+              ok = true;
+          }
+      }
+      if (!ok) {
+          break;
+      }
+      if (mini>0) {
+          let chunk=s2.slice(0, mini);
+          tokens.push(tok(chunk, "chunk"));
+      }
+      s2 = s2.slice(mini+minslice.length, s2.length);
+      let t=tok(minslice, mintype);
+      tokens.push(t);
+    }
+    if (s2.length>0) {
+        tokens.push(tok(s2, "chunk"));
+    }
+    let stack=[];
+    let cur;
+    let out='';
+    for (let t of tokens) {
+        if (t.type==="chunk") {
+            out+=t.value;
+        }
+        else 
+          if (t.type==="start") {
+            stack.push(cur);
+            cur = t.value;
+            out+=t.value;
+        }
+        else 
+          if (t.type==="end") {
+            cur = stack.pop();
+            if (cur) {
+                out+=cur;
+            }
+            else {
+              out+=endtag;
+            }
+        }
+    }
+    return out;
+  }
+  termPrint = _es6_module.add_export('termPrint', termPrint);
+  globalThis.termColor = termColor;
   class MovingAvg extends Array {
      constructor(size=64) {
       super();
@@ -1662,7 +1822,6 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
     return false;
   }
   pollTimer = _es6_module.add_export('pollTimer', pollTimer);
-  window._pollTimer = pollTimer;
   let mdetect=undefined;
   let mret=undefined;
   function isMobile() {
@@ -1680,8 +1839,6 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
     return mret;
   }
   isMobile = _es6_module.add_export('isMobile', isMobile);
-  let SmartConsoleTag=Symbol("SmartConsoleTag");
-  let tagid=0;
   class SmartConsoleContext  {
      constructor(name, console) {
       this.name = name;
@@ -1693,8 +1850,11 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
       let b=~~(c[2]*sum);
       this.color = `rgb(${r},${g},${b})`;
       this.__console = console;
-      this.timeInterval = 1500;
-      this._last = undefined;
+      this.timeInterval = 375;
+      this.timeIntervalAll = 245;
+      this._last = 0;
+      this.last = 0;
+      this.last2 = 0;
       this._data = {};
       this._data_length = 0;
       this.maxCache = 256;
@@ -1708,7 +1868,7 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
         i++;
         sum = sum^h;
       }
-      let visit=new Set();
+      let visit=new WeakSet();
       let recurse=(n) =>        {
         if (typeof n==="string") {
             dohash(strhash(n));
@@ -1719,13 +1879,12 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
         }
         else 
           if (typeof n==="object") {
-            if (n[SmartConsoleTag]===undefined) {
-                n[SmartConsoleTag] = tagid++;
+            if (n===undefined) {
             }
-            if (visit.has(n[SmartConsoleTag])) {
+            if (visit.has(n)) {
                 return ;
             }
-            visit.add(n[SmartConsoleTag]);
+            visit.add(n);
             let keys=getAllKeys(n);
             for (let k of keys) {
                 let v;
@@ -1769,17 +1928,11 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
       return this._data[key];
     }
      _check(args) {
-      let d=this._getData(args);
-      let last=this.last;
-      this.last = d;
-      if (d!==last) {
-          d.count = 0;
-          d.time = time_ms();
-          return true;
+      if (this.timeIntervalAll>0&&time_ms()-this.last2<this.timeIntervalAll) {
+          return false;
       }
-      if (time_ms()-d.time>this.timeInterval) {
-      }
-      return false;
+      this.last2 = time_ms();
+      return true;
     }
      log() {
       if (this._check(arguments)) {
@@ -1794,6 +1947,11 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
      trace() {
       if (this._check(arguments)) {
           window.console.trace(...arguments);
+      }
+    }
+     error() {
+      if (this._check(arguments)) {
+          window.console.error(...arguments);
       }
     }
   }
@@ -1832,7 +1990,7 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
   SmartConsole = _es6_module.add_export('SmartConsole', SmartConsole);
   const console=new SmartConsole();
   _es6_module.add_export('console', console);
-  window.tm = 0.0;
+  globalThis.tm = 0.0;
   var EmptySlot={}
   function getClassParent(cls) {
     let p=cls.prototype;
@@ -1843,7 +2001,6 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
     return p;
   }
   getClassParent = _es6_module.add_export('getClassParent', getClassParent);
-  window._getClassParent = getClassParent;
   function list(iterable) {
     let ret=[];
     for (let item of iterable) {
@@ -1889,7 +2046,6 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
     return keys;
   }
   getAllKeys = _es6_module.add_export('getAllKeys', getAllKeys);
-  window._getAllKeys = getAllKeys;
   function btoa(buf) {
     if (__instance_of(buf, ArrayBuffer)) {
         buf = new Uint8Array(buf);
@@ -1971,21 +2127,101 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
   }
   merge = _es6_module.add_export('merge', merge);
   
+  let debug_cacherings=false;
+  if (debug_cacherings) {
+      window._cacherings = [];
+      window._clear_all_cacherings = function (kill_all) {
+        if (kill_all===undefined) {
+            kill_all = false;
+        }
+        function copy(obj) {
+          if (typeof obj.copy==="function") {
+              return obj.copy();
+          }
+          else 
+            if (obj.constructor===Object) {
+              let ret={};
+              for (let k of Reflect.ownKeys(obj)) {
+                  let v;
+                  try {
+                    v = obj[k];
+                  }
+                  catch (error) {
+                      continue;
+                  }
+                  if (typeof v!=="object") {
+                      ret[k] = v;
+                  }
+                  else {
+                    ret[k] = copy(v);
+                  }
+              }
+              return ret;
+          }
+          else {
+            return new obj.constructor();
+          }
+        }
+        for (let ch of window._cacherings) {
+            let obj=ch[0];
+            let len=ch.length;
+            ch.length = 0;
+            ch.cur = 0;
+            if (kill_all) {
+                continue;
+            }
+            for (let i=0; i<len; i++) {
+                ch.push(copy(obj));
+            }
+        }
+      };
+      window._nonvector_cacherings = function () {
+        for (let ch of window._cacherings) {
+            if (ch.length===0) {
+                continue;
+            }
+            let name=ch[0].constructor.name;
+            let ok=!name.startsWith("Vector")&&!name.startsWith("Quat");
+            ok = ok&&!name.startsWith("TriEditor");
+            ok = ok&&!name.startsWith("QuadEditor");
+            ok = ok&&!name.startsWith("PointEditor");
+            ok = ok&&!name.startsWith("LineEditor");
+            if (ok) {
+                console.log(name, ch);
+            }
+        }
+      };
+      window._stale_cacherings = function () {
+        let ret=_cacherings.concat([]);
+        ret.sort((a, b) =>          {
+          return a.gen-b.gen;
+        });
+        return ret;
+      };
+  }
   class cachering extends Array {
-     constructor(func, size) {
+     constructor(func, size, isprivate=false) {
       super();
+      this.private = isprivate;
       this.cur = 0;
+      if (!isprivate&&debug_cacherings) {
+          this.gen = 0;
+          window._cacherings.push(this);
+      }
       for (var i=0; i<size; i++) {
           this.push(func());
       }
     }
-    static  fromConstructor(cls, size) {
+    static  fromConstructor(cls, size, isprivate=false) {
       var func=function () {
         return new cls();
       };
-      return new cachering(func, size);
+      return new cachering(func, size, isprivate);
     }
      next() {
+      if (debug_cacherings) {
+          this.gen++;
+      }
       var ret=this[this.cur];
       this.cur = (this.cur+1)%this.length;
       return ret;
@@ -2126,6 +2362,12 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
         this.items.push(item);
       }
       this.length++;
+    }
+    get  size() {
+      return this.length;
+    }
+     delete(item, ignore_existence=true) {
+      this.remove(item, ignore_existence);
     }
      remove(item, ignore_existence) {
       var key=item[Symbol.keystr]();
@@ -2274,28 +2516,44 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
   let IDGenInternalIDGen=0;
   class IDGen  {
      constructor() {
-      this._cur = 1;
+      this.__cur = 1;
       this._debug = false;
       this._internalID = IDGenInternalIDGen++;
     }
+    get  cur() {
+      return this.__cur;
+    }
+    set  cur(v) {
+      if (isNaN(v)||!isFinite(v)) {
+          throw new Error("NaN error in util.IDGen");
+      }
+      this.__cur = v;
+    }
      next() {
-      return this._cur++;
+      return this.cur++;
     }
      copy() {
       let ret=new IDGen();
-      ret._cur = this._cur;
+      ret.cur = this.cur;
       return ret;
     }
      max_cur(id) {
-      this._cur = Math.max(this._cur, id+1);
+      this.cur = Math.max(this.cur, id+1);
     }
      toJSON() {
-      return {_cur: this._cur}
+      return {cur: this.cur}
     }
     static  fromJSON(obj) {
-      var ret=new IDGen();
-      ret._cur = obj._cur;
+      let ret=new IDGen();
+      ret.cur = obj.cur===undefined ? obj._cur : obj.cur;
       return ret;
+    }
+    set  _cur(v) {
+      window.console.warn("Deprecated use of IDGen._cur");
+      this.cur = v;
+    }
+    get  _cur() {
+      return this.cur;
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -2306,7 +2564,7 @@ es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"]
   IDGen = _es6_module.add_export('IDGen', IDGen);
   IDGen.STRUCT = `
 IDGen {
-  _cur : int;
+  cur : int;
 }
 `;
   nstructjs.register(IDGen);
@@ -2374,6 +2632,8 @@ IDGen {
     return callstack;
   }
   function print_stack(err) {
+    console.log(err.stack);
+    return ;
     try {
       var cs=get_callstack(err);
     }
@@ -2387,8 +2647,8 @@ IDGen {
     }
   }
   print_stack = _es6_module.add_export('print_stack', print_stack);
-  window.get_callstack = get_callstack;
-  window.print_stack = print_stack;
+  globalThis.get_callstack = get_callstack;
+  globalThis.print_stack = print_stack;
   function fetch_file(path) {
     var url=location.origin+"/"+path;
     var req=new XMLHttpRequest();
@@ -2461,12 +2721,22 @@ IDGen {
     _mt.seed(n);
   }
   seed = _es6_module.add_export('seed', seed);
+  let smallstr_hashes={}
   function strhash(str) {
+    if (str.length<=64) {
+        let hash=smallstr_hashes[str];
+        if (hash!==undefined) {
+            return hash;
+        }
+    }
     var hash=0;
     for (var i=0; i<str.length; i++) {
         var ch=str.charCodeAt(i);
         hash = hash<0 ? -hash : hash;
         hash^=(ch*524287+4323543)&((1<<19)-1);
+    }
+    if (str.length<=64) {
+        smallstr_hashes[str] = hash;
     }
     return hash;
   }
@@ -2625,11 +2895,21 @@ IDGen {
       return this.hash;
     }
      add(v) {
+      if (typeof v==="string") {
+          v = strhash(v);
+      }
+      if (v>=-5&&v<=5) {
+          v*=32;
+      }
+      let f=Math.fract(v)*(1024*512);
+      f = (~~f)/(1024*512);
+      v = Math.floor(v)+f;
       this.i = ((this.i+(~~v))*1103515245+12345)&((1<<29)-1);
       let v2=(v*1024*1024)&((1<<29)-1);
       v = v|v2;
       v = ~~v;
       this.hash^=v^this.i;
+      return this;
     }
   }
   _ESClass.register(HashDigest);
@@ -2650,7 +2930,6 @@ IDGen {
     }
   }
   digestcache = cachering.fromConstructor(HashDigest, 512);
-  window._HashDigest = HashDigest;
   function hashjoin(hash, val) {
     let sum=0;
     let mul=(1<<19)-1, off=(1<<27)-1;
@@ -2658,10 +2937,585 @@ IDGen {
     h = (h*mul+off+i*mul*0.25)&mul;
   }
   hashjoin = _es6_module.add_export('hashjoin', hashjoin);
+  let NullItem={}
+  class MapIter  {
+     constructor(ownermap) {
+      this.ret = {done: true, 
+     value: undefined};
+      this.value = new Array(2);
+      this.i = 0;
+      this.map = ownermap;
+      this.done = true;
+    }
+     finish() {
+      if (!this.done) {
+          this.done = true;
+          this.map.itercur--;
+      }
+    }
+     next() {
+      let ret=this.ret;
+      let i=this.i;
+      let map=this.map, list=map._list;
+      while (i<list.length&&list[i]===NullItem) {
+        i+=2;
+      }
+      if (i>=list.length) {
+          ret.done = true;
+          ret.value = undefined;
+          this.finish();
+          return ret;
+      }
+      this.i = i+2;
+      ret.value = this.value;
+      ret.value[0] = list[i];
+      ret.value[1] = list[i+1];
+      ret.done = false;
+      return ret;
+    }
+     return() {
+      this.finish();
+      return this.ret;
+    }
+     reset() {
+      this.i = 0;
+      this.value[0] = undefined;
+      this.value[1] = undefined;
+      this.done = false;
+      return this;
+    }
+  }
+  _ESClass.register(MapIter);
+  _es6_module.add_class(MapIter);
+  MapIter = _es6_module.add_export('MapIter', MapIter);
+  class map  {
+     constructor() {
+      this._items = {};
+      this._list = [];
+      this.size = 0;
+      this.iterstack = new Array(8);
+      this.itercur = 0;
+      for (let i=0; i<this.iterstack.length; i++) {
+          this.iterstack[i] = new MapIter(this);
+      }
+      this.freelist = [];
+    }
+     has(key) {
+      return key[Symbol.keystr]() in this._items;
+    }
+     set(key, v) {
+      let k=key[Symbol.keystr]();
+      let i=this._items[k];
+      if (i===undefined) {
+          if (this.freelist.length>0) {
+              i = this.freelist.pop();
+          }
+          else {
+            i = this._list.length;
+            this._list.length+=2;
+          }
+          this.size++;
+      }
+      this._list[i] = key;
+      this._list[i+1] = v;
+      this._items[k] = i;
+    }
+     keys() {
+      let this2=this;
+      return (function* () {
+        for (let /*unprocessed ExpandNode*/[key, val] of this2) {
+            yield key;
+        }
+      })();
+    }
+     values() {
+      let this2=this;
+      return (function* () {
+        for (let /*unprocessed ExpandNode*/[key, val] of this2) {
+            yield val;
+        }
+      })();
+    }
+     get(k) {
+      k = k[Symbol.keystr]();
+      let i=this._items[k];
+      if (i!==undefined) {
+          return this._list[i+1];
+      }
+    }
+     delete(k) {
+      k = k[Symbol.keystr]();
+      if (!(k in this._items)) {
+          return false;
+      }
+      let i=this._items[k];
+      this.freelist.push(i);
+      this._list[i] = NullItem;
+      this._list[i+1] = NullItem;
+      delete this._items[k];
+      this.size--;
+      return true;
+    }
+     [Symbol.iterator]() {
+      let ret=this.iterstack[this.itercur].reset();
+      this.itercur++;
+      if (this.itercur===this.iterstack.length) {
+          this.iterstack.push(new MapIter(this));
+      }
+      return ret;
+    }
+  }
+  _ESClass.register(map);
+  _es6_module.add_class(map);
+  map = _es6_module.add_export('map', map);
+  globalThis._test_map = function () {
+    let m=new map();
+    m.set("1", 2);
+    m.set(11, 3);
+    m.set("5", 4);
+    m.set("3", 5);
+    m.set("3", 6);
+    m.delete("3");
+    for (let /*unprocessed ExpandNode*/[key, item] of m) {
+        for (let /*unprocessed ExpandNode*/[key2, item2] of m) {
+            window.console.log(key, item, key2, item2);
+        }
+        break;
+    }
+    console.log("itercur", m.itercur);
+    return m;
+  }
+  function validateId(id) {
+    let bad=typeof id!=="number";
+    bad = bad||id!==~~id;
+    bad = bad||isNaN(id);
+    if (bad) {
+        throw new Error("bad number "+id);
+    }
+    return bad;
+  }
+  let UndefinedTag={}
+  class IDMap extends Array {
+     constructor() {
+      super();
+      this._keys = new Set();
+      this.size = 0;
+    }
+     has(id) {
+      validateId(id);
+      if (id<0||id>=this.length) {
+          return false;
+      }
+      return this[id]!==undefined;
+    }
+     set(id, val) {
+      validateId(id);
+      if (id<0) {
+          console.warn("got -1 id in IDMap");
+          return ;
+      }
+      if (id>=this.length) {
+          this.length = id+1;
+      }
+      if (val===undefined) {
+          val = UndefinedTag;
+      }
+      let ret=false;
+      if (this[id]===undefined) {
+          this.size++;
+          this._keys.add(id);
+          ret = true;
+      }
+      this[id] = val;
+      return ret;
+    }
+     get(id) {
+      validateId(id);
+      if (id===-1) {
+          return undefined;
+      }
+      else 
+        if (id<0) {
+          console.warn("id was negative");
+          return undefined;
+      }
+      let ret=id<this.length ? this[id] : undefined;
+      ret = ret===UndefinedTag ? undefined : ret;
+      return ret;
+    }
+     delete(id) {
+      if (!this.has(id)) {
+          return false;
+      }
+      this._keys.remove(id);
+      this[id] = undefined;
+      this.size--;
+      return true;
+    }
+     keys() {
+      let this2=this;
+      return (function* () {
+        for (let id of this2._keys) {
+            yield id;
+        }
+      })();
+    }
+     values() {
+      let this2=this;
+      return (function* () {
+        for (let id of this2._keys) {
+            yield this2[id];
+        }
+      })();
+    }
+     [Symbol.iterator]() {
+      let this2=this;
+      let iteritem=[0, 0];
+      return (function* () {
+        for (let id of this2._keys) {
+            iteritem[0] = id;
+            iteritem[1] = this2[id];
+            if (iteritem[1]===UndefinedTag) {
+                iteritem[1] = undefined;
+            }
+            yield iteritem;
+        }
+      })();
+    }
+  }
+  _ESClass.register(IDMap);
+  _es6_module.add_class(IDMap);
+  IDMap = _es6_module.add_export('IDMap', IDMap);
+  globalThis._test_idmap = function () {
+    let map=new IDMap();
+    for (let i=0; i<5; i++) {
+        let id=~~(Math.random()*55);
+        map.set(id, "yay"+i);
+    }
+    for (let /*unprocessed ExpandNode*/[key, val] of map) {
+        window.console.log(key, val, map.has(key), map.get(key));
+    }
+    return map;
+  }
+  let HW=0, HELEM=1, HTOT=2;
+  function heaplog() {
+  }
+  class MinHeapQueue  {
+     constructor(iter, iterw=iter) {
+      this.heap = [];
+      this.freelist = [];
+      this.length = 0;
+      this.end = 0;
+      if (iter) {
+          let witer=iterw[Symbol.iterator]();
+          for (let item of iter) {
+              let w=witer.next().value;
+              this.push(item, w);
+          }
+      }
+    }
+     push(e, w) {
+      if (typeof w!=="number") {
+          throw new Error("w must be a number");
+      }
+      if (isNaN(w)) {
+          throw new Error("NaN");
+      }
+      this.length++;
+      let depth=Math.ceil(Math.log(this.length)/Math.log(2.0));
+      let tot=Math.pow(2, depth)+1;
+      heaplog(depth, tot);
+      if (this.heap.length<tot*HTOT) {
+          let start=this.heap.length/HTOT;
+          for (let i=start; i<tot; i++) {
+              this.freelist.push(i*HTOT);
+          }
+      }
+      let heap=this.heap;
+      heap.length = tot*HTOT;
+      let n=this.freelist.pop();
+      heaplog("freelist", this.freelist);
+      this.end = Math.max(this.end, n);
+      heap[n] = w;
+      heap[n+1] = e;
+      while (n>0) {
+        n/=HTOT;
+        let p=(n-1)>>1;
+        n*=HTOT;
+        p*=HTOT;
+        if (heap[p]===undefined||heap[p]>w) {
+            if (n===this.end) {
+                this.end = p;
+            }
+            heap[n] = heap[p];
+            heap[n+1] = heap[p+1];
+            heap[p] = w;
+            heap[p+1] = e;
+            n = p;
+        }
+        else {
+          break;
+        }
+      }
+    }
+     pop() {
+      if (this.length===0) {
+          return undefined;
+      }
+      let heap=this.heap;
+      if (this.end===0) {
+          let ret=heap[1];
+          this.freelist.push(0);
+          heap[0] = undefined;
+          this.length = 0;
+          return ret;
+      }
+      let ret=heap[1];
+      let end=this.end;
+      function swap(n1, n2) {
+        let t=heap[n1];
+        heap[n1] = heap[n2];
+        heap[n2] = t;
+        t = heap[n1+1];
+        heap[n1+1] = heap[n2+1];
+        heap[n2+1] = t;
+      }
+      heaplog("end", end);
+      heaplog(heap.concat([]));
+      heap[0] = heap[end];
+      heap[1] = heap[end+1];
+      heap[end] = undefined;
+      heap[end+1] = undefined;
+      let n=0;
+      while (n<heap.length) {
+        n/=HTOT;
+        let n1=n*2+1;
+        let n2=n*2+2;
+        n1 = ~~(n1*HTOT);
+        n2 = ~~(n2*HTOT);
+        n = ~~(n*HTOT);
+        heaplog("  ", heap[n], heap[n1], heap[n2]);
+        if (heap[n1]!==undefined&&heap[n2]!==undefined) {
+            if (heap[n1]>heap[n2]) {
+                let t=n1;
+                n1 = n2;
+                n2 = t;
+            }
+            if (heap[n]>heap[n1]) {
+                swap(n, n1);
+                n = n1;
+            }
+            else 
+              if (heap[n]>heap[n2]) {
+                swap(n, n2);
+                n = n2;
+            }
+            else {
+              break;
+            }
+        }
+        else 
+          if (heap[n1]!==undefined) {
+            if (heap[n]>heap[n1]) {
+                swap(n, n1);
+                n = n1;
+            }
+            else {
+              break;
+            }
+        }
+        else 
+          if (heap[n2]!==undefined) {
+            if (heap[n]>heap[n2]) {
+                swap(n, n2);
+                n = n2;
+            }
+            else {
+              break;
+            }
+        }
+        else {
+          break;
+        }
+      }
+      this.freelist.push(this.end);
+      heap[this.end] = undefined;
+      heap[this.end+1] = undefined;
+      while (this.end>0&&heap[this.end]===undefined) {
+        this.end-=HTOT;
+      }
+      this.length--;
+      return ret;
+    }
+  }
+  _ESClass.register(MinHeapQueue);
+  _es6_module.add_class(MinHeapQueue);
+  MinHeapQueue = _es6_module.add_export('MinHeapQueue', MinHeapQueue);
+  globalThis.testHeapQueue = function (list1) {
+    if (list1===undefined) {
+        list1 = [1, 8, -3, 11, 33];
+    }
+    let h=new MinHeapQueue(list1);
+    window.console.log(h.heap.concat([]));
+    let list=[];
+    let len=h.length;
+    for (let i=0; i<len; i++) {
+        list.push(h.pop());
+    }
+    window.console.log(h.heap.concat([]));
+    return list;
+  }
+  class Queue  {
+     constructor(n=32) {
+      n = Math.max(n, 8);
+      this.initialSize = n;
+      this.queue = new Array(n);
+      this.a = 0;
+      this.b = 0;
+      this.length = 0;
+    }
+     enqueue(item) {
+      let qlen=this.queue.length;
+      let b=this.b;
+      this.queue[b] = item;
+      this.b = (this.b+1)%qlen;
+      if (this.length>=qlen||this.a===this.b) {
+          let newsize=qlen<<1;
+          let queue=new Array(newsize);
+          for (let i=0; i<qlen; i++) {
+              let i2=(i+this.a)%qlen;
+              queue[i] = this.queue[i2];
+          }
+          this.a = 0;
+          this.b = qlen;
+          this.queue = queue;
+      }
+      this.length++;
+    }
+     clear(clearData=true) {
+      this.queue.length = this.initialSize;
+      if (clearData) {
+          for (let i=0; i<this.queue.length; i++) {
+              this.queue[i] = undefined;
+          }
+      }
+      this.a = this.b = 0;
+      this.length = 0;
+      return this;
+    }
+     dequeue() {
+      if (this.length===0) {
+          return undefined;
+      }
+      this.length--;
+      let ret=this.queue[this.a];
+      this.queue[this.a] = undefined;
+      this.a = (this.a+1)%this.queue.length;
+      return ret;
+    }
+  }
+  _ESClass.register(Queue);
+  _es6_module.add_class(Queue);
+  Queue = _es6_module.add_export('Queue', Queue);
+  globalThis._testQueue = function (steps, samples) {
+    if (steps===undefined) {
+        steps = 15;
+    }
+    if (samples===undefined) {
+        samples = 15;
+    }
+    let queue=new Queue(3);
+    for (let i=0; i<steps; i++) {
+        let list=[];
+        for (let j=0; j<samples; j++) {
+            let item={f: Math.random()};
+            list.push(item);
+            queue.enqueue(item);
+        }
+        let j=0;
+        while (queue.length>0) {
+          let item=queue.dequeue();
+          if (item!==list[j]) {
+              console.log(item, list);
+              throw new Error("got wrong item", item);
+          }
+          j++;
+          if (j>10000) {
+              console.error("Infinite loop error");
+              break;
+          }
+        }
+    }
+  }
+  class ArrayPool  {
+     constructor() {
+      this.pools = new Map();
+      this.map = new Array(1024);
+    }
+     get(n, clear) {
+      let pool;
+      if (n<1024) {
+          pool = this.map[n];
+      }
+      else {
+        pool = this.pools.get(n);
+      }
+      if (!pool) {
+          let tot;
+          if (n>512) {
+              tot = 32;
+          }
+          else 
+            if (n>256) {
+              tot = 64;
+          }
+          else 
+            if (n>128) {
+              tot = 256;
+          }
+          else 
+            if (n>64) {
+              tot = 512;
+          }
+          else {
+            tot = 1024;
+          }
+          pool = new cachering(() =>            {
+            return new Array(n);
+          }, tot);
+          if (n<1024) {
+              this.map[n] = pool;
+          }
+          this.pools.set(n, pool);
+          return this.get(n, clear);
+      }
+      let ret=pool.next();
+      if (ret.length!==n) {
+          console.warn("Array length was set", n, ret);
+          ret.length = n;
+      }
+      if (clear) {
+          for (let i=0; i<n; i++) {
+              ret[i] = undefined;
+          }
+      }
+      return ret;
+    }
+  }
+  _ESClass.register(ArrayPool);
+  _es6_module.add_class(ArrayPool);
+  ArrayPool = _es6_module.add_export('ArrayPool', ArrayPool);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/util.js');
+
+es6_module_define('util', ["../path-controller/util/util.js"], function _util_module(_es6_module) {
+  var ____path_controller_util_util_js=es6_import(_es6_module, '../path-controller/util/util.js');
+  for (let k in ____path_controller_util_util_js) {
+      _es6_module.add_export(k, ____path_controller_util_util_js[k], true);
+  }
 }, '/dev/fairmotion/src/path.ux/scripts/util/util.js');
 
 
-    var totfile=10, fname="app";
+    var totfile=11, fname="app";
     for (var i=0; i<totfile; i++) {
       var path = "./fcontent/"+fname+i+".js";
       var node = document.createElement("script")

@@ -1,154 +1,4 @@
-es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
-  "use strict";
-  class TypedCache  {
-    
-     constructor() {
-      this.freelist = {};
-    }
-     get(size) {
-      var lst=this.freelist[size];
-      if (lst==undefined) {
-          lst = this.freelist[size] = [];
-      }
-      if (lst.length>0) {
-          return lst.pop();
-      }
-      else {
-        lst.push(new ArrayBuffer());
-        return lst.pop();
-      }
-    }
-     free(arraybuffer) {
-      var lst=this.freelist[size];
-      if (lst==undefined) {
-          lst = this.freelist[size] = [];
-      }
-      lst.insert(0, arraybuffer);
-    }
-  }
-  _ESClass.register(TypedCache);
-  _es6_module.add_class(TypedCache);
-  TypedCache = _es6_module.add_export('TypedCache', TypedCache);
-  var typedcache=new TypedCache();
-  typedcache = _es6_module.add_export('typedcache', typedcache);
-  var u8=new Uint8Array(16);
-  var u16=new Uint16Array(u8.buffer);
-  var i16=new Int16Array(u8.buffer);
-  var u32=new Uint32Array(u8.buffer);
-  var i32=new Int32Array(u8.buffer);
-  var f32=new Float32Array(u8.buffer);
-  var f64=new Float64Array(u8.buffer);
-  class TypedWriter  {
-    
-    
-     constructor(maxsize) {
-      this.i = 0;
-      this.maxsize = maxsize;
-      this.buf = new Uint8Array(maxsize);
-    }
-     destroy() {
 
-    }
-     int8(f) {
-      this.buf[this.i++] = f;
-      return this;
-    }
-     int16(f) {
-      var buf=this.buf, i=this.i;
-      i16[0] = f;
-      buf[i++] = u8[0];
-      buf[i++] = u8[1];
-      this.i = i;
-      return this;
-    }
-     vec2(v) {
-      this.float32(v[0]);
-      this.float32(v[1]);
-      return this;
-    }
-     vec3(v) {
-      this.float32(v[0]);
-      this.float32(v[1]);
-      this.float32(v[2]);
-      return this;
-    }
-     vec4(v) {
-      this.float32(v[0]);
-      this.float32(v[1]);
-      this.float32(v[2]);
-      this.float32(v[3]);
-      return this;
-    }
-     final() {
-      if (this.i>this.buf.length) {
-          throw new Error("Exceeded maximum size of TypedWriter: "+this.i+" > "+this.buf.length);
-      }
-      return this.buf.buffer;
-    }
-     bytes(f, len=f.length) {
-      var buf=this.buf, i=this.i;
-      if (typeof f=="string") {
-          for (var j=0; j<f.length; j++) {
-              buf[i++] = f.charCodeAt(j);
-          }
-      }
-      else {
-        for (var j=0; j<f.length; j++) {
-            buf[i++] = f[j];
-        }
-      }
-      this.i = i;
-      return this;
-    }
-     int32(f) {
-      var buf=this.buf, i=this.i;
-      i32[0] = f;
-      buf[i++] = u8[0];
-      buf[i++] = u8[1];
-      buf[i++] = u8[2];
-      buf[i++] = u8[3];
-      this.i = i;
-      return this;
-    }
-     uint32(f) {
-      var buf=this.buf, i=this.i;
-      u32[0] = f;
-      buf[i++] = u8[0];
-      buf[i++] = u8[1];
-      buf[i++] = u8[2];
-      buf[i++] = u8[3];
-      this.i = i;
-      return this;
-    }
-     float32(f) {
-      var buf=this.buf, i=this.i;
-      f32[0] = f;
-      buf[i++] = u8[0];
-      buf[i++] = u8[1];
-      buf[i++] = u8[2];
-      buf[i++] = u8[3];
-      this.i = i;
-      return this;
-    }
-     float64(f) {
-      var buf=this.buf, i=this.i;
-      f64[0] = f;
-      buf[i++] = u8[0];
-      buf[i++] = u8[1];
-      buf[i++] = u8[2];
-      buf[i++] = u8[3];
-      buf[i++] = u8[4];
-      buf[i++] = u8[5];
-      buf[i++] = u8[6];
-      buf[i++] = u8[7];
-      this.i = i;
-      return this;
-    }
-  }
-  _ESClass.register(TypedWriter);
-  _es6_module.add_class(TypedWriter);
-  TypedWriter = _es6_module.add_export('TypedWriter', TypedWriter);
-}, '/dev/fairmotion/src/util/typedwriter.js');
 es6_module_define('jobs', [], function _jobs_module(_es6_module) {
   "use strict";
   var default_job_interval=1;
@@ -403,9 +253,13 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
   _es6_module.add_class(JobManager);
   JobManager = _es6_module.add_export('JobManager', JobManager);
 }, '/dev/fairmotion/src/core/jobs.js');
-es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], function _ajax_module(_es6_module) {
+
+
+es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
+  let profile_start=(name) =>    {  }
+  let profile_end=(name) =>    {  }
   var encode_utf8=es6_import_item(_es6_module, '../util/strutils.js', 'encode_utf8');
   var decode_utf8=es6_import_item(_es6_module, '../util/strutils.js', 'decode_utf8');
   var truncate_utf8=es6_import_item(_es6_module, '../util/strutils.js', 'truncate_utf8');
@@ -481,8 +335,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_int");
     _static_view.setInt32(0, i);
     if (lendian) {
         for (var j=3; j>=0; j--) {
@@ -494,16 +347,14 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
           data.push(_static_byte[j]);
       }
     }
-    
-    
+    profile_end("pack_int");
   }
   pack_int = _es6_module.add_export('pack_int', pack_int);
   function pack_short(data, i, lendian) {
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_short");
     _static_view.setInt16(0, i);
     if (lendian) {
         for (var j=1; j>=0; j--) {
@@ -515,8 +366,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
           data.push(_static_byte[j]);
       }
     }
-    
-    
+    profile_end("pack_short");
   }
   pack_short = _es6_module.add_export('pack_short', pack_short);
   function pack_byte(data, i) {
@@ -527,8 +377,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_float");
     _static_view.setFloat32(0, f);
     if (lendian) {
         for (var j=3; j>=0; j--) {
@@ -540,13 +389,11 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
           data.push(_static_byte[j]);
       }
     }
-    
-    
+    profile_end("pack_float");
   }
   pack_float = _es6_module.add_export('pack_float', pack_float);
   function pack_double(data, f, lendian) {
-    
-    
+    profile_start("pack_double");
     _static_view.setFloat64(0, f);
     if (lendian) {
         for (var j=7; j>=0; j--) {
@@ -558,33 +405,28 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
           data.push(_static_byte[j]);
       }
     }
-    
-    
+    profile_end("pack_double");
   }
   pack_double = _es6_module.add_export('pack_double', pack_double);
   function pack_vec2(data, vec, lendian) {
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_vec2");
     pack_float(data, vec[0], lendian);
     pack_float(data, vec[1], lendian);
-    
-    
+    profile_end("pack_vec2");
   }
   pack_vec2 = _es6_module.add_export('pack_vec2', pack_vec2);
   function pack_vec3(data, vec, lendian) {
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_vec3");
     pack_float(data, vec[0], lendian);
     pack_float(data, vec[1], lendian);
     pack_float(data, vec[2], lendian);
-    
-    
+    profile_end("pack_vec3");
   }
   pack_vec3 = _es6_module.add_export('pack_vec3', pack_vec3);
   function pack_vec4(data, vec, lendian) {
@@ -611,14 +453,12 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
     if (lendian===undefined) {
         lendian = false;
     }
-    
-    
+    profile_start("pack_mat4");
     var m=mat.getAsArray();
     for (var i=0; i<16; i++) {
         pack_float(data, m[i], lendian);
     }
-    
-    
+    profile_end("pack_mat4");
   }
   pack_mat4 = _es6_module.add_export('pack_mat4', pack_mat4);
   function pack_dataref(data, b, lendian) {
@@ -640,8 +480,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
   pack_dataref = _es6_module.add_export('pack_dataref', pack_dataref);
   var _static_sbuf_ss=new Array(32);
   function pack_static_string(data, str, length) {
-    
-    
+    profile_start("pack_static_string");
     if (length==undefined)
       throw new Error("'length' paremter is not optional for pack_static_string()");
     var arr=length<2048 ? _static_sbuf_ss : new Array();
@@ -656,8 +495,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
           data.push(arr[i]);
         }
     }
-    
-    
+    profile_end("pack_static_string");
   }
   pack_static_string = _es6_module.add_export('pack_static_string', pack_static_string);
   function test_str_packers() {
@@ -685,16 +523,14 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
   register_test(test_str_packers);
   var _static_sbuf=new Array(32);
   function pack_string(data, str) {
-    
-    
+    profile_start("pack_string");
     _static_sbuf.length = 0;
     encode_utf8(_static_sbuf, str);
     pack_int(data, _static_sbuf.length);
     for (var i=0; i<_static_sbuf.length; i++) {
         data.push(_static_sbuf[i]);
     }
-    
-    
+    profile_end("pack_string");
   }
   pack_string = _es6_module.add_export('pack_string', pack_string);
   function unpack_bytes(data, uctx, len) {
@@ -1144,7 +980,9 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
     yield ;
   }
 }, '/dev/fairmotion/src/core/ajax.js');
-es6_module_define('raster', ["./icon.js", "../config/config.js"], function _raster_module(_es6_module) {
+
+
+es6_module_define('raster', ["../config/config.js", "./icon.js"], function _raster_module(_es6_module) {
   "use strict";
   var IconManager=es6_import_item(_es6_module, './icon.js', 'IconManager');
   var config=es6_import(_es6_module, '../config/config.js');
@@ -1178,7 +1016,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_bFJq_viewport;
+  var $ret_PX9V_viewport;
   class RasterState  {
     
     
@@ -1212,10 +1050,10 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_bFJq_viewport[0][0] = $ret_bFJq_viewport[0][1] = 0.0;
-        $ret_bFJq_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_bFJq_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_bFJq_viewport;
+        $ret_PX9V_viewport[0][0] = $ret_PX9V_viewport[0][1] = 0.0;
+        $ret_PX9V_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_PX9V_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_PX9V_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1280,12 +1118,14 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_bFJq_viewport=[[0, 0], [0, 0]];
+  var $ret_PX9V_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
-es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "../editors/viewport/view2d_editor.js", "./lib_api.js", "./struct.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
+
+
+es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../path.ux/scripts/util/vectormath.js", "./struct.js", "./toolops_api.js", "../util/strutils.js", "../editors/viewport/view2d_editor.js", "./lib_api.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1306,6 +1146,13 @@ es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../util/s
       this.data = undefined;
       this.size = [-1, -1];
       this._dom = undefined;
+    }
+    static  blockDefine() {
+      return {typeName: "image", 
+     defaultName: "Image", 
+     uiName: "Image", 
+     typeIndex: 8, 
+     linkOrder: 0}
     }
      get_dom_image() {
       if (this._dom==undefined) {
@@ -1358,6 +1205,7 @@ es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../util/s
   data  : arraybuffer | this._get_data();
 }
 `;
+  DataBlock.register(Image);
   class ImageUser  {
     
     
@@ -1389,7 +1237,9 @@ ImageUser {
 }
 `;
 }, '/dev/fairmotion/src/core/imageblock.js');
-es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "../core/frameset.js", "../curve/spline.js", "../core/toolops_api.js", "../core/fileapi/fileapi.js", "../curve/spline_draw.js", "../path.ux/scripts/util/struct.js", "../config/config.js", "../core/lib_api.js", "../core/imageblock.js"], function _image_ops_module(_es6_module) {
+
+
+es6_module_define('image_ops', ["../core/struct.js", "../core/fileapi/fileapi.js", "../config/config.js", "../curve/spline_draw.js", "../path.ux/scripts/util/struct.js", "../core/lib_api.js", "../core/toolops_api.js", "../core/imageblock.js", "../core/toolprops.js", "../curve/spline.js", "../core/frameset.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1415,7 +1265,7 @@ es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "..
   var html5_fileapi=es6_import(_es6_module, '../core/fileapi/fileapi.js');
   class LoadImageOp extends ToolOp {
     static  tooldef() {
-      return {apiname: "image.load_image", 
+      return {toolpath: "image.load_image", 
      uiname: "Load Image", 
      inputs: {name: new StringProperty("Image"), 
       dest_datapath: new StringProperty(""), 
@@ -1466,7 +1316,9 @@ es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "..
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["../datafiles/theme.js", "../editors/theme.js", "./struct.js", "../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../util/strutils.js", "../config/config.js"], function _UserSettings_module(_es6_module) {
+
+
+es6_module_define('UserSettings', ["../editors/theme.js", "../path.ux/scripts/util/util.js", "./struct.js", "../path.ux/scripts/core/ui_base.js", "../config/config.js", "../util/strutils.js", "../datafiles/theme.js", "../path.ux/scripts/core/ui_theme.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1942,9 +1794,12 @@ AppSettings {
     return ujob;
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
-es6_module_define('context', ["../editors/viewport/view2d.js", "./data_api/data_api.js", "../editors/console/console.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/controller/context.js", "./lib_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "../editors/editor_base.js", "../curve/spline.js", "../scene/scene.js", "../editors/material/MaterialEditor.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./frameset.js"], function _context_module(_es6_module) {
-  var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'ContextOverlay');
-  var Context=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'Context');
+
+
+es6_module_define('context', ["../curve/spline.js", "../editors/console/console.js", "./frameset.js", "./data_api/data_api.js", "../editors/curve/CurveEditor.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../path.ux/scripts/pathux.js", "../editors/menubar/MenuBar.js", "./lib_api.js", "../editors/ops/ops_editor.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/viewport/view2d.js", "../path.ux/scripts/path-controller/controller/context.js", "../scene/scene.js", "../editors/material/MaterialEditor.js", "../editors/editor_base.js"], function _context_module(_es6_module) {
+  var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
+  var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
+  var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
   class BaseContextOverlay extends ContextOverlay {
      constructor(state=g_app_state) {
       super(state);
@@ -2008,6 +1863,9 @@ es6_module_define('context', ["../editors/viewport/view2d.js", "./data_api/data_
     get  toolstack() {
       return g_app_state.toolstack;
     }
+    get  toolDefaults() {
+      return SavedToolDefaults;
+    }
     get  view2d() {
       var ret=Editor.context_area(View2DHandler);
       return ret;
@@ -2019,7 +1877,7 @@ es6_module_define('context', ["../editors/viewport/view2d.js", "./data_api/data_
   class ViewContextOverlay extends ContextOverlay {
     
      constructor(state=g_app_state) {
-      super();
+      super(state);
       this.appstate = state;
       this._keymap_mpos = [0, 0];
     }
@@ -2169,7 +2027,9 @@ es6_module_define('context', ["../editors/viewport/view2d.js", "./data_api/data_
   var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
   var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
-es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./context.js", "./AppState.js", "./toolops_api.js"], function _toolstack_module(_es6_module) {
+
+
+es6_module_define('toolstack', ["./AppState.js", "./toolprops.js", "./data_api/data_api.js", "./context.js", "./toolops_api.js", "./const.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2183,6 +2043,7 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
   var CollectionProperty=es6_import_item(_es6_module, './toolprops.js', 'CollectionProperty');
   var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
+  var USE_PATHUX_API=es6_import_item(_es6_module, './const.js', 'USE_PATHUX_API');
   class ToolStack  {
     
     
@@ -2212,8 +2073,8 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
         last_time = ctx.time;
         tool.is_modal = false;
         tool.exec_pre(ctx);
-        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-            tool.undo_pre(ctx);
+        if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
+            tool.undoPre(ctx);
             tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
         }
         tool.exec(ctx);
@@ -2261,8 +2122,8 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
           ctx.set_context(mctx);
           tool.is_modal = false;
           tool.exec_pre(ctx);
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-              tool.undo_pre(ctx);
+          if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
+              tool.undoPre(ctx);
               tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
           }
           tool.exec(ctx);
@@ -2358,8 +2219,8 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
           let ctx=new FullContext();
           tool.saved_context.set_context(ctx);
           tool.is_modal = false;
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-              tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+          if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
+              tool.undoPre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
               tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
           }
           let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
@@ -2367,7 +2228,9 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
             the_global_dag.reset_cache();
           tool.exec_pre(tctx);
           tool.exec(tctx);
-          tool.redo_post(ctx);
+          if (tool.redo_post) {
+              tool.redo_post(ctx);
+          }
           this.undocur++;
           if (this.undocur>0)
             this.rebuild_last_tool(this.undostack[this.undocur-1]);
@@ -2455,6 +2318,9 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
       return datastruct;
     }
      rebuild_last_tool(tool) {
+      if (USE_PATHUX_API) {
+          return ;
+      }
       let s;
       if (tool!==undefined)
         s = this.gen_tool_datastruct(tool);
@@ -2544,7 +2410,7 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
           this.error("Can not call tool '"+tool.constructor.name+"'");
           return ;
       }
-      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO))
+      if (!(tool.undoflag&UndoFlags.NO_UNDO))
         this.undo_push(tool);
       for (let k in tool.inputs) {
           let p=tool.inputs[k];
@@ -2558,28 +2424,30 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
           tool.modal_tctx = new BaseContext().toLocked();
           tool.saved_context = new SavedContext(tool.modal_tctx);
           tool.exec_pre(tool.modal_tctx);
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+          if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
               if (tool.is_modal)
-                tool.modal_running = true;
-              tool.undo_pre(modal_ctx);
+                tool.modalRunning = true;
+              tool.undoPre(modal_ctx);
               tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
               if (tool.is_modal)
-                tool.modal_running = false;
+                tool.modalRunning = false;
           }
-          tool._start_modal(modal_ctx);
-          tool.start_modal(modal_ctx);
+          if (tool._start_modal) {
+              tool._start_modal(modal_ctx);
+          }
+          tool.modalStart(modal_ctx);
       }
       else {
         let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
         tool.saved_context = new SavedContext(tctx);
-        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-            tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+        if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
+            tool.undoPre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
             tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
         }
         tool.exec_pre(tctx);
         tool.exec(tctx);
       }
-      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
           this.rebuild_last_tool(tool);
       }
     }
@@ -2605,7 +2473,9 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
 `;
   var AppState=es6_import_item(_es6_module, './AppState.js', 'AppState');
 }, '/dev/fairmotion/src/core/toolstack.js');
-es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platforms/platform.js", "./notifications.js", "./frameset.js", "./lib_api.js", "./jobs.js", "./lib_api_typedefine.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/dopesheet/DopeSheetEditor.js", "./data_api/data_api_pathux.js", "../curve/spline_base.js", "../editors/menubar/MenuBar.js", "../editors/settings/SettingsEditor.js", "./toolprops.js", "../path.ux/scripts/config/const.js", "../editors/all.js", "./toolstack.js", "../path.ux/scripts/util/util.js", "../editors/viewport/view2d.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/material/MaterialEditor.js", "../config/config.js", "../editors/curve/CurveEditor.js", "./toolops_api.js", "../scene/scene.js", "./context.js", "../editors/editor_base.js", "./startup/startup_file.js", "../editors/console/console.js", "../editors/theme.js", "../path.ux/scripts/screen/ScreenArea.js", "./fileapi/fileapi.js", "../util/strutils.js", "./struct.js", "./data_api/data_api.js", "./ajax.js", "./raster.js", "./startup/startup_file_example.js", "./lib_utils.js", "./UserSettings.js", "../path.ux/scripts/platforms/electron/electron_api.js"], function _AppState_module(_es6_module) {
+
+
+es6_module_define('AppState', ["../path.ux/scripts/config/const.js", "../editors/viewport/view2d_ops.js", "./struct.js", "./raster.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/screen/ScreenArea.js", "../curve/spline_base.js", "./toolstack.js", "./toolops_api.js", "./frameset.js", "./toolprops.js", "../../platforms/platform.js", "./data_api/data_api_new.js", "./ajax.js", "../editors/theme.js", "./fileapi/fileapi.js", "../path.ux/scripts/util/util.js", "./context.js", "./data_api/data_api_pathux.js", "./startup/startup_file.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./jobs.js", "../editors/console/console.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/curve/CurveEditor.js", "./lib_utils.js", "./UserSettings.js", "../config/config.js", "../editors/editor_base.js", "./data_api/data_api.js", "../editors/settings/SettingsEditor.js", "./const.js", "./lib_api.js", "./startup/startup_file_example.js", "../util/strutils.js", "../editors/material/MaterialEditor.js", "../editors/menubar/MenuBar.js", "./notifications.js", "../editors/all.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/core/ui_base.js", "../editors/viewport/view2d.js", "../scene/scene.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2620,12 +2490,14 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var BaseContextOverlay=es6_import_item(_es6_module, './context.js', 'BaseContextOverlay');
+  var makeAPI=es6_import_item(_es6_module, './data_api/data_api_new.js', 'makeAPI');
   let _ex_FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   _es6_module.add_export('FullContext', _ex_FullContext, true);
   let _ex_BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   _es6_module.add_export('BaseContext', _ex_BaseContext, true);
   let _ex_BaseContextOverlay=es6_import_item(_es6_module, './context.js', 'BaseContextOverlay');
   _es6_module.add_export('BaseContextOverlay', _ex_BaseContextOverlay, true);
+  var BlockTypeMap=es6_import_item(_es6_module, './lib_api.js', 'BlockTypeMap');
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
   var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
   var CurveEditor=es6_import_item(_es6_module, '../editors/curve/CurveEditor.js', 'CurveEditor');
@@ -2644,16 +2516,7 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
   var Editor=es6_import_item(_es6_module, '../editors/editor_base.js', 'Editor');
   var cconst=es6_import_item(_es6_module, '../path.ux/scripts/config/const.js', 'default');
   var termColor=es6_import_item(_es6_module, '../path.ux/scripts/util/util.js', 'termColor');
-  cconst.loadConstants(config.PathUXConstants);
-  iconmanager.reset(16);
-  setTheme(theme.theme);
-  setIconMap(window.Icons);
-  if (window.devicePixelRatio>1.1) {
-  }
-  else {
-  }
-  iconmanager.add(document.getElementById("iconsheet32"), 32, 16);
-  iconmanager.add(document.getElementById("iconsheet64"), 64, 32);
+  var USE_PATHUX_API=es6_import_item(_es6_module, './const.js', 'USE_PATHUX_API');
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
   Area.prototype.getScreen = () =>    {
     return g_app_state.screen;
@@ -2736,7 +2599,6 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
   var NotificationManager=es6_import_item(_es6_module, './notifications.js', 'NotificationManager');
   var Notification=es6_import_item(_es6_module, './notifications.js', 'Notification');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
-  var get_data_typemap=es6_import_item(_es6_module, './lib_api_typedefine.js', 'get_data_typemap');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
@@ -3003,9 +2865,15 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
       this.was_touch = false;
       this.toolstack = new ToolStack(this);
       this.active_view2d = undefined;
-      this.api = new DataAPI(this);
-      this.pathcontroller = new PathUXInterface(this.api);
-      this.pathcontroller.setContext(new FullContext(this));
+      if (USE_PATHUX_API) {
+          this.api = makeAPI();
+          this.pathcontroller = this.api;
+      }
+      else {
+        this.api = new DataAPI(this);
+        this.pathcontroller = new PathUXInterface(this.api);
+        this.pathcontroller.setContext(new FullContext(this));
+      }
       this.filepath = "";
       this.version = g_app_version;
       this.size = screen!==undefined ? screen.size : [512, 512];
@@ -3345,6 +3213,13 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
       }
     }
      do_versions(datalib, blocks, version) {
+      if (version<0.053) {
+          for (let scene of datalib.scenes) {
+              if (!scene.collection) {
+                  scene._initCollection(datalib);
+              }
+          }
+      }
       if (version<0.046) {
           for (let frameset of datalib.framesets) {
               for (let spline of frameset._allsplines) {
@@ -3424,11 +3299,26 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
       if (version<0.052) {
           for (let scene of datalib.scenes) {
               for (let frameset of datalib.framesets) {
-                  let ob=scene.addFrameset(frameset);
+                  let ob=scene.addFrameset(datalib, frameset);
                   scene.setActiveObject(ob);
               }
           }
           console.log("objectification");
+      }
+      else 
+        if (version<0.053) {
+          for (let scene of datalib.scenes) {
+              if (!scene.collection) {
+                  scene._initCollection(datalib);
+              }
+              for (let ob of scene.objects) {
+                  if (ob.lib_id<0) {
+                      console.error("Had to add object to datalib during file conversion", ob);
+                      datalib.add(ob);
+                  }
+                  scene.collection.add(ob);
+              }
+          }
       }
       if (version<0.053) {
           let map={};
@@ -3495,10 +3385,10 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
           data = new DataView(data2.buffer);
           uctx.i = 0;
       }
-      let blocks=new Array();
+      let blocks=[];
       let fstructs=new STRUCT();
       let datalib=undefined;
-      let tmap=get_data_typemap();
+      let tmap=BlockTypeMap;
       window._send_killscreen();
       while (uctx.i<data.byteLength) {
         let type=unpack_static_string(data, uctx, 4);
@@ -3745,7 +3635,7 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
       }
       let blocks=new Array();
       let fstructs=new STRUCT();
-      let tmap=get_data_typemap();
+      let tmap=BlockTypeMap;
       while (uctx.i<data.byteLength) {
         let type=unpack_static_string(data, uctx, 4);
         let subtype=unpack_static_string(data, uctx, 4);
@@ -3787,7 +3677,7 @@ es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platf
       let blocks=filedata.blocks;
       let fstructs=filedata.fstructs;
       let version=filedata.version;
-      let tmap=get_data_typemap();
+      let tmap=BlockTypeMap;
       let screen=undefined;
       for (let i=0; i<blocks.length; i++) {
           let b=blocks[i];
@@ -4089,6 +3979,8 @@ SavedContext {
   _es6_module.add_class(_ToolContext);
   _ToolContext = _es6_module.add_export('_ToolContext', _ToolContext);
 }, '/dev/fairmotion/src/core/AppState.js');
+
+
 es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_module) {
   "use strict";
   var safe_eval=es6_import_item(_es6_module, './safe_eval.js', 'safe_eval');
@@ -4233,6 +4125,8 @@ es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_modul
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
+
+
 es6_module_define('data_api_types', ["../toolops_api.js", "../toolprops.js", "./data_api_base.js"], function _data_api_types_module(_es6_module) {
   var DataFlags=es6_import_item(_es6_module, './data_api_base.js', 'DataFlags');
   var DataPathTypes=es6_import_item(_es6_module, './data_api_base.js', 'DataPathTypes');
@@ -4542,7 +4436,10 @@ es6_module_define('data_api_types', ["../toolops_api.js", "../toolprops.js", "./
   _es6_module.add_class(DataStruct);
   DataStruct = _es6_module.add_export('DataStruct', DataStruct);
 }, '/dev/fairmotion/src/core/data_api/data_api_types.js');
-es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "../toolops_api.js", "../../config/config.js", "../lib_api.js", "../toolprops.js", "../animdata.js", "./data_api_pathux.js", "../../curve/spline_multires.js", "./data_api_types.js", "../safe_eval.js"], function _data_api_module(_es6_module) {
+
+
+es6_module_define('data_api', ["../safe_eval.js", "../toolprops.js", "./data_api_types.js", "../../path.ux/scripts/pathux.js", "../../config/config.js", "./data_api_base.js", "../animdata.js", "./data_api_pathux.js", "../../curve/spline_multires.js", "./data_api_parser.js", "../lib_api.js", "../toolops_api.js"], function _data_api_module(_es6_module) {
+  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
   function is_int(s) {
     s = s.trim();
     if (typeof s=="number") {
@@ -4554,6 +4451,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
     return m[0].length===s.length;
   }
   window._is_int = is_int;
+  let arraypool=new util.ArrayPool();
+  let token_cachering;
+  let tks_cachering;
   var DataPathTypes={PROP: 0, 
    STRUCT: 1, 
    STRUCT_ARRAY: 2}
@@ -4625,7 +4525,7 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
   class TinyParser  {
      constructor(data) {
       var tpl=TinyParser.ctemplates;
-      this.toks = objcache.fetch(tpl.toks);
+      this.toks = tks_cachering.next();
       this.toks.length = 0;
       this.split_chars = TinyParser.split_chars;
       this.ws = TinyParser.ws;
@@ -4636,11 +4536,11 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       this.cur = 0;
       this.toks.length = 0;
       this.data = data;
-      if (data!=undefined&&data!="")
+      if (data!==undefined&&data!=="")
         this.lex();
     }
      gen_tok(a, b) {
-      var ret=objcache.fetch(TinyParser.ctemplates.token);
+      var ret=token_cachering.next();
       ret[0] = a;
       ret[1] = b;
       ret.length = 2;
@@ -4648,7 +4548,7 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
     }
      lex(data) {
       var gt=this.gen_tok;
-      if (data==undefined)
+      if (data===undefined)
         data = this.data;
       var toks=this.toks;
       var tok=undefined;
@@ -4731,12 +4631,19 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       }}, 
    token: {obj: ["", ""], 
     cachesize: 512}}
+  token_cachering = new util.cachering(() =>    {
+    return {obj: ["", ""], 
+    cachesize: 512}
+  }, 512);
+  tks_cachering = new util.cachering(() =>    {
+    return [];
+  }, 64);
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
   var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_Vty__resolve_path_intern;
-  var $retcpy_EE94_set_prop;
-  var $scope_tNJe_set_prop;
+  var $cache_y5ss_resolve_path_intern;
+  var $retcpy_XiNg_set_prop;
+  var $scope__O7Q_set_prop;
   class DataAPI  {
      constructor(appstate) {
       this.appstate = appstate;
@@ -4800,7 +4707,7 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       p.reset(line);
       var call=parse_call(p);
       path = path.trimRight().trimLeft();
-      var ret=objcache.array(2);
+      var ret=arraypool.get(2, false);
       ret[0] = path;
       ret[1] = call;
       return ret;
@@ -4929,6 +4836,30 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
     }
      get_op_keyhandler(ctx, str) {
       console.warn("get_op_keyhandler: implement me!");
+      if (0) {
+          var hash=str;
+          if (ctx.screen.active.type!=undefined)
+            hash+=ctx.screen.active.type;
+          if (hash in this.op_keyhandler_cache) {
+              return this.op_keyhandler_cache[hash];
+          }
+          function find_hotkey_recurse(element) {
+            if (element==undefined)
+              return undefined;
+            var maps=element.get_keymaps();
+            for (var i=0; i<maps.length; i++) {
+                var km=maps[i];
+                var handler=km.get_tool_handler(str);
+                if (handler!=undefined)
+                  return handler;
+            }
+            if (__instance_of(element, UIFrame)&&element.active!=undefined) {
+                return find_hotkey_recurse(element.active);
+            }
+          }
+          this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
+          return this.op_keyhandler_cache[hash];
+      }
     }
      call_op(ctx, str) {
       if (RELEASE)
@@ -5012,8 +4943,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
               throw error;
           }
           else {
-            console.log("Error calling "+str);
-            console.trace();
+            console.log(error.stack);
+            console.log(error.message);
+            console.warn("Error calling "+str);
           }
       }
     }
@@ -5084,18 +5016,18 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       }
       let ret;
       try {
-        if (!(str in $cache_Vty__resolve_path_intern)) {
+        if (!(str in $cache_y5ss_resolve_path_intern)) {
             ret = this.resolve_path_intern2(ctx, str);
             let ret2=[];
             for (let i=0; i<ret.length; i++) {
                 ret2.push(ret[i]);
             }
-            $cache_Vty__resolve_path_intern[str] = ret2;
+            $cache_y5ss_resolve_path_intern[str] = ret2;
         }
         else {
-          ret = $cache_Vty__resolve_path_intern[str];
+          ret = $cache_y5ss_resolve_path_intern[str];
           if (ret[0]===undefined||!ret[0].cache_good()) {
-              delete $cache_Vty__resolve_path_intern[str];
+              delete $cache_y5ss_resolve_path_intern[str];
               return this.resolve_path_intern(ctx, str);
           }
           else {
@@ -5448,11 +5380,11 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
           }
           return ret;
       }
-      $retcpy_EE94_set_prop.length = ret.length;
+      $retcpy_XiNg_set_prop.length = ret.length;
       for (var i=0; i<5; i++) {
-          $retcpy_EE94_set_prop[i] = ret[i];
+          $retcpy_XiNg_set_prop[i] = ret[i];
       }
-      ret = $retcpy_EE94_set_prop;
+      ret = $retcpy_XiNg_set_prop;
       var owner=this.evaluate(ctx, ret[4]);
       if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
           var prop=ret[0].data;
@@ -5518,9 +5450,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
                     val&=~mask;
                   prop.dataref = owner;
                   prop.setValue(val, owner, changed);
-                  $scope_tNJe_set_prop[0] = val;
+                  $scope__O7Q_set_prop[0] = val;
                   path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_tNJe_set_prop);
+                  this.evaluate(ctx, path2, $scope__O7Q_set_prop);
               }
               else {
                 path+=" = "+value;
@@ -5570,9 +5502,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
             }
             else {
               if (typeof value=="object") {
-                  $scope_tNJe_set_prop[0] = value;
+                  $scope__O7Q_set_prop[0] = value;
                   path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_tNJe_set_prop);
+                  this.evaluate(ctx, path, $scope__O7Q_set_prop);
               }
               else {
                 changed = value==old_value;
@@ -5622,16 +5554,18 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       return ret[0].data;
     }
   }
-  var $cache_Vty__resolve_path_intern={}
-  var $retcpy_EE94_set_prop=new Array(16);
-  var $scope_tNJe_set_prop=[0, 0];
+  var $cache_y5ss_resolve_path_intern={}
+  var $retcpy_XiNg_set_prop=new Array(16);
+  var $scope__O7Q_set_prop=[0, 0];
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 }, '/dev/fairmotion/src/core/data_api/data_api.js');
-es6_module_define('data_api_parser', ["../../path.ux/scripts/util/parseutil.js"], function _data_api_parser_module(_es6_module) {
+
+
+es6_module_define('data_api_parser', ["../../util/parseutil.js"], function _data_api_parser_module(_es6_module) {
   "use strict";
-  var PUTL=es6_import(_es6_module, '../../path.ux/scripts/util/parseutil.js');
+  var PUTL=es6_import(_es6_module, '../../util/parseutil.js');
   function apiparser() {
     function tk(name, re, func) {
       return new PUTL.tokdef(name, re, func);
@@ -5841,6 +5775,8 @@ t+=" "
     g_app_state.api.set_prop_new(new Context(), "view2d.zoomfac", 0.5);
   }
 }, '/dev/fairmotion/src/core/data_api/data_api_parser.js');
+
+
 es6_module_define('video', [], function _video_module(_es6_module) {
   class FrameIterator  {
     
@@ -6017,7 +5953,9 @@ es6_module_define('video', [], function _video_module(_es6_module) {
   var manager=new VideoManager();
   manager = _es6_module.add_export('manager', manager);
 }, '/dev/fairmotion/src/core/video.js');
-es6_module_define('fileapi', ["./fileapi_electron", "./fileapi_chrome", "./fileapi_html5", "../../config/config.js"], function _fileapi_module(_es6_module) {
+
+
+es6_module_define('fileapi', ["./fileapi_html5", "./fileapi_chrome", "./fileapi_electron", "../../config/config.js"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -6055,6 +5993,8 @@ es6_module_define('fileapi', ["./fileapi_electron", "./fileapi_chrome", "./filea
     }
   }
 }, '/dev/fairmotion/src/core/fileapi/fileapi.js');
+
+
 es6_module_define('fileapi_html5', ["../../config/config.js"], function _fileapi_html5_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../../config/config.js');
@@ -6147,6 +6087,8 @@ es6_module_define('fileapi_html5', ["../../config/config.js"], function _fileapi
   }
   save_with_dialog = _es6_module.add_export('save_with_dialog', save_with_dialog);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_html5.js');
+
+
 es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_module) {
   "use strict";
   var current_chromeapp_file=undefined;
@@ -6239,10 +6181,13 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
   }
   save_file = _es6_module.add_export('save_file', save_file);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_chrome.js');
-es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html5.js"], function _fileapi_electron_module(_es6_module) {
+
+
+es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../config/config.js", "../../path.ux/scripts/platforms/electron/electron_api.js"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../../config/config.js');
   var fileapi_html5=es6_import(_es6_module, './fileapi_html5.js');
+  var wrapRemoteCallback=es6_import_item(_es6_module, '../../path.ux/scripts/platforms/electron/electron_api.js', 'wrapRemoteCallback');
   let fs;
   if (config.IS_NODEJS) {
       fs = require("fs");
@@ -6279,15 +6224,8 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
     if (thisvar==undefined)
       thisvar = this;
     let default_path=get_base_dir(g_app_state.filepath);
-    let dialog=require('electron').dialog;
-    if (dialog===undefined) {
-        dialog = require('electron').remote.dialog;
-    }
-    dialog.showOpenDialog(undefined, {title: "Open", 
-    defaultPath: default_path, 
-    filters: [{name: extslabel, 
-     extensions: exts}], 
-    securityScopedBookmarks: true}).then((e) =>      {
+    let $_t0ttlh=require('electron'), ipcRenderer=$_t0ttlh.ipcRenderer;
+    let onthen=(e) =>      {
       if (e.cancelled) {
           return ;
       }
@@ -6327,7 +6265,17 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
         callback.call(thisvar, buf, fname, path);
       else 
         callback(buf, fname, path);
-    });
+    }
+    let oncatch=(error) =>      {
+      if (error_cb) {
+          error_cb(error);
+      }
+    }
+    ipcRenderer.invoke('show-open-dialog', {title: "Open", 
+    defaultPath: default_path, 
+    filters: [{name: extslabel, 
+     extensions: exts}], 
+    securityScopedBookmarks: true}, wrapRemoteCallback("dialog", onthen), wrapRemoteCallback('dialog', oncatch));
   }
   open_file = _es6_module.add_export('open_file', open_file);
   function can_access_path(path) {
@@ -6370,18 +6318,25 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
     if (dialog===undefined) {
         dialog = require('electron').remote.dialog;
     }
-    dialog.showSaveDialog(undefined, {title: "Save", 
-    defaultPath: default_path, 
-    filters: [{name: extslabel, 
-     extensions: exts}], 
-    securityScopedBookmarks: true}).then((dialog_data) =>      {
+    let $_t1mlue=require('electron'), ipcRenderer=$_t1mlue.ipcRenderer;
+    let onthen=(dialog_data) =>      {
       let canceled=dialog_data.canceled;
       let path=dialog_data.filePath;
       if (canceled)
         return ;
       console.log("SAVING:", path);
       save_file(data, path, error_cb, success_cb);
-    });
+    }
+    let oncatch=(error) =>      {
+      if (error_cb) {
+          error_cb(error);
+      }
+    }
+    ipcRenderer.invoke('show-save-dialog', {title: "Save", 
+    defaultPath: default_path, 
+    filters: [{name: extslabel, 
+     extensions: exts}], 
+    securityScopedBookmarks: true}, wrapRemoteCallback("dialog", onthen), wrapRemoteCallback("dialog", oncatch));
   }
   save_with_dialog = _es6_module.add_export('save_with_dialog', save_with_dialog);
   function save_file_old(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
@@ -6405,7 +6360,9 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
   }
   save_file_old = _es6_module.add_export('save_file_old', save_file_old);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
-es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "./toolprops.js", "./struct.js", "../curve/spline_base.js"], function _animdata_module(_es6_module) {
+
+
+es6_module_define('animdata', ["./lib_api.js", "../curve/spline_base.js", "./eventdag.js", "./struct.js", "./toolprops.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -6659,6 +6616,8 @@ es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "./toolprops.js"
   }
 `;
 }, '/dev/fairmotion/src/core/animdata.js');
+
+
 es6_module_define('animutil', [], function _animutil_module(_es6_module) {
   "use strict";
   var AnimTypes={SPLINE_PATH_TIME: 1, 
@@ -6669,9 +6628,13 @@ es6_module_define('animutil', [], function _animutil_module(_es6_module) {
   }
   iterAnimCurves = _es6_module.add_export('iterAnimCurves', iterAnimCurves);
 }, '/dev/fairmotion/src/core/animutil.js');
+
+
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
-es6_module_define('svg_export', ["../curve/spline_draw.js", "./mathlib.js", "../curve/spline_draw_new.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_base.js"], function _svg_export_module(_es6_module) {
+
+
+es6_module_define('svg_export', ["../vectordraw/vectordraw_svg.js", "./mathlib.js", "../curve/spline_base.js", "../curve/spline_draw.js", "../curve/spline_draw_new.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -6720,6 +6683,8 @@ es6_module_define('svg_export', ["../curve/spline_draw.js", "./mathlib.js", "../
   }
   export_svg = _es6_module.add_export('export_svg', export_svg);
 }, '/dev/fairmotion/src/util/svg_export.js');
+
+
 es6_module_define('vectormath', ["../path.ux/scripts/util/vectormath.js"], function _vectormath_module(_es6_module) {
   "use strict";
   var ____path_ux_scripts_util_vectormath_js=es6_import(_es6_module, '../path.ux/scripts/util/vectormath.js');
@@ -6737,2144 +6702,37 @@ es6_module_define('vectormath', ["../path.ux/scripts/util/vectormath.js"], funct
   window.Quat = Quat;
   window.Matrix4 = Matrix4;
 }, '/dev/fairmotion/src/util/vectormath.js');
-es6_module_define('context', ["../util/util.js", "../widgets/ui_noteframe.js", "../config/const.js"], function _context_module(_es6_module) {
-  var util=es6_import(_es6_module, '../util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
-  window.ccosnt = cconst;
-  const ContextFlags={IS_VIEW: 1}
-  _es6_module.add_export('ContextFlags', ContextFlags);
-  class InheritFlag  {
-     constructor(data) {
-      this.data = data;
-    }
-  }
-  _ESClass.register(InheritFlag);
-  _es6_module.add_class(InheritFlag);
-  let __idgen=1;
-  if (Symbol.ContextID===undefined) {
-      Symbol.ContextID = Symbol("ContextID");
-  }
-  if (Symbol.CachedDef===undefined) {
-      Symbol.CachedDef = Symbol("CachedDef");
-  }
-  const _ret_tmp=[undefined];
-  const OverlayClasses=[];
-  _es6_module.add_export('OverlayClasses', OverlayClasses);
-  class ContextOverlay  {
-     constructor(appstate) {
-      this.ctx = undefined;
-      this._state = appstate;
-    }
-    get  state() {
-      return this._state;
-    }
-     onRemove(have_new_file=false) {
 
-    }
-     copy() {
-      return new this.constructor(this._state);
-    }
-     validate() {
-      throw new Error("Implement me!");
-    }
-    static  contextDefine() {
-      throw new Error("implement me!");
-      return {name: "", 
-     flag: 0}
-    }
-    static  resolveDef() {
-      if (this.hasOwnProperty(Symbol.CachedDef)) {
-          return this[Symbol.CachedDef];
-      }
-      let def2=Symbol.CachedDef = {};
-      let def=this.contextDefine();
-      if (def===undefined) {
-          def = {};
-      }
-      for (let k in def) {
-          def2[k] = def[k];
-      }
-      if (!("flag") in def) {
-          def2.flag = Context.inherit(0);
-      }
-      let parents=[];
-      let p=util.getClassParent(this);
-      while (p&&p!==ContextOverlay) {
-        parents.push(p);
-        p = util.getClassParent(p);
-      }
-      if (__instance_of(def2.flag, InheritFlag)) {
-          let flag=def2.flag.data;
-          for (let p of parents) {
-              let def=p.contextDefine();
-              if (!def.flag) {
-                  continue;
-              }
-              else 
-                if (__instance_of(def.flag, InheritFlag)) {
-                  flag|=def.flag.data;
-              }
-              else {
-                flag|=def.flag;
-                break;
-              }
-          }
-          def2.flag = flag;
-      }
-      return def2;
-    }
-  }
-  _ESClass.register(ContextOverlay);
-  _es6_module.add_class(ContextOverlay);
-  ContextOverlay = _es6_module.add_export('ContextOverlay', ContextOverlay);
-  const excludedKeys=new Set(["onRemove", "reset", "toString", "_fix", "valueOf", "copy", "next", "save", "load", "clear", "hasOwnProperty", "toLocaleString", "constructor", "propertyIsEnumerable", "isPrototypeOf", "state", "saveProperty", "loadProperty", "getOwningOverlay", "_props"]);
-  _es6_module.add_export('excludedKeys', excludedKeys);
-  class LockedContext  {
-     constructor(ctx) {
-      this.props = {};
-      this.state = ctx.state;
-      this.api = ctx.api;
-      this.toolstack = ctx.toolstack;
-      this.load(ctx);
-    }
-     toLocked() {
-      return this;
-    }
-     error() {
-      return this.ctx.error(...arguments);
-    }
-     warning() {
-      return this.ctx.warning(...arguments);
-    }
-     message() {
-      return this.ctx.message(...arguments);
-    }
-     progbar() {
-      return this.ctx.progbar(...arguments);
-    }
-     load(ctx) {
-      let keys=ctx._props;
-      function wrapget(name) {
-        return function (ctx2, data) {
-          return ctx.loadProperty(ctx2, name, data);
-        }
-      }
-      for (let k of keys) {
-          let v;
-          if (k==="state"||k==="toolstack"||k==="api") {
-              continue;
-          }
-          if (typeof k==="string"&&(k.endsWith("_save")||k.endsWith("_load"))) {
-              continue;
-          }
-          try {
-            v = ctx[k];
-          }
-          catch (error) {
-              if (cconst.DEBUG.contextSystem) {
-                  console.warn("failed to look up property in context: ", k);
-              }
-              continue;
-          }
-          let data, getter;
-          let overlay=ctx.getOwningOverlay(k);
-          if (overlay===undefined) {
-              continue;
-          }
-          try {
-            if (typeof k==="string"&&(overlay[k+"_save"]&&overlay[k+"_load"])) {
-                data = overlay[k+"_save"]();
-                getter = overlay[k+"_load"];
-            }
-            else {
-              data = ctx.saveProperty(k);
-              getter = wrapget(k);
-            }
-          }
-          catch (error) {
-              console.warn("Failed to save context property", k);
-              continue;
-          }
-          this.props[k] = {data: data, 
-       get: getter};
-      }
-      let defineProp=(name) =>        {
-        Object.defineProperty(this, name, {get: function () {
-            let def=this.props[name];
-            return def.get(this.ctx, def.data);
-          }});
-      };
-      for (let k in this.props) {
-          defineProp(k);
-      }
-      this.ctx = ctx;
-    }
-     setContext(ctx) {
-      this.ctx = ctx;
-      this.state = ctx.state;
-      this.api = ctx.api;
-      this.toolstack = ctx.toolstack;
-    }
-  }
-  _ESClass.register(LockedContext);
-  _es6_module.add_class(LockedContext);
-  LockedContext = _es6_module.add_export('LockedContext', LockedContext);
-  let next_key={}
-  let idgen=1;
-  class Context  {
-     constructor(appstate) {
-      this.state = appstate;
-      this._props = new Set();
-      this._stack = [];
-      this._inside_map = {};
-    }
-     _fix() {
-      this._inside_map = {};
-    }
-     error(message, timeout=1500) {
-      let state=this.state;
-      console.warn(message);
-      if (state&&state.screen) {
-          return ui_noteframe.error(state.screen, message, timeout);
-      }
-    }
-     warning(message, timeout=1500) {
-      let state=this.state;
-      console.warn(message);
-      if (state&&state.screen) {
-          return ui_noteframe.warning(state.screen, message, timeout);
-      }
-    }
-     message(msg, timeout=1500) {
-      let state=this.state;
-      console.warn(msg);
-      if (state&&state.screen) {
-          return ui_noteframe.message(state.screen, msg, timeout);
-      }
-    }
-     progbar(msg, perc=0.0, timeout=1500, id=msg) {
-      let state=this.state;
-      if (state&&state.screen) {
-          return ui_noteframe.progbarNote(state.screen, msg, perc, "green", timeout, id);
-      }
-    }
-     validateOverlays() {
-      let stack=this._stack;
-      let stack2=[];
-      for (let i=0; i<stack.length; i++) {
-          if (stack[i].validate()) {
-              stack2.push(stack[i]);
-          }
-      }
-      this._stack = stack2;
-    }
-     hasOverlay(cls) {
-      return this.getOverlay(cls)!==undefined;
-    }
-     getOverlay(cls) {
-      for (let overlay of this._stack) {
-          if (overlay.constructor===cls) {
-              return overlay;
-          }
-      }
-    }
-     clear(have_new_file=false) {
-      for (let overlay of this._stack) {
-          overlay.onRemove(have_new_file);
-      }
-      this._stack = [];
-    }
-     reset(have_new_file=false) {
-      this.clear(have_new_file);
-    }
-     override(overrides) {
-      if (overrides.copy===undefined) {
-          overrides.copy = function () {
-            return Object.assign({}, this);
-          };
-      }
-      let ctx=this.copy();
-      ctx.pushOverlay(overrides);
-      return ctx;
-    }
-     copy() {
-      let ret=new this.constructor(this.state);
-      for (let item of this._stack) {
-          ret.pushOverlay(item.copy());
-      }
-      return ret;
-    }
-    static  super() {
-      return next_key;
-    }
-     saveProperty(key) {
-      console.warn("Missing saveProperty implementation in Context; passing through values...");
-      return this[key];
-    }
-     loadProperty(ctx, key, data) {
-      console.warn("Missing loadProperty implementation in Context; passing through values...");
-      return data;
-    }
-     getOwningOverlay(name, _val_out) {
-      let inside_map=this._inside_map;
-      let stack=this._stack;
-      if (cconst.DEBUG.contextSystem) {
-          console.log(name, inside_map);
-      }
-      for (let i=stack.length-1; i>=0; i--) {
-          let overlay=stack[i];
-          let ret=next_key;
-          if (overlay[Symbol.ContextID]===undefined) {
-              throw new Error("context corruption");
-          }
-          let ikey=overlay[Symbol.ContextID];
-          if (cconst.DEBUG.contextSystem) {
-              console.log(ikey, overlay);
-          }
-          if (inside_map[ikey]) {
-              continue;
-          }
-          if (overlay.__allKeys.has(name)) {
-              if (cconst.DEBUG.contextSystem) {
-                  console.log("getting value");
-              }
-              inside_map[ikey] = 1;
-              try {
-                ret = overlay[name];
-              }
-              catch (error) {
-                  inside_map[ikey] = 0;
-                  throw error;
-              }
-              inside_map[ikey] = 0;
-          }
-          if (ret!==next_key) {
-              if (_val_out!==undefined) {
-                  _val_out[0] = ret;
-              }
-              return overlay;
-          }
-      }
-      if (_val_out!==undefined) {
-          _val_out[0] = undefined;
-      }
-      return undefined;
-    }
-     ensureProperty(name) {
-      if (this.hasOwnProperty(name)) {
-          return ;
-      }
-      this._props.add(name);
-      Object.defineProperty(this, name, {get: function () {
-          let ret=_ret_tmp;
-          _ret_tmp[0] = undefined;
-          this.getOwningOverlay(name, ret);
-          return ret[0];
-        }, 
-     set: function () {
-          throw new Error("Cannot set ctx properties");
-        }});
-    }
-     toLocked() {
-      return new LockedContext(this);
-    }
-     pushOverlay(overlay) {
-      if (!overlay.hasOwnProperty(Symbol.ContextID)) {
-          overlay[Symbol.ContextID] = idgen++;
-      }
-      let keys=new Set();
-      for (let key of util.getAllKeys(overlay)) {
-          if (!excludedKeys.has(key)&&!(typeof key==="string"&&key[0]==="_")) {
-              keys.add(key);
-          }
-      }
-      overlay.ctx = this;
-      if (overlay.__allKeys===undefined) {
-          overlay.__allKeys = keys;
-      }
-      for (let k of keys) {
-          let bad=typeof k==="symbol"||excludedKeys.has(k);
-          bad = bad||(typeof k==="string"&&k[0]==="_");
-          bad = bad||(typeof k==="string"&&k.endsWith("_save"));
-          bad = bad||(typeof k==="string"&&k.endsWith("_load"));
-          if (bad) {
-              continue;
-          }
-          this.ensureProperty(k);
-      }
-      if (this._stack.indexOf(overlay)>=0) {
-          console.warn("Overlay already added once");
-          if (this._stack[this._stack.length-1]===overlay) {
-              console.warn("  Definitely an error, overlay is already at top of stack");
-              return ;
-          }
-      }
-      this._stack.push(overlay);
-    }
-     popOverlay(overlay) {
-      if (overlay!==this._stack[this._stack.length-1]) {
-          console.warn("Context.popOverlay called in error", overlay);
-          return ;
-      }
-      overlay.onRemove();
-      this._stack.pop();
-    }
-     removeOverlay(overlay) {
-      if (this._stack.indexOf(overlay)<0) {
-          console.warn("Context.removeOverlay called in error", overlay);
-          return ;
-      }
-      overlay.onRemove();
-      this._stack.remove(overlay);
-    }
-    static  inherit(data) {
-      return new InheritFlag(data);
-    }
-    static  register(cls) {
-      if (cls[Symbol.ContextID]) {
-          console.warn("Tried to register same class twice:", cls);
-          return ;
-      }
-      cls[Symbol.ContextID] = __idgen++;
-      OverlayClasses.push(cls);
-    }
-  }
-  _ESClass.register(Context);
-  _es6_module.add_class(Context);
-  Context = _es6_module.add_export('Context', Context);
-  function test() {
-    function testInheritance() {
-      class Test0 extends ContextOverlay {
-        static  contextDefine() {
-          return {flag: 1}
-        }
-      }
-      _ESClass.register(Test0);
-      _es6_module.add_class(Test0);
-      class Test1 extends Test0 {
-        static  contextDefine() {
-          return {flag: 2}
-        }
-      }
-      _ESClass.register(Test1);
-      _es6_module.add_class(Test1);
-      class Test2 extends Test1 {
-        static  contextDefine() {
-          return {flag: Context.inherit(4)}
-        }
-      }
-      _ESClass.register(Test2);
-      _es6_module.add_class(Test2);
-      class Test3 extends Test2 {
-        static  contextDefine() {
-          return {flag: Context.inherit(8)}
-        }
-      }
-      _ESClass.register(Test3);
-      _es6_module.add_class(Test3);
-      class Test4 extends Test3 {
-        static  contextDefine() {
-          return {flag: Context.inherit(16)}
-        }
-      }
-      _ESClass.register(Test4);
-      _es6_module.add_class(Test4);
-      return Test4.resolveDef().flag===30;
-    }
-    return testInheritance();
-  }
-  test = _es6_module.add_export('test', test);
-  if (!test()) {
-      throw new Error("Context test failed");
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/controller/context.js');
-es6_module_define('controller', ["../util/vectormath.js", "../util/util.js", "../toolsys/toolprop.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop_abstract.js"], function _controller_module(_es6_module) {
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
-  var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
-  var toolprop_abstract=es6_import(_es6_module, '../toolsys/toolprop_abstract.js');
-  var ToolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'ToolProperty');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
-  let PropFlags=toolprop.PropFlags, PropTypes=toolprop.PropTypes;
-  function getVecClass(proptype) {
-    switch (proptype) {
-      case PropTypes.VEC2:
-        return Vector2;
-      case PropTypes.VEC3:
-        return Vector3;
-      case PropTypes.VEC4:
-        return Vector4;
-      case PropTypes.QUAT:
-        return Quat;
-      default:
-        throw new Error("bad prop type "+proptype);
-    }
-  }
-  getVecClass = _es6_module.add_export('getVecClass', getVecClass);
-  function isVecProperty(prop) {
-    if (!prop||typeof prop!=="object"||prop===null)
-      return false;
-    let ok=false;
-    ok = ok||__instance_of(prop, toolprop_abstract.Vec2PropertyIF);
-    ok = ok||__instance_of(prop, toolprop_abstract.Vec3PropertyIF);
-    ok = ok||__instance_of(prop, toolprop_abstract.Vec4PropertyIF);
-    ok = ok||__instance_of(prop, toolprop.Vec2Property);
-    ok = ok||__instance_of(prop, toolprop.Vec3Property);
-    ok = ok||__instance_of(prop, toolprop.Vec4Property);
-    ok = ok||prop.type===PropTypes.VEC2;
-    ok = ok||prop.type===PropTypes.VEC3;
-    ok = ok||prop.type===PropTypes.VEC4;
-    ok = ok||prop.type===PropTypes.QUAT;
-    return ok;
-  }
-  isVecProperty = _es6_module.add_export('isVecProperty', isVecProperty);
-  const DataFlags={READ_ONLY: 1, 
-   USE_CUSTOM_GETSET: 2, 
-   USE_FULL_UNDO: 4}
-  _es6_module.add_export('DataFlags', DataFlags);
-  class DataPathError extends Error {
-  }
-  _ESClass.register(DataPathError);
-  _es6_module.add_class(DataPathError);
-  DataPathError = _es6_module.add_export('DataPathError', DataPathError);
-  
-  class ListIface  {
-     getStruct(api, list, key) {
 
-    }
-     get(api, list, key) {
-
-    }
-     getKey(api, list, obj) {
-
-    }
-     getActive(api, list) {
-
-    }
-     setActive(api, list, val) {
-
-    }
-     set(api, list, key, val) {
-      list[key] = val;
-    }
-     getIter() {
-
-    }
-     filter(api, list, filter) {
-
-    }
+es6_module_define('controller', ["../path-controller/controller/controller_base.js"], function _controller_module(_es6_module) {
+  var ____path_controller_controller_controller_base_js=es6_import(_es6_module, '../path-controller/controller/controller_base.js');
+  for (let k in ____path_controller_controller_controller_base_js) {
+      _es6_module.add_export(k, ____path_controller_controller_controller_base_js[k], true);
   }
-  _ESClass.register(ListIface);
-  _es6_module.add_class(ListIface);
-  ListIface = _es6_module.add_export('ListIface', ListIface);
-  class ToolOpIface  {
-     constructor() {
-
-    }
-    static  tooldef() {
-      return {uiname: "!untitled tool", 
-     icon: -1, 
-     toolpath: "logical_module.tool", 
-     description: undefined, 
-     is_modal: false, 
-     inputs: {}, 
-     outputs: {}}
-    }
-  }
-  _ESClass.register(ToolOpIface);
-  _es6_module.add_class(ToolOpIface);
-  ToolOpIface = _es6_module.add_export('ToolOpIface', ToolOpIface);
-  
-  class ModelInterface  {
-     constructor() {
-      this.prefix = "";
-    }
-     getToolDef(path) {
-      throw new Error("implement me");
-    }
-     getToolPathHotkey(ctx, path) {
-      return undefined;
-    }
-    get  list() {
-      throw new Error("implement me");
-      return ListIface;
-    }
-     createTool(path, inputs={}, constructor_argument=undefined) {
-      throw new Error("implement me");
-    }
-     parseToolPath(path) {
-      throw new Error("implement me");
-    }
-     execOrRedo(ctx, toolop, compareInputs=false) {
-      return ctx.toolstack.execOrRedo(ctx, toolop, compareInputs);
-    }
-     execTool(ctx, path, inputs={}, constructor_argument=undefined) {
-      return new Promise((accept, reject) =>        {
-        let tool=path;
-        try {
-          if (typeof tool=="string"||!(__instance_of(tool, ToolOp))) {
-              tool = this.createTool(ctx, path, inputs, constructor_argument);
-          }
-        }
-        catch (error) {
-            print_stack(error);
-            reject(error);
-            return ;
-        }
-        accept(tool);
-        try {
-          ctx.toolstack.execTool(ctx, tool);
-        }
-        catch (error) {
-            print_stack(error);
-            throw error;
-        }
-      });
-    }
-     pushReportContext(name) {
-
-    }
-     popReportContext() {
-
-    }
-    static  toolRegistered(tool) {
-      throw new Error("implement me");
-    }
-    static  registerTool(tool) {
-      throw new Error("implement me");
-    }
-     massSetProp(ctx, mass_set_path, value) {
-      throw new Error("implement me");
-    }
-     resolveMassSetPaths(ctx, mass_set_path) {
-      throw new Error("implement me");
-    }
-     resolvePath(ctx, path, ignoreExistence) {
-
-    }
-     setValue(ctx, path, val) {
-      let res=this.resolvePath(ctx, path);
-      let prop=res.prop;
-      if (prop!==undefined&&(prop.flag&PropFlags.USE_CUSTOM_GETSET)) {
-          prop.dataref = res.obj;
-          prop.ctx = ctx;
-          prop.datapath = path;
-          prop.setValue(val);
-          return ;
-      }
-      if (prop!==undefined) {
-          if (prop.type===PropTypes.CURVE&&!val) {
-              throw new DataPathError("can't set curve data to nothing");
-          }
-          let use_range=(prop.type&(PropTypes.INT|PropTypes.FLOAT));
-          use_range = use_range||(res.subkey&&(prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)));
-          use_range = use_range&&prop.range;
-          use_range = use_range&&!(prop.range[0]===0.0&&prop.range[1]===0.0);
-          if (use_range) {
-              val = Math.min(Math.max(val, prop.range[0]), prop.range[1]);
-          }
-      }
-      let old=res.obj[res.key];
-      if (res.subkey!==undefined&&res.prop!==undefined&&res.prop.type==PropTypes.ENUM) {
-          let ival=res.prop.values[res.subkey];
-          if (val) {
-              res.obj[res.key] = ival;
-          }
-      }
-      else 
-        if (res.prop!==undefined&&res.prop.type==PropTypes.FLAG) {
-          let ival=res.prop.values[res.subkey];
-          if (val) {
-              res.obj[res.key]|=ival;
-          }
-          else {
-            res.obj[res.key]&=~ival;
-          }
-      }
-      else 
-        if (res.subkey!==undefined&&isVecProperty(res.prop)) {
-          res.obj[res.subkey] = val;
-      }
-      else 
-        if (!(prop!==undefined&&__instance_of(prop, ListIface))) {
-          res.obj[res.key] = val;
-      }
-      if (prop!==undefined&&__instance_of(prop, ListIface)) {
-          prop.set(this, res.obj, res.key, val);
-      }
-      else 
-        if (prop!==undefined) {
-          prop.dataref = res.obj;
-          prop.datapath = path;
-          prop.ctx = ctx;
-          prop._fire("change", res.obj[res.key], old);
-      }
-    }
-     getDescription(ctx, path) {
-      let rdef=this.resolvePath(ctx, path);
-      if (rdef===undefined) {
-          throw new DataPathError("invalid path "+path);
-      }
-      if (!rdef.prop||!(__instance_of(rdef.prop, ToolProperty))) {
-          return "";
-      }
-      let type=rdef.prop.type;
-      let prop=rdef.prop;
-      if (rdef.subkey!==undefined) {
-          let subkey=rdef.subkey;
-          if (type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)) {
-              if (prop.descriptions&&subkey in prop.descriptions) {
-                  return prop.descriptions[subkey];
-              }
-          }
-          else 
-            if (type&(PropTypes.ENUM|PropTypes.FLAG)) {
-              if (!(subkey in prop.values)&&subkey in prop.keys) {
-                  subkey = prop.keys[subkey];
-              }
-              
-              if (prop.descriptions&&subkey in prop.descriptions) {
-                  return prop.descriptions[subkey];
-              }
-          }
-          else 
-            if (type===PropTypes.PROPLIST) {
-              let val=tdef.value;
-              if (typeof val==="object"&&__instance_of(val, ToolProperty)) {
-                  return val.description;
-              }
-          }
-      }
-      return rdef.prop.description ? rdef.prop.description : rdef.prop.uiname;
-    }
-     validPath(ctx, path) {
-      try {
-        this.getValue(ctx, path);
-        return true;
-      }
-      catch (error) {
-          if (!(__instance_of(error, DataPathError))) {
-              throw error;
-          }
-      }
-      return false;
-    }
-     getValue(ctx, path) {
-      if (typeof ctx=="string") {
-          throw new Error("You forgot to pass context to getValue");
-      }
-      let ret=this.resolvePath(ctx, path);
-      if (ret===undefined) {
-          throw new DataPathError("invalid path", path);
-      }
-      if (ret.prop!==undefined&&(ret.prop.flag&PropFlags.USE_CUSTOM_GETSET)) {
-          ret.prop.dataref = ret.obj;
-          ret.prop.datapath = path;
-          ret.prop.ctx = ctx;
-          return ret.prop.getValue();
-      }
-      return this.resolvePath(ctx, path).value;
-    }
-  }
-  _ESClass.register(ModelInterface);
-  _es6_module.add_class(ModelInterface);
-  ModelInterface = _es6_module.add_export('ModelInterface', ModelInterface);
-  let DataAPIClass=undefined;
-  function setImplementationClass(cls) {
-    DataAPIClass = cls;
-  }
-  setImplementationClass = _es6_module.add_export('setImplementationClass', setImplementationClass);
-  function registerTool(cls) {
-    if (DataAPIClass===undefined) {
-        throw new Error("data api not initialized properly; call setImplementationClass");
-    }
-    return DataAPIClass.registerTool(cls);
-  }
-  registerTool = _es6_module.add_export('registerTool', registerTool);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller.js');
-es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_toolsys.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_ops_module(_es6_module) {
-  var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
-  var ToolFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolFlags');
-  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
-  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropFlags');
-  var BoolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'BoolProperty');
-  var IntProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'FloatProperty');
-  var FlagProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'FlagProperty');
-  var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
-  var StringProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'StringProperty');
-  var Vec3Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec3Property');
-  var Vec2Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec2Property');
-  var Vec4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec4Property');
-  var QuatProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'QuatProperty');
-  var Mat4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Mat4Property');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var isVecProperty=es6_import_item(_es6_module, './controller.js', 'isVecProperty');
-  var getVecClass=es6_import_item(_es6_module, './controller.js', 'getVecClass');
-  class DataPathSetOp extends ToolOp {
-     constructor() {
-      super();
-      this.propType = -1;
-      this._undo = undefined;
-    }
-     setValue(ctx, val, object) {
-      let prop=this.inputs.prop;
-      let path=this.inputs.dataPath.getValue();
-      if (path.type&(PropTypes.ENUM|PropTypes.FLAG)) {
-          let rdef=ctx.api.resolvePath(ctx, path);
-          if (rdef.subkey!==undefined) {
-          }
-      }
-      prop.dataref = object;
-      prop.ctx = ctx;
-      prop.datapath = path;
-      prop.setValue(val);
-    }
-    static  create(ctx, datapath, value, id, massSetPath) {
-      let rdef=ctx.api.resolvePath(ctx, datapath);
-      if (rdef===undefined||rdef.prop===undefined) {
-          console.warn("DataPathSetOp failed", rdef, rdef.prop);
-          return ;
-      }
-      let prop=rdef.prop;
-      let tool=new DataPathSetOp();
-      tool.propType = prop.type;
-      if (prop&&(prop.flag&PropFlags.USE_BASE_UNDO)) {
-          tool.inputs.fullSaveUndo.setValue(true);
-      }
-      let mask=PropTypes.FLAG|PropTypes.ENUM;
-      mask|=PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4|PropTypes.QUAT;
-      if (rdef.subkey!==undefined&&(prop.type&mask)) {
-          if (prop.type&(PropTypes.ENUM|PropTypes.FLAG))
-            tool.inputs.prop = new IntProperty();
-          else 
-            tool.inputs.prop = new FloatProperty();
-      }
-      else {
-        tool.inputs.prop = prop.copy();
-      }
-      tool.inputs.dataPath.setValue(datapath);
-      if (massSetPath) {
-          tool.inputs.massSetPath.setValue(massSetPath);
-      }
-      else {
-        tool.inputs.massSetPath.setValue("");
-      }
-      tool.id = id;
-      tool.setValue(ctx, value, rdef.obj);
-      return tool;
-    }
-     hash(massSetPath, dataPath, prop, id) {
-      massSetPath = massSetPath===undefined ? "" : massSetPath;
-      massSetPath = massSetPath===null ? "" : massSetPath;
-      let ret=""+massSetPath+":"+dataPath+":"+prop+":"+id;
-      return ret;
-    }
-     hashThis() {
-      return this.hash(this.inputs.massSetPath.getValue(), this.inputs.dataPath.getValue(), this.propType, this.id);
-    }
-     undoPre(ctx) {
-      if (this.inputs.fullSaveUndo.getValue()) {
-          return super.undoPre(ctx);
-      }
-      if (this.__ctx)
-        ctx = this.__ctx;
-      this._undo = {};
-      let paths=new util.set();
-      if (this.inputs.massSetPath.getValue().trim()) {
-          let massSetPath=this.inputs.massSetPath.getValue().trim();
-          paths = new util.set(ctx.api.resolveMassSetPaths(ctx, massSetPath));
-      }
-      paths.add(this.inputs.dataPath.getValue());
-      for (let path of paths) {
-          this._undo[path] = ctx.api.getValue(ctx, path);
-      }
-    }
-     undo(ctx) {
-      if (this.__ctx)
-        ctx = this.__ctx;
-      if (this.inputs.fullSaveUndo.getValue()) {
-          return super.undo(ctx);
-      }
-      for (let path in this._undo) {
-          let rdef=ctx.api.resolvePath(ctx, path);
-          if (rdef.prop!==undefined&&(rdef.prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
-              let old=rdef.obj[rdef.key];
-              rdef.obj[rdef.key] = this._undo[path];
-              rdef.prop.dataref = rdef.obj;
-              rdef.prop.datapath = path;
-              rdef.prop.ctx = ctx;
-              rdef.prop._fire("change", rdef.obj[rdef.key], old);
-          }
-          else {
-            try {
-              ctx.api.setValue(ctx, path, this._undo[path]);
-            }
-            catch (error) {
-                util.print_stack(error);
-                console.warn("Failed to set property in undo for DataPathSetOp");
-            }
-          }
-      }
-    }
-     exec(ctx) {
-      if (this.__ctx) {
-          ctx = this.__ctx;
-      }
-      let path=this.inputs.dataPath.getValue();
-      let massSetPath=this.inputs.massSetPath.getValue().trim();
-      ctx.api.setValue(ctx, path, this.inputs.prop.getValue());
-      if (massSetPath) {
-          ctx.api.massSetProp(ctx, massSetPath, this.inputs.prop.getValue());
-      }
-    }
-     modalStart(ctx) {
-      this.__ctx = ctx.toLocked();
-      super.modalStart(this.__ctx);
-      this.exec(this.__ctx);
-      this.modalEnd(false);
-    }
-    static  tooldef() {
-      return {uiname: "Property Set", 
-     toolpath: "app.prop_set", 
-     icon: -1, 
-     flag: ToolFlags.PRIVATE, 
-     is_modal: true, 
-     inputs: {dataPath: new StringProperty(), 
-      massSetPath: new StringProperty(), 
-      fullSaveUndo: new BoolProperty(false)}}
-    }
+
+
+es6_module_define('simple_controller', ["../path-controller/controller/controller.js"], function _simple_controller_module(_es6_module) {
+  var ____path_controller_controller_controller_js=es6_import(_es6_module, '../path-controller/controller/controller.js');
+  for (let k in ____path_controller_controller_controller_js) {
+      _es6_module.add_export(k, ____path_controller_controller_controller_js[k], true);
   }
-  _ESClass.register(DataPathSetOp);
-  _es6_module.add_class(DataPathSetOp);
-  DataPathSetOp = _es6_module.add_export('DataPathSetOp', DataPathSetOp);
-  ToolOp.register(DataPathSetOp);
-}, '/dev/fairmotion/src/path.ux/scripts/controller/controller_ops.js');
-es6_module_define('simple_controller', ["../util/util.js", "../toolsys/toolpath.js", "../toolsys/toolprop_abstract.js", "../config/const.js", "../toolsys/toolprop.js", "./controller_ops.js", "./controller.js", "../util/parseutil.js", "../toolsys/simple_toolsys.js"], function _simple_controller_module(_es6_module) {
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  var parseutil=es6_import(_es6_module, '../util/parseutil.js');
-  var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
-  var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolFlags');
-  var Vec2Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec2Property');
-  var Vec3Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec4Property');
-  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
-  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropFlags');
-  var toolprop_abstract=es6_import(_es6_module, '../toolsys/toolprop_abstract.js');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  let PUTLParseError=parseutil.PUTLParseError;
-  let tk=(name, re, func) =>    {
-    return new parseutil.tokdef(name, re, func);
-  }
-  let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z_$0-9]*/), tk("NUM", /-?[0-9]+/, (t) =>    {
-    t.value = parseInt(t.value);
-    return t;
-  }), tk("STRLIT", /'.*'/, (t) =>    {
-    t.value = t.value.slice(1, t.value.length-1);
-    return t;
-  }), tk("STRLIT", /".*"/, (t) =>    {
-    t.value = t.value.slice(1, t.value.length-1);
-    return t;
-  }), tk("DOT", /\./), tk("EQUALS", /(\=)|(\=\=)/), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("AND", /\&/), tk("WS", /[ \t\n\r]+/, (t) =>    {
-    return undefined;
-  })];
-  let lexer=new parseutil.lexer(tokens, (t) =>    {
-    console.warn("Parse error", t);
-    throw new DataPathError();
-  });
-  let pathParser=new parseutil.parser(lexer);
-  pathParser = _es6_module.add_export('pathParser', pathParser);
-  var ModelInterface=es6_import_item(_es6_module, './controller.js', 'ModelInterface');
-  var ToolOpIface=es6_import_item(_es6_module, './controller.js', 'ToolOpIface');
-  var DataFlags=es6_import_item(_es6_module, './controller.js', 'DataFlags');
-  var DataPathError=es6_import_item(_es6_module, './controller.js', 'DataPathError');
-  var setImplementationClass=es6_import_item(_es6_module, './controller.js', 'setImplementationClass');
-  var isVecProperty=es6_import_item(_es6_module, './controller.js', 'isVecProperty');
-  var ListIface=es6_import_item(_es6_module, './controller.js', 'ListIface');
-  var initToolPaths=es6_import_item(_es6_module, '../toolsys/toolpath.js', 'initToolPaths');
-  var parseToolPath=es6_import_item(_es6_module, '../toolsys/toolpath.js', 'parseToolPath');
-  let _ex_DataPathError=es6_import_item(_es6_module, './controller.js', 'DataPathError');
-  _es6_module.add_export('DataPathError', _ex_DataPathError, true);
-  let _ex_DataFlags=es6_import_item(_es6_module, './controller.js', 'DataFlags');
-  _es6_module.add_export('DataFlags', _ex_DataFlags, true);
-  var ToolClasses=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolClasses');
-  var ToolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'ToolProperty');
-  var IntProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'IntProperty');
-  let tool_classes=ToolClasses;
-  let tool_idgen=1;
-  Symbol.ToolID = Symbol("toolid");
-  function toolkey(cls) {
-    if (!(Symbol.ToolID in cls)) {
-        cls[Symbol.ToolID] = tool_idgen++;
-    }
-    return cls[Symbol.ToolID];
-  }
-  let lt=util.time_ms();
-  let lastmsg=undefined;
-  let lcount=0;
-  let reportstack=["api"];
-  function pushReportName(name) {
-    if (reportstack.length>1024) {
-        console.trace("eerk, reportstack overflowed");
-        reportstack.length = 0;
-        reportstack.push("api");
-    }
-    reportstack.push(name);
-  }
-  pushReportName = _es6_module.add_export('pushReportName', pushReportName);
-  function report(msg) {
-    let name=reportstack.length===0 ? "api" : reportstack[reportstack.length-1];
-    util.console.context(name).warn(msg);
-  }
-  function popReportName() {
-    reportstack.pop();
-  }
-  popReportName = _es6_module.add_export('popReportName', popReportName);
-  const DataTypes={STRUCT: 0, 
-   DYNAMIC_STRUCT: 1, 
-   PROP: 2, 
-   ARRAY: 3}
-  _es6_module.add_export('DataTypes', DataTypes);
-  class DataPath  {
-     constructor(path, apiname, prop, type=DataTypes.PROP) {
-      this.type = type;
-      this.data = prop;
-      this.apiname = apiname;
-      this.path = path;
-      this.flag = 0;
-      this.struct = undefined;
-    }
-     copy() {
-      let ret=new DataPath();
-      ret.flag = this.flag;
-      ret.type = this.type;
-      ret.data = this.data;
-      ret.apiname = this.apiname;
-      ret.path = this.path;
-      ret.struct = this.struct;
-      return ret;
-    }
-     setProp(prop) {
-      this.data = prop;
-    }
-     read_only() {
-      this.flag|=DataFlags.READ_ONLY;
-      return this;
-    }
-     customGetSet(get, set) {
-      this.data.flag|=PropFlags.USE_CUSTOM_GETSET;
-      this.flag|=DataFlags.USE_CUSTOM_GETSET;
-      this.data._getValue = this.data.getValue;
-      this.data._setValue = this.data.setValue;
-      if (get)
-        this.data.getValue = get;
-      if (set)
-        this.data.setValue = set;
-      return this;
-    }
-     customSet(set) {
-      this.customGetSet(undefined, set);
-      return this;
-    }
-     customGet(get) {
-      this.customGetSet(get, undefined);
-      return this;
-    }
-     on(type, cb) {
-      if (this.type==DataTypes.PROP) {
-          this.data.on(type, cb);
-      }
-      else {
-        throw new Error("invalid call to DataPath.on");
-      }
-      return this;
-    }
-     off(type, cb) {
-      if (this.type==DataTypes.PROP) {
-          this.data.off(type, cb);
-      }
-    }
-     simpleSlider() {
-      this.data.flag|=PropFlags.SIMPLE_SLIDER;
-      return this;
-    }
-     rollerSlider() {
-      this.data.flag&=~PropFlags.SIMPLE_SLIDER;
-      this.data.flag|=PropFlags.FORCE_ROLLER_SLIDER;
-      return this;
-    }
-     baseUnit(unit) {
-      this.data.setBaseUnit(unit);
-      return this;
-    }
-     displayUnit(unit) {
-      this.data.setDisplayUnit(unit);
-      return this;
-    }
-     range(min, max) {
-      this.data.setRange(min, max);
-      return this;
-    }
-     uiRange(min, max) {
-      this.data.setUIRange(min, max);
-      return this;
-    }
-     decimalPlaces(n) {
-      this.data.setDecimalPlaces(n);
-      return this;
-    }
-     expRate(exp) {
-      this.data.setExpRate(exp);
-      return this;
-    }
-     uniformSlider(state=true) {
-      this.data.uniformSlider(state);
-      return this;
-    }
-     radix(r) {
-      this.data.setRadix(r);
-      return this;
-    }
-     relativeStep(s) {
-      this.data.setRelativeStep(s);
-      return this;
-    }
-     step(s) {
-      this.data.setStep(s);
-      return this;
-    }
-     fullSaveUndo() {
-      this.flag|=DataFlags.USE_FULL_UNDO;
-      this.data.flag|=PropFlags.USE_BASE_UNDO;
-      return this;
-    }
-     icon(i) {
-      this.data.setIcon(i);
-      return this;
-    }
-     icons(icons) {
-      this.data.addIcons(icons);
-      return this;
-    }
-     descriptions(description_map) {
-      this.data.addDescriptions(description_map);
-      return this;
-    }
-     uiNames(uinames) {
-      this.data.setUINames(uinames);
-      return this;
-    }
-     description(d) {
-      this.data.description = d;
-      return this;
-    }
-  }
-  _ESClass.register(DataPath);
-  _es6_module.add_class(DataPath);
-  DataPath = _es6_module.add_export('DataPath', DataPath);
-  class DataList extends ListIface {
-     copy() {
-      let ret=new DataList([this.cb.get]);
-      for (let k in this.cb) {
-          ret.cb[k] = this.cb[k];
-      }
-      return ret;
-    }
-     constructor(callbacks) {
-      super();
-      if (callbacks===undefined) {
-          throw new DataPathError("missing callbacks argument to DataList");
-      }
-      this.cb = {};
-      for (let cb of callbacks) {
-          this.cb[cb.name] = cb;
-      }
-      let check=(key) =>        {
-        if (!(key in this.cbs)) {
-            throw new DataPathError(`Missing ${key} callback in DataList`);
-        }
-      };
-    }
-     get(api, list, key) {
-      return this.cb.get(api, list, key);
-    }
-     getLength(api, list) {
-      this._check("getLength");
-      return this.cb.getLength(api, list);
-    }
-     _check(cb) {
-      if (!(cb in this.cb)) {
-          throw new DataPathError(cb+" not supported by this list");
-      }
-    }
-     set(api, list, key, val) {
-      if (this.cb.set===undefined) {
-          list[key] = val;
-      }
-      else {
-        this.cb.set(api, list, key, val);
-      }
-    }
-     getIter(api, list) {
-      this._check("getIter");
-      return this.cb.getIter(api, list);
-    }
-     filter(api, list, bitmask) {
-      this._check("filter");
-      return this.cb.filter(api, list, bitmask);
-    }
-     getActive(api, list) {
-      this._check("getActive");
-      return this.cb.getActive(api, list);
-    }
-     setActive(api, list, key) {
-      this._check("setActive");
-      this.cb.setActive(api, list, key);
-    }
-     getKey(api, list, obj) {
-      this._check("getKey");
-      return this.cb.getKey(api, list, obj);
-    }
-     getStruct(api, list, key) {
-      if (this.cb.getStruct!==undefined) {
-          return this.cb.getStruct(api, list, key);
-      }
-      let obj=this.get(api, list, key);
-      if (obj===undefined)
-        return undefined;
-      return api.getStruct(obj.constructor);
-    }
-  }
-  _ESClass.register(DataList);
-  _es6_module.add_class(DataList);
-  DataList = _es6_module.add_export('DataList', DataList);
-  const StructFlags={NO_UNDO: 1}
-  _es6_module.add_export('StructFlags', StructFlags);
-  class DataStruct  {
-     constructor(members=[], name="unnamed") {
-      this.members = [];
-      this.name = name;
-      this.pathmap = {};
-      this.flag = 0;
-      for (let m of members) {
-          this.add(m);
-      }
-    }
-     copy() {
-      let ret=new DataStruct();
-      ret.name = this.name;
-      ret.flag = this.flag;
-      for (let m of this.members) {
-          let m2=m.copy();
-          if (m2.type===DataTypes.PROP) {
-              m2.data = m2.data.copy();
-          }
-          ret.add(m2);
-      }
-      return ret;
-    }
-     dynamicStruct(path, apiname, uiname, default_struct=undefined) {
-      let ret=default_struct ? default_struct : new DataStruct();
-      let dpath=new DataPath(path, apiname, ret, DataTypes.DYNAMIC_STRUCT);
-      this.add(dpath);
-      return ret;
-    }
-     struct(path, apiname, uiname, existing_struct=undefined) {
-      let ret=existing_struct ? existing_struct : new DataStruct();
-      let dpath=new DataPath(path, apiname, ret, DataTypes.STRUCT);
-      this.add(dpath);
-      return ret;
-    }
-     color3(path, apiname, uiname, description) {
-      let ret=this.vec3(path, apiname, uiname, description);
-      ret.data.subtype = toolprop.PropSubTypes.COLOR;
-      ret.range(0, 1);
-      ret.simpleSlider();
-      return ret;
-    }
-     color4(path, apiname, uiname, description) {
-      let ret=this.vec4(path, apiname, uiname, description);
-      ret.data.subtype = toolprop.PropSubTypes.COLOR;
-      ret.range(0, 1);
-      ret.simpleSlider();
-      return ret;
-    }
-     arrayList(path, apiname, structdef, uiname, description) {
-      let ret=this.list(path, apiname, [function getIter(api, list) {
-        return list[Symbol.iterator]();
-      }, function getLength(api, list) {
-        return list.length;
-      }, function get(api, list, key) {
-        return list[key];
-      }, function set(api, list, key, val) {
-        if (typeof key==="string") {
-            key = parseInt(key);
-        }
-        if (key<0||key>=list.length) {
-            throw new DataPathError("Invalid index "+key);
-        }
-        list[key] = val;
-        window.redraw_viewport();
-      }, function getKey(api, list, obj) {
-        return list.indexOf(obj);
-      }, function getStruct(api, list, key) {
-        return structdef;
-      }]);
-      return ret;
-    }
-     vectorList(size, path, apiname, uiname, description) {
-      let type;
-      switch (size) {
-        case 2:
-          type = toolprop.Vec2Property;
-          break;
-        case 3:
-          type = toolprop.Vec3Property;
-        case 4:
-          type = toolprop.Vec4Property;
-      }
-      if (type===undefined) {
-          throw new DataPathError("Invalid size for vectorList; expected 2 3 or 4");
-      }
-      let prop=new type(undefined, apiname, uiname, description);
-      let pstruct=new DataStruct(undefined, "Vector");
-      pstruct.vec3("", "co", "Coords", "Coordinates");
-      let ret=this.list(path, apiname, [function getIter(api, list) {
-        return list[Symbol.iterator]();
-      }, function getLength(api, list) {
-        return list.length;
-      }, function get(api, list, key) {
-        return list[key];
-      }, function set(api, list, key, val) {
-        if (typeof key=="string") {
-            key = parseInt(key);
-        }
-        if (key<0||key>=list.length) {
-            throw new DataPathError("Invalid index "+key);
-        }
-        list[key] = val;
-        window.redraw_viewport();
-      }, function getKey(api, list, obj) {
-        return list.indexOf(obj);
-      }, function getStruct(api, list, key) {
-        return pstruct;
-      }]);
-      return ret;
-    }
-     bool(path, apiname, uiname, description) {
-      let prop=new toolprop.BoolProperty(undefined, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     vec2(path, apiname, uiname, description) {
-      let prop=new toolprop.Vec2Property(undefined, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     vec3(path, apiname, uiname, description) {
-      let prop=new toolprop.Vec3Property(undefined, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     vec4(path, apiname, uiname, description) {
-      let prop=new toolprop.Vec4Property(undefined, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     float(path, apiname, uiname, description) {
-      let prop=new toolprop.FloatProperty(0, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     textblock(path, apiname, uiname, description) {
-      let prop=new toolprop.StringProperty(undefined, apiname, uiname, description);
-      prop.multiLine = true;
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     string(path, apiname, uiname, description) {
-      let prop=new toolprop.StringProperty(undefined, apiname, uiname, description);
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     int(path, apiname, uiname, description, prop=undefined) {
-      if (!prop) {
-          prop = new toolprop.IntProperty(0, apiname, uiname, description);
-      }
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     curve1d(path, apiname, uiname, description) {
-      let prop=new toolprop.Curve1DProperty(undefined);
-      prop.apiname = apiname;
-      prop.uiname = uiname;
-      prop.description = description;
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     enum(path, apiname, enumdef, uiname, description) {
-      let prop;
-      if (__instance_of(enumdef, toolprop.EnumProperty)) {
-          prop = enumdef;
-      }
-      else {
-        prop = new toolprop.EnumProperty(undefined, enumdef, apiname, uiname, description);
-      }
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     list(path, apiname, funcs) {
-      let array=new DataList(funcs);
-      let dpath=new DataPath(path, apiname, array);
-      dpath.type = DataTypes.ARRAY;
-      this.add(dpath);
-      return dpath;
-    }
-     flags(path, apiname, enumdef, uiname, description) {
-      let prop;
-      if (enumdef===undefined||!(__instance_of(enumdef, toolprop.ToolProperty))) {
-          prop = new toolprop.FlagProperty(undefined, enumdef, apiname, uiname, description);
-      }
-      else {
-        prop = enumdef;
-      }
-      let dpath=new DataPath(path, apiname, prop);
-      this.add(dpath);
-      return dpath;
-    }
-     remove(m) {
-      if (!(m.apiname in this.pathmap)) {
-          throw new Error("Member not in struct "+m.apiname);
-      }
-      delete this.pathmap[m.apiname];
-      this.members.remove(m);
-    }
-     add(m) {
-      if (m.apiname in this.pathmap) {
-          console.warn("Overriding existing member in datapath struct", m.apiname);
-          this.remove(this.pathmap[m.apiname]);
-      }
-      this.members.push(m);
-      m.parent = this;
-      this.pathmap[m.apiname] = m;
-      return this;
-    }
-  }
-  _ESClass.register(DataStruct);
-  _es6_module.add_class(DataStruct);
-  DataStruct = _es6_module.add_export('DataStruct', DataStruct);
-  let _map_struct_idgen=1;
-  let _map_structs={}
-  window._debug__map_structs = _map_structs;
-  let _dummypath=new DataPath();
-  let DummyIntProperty=new IntProperty();
-  const CLS_API_KEY="__dp_map_id";
-  class DataAPI extends ModelInterface {
-     constructor() {
-      super();
-      this.rootContextStruct = undefined;
-    }
-    get  list() {
-      return undefined;
-    }
-     setRoot(sdef) {
-      this.rootContextStruct = sdef;
-    }
-     hasStruct(cls) {
-      return cls.hasOwnProperty(CLS_API_KEY);
-    }
-     getStruct(cls) {
-      return this.mapStruct(cls, false);
-    }
-     mergeStructs(dest, src) {
-      for (let m of src.members) {
-          dest.add(m.copy());
-      }
-    }
-     inheritStruct(cls, parent, auto_create_parent=false) {
-      let st=this.mapStruct(parent, auto_create_parent);
-      if (st===undefined) {
-          throw new Error("parent has no struct definition");
-      }
-      st = st.copy();
-      st.name = cls.name;
-      this._addClass(cls, st);
-      return st;
-    }
-     _addClass(cls, dstruct) {
-      let key=_map_struct_idgen++;
-      cls[CLS_API_KEY] = key;
-      _map_structs[key] = dstruct;
-    }
-     mapStruct(cls, auto_create=true) {
-      let key;
-      if (!cls.hasOwnProperty(CLS_API_KEY)) {
-          key = undefined;
-      }
-      else {
-        key = cls[CLS_API_KEY];
-      }
-      if (key===undefined&&auto_create) {
-          let dstruct=new DataStruct(undefined, cls.name);
-          this._addClass(cls, dstruct);
-          return dstruct;
-      }
-      else 
-        if (key===undefined) {
-          throw new Error("class does not have a struct definition: "+cls.name);
-      }
-      return _map_structs[key];
-    }
-     pushReportContext(name) {
-      pushReportName(name);
-    }
-     popReportContext() {
-      popReportName();
-    }
-     massSetProp(ctx, massSetPath, value) {
-      for (let path of this.resolveMassSetPaths(ctx, massSetPath)) {
-          this.setValue(ctx, path, value);
-      }
-    }
-     resolveMassSetPaths(ctx, massSetPath) {
-      let start=massSetPath.search("{");
-      let end=massSetPath.search("}");
-      if (start<0||end<0) {
-          throw new DataPathError("Invalid mass set datapath: "+massSetPath);
-          return ;
-      }
-      let prefix=massSetPath.slice(0, start-1);
-      let filter=massSetPath.slice(start+1, end);
-      let suffix=massSetPath.slice(end+2, massSetPath.length);
-      let rdef=this.resolvePath(ctx, prefix);
-      if (!(__instance_of(rdef.prop, DataList))) {
-          throw new DataPathError("massSetPath expected a path resolving to a DataList: "+massSetPath);
-      }
-      let paths=[];
-      let list=rdef.prop;
-      function applyFilter(obj) {
-        let $=obj;
-        return eval(filter);
-      }
-      for (let obj of list.getIter(this, rdef.value)) {
-          if (!applyFilter(obj)) {
-              continue;
-          }
-          let key=""+list.getKey(this, rdef.value, obj);
-          let path=`${prefix}[${key}]${suffix}`;
-          paths.push(path);
-      }
-      return paths;
-    }
-     resolvePath(ctx, inpath, ignoreExistence=false) {
-      try {
-        return this.resolvePath_intern(ctx, inpath, ignoreExistence);
-      }
-      catch (error) {
-          if (!(__instance_of(error, DataPathError))) {
-              util.print_stack(error);
-          }
-          if (cconst.DEBUG.datapaths) {
-              util.print_stack(error);
-          }
-          report("bad path "+inpath);
-          return undefined;
-      }
-    }
-     resolvePath_intern(ctx, inpath, ignoreExistence=false) {
-      let p=pathParser;
-      inpath = inpath.replace("==", "=");
-      p.input(inpath);
-      let dstruct=this.rootContextStruct;
-      let obj=ctx;
-      let lastobj=ctx;
-      let subkey;
-      let lastobj2=undefined;
-      let lastkey=undefined;
-      let prop=undefined;
-      function p_key() {
-        let t=p.peeknext();
-        if (t.type==="NUM"||t.type==="STRLIT") {
-            p.next();
-            return t.value;
-        }
-        else {
-          throw new PUTLParseError("Expected list key");
-        }
-      }
-      let _i=0;
-      while (!p.at_end()) {
-        let key=p.expect("ID");
-        let dpath=dstruct.pathmap[key];
-        if (dpath===undefined) {
-            if (prop!==undefined&&__instance_of(prop, DataList)&&key==="length") {
-                prop.getLength(this, obj);
-                key = "length";
-                prop = DummyIntProperty;
-                prop.name = "length";
-                prop.flag = PropFlags.READ_ONLY;
-                dpath = _dummypath;
-                dpath.type = DataTypes.PROP;
-                dpath.data = prop;
-                dpath.struct = dpath.parent = dstruct;
-                dpath.flag = DataFlags.READ_ONLY;
-                dpath.path = "length";
-            }
-            else 
-              if (prop!==undefined&&__instance_of(prop, DataList)&&key==="active") {
-                let act=prop.getActive(this, obj);
-                if (act===undefined&&!ignoreExistence) {
-                    throw new DataPathError("no active elem ent for list");
-                }
-                let actkey=obj!==undefined&&act!==undefined ? prop.getKey(this, obj, act) : undefined;
-                dstruct = prop.getStruct(this, obj, actkey);
-                if (dstruct===undefined) {
-                    throw new DataPathError("couldn't get data type for "+inpath+"'s element '"+key+"'");
-                }
-                _dummypath.parent = dpath;
-                dpath = _dummypath;
-                lastobj = obj;
-                obj = act;
-                dpath.type = DataTypes.STRUCT;
-                dpath.data = dstruct;
-                dpath.path = key;
-                p.optional("DOT");
-                continue;
-            }
-            else {
-              throw new DataPathError(inpath+": unknown property "+key);
-            }
-        }
-        if (dpath.type===DataTypes.STRUCT) {
-            dstruct = dpath.data;
-        }
-        else 
-          if (dpath.type===DataTypes.DYNAMIC_STRUCT) {
-            let ok=false;
-            if (obj!==undefined) {
-                let obj2=obj[dpath.path];
-                if (obj2!==undefined) {
-                    dstruct = this.mapStruct(obj2.constructor, false);
-                }
-                else {
-                  dstruct = dpath.data;
-                }
-                if (dstruct===undefined) {
-                    dstruct = dpath.data;
-                }
-                ok = dstruct!==undefined;
-            }
-            if (!ok) {
-                throw new DataPathError("dynamic struct error for path: "+inpath);
-            }
-        }
-        else {
-          prop = dpath.data;
-        }
-        if (dpath.path.search(/\./)>=0) {
-            let keys=dpath.path.split(/\./);
-            for (let key of keys) {
-                lastobj2 = lastobj;
-                lastobj = obj;
-                lastkey = key;
-                if (obj===undefined&&!ignoreExistence) {
-                    throw new DataPathError("no data for "+inpath);
-                }
-                else 
-                  if (obj!==undefined) {
-                    obj = obj[key.trim()];
-                }
-            }
-        }
-        else {
-          lastobj2 = lastobj;
-          lastobj = obj;
-          lastkey = dpath.path;
-          if (obj===undefined&&!ignoreExistence) {
-              throw new DataPathError("no data for "+inpath);
-          }
-          else 
-            if (obj!==undefined&&dpath.path!=="") {
-              obj = obj[dpath.path];
-          }
-        }
-        let t=p.peeknext();
-        if (t===undefined) {
-            break;
-        }
-        if (t.type==="DOT") {
-            p.next();
-        }
-        else 
-          if (t.type==="EQUALS"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
-            p.expect("EQUALS");
-            let t2=p.peeknext();
-            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
-            let val=p.expect(type);
-            let val1=val;
-            if (typeof val=="string") {
-                val = prop.values[val];
-            }
-            if (val===undefined) {
-                throw new DataPathError("unknown value "+val1);
-            }
-            if (val in prop.keys) {
-                subkey = prop.keys[val];
-            }
-            key = dpath.path;
-            obj = !!(lastobj[key]==val);
-        }
-        else 
-          if (t.type==="AND"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
-            p.expect("AND");
-            let t2=p.peeknext();
-            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
-            let val=p.expect(type);
-            let val1=val;
-            if (typeof val=="string") {
-                val = prop.values[val];
-            }
-            if (val===undefined) {
-                throw new DataPathError("unknown value "+val1);
-            }
-            if (val in prop.keys) {
-                subkey = prop.keys[val];
-            }
-            key = dpath.path;
-            obj = !!(lastobj[key]&val);
-        }
-        else 
-          if (t.type==="LSBRACKET"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
-            p.expect("LSBRACKET");
-            let t2=p.peeknext();
-            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
-            let val=p.expect(type);
-            let val1=val;
-            if (typeof val=="string") {
-                val = prop.values[val];
-            }
-            if (val===undefined) {
-                console.warn(inpath, prop.values, val1, prop);
-                throw new DataPathError("unknown value "+val1);
-            }
-            if (val in prop.keys) {
-                subkey = prop.keys[val];
-            }
-            let bitfield;
-            key = dpath.path;
-            if (!(prop.flag&PropFlags.USE_CUSTOM_GETSET)) {
-                bitfield = lastobj[key];
-            }
-            else {
-              prop.dataref = lastobj;
-              prop.datapath = inpath;
-              prop.ctx = ctx;
-              bitfield = prop.getValue();
-            }
-            if (lastobj===undefined&&!ignoreExistence) {
-                throw new DataPathError("no data for path "+inpath);
-            }
-            else 
-              if (lastobj!==undefined) {
-                if (prop.type===PropTypes.ENUM) {
-                    obj = !!(bitfield==val);
-                }
-                else {
-                  obj = !!(bitfield&val);
-                }
-            }
-            p.expect("RSBRACKET");
-        }
-        else 
-          if (t.type==="LSBRACKET"&&prop!==undefined&&isVecProperty(prop)) {
-            p.expect("LSBRACKET");
-            let num=p.expect("NUM");
-            p.expect("RSBRACKET");
-            subkey = num;
-            lastobj = obj;
-            obj = obj[num];
-        }
-        else 
-          if (t.type==="LSBRACKET") {
-            p.expect("LSBRACKET");
-            if (lastobj&&lastkey&&typeof lastkey==="string"&&lastkey.length>0) {
-                lastobj = lastobj[lastkey];
-            }
-            lastkey = p_key();
-            p.expect("RSBRACKET");
-            if (!(__instance_of(prop, DataList))) {
-                throw new DataPathError("bad property, not a list");
-            }
-            obj = prop.get(this, lastobj, lastkey);
-            dstruct = prop.getStruct(this, lastobj, lastkey);
-            if (p.peeknext()!==undefined&&p.peeknext().type==="DOT") {
-                p.next();
-            }
-        }
-        if (_i++>1000) {
-            console.warn("infinite loop in resolvePath parser");
-            break;
-        }
-      }
-      return {parent: lastobj2, 
-     obj: lastobj, 
-     value: obj, 
-     key: lastkey, 
-     dstruct: dstruct, 
-     prop: prop, 
-     subkey: subkey}
-    }
-     resolvePathOld2(ctx, path) {
-      let splitchars=new Set([".", "[", "]", "=", "&"]);
-      let subkey=undefined;
-      path = path.replace(/\=\=/g, "=");
-      path = "."+this.prefix+path;
-      let p=[""];
-      for (let i=0; i<path.length; i++) {
-          let s=path[i];
-          if (splitchars.has(s)) {
-              if (s!=="]") {
-                  p.push(s);
-              }
-              p.push("");
-              continue;
-          }
-          p[p.length-1]+=s;
-      }
-      for (let i=0; i<p.length; i++) {
-          p[i] = p[i].trim();
-          if (p[i].length===0) {
-              p.remove(p[i]);
-              i--;
-          }
-          let c=parseInt(p[i]);
-          if (!isNaN(c)) {
-              p[i] = c;
-          }
-      }
-      let i=0;
-      let parent1, obj=ctx, parent2;
-      let key=undefined;
-      let dstruct=undefined;
-      let arg=undefined;
-      let type="normal";
-      let retpath=p;
-      let prop;
-      let lastkey=key, a;
-      let apiname=key;
-      while (i<p.length-1) {
-        lastkey = key;
-        apiname = key;
-        if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
-            let dpath=dstruct.pathmap[lastkey];
-            apiname = dpath.apiname;
-        }
-        let a=p[i];
-        let b=p[i+1];
-        if (a==="[") {
-            let ok=false;
-            key = b;
-            prop = undefined;
-            if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
-                let dpath=dstruct.pathmap[lastkey];
-                if (dpath.type===DataTypes.PROP) {
-                    prop = dpath.data;
-                }
-            }
-            if (prop!==undefined&&(prop.type===PropTypes.ENUM||prop.type===PropTypes.FLAG)) {
-                util.console.context("api").log("found flag/enum property");
-                ok = true;
-            }
-            if (ok) {
-                if (isNaN(parseInt(key))) {
-                    key = prop.values[key];
-                }
-                else 
-                  if (typeof key=="int") {
-                    key = parseInt(key);
-                }
-                let value=obj;
-                if (typeof value=="string") {
-                    value = prop.values[key];
-                }
-                if (prop.type===PropTypes.ENUM) {
-                    value = !!(value==key);
-                }
-                else {
-                  value = !!(value&key);
-                }
-                if (key in prop.keys) {
-                    subkey = prop.keys[key];
-                }
-                obj = value;
-                i++;
-                continue;
-            }
-        }
-        if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
-            let dpath=dstruct.pathmap[lastkey];
-            if (dpath.type==DataTypes.PROP) {
-                prop = dpath.data;
-            }
-        }
-        if (a==="."||a==="[") {
-            key = b;
-            parent2 = parent1;
-            parent1 = obj;
-            obj = obj[b];
-            if (obj===undefined||obj===null) {
-                break;
-            }
-            if (typeof obj=="object") {
-                dstruct = this.mapStruct(obj.constructor, false);
-            }
-            i+=2;
-            continue;
-        }
-        else 
-          if (a==="&") {
-            obj&=b;
-            arg = b;
-            if (b in prop.keys) {
-                subkey = prop.keys[b];
-            }
-            i+=2;
-            type = "flag";
-            continue;
-        }
-        else 
-          if (a==="=") {
-            obj = obj==b;
-            arg = b;
-            if (b in prop.keys) {
-                subkey = prop.keys[b];
-            }
-            i+=2;
-            type = "enum";
-            continue;
-        }
-        else {
-          throw new DataPathError("bad path "+path);
-        }
-        i++;
-      }
-      if (lastkey!==undefined&&dstruct!==undefined&&dstruct.pathmap[lastkey]) {
-          let dpath=dstruct.pathmap[key];
-          apiname = dpath.apiname;
-      }
-      if (dstruct!==undefined&&dstruct.pathmap[key]) {
-          let dpath=dstruct.pathmap[key];
-          if (dpath.type==DataTypes.PROP) {
-              prop = dpath.data;
-          }
-      }
-      return {parent: parent2, 
-     obj: parent1, 
-     value: obj, 
-     key: key, 
-     dstruct: dstruct, 
-     subkey: subkey, 
-     prop: prop, 
-     arg: arg, 
-     type: type, 
-     _path: retpath}
-    }
-     resolvePathold(ctx, path) {
-      path = this.prefix+path;
-      path = path.replace(/\[/g, ".").replace(/\]/g, "").trim().split(".");
-      let parent1, obj=ctx, parent2;
-      let key=undefined;
-      let dstruct=undefined;
-      for (let c of path) {
-          let c2=parseInt(c);
-          if (!isNaN(c2)) {
-              c = c2;
-          }
-          parent2 = parent1;
-          parent1 = obj;
-          key = c;
-          if (typeof obj=="number") {
-              obj = obj&c;
-              break;
-          }
-          obj = obj[c];
-          if (typeof obj=="object") {
-              dstruct = this.mapStruct(obj.constructor, false);
-          }
-      }
-      let prop;
-      if (dstruct!==undefined&&dstruct.pathmap[key]) {
-          let dpath=dstruct.pathmap[key];
-          if (dpath.type==DataTypes.PROP) {
-              prop = dpath.data;
-          }
-      }
-      return {parent: parent2, 
-     obj: parent1, 
-     value: obj, 
-     key: key, 
-     dstruct: dstruct, 
-     prop: prop}
-    }
-     getToolDef(path) {
-      let cls=this.parseToolPath(path);
-      if (cls===undefined) {
-          throw new DataPathError("unknown path \""+path+"\"");
-      }
-      return cls.tooldef();
-    }
-     getToolPathHotkey(ctx, path) {
-      try {
-        return this.getToolPathHotkey_intern(ctx, path);
-      }
-      catch (error) {
-          print_stack(error);
-          util.console.context("api").log("failed to fetch tool path: "+path);
-          return undefined;
-      }
-    }
-     getToolPathHotkey_intern(ctx, path) {
-      let screen=ctx.screen;
-      function searchKeymap(keymap) {
-        if (keymap===undefined) {
-            return undefined;
-        }
-        for (let hk of keymap) {
-            if (typeof hk.action=="string"&&hk.action==path) {
-                return hk.buildString();
-            }
-        }
-      }
-      if (screen.sareas.length===0) {
-          return searchKeymap(screen.keymap);
-      }
-      let areacls=screen.sareas[0].area.constructor;
-      let area=areacls.getActiveArea();
-      for (let keymap of area.getKeyMaps()) {
-          let ret=searchKeymap(keymap);
-          if (ret!==undefined) {
-              return ret;
-          }
-      }
-      for (let sarea of screen.sareas) {
-          if (!sarea.area)
-            continue;
-          for (let keymap of sarea.area.getKeyMaps()) {
-              let ret=searchKeymap(keymap);
-              if (ret) {
-                  return ret;
-              }
-          }
-      }
-      return this.keymap ? searchKeymap(this.keymap) : false;
-    }
-     parseToolPath(path) {
-      try {
-        return parseToolPath(path).toolclass;
-      }
-      catch (error) {
-          if (__instance_of(error, DataPathError)) {
-              console.warn("warning, bad tool path", path);
-              return undefined;
-          }
-          else {
-            throw error;
-          }
-      }
-    }
-     parseToolArgs(path) {
-      return parseToolPath(path).args;
-    }
-     createTool(ctx, path, inputs={}) {
-      let cls;
-      let args;
-      if (typeof path=="string"||__instance_of(path, String)) {
-          let tpath=parseToolPath(path);
-          cls = tpath.toolclass;
-          args = tpath.args;
-      }
-      else {
-        cls = path;
-        args = {};
-      }
-      let tool=cls.invoke(ctx, args);
-      if (inputs!==undefined) {
-          for (let k in inputs) {
-              if (!(k in tool.inputs)) {
-                  console.warn(cls.tooldef().uiname+": Unknown tool property \""+k+"\"");
-                  continue;
-              }
-              tool.inputs[k].setValue(inputs[k]);
-          }
-      }
-      return tool;
-    }
-    static  toolRegistered(cls) {
-      return ToolOp.isRegistered(cls);
-    }
-    static  registerTool(cls) {
-      console.warn("Outdated function simple_controller.DataAPI.registerTool called");
-      return ToolOp.register(cls);
-    }
-  }
-  _ESClass.register(DataAPI);
-  _es6_module.add_class(DataAPI);
-  DataAPI = _es6_module.add_export('DataAPI', DataAPI);
-  function registerTool(cls) {
-    return DataAPI.registerTool(cls);
-  }
-  registerTool = _es6_module.add_export('registerTool', registerTool);
-  function initSimpleController() {
-    initToolPaths();
-  }
-  initSimpleController = _es6_module.add_export('initSimpleController', initSimpleController);
-  var DataPathSetOp=es6_import_item(_es6_module, './controller_ops.js', 'DataPathSetOp');
-  let dpt=DataPathSetOp;
-  function getDataPathToolOp() {
-    return dpt;
-  }
-  getDataPathToolOp = _es6_module.add_export('getDataPathToolOp', getDataPathToolOp);
-  function setDataPathToolOp(cls) {
-    ToolOp.unregister(DataPathSetOp);
-    if (!ToolOp.isRegistered(cls)) {
-        ToolOp.register(cls);
-    }
-    dpt = cls;
-  }
-  setDataPathToolOp = _es6_module.add_export('setDataPathToolOp', setDataPathToolOp);
-  setImplementationClass(DataAPI);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
-es6_module_define('anim', ["../util/math.js", "./ui_theme.js", "../util/util.js", "../curve/curve1d.js", "../util/vectormath.js"], function _anim_module(_es6_module) {
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
-  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var math=es6_import(_es6_module, '../util/math.js');
+
+
+es6_module_define('anim', ["../path-controller/util/vectormath.js", "../path-controller/curve/curve1d.js", "./ui_theme.js", "../path-controller/util/math.js", "../path-controller/util/util.js"], function _anim_module(_es6_module) {
+  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
+  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
+  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var math=es6_import(_es6_module, '../path-controller/util/math.js');
   var color2css=es6_import_item(_es6_module, './ui_theme.js', 'color2css');
   var css2color=es6_import_item(_es6_module, './ui_theme.js', 'css2color');
   var parsepx=es6_import_item(_es6_module, './ui_theme.js', 'parsepx');
-  var Curve1D=es6_import_item(_es6_module, '../curve/curve1d.js', 'Curve1D');
-  var getCurve=es6_import_item(_es6_module, '../curve/curve1d.js', 'getCurve');
-  var util=es6_import(_es6_module, '../util/util.js');
+  var Curve1D=es6_import_item(_es6_module, '../path-controller/curve/curve1d.js', 'Curve1D');
+  var getCurve=es6_import_item(_es6_module, '../path-controller/curve/curve1d.js', 'getCurve');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
   class Task  {
      constructor(taskcb) {
       this.task = taskcb;
@@ -9079,8 +6937,8 @@ es6_module_define('anim', ["../util/math.js", "./ui_theme.js", "../util/util.js"
       this.commands.push(new WaitCommand(ms));
       return this;
     }
-     goto(key, val, time, curve="ease") {
-      let cmd=new GoToCommand(this.owner, key, val, time, curve);
+     goto(key, val, timeMs, curve="ease") {
+      let cmd=new GoToCommand(this.owner, key, val, timeMs, curve);
       this.commands.push(cmd);
       return this;
     }
@@ -9168,6 +7026,8 @@ es6_module_define('anim', ["../util/math.js", "./ui_theme.js", "../util/util.js"
   _es6_module.add_class(Animator);
   Animator = _es6_module.add_export('Animator', Animator);
 }, '/dev/fairmotion/src/path.ux/scripts/core/anim.js');
+
+
 es6_module_define('aspect', [], function _aspect_module(_es6_module) {
   let exclude=new Set(["toString", "constructor", "prototype", "__proto__", "toLocaleString", "hasOwnProperty", "shadow"]);
   let UIBase=undefined;
@@ -9187,6 +7047,25 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
       p = p.__proto__;
     }
     keys = new Set(keys);
+    object.__aspect_methods = new Set();
+    function validProperty(obj, key) {
+      let descr=Object.getOwnPropertyDescriptor(obj, key);
+      if (descr&&(descr.get||descr.set)) {
+          return false;
+      }
+      let p=obj.constructor;
+      do {
+        if (p.prototype) {
+            let descr=Object.getOwnPropertyDescriptor(p.prototype, key);
+            if (descr&&(descr.set||descr.get)) {
+                return false;
+            }
+        }
+        p = p.__proto__;
+      } while (p&&p!==p.__proto__);
+      
+      return true;
+    }
     for (let k of keys) {
         let v;
         if (typeof k==="string"&&k.startsWith("_")) {
@@ -9196,6 +7075,9 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             continue;
         }
         if (blacklist.has(k)||exclude.has(k)) {
+            continue;
+        }
+        if (!validProperty(object, k)) {
             continue;
         }
         try {
@@ -9211,12 +7093,19 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
     }
   }
   initAspectClass = _es6_module.add_export('initAspectClass', initAspectClass);
+  function clearAspectCallbacks(obj) {
+    for (let key of obj.__aspect_methods) {
+        obj[key].clear();
+    }
+  }
+  clearAspectCallbacks = _es6_module.add_export('clearAspectCallbacks', clearAspectCallbacks);
   class AfterAspect  {
      constructor(owner, key) {
       this.owner = owner;
       this.key = key;
       this.chain = [[owner[key], false]];
       this.chain2 = [[owner[key], false]];
+      this.root = [[owner[key], false]];
       let this2=this;
       let method=this._method = function () {
         let chain=this2.chain;
@@ -9226,7 +7115,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             chain2[i] = chain[i];
         }
         for (let i=0; i<chain2.length; i++) {
-            let cb=chain2[i][0], node=chain2[i][1], once=chain2[i][2];
+            let $_t0afta=chain2[i], cb=$_t0afta[0], node=$_t0afta[1], once=$_t0afta[2];
             if (node) {
                 let isDead=!node.isConnected;
                 if (__instance_of(node, UIBase)) {
@@ -9258,6 +7147,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
       owner[key].remove = this.remove.bind(this);
     }
     static  bind(owner, key) {
+      owner.__aspect_methods.add(key);
       return new AfterAspect(owner, key);
     }
      remove(cb) {
@@ -9276,6 +7166,12 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
       if (!this._method_bound) {
           this.owner[this.key] = this._method;
       }
+    }
+     clear() {
+      this._checkbind();
+      this.chain = [[this.root[0][0], this.root[0][1]]];
+      this.chain2 = [[this.root[0][0], this.root[0][1]]];
+      return this;
     }
      before(cb, node, once) {
       this._checkbind();
@@ -9298,6 +7194,8 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
   _es6_module.add_class(AfterAspect);
   AfterAspect = _es6_module.add_export('AfterAspect', AfterAspect);
 }, '/dev/fairmotion/src/path.ux/scripts/core/aspect.js');
+
+
 es6_module_define('safeobservable', [], function _safeobservable_module(_es6_module) {
   let idgen=0;
   class AbstractObservable  {
@@ -9535,79 +7433,137 @@ es6_module_define('safeobservable', [], function _safeobservable_module(_es6_mod
   _es6_module.add_class(Observable);
   Observable = _es6_module.add_export('Observable', Observable);
 }, '/dev/fairmotion/src/path.ux/scripts/core/safeobservable.js');
-es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme_module(_es6_module) {
+
+
+es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module) {
   var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
-  var util=es6_import(_es6_module, '../util/util.js');
-  const DefaultTheme={base: {themeVersion: 0.1, 
-    mobileTextSizeMultiplier: 1.0, 
-    mobileSizeMultiplier: 1, 
-    "oneAxisPadding": 6, 
-    "oneAxisMargin": 6, 
-    "FocusOutline": "rgba(100, 150, 255, 1.0)", 
-    "BasePackFlag": 0, 
-    "ScreenBorderOuter": "rgba(120, 120, 120, 1.0)", 
-    "ScreenBorderInner": "rgba(170, 170, 170, 1.0)", 
-    "ScreenBorderWidth": util.isMobile() ? 5 : 2, 
-    "ScreenBorderMousePadding": util.isMobile() ? 6 : 5, 
-    "numslider_width": 24, 
-    "numslider_height": 24, 
-    "defaultWidth": 32, 
-    "defaultHeight": 32, 
-    "ProgressBarBG": "rgba(110, 110, 110, 1.0)", 
-    "ProgressBar": "rgba(75, 175, 255, 1.0)", 
-    "NoteBG": "rgba(220, 220, 220, 0.0)", 
-    "NoteText": new CSSFont({font: "sans-serif", 
+  const DefaultTheme={base: {AreaHeaderBG: 'rgba(200, 200, 200, 0.95)', 
+    BasePackFlag: 0, 
+    BoxDepressed: 'rgba(130,130,130, 1)', 
+    BoxHighlight: 'rgba(151,208,239, 1)', 
+    DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    TitleText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
      size: 12, 
-     color: "rgba(135, 135, 135, 1.0)", 
-     weight: "bold"}), 
-    "DefaultPanelBG": "rgba(225, 225, 225, 1.0)", 
-    "InnerPanelBG": "rgba(195, 195, 195, 1.0)", 
-    "AreaHeaderBG": "rgba(205, 205, 205, 1.0)", 
-    "BoxRadius": 12, 
-    "BoxMargin": 4, 
-    "BoxDrawMargin": 2, 
-    "BoxHighlight": "rgba(155, 220, 255, 1.0)", 
-    "BoxDepressed": "rgba(130, 130, 130, 1.0)", 
-    "BoxBG": "rgba(170, 170, 170, 1.0)", 
-    Disabled: {"background-size": "5px 3px", 
-     "background-color": "rgb(72, 72, 72)", 
-     "border-radius": "15px", 
-     BoxBG: "rgb(50, 50, 50)", 
-     BoxSubBG: "rgb(50, 50, 50)", 
-     BoxSub2BG: "rgb(50, 50, 50)", 
-     AreaHeaderBG: "rgb(72, 72, 72)", 
-     DefaultPanelBG: "rgb(72, 72, 72)", 
-     InnerPanelBG: "rgb(72, 72, 72)"}, 
-    "BoxSubBG": "rgba(175, 175, 175, 1.0)", 
-    "BoxSub2BG": "rgba(125, 125, 125, 1.0)", 
-    "BoxBorder": "rgba(255, 255, 255, 1.0)", 
-    "DefaultText": new CSSFont({font: "sans-serif", 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    'background-color': 'rgba(207,207,207, 0.5)', 
+    'border-color': 'rgba(34,34,34, 1)', 
+    'border-radius': 12.010619764585666, 
+    'focus-border-width': 2, 
+    oneAxisPadding: 2, 
+    padding: 1}, 
+   button: {DefaultText: new CSSFont({font: 'poppins', 
+     weight: 'bold', 
+     variant: 'normal', 
+     style: 'normal', 
      size: 12, 
-     color: "rgba(35, 35, 35, 1.0)", 
-     weight: "bold"}), 
-    "ToolTipText": new CSSFont({font: "sans-serif", 
-     size: 12, 
-     color: "rgba(35, 35, 35, 1.0)", 
-     weight: "bold"}), 
-    "LabelText": new CSSFont({size: 13, 
-     color: "rgba(75, 75, 75, 1.0)", 
-     font: "sans-serif", 
-     weight: "bold"}), 
-    "HotkeyText": new CSSFont({size: 12, 
-     color: "rgba(130, 130, 130, 1.0)", 
-     font: "courier"}), 
-    "TitleText": new CSSFont({size: 16, 
-     color: "rgba(55, 55, 55, 1.0)", 
-     font: "sans-serif", 
-     weight: "bold"})}, 
-   treeview: {itemIndent: 10, 
-    rowHeight: 18}, 
-   menu: {MenuBG: "rgba(250, 250, 250, 1.0)", 
-    MenuHighlight: "rgba(155, 220, 255, 1.0)", 
-    MenuSpacing: 0, 
-    MenuText: new CSSFont({size: 12, 
-     color: "rgba(25, 25, 25, 1.0)", 
-     font: "sans-serif"}), 
+     color: 'rgba(35,35,35, 1)'}), 
+    'background-color': 'rgba(238,238,238, 0.8672412740773168)', 
+    'border-color': 'rgba(255,255,255, 1)', 
+    'border-radius': 4, 
+    'border-style': 'solid', 
+    'border-width': 2, 
+    pressed: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(35,35,35, 1)'}), 
+     'background-color': 'rgba(113,113,113, 1)', 
+     'border-color': '#DADCE0', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
+    disabled: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgb(109,109,109)'}), 
+     'background-color': 'rgb(19,19,19)', 
+     'border-color': '#f58f8f', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
+    "highlight-pressed": {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(35,35,35, 1)'}), 
+     'background-color': 'rgba(113,113,113, 1)', 
+     'border-color': '#DADCE0', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
+    height: 25, 
+    highlight: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(255,255,255, 1)'}), 
+     'background-color': 'rgba(138,222,255, 1)', 
+     'border-color': 'rgba(255,255,255, 1)', 
+     'border-radius': 4, 
+     'border-style': 'solid', 
+     'border-width': 2}, 
+    margin: 4, 
+    'margin-left': 4, 
+    'margin-right': 4, 
+    padding: 1, 
+    width: 25}, 
+   checkbox: {CheckSide: 'left', 
+    height: 32, 
+    width: 32}, 
+   colorfield: {circleSize: 16, 
+    colorBoxHeight: 24, 
+    fieldSize: 400, 
+    height: 256, 
+    hueHeight: 32, 
+    width: 256}, 
+   colorpickerbutton: {height: 32, 
+    width: 120}, 
+   curvewidget: {CanvasBG: 'rgba(117,79,79, 1)', 
+    CanvasHeight: 256, 
+    CanvasWidth: 256}, 
+   dropbox: {dropTextBG: 'rgba(233,233,233, 1)', 
+    height: 25, 
+    width: 32}, 
+   iconbutton: {'background-color': 'rgba(15,15,15, 0)', 
+    'border-color': 'black', 
+    'border-radius': 5, 
+    'border-width': 1, 
+    height: 32, 
+    width: 32, 
+    'margin-bottom': 1, 
+    'margin-left': 2, 
+    'margin-right': 2, 
+    'margin-top': 1, 
+    padding: 2}, 
+   iconcheck: {'background-color': 'rgba(15,15,15, 0)', 
+    'border-color': 'rgba(237,209,209, 1)', 
+    'border-radius': 5, 
+    'border-width': 0, 
+    drawCheck: true, 
+    height: 32, 
+    width: 32, 
+    'margin-bottom': 1, 
+    'margin-left': 2, 
+    'margin-right': 2, 
+    'margin-top': 1, 
+    padding: 2}, 
+   listbox: {ListActive: 'rgba(200, 205, 215, 1.0)', 
+    ListHighlight: 'rgba(155, 220, 255, 0.5)', 
+    height: 200, 
+    width: 110}, 
+   menu: {MenuBG: 'rgba(250, 250, 250, 1.0)', 
+    MenuBorder: '1px solid grey', 
+    MenuHighlight: 'rgba(155, 220, 255, 1.0)', 
     MenuSeparator: `
       width : 100%;
       height : 2px;
@@ -9616,99 +7572,153 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
       border : none;
       background-color : grey; 
     `, 
-    MenuBorder: "1px solid grey"}, 
-   tooltip: {"BoxBG": "rgb(245, 245, 245, 1.0)", 
-    "BoxBorder": "rgb(145, 145, 145, 1.0)"}, 
-   textbox: {"background-color": "rgb(255, 255, 255, 1.0)"}, 
-   richtext: {"background-color": "rgb(245, 245, 245)", 
-    "DefaultText": new CSSFont({font: "sans-serif", 
-     size: 16, 
-     color: "rgba(35, 35, 35, 1.0)", 
-     weight: "normal"})}, 
-   button: {defaultWidth: 100, 
-    defaultHeight: 24, 
-    BoxMargin: 10}, 
-   iconcheck: {}, 
-   checkbox: {BoxMargin: 2, 
-    CheckSide: "left"}, 
-   iconbutton: {}, 
-   scrollbars: {color: undefined, 
-    color2: undefined, 
-    width: undefined, 
-    border: undefined, 
-    contrast: undefined}, 
-   numslider: {DefaultText: new CSSFont({font: "sans-serif", 
-     color: "black", 
-     size: 16, 
-     weight: 'bold'}), 
-    defaultWidth: 100, 
-    defaultHeight: 29}, 
-   curvewidget: {CanvasWidth: 256, 
-    CanvasHeight: 256, 
-    CanvasBG: "rgba(50, 50, 50, 0.75)"}, 
-   numslider_simple: {labelOnTop: false, 
-    TitleText: new CSSFont({size: 14}), 
-    BoxBG: "rgb(225, 225, 225)", 
-    BoxBorder: "rgb(75, 75, 75)", 
-    SlideHeight: 10, 
+    MenuSpacing: 5, 
+    MenuText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(25, 25, 25, 1.0)'}), 
+    'border-color': 'grey', 
+    'border-radius': 5, 
+    'border-style': 'solid', 
+    'border-width': 1}, 
+   numslider: {'background-color': 'rgba(219,219,219, 1)', 
+    'border-color': 'black', 
+    'border-radius': 1, 
+    height: 18, 
+    width: 135}, 
+   numslider_simple: {DefaultHeight: 18, 
     DefaultWidth: 135, 
-    DefaultHeight: 18, 
-    BoxRadius: 5, 
-    TextBoxWidth: 45}, 
-   tabs: {TabStrokeStyle1: "rgba(200, 200, 200, 1.0)", 
-    TabStrokeStyle2: "rgba(255, 255, 255, 1.0)", 
-    TabInactive: "rgba(150, 150, 150, 1.0)", 
-    TabHighlight: "rgba(50, 50, 50, 0.2)", 
-    TabText: new CSSFont({size: 18, 
-     color: "rgba(35, 35, 35, 1.0)", 
-     font: "sans-serif"})}, 
-   colorfield: {fieldsize: 32, 
-    defaultWidth: 200, 
-    defaultHeight: 200, 
-    hueheight: 24, 
-    colorBoxHeight: 24, 
-    circleSize: 4}, 
-   panel: {"Background": "rgba(175, 175, 175, 1.0)", 
-    "TitleBackground": "rgba(125, 125, 125, 1.0)", 
-    "BoxBorder": "rgba(255, 255, 255, 0.0)", 
-    "TitleBorder": "rgba(255, 255, 255, 0.0)", 
-    "BoxRadius": 5, 
-    "BoxLineWidth": 1, 
-    "padding-top": 7, 
-    "padding-bottom": 5, 
-    "border-style": "solid"}, 
-   listbox: {DefaultPanelBG: "rgba(230, 230, 230, 1.0)", 
-    ListHighlight: "rgba(155, 220, 255, 0.5)", 
-    ListActive: "rgba(200, 205, 215, 1.0)", 
-    width: 110, 
-    height: 200}, 
-   colorpickerbutton: {defaultWidth: 100, 
-    defaultHeight: 25, 
-    defaultFont: "LabelText"}, 
-   dropbox: {dropTextBG: "rgba(250, 250, 250, 0.7)", 
-    BoxHighlight: "rgba(155, 220, 255, 0.4)", 
-    defaultHeight: 24}}
+    SlideHeight: 10, 
+    TextBoxWidth: 45, 
+    'background-color': 'rgba(219,219,219, 1)', 
+    height: 18, 
+    labelOnTop: true, 
+    width: 135}, 
+   label: {LabelText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(35, 35, 35, 1.0)'})}, 
+   numslider_textbox: {TextBoxHeight: 25, 
+    TextBoxWidth: 100, 
+    'background-color': 'rgba(219,219,219, 1)', 
+    height: 25, 
+    labelOnTop: true, 
+    width: 120}, 
+   panel: {HeaderBorderRadius: 5.829650280441558, 
+    HeaderRadius: 5.829650280441558, 
+    TitleBackground: 'rgba(177,219,255, 1)', 
+    TitleBorder: 'rgba(104,104,104, 1)', 
+    TitleText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(0,0,0, 1)'}), 
+    'background-color': 'rgba(184,184,184, 0.7594818376068376)', 
+    'border-color': 'rgba(0,0,0, 0.5598061397157866)', 
+    'border-radius': 7.243125760182565, 
+    'border-style': 'groove', 
+    'border-width': 1.141, 
+    'margin-bottom': 15.762442435166511, 
+    'margin-bottom-closed': 0, 
+    'margin-top': 0.2606556353343805, 
+    'margin-top-closed': 0, 
+    'margin-left': 0, 
+    'margin-right': 0, 
+    'padding-bottom': 0.8561244078997758, 
+    'padding-left': 0, 
+    'padding-right': 0, 
+    'padding-top': 0.9665377430621097}, 
+   richtext: {DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 16, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    'background-color': 'rgb(245, 245, 245)'}, 
+   screenborder: {'border-inner': 'grey', 
+    'border-outer': 'rgba(228,228,228, 1)', 
+    'border-width': 2, 
+    'mouse-threshold': 5}, 
+   scrollbars: {border: undefined, 
+    color: undefined, 
+    color2: undefined, 
+    contrast: undefined, 
+    width: undefined}, 
+   sidebar: {'background-color': 'rgba(55, 55, 55, 0.5)'}, 
+   strip: {'background-color': 'rgba(75,75,75, 0.33213141025641024)', 
+    'border-color': 'rgba(0,0,0, 0.31325409987877156)', 
+    'border-radius': 8.76503417507447, 
+    'border-style': 'solid', 
+    'border-width': 1, 
+    margin: 2, 
+    oneAxisPadding: 2, 
+    padding: 1}, 
+   tabs: {TabActive: 'rgba(212,212,212, 1)', 
+    TabBarRadius: 6, 
+    TabHighlight: 'rgba(50, 50, 50, 0.2)', 
+    TabInactive: 'rgba(183,183,183, 1)', 
+    TabStrokeStyle1: 'rgba(0,0,0, 1)', 
+    TabStrokeStyle2: 'rgba(0,0,0, 1)', 
+    TabText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'bold', 
+     style: 'normal', 
+     size: 15, 
+     color: 'rgba(0,0,0, 1)'}), 
+    'background-color': 'rgba(222,222,222, 1)'}, 
+   textbox: {DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(3,3,3, 1)'}), 
+    'background-color': 'rgba(245,245,245, 1)'}, 
+   tooltip: {ToolTipText: new CSSFont({font: 'sans-serif', 
+     weight: 'bold', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    'background-color': 'rgba(255,255,255, 1)', 
+    'border-color': 'rgba(139,139,139, 1)', 
+    'border-radius': 3, 
+    'border-style': 'solid', 
+    'border-width': 1, 
+    padding: 5}, 
+   treeview: {itemIndent: 10, 
+    rowHeight: 18}, 
+   vecPopupButton: {defaultHeight: 18, 
+    defaultWidth: 100, 
+    padding: 3}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/const.js", "../util/vectormath.js", "../util/util.js", "../util/simple_events.js", "../widgets/ui_menu.js", "./ui_theme.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js"], function _ui_module(_es6_module) {
+
+
+es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/util/html5_fileapi.js", "./ui_base.js", "../widgets/ui_menu.js", "../path-controller/controller/controller_base.js", "../widgets/ui_widgets.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/simple_events.js", "../config/const.js", "../core/units.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var units=es6_import(_es6_module, '../core/units.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
   var ui_base=es6_import(_es6_module, './ui_base.js');
   var ui_widgets=es6_import(_es6_module, '../widgets/ui_widgets.js');
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  es6_import(_es6_module, '../util/html5_fileapi.js');
-  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
+  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
+  es6_import(_es6_module, '../path-controller/util/html5_fileapi.js');
+  var HotKey=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'HotKey');
   var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
   var theme=es6_import_item(_es6_module, './ui_base.js', 'theme');
+  var iconSheetFromPackFlag=es6_import_item(_es6_module, './ui_base.js', 'iconSheetFromPackFlag');
   var createMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'createMenu');
   var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
   let PropFlags=toolprop.PropFlags;
   let PropSubTypes=toolprop.PropSubTypes;
   let EnumProperty=toolprop.EnumProperty;
   let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
-  const DataPathError=ui_base.DataPathError;
-  _es6_module.add_export('DataPathError', DataPathError);
+  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller_base.js', 'DataPathError');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var list=function list(iter) {
     let ret=[];
@@ -9721,6 +7731,7 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
      constructor() {
       super();
       this._label = "";
+      this._lastText = "";
       this.dom = document.createElement("div");
       this.dom.setAttribute("class", "_labelx");
       let style=document.createElement("style");
@@ -9758,6 +7769,10 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       }
       this._updateFont();
     }
+     setCSS() {
+      super.setCSS(false);
+      this.setBoxCSS();
+    }
      on_disabled() {
       super.on_disabled();
       this._enabled_font = this.font;
@@ -9786,26 +7801,22 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       if (val===undefined) {
           return ;
       }
-      if (prop!==undefined&&prop.type==PropTypes.INT) {
-          val = val.toString(prop.radix);
-          if (prop.radix==2) {
-              val = "0b"+val;
-          }
-          else 
-            if (prop.radix==16) {
-              val+="h";
-          }
+      if (prop.type&(PropTypes.INT|PropTypes.FLOAT)) {
+          val = units.buildString(val, prop.baseUnit, prop.decimalPlaces, prop.displayUnit);
       }
-      else 
-        if (prop!==undefined&&prop.type==PropTypes.FLOAT&&val!==Math.floor(val)) {
-          val = val.toFixed(prop.decimalPlaces);
+      val = ""+this._label+" "+val;
+      if (val!==this._lastText) {
+          this._lastText = val;
+          this.dom.innerText = val;
       }
-      val = ""+val;
-      this.dom.innerText = this._label+val;
     }
      update() {
-      if (this.font!==this._last_font) {
-          this._last_font = this.font;
+      let key="";
+      if (this._font!==undefined&&__instance_of(this._font, CSSFont)) {
+          key+=this._font.genKey();
+      }
+      if (key!==this._last_font) {
+          this._last_font = key;
           this._updateFont();
       }
       this.dom.style["pointer-events"] = this.style["pointer-events"];
@@ -9823,26 +7834,87 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       }
     }
     static  define() {
-      return {tagname: "label-x"}
+      return {tagname: "label-x", 
+     style: "label"}
     }
   }
   _ESClass.register(Label);
   _es6_module.add_class(Label);
   Label = _es6_module.add_export('Label', Label);
-  ui_base.UIBase.register(Label);
+  ui_base.UIBase.internalRegister(Label);
   class Container extends ui_base.UIBase {
      constructor() {
       super();
       this.dataPrefix = '';
+      this.massSetPrefix = '';
       this.inherit_packflag = 0;
       let style=this.styletag = document.createElement("style");
       style.textContent = `
     `;
       this.shadow.appendChild(style);
+      this.reversed = false;
+      this._prefixstack = [];
+      this._mass_prefixstack = [];
+    }
+     changePathPrefix(newprefix) {
+      let prefix=this.dataPrefix.trim();
+      this.dataPrefix = newprefix;
+      if (prefix.length>0) {
+          prefix+=".";
+      }
+      let rec=(n, con) =>        {
+        if (__instance_of(n, Container)&&n!==this) {
+            if (n.dataPrefix.startsWith(prefix)) {
+                n.dataPrefix = n.dataPath.slice(prefix.length, n.dataPrefix.length);
+                n.dataPrefix = con._joinPrefix(n.dataPrefix);
+                con = n;
+            }
+        }
+        if (n.hasAttribute("datapath")) {
+            let path=n.getAttribute("datapath");
+            if (path.startsWith(prefix)) {
+                path = path.slice(prefix.length, path.length);
+                path = con._joinPrefix(path);
+                n.setAttribute("datapath", path);
+                n.description = n.description;
+            }
+        }
+        n._forEachChildWidget((n2) =>          {
+          rec(n2, con);
+        });
+      };
+      rec(this, this);
+    }
+     reverse() {
+      this.reversed^=true;
+      return this;
+    }
+     pushMassSetPrefix(val) {
+      this._mass_prefixstack.push(this.massSetPrefix);
+      this.massSetPrefix = val;
+      return this;
+    }
+     pushDataPrefix(val) {
+      this._prefixstack.push(this.dataPrefix);
+      this.dataPrefix = val;
+      return this;
+    }
+     popDataPrefix() {
+      this.dataPrefix = this._prefixstack.pop();
+      return this;
+    }
+     popMassSetPrefix() {
+      this.massSetPrefix = this._mass_prefixstack.pop();
+      return this;
     }
      saveData() {
-      return {scrollTop: this.scrollTop, 
-     scrollLeft: this.scrollLeft}
+      if (this.scrollTop||this.scrollLeft) {
+          return {scrollTop: this.scrollTop, 
+       scrollLeft: this.scrollLeft}
+      }
+      else {
+        return {}
+      }
     }
      loadData(obj) {
       if (!obj)
@@ -9855,21 +7927,40 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
     }
      init() {
       this.style["display"] = "flex";
-      this.style["flex-direction"] = "column";
+      this.style["flex-direction"] = this.reversed ? "column-reverse" : "column";
       this.style["flex-wrap"] = "nowrap";
+      this.style["flex-grow"] = ""+this.getDefault("flex-grow", undefined, "1");
       this.setCSS();
       super.init();
       this.setAttribute("class", "containerx");
     }
-     useIcons(enabled=true) {
-      if (enabled) {
-          this.packflag|=PackFlags.USE_ICONS;
-          this.inherit_packflag|=PackFlags.USE_ICONS;
+     useIcons(enabled_or_sheet=true) {
+      let enabled=!!enabled_or_sheet;
+      let mask=PackFlags.USE_ICONS|PackFlags.SMALL_ICON|PackFlags.LARGE_ICON;
+      mask = mask|PackFlags.CUSTOM_ICON_SHEET;
+      mask = mask|(255<<PackFlags.CUSTOM_ICON_SHEET_START);
+      let previous=this.packflag&mask;
+      if (!enabled) {
+          this.packflag&=~PackFlags.USE_ICONS;
+          this.inherit_packflag&=~PackFlags.USE_ICONS;
+          return previous;
+      }
+      let sheet=enabled_or_sheet;
+      if (sheet===true) {
+          sheet = PackFlags.SMALL_ICON;
+      }
+      else 
+        if (sheet===1) {
+          sheet = PackFlags.LARGE_ICON;
       }
       else {
-        this.packflag&=~PackFlags.USE_ICONS;
-        this.inherit_packflag&=~PackFlags.USE_ICONS;
+        sheet = PackFlags.CUSTOM_ICON_SHEET|(sheet<<(PackFlags.CUSTOM_ICON_SHEET_START));
       }
+      this.packflag&=~(PackFlags.SMALL_ICON|PackFlags.LARGE_ICON|PackFlags.CUSTOM_ICON_SHEET);
+      this.packflag&=~(255<<PackFlags.CUSTOM_ICON_SHEET_START);
+      this.packflag|=PackFlags.USE_ICONS|sheet;
+      this.inherit_packflag|=PackFlags.USE_ICONS|sheet;
+      return previous;
     }
      wrap(mode="wrap") {
       this.style["flex-wrap"] = mode;
@@ -9887,6 +7978,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
      setCSS() {
       let rest='';
       let add=(style) =>        {
+        if (!this.hasDefault(style)) {
+            return ;
+        }
         let val=this.getDefault(style);
         if (val!==undefined) {
             rest+=`  ${style} = ${val};\n`;
@@ -9894,13 +7988,13 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
         }
       };
       add("border-radius");
-      add("border");
+      add("border-width");
       add("border-top");
       add("border-bottom");
       add("border-left");
       add("border-right");
       this.styletag.textContent = `div.containerx {
-        background-color : ${this.getDefault("DefaultPanelBG")};
+        background-color : ${this.getDefault("background-color")};
         ${rest}
       }
       `;
@@ -9910,16 +8004,54 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       this.setCSS();
       return this;
     }
-     strip(m=this.getDefault("oneAxisPadding"), m2=1, themeClass="strip") {
-      let horiz=__instance_of(this, RowFrame);
-      horiz = horiz||this.style["flex-direction"]==="row";
+     strip(themeClass="strip", margin1=this.getDefault("oneAxisPadding"), margin2=1, horiz=undefined) {
+      if (horiz===undefined) {
+          horiz = __instance_of(this, RowFrame);
+          horiz = horiz||this.style["flex-direction"]==="row";
+      }
       let flag=horiz ? PackFlags.STRIP_HORIZ : PackFlags.STRIP_VERT;
-      let strip=(horiz ? this.row() : this.col()).oneAxisPadding(m, m2);
+      let strip=(horiz ? this.row() : this.col());
+      if (typeof margin1!=="number") {
+          throw new Error("margin1 was not a number");
+      }
+      if (typeof margin2!=="number") {
+          throw new Error("margin2 was not a number");
+      }
       strip.packflag|=flag;
+      strip.dataPrefix = this.dataPrefix;
+      strip.massSetPrefix = this.massSetPrefix;
       if (themeClass in theme) {
           strip.overrideClass(themeClass);
-          strip.background = strip.getDefault("DefaultPanelBG");
+          strip.background = strip.getDefault("background-color");
           strip.setCSS();
+          strip.overrideClass(themeClass);
+          let lastkey;
+          strip.update.after(function () {
+            let bradius=strip.getDefault("border-radius");
+            let bline=strip.getDefault("border-width");
+            let bstyle=strip.getDefault("border-style")||'solid';
+            let padding=strip.getDefault("padding");
+            let bcolor=strip.getDefault("border-color")||"rgba(0,0,0,0)";
+            let margin=strip.getDefault("margin")||0;
+            bline = bline===undefined ? 0 : bline;
+            bradius = bradius===undefined ? 0 : bradius;
+            padding = padding===undefined ? 5 : padding;
+            let bg=strip.getDefault("background-color");
+            let key=""+bradius+":"+bline+":"+bg+":"+padding+":";
+            key+=bstyle+":"+padding+":"+bcolor+":"+margin;
+            if (key!==lastkey) {
+                lastkey = key;
+                strip.oneAxisPadding(margin1+padding, margin2+padding);
+                strip.setCSS();
+                strip.background = bg;
+                strip.style["margin"] = ""+margin+"px";
+                strip.style["border"] = `${bline}px ${bstyle} ${bcolor}`;
+                strip.style["border-radius"] = ""+bradius+"px";
+            }
+          });
+      }
+      else {
+        console.warn(this.constructor.name+".strip(): unknown theme class "+themeClass);
       }
       return strip;
     }
@@ -9928,9 +8060,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       this.style["margin-left"] = this.style["margin-right"] = ""+m2+"px";
       return this;
     }
-     oneAxisPadding(m=this.getDefault("oneAxisPadding"), m2=0) {
-      this.style["padding-top"] = this.style["padding-bottom"] = ""+m+"px";
-      this.style["padding-left"] = this.style["padding-right"] = ""+m2+"px";
+     oneAxisPadding(axisPadding=this.getDefault("oneAxisPadding"), otherPadding=0) {
+      this.style["padding-top"] = this.style["padding-bottom"] = ""+axisPadding+"px";
+      this.style["padding-left"] = this.style["padding-right"] = ""+otherPadding+"px";
       return this;
     }
      setMargin(m) {
@@ -10092,6 +8224,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       child.ctx = this.ctx;
       child.parentWidget = this;
       child._useDataPathUndo = this._useDataPathUndo;
+      if (!child._themeOverride&&this._themeOverride) {
+          child.overrideTheme(this._themeOverride);
+      }
       if (prepend) {
           this.shadow.prepend(child);
       }
@@ -10106,25 +8241,80 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return this.menu(title, list, packflag);
     }
      menu(title, list, packflag=0) {
-      let dbox=document.createElement("dropbox-x");
+      let dbox=UIBase.createElement("dropbox-x");
       dbox._name = title;
       dbox.setAttribute("simple", true);
       dbox.setAttribute("name", title);
-      dbox._build_menu = function () {
-        if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
-            this._menu.remove();
-        }
-        this._menu = createMenu(this.ctx, title, list);
-        return this._menu;
-      };
-      dbox.packflag|=packflag;
-      dbox.inherit_packflag|=packflag;
+      if (__instance_of(list, HTMLElement)&&list.constructor.name==="Menu") {
+          dbox._build_menu = function () {
+            if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
+                this._menu.remove();
+            }
+            this._menu = createMenu(this.ctx, title, templ);
+            return this._menu;
+          };
+      }
+      else 
+        if (list) {
+          dbox.template = list;
+      }
+      this._container_inherit(dbox, packflag);
       this._add(dbox);
       return dbox;
     }
-     tool(path_or_cls, packflag=0, create_cb=undefined) {
+     toolPanel(path_or_cls, args={}) {
+      let tdef;
       let cls;
+      if (typeof path_or_cls==="string") {
+          cls = this.ctx.api.parseToolPath(path_or_cls);
+      }
+      else {
+        cls = path_or_cls;
+      }
+      tdef = cls._getFinalToolDef();
+      let packflag=args.packflag||0;
+      let label=args.label||tdef.uiname;
+      let createCb=args.createCb||args.create_cb;
+      let container=args.container||this.panel(label);
+      let defaultsPath=args.defaultsPath||"toolDefaults";
+      if (defaultsPath.length>0&&!defaultsPath.endsWith(".")) {
+          defaultsPath+=".";
+      }
+      let path=defaultsPath+tdef.toolpath;
+      container.useIcons(false);
+      let inputs=tdef.inputs||{};
+      for (let k in inputs) {
+          let prop=inputs[k];
+          if (prop.flag&PropFlags.PRIVATE) {
+              continue;
+          }
+          let apiname=prop.apiname||k;
+          let path2=path+"."+apiname;
+          container.prop(path2);
+      }
+      container.tool(path_or_cls, packflag, createCb, label);
+      return container;
+    }
+     tool(path_or_cls, packflag_or_args={}, createCb=undefined, label=undefined) {
+      let cls;
+      let packflag;
+      if (typeof packflag_or_args==="object") {
+          let args=packflag_or_args;
+          packflag = args.packflag;
+          createCb = args.createCb;
+          label = args.label;
+      }
+      else {
+        packflag = packflag_or_args||0;
+      }
       if (typeof path_or_cls=="string") {
+          if (path_or_cls.search(/\|/)>=0) {
+              path_or_cls = path_or_cls.split("|");
+              if (label===undefined&&path_or_cls.length>1) {
+                  label = path_or_cls[1].trim();
+              }
+              path_or_cls = path_or_cls[0].trim();
+          }
           if (this.ctx===undefined) {
               console.warn("this.ctx was undefined in tool()");
               return ;
@@ -10138,19 +8328,19 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       else {
         cls = path_or_cls;
       }
-      packflag|=this.inherit_packflag;
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
       let hotkey;
-      if (create_cb===undefined) {
-          create_cb = (cls) =>            {
+      if (createCb===undefined) {
+          createCb = (cls) =>            {
             return this.ctx.api.createTool(this.ctx, path_or_cls);
           };
       }
       let cb=() =>        {
         console.log("tool run");
-        let toolob=create_cb(cls);
+        let toolob=createCb(cls);
         this.ctx.api.execTool(this.ctx, toolob);
       };
-      let def=cls.tooldef();
+      let def=typeof path_or_cls==="string" ? this.ctx.api.getToolDef(path_or_cls) : cls.tooldef();
       let tooltip=def.description===undefined ? def.uiname : def.description;
       if (def.hotkey!==undefined) {
           tooltip+="\n\t"+def.hotkey;
@@ -10162,34 +8352,31 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
             path = def.toolpath;
         }
         let hotkey=this.ctx.api.getToolPathHotkey(this.ctx, path);
-        if (hotkey!==undefined) {
+        if (hotkey) {
             tooltip+="\n\tHotkey: "+hotkey;
         }
       }
       let ret;
       if (def.icon!==undefined&&(packflag&PackFlags.USE_ICONS)) {
-          ret = this.iconbutton(def.icon, tooltip, cb);
-          if (packflag&PackFlags.SMALL_ICON) {
-              ret.iconsheet = ui_base.IconSheets.SMALL;
-          }
-          else {
-            ret.iconsheet = ui_base.IconSheets.LARGE;
-          }
+          label = label===undefined ? tooltip : label;
+          ret = this.iconbutton(def.icon, label, cb);
+          ret.iconsheet = iconSheetFromPackFlag(packflag);
           ret.packflag|=packflag;
       }
       else {
-        ret = this.button(def.uiname, cb);
+        label = label===undefined ? def.uiname : label;
+        ret = this.button(label, cb);
         ret.description = tooltip;
         ret.packflag|=packflag;
       }
       return ret;
     }
-     textbox(inpath, text="", cb=undefined, packflag=0) {
+     textbox(inpath, text, cb=undefined, packflag=0) {
       let path;
       if (inpath)
         path = this._joinPrefix(inpath);
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("textbox-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let ret=UIBase.createElement("textbox-x");
       if (path!==undefined) {
           ret.setAttribute("datapath", path);
       }
@@ -10204,18 +8391,21 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       this._add(ret);
       return ret;
     }
-     pathlabel(inpath, label="") {
+     pathlabel(inpath, label="", packflag=0) {
       let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
-      let ret=document.createElement("label-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      if (inpath) {
+          path = this._joinPrefix(inpath);
+      }
+      let ret=UIBase.createElement("label-x");
       ret.text = label;
+      ret.packflag = packflag;
       ret.setAttribute("datapath", path);
       this._add(ret);
       return ret;
     }
      label(text) {
-      let ret=document.createElement("label-x");
+      let ret=UIBase.createElement("label-x");
       ret.text = text;
       this._add(ret);
       return ret;
@@ -10225,7 +8415,6 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
         this.getScreen().hintPickerTool();
       });
       if (util.isMobile()) {
-          ret.iconsheet = 2;
       }
       if (ret.ctx) {
           ret._init();
@@ -10234,25 +8423,20 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      iconbutton(icon, description, cb, thisvar, packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("iconbutton-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let ret=UIBase.createElement("iconbutton-x");
       ret.packflag|=packflag;
       ret.setAttribute("icon", icon);
       ret.description = description;
       ret.icon = icon;
-      if (packflag&PackFlags.SMALL_ICON) {
-          ret.iconsheet = ui_base.IconSheets.SMALL;
-      }
-      else {
-        ret.iconsheet = ui_base.IconSheets.LARGE;
-      }
+      ret.iconsheet = iconSheetFromPackFlag(packflag);
       ret.onclick = cb;
       this._add(ret);
       return ret;
     }
      button(label, cb, thisvar, id, packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("button-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let ret=UIBase.createElement("button-x");
       ret.packflag|=packflag;
       ret.setAttribute("name", label);
       ret.setAttribute("buttonid", id);
@@ -10260,14 +8444,22 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       this._add(ret);
       return ret;
     }
-     _joinPrefix(path) {
-      let prefix=this.dataPrefix.trim();
+     _joinPrefix(path, prefix=this.dataPrefix.trim()) {
+      if (path===undefined) {
+          return undefined;
+      }
+      path = path.trim();
+      if (prefix.length>0&&!prefix.endsWith(".")&&!path.startsWith(".")) {
+          path = "."+path;
+      }
       return prefix+path;
     }
      colorbutton(inpath, packflag, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("color-picker-button-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
+      let ret=UIBase.createElement("color-picker-button-x");
       if (inpath!==undefined) {
+          inpath = this._joinPrefix(inpath);
           ret.setAttribute("datapath", inpath);
       }
       if (mass_set_path!==undefined) {
@@ -10278,32 +8470,80 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      noteframe(packflag=0) {
-      let ret=document.createElement("noteframe-x");
-      ret.packflag|=this.inherit_packflag|packflag;
+      let ret=UIBase.createElement("noteframe-x");
+      ret.packflag|=(this.inherit_packflag&~PackFlags.NO_UPDATE)|packflag;
       this._add(ret);
       return ret;
     }
      curve1d(inpath, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("curve-widget-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
+      let ret=UIBase.createElement("curve-widget-x");
       ret.ctx = this.ctx;
       ret.packflag|=packflag;
-      if (inpath)
-        ret.setAttribute("datapath", inpath);
+      if (inpath) {
+          inpath = this._joinPrefix(inpath);
+          ret.setAttribute("datapath", inpath);
+      }
       if (mass_set_path)
         ret.setAttribute("mass_set_path", mass_set_path);
       this.add(ret);
       return ret;
     }
+     vecpopup(inpath, packflag=0, mass_set_path=undefined) {
+      let button=UIBase.createElement("vector-popup-button-x");
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let name="vector";
+      if (inpath) {
+          inpath = this._joinPrefix(inpath);
+          button.setAttribute("datapath", inpath);
+          if (mass_set_path) {
+              button.setAttribute("mass_set_path", mass_set_path);
+          }
+          let rdef=this.ctx.api.resolvePath(this.ctx, inpath);
+          if (rdef&&rdef.prop) {
+              name = rdef.prop.uiname||rdef.prop.name;
+          }
+      }
+      button.setAttribute("name", name);
+      button.packflag|=packflag;
+      this.add(button);
+      return button;
+    }
+     _getMassPath(ctx, inpath, mass_set_path) {
+      if (mass_set_path===undefined&&this.massSetPrefix.length>0) {
+          mass_set_path = ctx.api.getPropName(ctx, inpath);
+      }
+      if (mass_set_path===undefined) {
+          return undefined;
+      }
+      return this._joinPrefix(mass_set_path, this.massSetPrefix);
+    }
      prop(inpath, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
-      let rdef=this.ctx.api.resolvePath(this.ctx, path, true);
+      if (!this.ctx) {
+          console.warn(this.id+".ctx was undefined");
+          let p=this.parentWidget;
+          while (p) {
+            if (p.ctx) {
+                console.warn("Fetched this.ctx from parent");
+                this.ctx = p.ctx;
+                break;
+            }
+            p = p.parentWidget;
+          }
+          if (!this.ctx) {
+              throw new Error("ui.Container.prototype.prop(): this.ctx was undefined");
+          }
+      }
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let rdef=this.ctx.api.resolvePath(this.ctx, this._joinPrefix(inpath), true);
       if (rdef===undefined||rdef.prop===undefined) {
-          console.warn("Unknown property at path", path, this.ctx.api.resolvePath(this.ctx, path, true));
+          console.warn("Unknown property at path", this._joinPrefix(inpath), this.ctx.api.resolvePath(this.ctx, this._joinPrefix(inpath), true));
           return ;
       }
       let prop=rdef.prop;
+      let useDataPathUndo=!(prop.flag&PropFlags.NO_UNDO);
       function makeUIName(name) {
         if (typeof name==="number"&&isNaN(name)) {
             console.warn("Subkey error in data api", inpath);
@@ -10314,13 +8554,26 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
         name = name.replace(/_/g, " ");
         return name;
       }
-      if (prop.type===PropTypes.STRING) {
+      if (prop.type===PropTypes.REPORT) {
+          return this.pathlabel(inpath, prop.uiname);
+      }
+      else 
+        if (prop.type===PropTypes.STRING) {
           let ret;
-          if (prop.multiLine) {
+          if (prop.flag&PropFlags.READ_ONLY) {
+              ret = this.pathlabel(inpath, prop.uiname);
+          }
+          else 
+            if (prop.multiLine) {
               ret = this.textarea(inpath, rdef.value, packflag, mass_set_path);
+              ret.useDataPathUndo = useDataPathUndo;
           }
           else {
-            ret = this.textbox(inpath);
+            let strip=this.strip();
+            let uiname=prop.uiname!==undefined ? prop.uiname : ToolProperty.makeUIName(prop.apiname);
+            strip.label(prop.uiname);
+            ret = strip.textbox(inpath);
+            ret.useDataPathUndo = useDataPathUndo;
             if (mass_set_path) {
                 ret.setAttribute("mass_set_path", mass_set_path);
             }
@@ -10330,7 +8583,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       }
       else 
         if (prop.type===PropTypes.CURVE) {
-          return this.curve1d(path, packflag, mass_set_path);
+          let ret=this.curve1d(inpath, packflag, mass_set_path);
+          ret.useDataPathUndo = useDataPathUndo;
+          return ret;
       }
       else 
         if (prop.type===PropTypes.INT||prop.type===PropTypes.FLOAT) {
@@ -10341,6 +8596,7 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
           else {
             ret = this.slider(inpath, {packflag: packflag});
           }
+          ret.useDataPathUndo = useDataPathUndo;
           ret.packflag|=packflag;
           if (mass_set_path) {
               ret.setAttribute("mass_set_path", mass_set_path);
@@ -10349,7 +8605,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       }
       else 
         if (prop.type===PropTypes.BOOL) {
-          return this.check(inpath, prop.uiname, packflag, mass_set_path);
+          let ret=this.check(inpath, prop.uiname, packflag, mass_set_path);
+          ret.useDataPathUndo = useDataPathUndo;
+          return ret;
       }
       else 
         if (prop.type===PropTypes.ENUM) {
@@ -10359,26 +8617,34 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               if (name===undefined) {
                   name = makeUIName(rdef.subkey);
               }
-              let check=this.check(inpath, rdef.prop.ui_value_names[subkey], packflag, mass_set_path);
+              let check=this.check(inpath, name, packflag, mass_set_path);
               let tooltip=rdef.prop.descriptions[subkey];
+              check.useDataPathUndo = useDataPathUndo;
               check.description = tooltip===undefined ? rdef.prop.ui_value_names[subkey] : tooltip;
               check.icon = rdef.prop.iconmap[rdef.subkey];
               return check;
           }
           if (!(packflag&PackFlags.USE_ICONS)) {
-              let val;
-              try {
-                val = this.ctx.api.getValue(this.ctx, path);
+              if (packflag&PackFlags.FORCE_PROP_LABELS) {
+                  let strip=this.strip();
+                  strip.label(prop.uiname);
+                  return strip.listenum(inpath, {packflag: packflag, 
+           mass_set_path: mass_set_path}).setUndo(useDataPathUndo);
               }
-              catch (error) {
-                  if (!(__instance_of(error, DataPathError))) {
-                      throw error;
-                  }
+              else {
+                return this.listenum(inpath, {packflag: packflag, 
+          mass_set_path: mass_set_path}).setUndo(useDataPathUndo);
               }
-              this.listenum(inpath, undefined, undefined, undefined, undefined, undefined, packflag);
           }
           else {
-            this.checkenum(inpath, undefined, packflag);
+            if (packflag&PackFlags.FORCE_PROP_LABELS) {
+                let strip=thdis.strip();
+                strip.label(prop.uiname);
+                return strip.checkenum(inpath, undefined, packflag).setUndo(useDataPathUndo);
+            }
+            else {
+              return this.checkenum(inpath, undefined, packflag).setUndo(useDataPathUndo);
+            }
           }
       }
       else 
@@ -10386,27 +8652,29 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
           if (rdef.subkey!==undefined) {
               let ret;
               if (packflag&PackFlags.SIMPLE_NUMSLIDERS)
-                ret = this.simpleslider(path, {packflag: packflag});
+                ret = this.simpleslider(inpath, {packflag: packflag});
               else 
-                ret = this.slider(path, {packflag: packflag});
+                ret = this.slider(inpath, {packflag: packflag});
               ret.packflag|=packflag;
-              return ret;
+              return ret.setUndo(useDataPathUndo);
           }
           else 
             if (prop.subtype===PropSubTypes.COLOR) {
-              return this.colorbutton(inpath, packflag, mass_set_path);
+              return this.colorbutton(inpath, packflag, mass_set_path).setUndo(useDataPathUndo);
           }
           else {
-            let ret=document.createElement("vector-panel-x");
-            ret.packflag|=packflag;
+            let ret=UIBase.createElement("vector-panel-x");
+            mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
+            ret.packflag|=packflag|(this.inherit_packflag&~PackFlags.NO_UPDATE);
+            ret.inherit_packflag|=packflag|(this.inherit_packflag&~PackFlags.NO_UPDATE);
             if (inpath) {
-                ret.setAttribute("datapath", inpath);
+                ret.setAttribute("datapath", this._joinPrefix(inpath));
             }
             if (mass_set_path) {
                 ret.setAttribute("mass_set_path", mass_set_path);
             }
             this.add(ret);
-            return ret;
+            return ret.setUndo(useDataPathUndo);
           }
       }
       else 
@@ -10431,24 +8699,115 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               if (tooltip) {
                   ret.description = tooltip;
               }
+              return ret.setUndo(useDataPathUndo);
           }
           else {
-            for (let k in prop.values) {
-                let name=prop.ui_value_names[k];
-                let tooltip=prop.descriptions[k];
-                if (name===undefined) {
-                    name = makeUIName(k);
-                }
-                let ret=this.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
-                if (tooltip) {
-                    ret.description = tooltip;
-                }
+            let con=this;
+            if (packflag&PackFlags.FORCE_PROP_LABELS) {
+                con = this.strip();
+                con.label(prop.uiname);
             }
+            if (packflag&PackFlags.PUT_FLAG_CHECKS_IN_COLUMNS) {
+                let i=0;
+                let row=con.row();
+                let col1=row.col();
+                let col2=row.col();
+                for (let k in prop.values) {
+                    let name=prop.ui_value_names[k];
+                    let tooltip=prop.descriptions[k];
+                    if (name===undefined) {
+                        name = makeUIName(k);
+                    }
+                    let con2=i&1 ? col1 : col2;
+                    let check=con2.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
+                    if (tooltip) {
+                        check.description = tooltip;
+                    }
+                    check.setUndo(useDataPathUndo);
+                    i++;
+                }
+                return row;
+            }
+            if (packflag&PackFlags.WRAP_CHECKBOXES) {
+                let isrow=this.style["flex-direction"]==="row";
+                isrow = isrow||this.style["flex-direction"]==="row-reverse";
+                let wrapChars;
+                let strip, con;
+                if (isrow) {
+                    wrapChars = this.getDefault("checkRowWrapLimit", undefined, 24);
+                    strip = this.col().strip();
+                    strip.packflag|=packflag;
+                    strip.inherit_packflag|=packflag;
+                    con = strip.row();
+                }
+                else {
+                  wrapChars = this.getDefault("checkColWrapLimit", undefined, 5);
+                  strip = this.row().strip();
+                  strip.packflag|=packflag;
+                  strip.inherit_packflag|=packflag;
+                  con = strip.col();
+                }
+                let x=0;
+                let y=0;
+                for (let k in prop.values) {
+                    let name=prop.ui_value_names[k];
+                    let tooltip=prop.descriptions[k];
+                    if (name===undefined) {
+                        name = makeUIName(k);
+                    }
+                    let check=con.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
+                    if (tooltip) {
+                        check.description = tooltip;
+                    }
+                    x+=name.length;
+                    y+=1;
+                    if (isrow&&x>wrapChars) {
+                        x = 0;
+                        con = strip.row();
+                    }
+                    else 
+                      if (!isrow&&y>wrapChars) {
+                        y = 0;
+                        con = strip.col();
+                    }
+                }
+                return strip;
+            }
+            if (con===this) {
+                con = this.strip();
+            }
+            let rebuild=() =>              {
+              con.clear();
+              for (let k in prop.values) {
+                  let name=prop.ui_value_names[k];
+                  let tooltip=prop.descriptions[k];
+                  if (name===undefined) {
+                      name = makeUIName(k);
+                  }
+                  let check=con.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
+                  check.useDataPathUndo = useDataPathUndo;
+                  if (tooltip) {
+                      check.description = tooltip;
+                  }
+                  check.setUndo(useDataPathUndo);
+              }
+            };
+            rebuild();
+            let last_hash=prop.calcHash();
+            con.update.after(() =>              {
+              let hash=prop.calcHash();
+              if (last_hash!==hash) {
+                  last_hash = hash;
+                  console.error("Property definition update");
+                  rebuild();
+              }
+            });
+            return con;
           }
       }
     }
      iconcheck(inpath, icon, name, mass_set_path) {
-      ret = document.createElement("iconcheck-x");
+      let ret=UIBase.createElement("iconcheck-x");
       ret.icon = icon;
       ret.description = name;
       if (inpath) {
@@ -10461,18 +8820,17 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      check(inpath, name, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let path=inpath!==undefined ? this._joinPrefix(inpath) : undefined;
       let ret;
       if (packflag&PackFlags.USE_ICONS) {
-          ret = document.createElement("iconcheck-x");
-          if (packflag&PackFlags.SMALL_ICON) {
-              ret.iconsheet = ui_base.IconSheets.SMALL;
-          }
+          ret = UIBase.createElement("iconcheck-x");
+          ret.iconsheet = iconSheetFromPackFlag(packflag);
       }
       else {
-        ret = document.createElement("check-x");
+        ret = UIBase.createElement("check-x");
       }
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
       ret.packflag|=packflag;
       ret.label = name;
       ret.noMarginsOrPadding();
@@ -10496,11 +8854,13 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
           iconmap = args.iconmap;
           mass_set_path = args.mass_set_path;
       }
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
       packflag = packflag===undefined ? 0 : packflag;
-      packflag|=this.inherit_packflag;
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
       let path=this._joinPrefix(inpath);
       let has_path=path!==undefined;
       let prop;
+      let frame;
       if (path!==undefined) {
           prop = this.ctx.api.resolvePath(this.ctx, path, true);
           if (prop!==undefined)
@@ -10511,15 +8871,8 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               console.warn("Bad path in checkenum", path);
               return ;
           }
-          let frame;
-          if (packflag&PackFlags.VERTICAL) {
-              frame = this.col();
-          }
-          else {
-            frame = this.row();
-          }
+          frame = this.strip();
           frame.oneAxisPadding();
-          frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
           if (packflag&PackFlags.USE_ICONS) {
               for (let key in prop.values) {
                   let check=frame.check(inpath+"["+key+"]", "", packflag);
@@ -10569,11 +8922,13 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
             }
           }
       }
+      return frame;
     }
      checkenum_panel(inpath, name, packflag=0, callback=undefined, mass_set_path=undefined, prop=undefined) {
       packflag = packflag===undefined ? 0 : packflag;
-      packflag|=this.inherit_packflag;
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
       let path=this._joinPrefix(inpath);
+      let frame;
       let has_path=path!==undefined;
       if (path!==undefined&&prop===undefined) {
           prop = this.ctx.api.resolvePath(this.ctx, path, true);
@@ -10588,7 +8943,7 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               console.warn("Bad path in checkenum", path);
               return ;
           }
-          let frame=this.panel(name, name, packflag);
+          frame = this.panel(name, name, packflag);
           frame.oneAxisPadding();
           frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
           if (packflag&PackFlags.USE_ICONS) {
@@ -10640,9 +8995,11 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
             }
           }
       }
+      return frame;
     }
      listenum(inpath, name, enumDef, defaultval, callback, iconmap, packflag=0) {
-      packflag|=this.inherit_packflag;
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      let mass_set_path;
       if (name&&typeof name==="object") {
           let args=name;
           name = args.name;
@@ -10651,12 +9008,14 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
           callback = args.callback;
           iconmap = args.iconmap;
           packflag = args.packflag||0;
+          mass_set_path = args.mass_set_path;
       }
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
       let path;
       if (inpath!==undefined) {
           path = this._joinPrefix(inpath);
       }
-      let ret=document.createElement("dropbox-x");
+      let ret=UIBase.createElement("dropbox-x");
       if (enumDef!==undefined) {
           if (__instance_of(enumDef, toolprop.EnumProperty)) {
               ret.prop = enumDef;
@@ -10675,8 +9034,12 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
             name = name===undefined ? res.prop.uiname : name;
         }
       }
+      mass_set_path = this._getMassPath(this.ctx, inpath, mass_set_path);
       if (path!==undefined) {
           ret.setAttribute("datapath", path);
+      }
+      if (mass_set_path!==undefined) {
+          ret.setAttribute("mass_set_path", mass_set_path);
       }
       ret.setAttribute("name", name);
       if (defaultval) {
@@ -10694,10 +9057,6 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
         p = p.parent;
       }
       return p;
-    }
-     curve(id, name, default_preset, packflag=0) {
-      packflag|=this.inherit_packflag;
-      throw new Error("implement me!");
     }
      simpleslider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag=0) {
       if (arguments.length===2||typeof name==="object") {
@@ -10722,9 +9081,10 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
           callback = args.callback;
           packflag = args.packflag||0;
       }
-      packflag|=this.inherit_packflag;
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
       let ret;
       if (inpath) {
+          inpath = this._joinPrefix(inpath);
           let rdef=this.ctx.api.resolvePath(this.ctx, inpath, true);
           if (rdef&&rdef.prop&&(rdef.prop.flag&PropFlags.SIMPLE_SLIDER)) {
               packflag|=PackFlags.SIMPLE_NUMSLIDERS;
@@ -10733,29 +9093,37 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               packflag|=PackFlags.FORCE_ROLLER_SLIDER;
           }
       }
-      if (packflag&PackFlags.SIMPLE_NUMSLIDERS&&!(packflag&PackFlags.FORCE_ROLLER_SLIDER)) {
-          ret = document.createElement("numslider-simple-x");
-      }
-      else 
-        if (cconst.useNumSliderTextboxes&&!(packflag&PackFlags.NO_NUMSLIDER_TEXTBOX)) {
-          ret = document.createElement("numslider-textbox-x");
+      let simple=(packflag&PackFlags.SIMPLE_NUMSLIDERS)||cconst.simpleNumSliders;
+      simple = simple&&!(packflag&PackFlags.FORCE_ROLLER_SLIDER);
+      let extraTextBox=cconst.useNumSliderTextboxes&&!(packflag&PackFlags.NO_NUMSLIDER_TEXTBOX);
+      if (extraTextBox) {
+          if (simple) {
+              ret = UIBase.createElement("numslider-simple-x");
+          }
+          else {
+            ret = UIBase.createElement("numslider-textbox-x");
+          }
       }
       else {
-        ret = document.createElement("numslider-x");
+        if (simple) {
+            ret = UIBase.createElement("numslider-simple-x");
+        }
+        else {
+          ret = UIBase.createElement("numslider-x");
+        }
       }
       ret.packflag|=packflag;
       let decimals;
       if (inpath) {
-          let path=this._joinPrefix(inpath);
-          ret.setAttribute("datapath", path);
+          ret.setAttribute("datapath", inpath);
           let rdef;
           try {
-            rdef = this.ctx.api.resolvePath(this.ctx, path, true);
+            rdef = this.ctx.api.resolvePath(this.ctx, inpath, true);
           }
           catch (error) {
               if (__instance_of(error, DataPathError)) {
                   util.print_stack(error);
-                  console.warn("Error resolving property", path);
+                  console.warn("Error resolving property", inpath);
               }
               else {
                 throw error;
@@ -10774,7 +9142,7 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
               decimals = decimals===undefined ? prop.decimalPlaces : decimals;
           }
           else {
-            console.warn("warning, failed to lookup property info for path", path);
+            console.warn("warning, failed to lookup property info for path", inpath);
           }
       }
       if (name) {
@@ -10800,67 +9168,79 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       this._add(ret);
       return ret;
     }
+     _container_inherit(elem, packflag=0) {
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      elem.packflag|=packflag;
+      elem.inherit_packflag|=packflag;
+      elem.dataPrefix = this.dataPrefix;
+      elem.massSetPrefix = this.massSetPrefix;
+    }
      treeview() {
-      let ret=document.createElement("tree-view-x");
+      let ret=UIBase.createElement("tree-view-x");
       ret.ctx = this.ctx;
       this.add(ret);
+      this._container_inherit(ret);
       return ret;
     }
-     panel(name, id, packflag=0) {
+     panel(name, id, packflag=0, tooltip=undefined) {
       id = id===undefined ? name : id;
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("panelframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.setAttribute("title", name);
+      let ret=UIBase.createElement("panelframe-x");
+      this._container_inherit(ret, packflag);
+      if (tooltip) {
+          ret.setHeaderToolTip(tooltip);
+      }
+      ret.setAttribute("label", name);
       ret.setAttribute("id", id);
       this._add(ret);
-      ret.ctx = this.ctx;
-      ret.contents.ctx = ret.ctx;
-      return ret.contents;
+      if (this.ctx) {
+          ret.ctx = this.ctx;
+          ret._init();
+          ret.contents.ctx = ret.ctx;
+      }
+      ret.contents.dataPrefix = this.dataPrefix;
+      ret.contents.massSetPrefix = this.massSetPrefix;
+      return ret;
     }
      row(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("rowframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
+      let ret=UIBase.createElement("rowframe-x");
+      this._container_inherit(ret, packflag);
       this._add(ret);
       ret.ctx = this.ctx;
       return ret;
     }
      listbox(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("listbox-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
+      let ret=UIBase.createElement("listbox-x");
+      this._container_inherit(ret, packflag);
       this._add(ret);
       return ret;
     }
      table(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("tableframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
+      let ret=UIBase.createElement("tableframe-x");
+      this._container_inherit(ret, packflag);
+      this._add(ret);
+      return ret;
+    }
+     twocol(parentDepth=1, packflag=0) {
+      let ret=UIBase.createElement("two-column-x");
+      ret.parentDepth = parentDepth;
+      this._container_inherit(ret, packflag);
       this._add(ret);
       return ret;
     }
      col(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("colframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
+      let ret=UIBase.createElement("colframe-x");
+      this._container_inherit(ret, packflag);
       this._add(ret);
       return ret;
     }
      colorPicker(inpath, packflag=0, mass_set_path=undefined) {
       let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("colorpicker-x");
+      if (inpath) {
+          path = this._joinPrefix(inpath);
+      }
+      let ret=UIBase.createElement("colorpicker-x");
       packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
+      this._container_inherit(ret, packflag);
       ret.ctx = this.ctx;
       ret.parentWidget = this;
       ret._init();
@@ -10879,8 +9259,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      textarea(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("rich-text-editor-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      mass_set_path = this._getMassPath(this.ctx, datapath, mass_set_path);
+      let ret=UIBase.createElement("rich-text-editor-x");
       ret.ctx = this.ctx;
       ret.packflag|=packflag;
       if (value!==undefined) {
@@ -10894,8 +9275,9 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      viewer(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("html-viewer-x");
+      packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
+      mass_set_path = this._getMassPath(this.ctx, datapath, mass_set_path);
+      let ret=UIBase.createElement("html-viewer-x");
       ret.ctx = this.ctx;
       ret.packflag|=packflag;
       if (value!==undefined) {
@@ -10909,39 +9291,43 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       return ret;
     }
      tabs(position="top", packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("tabcontainer-x");
+      let ret=UIBase.createElement("tabcontainer-x");
       ret.constructor.setDefault(ret);
       ret.setAttribute("bar_pos", position);
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.ctx = this.ctx;
+      this._container_inherit(ret, packflag);
       this._add(ret);
       return ret;
+    }
+     asDialogFooter() {
+      this.style['margin-top'] = '15px';
+      this.style['justify-content'] = 'flex-end';
+      return this;
     }
   }
   _ESClass.register(Container);
   _es6_module.add_class(Container);
   Container = _es6_module.add_export('Container', Container);
   
-  ui_base.UIBase.register(Container, "div");
+  ui_base.UIBase.internalRegister(Container, "div");
   class RowFrame extends Container {
      constructor() {
       super();
-      let style=document.createElement("style");
-      this.shadow.appendChild(style);
     }
      connectedCallback() {
       super.connectedCallback();
       this.style['display'] = 'flex';
-      this.style['flex-direction'] = 'row';
+      this.style['flex-direction'] = this.reversed ? 'row-reverse' : 'row';
     }
      init() {
       super.init();
       this.style['display'] = 'flex';
-      this.style['flex-direction'] = 'row';
+      this.style['flex-direction'] = this.reversed ? 'row-reverse' : 'row';
       if (!this.style['align-items']||this.style['align-items']=='') {
           this.style['align-items'] = 'center';
+      }
+      if (this.getDefault("slider-style")==="simple") {
+          this.packflag|=PackFlags.SIMPLE_NUMSLIDERS;
+          this.inherit_packflag|=PackFlags.SIMPLE_NUMSLIDERS;
       }
     }
      oneAxisMargin(m=this.getDefault('oneAxisMargin'), m2=0) {
@@ -10964,7 +9350,7 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
   _ESClass.register(RowFrame);
   _es6_module.add_class(RowFrame);
   RowFrame = _es6_module.add_export('RowFrame', RowFrame);
-  UIBase.register(RowFrame);
+  UIBase.internalRegister(RowFrame);
   class ColumnFrame extends Container {
      constructor() {
       super();
@@ -10973,9 +9359,20 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
       super.init();
       this.style["display"] = "flex";
       this.style["flex-direction"] = "column";
+      this.style["justify-content"] = "right";
     }
      update() {
       super.update();
+    }
+     oneAxisMargin(m=this.getDefault('oneAxisMargin'), m2=0) {
+      this.style['margin-top'] = this.style['margin-bottom'] = ''+m+'px';
+      this.style['margin-left'] = this.style['margin-right'] = m2+'px';
+      return this;
+    }
+     oneAxisPadding(m=this.getDefault('oneAxisPadding'), m2=0) {
+      this.style['padding-top'] = this.style['padding-bottom'] = ''+m+'px';
+      this.style['padding-left'] = this.style['padding-right'] = ''+m2+'px';
+      return this;
     }
     static  define() {
       return {tagname: "colframe-x"}
@@ -10984,5 +9381,57 @@ es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/
   _ESClass.register(ColumnFrame);
   _es6_module.add_class(ColumnFrame);
   ColumnFrame = _es6_module.add_export('ColumnFrame', ColumnFrame);
-  UIBase.register(ColumnFrame);
+  UIBase.internalRegister(ColumnFrame);
+  class TwoColumnFrame extends Container {
+     constructor() {
+      super();
+      this._colWidth = 256;
+      this.parentDepth = 1;
+    }
+    get  colWidth() {
+      if (this.hasAttribute("colWidth")) {
+          return parsepx(this.getAttribute("colWidth"));
+      }
+      return this._colWidth;
+    }
+    set  colWidth(v) {
+      if (this.hasAttribute("colWidth")) {
+          this.setAttribute("colWidth", ""+v);
+      }
+      else {
+        this._colWidth = v;
+      }
+    }
+     init() {
+      super.init();
+      this.style["display"] = "flex";
+      this.style["flex-direction"] = "column";
+    }
+     update() {
+      super.update();
+      let p=this;
+      for (let i=0; i<this.parentDepth; i++) {
+          p = p.parentWidget ? p.parentWidget : p;
+      }
+      if (!p) {
+          return ;
+      }
+      let r=p.getBoundingClientRect();
+      if (!r) {
+          return ;
+      }
+      let style=r.width>this.colWidth*2.0 ? 'row' : 'column';
+      if (this.style["flex-direction"]!==style) {
+          this.style["flex-direction"] = style;
+      }
+    }
+    static  define() {
+      return {tagname: "two-column-x"}
+    }
+  }
+  _ESClass.register(TwoColumnFrame);
+  _es6_module.add_class(TwoColumnFrame);
+  TwoColumnFrame = _es6_module.add_export('TwoColumnFrame', TwoColumnFrame);
+  UIBase.internalRegister(TwoColumnFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
+

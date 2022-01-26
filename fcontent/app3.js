@@ -1,23 +1,20 @@
-es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../util/math.js", "./anim.js", "../util/colorutils.js", "../controller/simple_controller.js", "../util/cssutils.js", "../util/util.js", "../icon_enum.js", "./units.js", "../util/vectormath.js", "../config/const.js", "../util/simple_events.js", "./ui_theme.js", "../toolsys/toolprop.js", "./theme.js"], function _ui_base_module(_es6_module) {
+
+es6_module_define('ui_base', ["./anim.js", "../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../path-controller/util/cssutils.js", "../path-controller/util/math.js", "./aspect.js", "./units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/controller/controller.js", "../config/const.js", "./ui_theme.js", "../path-controller/util/vectormath.js", "../util/colorutils.js", "./theme.js", "../icon_enum.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
-  if (window.document&&document.body) {
-      console.log("ensuring body.style.margin/padding are zero");
-      document.body.style["margin"] = "0px";
-      document.body.style["padding"] = "0px";
-  }
-  var cssutils=es6_import(_es6_module, '../util/cssutils.js');
+  var cssutils=es6_import(_es6_module, '../path-controller/util/cssutils.js');
   var Animator=es6_import_item(_es6_module, './anim.js', 'Animator');
   es6_import(_es6_module, './units.js');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var math=es6_import(_es6_module, '../util/math.js');
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  var controller=es6_import(_es6_module, '../controller/controller.js');
-  var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
-  var copyEvent=es6_import_item(_es6_module, '../util/simple_events.js', 'copyEvent');
-  var pathDebugEvent=es6_import_item(_es6_module, '../util/simple_events.js', 'pathDebugEvent');
-  var getDataPathToolOp=es6_import_item(_es6_module, '../controller/simple_controller.js', 'getDataPathToolOp');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  var math=es6_import(_es6_module, '../path-controller/util/math.js');
+  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
+  var controller=es6_import(_es6_module, '../path-controller/controller/controller.js');
+  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
+  var copyEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'copyEvent');
+  var pathDebugEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pathDebugEvent');
+  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
+  var getDataPathToolOp=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'getDataPathToolOp');
   var units=es6_import(_es6_module, './units.js');
   var rgb_to_hsv=es6_import_item(_es6_module, '../util/colorutils.js', 'rgb_to_hsv');
   var hsv_to_rgb=es6_import_item(_es6_module, '../util/colorutils.js', 'hsv_to_rgb');
@@ -28,6 +25,7 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
   var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
   var theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
   var parsepx=es6_import_item(_es6_module, './ui_theme.js', 'parsepx');
+  var compatMap=es6_import_item(_es6_module, './ui_theme.js', 'compatMap');
   var DefaultTheme=es6_import_item(_es6_module, './theme.js', 'DefaultTheme');
   let _ex_theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
   _es6_module.add_export('theme', _ex_theme, true);
@@ -42,7 +40,7 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
   var setIconMap=es6_import_item(_es6_module, '../icon_enum.js', 'setIconMap');
   var AfterAspect=es6_import_item(_es6_module, './aspect.js', 'AfterAspect');
   var initAspectClass=es6_import_item(_es6_module, './aspect.js', 'initAspectClass');
-  var _setUIBase=es6_import_item(_es6_module, './aspect.js', '_setUIBase');
+  var aspect=es6_import(_es6_module, './aspect.js');
   const EnumProperty=toolprop.EnumProperty;
   let Area;
   let _setAreaClass=(cls) =>    {
@@ -54,6 +52,25 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
    OK: "green"}
   _es6_module.add_export('ErrorColors', ErrorColors);
   window.__theme = theme;
+  let registered_has_happened=false;
+  let tagPrefix="";
+  function setTagPrefix(prefix) {
+    if (registered_has_happened) {
+        throw new Error("have to call ui_base.setTagPrefix before loading any other path.ux modules");
+    }
+    tagPrefix = ""+prefix;
+  }
+  setTagPrefix = _es6_module.add_export('setTagPrefix', setTagPrefix);
+  function getTagPrefix(prefix) {
+    return tagPrefix;
+  }
+  getTagPrefix = _es6_module.add_export('getTagPrefix', getTagPrefix);
+  let prefix=document.getElementById("pathux-tag-prefix");
+  if (prefix) {
+      console.log("Found pathux-tag-prefix element");
+      prefix = prefix.innerText.trim();
+      setTagPrefix(prefix);
+  }
   function setTheme(theme2) {
     for (let k in theme2) {
         let v=theme2[k];
@@ -61,10 +78,19 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
             theme[k] = v;
             continue;
         }
+        let v0=theme[k];
         if (!(k in theme)) {
             theme[k] = {};
         }
         for (let k2 in v) {
+            if (k2 in compatMap) {
+                let k3=compatMap[k2];
+                if (v[k3]===undefined) {
+                    v[k3] = v[k2];
+                }
+                delete v[k2];
+                k2 = k3;
+            }
             theme[k][k2] = v[k2];
         }
     }
@@ -72,9 +98,9 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
   setTheme = _es6_module.add_export('setTheme', setTheme);
   setTheme(DefaultTheme);
   let _last_report=util.time_ms();
-  function report(msg) {
+  function report() {
     if (util.time_ms()-_last_report>350) {
-        console.warn(msg);
+        console.warn(...arguments);
         _last_report = util.time_ms();
     }
   }
@@ -85,7 +111,7 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
         return theme.base[key];
     }
     else {
-      throw new Error("Unknown default", key);
+      throw new Error("Unknown default "+key);
     }
   }
   getDefault = _es6_module.add_export('getDefault', getDefault);
@@ -114,11 +140,26 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
       let dpi=elem.getDPI();
       let ts=this.tilesize;
       let ds=this.drawsize;
-      g.drawImage(this.image, tx*ts, ty*ts, ts, ts, x, y, ds*dpi, ds*dpi);
+      if (!this.image) {
+          return ;
+      }
+      try {
+        g.drawImage(this.image, tx*ts, ty*ts, ts, ts, x, y, ds*dpi, ds*dpi);
+      }
+      catch (error) {
+          console.log("failed to draw an icon");
+      }
     }
-     setCSS(icon, dom) {
-      dom.style["background"] = this.getCSS(icon);
-      dom.style["background-size"] = (this.drawsize*this.tilex)+"px";
+     setCSS(icon, dom, fitsize=undefined) {
+      if (!fitsize) {
+          fitsize = this.drawsize;
+      }
+      if (typeof fitsize==="object") {
+          fitsize = Math.max(fitsize[0], fitsize[1]);
+      }
+      dom.style["background"] = this.getCSS(icon, fitsize);
+      dom.style["background-size"] = (fitsize*this.tilex)+"px";
+      dom.style["background-clip"] = "content-box";
       if (!dom.style["width"]) {
           dom.style["width"] = this.drawsize+"px";
       }
@@ -126,13 +167,17 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
           dom.style["height"] = this.drawsize+"px";
       }
     }
-     getCSS(icon) {
-      if (icon==-1) {
+     getCSS(icon, fitsize=this.drawsize) {
+      if (icon===-1) {
           return '';
       }
-      let ratio=this.drawsize/this.tilesize;
+      if (typeof fitsize==="object") {
+          fitsize = Math.max(fitsize[0], fitsize[1]);
+      }
+      let ratio=fitsize/this.tilesize;
       let x=(-(icon%this.tilex)*this.tilesize)*ratio;
       let y=(-(~~(icon/this.tilex))*this.tilesize)*ratio;
+      let ts=this.tilesize;
       return `url("${this.image.src}") ${x}px ${y}px`;
     }
   }
@@ -227,12 +272,12 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
       sheet.drawsize = ds;
       return ret;
     }
-     setCSS(icon, dom, sheet=0) {
+     setCSS(icon, dom, sheet=0, fitsize=undefined) {
       let base=this.iconsheets[sheet];
       sheet = this.findSheet(sheet);
       let ds=sheet.drawsize;
       sheet.drawsize = base.drawsize;
-      let ret=sheet.setCSS(icon, dom);
+      let ret=sheet.setCSS(icon, dom, fitsize);
       sheet.drawsize = ds;
       return ret;
     }
@@ -247,6 +292,19 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
    LARGE: 1, 
    XLARGE: 2}
   IconSheets = _es6_module.add_export('IconSheets', IconSheets);
+  function iconSheetFromPackFlag(flag) {
+    if (flag&PackFlags.CUSTOM_ICON_SHEET) {
+        console.log("Custom Icon Sheet:", flag>>PackFlags.CUSTOM_ICON_SHEET_START);
+        return flag>>PackFlags.CUSTOM_ICON_SHEET_START;
+    }
+    if ((flag&PackFlags.SMALL_ICON)&&!(PackFlags.LARGE_ICON)) {
+        return 0;
+    }
+    else {
+      return 1;
+    }
+  }
+  iconSheetFromPackFlag = _es6_module.add_export('iconSheetFromPackFlag', iconSheetFromPackFlag);
   function getIconManager() {
     return iconmanager;
   }
@@ -282,19 +340,27 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
   dpistack = _es6_module.add_export('dpistack', dpistack);
   const UIFlags={}
   _es6_module.add_export('UIFlags', UIFlags);
+  const internalElementNames={}
+  const externalElementNames={}
   const PackFlags={INHERIT_WIDTH: 1, 
    INHERIT_HEIGHT: 2, 
    VERTICAL: 4, 
    USE_ICONS: 8, 
    SMALL_ICON: 16, 
    LARGE_ICON: 32, 
+   FORCE_PROP_LABELS: 64, 
+   PUT_FLAG_CHECKS_IN_COLUMNS: 128, 
+   WRAP_CHECKBOXES: 256, 
    STRIP_HORIZ: 512, 
    STRIP_VERT: 1024, 
    STRIP: 512|1024, 
    SIMPLE_NUMSLIDERS: 2048, 
    FORCE_ROLLER_SLIDER: 4096, 
    HIDE_CHECK_MARKS: (1<<13), 
-   NO_NUMSLIDER_TEXTBOX: (1<<14)}
+   NO_NUMSLIDER_TEXTBOX: (1<<14), 
+   CUSTOM_ICON_SHEET: 1<<15, 
+   CUSTOM_ICON_SHEET_START: 20, 
+   NO_UPDATE: 1<<16}
   _es6_module.add_export('PackFlags', PackFlags);
   let first=(iter) =>    {
     if (iter===undefined) {
@@ -310,9 +376,7 @@ es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../
         return item;
     }
   }
-  var DataPathError=es6_import_item(_es6_module, '../controller/controller.js', 'DataPathError');
-  let _ex_DataPathError=es6_import_item(_es6_module, '../controller/controller.js', 'DataPathError');
-  _es6_module.add_export('DataPathError', _ex_DataPathError, true);
+  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
   let _mobile_theme_patterns=[/.*width.*/, /.*height.*/, /.*size.*/, /.*margin.*/, /.*pad/, /.*radius.*/];
   let _idgen=0;
   window._testSetScrollbars = function (color, contrast, width, border) {
@@ -390,9 +454,48 @@ ${selector}::-webkit-scrollbar-thumb {
   }
   styleScrollBars = _es6_module.add_export('styleScrollBars', styleScrollBars);
   window.styleScrollBars = styleScrollBars;
+  let _digest=new util.HashDigest();
+  function calcThemeKey(digest) {
+    if (digest===undefined) {
+        digest = _digest.reset();
+    }
+    for (let k in theme) {
+        let obj=theme[k];
+        if (typeof obj!=="object") {
+            continue;
+        }
+        for (let k2 in obj) {
+            let v2=obj[k2];
+            if (typeof v2==="number"||typeof v2==="boolean"||typeof v2==="string") {
+                digest.add(v2);
+            }
+            else 
+              if (typeof v2==="object"&&__instance_of(v2, CSSFont)) {
+                v2.calcHashUpdate(digest);
+            }
+        }
+    }
+    return digest.get();
+  }
+  calcThemeKey = _es6_module.add_export('calcThemeKey', calcThemeKey);
+  var _themeUpdateKey=calcThemeKey();
+  _themeUpdateKey = _es6_module.add_export('_themeUpdateKey', _themeUpdateKey);
+  function flagThemeUpdate() {
+    _themeUpdateKey = calcThemeKey();
+  }
+  flagThemeUpdate = _es6_module.add_export('flagThemeUpdate', flagThemeUpdate);
   class UIBase extends HTMLElement {
      constructor() {
       super();
+      this._textBoxEvents = false;
+      this._themeOverride = undefined;
+      this._checkTheme = true;
+      this._last_theme_update_key = _themeUpdateKey;
+      this._client_disabled_set = undefined;
+      this._useNativeToolTips = cconst.useNativeToolTips;
+      this._useNativeToolTips_set = false;
+      this._has_own_tooltips = undefined;
+      this._tooltip_timer = util.time_ms();
       this.pathUndoGen = 0;
       this._lastPathUndoGen = 0;
       this._useDataPathUndo = undefined;
@@ -420,11 +523,14 @@ ${selector}::-webkit-scrollbar-thumb {
       let tagname=this.constructor.define().tagname;
       this._id = tagname.replace(/\-/g, "_")+(_idgen++);
       this.default_overrides = {};
+      this.my_default_overrides = {};
       this.class_default_overrides = {};
       this._last_description = undefined;
+      this._description_final = undefined;
       this._modaldata = undefined;
       this.packflag = this.getDefault("BasePackFlag");
-      this._disabled = false;
+      this._internalDisabled = false;
+      this.__disabledState = false;
       this._disdata = undefined;
       this._ctx = undefined;
       this._description = undefined;
@@ -439,7 +545,7 @@ ${selector}::-webkit-scrollbar-thumb {
       let do_touch=(e, type, button) =>        {
         button = button===undefined ? 0 : button;
         let e2=copyEvent(e);
-        if (e.touches.length==0) {
+        if (e.touches.length===0) {
         }
         else {
           let t=e.touches[0];
@@ -465,7 +571,7 @@ ${selector}::-webkit-scrollbar-thumb {
       }, {passive: false});
       this.addEventListener("touchmove", (e) =>        {
         do_touch(e, "mousemove");
-      }, {passive: false});
+      }, {passive: true});
       this.addEventListener("touchcancel", (e) =>        {
         do_touch(e, "mouseup", 2);
       }, {passive: false});
@@ -473,20 +579,12 @@ ${selector}::-webkit-scrollbar-thumb {
         do_touch(e, "mouseup", 0);
       }, {passive: false});
     }
-     hide(sethide=true) {
-      this.hidden = sethide;
-      for (let n of this.shadow.childNodes) {
-          n.hidden = sethide;
-      }
-      this._forEachChildWidget((n) =>        {
-        n.hide(sethide);
-      });
+    get  useNativeToolTips() {
+      return this._useNativeToolTips;
     }
-     unhide() {
-      this.hide(false);
-    }
-    set  useDataPathUndo(val) {
-      this._useDataPathUndo = val;
+    set  useNativeToolTips(val) {
+      this._useNativeToolTips = val;
+      this._useNativeToolTips_set = true;
     }
     get  parentWidget() {
       return this._parentWidget;
@@ -501,12 +599,174 @@ ${selector}::-webkit-scrollbar-thumb {
       let p=this;
       while (p) {
         if (p._useDataPathUndo!==undefined) {
-            console.log(p._useDataPathUndo, p.tagName);
             return p._useDataPathUndo;
         }
         p = p.parentWidget;
       }
       return false;
+    }
+    set  useDataPathUndo(val) {
+      this._useDataPathUndo = val;
+    }
+    get  description() {
+      return this._description;
+    }
+    set  description(val) {
+      if (val===null) {
+          this._description = undefined;
+          return ;
+      }
+      this._description = val;
+      if (val===undefined||val===null) {
+          return ;
+      }
+      if (cconst.showPathsInToolTips&&this.hasAttribute("datapath")) {
+          let s=""+this._description;
+          let path=this.getAttribute("datapath");
+          s+="\n    path: "+path;
+          if (this.hasAttribute("mass_set_path")) {
+              let m=this.getAttribute("mass_set_path");
+              s+="\n    massSetPath: "+m;
+          }
+          this._description_final = s;
+      }
+      if (cconst.useNativeToolTips) {
+          this.title = ""+this._description_final;
+      }
+    }
+    get  background() {
+      return this.__background;
+    }
+    set  background(bg) {
+      this.__background = bg;
+      this.overrideDefault("background-color", bg, true);
+      this.style["background-color"] = bg;
+    }
+    get  disabled() {
+      if (this.parentWidget&&this.parentWidget.disabled) {
+          return true;
+      }
+      return !!this._client_disabled_set||!!this._internalDisabled;
+    }
+    set  disabled(v) {
+      this._client_disabled_set = v;
+      this.__updateDisable(this.disabled);
+    }
+    get  internalDisabled() {
+      return this._internalDisabled;
+    }
+    set  internalDisabled(val) {
+      this._internalDisabled = !!val;
+      this.__updateDisable(this.disabled);
+    }
+    get  ctx() {
+      return this._ctx;
+    }
+    set  ctx(c) {
+      this._ctx = c;
+      this._forEachChildWidget((n) =>        {
+        n.ctx = c;
+      });
+    }
+    get  _reportCtxName() {
+      return ""+this._id;
+    }
+    static  getIconEnum() {
+      return Icons;
+    }
+    static  setDefault(element) {
+      return element;
+    }
+    static  getDPI() {
+      return window.devicePixelRatio;
+      return window.devicePixelRatio;
+    }
+    static  prefix(name) {
+      return tagPrefix+name;
+    }
+    static  internalRegister(cls) {
+      registered_has_happened = true;
+      internalElementNames[cls.define().tagname] = this.prefix(cls.define().tagname);
+      customElements.define(this.prefix(cls.define().tagname), cls);
+    }
+    static  createElement(name, internal=false) {
+      if (!internal&&name in externalElementNames) {
+          return document.createElement(name);
+      }
+      else 
+        if (name in internalElementNames) {
+          return document.createElement(internalElementNames[name]);
+      }
+      else {
+        return document.createElement(name);
+      }
+    }
+    static  register(cls) {
+      registered_has_happened = true;
+      externalElementNames[cls.define().tagname] = cls.define().tagname;
+      customElements.define(cls.define().tagname, cls);
+    }
+    static  define() {
+      throw new Error("Missing define() for ux element");
+    }
+     setUndo(val) {
+      this.useDataPathUndo = val;
+      return this;
+    }
+     hide(sethide=true) {
+      this.hidden = sethide;
+      for (let n of this.shadow.childNodes) {
+          n.hidden = sethide;
+      }
+      this._forEachChildWidget((n) =>        {
+        n.hide(sethide);
+      });
+    }
+     getElementById(id) {
+      let ret;
+      let rec=(n) =>        {
+        if (ret) {
+            return ;
+        }
+        if (n.getAttribute("id")===id||n.id===id) {
+            ret = n;
+        }
+        if (n.constructor.name==="PanelFrame") {
+            rec(n.contents);
+        }
+        else 
+          if (n.constructor.name==="TabContainer") {
+            for (let k in n.tabs) {
+                let tab=n.tabs[k];
+                if (tab) {
+                    rec(tab);
+                }
+            }
+        }
+        for (let n2 of n.childNodes) {
+            if (__instance_of(n2, HTMLElement)) {
+                rec(n2);
+                if (ret) {
+                    break;
+                }
+            }
+        }
+        if (n.shadow) {
+            for (let n2 of n.shadow.childNodes) {
+                if (__instance_of(n2, HTMLElement)) {
+                    rec(n2);
+                    if (ret) {
+                        break;
+                    }
+                }
+            }
+        }
+      };
+      rec(this);
+      return ret;
+    }
+     unhide() {
+      this.hide(false);
     }
      findArea() {
       let p=this;
@@ -579,28 +839,6 @@ ${selector}::-webkit-scrollbar-thumb {
      connectedCallback() {
 
     }
-    get  description() {
-      return this._description;
-    }
-    set  description(val) {
-      this._description = val;
-      if (val===undefined||val===null) {
-          return ;
-      }
-      if (cconst.showPathsInToolTips&&this.hasAttribute("datapath")) {
-          let s=""+this._description;
-          let path=this.getAttribute("datapath");
-          s+="\n    path: "+path;
-          if (this.hasAttribute("mass_set_path")) {
-              let m=this.getAttribute("mass_set_path");
-              s+="\n    massSetPath: "+m;
-          }
-          this.title = s;
-      }
-      else {
-        this.title = ""+val;
-      }
-    }
      noMarginsOrPadding() {
       let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
       keys = keys.concat(["padding-block-start", "padding-block-end"]);
@@ -627,14 +865,6 @@ ${selector}::-webkit-scrollbar-thumb {
       this.style["padding"] = this.style["padding-left"] = this.style["padding-right"] = "0px";
       this.style["padding-top"] = this.style["padding-bottom"] = "0px";
       return this;
-    }
-    get  background() {
-      return this.__background;
-    }
-    set  background(bg) {
-      this.__background = bg;
-      this.overrideDefault("background-color", bg);
-      this.style["background-color"] = bg;
     }
      getTotalRect() {
       let found=false;
@@ -716,13 +946,95 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return units.buildString(value, baseUnit, decimalPlaces, displayUnit);
     }
-     setCSS() {
-      let bg=this.getDefault("background-color");
-      if (bg) {
-          this.style["background-color"] = bg;
+     setBoxCSS(subkey) {
+      let boxcode='';
+      let keys=["left", "right", "top", "bottom"];
+      let sub;
+      if (subkey) {
+          sub = this.getAttribute(subkey)||{};
+      }
+      let def=(key) =>        {
+        if (sub) {
+            return this.getSubDefault(subkey, key);
+        }
+        return this.getDefault(key);
+      };
+      for (let i=0; i<2; i++) {
+          let key=i ? "padding" : "margin";
+          this.style[key] = "unset";
+          let val=def(key);
+          if (val!==undefined) {
+              for (let j=0; j<4; j++) {
+                  this.style[key+"-"+keys[j]] = val+"px";
+              }
+          }
+          for (let j=0; j<4; j++) {
+              let key2=`${key}-${keys[j]}`;
+              let val2=def(key2);
+              if (val2!==undefined) {
+                  this.style[key2] = val2+"px";
+              }
+          }
+      }
+      this.style["border-radius"] = def("border-radius")+"px";
+      this.style["border"] = `${def("border-width")}px ${def("border-style")} ${def("border-color")}`;
+    }
+     genBoxCSS(subkey) {
+      let boxcode='';
+      let keys=["left", "right", "top", "bottom"];
+      let sub;
+      if (subkey) {
+          sub = this.getAttribute(subkey)||{};
+      }
+      let def=(key) =>        {
+        if (sub) {
+            return this.getSubDefault(subkey, key);
+        }
+        return this.getDefault(key);
+      };
+      for (let i=0; i<2; i++) {
+          let key=i ? "padding" : "margin";
+          let val=def(key);
+          if (val!==undefined) {
+              boxcode+=`${key}: ${val} px;\n`;
+          }
+          for (let j=0; j<4; j++) {
+              let key2=`${key}-${keys[j]}`;
+              let val2=def(key2);
+              if (val2!==undefined) {
+                  boxcode+=`${key2}: ${val}px;\n`;
+              }
+          }
+      }
+      boxcode+=`border-radius: ${def("border-radius")}px;\n`;
+      boxcode+=`border: ${def("border-width")}px ${def("border-style")} ${def("border-color")};\n`;
+      return boxcode;
+    }
+     setCSS(setBG=true) {
+      if (setBG) {
+          let bg=this.getDefault("background-color");
+          if (bg) {
+              this.style["background-color"] = bg;
+          }
       }
       let zoom=this.getZoom();
-      this.style["transform"] = `scale(${zoom},${zoom})`;
+      if (zoom===1.0) {
+          return ;
+      }
+      let transform=""+this.style["transform"];
+      transform = transform.replace(/[ \t\n\r]+/g, ' ');
+      transform = transform.replace(/, /g, ',');
+      let transform2=transform.replace(/scale\([^)]+\)/, '').trim();
+      this.style["transform"] = transform2+` scale(${zoom},${zoom})`;
+    }
+     flushSetCSS() {
+      this._init();
+      this.setCSS();
+      this._forEachChildWidget((c) =>        {
+        if (!(c.packflag&PackFlags.NO_UPDATE)) {
+            c.flushSetCSS();
+        }
+      });
     }
      traverse(type_or_set) {
       let this2=this;
@@ -772,8 +1084,9 @@ ${selector}::-webkit-scrollbar-thumb {
     }
      init() {
       this._init_done = true;
-      if (this._id)
-        this.setAttribute("id", this._id);
+      if (!this.hasAttribute("id")&&this._id) {
+          this.setAttribute("id", this._id);
+      }
     }
      _ondestroy() {
       if (this.tabIndex>=0) {
@@ -812,9 +1125,12 @@ ${selector}::-webkit-scrollbar-thumb {
       }
     }
      flushUpdate() {
+      this._init();
       this.update();
       this._forEachChildWidget((c) =>        {
-        c.flushUpdate();
+        if (!(c.packflag&PackFlags.NO_UPDATE)) {
+            c.flushUpdate();
+        }
       });
     }
      _forEachChildWidget(cb, thisvar) {
@@ -841,19 +1157,22 @@ ${selector}::-webkit-scrollbar-thumb {
       for (let n of this.childNodes) {
           rec(n);
       }
-      for (let n of this.shadow.childNodes) {
-          rec(n);
+      if (this.shadow) {
+          for (let n of this.shadow.childNodes) {
+              rec(n);
+          }
       }
+    }
+     checkInit() {
+      return this._init();
     }
      _init() {
       if (this._init_done) {
-          return ;
+          return false;
       }
       this._init_done = true;
       this.init();
-    }
-    static  setDefault(element) {
-      return element;
+      return true;
     }
      getWinWidth() {
       return window.innerWidth;
@@ -879,12 +1198,15 @@ ${selector}::-webkit-scrollbar-thumb {
      pickElement(x, y, args={}, marginy=0, nodeclass=UIBase, excluded_classes=undefined) {
       let marginx;
       let clip;
+      let mouseEvent;
+      let isMouseMove, isMouseDown;
       if (typeof args==="object") {
           marginx = args.sx||0;
           marginy = args.sy||0;
           nodeclass = args.nodeclass||UIBase;
           excluded_classes = args.excluded_classes;
           clip = args.clip;
+          mouseEvent = args.mouseEvent;
       }
       else {
         marginx = args;
@@ -894,9 +1216,13 @@ ${selector}::-webkit-scrollbar-thumb {
       excluded_classes: excluded_classes, 
       clip: clip};
       }
+      if (mouseEvent) {
+          isMouseMove = mouseEvent.type==="mousemove"||mouseEvent.type==="touchmove"||mouseEvent.type==="pointermove";
+          isMouseDown = mouseEvent.buttons||(mouseEvent.touches&&mouseEvent.touches.length>0);
+      }
       if (!clip) {
-          clip = {pos: new Vector2([-10000, 10000]), 
-       size: new Vector2([20000, 10000])};
+          clip = {pos: new Vector2([-10000, -10000]), 
+       size: new Vector2([20000, 20000])};
       }
       let ret=undefined;
       let retzindex=undefined;
@@ -913,14 +1239,13 @@ ${selector}::-webkit-scrollbar-thumb {
         if (depth===undefined) {
             depth = 0;
         }
-        if (n.style&&n.style["z-index"]) {
+        if (n.style["z-index"]) {
             if (!(__instance_of(n, UIBase))||n.visibleToPick) {
                 zindex = parseInt(n.style["z-index"]);
             }
         }
-        if (n.getClientRects&&n.getClientRects().length>0) {
-            let rects=n.getClientRects();
-            let rect=n.getBoundingClientRect();
+        let rect=n.getBoundingClientRect();
+        if (rect) {
             if (n.style&&n.style["overflow"]==="hidden"||n.style["overflow"]==="scroll") {
                 clip = math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
                 if (!clip) {
@@ -938,24 +1263,27 @@ ${selector}::-webkit-scrollbar-thumb {
             if (!ok) {
                 return ;
             }
-            for (let rect of rects) {
-                ok = true;
-                let clip2=math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
-                if (!clip2) {
-                    ok = false;
-                    continue;
-                }
-                ok = ok&&!n.hidden;
-                ok = ok&&(retzindex===undefined||widget_zindex>=retzindex);
-                ok = ok&&(retzindex===undefined||zindex>=retzindex);
-                ok = ok&&x>=clip2.pos[0]-marginx&&x<=clip2.pos[0]+clip2.size[0]+marginy;
-                ok = ok&&y>=clip2.pos[1]-marginy&&y<=clip2.pos[1]+clip2.size[1]+marginx;
-                if (n.visibleToPick!==undefined) {
-                    ok = ok&&n.visibleToPick;
-                }
-                if (ok) {
-                    ret = widget;
-                    retzindex = zindex;
+            if (!isMouseMove||!isMouseDown) {
+                let rects=n.getClientRects()||[];
+                for (let rect of rects) {
+                    ok = true;
+                    let clip2=math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
+                    if (!clip2) {
+                        ok = false;
+                        continue;
+                    }
+                    ok = ok&&!n.hidden;
+                    ok = ok&&(retzindex===undefined||widget_zindex>=retzindex);
+                    ok = ok&&(retzindex===undefined||zindex>=retzindex);
+                    ok = ok&&x>=clip2.pos[0]-marginx&&x<=clip2.pos[0]+clip2.size[0]+marginy;
+                    ok = ok&&y>=clip2.pos[1]-marginy&&y<=clip2.pos[1]+clip2.size[1]+marginx;
+                    if (n.visibleToPick!==undefined) {
+                        ok = ok&&n.visibleToPick;
+                    }
+                    if (ok) {
+                        ret = widget;
+                        retzindex = zindex;
+                    }
                 }
             }
         }
@@ -971,7 +1299,7 @@ ${selector}::-webkit-scrollbar-thumb {
                 for (let i=0; i<n.shadow.childNodes.length; i++) {
                     let i2=i;
                     let n2=n.shadow.childNodes[i2];
-                    if (n2.childNodes&&n2.style) {
+                    if (__instance_of(n2, HTMLElement)) {
                         rec(n2, widget, widget_zindex, zindex, clip, depth+1);
                     }
                 }
@@ -979,25 +1307,27 @@ ${selector}::-webkit-scrollbar-thumb {
             for (let i=0; i<n.childNodes.length; i++) {
                 let i2=i;
                 let n2=n.childNodes[i2];
-                if (n2.childNodes&&n2.style) {
+                if (__instance_of(n2, HTMLElement)) {
                     rec(n2, widget, widget_zindex, zindex, clip, depth+1);
                 }
             }
         }
       };
       let p=this;
-      while (p&&!p.style["z-index"]&&p.style["z-index"]!==0.0) {
+      while (p&&(p.style["z-index"]===null||p.style["z-index"]===undefined||p.style["z-index"]==="initial"||p.style["z-index"]==='')) {
         p = p.parentWidget;
       }
       let zindex=p!==undefined ? parseInt(p.style["z-index"]) : 0;
       rec(this, testwidget(this) ? this : undefined, zindex, zindex, clip, 0);
       return ret;
     }
-    set  disabled(val) {
-      if (!!this._disabled==!!val)
-        return ;
+     __updateDisable(val) {
+      if (!!val===!!this.__disabledState) {
+          return ;
+      }
+      this.__disabledState = !!val;
       if (val&&!this._disdata) {
-          let style=this.getDefault("Disabled")||{"background-color": "black"};
+          let style=this.getDefault("internalDisabled")||{"background-color": this.getDefault("DisabledBG")};
           this._disdata = {style: {}, 
        defaults: {}};
           for (let k in style) {
@@ -1006,14 +1336,13 @@ ${selector}::-webkit-scrollbar-thumb {
               let v=style[k];
               if (typeof v==="object"&&__instance_of(v, CSSFont)) {
                   this.style[k] = style[k].genCSS();
-                  this.default_overrides[k] = style[k];
               }
               else {
                 this.style[k] = style[k];
-                this.default_overrides[k] = style[k];
               }
+              this.default_overrides[k] = style[k];
           }
-          this._disabled = val;
+          this.__disabledState = !!val;
           this.on_disabled();
       }
       else 
@@ -1030,31 +1359,23 @@ ${selector}::-webkit-scrollbar-thumb {
                 this.default_overrides[k] = v;
               }
           }
-          this.background = this.style["background-color"];
           this._disdata = undefined;
-          this._disabled = val;
+          this.__disabledState = !!val;
           this.on_enabled();
       }
-      this._disabled = val;
-      let rec=(n) =>        {
+      this.__disabledState = !!val;
+      let visit=(n) =>        {
         if (__instance_of(n, UIBase)) {
-            let changed=!!n.disabled!=!!val;
-            n.disabled = val;
+            let changed=!!n.__disabledState;
+            n.__updateDisable(n.disabled);
+            changed = changed!==!!n.__disabledState;
             if (changed) {
                 n.update();
                 n.setCSS();
             }
         }
-        for (let c of n.childNodes) {
-            rec(c);
-        }
-        if (!n.shadow)
-          return ;
-        for (let c of n.shadow.childNodes) {
-            rec(c);
-        }
       };
-      rec(this);
+      this._forEachChildWidget(visit);
     }
      on_disabled() {
 
@@ -1079,11 +1400,10 @@ ${selector}::-webkit-scrollbar-thumb {
       popModalLight(this._modaldata);
       this._modaldata = undefined;
     }
-    get  disabled() {
-      return this._disabled;
+     _flash_focus() {
+      this.focus();
     }
-     flash(color, rect_element=this, timems=355) {
-      console.warn("flash");
+     flash(color, rect_element=this, timems=355, autoFocus=true) {
       if (typeof color!="object") {
           color = css2color(color);
       }
@@ -1091,7 +1411,7 @@ ${selector}::-webkit-scrollbar-thumb {
       let csscolor=color2css(color);
       if (this._flashtimer!==undefined&&this._flashcolor!==csscolor) {
           window.setTimeout(() =>            {
-            this.flash(color, rect_element, timems);
+            this.flash(color, rect_element, timems, autoFocus);
           }, 100);
           return ;
       }
@@ -1119,7 +1439,9 @@ ${selector}::-webkit-scrollbar-thumb {
             this._flashcolor = undefined;
             timer = undefined;
             div.remove();
-            this.focus();
+            if (autoFocus) {
+                this._flash_focus();
+            }
         }
         tick++;
       };
@@ -1143,7 +1465,9 @@ ${selector}::-webkit-scrollbar-thumb {
           screen._enterPopupSafe();
       }
       document.body.appendChild(div);
-      this.focus();
+      if (autoFocus) {
+          this._flash_focus();
+      }
       this._flashcolor = csscolor;
       if (screen!==undefined) {
           screen._exitPopupSafe();
@@ -1154,9 +1478,6 @@ ${selector}::-webkit-scrollbar-thumb {
     }
      on_resize(newsize) {
 
-    }
-    get  ctx() {
-      return this._ctx;
     }
      toJSON() {
       let ret={};
@@ -1202,6 +1523,10 @@ ${selector}::-webkit-scrollbar-thumb {
         this._lastPathUndoGen = this.pathUndoGen;
         let toolop=getDataPathToolOp().create(ctx, path, val, this._id, mass_set_path);
         ctx.toolstack.execTool(this.ctx, toolop);
+        head = toolstack.head;
+      }
+      if (!head||head.hadError===true) {
+          throw new Error("toolpath error");
       }
     }
      pushReportContext(key) {
@@ -1249,9 +1574,6 @@ ${selector}::-webkit-scrollbar-thumb {
           return ;
       }
       this.popReportContext();
-    }
-    get  _reportCtxName() {
-      return ""+this._id;
     }
      getPathMeta(ctx, path) {
       this.pushReportContext(this._reportCtxName);
@@ -1312,22 +1634,23 @@ ${selector}::-webkit-scrollbar-thumb {
      doOnce(func, timeout=undefined) {
       if (func._doOnce===undefined) {
           func._doOnce_reqs = new Set();
-          func._doOnce = (thisvar) =>            {
+          func._doOnce = function (thisvar, trace) {
             if (func._doOnce_reqs.has(thisvar._id)) {
                 return ;
             }
             func._doOnce_reqs.add(thisvar._id);
-            let f=() =>              {
-              if (this.isDead()) {
-                  if (func===this._init||!cconst.DEBUG.doOnce) {
+            function f() {
+              if (thisvar.isDead()) {
+                  func._doOnce_reqs.delete(thisvar._id);
+                  if (func===thisvar._init||!cconst.DEBUG.doOnce) {
                       return ;
                   }
-                  console.warn("Ignoring doOnce call for dead element", this._id, func);
+                  console.warn("Ignoring doOnce call for dead element", thisvar._id, func, trace);
                   return ;
               }
-              if (!this.ctx) {
+              if (!thisvar.ctx) {
                   if (cconst.DEBUG.doOnce) {
-                      console.warn("doOnce call is waiting for context...", this._id, func);
+                      console.warn("doOnce call is waiting for context...", thisvar._id, func);
                   }
                   window.setTimeout(f, 0);
                   return ;
@@ -1338,13 +1661,8 @@ ${selector}::-webkit-scrollbar-thumb {
             window.setTimeout(f, timeout);
           };
       }
-      func._doOnce(this);
-    }
-    set  ctx(c) {
-      this._ctx = c;
-      this._forEachChildWidget((n) =>        {
-        n.ctx = c;
-      });
+      let trace=new Error().stack;
+      func._doOnce(this, trace);
     }
      float(x=0, y=0, zindex=undefined) {
       this.style.position = "absolute";
@@ -1368,13 +1686,120 @@ ${selector}::-webkit-scrollbar-thumb {
         n._ensureChildrenCtx(ctx);
       });
     }
+     checkThemeUpdate() {
+      if (!cconst.enableThemeAutoUpdate) {
+          return false;
+      }
+      if (_themeUpdateKey!==this._last_theme_update_key) {
+          this._last_theme_update_key = _themeUpdateKey;
+          return true;
+      }
+      return false;
+    }
+     updateToolTipHandlers() {
+      if (!this._useNativeToolTips_set&&!cconst.useNativeToolTips!==!this._useNativeToolTips) {
+          this._useNativeToolTips = cconst.useNativeToolTips;
+      }
+      if (!!this.useNativeToolTips===!this._has_own_tooltips) {
+          return ;
+      }
+      if (!this.useNativeToolTips) {
+          let state=this._has_own_tooltips = {start_timer: (e) =>              {
+              this._tooltip_timer = util.time_ms();
+            }, 
+       stop_timer: (e) =>              {
+              this._tooltip_timer = undefined;
+            }, 
+       reset_timer: (e) =>              {
+              if (this._tooltip_timer!==undefined) {
+                  this._tooltip_timer = util.time_ms();
+              }
+            }, 
+       start_events: ["mouseover"], 
+       reset_events: ["mousemove", "mousedown", "mouseup", "touchstart", "touchend", "keydown", "focus"], 
+       stop_events: ["mouseleave", "blur", "mouseout"], 
+       handlers: {}};
+          let bind_handler=(type, etype) =>            {
+            let handler=(e) =>              {
+              state[type](e);
+            }
+            if (etype in state.handlers) {
+                console.error(type, "is in handlers already");
+                return ;
+            }
+            state.handlers[etype] = handler;
+            return handler;
+          };
+          let i=0;
+          let lists=[state.start_events, state.stop_events, state.reset_events];
+          for (let type of ["start_timer", "stop_timer", "reset_timer"]) {
+              for (let etype of lists[i]) {
+                  this.addEventListener(etype, bind_handler(type, etype));
+              }
+              i++;
+          }
+      }
+      else {
+        console.warn(this.id, "removing tooltip handlers");
+        let state=this._has_own_tooltips;
+        for (let k in this.state.handlers) {
+            let handler=this.state.handlers[k];
+            this.removeEventListener(k, handler);
+        }
+        this._has_own_tooltips = undefined;
+        this._tooltip_timer = undefined;
+      }
+    }
+     updateToolTips() {
+      if (this._description_final===undefined||this._description_final===null||this._description_final.trim().length===0) {
+          return ;
+      }
+      if (!this.ctx||!this.ctx.screen) {
+          return ;
+      }
+      this.updateToolTipHandlers();
+      if (this.useNativeToolTips||this._tooltip_timer===undefined) {
+          return ;
+      }
+      let screen=this.ctx.screen;
+      const timelimit=500;
+      let ok=util.time_ms()-this._tooltip_timer>timelimit;
+      let x=screen.mpos[0], y=screen.mpos[1];
+      let r=this.getClientRects();
+      r = r ? r[0] : r;
+      if (!r) {
+          ok = false;
+      }
+      else {
+        ok = ok&&x>=r.x&&x<r.x+r.width;
+        ok = ok&&y>=r.y&&y<r.y+r.height;
+      }
+      if (r) {
+      }
+      ok = ok&&!haveModal();
+      ok = ok&&screen.pickElement(x, y)===this;
+      ok = ok&&this._description_final;
+      if (ok) {
+          _ToolTip.show(this._description_final, this.ctx.screen, x, y);
+      }
+      if (util.time_ms()-this._tooltip_timer>timelimit) {
+          this._tooltip_timer = undefined;
+      }
+    }
      update() {
+      this.updateToolTips();
       if (this.ctx&&this._description===undefined&&this.getAttribute("datapath")) {
           let d=this.getPathDescription(this.ctx, this.getAttribute("datapath"));
           this.description = d;
       }
       if (!this._init_done) {
           this._init();
+      }
+      if (this._init_done&&!this.constructor.define().subclassChecksTheme) {
+          if (this.checkThemeUpdate()) {
+              console.log("theme update!");
+              this.setCSS();
+          }
       }
     }
      onadd() {
@@ -1397,21 +1822,18 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return UIBase.getDPI();
     }
-    static  getDPI() {
-      return window.devicePixelRatio;
-      return window.devicePixelRatio;
-    }
      saveData() {
       return {}
     }
      loadData(obj) {
       return this;
     }
-    static  register(cls) {
-      customElements.define(cls.define().tagname, cls);
-    }
-     overrideDefault(key, val) {
-      this.default_overrides[key] = val;
+     overrideDefault(key, val, localOnly=false) {
+      this.my_default_overrides[key] = val;
+      if (!localOnly) {
+          this.default_overrides[key] = val;
+      }
+      return this;
     }
      overrideClass(style) {
       this._override_class = style;
@@ -1438,16 +1860,60 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return val;
     }
-     getDefault(key, doMobile=true) {
+     hasDefault(key) {
       let p=this;
       while (p) {
         if (key in p.default_overrides) {
-            let v=p.default_overrides[key];
-            return doMobile ? this._doMobileDefault(key, v) : v;
+            return true;
         }
         p = p.parentWidget;
       }
-      return this.getClassDefault(key, doMobile);
+      return this.hasClassDefault(key);
+    }
+     getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined) {
+      if (!key) {
+          return this.getDefault(subkey, undefined, defaultval);
+      }
+      let style=this.getDefault(key);
+      if (!style||typeof style!=="object"||!(subkey in style)) {
+          if (defaultval!==undefined) {
+              return defaultval;
+          }
+          else 
+            if (backupkey!==undefined) {
+              return this.getDefault(backupkey);
+          }
+      }
+      else {
+        return style[subkey];
+      }
+    }
+     getDefault(key, checkForMobile=true, defaultval=undefined) {
+      let ret=this.getDefault_intern(key, checkForMobile, defaultval);
+      if (typeof ret==="string"&&ret.trim().toLowerCase().endsWith("px")) {
+          let s=ret.trim().toLowerCase();
+          s = s.slice(0, s.length-2).trim();
+          let f=parseFloat(s);
+          if (!isNaN(f)&&isFinite(f)) {
+              return f;
+          }
+      }
+      return ret;
+    }
+     getDefault_intern(key, checkForMobile=true, defaultval=undefined) {
+      if (this.my_default_overrides[key]!==undefined) {
+          let v=this.my_default_overrides[key];
+          return checkForMobile ? this._doMobileDefault(key, v) : v;
+      }
+      let p=this;
+      while (p) {
+        if (p.default_overrides[key]!==undefined) {
+            let v=p.default_overrides[key];
+            checkForMobile ? this._doMobileDefault(key, v) : v;
+        }
+        p = p.parentWidget;
+      }
+      return this.getClassDefault(key, checkForMobile, defaultval);
     }
      getStyleClass() {
       if (this._override_class!==undefined) {
@@ -1465,8 +1931,30 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return "base";
     }
-     getClassDefault(key, doMobile=true) {
+     hasClassDefault(key) {
       let style=this.getStyleClass();
+      let p=this;
+      while (p) {
+        let def=p.class_default_overrides[style];
+        if (def&&(key in def)) {
+            return true;
+        }
+        p = p.parentWidget;
+      }
+      let th=this._themeOverride;
+      if (th&&style in th&&key in th[style]) {
+          return true;
+      }
+      if (style in theme&&key in theme[style]) {
+          return true;
+      }
+      return key in theme.base;
+    }
+     getClassDefault(key, checkForMobile=true, defaultval=undefined) {
+      let style=this.getStyleClass();
+      if (style==="none") {
+          return undefined;
+      }
       let val=undefined;
       let p=this;
       while (p) {
@@ -1477,14 +1965,46 @@ ${selector}::-webkit-scrollbar-thumb {
         }
         p = p.parentWidget;
       }
-      if (val===undefined&&style in theme&&key in theme[style]) {
-          val = theme[style][key];
+      if (val===undefined&&style in theme&&!(key in theme[style])&&!(key in theme.base)) {
+          if (window.DEBUG.theme) {
+              report("Missing theme key ", key, "for", style);
+          }
       }
-      else 
-        if (val===undefined) {
-          val = theme.base[key];
+      for (let i=0; i<2; i++) {
+          let th=!i ? this._themeOverride : theme;
+          if (!th) {
+              continue;
+          }
+          if (val===undefined&&style in th&&key in th[style]) {
+              val = th[style][key];
+          }
+          else 
+            if (defaultval!==undefined) {
+              val = defaultval;
+          }
+          else 
+            if (val===undefined) {
+              let def=this.constructor.define();
+              if (def.parentStyle&&key in th[def.parentStyle]) {
+                  val = th[def.parentStyle][key];
+              }
+              else {
+                val = th.base[key];
+              }
+          }
       }
-      return doMobile ? this._doMobileDefault(key, val) : val;
+      return checkForMobile ? this._doMobileDefault(key, val) : val;
+    }
+     overrideTheme(theme) {
+      this._themeOverride = theme;
+      this._forEachChildWidget((child) =>        {
+        child.overrideTheme(theme);
+      });
+      if (this.ctx) {
+          this.flushSetCSS();
+          this.flushUpdate();
+      }
+      return this;
     }
      getStyle() {
       console.warn("deprecated call to UIBase.getStyle");
@@ -1552,9 +2072,6 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       this._active_animations = [];
     }
-    static  define() {
-      throw new Error("Missing define() for ux element");
-    }
   }
   _ESClass.register(UIBase);
   _es6_module.add_class(UIBase);
@@ -1586,9 +2103,9 @@ ${selector}::-webkit-scrollbar-thumb {
     height = height===undefined ? canvas.height : height;
     g.save();
     let dpi=elem.getDPI();
-    r = r===undefined ? elem.getDefault("BoxRadius") : r;
+    r = r===undefined ? elem.getDefault("border-radius") : r;
     if (margin===undefined) {
-        margin = elem.getDefault("BoxDrawMargin");
+        margin = 1;
     }
     r*=dpi;
     let r1=r, r2=r;
@@ -1604,13 +2121,13 @@ ${selector}::-webkit-scrollbar-thumb {
     }
     else 
       if (bg===undefined) {
-        bg = elem.getDefault("BoxBG");
+        bg = elem.getDefault("background-color");
     }
-    if (op=="fill"&&!no_clear) {
+    if (op==="fill"&&!no_clear) {
         g.clearRect(0, 0, width, height);
     }
     g.fillStyle = bg;
-    g.strokeStyle = color===undefined ? elem.getDefault("BoxBorder") : color;
+    g.strokeStyle = color===undefined ? elem.getDefault("border-color") : color;
     let w=width, h=height;
     let th=Math.PI/4;
     let th2=Math.PI*0.75;
@@ -1625,13 +2142,12 @@ ${selector}::-webkit-scrollbar-thumb {
     g.lineTo(margin+r2, margin);
     g.quadraticCurveTo(margin, margin, margin, margin+r1);
     g.closePath();
-    if (op=="clip") {
+    if (op==="clip") {
         g.clip();
     }
     else 
-      if (op=="fill") {
+      if (op==="fill") {
         g.fill();
-        g.stroke();
     }
     else {
       g.stroke();
@@ -1673,21 +2189,7 @@ ${selector}::-webkit-scrollbar-thumb {
     if (font2!==undefined) {
         return _getFont_new(elem, size, font, do_dpi);
     }
-    console.warn("Old style font detected");
-    if (!do_dpi) {
-        dpi = 1;
-    }
-    if (size!==undefined) {
-        return ""+(size*dpi)+"px "+getDefault(font+"Font");
-    }
-    else {
-      let size=getDefault(font+"Size");
-      if (size===undefined) {
-          console.warn("Unknown fontsize for font", font);
-          size = 14;
-      }
-      return ""+size+"px "+getDefault(font+"Font");
-    }
+    throw new Error("unknown font "+font);
   }
   _getFont = _es6_module.add_export('_getFont', _getFont);
   function _ensureFont(elem, canvas, g, size) {
@@ -1811,6 +2313,14 @@ ${selector}::-webkit-scrollbar-thumb {
         }
     }
     size*=UIBase.getDPI();
+    if (color===undefined) {
+        if (font&&font.color) {
+            color = font.color;
+        }
+        else {
+          color = elem.getDefault("DefaultText").color;
+        }
+    }
     if (font===undefined) {
         _ensureFont(elem, canvas, g, size);
     }
@@ -1821,9 +2331,6 @@ ${selector}::-webkit-scrollbar-thumb {
     else 
       if (font) {
         g.font = font;
-    }
-    if (color===undefined) {
-        color = elem.getDefault("DefaultText").color;
     }
     if (typeof color==="object") {
         color = color2css(color);
@@ -1848,12 +2355,17 @@ ${selector}::-webkit-scrollbar-thumb {
           path.push(undefined);
       }
       path[pi] = ni;
-      path[pi+1] = is_shadow;
+      path[pi+1] = is_shadow ? 1 : 0;
       if (__instance_of(n, UIBase)) {
           let path2=path.slice(0, path.length);
-          path2.push(n.saveData());
-          if (path2[pi+2]) {
-              paths.push(path2);
+          let data=n.saveData();
+          let bad=!data;
+          bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
+          if (!bad) {
+              path2.push(data);
+              if (path2[pi+2]) {
+                  paths.push(path2);
+              }
           }
       }
       for (let i=0; i<n.childNodes.length; i++) {
@@ -1911,14 +2423,218 @@ ${selector}::-webkit-scrollbar-thumb {
   }
   loadUIData = _es6_module.add_export('loadUIData', loadUIData);
   window._loadUIData = loadUIData;
-  _setUIBase(UIBase);
+  aspect._setUIBase(UIBase);
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_base.js');
-es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "../config/const.js", "../util/util.js"], function _ui_theme_module(_es6_module) {
+
+
+es6_module_define('ui_save', ["../util/util.js", "../util/vectormath.js", "../path-controller/util/parseutil.js"], function _ui_save_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
+  const UI_SAVE_VERSION=2;
+  _es6_module.add_export('UI_SAVE_VERSION', UI_SAVE_VERSION);
+  function debuglog() {
+    if (window.DEBUG&&window.DEBUG.uipaths) {
+        console.warn.apply(...arguments);
+    }
+  }
+  let UIBase;
+  function setUIBase(cls) {
+    UIBase = cls;
+  }
+  setUIBase = _es6_module.add_export('setUIBase', setUIBase);
+  function saveUIData(node, key) {
+    if (key===undefined) {
+        throw new Error("ui_base.saveUIData(): key cannot be undefined");
+    }
+    let paths=new Map();
+    let rec=(path, n) =>      {
+      if (!(__instance_of(n, HTMLElement))) {
+          return ;
+      }
+      if (__instance_of(n, UIBase)) {
+          let path2=n.constructor.define().tagname+"|"+path;
+          paths.set(path2, n.saveData());
+      }
+      let ni=0;
+      for (let n2 of n.childNodes) {
+          let path2=path+`[${ni}]`;
+          rec(path2, n2);
+          ni++;
+      }
+      if (n.shadow) {
+          let ni=0;
+          for (let n2 of n.shadow.childNodes) {
+              let path2=path+`{${ni}}`;
+              rec(path2, n2);
+              ni++;
+          }
+      }
+    }
+    rec("", node, undefined, 0, false);
+    let paths2={}
+    for (let /*unprocessed ExpandNode*/[path, data] of paths) {
+        let bad=!data;
+        bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
+        if (!bad) {
+            paths2[path] = data;
+        }
+    }
+    paths = paths2;
+    return JSON.stringify({version: UI_SAVE_VERSION, 
+    key: key, 
+    paths: paths});
+  }
+  saveUIData = _es6_module.add_export('saveUIData', saveUIData);
+  var tokdef=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'tokdef');
+  var parser=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'parser');
+  var lexer=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'lexer');
+  var PUTLParseError=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'PUTLParseError');
+  function makeParser() {
+    const tk=(name, re, func) =>      {
+      return new tokdef(name, re, func);
+    }
+    let p;
+    const tokens=[tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACE", /\{/), tk("RBRACE", /\}/), tk("NUM", /[0-9]+/, (t) =>      {
+      return t.setValue(parseInt(t.value));
+    }), tk("WS", /[ \t]/, (token) =>      {
+      return undefined;
+    })];
+    function p_error(t) {
+      console.warn(t);
+      p.userdata = undefined;
+      throw new PUTLParseError("Parse error");
+    }
+    const l=new lexer(tokens);
+    p = new parser(l, p_error);
+    function consumeAll() {
+      while (!p.at_end()) {
+        p.next();
+      }
+    }
+    function p_Start() {
+      let node=p.userdata;
+      while (!p.at_end()) {
+        let t=p.peeknext();
+        if (t.type==="LSBRACKET") {
+            p.next();
+            let idx=p.expect("NUM");
+            if (idx>=node.childNodes.length||!(__instance_of(node.childNodes[idx], HTMLElement))) {
+                let li=p.lexer.lexpos;
+                let path=p.lexer.lexdata;
+                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node.childNodes);
+                consumeAll();
+                return undefined;
+            }
+            node = node.childNodes[idx];
+            p.expect('RSBRACKET');
+        }
+        else 
+          if (t.type==="LBRACE") {
+            p.next();
+            let idx=p.expect("NUM");
+            if (!node.shadow||idx>=node.shadow.childNodes.length||!(__instance_of(node.shadow.childNodes[idx], HTMLElement))) {
+                let li=p.lexer.lexpos;
+                let path=p.lexer.lexdata;
+                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node, node.shadow ? node.shadow.childNodes : undefined);
+                consumeAll();
+                return undefined;
+            }
+            node = node.shadow.childNodes[idx];
+            p.expect("RBRACE");
+        }
+        else {
+          p.expect("LBRACE");
+        }
+      }
+      return node;
+    }
+    p.start = p_Start;
+    return p;
+  }
+  makeParser = _es6_module.add_export('makeParser', makeParser);
+  const pathParser=makeParser();
+  function loadPath(node, key, json) {
+    console.log(key);
+    key = key.split("|");
+    let tagname=key[0].trim();
+    let path=(key[1]||"").trim();
+    if (path==="") {
+        if (tagname===node.constructor.define().tagname) {
+            node.loadData(json);
+        }
+        else {
+          debuglog("Failed to load ui save path", key);
+        }
+        return ;
+    }
+    pathParser.userdata = node;
+    let child;
+    try {
+      child = pathParser.parse(path);
+    }
+    catch (error) {
+        if (__instance_of(error, PUTLParseError)) {
+            console.error("Parse error parsing ui save path "+path);
+        }
+        else {
+          throw error;
+        }
+    }
+    if (child&&child.constructor.define().tagname!==tagname) {
+        debuglog("Failed to load ui save path", key);
+        child = undefined;
+    }
+    else 
+      if (!child) {
+        debuglog("Failed to load ui save path", key);
+    }
+    pathParser.userdata = undefined;
+    if (child) {
+        child.loadData(json);
+    }
+  }
+  loadPath = _es6_module.add_export('loadPath', loadPath);
+  function loadUIData(node, json) {
+    if (typeof json==='string') {
+        json = JSON.parse(json);
+    }
+    for (let k in json.paths) {
+        let v=json.paths[k];
+        if (v===undefined) {
+            continue;
+        }
+        loadPath(node, k, v);
+    }
+  }
+  loadUIData = _es6_module.add_export('loadUIData', loadUIData);
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_save.js');
+
+
+es6_module_define('ui_theme', ["../path-controller/util/util.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _ui_theme_module(_es6_module) {
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  let compatMap={BoxMargin: "padding", 
+   BoxBG: "background", 
+   BoxRadius: "border-radius", 
+   background: "background-color", 
+   defaultWidth: "width", 
+   defaultHeight: "height", 
+   DefaultWidth: "width", 
+   DefaultHeight: "height", 
+   BoxBorder: "border-color", 
+   BoxLineWidth: "border-width", 
+   BoxSubBG: "background-color", 
+   BoxSub2BG: "background-color", 
+   DefaultPanelBG: "background-color", 
+   InnerPanelBG: "background-color", 
+   Background: "background-color", 
+   numslider_width: "width", 
+   numslider_height: "height"}
+  compatMap = _es6_module.add_export('compatMap', compatMap);
   let ColorSchemeTypes={LIGHT: "light", 
    DARK: "dark"}
   ColorSchemeTypes = _es6_module.add_export('ColorSchemeTypes', ColorSchemeTypes);
@@ -1932,7 +2648,7 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
     let b=~~(c[2]*255);
     let a=c.length<4 ? 1.0 : c[3];
     a = alpha_override!==undefined ? alpha_override : a;
-    if (c.length==3&&alpha_override===undefined) {
+    if (c.length===3&&alpha_override===undefined) {
         return `rgb(${r},${g},${b})`;
     }
     else {
@@ -1942,16 +2658,20 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
   color2css = _es6_module.add_export('color2css', color2css);
   window.color2css = color2css;
   let css2color_rets=util.cachering.fromConstructor(Vector4, 64);
-  let cmap={red: [1, 0, 0, 1], 
-   green: [0, 1, 0, 1], 
-   blue: [0, 0, 1, 1], 
-   yellow: [1, 1, 0, 1], 
-   white: [1, 1, 1, 1], 
-   black: [0, 0, 0, 1], 
-   grey: [0.7, 0.7, 0.7, 1], 
-   teal: [0, 1, 1, 1], 
-   orange: [1, 0.55, 0.25, 1], 
-   brown: [0.7, 0.4, 0.3, 1]}
+  let basic_colors={'white': [1, 1, 1], 
+   'grey': [0.5, 0.5, 0.5], 
+   'gray': [0.5, 0.5, 0.5], 
+   'black': [0, 0, 0], 
+   'red': [1, 0, 0], 
+   'yellow': [1, 1, 0], 
+   'green': [0, 1, 0], 
+   'teal': [0, 1, 1], 
+   'cyan': [0, 1, 1], 
+   'blue': [0, 0, 1], 
+   'orange': [1, 0.5, 0.25], 
+   'brown': [0.5, 0.4, 0.3], 
+   'purple': [1, 0, 1], 
+   'pink': [1, 0.5, 0.5]}
   function color2web(color) {
     function tostr(n) {
       n = ~~(n*255);
@@ -2003,8 +2723,8 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
         }
         return ret;
     }
-    if (color in cmap) {
-        return ret.load(cmap[color]);
+    if (color in basic_colors) {
+        return ret.load(basic_colors[color]);
     }
     color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
     for (let i=0; i<color.length; i++) {
@@ -2012,6 +2732,9 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
         if (i<3) {
             ret[i]/=255;
         }
+    }
+    if (color.length===3) {
+        color.push(1.0);
     }
     return ret;
   }
@@ -2032,15 +2755,16 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
     return str.trim().search(validate_pat)===0;
   }
   validateWebColor = _es6_module.add_export('validateWebColor', validateWebColor);
-  let num="([0-9]+\.[0-9]+)|[0-9a-f]+";
+  let num="(([0-9]+\.[0-9]+)|[0-9a-f]+)";
   let validate_rgba=new RegExp(`rgba\\(${num},${num},${num},${num}\\)$`);
-  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num},${num}\\)$`);
+  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num}\\)$`);
   function validateCSSColor(color) {
-    if (color.toLowerCase() in cmap) {
+    if (color.toLowerCase() in basic_colors) {
         return true;
     }
     let rgba=color.toLowerCase().replace(/[ \t]/g, "");
-    if (validate_rgba.exec(rgba)||validate_rgb.exec(rgba)) {
+    rgba = rgba.trim();
+    if (validate_rgba.test(rgba)||validate_rgb.exec(rgba)) {
         return true;
     }
     return validateWebColor(color);
@@ -2075,7 +2799,7 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
               if (typeof v==="string") {
                 v = v.trim().toLowerCase();
                 let iscolor=v.search("rgb")>=0;
-                iscolor = iscolor||v in cmap;
+                iscolor = iscolor||v in basic_colors;
                 iscolor = iscolor||validateWebColor(v);
                 if (iscolor) {
                     style[k] = inverted(v);
@@ -2094,6 +2818,7 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
   }
   setColorSchemeType = _es6_module.add_export('setColorSchemeType', setColorSchemeType);
   window.validateWebColor = validateWebColor;
+  let _digest=new util.HashDigest();
   class CSSFont  {
      constructor(args={}) {
       this._size = args.size ? args.size : 12;
@@ -2102,6 +2827,15 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
       this.weight = args.weight!==undefined ? args.weight : "normal";
       this.variant = args.variant!==undefined ? args.variant : "normal";
       this.color = args.color;
+    }
+     calcHashUpdate(digest=_digest.reset()) {
+      digest.add(this._size||0);
+      digest.add(this.font);
+      digest.add(this.style);
+      digest.add(this.weight);
+      digest.add(this.variant);
+      digest.add(this.color);
+      return digest.get();
     }
     set  size(val) {
       this._size = val;
@@ -2133,7 +2867,14 @@ es6_module_define('ui_theme', ["../util/struct.js", "../util/vectormath.js", "..
       return `${this.style} ${this.variant} ${this.weight} ${size}px ${this.font}`;
     }
      hash() {
-      return this.genCSS+":"+this.size+":"+this.color;
+      return this.genKey();
+    }
+     genKey() {
+      let color=this.color;
+      if (typeof this.color==="object"||typeof this.color==="function") {
+          color = JSON.stringify(color);
+      }
+      return this.genCSS()+":"+this.size+":"+color;
     }
   }
   _ESClass.register(CSSFont);
@@ -2247,13 +2988,15 @@ ${indent}})`;
   exportTheme = _es6_module.add_export('exportTheme', exportTheme);
   window._exportTheme = exportTheme;
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
-es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], function _units_module(_es6_module) {
-  var util=es6_import(_es6_module, '../util/util.js');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
+
+
+es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _units_module(_es6_module) {
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
   function normString(s) {
     s = s.replace(/ /g, "").replace(/\t/g, "");
     return s.toLowerCase();
@@ -2413,11 +3156,11 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
       let vft=~~(value);
       let vin=(value*12)%12;
       if (vft===0.0) {
-          return myToFixed(value, decimals)+" in";
+          return myToFixed(vin, decimals)+" in";
       }
       let s=""+vft+" ft";
       if (vin!==0.0) {
-          s+=" "+myToFixed(value, decimals)+" in";
+          s+=" "+myToFixed(vin, decimals)+" in";
       }
       return s;
     }
@@ -2426,6 +3169,36 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
   _es6_module.add_class(FootUnit);
   FootUnit = _es6_module.add_export('FootUnit', FootUnit);
   Unit.register(FootUnit);
+  let square_foot_re=/((-?\d+(\.\d*)?ft(\u00b2)?)(-?\d+(\.\d*)?(in|inch)(\u00b2)?)?)|(-?\d+(\.\d*)?(in|inch)(\u00b2)?)$/;
+  class SquareFootUnit extends FootUnit {
+    static  unitDefine() {
+      return {name: "square_foot", 
+     uiname: "Square Feet", 
+     type: "area", 
+     icon: -1, 
+     pattern: square_foot_re}
+    }
+    static  parse(string) {
+      string = string.replace(/\u00b2/g, "");
+      return super.parse(string);
+    }
+    static  buildString(value, decimals=2) {
+      let vft=~~(value);
+      let vin=(value*12)%12;
+      if (vft===0.0) {
+          return myToFixed(vin, decimals)+" in\u00b2";
+      }
+      let s=""+vft+" ft\u00b2";
+      if (vin!==0.0) {
+          s+=" "+myToFixed(vin, decimals)+" in\u00b2";
+      }
+      return s;
+    }
+  }
+  _ESClass.register(SquareFootUnit);
+  _es6_module.add_class(SquareFootUnit);
+  SquareFootUnit = _es6_module.add_export('SquareFootUnit', SquareFootUnit);
+  Unit.register(SquareFootUnit);
   class MileUnit extends Unit {
     static  unitDefine() {
       return {name: "mile", 
@@ -2535,19 +3308,61 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
   let hexre2=/[+\-]?0x[0-9a-fA-F]+$/;
   let binre=/[+\-]?0b[01]+$/;
   let expre=/[+\-]?[0-9]+(\.[0-9]*)?[eE]\-?[0-9]+$/;
-  function isNumber(s) {
+  function isnumber(s) {
     s = (""+s).trim();
+    if (s.startsWith(".")) {
+        s = "0"+s;
+    }
     function test(re) {
       return s.search(re)==0;
     }
     return test(numre)||test(hexre1)||test(hexre2)||test(binre)||test(expre);
   }
-  function parseValue(string, baseUnit) {
+  function parseValue(string, baseUnit, displayUnit) {
+    if (baseUnit===undefined) {
+        baseUnit = undefined;
+    }
+    if (displayUnit===undefined) {
+        displayUnit = undefined;
+    }
+    let f=parseValueIntern(string, baseUnit);
+    let display, base;
+    if (displayUnit&&displayUnit!=="none") {
+        display = Unit.getUnit(displayUnit);
+    }
+    if (baseUnit&&baseUnit!=="none") {
+        base = Unit.getUnit(baseUnit);
+    }
+    if (display&&base) {
+        f = display.toInternal(f);
+        f = base.fromInternal(f);
+    }
+    return f;
+  }
+  parseValue = _es6_module.add_export('parseValue', parseValue);
+  function isNumber(string) {
+    if (isnumber(string)) {
+        return true;
+    }
+    for (let unit of Units) {
+        let def=unit.unitDefine();
+        if (unit.validate(string)) {
+            return true;
+        }
+    }
+    return false;
+  }
+  isNumber = _es6_module.add_export('isNumber', isNumber);
+  function parseValueIntern(string, baseUnit) {
     if (baseUnit===undefined) {
         baseUnit = undefined;
     }
     let base;
-    if (isNumber(string)) {
+    string = string.trim();
+    if (string[0]===".") {
+        string = "0"+string;
+    }
+    if (isnumber(string)) {
         let f=parseFloat(string);
         return f;
     }
@@ -2572,7 +3387,36 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
     }
     return NaN;
   }
-  parseValue = _es6_module.add_export('parseValue', parseValue);
+  parseValueIntern = _es6_module.add_export('parseValueIntern', parseValueIntern);
+  class PixelUnit extends Unit {
+    static  unitDefine() {
+      return {name: "pixel", 
+     uiname: "Pixel", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d*)?px$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      if (string.endsWith("px")) {
+          string = string.slice(0, string.length-2).trim();
+      }
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value;
+    }
+    static  fromInternal(value) {
+      return value;
+    }
+    static  buildString(value, decimals=2) {
+      return ""+myToFixed(value, decimals)+"px";
+    }
+  }
+  _ESClass.register(PixelUnit);
+  _es6_module.add_class(PixelUnit);
+  PixelUnit = _es6_module.add_export('PixelUnit', PixelUnit);
+  Unit.register(PixelUnit);
   function convert(value, unita, unitb) {
     if (typeof unita==="string")
       unita = Unit.getUnit(unita);
@@ -2611,2057 +3455,23 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
   window._parseValueTest = parseValue;
   window._buildStringTest = buildString;
 }, '/dev/fairmotion/src/path.ux/scripts/core/units.js');
-es6_module_define('curve1d', ["./curve1d_base.js", "./curve1d_basic.js", "../icon_enum.js", "./curve1d_bspline.js", "./curve1d_anim.js", "../util/vectormath.js", "../util/util.js", "../util/struct.js", "../util/events.js"], function _curve1d_module(_es6_module) {
-  "use strict";
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
-  var Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var EventDispatcher=es6_import_item(_es6_module, '../util/events.js', 'EventDispatcher');
-  let _ex_getCurve=es6_import_item(_es6_module, './curve1d_base.js', 'getCurve');
-  _es6_module.add_export('getCurve', _ex_getCurve, true);
-  var Vector2=vectormath.Vector2;
-  es6_import(_es6_module, './curve1d_basic.js');
-  es6_import(_es6_module, './curve1d_bspline.js');
-  es6_import(_es6_module, './curve1d_anim.js');
-  function mySafeJSONStringify(obj) {
-    return JSON.stringify(obj.toJSON(), function (key) {
-      let v=this[key];
-      if (typeof v==="number") {
-          if (v!==Math.floor(v)) {
-              v = parseFloat(v.toFixed(5));
-          }
-          else {
-            v = v;
-          }
-      }
-      return v;
-    });
-  }
-  mySafeJSONStringify = _es6_module.add_export('mySafeJSONStringify', mySafeJSONStringify);
-  function mySafeJSONParse(buf) {
-    return JSON.parse(buf, (key, val) =>      {    });
-  }
-  mySafeJSONParse = _es6_module.add_export('mySafeJSONParse', mySafeJSONParse);
-  
-  window.mySafeJSONStringify = mySafeJSONStringify;
-  let _ex_CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
-  _es6_module.add_export('CurveConstructors', _ex_CurveConstructors, true);
-  let _ex_CURVE_VERSION=es6_import_item(_es6_module, './curve1d_base.js', 'CURVE_VERSION');
-  _es6_module.add_export('CURVE_VERSION', _ex_CURVE_VERSION, true);
-  let _ex_CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  _es6_module.add_export('CurveTypeData', _ex_CurveTypeData, true);
-  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
-  var CURVE_VERSION=es6_import_item(_es6_module, './curve1d_base.js', 'CURVE_VERSION');
-  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  class Curve1D extends EventDispatcher {
-     constructor() {
-      super();
-      this.uiZoom = 1.0;
-      this.generators = [];
-      this.VERSION = CURVE_VERSION;
-      for (let gen of CurveConstructors) {
-          gen = new gen();
-          gen.parent = this;
-          this.generators.push(gen);
-      }
-      this.setGenerator("bspline");
-    }
-     equals(b) {
-      let gen1=this.generators.active;
-      let gen2=b.generators.active;
-      if (!gen1||!gen2||gen1.constructor!==gen2.constructor) {
-          return false;
-      }
-      return gen1.equals(gen2);
-    }
-    get  generatorType() {
-      return this.generators.active ? this.generators.active.type : undefined;
-    }
-     load(b) {
-      if (b===undefined) {
-          return ;
-      }
-      let buf1=mySafeJSONStringify(b);
-      let buf2=mySafeJSONStringify(this);
-      if (buf1===buf2) {
-          return ;
-      }
-      this.loadJSON(JSON.parse(buf1));
-      this._on_change();
-      this.redraw();
-      return this;
-    }
-     copy() {
-      let ret=new Curve1D();
-      ret.loadJSON(JSON.parse(mySafeJSONStringify(this)));
-      return ret;
-    }
-     _on_change() {
 
-    }
-     redraw() {
-      this._fireEvent("draw", this);
-    }
-     setGenerator(type) {
-      for (let gen of this.generators) {
-          if (gen.constructor.define().name===type||gen.type===type||gen.constructor.name===type||gen.constructor===type) {
-              if (this.generators.active) {
-                  this.generators.active.onInactive();
-              }
-              this.generators.active = gen;
-              gen.onActive();
-              return ;
-          }
-      }
-      throw new Error("unknown curve type "+type);
-    }
-    get  fastmode() {
-      return this._fastmode;
-    }
-    set  fastmode(val) {
-      this._fastmode = val;
-      for (let gen of this.generators) {
-          gen.fastmode = val;
-      }
-    }
-     toJSON() {
-      let ret={generators: [], 
-     uiZoom: this.uiZoom, 
-     VERSION: this.VERSION, 
-     active_generator: this.generatorType};
-      for (let gen of this.generators) {
-          ret.generators.push(gen.toJSON());
-      }
-      return ret;
-    }
-     getGenerator(type, throw_on_error=true) {
-      for (let gen of this.generators) {
-          if (gen.type===type) {
-              return gen;
-          }
-      }
-      for (let cls of CurveConstructors) {
-          if (cls.name===type) {
-              let gen=new cls();
-              this.generators.push(gen);
-              return gen;
-          }
-      }
-      if (throw_on_error) {
-          throw new Error("Unknown generator "+type+".");
-      }
-      else {
-        return undefined;
-      }
-    }
-     switchGenerator(type) {
-      let gen=this.getGenerator(type);
-      if (gen!==this.generators.active) {
-          let old=this.generators.active;
-          this.generators.active = gen;
-          old.onInactive(this);
-          gen.onActive(this);
-      }
-      return gen;
-    }
-     equals(b) {
-      let a=mySafeJSONStringify(this).trim();
-      let b2=mySafeJSONStringify(b).trim();
-      if (a!==b2) {
-          console.log(a);
-          console.log(b2);
-      }
-      return a===b2;
-    }
-     destroy() {
-      return this;
-    }
-     loadJSON(obj) {
-      this.VERSION = obj.VERSION;
-      this.uiZoom = parseFloat(obj.uiZoom)||this.uiZoom;
-      for (let gen of obj.generators) {
-          let gen2=this.getGenerator(gen.type, false);
-          if (!gen2||!(__instance_of(gen2, CurveTypeData))) {
-              console.warn("Bad curve generator class:", gen2);
-              if (gen2) {
-                  this.generators.remove(gen2);
-              }
-              continue;
-          }
-          gen2.parent = undefined;
-          gen2.reset();
-          gen2.loadJSON(gen);
-          gen2.parent = this;
-          if (gen.type===obj.active_generator) {
-              this.generators.active = gen2;
-          }
-      }
-      return this;
-    }
-     evaluate(s) {
-      return this.generators.active.evaluate(s);
-    }
-     derivative(s) {
-      return this.generators.active.derivative(s);
-    }
-     derivative2(s) {
-      return this.generators.active.derivative2(s);
-    }
-     inverse(s) {
-      return this.generators.active.inverse(s);
-    }
-     reset() {
-      this.generators.active.reset();
-    }
-     update() {
-      return this.generators.active.update();
-    }
-     draw(canvas, g, draw_transform) {
-      var w=canvas.width, h=canvas.height;
-      g.save();
-      let sz=draw_transform[0], pan=draw_transform[1];
-      g.beginPath();
-      g.moveTo(-1, 0);
-      g.lineTo(1, 0);
-      g.strokeStyle = "red";
-      g.stroke();
-      g.beginPath();
-      g.moveTo(0, -1);
-      g.lineTo(0, 1);
-      g.strokeStyle = "green";
-      g.stroke();
-      var f=0, steps=64;
-      var df=1/(steps-1);
-      var w=6.0/sz;
-      let curve=this.generators.active;
-      g.beginPath();
-      for (var i=0; i<steps; i++, f+=df) {
-          var val=curve.evaluate(f);
-          (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
-      }
-      g.strokeStyle = "grey";
-      g.stroke();
-      if (this.overlay_curvefunc!==undefined) {
-          g.beginPath();
-          f = 0.0;
-          for (var i=0; i<steps; i++, f+=df) {
-              var val=this.overlay_curvefunc(f);
-              (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
-          }
-          g.strokeStyle = "green";
-          g.stroke();
-      }
-      this.generators.active.draw(canvas, g, draw_transform);
-      g.restore();
-      return this;
-    }
-     loadSTRUCT(reader) {
-      this.generators = [];
-      reader(this);
-      console.log("VERSION", this.VERSION);
-      if (this.VERSION<=0.75) {
-          this.generators = [];
-          for (let cls of CurveConstructors) {
-              this.generators.push(new cls());
-          }
-          this.generators.active = this.getGenerator("BSplineCurve");
-      }
-      console.log("ACTIVE", this._active);
-      for (let gen of this.generators.concat([])) {
-          if (!(__instance_of(gen, CurveTypeData))) {
-              console.warn("Bad generator data found:", gen);
-              this.generators.remove(gen);
-              continue;
-          }
-          if (gen.type===this._active) {
-              console.log("found active", this._active);
-              this.generators.active = gen;
-          }
-      }
-      delete this._active;
-    }
-  }
-  _ESClass.register(Curve1D);
-  _es6_module.add_class(Curve1D);
-  Curve1D = _es6_module.add_export('Curve1D', Curve1D);
-  Curve1D.STRUCT = `
-Curve1D {
-  generators  : array(abstract(CurveTypeData));
-  _active     : string | obj.generators.active.type;
-  VERSION     : float;
-  uiZoom      : float;
-}
-`;
-  nstructjs.register(Curve1D);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d.js');
-es6_module_define('curve1d_anim', ["./ease.js", "../util/struct.js", "../util/util.js", "./curve1d_base.js"], function _curve1d_anim_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
-  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
-  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  var Ease=es6_import_item(_es6_module, './ease.js', 'default');
-  var util=es6_import(_es6_module, '../util/util.js');
-  function bez3(a, b, c, t) {
-    var r1=a+(b-a)*t;
-    var r2=b+(c-b)*t;
-    return r1+(r2-r1)*t;
-  }
-  function bez4(a, b, c, d, t) {
-    var r1=bez3(a, b, c, t);
-    var r2=bez3(b, c, d, t);
-    return r1+(r2-r1)*t;
-  }
-  class ParamKey  {
-     constructor(key, val) {
-      this.key = key;
-      this.val = val;
-    }
-  }
-  _ESClass.register(ParamKey);
-  _es6_module.add_class(ParamKey);
-  ParamKey = _es6_module.add_export('ParamKey', ParamKey);
-  ParamKey.STRUCT = `
-ParamKey {
-  key : string;
-  val : float;
-}
-`;
-  nstructjs.register(ParamKey);
-  let BOOL_FLAG=1e+17;
-  class SimpleCurveBase extends CurveTypeData {
-     constructor() {
-      super();
-      this.type = this.constructor.name;
-      let def=this.constructor.define();
-      let params=def.params;
-      this.params = {};
-      for (let k in params) {
-          this.params[k] = params[k][1];
-      }
-    }
-     equals(b) {
-      if (this.type!==b.type) {
-          return false;
-      }
-      for (let k in this.params) {
-          if (this.params[k]!==b.params[k]) {
-              return false;
-          }
-      }
-      return true;
-    }
-     redraw() {
-      if (this.parent)
-        this.parent.redraw();
-    }
-    get  hasGUI() {
-      return true;
-    }
-     makeGUI(container) {
-      let def=this.constructor.define();
-      let params=def.params;
-      for (let k in params) {
-          let p=params[k];
-          if (p[2]===BOOL_FLAG) {
-              let check=container.check(undefined, p[0]);
-              check.checked = !!this.params[k];
-              check.key = k;
-              let this2=this;
-              check.onchange = function () {
-                this2.params[this.key] = this.checked ? 1 : 0;
-                this2.update();
-                this2.redraw();
-              };
-          }
-          else {
-            let slider=container.slider(undefined, {name: p[0], 
-        defaultval: this.params[k], 
-        min: p[2], 
-        max: p[3]});
-            slider.baseUnit = slider.displayUnit = "none";
-            slider.key = k;
-            let this2=this;
-            slider.onchange = function () {
-              this2.params[this.key] = this.value;
-              this2.update();
-              this2.redraw();
-            };
-          }
-      }
-    }
-     killGUI(container) {
-      container.clear();
-    }
-     evaluate(s) {
-      throw new Error("implement me!");
-    }
-     reset() {
 
-    }
-     update() {
-      super.update();
-    }
-     draw(canvas, g, draw_transform) {
-      let steps=128;
-      let s=0, ds=1.0/(steps-1);
-      g.beginPath();
-      for (let i=0; i<steps; i++, s+=ds) {
-          let co=this.evaluate(s);
-          if (i) {
-              g.lineTo(co[0], co[1]);
-          }
-          else {
-            g.moveTo(co[0], co[1]);
-          }
-      }
-      g.stroke();
-    }
-     _saveParams() {
-      let ret=[];
-      for (let k in this.params) {
-          ret.push(new ParamKey(k, this.params[k]));
-      }
-      return ret;
-    }
-     toJSON() {
-      return Object.assign(super.toJSON(), {params: this.params});
-    }
-     loadJSON(obj) {
-      for (let k in obj.params) {
-          this.params[k] = obj.params[k];
-      }
-      return this;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      let ps=this.params;
-      this.params = {};
-      let pdef=this.constructor.define().params;
-      if (!pdef) {
-          console.warn("Missing define function for curve", this.constructor.name);
-          return ;
-      }
-      console.log(this.constructor.define(), this, "<-----");
-      for (let pair of ps) {
-          if (pair.key in pdef) {
-              this.params[pair.key] = pair.val;
-          }
-      }
-      for (let k in pdef) {
-          if (!(k in this.params)) {
-              this.params[k] = pdef[k][1];
-          }
-      }
-    }
-  }
-  _ESClass.register(SimpleCurveBase);
-  _es6_module.add_class(SimpleCurveBase);
-  SimpleCurveBase = _es6_module.add_export('SimpleCurveBase', SimpleCurveBase);
-  SimpleCurveBase.STRUCT = nstructjs.inherit(SimpleCurveBase, CurveTypeData)+`
-  params : array(ParamKey) | obj._saveParams();
-}
-`;
-  nstructjs.register(SimpleCurveBase);
-  class BounceCurve extends SimpleCurveBase {
-     _evaluate(t) {
-      let params=this.params;
-      let decay=params.decay+1.0;
-      let scale=params.scale;
-      let freq=params.freq;
-      let phase=params.phase;
-      let offset=params.offset;
-      t*=freq;
-      let t2=Math.abs(Math.cos(phase+t*Math.PI*2.0))*scale;
-      
-      t2*=Math.exp(decay*t)/Math.exp(decay);
-      return t2;
-    }
-     evaluate(t) {
-      let s=this._evaluate(0.0);
-      let e=this._evaluate(1.0);
-      return (this._evaluate(t)-s)/(e-s)+this.params.offset;
-    }
-    static  define() {
-      return {params: {decay: ["Decay", 1.0, 0.1, 5.0], 
-      scale: ["Scale", 1.0, 0.01, 10.0], 
-      freq: ["Freq", 1.0, 0.01, 50.0], 
-      phase: ["Phase", 0.0, -Math.PI*2.0, Math.PI*2.0], 
-      offset: ["Offset", 0.0, -2.0, 2.0]}, 
-     name: "bounce", 
-     uiname: "Bounce"}
-    }
-  }
-  _ESClass.register(BounceCurve);
-  _es6_module.add_class(BounceCurve);
-  BounceCurve = _es6_module.add_export('BounceCurve', BounceCurve);
-  CurveTypeData.register(BounceCurve);
-  BounceCurve.STRUCT = nstructjs.inherit(BounceCurve, SimpleCurveBase)+`
-}`;
-  nstructjs.register(BounceCurve);
-  class ElasticCurve extends SimpleCurveBase {
-     constructor() {
-      super();
-      this._func = undefined;
-      this._last_hash = undefined;
-    }
-     evaluate(t) {
-      let hash=~~(this.params.mode*127+this.params.amplitude*256+this.params.period*512);
-      if (hash!==this._last_hash||!this._func) {
-          this._last_hash = hash;
-          if (this.params.mode) {
-              this._func = Ease.getElasticOut(this.params.amplitude, this.params.period);
-          }
-          else {
-            this._func = Ease.getElasticIn(this.params.amplitude, this.params.period);
-          }
-      }
-      return this._func(t);
-    }
-    static  define() {
-      return {params: {mode: ["Out Mode", false, BOOL_FLAG, BOOL_FLAG], 
-      amplitude: ["Amplitude", 1.0, 0.01, 10.0], 
-      period: ["Period", 1.0, 0.01, 5.0]}, 
-     name: "elastic", 
-     uiname: "Elastic"}
-    }
-  }
-  _ESClass.register(ElasticCurve);
-  _es6_module.add_class(ElasticCurve);
-  ElasticCurve = _es6_module.add_export('ElasticCurve', ElasticCurve);
-  CurveTypeData.register(ElasticCurve);
-  ElasticCurve.STRUCT = nstructjs.inherit(ElasticCurve, SimpleCurveBase)+`
-}`;
-  nstructjs.register(ElasticCurve);
-  class EaseCurve extends SimpleCurveBase {
-     constructor() {
-      super();
-    }
-     evaluate(t) {
-      let amp=this.params.amplitude;
-      let a1=this.params.mode_in ? 1.0-amp : 1.0/3.0;
-      let a2=this.params.mode_out ? amp : 2.0/3.0;
-      return bez4(0.0, a1, a2, 1.0, t);
-    }
-    static  define() {
-      return {params: {mode_in: ["in", true, BOOL_FLAG, BOOL_FLAG], 
-      mode_out: ["out", true, BOOL_FLAG, BOOL_FLAG], 
-      amplitude: ["Amplitude", 1.0, 0.01, 4.0]}, 
-     name: "ease", 
-     uiname: "Ease"}
-    }
-  }
-  _ESClass.register(EaseCurve);
-  _es6_module.add_class(EaseCurve);
-  EaseCurve = _es6_module.add_export('EaseCurve', EaseCurve);
-  CurveTypeData.register(EaseCurve);
-  EaseCurve.STRUCT = nstructjs.inherit(EaseCurve, SimpleCurveBase)+`
-}`;
-  nstructjs.register(EaseCurve);
-  class RandCurve extends SimpleCurveBase {
-     constructor() {
-      super();
-      this.random = new util.MersenneRandom();
-      this.seed = 0;
-    }
-    set  seed(v) {
-      this.random.seed(v);
-      this._seed = v;
-    }
-    get  seed() {
-      return this._seed;
-    }
-     evaluate(t) {
-      let r=this.random.random();
-      let decay=this.params.decay+1.0;
-      let amp=this.params.amplitude;
-      let in_mode=this.params.in_mode;
-      if (in_mode) {
-          t = 1.0-t;
-      }
-      let d;
-      if (in_mode) {
-          d = Math.exp(t*decay)/Math.exp(decay);
-      }
-      else {
-        d = Math.exp(t*decay)/Math.exp(decay);
-      }
-      t = t+(r-t)*d;
-      if (in_mode) {
-          t = 1.0-t;
-      }
-      return t;
-    }
-    static  define() {
-      return {params: {amplitude: ["Amplitude", 1.0, 0.01, 4.0], 
-      decay: ["Decay", 1.0, 0.0, 5.0], 
-      in_mode: ["In", true, BOOL_FLAG, BOOL_FLAG]}, 
-     name: "random", 
-     uiname: "Random"}
-    }
-  }
-  _ESClass.register(RandCurve);
-  _es6_module.add_class(RandCurve);
-  RandCurve = _es6_module.add_export('RandCurve', RandCurve);
-  CurveTypeData.register(RandCurve);
-  EaseCurve.STRUCT = nstructjs.inherit(RandCurve, SimpleCurveBase)+`
-}`;
-  nstructjs.register(RandCurve);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d_anim.js');
-es6_module_define('curve1d_base', ["../util/struct.js"], function _curve1d_base_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
-  const CurveConstructors=[];
-  _es6_module.add_export('CurveConstructors', CurveConstructors);
-  const CURVE_VERSION=1.0;
-  _es6_module.add_export('CURVE_VERSION', CURVE_VERSION);
-  const CurveFlags={SELECT: 1}
-  _es6_module.add_export('CurveFlags', CurveFlags);
-  const TangentModes={SMOOTH: 1, 
-   BREAK: 2}
-  _es6_module.add_export('TangentModes', TangentModes);
-  function getCurve(type, throw_on_error) {
-    if (throw_on_error===undefined) {
-        throw_on_error = true;
-    }
-    for (let cls of CurveConstructors) {
-        if (cls.name===type)
-          return cls;
-        if (cls.define().name===type)
-          return cls;
-    }
-    if (throw_on_error) {
-        throw new Error("Unknown curve type "+type);
-    }
-    else {
-      console.warn("Unknown curve type", type);
-      return getCurve("ease");
-    }
-  }
-  getCurve = _es6_module.add_export('getCurve', getCurve);
-  class CurveTypeData  {
-     constructor() {
-      this.type = this.constructor.name;
-    }
-    static  register(cls) {
-      if (cls.define===CurveTypeData.define) {
-          throw new Error("missing define() static method");
-      }
-      let def=cls.define();
-      if (!def.name) {
-          throw new Error(cls.name+".define() result is missing 'name' field");
-      }
-      CurveConstructors.push(cls);
-    }
-     toJSON() {
-      return {type: this.type}
-    }
-     equals(b) {
-      return this.type===b.type;
-    }
-     loadJSON(obj) {
-      this.type = obj.type;
-      return this;
-    }
-     redraw() {
-      if (this.parent)
-        this.parent.redraw();
-    }
-    get  hasGUI() {
-      throw new Error("get hasGUI(): implement me!");
-    }
-     makeGUI(container) {
-
-    }
-     killGUI(container) {
-      container.clear();
-    }
-     evaluate(s) {
-      throw new Error("implement me!");
-    }
-     derivative(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.evaluate(s)-this.evaluate(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.evaluate(s+df)-this.evaluate(s))/df;
-      }
-      else {
-        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
-      }
-    }
-     derivative2(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.derivative(s)-this.derivative(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.derivative(s+df)-this.derivative(s))/df;
-      }
-      else {
-        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
-      }
-    }
-     inverse(y) {
-      let steps=9;
-      let ds=1.0/steps, s=0.0;
-      let best=undefined;
-      let ret=undefined;
-      for (let i=0; i<steps; i++, s+=ds) {
-          let s1=s, s2=s+ds;
-          let mid;
-          for (let j=0; j<11; j++) {
-              let y1=this.evaluate(s1);
-              let y2=this.evaluate(s2);
-              mid = (s1+s2)*0.5;
-              if (Math.abs(y1-y)<Math.abs(y2-y)) {
-                  s2 = mid;
-              }
-              else {
-                s1 = mid;
-              }
-          }
-          let ymid=this.evaluate(mid);
-          if (best===undefined||Math.abs(y-ymid)<best) {
-              best = Math.abs(y-ymid);
-              ret = mid;
-          }
-      }
-      return ret===undefined ? 0.0 : ret;
-    }
-    static  define() {
-      return {uiname: "Some Curve", 
-     name: "somecurve"}
-    }
-     onActive(parent, draw_transform) {
-
-    }
-     onInactive(parent, draw_transform) {
-
-    }
-     reset() {
-
-    }
-     destroy() {
-
-    }
-     update() {
-      if (this.parent)
-        this.parent._on_change();
-    }
-     draw(canvas, g, draw_transform) {
-
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(CurveTypeData);
-  _es6_module.add_class(CurveTypeData);
-  CurveTypeData = _es6_module.add_export('CurveTypeData', CurveTypeData);
-  CurveTypeData.STRUCT = `
-CurveTypeData {
-  type : string;
-}
-`;
-  nstructjs.register(CurveTypeData);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d_base.js');
-es6_module_define('curve1d_basic', ["./curve1d_base.js", "../util/vectormath.js", "../util/struct.js"], function _curve1d_basic_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
-  var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
-  var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
-  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
-  class EquationCurve extends CurveTypeData {
-     constructor(type) {
-      super();
-      this.equation = "x";
-    }
-    static  define() {
-      return {uiname: "Equation", 
-     name: "equation"}
-    }
-     equals(b) {
-      return super.equals(b)&&this.equation===b.equation;
-    }
-     toJSON() {
-      let ret=super.toJSON();
-      return Object.assign(ret, {equation: this.equation});
-    }
-     loadJSON(obj) {
-      super.loadJSON(obj);
-      if (obj.equation!==undefined) {
-          this.equation = obj.equation;
-      }
-      return this;
-    }
-    get  hasGUI() {
-      return this.uidata!==undefined;
-    }
-     makeGUI(container, canvas, drawTransform) {
-      this.uidata = {canvas: canvas, 
-     g: canvas.g, 
-     draw_trans: drawTransform};
-      let text=this.uidata.textbox = container.textbox(undefined, this.equation);
-      text.onchange = (val) =>        {
-        console.log(val);
-        this.equation = val;
-        this.update();
-        this.redraw();
-      };
-    }
-     killGUI(dom, gui, canvas, g, draw_transform) {
-      if (this.uidata!==undefined) {
-          this.uidata.textbox.remove();
-      }
-      this.uidata = undefined;
-    }
-     evaluate(s) {
-      let sin=Math.sin, cos=Math.cos, pi=Math.PI, PI=Math.PI, e=Math.E, E=Math.E, tan=Math.tan, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, acos=Math.acos, asin=Math.asin, atan=Math.atan, cosh=Math.cos, sinh=Math.sinh, log=Math.log, pow=Math.pow, exp=Math.exp, sqrt=Math.sqrt, cbrt=Math.cbrt, min=Math.min, max=Math.max;
-      try {
-        let x=s;
-        let ret=eval(this.equation);
-        this._haserror = false;
-        return ret;
-      }
-      catch (error) {
-          this._haserror = true;
-          console.log("ERROR!");
-          return 0.0;
-      }
-    }
-     derivative(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.evaluate(s)-this.evaluate(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.evaluate(s+df)-this.evaluate(s))/df;
-      }
-      else {
-        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
-      }
-    }
-     derivative2(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.derivative(s)-this.derivative(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.derivative(s+df)-this.derivative(s))/df;
-      }
-      else {
-        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
-      }
-    }
-     inverse(y) {
-      let steps=9;
-      let ds=1.0/steps, s=0.0;
-      let best=undefined;
-      let ret=undefined;
-      for (let i=0; i<steps; i++, s+=ds) {
-          let s1=s, s2=s+ds;
-          let mid;
-          for (let j=0; j<11; j++) {
-              let y1=this.evaluate(s1);
-              let y2=this.evaluate(s2);
-              mid = (s1+s2)*0.5;
-              if (Math.abs(y1-y)<Math.abs(y2-y)) {
-                  s2 = mid;
-              }
-              else {
-                s1 = mid;
-              }
-          }
-          let ymid=this.evaluate(mid);
-          if (best===undefined||Math.abs(y-ymid)<best) {
-              best = Math.abs(y-ymid);
-              ret = mid;
-          }
-      }
-      return ret===undefined ? 0.0 : ret;
-    }
-     onActive(parent, draw_transform) {
-
-    }
-     onInactive(parent, draw_transform) {
-
-    }
-     reset() {
-      this.equation = "x";
-    }
-     destroy() {
-
-    }
-     draw(canvas, g, draw_transform) {
-      g.save();
-      if (this._haserror) {
-          g.fillStyle = g.strokeStyle = "rgba(255, 50, 0, 0.25)";
-          g.beginPath();
-          g.rect(0, 0, 1, 1);
-          g.fill();
-          g.beginPath();
-          g.moveTo(0, 0);
-          g.lineTo(1, 1);
-          g.moveTo(0, 1);
-          g.lineTo(1, 0);
-          g.lineWidth*=3;
-          g.stroke();
-          g.restore();
-          return ;
-      }
-      g.restore();
-    }
-  }
-  _ESClass.register(EquationCurve);
-  _es6_module.add_class(EquationCurve);
-  EquationCurve.STRUCT = nstructjs.inherit(EquationCurve, CurveTypeData)+`
-  equation : string;
-}
-`;
-  nstructjs.register(EquationCurve);
-  CurveTypeData.register(EquationCurve);
-  class GuassianCurve extends CurveTypeData {
-     constructor(type) {
-      super();
-      this.height = 1.0;
-      this.offset = 1.0;
-      this.deviation = 0.3;
-    }
-     equals(b) {
-      return super.equals(b)&&this.height===b.height&&this.offset===b.offset&&this.deviation===b.deviation;
-    }
-    static  define() {
-      return {uiname: "Guassian", 
-     name: "guassian"}
-    }
-     toJSON() {
-      let ret=super.toJSON();
-      return Object.assign(ret, {height: this.height, 
-     offset: this.offset, 
-     deviation: this.deviation});
-    }
-     loadJSON(obj) {
-      super.loadJSON(obj);
-      this.height = obj.height!==undefined ? obj.height : 1.0;
-      this.offset = obj.offset;
-      this.deviation = obj.deviation;
-      return this;
-    }
-    get  hasGUI() {
-      return this.uidata!==undefined;
-    }
-     makeGUI(container, canvas, drawTransform) {
-      this.uidata = {canvas: canvas, 
-     g: canvas.g, 
-     draw_trans: drawTransform};
-      this.uidata.hslider = container.slider(undefined, "Height", this.height, -10, 10, 0.0001);
-      this.uidata.hslider.onchange = () =>        {
-        this.height = this.uidata.hslider.value;
-        this.redraw();
-        this.update();
-      };
-      this.uidata.oslider = container.slider(undefined, "Offset", this.offset, -10, 10, 0.0001);
-      this.uidata.oslider.onchange = () =>        {
-        this.offset = this.uidata.oslider.value;
-        this.redraw();
-        this.update();
-      };
-      this.uidata.dslider = container.slider(undefined, "STD Deviation", this.deviation, -10, 10, 0.0001);
-      this.uidata.dslider.onchange = () =>        {
-        this.deviation = this.uidata.dslider.value;
-        this.redraw();
-        this.update();
-      };
-    }
-     killGUI(dom, gui, canvas, g, draw_transform) {
-      if (this.uidata!==undefined) {
-          this.uidata.hslider.remove();
-          this.uidata.oslider.remove();
-          this.uidata.dslider.remove();
-      }
-      this.uidata = undefined;
-    }
-     evaluate(s) {
-      let r=this.height*Math.exp(-((s-this.offset)*(s-this.offset))/(2*this.deviation*this.deviation));
-      return r;
-    }
-     derivative(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.evaluate(s)-this.evaluate(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.evaluate(s+df)-this.evaluate(s))/df;
-      }
-      else {
-        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
-      }
-    }
-     derivative2(s) {
-      let df=0.0001;
-      if (s>1.0-df*3) {
-          return (this.derivative(s)-this.derivative(s-df))/df;
-      }
-      else 
-        if (s<df*3) {
-          return (this.derivative(s+df)-this.derivative(s))/df;
-      }
-      else {
-        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
-      }
-    }
-     inverse(y) {
-      let steps=9;
-      let ds=1.0/steps, s=0.0;
-      let best=undefined;
-      let ret=undefined;
-      for (let i=0; i<steps; i++, s+=ds) {
-          let s1=s, s2=s+ds;
-          let mid;
-          for (let j=0; j<11; j++) {
-              let y1=this.evaluate(s1);
-              let y2=this.evaluate(s2);
-              mid = (s1+s2)*0.5;
-              if (Math.abs(y1-y)<Math.abs(y2-y)) {
-                  s2 = mid;
-              }
-              else {
-                s1 = mid;
-              }
-          }
-          let ymid=this.evaluate(mid);
-          if (best===undefined||Math.abs(y-ymid)<best) {
-              best = Math.abs(y-ymid);
-              ret = mid;
-          }
-      }
-      return ret===undefined ? 0.0 : ret;
-    }
-  }
-  _ESClass.register(GuassianCurve);
-  _es6_module.add_class(GuassianCurve);
-  GuassianCurve.STRUCT = nstructjs.inherit(GuassianCurve, CurveTypeData)+`
-  height    : float;
-  offset    : float;
-  deviation : float;
-}
-`;
-  nstructjs.register(GuassianCurve);
-  CurveTypeData.register(GuassianCurve);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d_basic.js');
-es6_module_define('curve1d_bspline', ["./curve1d_base.js", "../util/struct.js", "../util/vectormath.js", "../icon_enum.js", "../util/util.js"], function _curve1d_bspline_module(_es6_module) {
-  "use strict";
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
-  var Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var Vector2=vectormath.Vector2;
-  let RecalcFlags={BASIS: 1, 
-   FULL: 2, 
-   ALL: 3, 
-   FULL_BASIS: 4}
-  function mySafeJSONStringify(obj) {
-    return JSON.stringify(obj.toJSON(), function (key) {
-      let v=this[key];
-      if (typeof v==="number") {
-          if (v!==Math.floor(v)) {
-              v = parseFloat(v.toFixed(5));
-          }
-          else {
-            v = v;
-          }
-      }
-      return v;
-    });
-  }
-  mySafeJSONStringify = _es6_module.add_export('mySafeJSONStringify', mySafeJSONStringify);
-  function mySafeJSONParse(buf) {
-    return JSON.parse(buf, (key, val) =>      {    });
-  }
-  mySafeJSONParse = _es6_module.add_export('mySafeJSONParse', mySafeJSONParse);
-  
-  window.mySafeJSONStringify = mySafeJSONStringify;
-  var bin_cache={}
-  window._bin_cache = bin_cache;
-  var eval2_rets=util.cachering.fromConstructor(Vector2, 32);
-  function bez3(a, b, c, t) {
-    var r1=a+(b-a)*t;
-    var r2=b+(c-b)*t;
-    return r1+(r2-r1)*t;
-  }
-  function bez4(a, b, c, d, t) {
-    var r1=bez3(a, b, c, t);
-    var r2=bez3(b, c, d, t);
-    return r1+(r2-r1)*t;
-  }
-  function binomial(n, i) {
-    if (i>n) {
-        throw new Error("Bad call to binomial(n, i), i was > than n");
-    }
-    if (i==0||i==n) {
-        return 1;
-    }
-    var key=""+n+","+i;
-    if (key in bin_cache)
-      return bin_cache[key];
-    var ret=binomial(n-1, i-1)+bin(n-1, i);
-    bin_cache[key] = ret;
-    return ret;
-  }
-  binomial = _es6_module.add_export('binomial', binomial);
-  window.bin = binomial;
-  var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
-  var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
-  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  class Curve1DPoint extends Vector2 {
-     constructor(co) {
-      super(co);
-      this.rco = new Vector2(co);
-      this.sco = new Vector2(co);
-      this.startco = new Vector2();
-      this.eid = -1;
-      this.flag = 0;
-      this.tangent = TangentModes.SMOOTH;
-    }
-     copy() {
-      var ret=new Curve1DPoint(this);
-      ret.tangent = this.tangent;
-      ret.rco.load(ret);
-      return ret;
-    }
-     toJSON() {
-      return {0: this[0], 
-     1: this[1], 
-     eid: this.eid, 
-     flag: this.flag, 
-     tangent: this.tangent}
-    }
-    static  fromJSON(obj) {
-      var ret=new Curve1DPoint(obj);
-      ret.eid = obj.eid;
-      ret.flag = obj.flag;
-      ret.tangent = obj.tangent;
-      return ret;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.sco.load(this);
-      this.rco.load(this);
-      this.recalc = RecalcFlags.ALL;
-    }
-  }
-  _ESClass.register(Curve1DPoint);
-  _es6_module.add_class(Curve1DPoint);
-  Curve1DPoint = _es6_module.add_export('Curve1DPoint', Curve1DPoint);
-  
-  Curve1DPoint.STRUCT = `
-Curve1DPoint {
-  0       : float;
-  1       : float;
-  eid     : int;
-  flag    : int;
-  deg     : int;
-  tangent : int;
-  rco     : vec2;
-}
-`;
-  nstructjs.register(Curve1DPoint);
-  class BSplineCurve extends CurveTypeData {
-     constructor() {
-      super();
-      this.fastmode = false;
-      this.points = [];
-      this.length = 0;
-      this.interpolating = false;
-      this._ps = [];
-      this.hermite = [];
-      this.fastmode = false;
-      this.deg = 6;
-      this.recalc = RecalcFlags.ALL;
-      this.basis_tables = [];
-      this.eidgen = new util.IDGen();
-      this.add(0, 0);
-      this.add(1, 1);
-      this.mpos = new Vector2();
-      this.on_mousedown = this.on_mousedown.bind(this);
-      this.on_mousemove = this.on_mousemove.bind(this);
-      this.on_mouseup = this.on_mouseup.bind(this);
-      this.on_keydown = this.on_keydown.bind(this);
-      this.on_touchstart = this.on_touchstart.bind(this);
-      this.on_touchmove = this.on_touchmove.bind(this);
-      this.on_touchend = this.on_touchend.bind(this);
-      this.on_touchcancel = this.on_touchcancel.bind(this);
-    }
-     equals(b) {
-      if (b.type!==this.type) {
-          return false;
-      }
-      let bad=this.points.length!==b.points.length;
-      bad = bad||this.deg!==b.deg;
-      bad = bad||this.interpolating!==b.interpolating;
-      if (bad) {
-          return false;
-      }
-      for (let i=0; i<this.points.length; i++) {
-          let p1=this.points[i];
-          let p2=b.points[i];
-          if (p1.vectorDistance(p2)>1e-05) {
-              return false;
-          }
-      }
-      return true;
-    }
-    static  define() {
-      return {uiname: "B-Spline", 
-     name: "bspline"}
-    }
-     remove(p) {
-      let ret=this.points.remove(p);
-      this.length = this.points.length;
-      return ret;
-    }
-     add(x, y, no_update=false) {
-      var p=new Curve1DPoint();
-      this.recalc = RecalcFlags.ALL;
-      p.eid = this.eidgen.next();
-      p[0] = x;
-      p[1] = y;
-      p.sco.load(p);
-      p.rco.load(p);
-      this.points.push(p);
-      if (!no_update) {
-          this.update();
-      }
-      this.length = this.points.length;
-      return p;
-    }
-     update() {
-      super.update();
-    }
-     updateKnots(recalc=true) {
-      if (recalc) {
-          this.recalc = RecalcFlags.ALL;
-      }
-      if (!this.interpolating) {
-          for (var i=0; i<this.points.length; i++) {
-              this.points[i].rco.load(this.points[i]);
-          }
-      }
-      this.points.sort(function (a, b) {
-        return a[0]-b[0];
-      });
-      this._ps = [];
-      if (this.points.length<2) {
-          return ;
-      }
-      var a=this.points[0][0], b=this.points[this.points.length-1][0];
-      for (var i=0; i<this.points.length-1; i++) {
-          this._ps.push(this.points[i]);
-      }
-      if (this.points.length<3) {
-          return ;
-      }
-      var l1=this.points[this.points.length-1];
-      var l2=this.points[this.points.length-2];
-      var p=l1.copy();
-      p.rco[0] = l1.rco[0]-4e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*1.0/3.0;
-      var p=l1.copy();
-      p.rco[0] = l1.rco[0]-3e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*1.0/3.0;
-      var p=l1.copy();
-      p.rco[0] = l1.rco[0]-1e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*1.0/3.0;
-      this._ps.push(p);
-      var p=l1.copy();
-      p.rco[0] = l1.rco[0]-1e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*2.0/3.0;
-      this._ps.push(p);
-      this._ps.push(l1);
-      if (!this.interpolating) {
-          for (var i=0; i<this._ps.length; i++) {
-              this._ps[i].rco.load(this._ps[i]);
-          }
-      }
-      for (var i=0; i<this.points.length; i++) {
-          var p=this.points[i];
-          var x=p[0], y=p[1];
-          p.sco[0] = x;
-          p.sco[1] = y;
-      }
-    }
-     toJSON() {
-      let ret=super.toJSON();
-      ret.interpolating = this.interpolating;
-      var ps=[];
-      for (var i=0; i<this.points.length; i++) {
-          ps.push(this.points[i].toJSON());
-      }
-      ret = Object.assign(ret, {points: ps, 
-     deg: this.deg, 
-     eidgen: this.eidgen.toJSON()});
-      return ret;
-    }
-     loadJSON(obj) {
-      super.loadJSON(obj);
-      this.interpolating = obj.interpolating;
-      this.length = 0;
-      this.points = [];
-      this._ps = [];
-      this.hightlight = undefined;
-      this.eidgen = util.IDGen.fromJSON(obj.eidgen);
-      this.recalc = RecalcFlags.ALL;
-      this.mpos = [0, 0];
-      for (var i=0; i<obj.points.length; i++) {
-          this.points.push(Curve1DPoint.fromJSON(obj.points[i]));
-      }
-      this.deg = obj.deg;
-      this.updateKnots();
-      this.redraw();
-      return this;
-    }
-     basis(t, i) {
-      if (this.recalc&RecalcFlags.FULL_BASIS) {
-          return this._basis(t, i);
-      }
-      if (this.recalc&RecalcFlags.BASIS) {
-          this.regen_basis();
-          this.recalc&=~RecalcFlags.BASIS;
-      }
-      i = Math.min(Math.max(i, 0), this._ps.length-1);
-      t = Math.min(Math.max(t, 0.0), 1.0)*0.999999999;
-      var table=this.basis_tables[i];
-      var s=t*(table.length/4)*0.99999;
-      var j=~~s;
-      s-=j;
-      j*=4;
-      return table[j]+(table[j+3]-table[j])*s;
-      return bez4(table[j], table[j+1], table[j+2], table[j+3], s);
-    }
-     reset() {
-      this.length = 0;
-      this.points = [];
-      this._ps = [];
-      this.add(0, 0, true);
-      this.add(1, 1, true);
-      this.recalc = 1;
-      this.updateKnots();
-      this.update();
-      return this;
-    }
-     regen_hermite(steps) {
-      if (steps===undefined) {
-          steps = this.fastmode ? 180 : 340;
-      }
-      if (this.interpolating) {
-          steps*=2;
-      }
-      this.hermite = new Array(steps);
-      var table=this.hermite;
-      var eps=1e-05;
-      var dt=(1.0-eps*4.001)/(steps-1);
-      var t=eps*4;
-      var lastdv1, lastf3;
-      for (var j=0; j<steps; j++, t+=dt) {
-          var f1=this._evaluate(t-eps*2);
-          var f2=this._evaluate(t-eps);
-          var f3=this._evaluate(t);
-          var f4=this._evaluate(t+eps);
-          var f5=this._evaluate(t+eps*2);
-          var dv1=(f4-f2)/(eps*2);
-          dv1/=steps;
-          if (j>0) {
-              var j2=j-1;
-              table[j2*4] = lastf3;
-              table[j2*4+1] = lastf3+lastdv1/3.0;
-              table[j2*4+2] = f3-dv1/3.0;
-              table[j2*4+3] = f3;
-          }
-          lastdv1 = dv1;
-          lastf3 = f3;
-      }
-    }
-     solve_interpolating() {
-      for (let p of this._ps) {
-          p.rco.load(p);
-      }
-      this._evaluate2(0.5);
-      let error1=(p) =>        {
-        return this._evaluate(p[0])-p[1];
-      };
-      let error=(p) =>        {
-        return error1(p);
-      };
-      let err=0.0;
-      let g=new Vector2();
-      for (let step=0; step<25; step++) {
-          err = 0.0;
-          for (let p of this._ps) {
-              let r1=error(p);
-              const df=1e-05;
-              err+=Math.abs(r1);
-              if (p===this._ps[0]||p===this._ps[this._ps.length-1]) {
-              }
-              g.zero();
-              for (let i=0; i<2; i++) {
-                  let orig=p.rco[i];
-                  p.rco[i]+=df;
-                  let r2=error(p);
-                  p.rco[i] = orig;
-                  g[i] = (r2-r1)/df;
-              }
-              let totgs=g.dot(g);
-              if (totgs<1e-08) {
-                  continue;
-              }
-              r1/=totgs;
-              let k=0.5;
-              p.rco[0]+=-r1*g[0]*k;
-              p.rco[1]+=-r1*g[1]*k;
-          }
-          this.updateKnots(false);
-          let th=this.fastmode ? 0.001 : 5e-05;
-          if (err<th) {
-              break;
-          }
-      }
-    }
-     regen_basis() {
-      var steps=this.fastmode ? 64 : 128;
-      if (this.interpolating) {
-          steps*=2;
-      }
-      this.basis_tables = new Array(this._ps.length);
-      for (var i=0; i<this._ps.length; i++) {
-          var table=this.basis_tables[i] = new Array((steps-1)*4);
-          var eps=1e-05;
-          var dt=(1.0-eps*8)/(steps-1);
-          var t=eps*4;
-          var lastdv1, lastf3;
-          for (var j=0; j<steps; j++, t+=dt) {
-              var f1=this._basis(t-eps*2, i);
-              var f2=this._basis(t-eps, i);
-              var f3=this._basis(t, i);
-              var f4=this._basis(t+eps, i);
-              var f5=this._basis(t+eps*2, i);
-              var dv1=(f4-f2)/(eps*2);
-              dv1/=steps;
-              if (j>0) {
-                  var j2=j-1;
-                  table[j2*4] = lastf3;
-                  table[j2*4+1] = lastf3+lastdv1/3.0;
-                  table[j2*4+2] = f3-dv1/3.0;
-                  table[j2*4+3] = f3;
-              }
-              lastdv1 = dv1;
-              lastf3 = f3;
-          }
-      }
-    }
-     _basis(t, i) {
-      var len=this._ps.length;
-      var ps=this._ps;
-      function safe_inv(n) {
-        return n==0 ? 0 : 1.0/n;
-      }
-      function bas(s, i, n) {
-        var kp=Math.min(Math.max(i-1, 0), len-1);
-        var kn=Math.min(Math.max(i+1, 0), len-1);
-        var knn=Math.min(Math.max(i+n, 0), len-1);
-        var knn1=Math.min(Math.max(i+n+1, 0), len-1);
-        var ki=Math.min(Math.max(i, 0), len-1);
-        if (n==0) {
-            return s>=ps[ki].rco[0]&&s<ps[kn].rco[0] ? 1 : 0;
-        }
-        else {
-          var a=(s-ps[ki].rco[0])*safe_inv(ps[knn].rco[0]-ps[ki].rco[0]+0.0001);
-          var b=(ps[knn1].rco[0]-s)*safe_inv(ps[knn1].rco[0]-ps[kn].rco[0]+0.0001);
-          var ret=a*bas(s, i, n-1)+b*bas(s, i+1, n-1);
-          return ret;
-        }
-      }
-      var p=this._ps[i].rco, nk, pk;
-      var deg=this.deg;
-      var b=bas(t, i-deg, deg);
-      return b;
-    }
-     evaluate(t) {
-      var a=this.points[0].rco, b=this.points[this.points.length-1].rco;
-      if (t<a[0])
-        return a[1];
-      if (t>b[0])
-        return b[1];
-      if (this.points.length==2) {
-          t = (t-a[0])/(b[0]-a[0]);
-          return a[1]+(b[1]-a[1])*t;
-      }
-      if (this.recalc) {
-          this.regen_basis();
-          if (this.interpolating) {
-              this.solve_interpolating();
-          }
-          this.regen_hermite();
-          this.recalc = 0;
-      }
-      t*=0.999999;
-      var table=this.hermite;
-      var s=t*(table.length/4);
-      var i=Math.floor(s);
-      s-=i;
-      i*=4;
-      return table[i]+(table[i+3]-table[i])*s;
-    }
-     _evaluate(t) {
-      var start_t=t;
-      if (this.points.length>1) {
-          var a=this.points[0], b=this.points[this.points.length-1];
-          if (t<a[0])
-            return a[1];
-          if (t>=b[0])
-            return b[1];
-      }
-      for (var i=0; i<35; i++) {
-          var df=0.0001;
-          var ret1=this._evaluate2(t<0.5 ? t : t-df);
-          var ret2=this._evaluate2(t<0.5 ? t+df : t);
-          var f1=Math.abs(ret1[0]-start_t);
-          var f2=Math.abs(ret2[0]-start_t);
-          var g=(f2-f1)/df;
-          if (f1==f2)
-            break;
-          if (f1==0.0||g==0.0)
-            return this._evaluate2(t)[1];
-          var fac=-(f1/g)*0.5;
-          if (fac==0.0) {
-              fac = 0.01;
-          }
-          else 
-            if (Math.abs(fac)>0.1) {
-              fac = 0.1*Math.sign(fac);
-          }
-          t+=fac;
-          var eps=1e-05;
-          t = Math.min(Math.max(t, eps), 1.0-eps);
-      }
-      return this._evaluate2(t)[1];
-    }
-     _evaluate2(t) {
-      var ret=eval2_rets.next();
-      t*=0.9999999;
-      var totbasis=0;
-      var sumx=0;
-      var sumy=0;
-      for (var i=0; i<this._ps.length; i++) {
-          var p=this._ps[i].rco;
-          var b=this.basis(t, i);
-          sumx+=b*p[0];
-          sumy+=b*p[1];
-          totbasis+=b;
-      }
-      if (totbasis!=0.0) {
-          sumx/=totbasis;
-          sumy/=totbasis;
-      }
-      ret[0] = sumx;
-      ret[1] = sumy;
-      return ret;
-    }
-    get  hasGUI() {
-      return this.uidata!==undefined;
-    }
-     _wrapTouchEvent(e) {
-      return {x: e.touches.length ? e.touches[0].pageX : this.mpos[0], 
-     y: e.touches.length ? e.touches[0].pageY : this.mpos[1], 
-     button: 0, 
-     shiftKey: e.shiftKey, 
-     altKey: e.altKey, 
-     ctrlKey: e.ctrlKey, 
-     isTouch: true, 
-     commandKey: e.commandKey, 
-     stopPropagation: () =>          {
-          return e.stopPropagation();
-        }, 
-     preventDefault: () =>          {
-          return e.preventDefault();
-        }}
-    }
-     on_touchstart(e) {
-      this.mpos[0] = e.touches[0].pageX;
-      this.mpos[1] = e.touches[0].pageY;
-      let e2=this._wrapTouchEvent(e);
-      this.on_mousemove(e2);
-      this.on_mousedown(e2);
-    }
-     on_touchmove(e) {
-      this.mpos[0] = e.touches[0].pageX;
-      this.mpos[1] = e.touches[0].pageY;
-      let e2=this._wrapTouchEvent(e);
-      this.on_mousemove(e2);
-    }
-     on_touchend(e) {
-      this.on_mouseup(this._wrapTouchEvent(e));
-    }
-     on_touchcancel(e) {
-      this.on_touchend(e);
-    }
-     makeGUI(container, canvas, drawTransform) {
-      this.uidata = {start_mpos: new Vector2(), 
-     transpoints: [], 
-     dom: container, 
-     canvas: canvas, 
-     g: canvas.g, 
-     transforming: false, 
-     draw_trans: drawTransform};
-      canvas.addEventListener("touchstart", this.on_touchstart);
-      canvas.addEventListener("touchmove", this.on_touchmove);
-      canvas.addEventListener("touchend", this.on_touchend);
-      canvas.addEventListener("touchcancel", this.on_touchcancel);
-      canvas.addEventListener("mousedown", this.on_mousedown);
-      canvas.addEventListener("mousemove", this.on_mousemove);
-      canvas.addEventListener("mouseup", this.on_mouseup);
-      canvas.addEventListener("keydown", this.on_keydown);
-      let row=container.row();
-      let fullUpdate=() =>        {
-        this.updateKnots();
-        this.update();
-        this.regen_basis();
-        this.recalc = RecalcFlags.ALL;
-        this.redraw();
-      };
-      row.iconbutton(Icons.TINY_X, "Delete Point", () =>        {
-        console.log("delete point");
-        for (var i=0; i<this.points.length; i++) {
-            var p=this.points[i];
-            if (p.flag&CurveFlags.SELECT) {
-                this.points.remove(p);
-                i--;
-            }
-        }
-        fullUpdate();
-      });
-      row.button("Reset", () =>        {
-        this.reset();
-      });
-      row.simpleslider(undefined, "Degree", this.deg, 1, 6, 1, true, true, (slider) =>        {
-        this.deg = Math.floor(slider.value);
-        fullUpdate();
-        console.log(this.deg);
-      });
-      row = container.row();
-      let check=row.check(undefined, "Interpolating");
-      check.checked = this.interpolating;
-      check.onchange = () =>        {
-        this.interpolating = check.value;
-        console.log(check.value);
-        fullUpdate();
-      };
-      return this;
-    }
-     killGUI(container, canvas) {
-      if (this.uidata!==undefined) {
-          let ud=this.uidata;
-          this.uidata = undefined;
-          console.log("removing event handlers for bspline curve");
-          canvas.removeEventListener("touchstart", this.on_touchstart);
-          canvas.removeEventListener("touchmove", this.on_touchmove);
-          canvas.removeEventListener("touchend", this.on_touchend);
-          canvas.removeEventListener("touchcancel", this.on_touchcancel);
-          canvas.removeEventListener("mousedown", this.on_mousedown);
-          canvas.removeEventListener("mousemove", this.on_mousemove);
-          canvas.removeEventListener("mouseup", this.on_mouseup);
-          canvas.removeEventListener("keydown", this.on_keydown);
-      }
-      return this;
-    }
-     start_transform() {
-      this.uidata.transpoints = [];
-      for (let p of this.points) {
-          if (p.flag&CurveFlags.SELECT) {
-              this.uidata.transpoints.push(p);
-              p.startco.load(p);
-          }
-      }
-    }
-     on_mousedown(e) {
-      console.log("bspline mdown", e.x, e.y);
-      this.uidata.start_mpos.load(this.transform_mpos(e.x, e.y));
-      this.fastmode = true;
-      console.log(this.uidata.start_mpos, this.uidata.draw_trans);
-      var mpos=this.transform_mpos(e.x, e.y);
-      var x=mpos[0], y=mpos[1];
-      this.do_highlight(x, y);
-      if (this.points.highlight!=undefined) {
-          if (!e.shiftKey) {
-              for (var i=0; i<this.points.length; i++) {
-                  this.points[i].flag&=~CurveFlags.SELECT;
-              }
-              this.points.highlight.flag|=CurveFlags.SELECT;
-          }
-          else {
-            this.points.highlight.flag^=CurveFlags.SELECT;
-          }
-          this.uidata.transforming = true;
-          this.start_transform();
-          this.updateKnots();
-          this.update();
-          this.redraw();
-          return ;
-      }
-      else 
-        if (!e.isTouch) {
-          var p=this.add(this.uidata.start_mpos[0], this.uidata.start_mpos[1]);
-          this.points.highlight = p;
-          this.updateKnots();
-          this.update();
-          this.redraw();
-          this.points.highlight.flag|=CurveFlags.SELECT;
-          this.uidata.transforming = true;
-          this.uidata.transpoints = [this.points.highlight];
-          this.uidata.transpoints[0].startco.load(this.uidata.transpoints[0]);
-      }
-    }
-     do_highlight(x, y) {
-      var trans=this.uidata.draw_trans;
-      var mindis=1e+17, minp=undefined;
-      var limit=19/trans[0], limitsqr=limit*limit;
-      for (var i=0; i<this.points.length; i++) {
-          var p=this.points[i];
-          var dx=x-p.sco[0], dy=y-p.sco[1], dis=dx*dx+dy*dy;
-          if (dis<mindis&&dis<limitsqr) {
-              mindis = dis;
-              minp = p;
-          }
-      }
-      if (this.points.highlight!==minp) {
-          this.points.highlight = minp;
-          this.redraw();
-      }
-    }
-     do_transform(x, y) {
-      var off=new Vector2([x, y]).sub(this.uidata.start_mpos);
-      for (var i=0; i<this.uidata.transpoints.length; i++) {
-          var p=this.uidata.transpoints[i];
-          p.load(p.startco).add(off);
-          p[0] = Math.min(Math.max(p[0], 0), 1);
-          p[1] = Math.min(Math.max(p[1], 0), 1);
-      }
-      this.updateKnots();
-      this.update();
-      this.redraw();
-    }
-     transform_mpos(x, y) {
-      var r=this.uidata.canvas.getClientRects()[0];
-      let dpi=devicePixelRatio;
-      x-=parseInt(r.left);
-      y-=parseInt(r.top);
-      x*=dpi;
-      y*=dpi;
-      var trans=this.uidata.draw_trans;
-      x = x/trans[0]-trans[1][0];
-      y = -y/trans[0]-trans[1][1];
-      return [x, y];
-    }
-     on_mousemove(e) {
-      if (e.isTouch&&this.uidata.transforming) {
-          e.preventDefault();
-      }
-      var mpos=this.transform_mpos(e.x, e.y);
-      var x=mpos[0], y=mpos[1];
-      if (this.uidata.transforming) {
-          this.do_transform(x, y);
-          this.evaluate(0.5);
-      }
-      else {
-        this.do_highlight(x, y);
-      }
-    }
-     on_mouseup(e) {
-      this.uidata.transforming = false;
-      this.fastmode = false;
-      this.updateKnots();
-      this.update();
-    }
-     on_keydown(e) {
-      console.log(e.keyCode);
-      switch (e.keyCode) {
-        case 88:
-        case 46:
-          if (this.points.highlight!=undefined) {
-              this.points.remove(this.points.highlight);
-              this.recalc = RecalcFlags.ALL;
-              this.points.highlight = undefined;
-              this.updateKnots();
-              this.update();
-              if (this._save_hook!==undefined) {
-                  this._save_hook();
-              }
-          }
-          break;
-      }
-    }
-     draw(canvas, g, draw_trans) {
-      g.save();
-      if (this.uidata===undefined) {
-          return ;
-      }
-      this.uidata.canvas = canvas;
-      this.uidata.g = g;
-      this.uidata.draw_trans = draw_trans;
-      let sz=draw_trans[0], pan=draw_trans[1];
-      g.lineWidth*=3.0;
-      for (var ssi=0; ssi<2; ssi++) {
-          break;
-          for (var si=0; si<this.points.length; si++) {
-              g.beginPath();
-              var f=0;
-              for (var i=0; i<steps; i++, f+=df) {
-                  var totbasis=0;
-                  for (var j=0; j<this.points.length; j++) {
-                      totbasis+=this.basis(f, j);
-                  }
-                  var val=this.basis(f, si);
-                  if (ssi)
-                    val/=(totbasis==0 ? 1 : totbasis);
-                  (i==0 ? g.moveTo : g.lineTo).call(g, f, ssi ? val : val*0.5, w, w);
-              }
-              var color, alpha=this.points[si]===this.points.highlight ? 1.0 : 0.7;
-              if (ssi) {
-                  color = "rgba(105, 25, 5,"+alpha+")";
-              }
-              else {
-                color = "rgba(25, 145, 45,"+alpha+")";
-              }
-              g.strokeStyle = color;
-              g.stroke();
-          }
-      }
-      g.lineWidth/=3.0;
-      let w=0.03;
-      for (let p of this.points) {
-          g.beginPath();
-          if (p===this.points.highlight) {
-              g.fillStyle = "green";
-          }
-          else 
-            if (p.flag&CurveFlags.SELECT) {
-              g.fillStyle = "red";
-          }
-          else {
-            g.fillStyle = "orange";
-          }
-          g.rect(p.sco[0]-w/2, p.sco[1]-w/2, w, w);
-          g.fill();
-      }
-      g.restore();
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      this.updateKnots();
-      this.regen_basis();
-      this.recalc = RecalcFlags.ALL;
-    }
-  }
-  _ESClass.register(BSplineCurve);
-  _es6_module.add_class(BSplineCurve);
-  BSplineCurve.STRUCT = nstructjs.inherit(BSplineCurve, CurveTypeData)+`
-  points        : array(Curve1DPoint);
-  deg           : int;
-  eidgen        : IDGen;
-  interpolating : bool;
-}
-`;
-  nstructjs.register(BSplineCurve);
-  CurveTypeData.register(BSplineCurve);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d_bspline.js');
-es6_module_define('curve1d_utils', ["../toolsys/toolprop.js", "./curve1d_base.js"], function _curve1d_utils_module(_es6_module) {
-  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
-  var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
-  function makeGenEnum() {
-    let enumdef={}
-    let uinames={}
-    let icons={}
-    for (let cls of CurveConstructors) {
-        let def=cls.define();
-        let uiname=def.uiname;
-        uiname = uiname===undefined ? def.name : uiname;
-        enumdef[def.name] = cls.name;
-        uinames[def.name] = uiname;
-        icons[def.name] = def.icon!==undefined ? def.icon : -1;
-    }
-    return new EnumProperty(undefined, enumdef).addUINames(uinames).addIcons(icons);
-  }
-  makeGenEnum = _es6_module.add_export('makeGenEnum', makeGenEnum);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/curve1d_utils.js');
-es6_module_define('ease', [], function _ease_module(_es6_module) {
-  function Ease() {
-    throw "Ease cannot be instantiated.";
-  }
-  Ease;
-  Ease = _es6_module.set_default_export('Ease', Ease);
-  
-  Ease.linear = function (t) {
-    return t;
-  }
-  Ease.none = Ease.linear;
-  Ease.get = function (amount) {
-    if (amount<-1) {
-        amount = -1;
-    }
-    else 
-      if (amount>1) {
-        amount = 1;
-    }
-    return function (t) {
-      if (amount==0) {
-          return t;
-      }
-      if (amount<0) {
-          return t*(t*-amount+1+amount);
-      }
-      return t*((2-t)*amount+(1-amount));
-    }
-  }
-  Ease.getPowIn = function (pow) {
-    return function (t) {
-      return Math.pow(t, pow);
-    }
-  }
-  Ease.getPowOut = function (pow) {
-    return function (t) {
-      return 1-Math.pow(1-t, pow);
-    }
-  }
-  Ease.getPowInOut = function (pow) {
-    return function (t) {
-      if ((t*=2)<1)
-        return 0.5*Math.pow(t, pow);
-      return 1-0.5*Math.abs(Math.pow(2-t, pow));
-    }
-  }
-  Ease.quadIn = Ease.getPowIn(2);
-  Ease.quadOut = Ease.getPowOut(2);
-  Ease.quadInOut = Ease.getPowInOut(2);
-  Ease.cubicIn = Ease.getPowIn(3);
-  Ease.cubicOut = Ease.getPowOut(3);
-  Ease.cubicInOut = Ease.getPowInOut(3);
-  Ease.quartIn = Ease.getPowIn(4);
-  Ease.quartOut = Ease.getPowOut(4);
-  Ease.quartInOut = Ease.getPowInOut(4);
-  Ease.quintIn = Ease.getPowIn(5);
-  Ease.quintOut = Ease.getPowOut(5);
-  Ease.quintInOut = Ease.getPowInOut(5);
-  Ease.sineIn = function (t) {
-    return 1-Math.cos(t*Math.PI/2);
-  }
-  Ease.sineOut = function (t) {
-    return Math.sin(t*Math.PI/2);
-  }
-  Ease.sineInOut = function (t) {
-    return -0.5*(Math.cos(Math.PI*t)-1);
-  }
-  Ease.getBackIn = function (amount) {
-    return function (t) {
-      return t*t*((amount+1)*t-amount);
-    }
-  }
-  Ease.backIn = Ease.getBackIn(1.7);
-  Ease.getBackOut = function (amount) {
-    return function (t) {
-      return (--t*t*((amount+1)*t+amount)+1);
-    }
-  }
-  Ease.backOut = Ease.getBackOut(1.7);
-  Ease.getBackInOut = function (amount) {
-    amount*=1.525;
-    return function (t) {
-      if ((t*=2)<1)
-        return 0.5*(t*t*((amount+1)*t-amount));
-      return 0.5*((t-=2)*t*((amount+1)*t+amount)+2);
-    }
-  }
-  Ease.backInOut = Ease.getBackInOut(1.7);
-  Ease.circIn = function (t) {
-    return -(Math.sqrt(1-t*t)-1);
-  }
-  Ease.circOut = function (t) {
-    return Math.sqrt(1-(--t)*t);
-  }
-  Ease.circInOut = function (t) {
-    if ((t*=2)<1)
-      return -0.5*(Math.sqrt(1-t*t)-1);
-    return 0.5*(Math.sqrt(1-(t-=2)*t)+1);
-  }
-  Ease.bounceIn = function (t) {
-    return 1-Ease.bounceOut(1-t);
-  }
-  Ease.bounceOut = function (t) {
-    if (t<1/2.75) {
-        return (7.5625*t*t);
-    }
-    else 
-      if (t<2/2.75) {
-        return (7.5625*(t-=1.5/2.75)*t+0.75);
-    }
-    else 
-      if (t<2.5/2.75) {
-        return (7.5625*(t-=2.25/2.75)*t+0.9375);
-    }
-    else {
-      return (7.5625*(t-=2.625/2.75)*t+0.984375);
-    }
-  }
-  Ease.bounceInOut = function (t) {
-    if (t<0.5)
-      return Ease.bounceIn(t*2)*0.5;
-    return Ease.bounceOut(t*2-1)*0.5+0.5;
-  }
-  Ease.getElasticIn = function (amplitude, period) {
-    var pi2=Math.PI*2;
-    return function (t) {
-      if (t==0||t==1)
-        return t;
-      var s=period/pi2*Math.asin(1/amplitude);
-      return -(amplitude*Math.pow(2, 10*(t-=1))*Math.sin((t-s)*pi2/period));
-    }
-  }
-  Ease.elasticIn = Ease.getElasticIn(1, 0.3);
-  Ease.getElasticOut = function (amplitude, period) {
-    var pi2=Math.PI*2;
-    return function (t) {
-      if (t==0||t==1)
-        return t;
-      var s=period/pi2*Math.asin(1/amplitude);
-      return (amplitude*Math.pow(2, -10*t)*Math.sin((t-s)*pi2/period)+1);
-    }
-  }
-  Ease.elasticOut = Ease.getElasticOut(1, 0.3);
-  Ease.getElasticInOut = function (amplitude, period) {
-    var pi2=Math.PI*2;
-    return function (t) {
-      var s=period/pi2*Math.asin(1/amplitude);
-      if ((t*=2)<1)
-        return -0.5*(amplitude*Math.pow(2, 10*(t-=1))*Math.sin((t-s)*pi2/period));
-      return amplitude*Math.pow(2, -10*(t-=1))*Math.sin((t-s)*pi2/period)*0.5+1;
-    }
-  }
-  Ease.elasticInOut = Ease.getElasticInOut(1, 0.3*1.5);
-}, '/dev/fairmotion/src/path.ux/scripts/curve/ease.js');
-es6_module_define('docbrowser', ["../util/simple_events.js", "../util/struct.js", "../core/ui_base.js"], function _docbrowser_module(_es6_module) {
-  var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
+es6_module_define('docbrowser', ["../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "../util/util.js", "../platforms/platform.js", "../config/const.js", "../util/vectormath.js", "../core/ui_base.js"], function _docbrowser_module(_es6_module) {
+  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
+  var cconst=es6_import(_es6_module, '../config/const.js');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var platform=es6_import_item(_es6_module, '../platforms/platform.js', 'platform');
+  let tinymceLoaded=false;
+  _es_dynamic_import(_es6_module, '../lib/tinymce/tinymce.js').then((mod) =>    {
+    tinymceLoaded = true;
+  });
+  var util=es6_import(_es6_module, '../util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
   let countstr=function (buf, s) {
     let count=0;
     while (buf.length>0) {
@@ -4717,19 +3527,6 @@ es6_module_define('docbrowser', ["../util/simple_events.js", "../util/struct.js"
     return s+b;
   }
   window._relative = relative;
-  class SavedDocument  {
-     constructor() {
-      this.data = "";
-    }
-  }
-  _ESClass.register(SavedDocument);
-  _es6_module.add_class(SavedDocument);
-  SavedDocument = _es6_module.add_export('SavedDocument', SavedDocument);
-  SavedDocument.STRUCT = `
-SavedDocument {
-  data : string;
-}`;
-  nstructjs.register(SavedDocument);
   class DocsAPI  {
      updateDoc(relpath, data) {
 
@@ -4750,24 +3547,49 @@ SavedDocument {
   _ESClass.register(DocsAPI);
   _es6_module.add_class(DocsAPI);
   DocsAPI = _es6_module.add_export('DocsAPI', DocsAPI);
-  window.PATHUX_DOCPATH = "../simple_docsys/docsys.js";
+  window.PATHUX_DOCPATH = "../../simple_docsys/docsys_base.js";
   window.PATHUX_DOC_CONFIG = "../simple_docsys/docs.config.js";
+  window.PATHUX_DOCPATH_PREFIX = "../simple_docsys/doc_build";
   class ElectronAPI extends DocsAPI {
      constructor() {
       super();
       this.first = true;
+      this.ready = false;
     }
      _doinit() {
       if (!this.first) {
-          return ;
+          return this.ready;
       }
-      let docsys=require(PATHUX_DOCPATH);
-      this.config = docsys.readConfig(PATHUX_DOC_CONFIG);
       this.first = false;
+      _es_dynamic_import(_es6_module, PATHUX_DOCPATH).then((docsys) =>        {
+        let fs=require('fs');
+        let marked=require('marked');
+        let parse5=require('parse5');
+        let pathmod=require('path');
+        let jsdiff=require('diff');
+        docsys = docsys.default(fs, marked, parse5, pathmod, jsdiff);
+        this.config = docsys.readConfig(PATHUX_DOC_CONFIG);
+        this.ready = true;
+      });
+      return this.ready;
+    }
+     start() {
+      this._doinit();
+    }
+     checkInit() {
+      if (!this.ready) {
+          this._doinit();
+      }
+      if (!this.ready) {
+          console.warn("Could not connect to docs server");
+      }
+      return this.ready;
     }
      uploadImage(relpath, blobInfo, success, onError) {
       return new Promise((accept, reject) =>        {
-        this._doinit();
+        if (!this.checkInit()) {
+            return ;
+        }
         let blob=blobInfo.blob();
         return blob.arrayBuffer().then((data) =>          {
           let path=this.config.uploadImage(relpath, blobInfo.filename(), data);
@@ -4778,19 +3600,25 @@ SavedDocument {
       });
     }
      hasDoc(relpath) {
-      this._doinit();
+      if (!this.checkInit()) {
+          return ;
+      }
       return new Promise((accept, reject) =>        {
         accept(this.config.hasDoc(relpath));
       });
     }
      updateDoc(relpath, data) {
-      this._doinit();
+      if (!this.checkInit()) {
+          return ;
+      }
       return new Promise((accept, reject) =>        {
         accept(this.config.updateDoc(relpath, data));
       });
     }
      newDoc(relpath, data) {
-      this._doinit();
+      if (!this.checkInit()) {
+          return ;
+      }
       return new Promise((accept, reject) =>        {
         accept(this.config.newDoc(relpath, data));
       });
@@ -4802,6 +3630,9 @@ SavedDocument {
   class ServerAPI extends DocsAPI {
      constructor() {
       super();
+    }
+     start() {
+
     }
      hasDoc(relpath) {
       return this.callAPI("hasDoc", relpath);
@@ -4931,15 +3762,16 @@ DocHistory {
   class DocsBrowser extends UIBase {
      constructor() {
       super();
+      this.pathuxBaseURL = location.href;
       this.editMode = false;
       this.history = new DocHistory();
-      this._prefix = cconst.docManualPath;
+      this._prefix = cconst.docManualPath||PATHUX_DOCPATH_PREFIX;
       this.saveReq = 0;
       this.saveReqStart = util.time_ms();
       this._last_save = util.time_ms();
       this.header = document.createElement("rowframe-x");
       this.shadow.appendChild(this.header);
-      this.makeHeader();
+      this.doOnce(this.makeHeader);
       this.root = document.createElement("iframe");
       this.shadow.appendChild(this.root);
       this.root.onload = () =>        {
@@ -4951,6 +3783,7 @@ DocHistory {
       else {
         this.serverapi = new ServerAPI();
       }
+      this.serverapi.start();
       this.root.style["margin"] = this.root.style["padding"] = this.root.style["border"] = "0px";
       this.root.style["width"] = "100%";
       this.root.style["height"] = "100%";
@@ -4992,7 +3825,6 @@ DocHistory {
     }
      makeHeader() {
       this.makeHeader_intern();
-      this.flushUpdate();
     }
      makeHeader_intern() {
       console.log("making header");
@@ -5127,6 +3959,10 @@ DocHistory {
       this.contentDiv = undefined;
     }
      initDoc() {
+      if (!tinymceLoaded) {
+          this.doOnce(this.initDoc);
+          return ;
+      }
       this._doDocInit = false;
       this.contentDiv = undefined;
       console.log("doc loaded");
@@ -5160,17 +3996,30 @@ DocHistory {
           if (loc.href==="about:srcdoc") {
               loc.href = document.location.href;
           }
-          let base_url="/example/lib/tinymce/js/tinymce";
-          if (window.haveElectron) {
-              base_url = "lib/tinymce/js/tinymce";
-              let path=document.location.href;
-              path = path.slice(7, path.length);
-              path = "file://"+require('path').dirname(path);
-              console.log("%c"+path, "blue");
-              tinyMCEPreInit.baseURL = path;
-              tinyMCEPreInit.documentBaseURL = path;
-          }
+          let base=this.pathuxBaseURL;
+          let base_url=platform.resolveURL("scripts/lib/tinymce", base);
+          console.warn(window.haveElectron, "haveElectron", base_url);
           let tinymce=this.tinymce = globals.tinymce = window.tinymce = _tinymce(globals);
+          let fixletter=() =>            {
+            if (window.haveElectron) {
+                if (process.platform==="win32") {
+                    console.warn("Fixing drive letter", tinymce.baseURI);
+                    tinymce.baseURI.host+=":";
+                    tinymce.baseURL = tinymce.baseURI.source = tinymce.baseURI.toAbsolute();
+                }
+            }
+          };
+          let _baseuri=tinymce.baseURI;
+          Object.defineProperty(tinymce, "baseURI", {get: function get() {
+              return _baseuri;
+            }, 
+       set: function set(v) {
+              _baseuri = v;
+              if (v) {
+                  fixletter();
+              }
+            }});
+          fixletter();
           tinymce.init({selector: "div.contents", 
        base_url: base_url, 
        paste_data_images: true, 
@@ -5186,6 +4035,7 @@ DocHistory {
        setup: function (editor) {
               console.log("tinymce editor setup!", editor);
             }}).then((arg) =>            {
+            fixletter();
             this.tinymce = arg[0];
             if (!this.editMode) {
                 this.tinymce.hide();
@@ -5194,6 +4044,7 @@ DocHistory {
               this.disableLinks();
             }
           });
+          fixletter();
           let onchange=(e) =>            {
             console.log("Input event!");
             this.queueSave();
@@ -5618,12 +4469,11 @@ DocHistory {
           return undefined;
       }
       let href=this.root.contentDocument.location.href;
-      console.log(document.location.href, this.root.src);
       let path=relative(dirname(document.location.href), href).trim();
       while (path.startsWith("/")) {
         path = path.slice(1, path.length);
       }
-      console.log(path, this._prefix);
+      console.log("PATH", path, this._prefix);
       if (!path)
         return ;
       if (path.startsWith(this._prefix)) {
@@ -5704,6 +4554,9 @@ DocHistory {
       }
     }
      setCSS() {
+      if (!this.root) {
+          return ;
+      }
       this.style.width = "100%";
       this.style.height = "max-contents";
       this.root.style["background-color"] = "grey";
@@ -5732,9 +4585,11 @@ DocsBrowser {
   history       : DocHistory;
 }
 `;
-  UIBase.register(DocsBrowser);
+  UIBase.internalRegister(DocsBrowser);
   nstructjs.register(DocsBrowser);
 }, '/dev/fairmotion/src/path.ux/scripts/docbrowser/docbrowser.js');
+
+
 es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
   "use strict";
   function setIconMap(icons) {
@@ -5743,5452 +4598,5085 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
     }
   }
   setIconMap = _es6_module.add_export('setIconMap', setIconMap);
-  let Icons={HFLIP: 0, 
-   TRANSLATE: 1, 
-   ROTATE: 2, 
-   HELP_PICKER: 3, 
-   UNDO: 4, 
-   REDO: 5, 
-   CIRCLE_SEL: 6, 
-   BACKSPACE: 7, 
-   LEFT_ARROW: 8, 
-   RIGHT_ARROW: 9, 
-   UI_EXPAND: 10, 
-   UI_COLLAPSE: 11, 
-   FILTER_SEL_OPS: 12, 
-   SCROLL_DOWN: 13, 
-   SCROLL_UP: 14, 
-   NOTE_EXCL: 15, 
-   TINY_X: 16, 
-   FOLDER: 17, 
-   FILE: 18, 
-   SMALL_PLUS: 19, 
-   SMALL_MINUS: 20, 
-   MAKE_SEGMENT: 21, 
-   MAKE_POLYGON: 22, 
-   FACE_MODE: 23, 
-   EDGE_MODE: 24, 
-   VERT_MODE: 25, 
-   CURSOR_ARROW: 26, 
-   TOGGLE_SEL_ALL: 27, 
-   DELETE: 28, 
-   RESIZE: 29, 
-   Z_UP: 30, 
-   Z_DOWN: 31, 
-   SPLIT_EDGE: 32, 
-   SHOW_ANIMPATHS: 33, 
-   UNCHECKED: 34, 
-   CHECKED: 35, 
-   ENUM_UNCHECKED: 36, 
-   ENUM_CHECKED: 37, 
-   APPEND_VERTEX: 38, 
-   LARGE_CHECK: 39, 
-   BOLD: 40, 
-   ITALIC: 41, 
-   UNDERLINE: 42, 
-   STRIKETHRU: 43, 
-   TREE_EXPAND: 44, 
-   TREE_COLLAPSE: 45, 
-   ZOOM_OUT: 46, 
-   ZOOM_IN: 47}
+  let a=0;
+  let Icons={FOLDER: a++, 
+   FILE: a++, 
+   TINY_X: a++, 
+   SMALL_PLUS: a++, 
+   SMALL_MINUS: a++, 
+   UNDO: a++, 
+   REDO: a++, 
+   HELP: a++, 
+   UNCHECKED: a++, 
+   CHECKED: a++, 
+   LARGE_CHECK: a++, 
+   CURSOR_ARROW: a++, 
+   NOTE_EXCL: a++, 
+   SCROLL_DOWN: a++, 
+   SCROLL_UP: a++, 
+   BACKSPACE: a++, 
+   LEFT_ARROW: a++, 
+   RIGHT_ARROW: a++, 
+   UI_EXPAND: a++, 
+   UI_COLLAPSE: a++, 
+   BOLD: a++, 
+   ITALIC: a++, 
+   UNDERLINE: a++, 
+   STRIKETHRU: a++, 
+   TREE_EXPAND: a++, 
+   TREE_COLLAPSE: a++, 
+   ZOOM_OUT: a++, 
+   ZOOM_IN: a++}
   Icons = _es6_module.add_export('Icons', Icons);
 }, '/dev/fairmotion/src/path.ux/scripts/icon_enum.js');
-es6_module_define('pathux', ["./controller/context.js", "./toolsys/simple_toolsys.js", "./widgets/ui_curvewidget.js", "./widgets/ui_table.js", "./widgets/ui_noteframe.js", "./widgets/ui_numsliders.js", "./widgets/ui_panel.js", "./util/ScreenOverdraw.js", "./util/math.js", "./widgets/ui_colorpicker2.js", "./util/parseutil.js", "./widgets/ui_widgets.js", "./screen/FrameManager.js", "./toolsys/toolprop.js", "./controller/simple_controller.js", "./widgets/ui_widgets2.js", "./core/ui.js", "./widgets/ui_richedit.js", "./widgets/ui_listbox.js", "./util/polyfill.js", "./widgets/ui_textbox.js", "./util/graphpack.js", "./controller/controller.js", "./widgets/ui_menu.js", "./util/html5_fileapi.js", "./screen/ScreenArea.js", "./core/ui_theme.js", "./controller/controller_ops.js", "./util/util.js", "./widgets/ui_tabs.js", "./widgets/ui_button.js", "./core/ui_base.js", "./util/struct.js", "./util/simple_events.js", "./util/solver.js", "./widgets/theme_editor.js", "./widgets/ui_treeview.js", "./curve/curve1d.js", "./curve/curve1d_base.js", "./config/const.js", "./util/vectormath.js", "./toolsys/toolprop_abstract.js", "./util/image.js", "./platforms/electron/electron_api.js", "./widgets/ui_lasttool.js", "./util/events.js"], function _pathux_module(_es6_module) {
-  es6_import(_es6_module, './util/polyfill.js');
-  var ___core_ui_base_js=es6_import(_es6_module, './core/ui_base.js');
-  for (let k in ___core_ui_base_js) {
-      _es6_module.add_export(k, ___core_ui_base_js[k], true);
+
+
+es6_module_define('context', ["../util/util.js", "../config/config.js"], function _context_module(_es6_module) {
+  var util=es6_import(_es6_module, '../util/util.js');
+  var cconst=es6_import_item(_es6_module, '../config/config.js', 'default');
+  let notifier=undefined;
+  function setNotifier(cls) {
+    notifier = cls;
   }
-  var ___core_ui_js=es6_import(_es6_module, './core/ui.js');
-  for (let k in ___core_ui_js) {
-      _es6_module.add_export(k, ___core_ui_js[k], true);
+  setNotifier = _es6_module.add_export('setNotifier', setNotifier);
+  const ContextFlags={IS_VIEW: 1}
+  _es6_module.add_export('ContextFlags', ContextFlags);
+  class InheritFlag  {
+     constructor(data) {
+      this.data = data;
+    }
   }
-  var ___widgets_ui_widgets_js=es6_import(_es6_module, './widgets/ui_widgets.js');
-  for (let k in ___widgets_ui_widgets_js) {
-      _es6_module.add_export(k, ___widgets_ui_widgets_js[k], true);
+  _ESClass.register(InheritFlag);
+  _es6_module.add_class(InheritFlag);
+  let __idgen=1;
+  if (Symbol.ContextID===undefined) {
+      Symbol.ContextID = Symbol("ContextID");
   }
-  var ___widgets_ui_widgets2_js=es6_import(_es6_module, './widgets/ui_widgets2.js');
-  for (let k in ___widgets_ui_widgets2_js) {
-      _es6_module.add_export(k, ___widgets_ui_widgets2_js[k], true);
+  if (Symbol.CachedDef===undefined) {
+      Symbol.CachedDef = Symbol("CachedDef");
   }
-  var ___core_ui_theme_js=es6_import(_es6_module, './core/ui_theme.js');
-  for (let k in ___core_ui_theme_js) {
-      _es6_module.add_export(k, ___core_ui_theme_js[k], true);
+  const _ret_tmp=[undefined];
+  const OverlayClasses=[];
+  _es6_module.add_export('OverlayClasses', OverlayClasses);
+  class ContextOverlay  {
+     constructor(appstate) {
+      this.ctx = undefined;
+      this._state = appstate;
+    }
+    get  state() {
+      return this._state;
+    }
+    get  last_tool() {
+      return this.state._last_tool;
+    }
+     onRemove(have_new_file=false) {
+
+    }
+     copy() {
+      return new this.constructor(this._state);
+    }
+     validate() {
+      throw new Error("Implement me!");
+    }
+    static  contextDefine() {
+      throw new Error("implement me!");
+      return {name: "", 
+     flag: 0}
+    }
+    static  resolveDef() {
+      if (this.hasOwnProperty(Symbol.CachedDef)) {
+          return this[Symbol.CachedDef];
+      }
+      let def2=Symbol.CachedDef = {};
+      let def=this.contextDefine();
+      if (def===undefined) {
+          def = {};
+      }
+      for (let k in def) {
+          def2[k] = def[k];
+      }
+      if (!("flag") in def) {
+          def2.flag = Context.inherit(0);
+      }
+      let parents=[];
+      let p=util.getClassParent(this);
+      while (p&&p!==ContextOverlay) {
+        parents.push(p);
+        p = util.getClassParent(p);
+      }
+      if (__instance_of(def2.flag, InheritFlag)) {
+          let flag=def2.flag.data;
+          for (let p of parents) {
+              let def=p.contextDefine();
+              if (!def.flag) {
+                  continue;
+              }
+              else 
+                if (__instance_of(def.flag, InheritFlag)) {
+                  flag|=def.flag.data;
+              }
+              else {
+                flag|=def.flag;
+                break;
+              }
+          }
+          def2.flag = flag;
+      }
+      return def2;
+    }
   }
-  var ___widgets_ui_button_js=es6_import(_es6_module, './widgets/ui_button.js');
-  for (let k in ___widgets_ui_button_js) {
-      _es6_module.add_export(k, ___widgets_ui_button_js[k], true);
+  _ESClass.register(ContextOverlay);
+  _es6_module.add_class(ContextOverlay);
+  ContextOverlay = _es6_module.add_export('ContextOverlay', ContextOverlay);
+  const excludedKeys=new Set(["onRemove", "reset", "toString", "_fix", "valueOf", "copy", "next", "save", "load", "clear", "hasOwnProperty", "toLocaleString", "constructor", "propertyIsEnumerable", "isPrototypeOf", "state", "saveProperty", "loadProperty", "getOwningOverlay", "_props"]);
+  _es6_module.add_export('excludedKeys', excludedKeys);
+  class LockedContext  {
+     constructor(ctx) {
+      this.props = {};
+      this.state = ctx.state;
+      this.api = ctx.api;
+      this.toolstack = ctx.toolstack;
+      this.load(ctx);
+    }
+     toLocked() {
+      return this;
+    }
+     error() {
+      return this.ctx.error(...arguments);
+    }
+     warning() {
+      return this.ctx.warning(...arguments);
+    }
+     message() {
+      return this.ctx.message(...arguments);
+    }
+     progbar() {
+      return this.ctx.progbar(...arguments);
+    }
+     load(ctx) {
+      let keys=ctx._props;
+      function wrapget(name) {
+        return function (ctx2, data) {
+          return ctx.loadProperty(ctx2, name, data);
+        }
+      }
+      for (let k of keys) {
+          let v;
+          if (k==="state"||k==="toolstack"||k==="api") {
+              continue;
+          }
+          if (typeof k==="string"&&(k.endsWith("_save")||k.endsWith("_load"))) {
+              continue;
+          }
+          try {
+            v = ctx[k];
+          }
+          catch (error) {
+              if (cconst.DEBUG.contextSystem) {
+                  console.warn("failed to look up property in context: ", k);
+              }
+              continue;
+          }
+          let data, getter;
+          let overlay=ctx.getOwningOverlay(k);
+          if (overlay===undefined) {
+              continue;
+          }
+          try {
+            if (typeof k==="string"&&(overlay[k+"_save"]&&overlay[k+"_load"])) {
+                data = overlay[k+"_save"]();
+                getter = overlay[k+"_load"];
+            }
+            else {
+              data = ctx.saveProperty(k);
+              getter = wrapget(k);
+            }
+          }
+          catch (error) {
+              console.warn("Failed to save context property", k);
+              continue;
+          }
+          this.props[k] = {data: data, 
+       get: getter};
+      }
+      let defineProp=(name) =>        {
+        Object.defineProperty(this, name, {get: function () {
+            let def=this.props[name];
+            return def.get(this.ctx, def.data);
+          }});
+      };
+      for (let k in this.props) {
+          defineProp(k);
+      }
+      this.ctx = ctx;
+    }
+     setContext(ctx) {
+      this.ctx = ctx;
+      this.state = ctx.state;
+      this.api = ctx.api;
+      this.toolstack = ctx.toolstack;
+    }
   }
-  var ___widgets_ui_richedit_js=es6_import(_es6_module, './widgets/ui_richedit.js');
-  for (let k in ___widgets_ui_richedit_js) {
-      _es6_module.add_export(k, ___widgets_ui_richedit_js[k], true);
+  _ESClass.register(LockedContext);
+  _es6_module.add_class(LockedContext);
+  LockedContext = _es6_module.add_export('LockedContext', LockedContext);
+  let next_key={}
+  let idgen=1;
+  class Context  {
+     constructor(appstate) {
+      this.state = appstate;
+      this._props = new Set();
+      this._stack = [];
+      this._inside_map = {};
+    }
+     _fix() {
+      this._inside_map = {};
+    }
+     fix() {
+      this._fix();
+    }
+     error(message, timeout=1500) {
+      let state=this.state;
+      console.warn(message);
+      if (state&&state.screen) {
+          return notifier.error(state.screen, message, timeout);
+      }
+    }
+     warning(message, timeout=1500) {
+      let state=this.state;
+      console.warn(message);
+      if (state&&state.screen) {
+          return notifier.warning(state.screen, message, timeout);
+      }
+    }
+     message(msg, timeout=1500) {
+      let state=this.state;
+      console.warn(msg);
+      if (state&&state.screen) {
+          return notifier.message(state.screen, msg, timeout);
+      }
+    }
+     progbar(msg, perc=0.0, timeout=1500, id=msg) {
+      let state=this.state;
+      if (state&&state.screen) {
+          return notifier.progbarNote(state.screen, msg, perc, "green", timeout, id);
+      }
+    }
+     validateOverlays() {
+      let stack=this._stack;
+      let stack2=[];
+      for (let i=0; i<stack.length; i++) {
+          if (stack[i].validate()) {
+              stack2.push(stack[i]);
+          }
+      }
+      this._stack = stack2;
+    }
+     hasOverlay(cls) {
+      return this.getOverlay(cls)!==undefined;
+    }
+     getOverlay(cls) {
+      for (let overlay of this._stack) {
+          if (overlay.constructor===cls) {
+              return overlay;
+          }
+      }
+    }
+     clear(have_new_file=false) {
+      for (let overlay of this._stack) {
+          overlay.onRemove(have_new_file);
+      }
+      this._stack = [];
+    }
+     reset(have_new_file=false) {
+      this.clear(have_new_file);
+    }
+     override(overrides) {
+      if (overrides.copy===undefined) {
+          overrides.copy = function () {
+            return Object.assign({}, this);
+          };
+      }
+      let ctx=this.copy();
+      ctx.pushOverlay(overrides);
+      return ctx;
+    }
+     copy() {
+      let ret=new this.constructor(this.state);
+      for (let item of this._stack) {
+          ret.pushOverlay(item.copy());
+      }
+      return ret;
+    }
+    static  super() {
+      return next_key;
+    }
+     saveProperty(key) {
+      return this[key];
+    }
+     loadProperty(ctx, key, data) {
+      return data;
+    }
+     getOwningOverlay(name, _val_out) {
+      let inside_map=this._inside_map;
+      let stack=this._stack;
+      if (cconst.DEBUG.contextSystem) {
+          console.log(name, inside_map);
+      }
+      for (let i=stack.length-1; i>=0; i--) {
+          let overlay=stack[i];
+          let ret=next_key;
+          if (overlay[Symbol.ContextID]===undefined) {
+              throw new Error("context corruption");
+          }
+          let ikey=overlay[Symbol.ContextID];
+          if (cconst.DEBUG.contextSystem) {
+              console.log(ikey, overlay);
+          }
+          if (inside_map[ikey]) {
+              continue;
+          }
+          if (overlay.__allKeys.has(name)) {
+              if (cconst.DEBUG.contextSystem) {
+                  console.log("getting value");
+              }
+              inside_map[ikey] = 1;
+              try {
+                ret = overlay[name];
+              }
+              catch (error) {
+                  inside_map[ikey] = 0;
+                  throw error;
+              }
+              inside_map[ikey] = 0;
+          }
+          if (ret!==next_key) {
+              if (_val_out!==undefined) {
+                  _val_out[0] = ret;
+              }
+              return overlay;
+          }
+      }
+      if (_val_out!==undefined) {
+          _val_out[0] = undefined;
+      }
+      return undefined;
+    }
+     ensureProperty(name) {
+      if (this.hasOwnProperty(name)) {
+          return ;
+      }
+      this._props.add(name);
+      Object.defineProperty(this, name, {get: function () {
+          let ret=_ret_tmp;
+          _ret_tmp[0] = undefined;
+          this.getOwningOverlay(name, ret);
+          return ret[0];
+        }, 
+     set: function () {
+          throw new Error("Cannot set ctx properties");
+        }});
+    }
+     toLocked() {
+      return new LockedContext(this);
+    }
+     pushOverlay(overlay) {
+      if (!overlay.hasOwnProperty(Symbol.ContextID)) {
+          overlay[Symbol.ContextID] = idgen++;
+      }
+      let keys=new Set();
+      for (let key of util.getAllKeys(overlay)) {
+          if (!excludedKeys.has(key)&&!(typeof key==="string"&&key[0]==="_")) {
+              keys.add(key);
+          }
+      }
+      overlay.ctx = this;
+      if (overlay.__allKeys===undefined) {
+          overlay.__allKeys = keys;
+      }
+      for (let k of keys) {
+          let bad=typeof k==="symbol"||excludedKeys.has(k);
+          bad = bad||(typeof k==="string"&&k[0]==="_");
+          bad = bad||(typeof k==="string"&&k.endsWith("_save"));
+          bad = bad||(typeof k==="string"&&k.endsWith("_load"));
+          if (bad) {
+              continue;
+          }
+          this.ensureProperty(k);
+      }
+      if (this._stack.indexOf(overlay)>=0) {
+          console.warn("Overlay already added once");
+          if (this._stack[this._stack.length-1]===overlay) {
+              console.warn("  Definitely an error, overlay is already at top of stack");
+              return ;
+          }
+      }
+      this._stack.push(overlay);
+    }
+     popOverlay(overlay) {
+      if (overlay!==this._stack[this._stack.length-1]) {
+          console.warn("Context.popOverlay called in error", overlay);
+          return ;
+      }
+      overlay.onRemove();
+      this._stack.pop();
+    }
+     removeOverlay(overlay) {
+      if (this._stack.indexOf(overlay)<0) {
+          console.warn("Context.removeOverlay called in error", overlay);
+          return ;
+      }
+      overlay.onRemove();
+      this._stack.remove(overlay);
+    }
+    static  inherit(data) {
+      return new InheritFlag(data);
+    }
+    static  register(cls) {
+      if (cls[Symbol.ContextID]) {
+          console.warn("Tried to register same class twice:", cls);
+          return ;
+      }
+      cls[Symbol.ContextID] = __idgen++;
+      OverlayClasses.push(cls);
+    }
   }
-  var ___widgets_ui_curvewidget_js=es6_import(_es6_module, './widgets/ui_curvewidget.js');
-  for (let k in ___widgets_ui_curvewidget_js) {
-      _es6_module.add_export(k, ___widgets_ui_curvewidget_js[k], true);
+  _ESClass.register(Context);
+  _es6_module.add_class(Context);
+  Context = _es6_module.add_export('Context', Context);
+  function test() {
+    function testInheritance() {
+      class Test0 extends ContextOverlay {
+        static  contextDefine() {
+          return {flag: 1}
+        }
+      }
+      _ESClass.register(Test0);
+      _es6_module.add_class(Test0);
+      class Test1 extends Test0 {
+        static  contextDefine() {
+          return {flag: 2}
+        }
+      }
+      _ESClass.register(Test1);
+      _es6_module.add_class(Test1);
+      class Test2 extends Test1 {
+        static  contextDefine() {
+          return {flag: Context.inherit(4)}
+        }
+      }
+      _ESClass.register(Test2);
+      _es6_module.add_class(Test2);
+      class Test3 extends Test2 {
+        static  contextDefine() {
+          return {flag: Context.inherit(8)}
+        }
+      }
+      _ESClass.register(Test3);
+      _es6_module.add_class(Test3);
+      class Test4 extends Test3 {
+        static  contextDefine() {
+          return {flag: Context.inherit(16)}
+        }
+      }
+      _ESClass.register(Test4);
+      _es6_module.add_class(Test4);
+      return Test4.resolveDef().flag===30;
+    }
+    return testInheritance();
   }
-  var ___widgets_ui_panel_js=es6_import(_es6_module, './widgets/ui_panel.js');
-  for (let k in ___widgets_ui_panel_js) {
-      _es6_module.add_export(k, ___widgets_ui_panel_js[k], true);
+  test = _es6_module.add_export('test', test);
+  if (!test()) {
+      throw new Error("Context test failed");
   }
-  var ___widgets_ui_colorpicker2_js=es6_import(_es6_module, './widgets/ui_colorpicker2.js');
-  for (let k in ___widgets_ui_colorpicker2_js) {
-      _es6_module.add_export(k, ___widgets_ui_colorpicker2_js[k], true);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
+
+
+es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "./controller_base.js", "../toolsys/toolsys.js", "./controller_abstract.js", "../util/parseutil.js", "../toolsys/toolprop.js", "./controller_ops.js"], function _controller_module(_es6_module) {
+  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
+  var parseutil=es6_import(_es6_module, '../util/parseutil.js');
+  var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
+  var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
+  var Vec2Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec2Property');
+  var Vec3Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec3Property');
+  var Vec4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec4Property');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
+  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropFlags');
+  var toolprop_abstract=es6_import(_es6_module, '../toolsys/toolprop_abstract.js');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var DataPath=es6_import_item(_es6_module, './controller_base.js', 'DataPath');
+  var DataFlags=es6_import_item(_es6_module, './controller_base.js', 'DataFlags');
+  var DataTypes=es6_import_item(_es6_module, './controller_base.js', 'DataTypes');
+  var DataPathError=es6_import_item(_es6_module, './controller_base.js', 'DataPathError');
+  var StructFlags=es6_import_item(_es6_module, './controller_base.js', 'StructFlags');
+  var ___controller_base_js=es6_import(_es6_module, './controller_base.js');
+  for (let k in ___controller_base_js) {
+      _es6_module.add_export(k, ___controller_base_js[k], true);
   }
-  var ___widgets_ui_tabs_js=es6_import(_es6_module, './widgets/ui_tabs.js');
-  for (let k in ___widgets_ui_tabs_js) {
-      _es6_module.add_export(k, ___widgets_ui_tabs_js[k], true);
+  let PUTLParseError=parseutil.PUTLParseError;
+  let tk=(name, re, func) =>    {
+    return new parseutil.tokdef(name, re, func);
   }
-  var ___widgets_ui_listbox_js=es6_import(_es6_module, './widgets/ui_listbox.js');
-  for (let k in ___widgets_ui_listbox_js) {
-      _es6_module.add_export(k, ___widgets_ui_listbox_js[k], true);
+  let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z_$0-9]*/), tk("NUM", /-?[0-9]+/, (t) =>    {
+    t.value = parseInt(t.value);
+    return t;
+  }), tk("STRLIT", /'.*?'/, (t) =>    {
+    t.value = t.value.slice(1, t.value.length-1);
+    return t;
+  }), tk("STRLIT", /".*?"/, (t) =>    {
+    t.value = t.value.slice(1, t.value.length-1);
+    return t;
+  }), tk("DOT", /\./), tk("EQUALS", /(\=)|(\=\=)/), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("AND", /\&/), tk("WS", /[ \t\n\r]+/, (t) =>    {
+    return undefined;
+  })];
+  let lexer=new parseutil.lexer(tokens, (t) =>    {
+    console.warn("Parse error", t);
+    throw new DataPathError();
+  });
+  let pathParser=new parseutil.parser(lexer);
+  pathParser = _es6_module.add_export('pathParser', pathParser);
+  let parserStack=new Array(32);
+  for (let i=0; i<parserStack.length; i++) {
+      parserStack[i] = pathParser.copy();
   }
-  var ___widgets_ui_menu_js=es6_import(_es6_module, './widgets/ui_menu.js');
-  for (let k in ___widgets_ui_menu_js) {
-      _es6_module.add_export(k, ___widgets_ui_menu_js[k], true);
+  parserStack.cur = 0;
+  var ToolOpIface=es6_import_item(_es6_module, './controller_base.js', 'ToolOpIface');
+  var setImplementationClass=es6_import_item(_es6_module, './controller_base.js', 'setImplementationClass');
+  var isVecProperty=es6_import_item(_es6_module, './controller_base.js', 'isVecProperty');
+  var ListIface=es6_import_item(_es6_module, './controller_base.js', 'ListIface');
+  var initToolPaths=es6_import_item(_es6_module, '../toolsys/toolpath.js', 'initToolPaths');
+  var parseToolPath=es6_import_item(_es6_module, '../toolsys/toolpath.js', 'parseToolPath');
+  var ModelInterface=es6_import_item(_es6_module, './controller_abstract.js', 'ModelInterface');
+  let _ex_DataPathError=es6_import_item(_es6_module, './controller_base.js', 'DataPathError');
+  _es6_module.add_export('DataPathError', _ex_DataPathError, true);
+  let _ex_DataFlags=es6_import_item(_es6_module, './controller_base.js', 'DataFlags');
+  _es6_module.add_export('DataFlags', _ex_DataFlags, true);
+  var ToolClasses=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolClasses');
+  var ToolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'ToolProperty');
+  var IntProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'IntProperty');
+  let tool_classes=ToolClasses;
+  let tool_idgen=1;
+  Symbol.ToolID = Symbol("toolid");
+  function toolkey(cls) {
+    if (!(Symbol.ToolID in cls)) {
+        cls[Symbol.ToolID] = tool_idgen++;
+    }
+    return cls[Symbol.ToolID];
   }
-  var ___widgets_ui_table_js=es6_import(_es6_module, './widgets/ui_table.js');
-  for (let k in ___widgets_ui_table_js) {
-      _es6_module.add_export(k, ___widgets_ui_table_js[k], true);
+  let lt=util.time_ms();
+  let lastmsg=undefined;
+  let lcount=0;
+  let reportstack=["api"];
+  function pushReportName(name) {
+    if (reportstack.length>1024) {
+        console.trace("eerk, reportstack overflowed");
+        reportstack.length = 0;
+        reportstack.push("api");
+    }
+    reportstack.push(name);
   }
-  var ___widgets_ui_noteframe_js=es6_import(_es6_module, './widgets/ui_noteframe.js');
-  for (let k in ___widgets_ui_noteframe_js) {
-      _es6_module.add_export(k, ___widgets_ui_noteframe_js[k], true);
+  pushReportName = _es6_module.add_export('pushReportName', pushReportName);
+  function report(msg) {
+    let name=reportstack.length===0 ? "api" : reportstack[reportstack.length-1];
+    util.console.context(name).warn(msg);
   }
-  var ___widgets_ui_numsliders_js=es6_import(_es6_module, './widgets/ui_numsliders.js');
-  for (let k in ___widgets_ui_numsliders_js) {
-      _es6_module.add_export(k, ___widgets_ui_numsliders_js[k], true);
+  function popReportName() {
+    reportstack.pop();
   }
-  var ___widgets_ui_lasttool_js=es6_import(_es6_module, './widgets/ui_lasttool.js');
-  for (let k in ___widgets_ui_lasttool_js) {
-      _es6_module.add_export(k, ___widgets_ui_lasttool_js[k], true);
+  popReportName = _es6_module.add_export('popReportName', popReportName);
+  class DataList extends ListIface {
+     copy() {
+      let ret=new DataList([this.cb.get]);
+      for (let k in this.cb) {
+          ret.cb[k] = this.cb[k];
+      }
+      return ret;
+    }
+     constructor(callbacks) {
+      super();
+      if (callbacks===undefined) {
+          throw new DataPathError("missing callbacks argument to DataList");
+      }
+      this.cb = {};
+      if (typeof callbacks==="object"&&!Array.isArray(callbacks)) {
+          for (let k in callbacks) {
+              this.cb[k] = callbacks[k];
+          }
+      }
+      else {
+        for (let cb of callbacks) {
+            this.cb[cb.name] = cb;
+        }
+      }
+      let check=(key) =>        {
+        if (!(key in this.cbs)) {
+            throw new DataPathError(`Missing ${key} callback in DataList`);
+        }
+      };
+    }
+     get(api, list, key) {
+      return this.cb.get(api, list, key);
+    }
+     getLength(api, list) {
+      this._check("getLength");
+      return this.cb.getLength(api, list);
+    }
+     _check(cb) {
+      if (!(cb in this.cb)) {
+          throw new DataPathError(cb+" not supported by this list");
+      }
+    }
+     set(api, list, key, val) {
+      if (this.cb.set===undefined) {
+          list[key] = val;
+      }
+      else {
+        this.cb.set(api, list, key, val);
+      }
+    }
+     getIter(api, list) {
+      this._check("getIter");
+      return this.cb.getIter(api, list);
+    }
+     filter(api, list, bitmask) {
+      this._check("filter");
+      return this.cb.filter(api, list, bitmask);
+    }
+     getActive(api, list) {
+      this._check("getActive");
+      return this.cb.getActive(api, list);
+    }
+     setActive(api, list, key) {
+      this._check("setActive");
+      this.cb.setActive(api, list, key);
+    }
+     getKey(api, list, obj) {
+      this._check("getKey");
+      return this.cb.getKey(api, list, obj);
+    }
+     getStruct(api, list, key) {
+      if (this.cb.getStruct!==undefined) {
+          return this.cb.getStruct(api, list, key);
+      }
+      let obj=this.get(api, list, key);
+      if (obj===undefined)
+        return undefined;
+      return api.getStruct(obj.constructor);
+    }
   }
-  var ___widgets_ui_textbox_js=es6_import(_es6_module, './widgets/ui_textbox.js');
-  for (let k in ___widgets_ui_textbox_js) {
-      _es6_module.add_export(k, ___widgets_ui_textbox_js[k], true);
+  _ESClass.register(DataList);
+  _es6_module.add_class(DataList);
+  DataList = _es6_module.add_export('DataList', DataList);
+  class DataStruct  {
+     constructor(members=[], name="unnamed") {
+      this.members = [];
+      this.name = name;
+      this.pathmap = {};
+      this.flag = 0;
+      this.inheritFlag = 0;
+      for (let m of members) {
+          this.add(m);
+      }
+    }
+     copy() {
+      let ret=new DataStruct();
+      ret.name = this.name;
+      ret.flag = this.flag;
+      ret.inheritFlag = this.inheritFlag;
+      for (let m of this.members) {
+          let m2=m.copy();
+          if (m2.type===DataTypes.PROP) {
+              m2.data = m2.data.copy();
+          }
+          ret.add(m2);
+      }
+      return ret;
+    }
+     dynamicStruct(path, apiname, uiname, default_struct=undefined) {
+      let ret=default_struct ? default_struct : new DataStruct();
+      let dpath=new DataPath(path, apiname, ret, DataTypes.DYNAMIC_STRUCT);
+      ret.inheritFlag|=this.inheritFlag;
+      this.add(dpath);
+      return ret;
+    }
+     struct(path, apiname, uiname, existing_struct=undefined) {
+      let ret=existing_struct ? existing_struct : new DataStruct();
+      let dpath=new DataPath(path, apiname, ret, DataTypes.STRUCT);
+      ret.inheritFlag|=this.inheritFlag;
+      this.add(dpath);
+      return ret;
+    }
+     color3(path, apiname, uiname, description) {
+      let ret=this.vec3(path, apiname, uiname, description);
+      ret.data.subtype = toolprop.PropSubTypes.COLOR;
+      ret.range(0, 1);
+      ret.simpleSlider();
+      ret.noUnits();
+      return ret;
+    }
+     color4(path, apiname, uiname, description=uiname) {
+      let ret=this.vec4(path, apiname, uiname, description);
+      ret.data.subtype = toolprop.PropSubTypes.COLOR;
+      ret.range(0, 1);
+      ret.simpleSlider();
+      ret.noUnits();
+      return ret;
+    }
+     arrayList(path, apiname, structdef, uiname, description) {
+      let ret=this.list(path, apiname, [function getIter(api, list) {
+        return list[Symbol.iterator]();
+      }, function getLength(api, list) {
+        return list.length;
+      }, function get(api, list, key) {
+        return list[key];
+      }, function set(api, list, key, val) {
+        if (typeof key==="string") {
+            key = parseInt(key);
+        }
+        if (key<0||key>=list.length) {
+            throw new DataPathError("Invalid index "+key);
+        }
+        list[key] = val;
+        window.redraw_viewport();
+      }, function getKey(api, list, obj) {
+        return list.indexOf(obj);
+      }, function getStruct(api, list, key) {
+        return structdef;
+      }]);
+      return ret;
+    }
+     vectorList(size, path, apiname, uiname, description) {
+      let type;
+      switch (size) {
+        case 2:
+          type = toolprop.Vec2Property;
+          break;
+        case 3:
+          type = toolprop.Vec3Property;
+        case 4:
+          type = toolprop.Vec4Property;
+      }
+      if (type===undefined) {
+          throw new DataPathError("Invalid size for vectorList; expected 2 3 or 4");
+      }
+      let prop=new type(undefined, apiname, uiname, description);
+      let pstruct=new DataStruct(undefined, "Vector");
+      pstruct.vec3("", "co", "Coords", "Coordinates");
+      let ret=this.list(path, apiname, [function getIter(api, list) {
+        return list[Symbol.iterator]();
+      }, function getLength(api, list) {
+        return list.length;
+      }, function get(api, list, key) {
+        return list[key];
+      }, function set(api, list, key, val) {
+        if (typeof key=="string") {
+            key = parseInt(key);
+        }
+        if (key<0||key>=list.length) {
+            throw new DataPathError("Invalid index "+key);
+        }
+        list[key] = val;
+        window.redraw_viewport();
+      }, function getKey(api, list, obj) {
+        return list.indexOf(obj);
+      }, function getStruct(api, list, key) {
+        return pstruct;
+      }]);
+      return ret;
+    }
+     bool(path, apiname, uiname, description) {
+      let prop=new toolprop.BoolProperty(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     vec2(path, apiname, uiname, description) {
+      let prop=new toolprop.Vec2Property(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     vec3(path, apiname, uiname, description) {
+      let prop=new toolprop.Vec3Property(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     vec4(path, apiname, uiname, description) {
+      let prop=new toolprop.Vec4Property(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     float(path, apiname, uiname, description) {
+      let prop=new toolprop.FloatProperty(0, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     textblock(path, apiname, uiname, description) {
+      let prop=new toolprop.StringProperty(undefined, apiname, uiname, description);
+      prop.multiLine = true;
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     report(path, apiname, uiname, description) {
+      let prop=new toolprop.ReportProperty(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     string(path, apiname, uiname, description) {
+      let prop=new toolprop.StringProperty(undefined, apiname, uiname, description);
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     int(path, apiname, uiname, description, prop=undefined) {
+      if (!prop) {
+          prop = new toolprop.IntProperty(0, apiname, uiname, description);
+      }
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     curve1d(path, apiname, uiname, description) {
+      let prop=new toolprop.Curve1DProperty(undefined);
+      prop.apiname = apiname;
+      prop.uiname = uiname;
+      prop.description = description;
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     enum(path, apiname, enumdef, uiname, description) {
+      let prop;
+      if (__instance_of(enumdef, toolprop.EnumProperty)) {
+          prop = enumdef;
+      }
+      else {
+        prop = new toolprop.EnumProperty(undefined, enumdef, apiname, uiname, description);
+      }
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     list(path, apiname, funcs) {
+      let array=new DataList(funcs);
+      let dpath=new DataPath(path, apiname, array);
+      dpath.type = DataTypes.ARRAY;
+      this.add(dpath);
+      return dpath;
+    }
+     flags(path, apiname, enumdef, uiname, description) {
+      let prop;
+      if (enumdef===undefined||!(__instance_of(enumdef, toolprop.ToolProperty))) {
+          prop = new toolprop.FlagProperty(undefined, enumdef, apiname, uiname, description);
+      }
+      else {
+        prop = enumdef;
+      }
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     remove(m) {
+      if (typeof m==="string") {
+          m = this.pathmap[m];
+      }
+      if (!(m.apiname in this.pathmap)) {
+          throw new Error("Member not in struct "+m.apiname);
+      }
+      delete this.pathmap[m.apiname];
+      this.members.remove(m);
+    }
+     fromToolProp(path, prop, apiname) {
+      if (apiname===undefined) {
+          apiname = prop.apiname!==undefined&&prop.apiname.length>0 ? prop.apiname : k;
+      }
+      let dpath=new DataPath(path, apiname, prop);
+      this.add(dpath);
+      return dpath;
+    }
+     add(m) {
+      if (m.apiname in this.pathmap) {
+          if (window.DEBUG.datapaths) {
+              console.warn("Overriding existing member '"+m.apiname+"' in datapath struct", this.name);
+          }
+          this.remove(this.pathmap[m.apiname]);
+      }
+      m.flag|=this.inheritFlag;
+      this.members.push(m);
+      m.parent = this;
+      this.pathmap[m.apiname] = m;
+      return this;
+    }
   }
-  var ___util_graphpack_js=es6_import(_es6_module, './util/graphpack.js');
-  for (let k in ___util_graphpack_js) {
-      _es6_module.add_export(k, ___util_graphpack_js[k], true);
+  _ESClass.register(DataStruct);
+  _es6_module.add_class(DataStruct);
+  DataStruct = _es6_module.add_export('DataStruct', DataStruct);
+  let _map_struct_idgen=1;
+  let _map_structs={}
+  window._debug__map_structs = _map_structs;
+  let _dummypath=new DataPath();
+  let DummyIntProperty=new IntProperty();
+  const CLS_API_KEY=Symbol("__dp_map_id");
+  class DataAPI extends ModelInterface {
+     constructor() {
+      super();
+      this.rootContextStruct = undefined;
+      this.structs = [];
+    }
+     getStructs() {
+      return this.structs;
+    }
+    get  list() {
+      return undefined;
+    }
+     setRoot(sdef) {
+      this.rootContextStruct = sdef;
+    }
+     hasStruct(cls) {
+      return cls.hasOwnProperty(CLS_API_KEY);
+    }
+     getStruct(cls) {
+      return this.mapStruct(cls, false);
+    }
+     mergeStructs(dest, src) {
+      for (let m of src.members) {
+          dest.add(m.copy());
+      }
+    }
+     inheritStruct(cls, parent, auto_create_parent=false) {
+      let st=this.mapStruct(parent, auto_create_parent);
+      if (st===undefined) {
+          throw new Error("parent has no struct definition");
+      }
+      st = st.copy();
+      st.name = cls.name;
+      this._addClass(cls, st);
+      return st;
+    }
+     _addClass(cls, dstruct) {
+      let key=_map_struct_idgen++;
+      cls[CLS_API_KEY] = key;
+      this.structs.push(dstruct);
+      _map_structs[key] = dstruct;
+    }
+     mapStruct(cls, auto_create=true, name=cls.name) {
+      let key;
+      if (!cls.hasOwnProperty(CLS_API_KEY)) {
+          key = undefined;
+      }
+      else {
+        key = cls[CLS_API_KEY];
+      }
+      if (key===undefined&&auto_create) {
+          let dstruct=new DataStruct(undefined, name);
+          this._addClass(cls, dstruct);
+          return dstruct;
+      }
+      else 
+        if (key===undefined) {
+          throw new Error("class does not have a struct definition: "+name);
+      }
+      return _map_structs[key];
+    }
+     pushReportContext(name) {
+      pushReportName(name);
+    }
+     popReportContext() {
+      popReportName();
+    }
+     massSetProp(ctx, massSetPath, value) {
+      for (let path of this.resolveMassSetPaths(ctx, massSetPath)) {
+          this.setValue(ctx, path, value);
+      }
+    }
+     resolveMassSetPaths(ctx, massSetPath) {
+      let start=massSetPath.search("{");
+      let end=massSetPath.search("}");
+      if (start<0||end<0) {
+          throw new DataPathError("Invalid mass set datapath: "+massSetPath);
+          return ;
+      }
+      let prefix=massSetPath.slice(0, start-1);
+      let filter=massSetPath.slice(start+1, end);
+      let suffix=massSetPath.slice(end+2, massSetPath.length);
+      let rdef=this.resolvePath(ctx, prefix);
+      if (!(__instance_of(rdef.prop, DataList))) {
+          throw new DataPathError("massSetPath expected a path resolving to a DataList: "+massSetPath);
+      }
+      let paths=[];
+      let list=rdef.prop;
+      let api=ctx.api;
+      function applyFilter(obj) {
+        if (obj===undefined) {
+            return undefined;
+        }
+        else 
+          if (typeof obj==="object"||typeof obj==="function") {
+            let st=api.mapStruct(obj.constructor, false);
+            let path=filter;
+            if (path.startsWith("$")) {
+                path = path.slice(1, filter.length).trim();
+            }
+            if (path.startsWith(".")) {
+                path = path.slice(1, filter.length).trim();
+            }
+            return api.getValue(obj, path, st);
+        }
+        else {
+          let $=obj;
+          return eval(filter);
+        }
+      }
+      for (let obj of list.getIter(this, rdef.value)) {
+          if (!applyFilter(obj)) {
+              continue;
+          }
+          let key=""+list.getKey(this, rdef.value, obj);
+          let path=`${prefix}[${key}]${suffix}`;
+          paths.push(path);
+      }
+      return paths;
+    }
+     resolvePath(ctx, inpath, ignoreExistence=false, dstruct=undefined) {
+      let parser=parserStack[parserStack.cur++];
+      let ret=undefined;
+      try {
+        ret = this.resolvePath_intern(ctx, inpath, ignoreExistence, parser, dstruct);
+      }
+      catch (error) {
+          if (!(__instance_of(error, DataPathError))) {
+              util.print_stack(error);
+              report("error while evaluating path "+inpath);
+          }
+          if (window.DEBUG&&window.DEBUG.datapaths) {
+              util.print_stack(error);
+          }
+          ret = undefined;
+      }
+      parserStack.cur--;
+      if (ret!==undefined&&ret.prop&&ret.dpath&&ret.dpath.ui_name_get) {
+          let dummy={datactx: ctx, 
+       datapath: inpath, 
+       dataref: ret.obj};
+          let name=ret.dpath.ui_name_get.call(dummy);
+          ret.prop.uiname = ""+name;
+      }
+      return ret;
+    }
+     resolvePath_intern(ctx, inpath, ignoreExistence=false, p=pathParser, dstruct=undefined) {
+      inpath = inpath.replace("==", "=");
+      p.input(inpath);
+      dstruct = dstruct||this.rootContextStruct;
+      let obj=ctx;
+      let lastobj=ctx;
+      let subkey;
+      let lastobj2=undefined;
+      let lastkey=undefined;
+      let prop=undefined;
+      let lastdpath=undefined;
+      function p_key() {
+        let t=p.peeknext();
+        if (t.type==="NUM"||t.type==="STRLIT") {
+            p.next();
+            return t.value;
+        }
+        else {
+          throw new PUTLParseError("Expected list key");
+        }
+      }
+      let _i=0;
+      while (!p.at_end()) {
+        let key=p.expect("ID");
+        let dpath=dstruct.pathmap[key];
+        lastdpath = dpath;
+        if (dpath===undefined) {
+            if (key==="length"&&prop!==undefined&&__instance_of(prop, DataList)) {
+                prop.getLength(this, obj);
+                key = "length";
+                prop = DummyIntProperty;
+                prop.name = "length";
+                prop.flag = PropFlags.READ_ONLY;
+                dpath = _dummypath;
+                dpath.type = DataTypes.PROP;
+                dpath.data = prop;
+                dpath.struct = dpath.parent = dstruct;
+                dpath.flag = DataFlags.READ_ONLY;
+                dpath.path = "length";
+            }
+            else 
+              if (key==="active"&&prop!==undefined&&__instance_of(prop, DataList)) {
+                let act=prop.getActive(this, obj);
+                if (act===undefined&&!ignoreExistence) {
+                    throw new DataPathError("no active elem ent for list");
+                }
+                let actkey=obj!==undefined&&act!==undefined ? prop.getKey(this, obj, act) : undefined;
+                dstruct = prop.getStruct(this, obj, actkey);
+                if (dstruct===undefined) {
+                    throw new DataPathError("couldn't get data type for "+inpath+"'s element '"+key+"'");
+                }
+                _dummypath.parent = dpath;
+                dpath = _dummypath;
+                lastobj = obj;
+                obj = act;
+                dpath.type = DataTypes.STRUCT;
+                dpath.data = dstruct;
+                dpath.path = key;
+                p.optional("DOT");
+                continue;
+            }
+            else {
+              throw new DataPathError(inpath+": unknown property "+key);
+            }
+        }
+        let dynstructobj=undefined;
+        if (dpath.type===DataTypes.STRUCT) {
+            dstruct = dpath.data;
+        }
+        else 
+          if (dpath.type===DataTypes.DYNAMIC_STRUCT) {
+            let ok=false;
+            if (obj!==undefined) {
+                let obj2;
+                if (dpath.flag&DataFlags.USE_CUSTOM_GETSET) {
+                    let fakeprop=dpath.getSet;
+                    fakeprop.ctx = ctx;
+                    fakeprop.dataref = obj;
+                    fakeprop.datapath = inpath;
+                    obj2 = fakeprop.get();
+                    fakeprop.ctx = fakeprop.datapath = fakeprop.dataref = undefined;
+                }
+                else {
+                  obj2 = obj[dpath.path];
+                }
+                dynstructobj = obj2;
+                if (obj2!==undefined) {
+                    dstruct = this.mapStruct(obj2.constructor, false);
+                }
+                else {
+                  dstruct = dpath.data;
+                }
+                if (dstruct===undefined) {
+                    dstruct = dpath.data;
+                }
+                ok = dstruct!==undefined;
+            }
+            if (!ok) {
+                throw new DataPathError("dynamic struct error for path: "+inpath);
+            }
+        }
+        else {
+          prop = dpath.data;
+        }
+        if (dpath.path.search(/\./)>=0) {
+            let keys=dpath.path.split(/\./);
+            for (let key of keys) {
+                lastobj2 = lastobj;
+                lastobj = obj;
+                lastkey = key;
+                if (obj===undefined&&!ignoreExistence) {
+                    throw new DataPathError("no data for "+inpath);
+                }
+                else 
+                  if (obj!==undefined) {
+                    obj = obj[key.trim()];
+                }
+            }
+        }
+        else {
+          lastobj2 = lastobj;
+          lastobj = obj;
+          lastkey = dpath.path;
+          if (dpath.flag&DataFlags.USE_CUSTOM_GETSET) {
+              let fakeprop=dpath.getSet;
+              if (!fakeprop&&dpath.type===DataTypes.PROP) {
+                  let prop=dpath.data;
+                  prop.ctx = ctx;
+                  prop.dataref = obj;
+                  prop.datapath = inpath;
+                  try {
+                    obj = prop.getValue();
+                  }
+                  catch (error) {
+                      util.print_stack(error);
+                      obj = undefined;
+                  }
+                  if (typeof obj==="string"&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
+                      obj = prop.values[obj];
+                  }
+                  prop.ctx = prop.dataref = prop.datapath = undefined;
+              }
+              else {
+                fakeprop.ctx = ctx;
+                fakeprop.dataref = obj;
+                fakeprop.datapath = inpath;
+                obj = fakeprop.get();
+                fakeprop.ctx = fakeprop.datapath = fakeprop.dataref = undefined;
+              }
+          }
+          else 
+            if (obj===undefined&&!ignoreExistence) {
+              throw new DataPathError("no data for "+inpath);
+          }
+          else 
+            if (dpath.type===DataTypes.DYNAMIC_STRUCT) {
+              obj = dynstructobj;
+          }
+          else 
+            if (obj!==undefined&&dpath.path!=="") {
+              obj = obj[dpath.path];
+          }
+        }
+        let t=p.peeknext();
+        if (t===undefined) {
+            break;
+        }
+        if (t.type==="DOT") {
+            p.next();
+        }
+        else 
+          if (t.type==="EQUALS"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
+            p.expect("EQUALS");
+            let t2=p.peeknext();
+            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
+            let val=p.expect(type);
+            let val1=val;
+            if (typeof val=="string") {
+                val = prop.values[val];
+            }
+            if (val===undefined) {
+                throw new DataPathError("unknown value "+val1);
+            }
+            if (val in prop.keys) {
+                subkey = prop.keys[val];
+            }
+            key = dpath.path;
+            obj = !!(lastobj[key]==val);
+        }
+        else 
+          if (t.type==="AND"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
+            p.expect("AND");
+            let t2=p.peeknext();
+            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
+            let val=p.expect(type);
+            let val1=val;
+            if (typeof val=="string") {
+                val = prop.values[val];
+            }
+            if (val===undefined) {
+                throw new DataPathError("unknown value "+val1);
+            }
+            if (val in prop.keys) {
+                subkey = prop.keys[val];
+            }
+            key = dpath.path;
+            obj = !!(lastobj[key]&val);
+        }
+        else 
+          if (t.type==="LSBRACKET"&&prop!==undefined&&(prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
+            p.expect("LSBRACKET");
+            let t2=p.peeknext();
+            let type=t2&&t2.type==="ID" ? "ID" : "NUM";
+            let val=p.expect(type);
+            let val1=val;
+            if (typeof val=="string") {
+                val = prop.values[val];
+            }
+            if (val===undefined) {
+                console.warn(inpath, prop.values, val1, prop);
+                throw new DataPathError("unknown value "+val1);
+            }
+            if (val in prop.keys) {
+                subkey = prop.keys[val];
+            }
+            let bitfield;
+            key = dpath.path;
+            if (!(prop.flag&PropFlags.USE_CUSTOM_GETSET)) {
+                bitfield = lastobj ? lastobj[key] : 0;
+            }
+            else {
+              prop.dataref = lastobj;
+              prop.datapath = inpath;
+              prop.ctx = ctx;
+              try {
+                bitfield = prop.getValue();
+              }
+              catch (error) {
+                  util.print_stack(error);
+                  bitfield = NaN;
+              }
+            }
+            if (lastobj===undefined&&!ignoreExistence) {
+                throw new DataPathError("no data for path "+inpath);
+            }
+            else 
+              if (lastobj!==undefined) {
+                if (prop.type===PropTypes.ENUM) {
+                    obj = !!(bitfield===val);
+                }
+                else {
+                  obj = !!(bitfield&val);
+                }
+            }
+            p.expect("RSBRACKET");
+        }
+        else 
+          if (t.type==="LSBRACKET"&&prop!==undefined&&isVecProperty(prop)) {
+            p.expect("LSBRACKET");
+            let num=p.expect("NUM");
+            p.expect("RSBRACKET");
+            subkey = num;
+            if (prop!==undefined&&!(prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4|PropTypes.QUAT))) {
+                lastobj = obj;
+            }
+            obj = obj[num];
+        }
+        else 
+          if (t.type==="LSBRACKET") {
+            p.expect("LSBRACKET");
+            if (lastobj&&lastkey&&typeof lastkey==="string"&&lastkey.length>0) {
+                lastobj = lastobj[lastkey];
+            }
+            lastkey = p_key();
+            p.expect("RSBRACKET");
+            if (!(__instance_of(prop, DataList))) {
+                throw new DataPathError("bad property, not a list");
+            }
+            obj = prop.get(this, lastobj, lastkey);
+            dstruct = prop.getStruct(this, lastobj, lastkey);
+            if (p.peeknext()!==undefined&&p.peeknext().type==="DOT") {
+                p.next();
+            }
+        }
+        if (_i++>1000) {
+            console.warn("infinite loop in resolvePath parser");
+            break;
+        }
+      }
+      return {dpath: lastdpath, 
+     parent: lastobj2, 
+     obj: lastobj, 
+     value: obj, 
+     key: lastkey, 
+     dstruct: dstruct, 
+     prop: prop, 
+     subkey: subkey}
+    }
+     resolvePathOld2(ctx, path) {
+      let splitchars=new Set([".", "[", "]", "=", "&"]);
+      let subkey=undefined;
+      path = path.replace(/\=\=/g, "=");
+      path = "."+this.prefix+path;
+      let p=[""];
+      for (let i=0; i<path.length; i++) {
+          let s=path[i];
+          if (splitchars.has(s)) {
+              if (s!=="]") {
+                  p.push(s);
+              }
+              p.push("");
+              continue;
+          }
+          p[p.length-1]+=s;
+      }
+      for (let i=0; i<p.length; i++) {
+          p[i] = p[i].trim();
+          if (p[i].length===0) {
+              p.remove(p[i]);
+              i--;
+          }
+          let c=parseInt(p[i]);
+          if (!isNaN(c)) {
+              p[i] = c;
+          }
+      }
+      let i=0;
+      let parent1, obj=ctx, parent2;
+      let key=undefined;
+      let dstruct=undefined;
+      let arg=undefined;
+      let type="normal";
+      let retpath=p;
+      let prop;
+      let lastkey=key, a;
+      let apiname=key;
+      while (i<p.length-1) {
+        lastkey = key;
+        apiname = key;
+        if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
+            let dpath=dstruct.pathmap[lastkey];
+            apiname = dpath.apiname;
+        }
+        let a=p[i];
+        let b=p[i+1];
+        if (a==="[") {
+            let ok=false;
+            key = b;
+            prop = undefined;
+            if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
+                let dpath=dstruct.pathmap[lastkey];
+                if (dpath.type===DataTypes.PROP) {
+                    prop = dpath.data;
+                }
+            }
+            if (prop!==undefined&&(prop.type===PropTypes.ENUM||prop.type===PropTypes.FLAG)) {
+                util.console.context("api").log("found flag/enum property");
+                ok = true;
+            }
+            if (ok) {
+                if (isNaN(parseInt(key))) {
+                    key = prop.values[key];
+                }
+                else 
+                  if (typeof key=="int") {
+                    key = parseInt(key);
+                }
+                let value=obj;
+                if (typeof value=="string") {
+                    value = prop.values[key];
+                }
+                if (prop.type===PropTypes.ENUM) {
+                    value = !!(value==key);
+                }
+                else {
+                  value = !!(value&key);
+                }
+                if (key in prop.keys) {
+                    subkey = prop.keys[key];
+                }
+                obj = value;
+                i++;
+                continue;
+            }
+        }
+        if (dstruct!==undefined&&dstruct.pathmap[lastkey]) {
+            let dpath=dstruct.pathmap[lastkey];
+            if (dpath.type==DataTypes.PROP) {
+                prop = dpath.data;
+            }
+        }
+        if (a==="."||a==="[") {
+            key = b;
+            parent2 = parent1;
+            parent1 = obj;
+            obj = obj[b];
+            if (obj===undefined||obj===null) {
+                break;
+            }
+            if (typeof obj=="object") {
+                dstruct = this.mapStruct(obj.constructor, false);
+            }
+            i+=2;
+            continue;
+        }
+        else 
+          if (a==="&") {
+            obj&=b;
+            arg = b;
+            if (b in prop.keys) {
+                subkey = prop.keys[b];
+            }
+            i+=2;
+            type = "flag";
+            continue;
+        }
+        else 
+          if (a==="=") {
+            obj = obj==b;
+            arg = b;
+            if (b in prop.keys) {
+                subkey = prop.keys[b];
+            }
+            i+=2;
+            type = "enum";
+            continue;
+        }
+        else {
+          throw new DataPathError("bad path "+path);
+        }
+        i++;
+      }
+      if (lastkey!==undefined&&dstruct!==undefined&&dstruct.pathmap[lastkey]) {
+          let dpath=dstruct.pathmap[key];
+          apiname = dpath.apiname;
+      }
+      if (dstruct!==undefined&&dstruct.pathmap[key]) {
+          let dpath=dstruct.pathmap[key];
+          if (dpath.type==DataTypes.PROP) {
+              prop = dpath.data;
+          }
+      }
+      return {parent: parent2, 
+     obj: parent1, 
+     value: obj, 
+     key: key, 
+     dstruct: dstruct, 
+     subkey: subkey, 
+     prop: prop, 
+     arg: arg, 
+     type: type, 
+     _path: retpath}
+    }
+     resolvePathold(ctx, path) {
+      path = this.prefix+path;
+      path = path.replace(/\[/g, ".").replace(/\]/g, "").trim().split(".");
+      let parent1, obj=ctx, parent2;
+      let key=undefined;
+      let dstruct=undefined;
+      for (let c of path) {
+          let c2=parseInt(c);
+          if (!isNaN(c2)) {
+              c = c2;
+          }
+          parent2 = parent1;
+          parent1 = obj;
+          key = c;
+          if (typeof obj=="number") {
+              obj = obj&c;
+              break;
+          }
+          obj = obj[c];
+          if (typeof obj=="object") {
+              dstruct = this.mapStruct(obj.constructor, false);
+          }
+      }
+      let prop;
+      if (dstruct!==undefined&&dstruct.pathmap[key]) {
+          let dpath=dstruct.pathmap[key];
+          if (dpath.type==DataTypes.PROP) {
+              prop = dpath.data;
+          }
+      }
+      return {parent: parent2, 
+     obj: parent1, 
+     value: obj, 
+     key: key, 
+     dstruct: dstruct, 
+     prop: prop}
+    }
+     _stripToolUIName(path, uiNameOut=undefined) {
+      if (path.search(/\|/)>=0) {
+          if (uiNameOut) {
+              uiNameOut[0] = path.slice(path.search(/\|/)+1, path.length).trim();
+          }
+          path = path.slice(0, path.search(/\|/)).trim();
+      }
+      return path.trim();
+    }
+     getToolDef(path) {
+      let uiname=[undefined];
+      path = this._stripToolUIName(path, uiname);
+      uiname = uiname[0];
+      let cls=this.parseToolPath(path);
+      if (cls===undefined) {
+          throw new DataPathError("unknown path \""+path+"\"");
+      }
+      let def=cls.tooldef();
+      if (uiname) {
+          def.uiname = uiname;
+      }
+      return def;
+    }
+     getToolPathHotkey(ctx, path) {
+      path = this._stripToolUIName(path);
+      try {
+        return this.getToolPathHotkey_intern(ctx, path);
+      }
+      catch (error) {
+          print_stack(error);
+          util.console.context("api").log("failed to fetch tool path: "+path);
+          return undefined;
+      }
+    }
+     getToolPathHotkey_intern(ctx, path) {
+      let screen=ctx.screen;
+      let this2=this;
+      function searchKeymap(keymap) {
+        if (keymap===undefined) {
+            return undefined;
+        }
+        for (let hk of keymap) {
+            if (typeof hk.action!=="string") {
+                continue;
+            }
+            let tool=this2._stripToolUIName(hk.action);
+            if (tool===path) {
+                return hk.buildString();
+            }
+        }
+      }
+      if (screen.sareas.length===0) {
+          return searchKeymap(screen.keymap);
+      }
+      let areacls=screen.sareas[0].area.constructor;
+      let area=areacls.getActiveArea();
+      if (area) {
+          for (let keymap of area.getKeyMaps()) {
+              let ret=searchKeymap(keymap);
+              if (ret!==undefined) {
+                  return ret;
+              }
+          }
+      }
+      for (let sarea of screen.sareas) {
+          if (!sarea.area)
+            continue;
+          for (let keymap of sarea.area.getKeyMaps()) {
+              let ret=searchKeymap(keymap);
+              if (ret) {
+                  return ret;
+              }
+          }
+      }
+      return this.keymap ? searchKeymap(this.keymap) : false;
+    }
+     parseToolPath(path) {
+      try {
+        return parseToolPath(path).toolclass;
+      }
+      catch (error) {
+          if (__instance_of(error, DataPathError)) {
+              console.warn("warning, bad tool path "+path);
+              return undefined;
+          }
+          else {
+            throw error;
+          }
+      }
+    }
+     parseToolArgs(path) {
+      return parseToolPath(path).args;
+    }
+     createTool(ctx, path, inputs={}) {
+      let cls;
+      let args;
+      if (typeof path=="string"||__instance_of(path, String)) {
+          let tpath=parseToolPath(path);
+          cls = tpath.toolclass;
+          args = tpath.args;
+      }
+      else {
+        cls = path;
+        args = {};
+      }
+      if (!cls) {
+          debugger;
+          console.error("Unknown tool "+path);
+      }
+      let tool=cls.invoke(ctx, args);
+      if (inputs!==undefined) {
+          for (let k in inputs) {
+              if (!(k in tool.inputs)) {
+                  console.warn(cls.tooldef().uiname+": Unknown tool property \""+k+"\"");
+                  continue;
+              }
+              tool.inputs[k].setValue(inputs[k]);
+          }
+      }
+      return tool;
+    }
+    static  toolRegistered(cls) {
+      return ToolOp.isRegistered(cls);
+    }
+    static  registerTool(cls) {
+      console.warn("Outdated function simple_controller.DataAPI.registerTool called");
+      return ToolOp.register(cls);
+    }
   }
-  var solver1=es6_import(_es6_module, './util/solver.js');
-  var electron_api1=es6_import(_es6_module, './platforms/electron/electron_api.js');
-  const electron_api=electron_api1;
-  _es6_module.add_export('electron_api', electron_api);
-  var ___platforms_electron_electron_api_js=es6_import(_es6_module, './platforms/electron/electron_api.js');
-  for (let k in ___platforms_electron_electron_api_js) {
-      _es6_module.add_export(k, ___platforms_electron_electron_api_js[k], true);
+  _ESClass.register(DataAPI);
+  _es6_module.add_class(DataAPI);
+  DataAPI = _es6_module.add_export('DataAPI', DataAPI);
+  function registerTool(cls) {
+    return DataAPI.registerTool(cls);
   }
-  var ___widgets_theme_editor_js=es6_import(_es6_module, './widgets/theme_editor.js');
-  for (let k in ___widgets_theme_editor_js) {
-      _es6_module.add_export(k, ___widgets_theme_editor_js[k], true);
+  registerTool = _es6_module.add_export('registerTool', registerTool);
+  function initSimpleController() {
+    initToolPaths();
   }
-  var ___widgets_ui_treeview_js=es6_import(_es6_module, './widgets/ui_treeview.js');
-  for (let k in ___widgets_ui_treeview_js) {
-      _es6_module.add_export(k, ___widgets_ui_treeview_js[k], true);
+  initSimpleController = _es6_module.add_export('initSimpleController', initSimpleController);
+  var DataPathSetOp=es6_import_item(_es6_module, './controller_ops.js', 'DataPathSetOp');
+  let dpt=DataPathSetOp;
+  function getDataPathToolOp() {
+    return dpt;
   }
-  const solver=solver1;
-  _es6_module.add_export('solver', solver);
-  var math1=es6_import(_es6_module, './util/math.js');
-  const math=math1;
-  _es6_module.add_export('math', math);
-  var ___screen_FrameManager_js=es6_import(_es6_module, './screen/FrameManager.js');
-  for (let k in ___screen_FrameManager_js) {
-      _es6_module.add_export(k, ___screen_FrameManager_js[k], true);
+  getDataPathToolOp = _es6_module.add_export('getDataPathToolOp', getDataPathToolOp);
+  function setDataPathToolOp(cls) {
+    ToolOp.unregister(DataPathSetOp);
+    if (!ToolOp.isRegistered(cls)) {
+        ToolOp.register(cls);
+    }
+    dpt = cls;
   }
-  var util1=es6_import(_es6_module, './util/util.js');
-  var vectormath1=es6_import(_es6_module, './util/vectormath.js');
-  const util=util1;
-  _es6_module.add_export('util', util);
-  const vectormath=vectormath1;
-  _es6_module.add_export('vectormath', vectormath);
-  var ___util_vectormath_js=es6_import(_es6_module, './util/vectormath.js');
-  for (let k in ___util_vectormath_js) {
-      _es6_module.add_export(k, ___util_vectormath_js[k], true);
+  setDataPathToolOp = _es6_module.add_export('setDataPathToolOp', setDataPathToolOp);
+  setImplementationClass(DataAPI);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller.js');
+
+
+es6_module_define('controller_abstract', ["../toolsys/toolsys.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
+  var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
+  var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
+  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
+  var ToolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'ToolProperty');
+  var DataPathError=es6_import_item(_es6_module, './controller_base.js', 'DataPathError');
+  var isVecProperty=es6_import_item(_es6_module, './controller_base.js', 'isVecProperty');
+  var ListIface=es6_import_item(_es6_module, './controller_base.js', 'ListIface');
+  class ModelInterface  {
+     constructor() {
+      this.prefix = "";
+    }
+     getToolDef(path) {
+      throw new Error("implement me");
+    }
+     getToolPathHotkey(ctx, path) {
+      return undefined;
+    }
+    get  list() {
+      throw new Error("implement me");
+      return ListIface;
+    }
+     createTool(path, inputs={}, constructor_argument=undefined) {
+      throw new Error("implement me");
+    }
+     parseToolPath(path) {
+      throw new Error("implement me");
+    }
+     execOrRedo(ctx, toolop, compareInputs=false) {
+      return ctx.toolstack.execOrRedo(ctx, toolop, compareInputs);
+    }
+     execTool(ctx, path, inputs={}, constructor_argument=undefined) {
+      return new Promise((accept, reject) =>        {
+        let tool=path;
+        try {
+          if (typeof tool=="string"||!(__instance_of(tool, ToolOp))) {
+              tool = this.createTool(ctx, path, inputs, constructor_argument);
+          }
+        }
+        catch (error) {
+            print_stack(error);
+            reject(error);
+            return ;
+        }
+        accept(tool);
+        try {
+          ctx.toolstack.execTool(ctx, tool);
+        }
+        catch (error) {
+            print_stack(error);
+            throw error;
+        }
+      });
+    }
+     pushReportContext(name) {
+
+    }
+     popReportContext() {
+
+    }
+    static  toolRegistered(tool) {
+      throw new Error("implement me");
+    }
+    static  registerTool(tool) {
+      throw new Error("implement me");
+    }
+     massSetProp(ctx, mass_set_path, value) {
+      throw new Error("implement me");
+    }
+     resolveMassSetPaths(ctx, mass_set_path) {
+      throw new Error("implement me");
+    }
+     resolvePath(ctx, path, ignoreExistence, rootStruct) {
+
+    }
+     setValue(ctx, path, val, rootStruct) {
+      let res=this.resolvePath(ctx, path, undefined, rootStruct);
+      let prop=res.prop;
+      if (prop!==undefined&&(prop.flag&PropFlags.READ_ONLY)) {
+          throw new DataPathError("Tried to set read only property");
+      }
+      if (prop!==undefined&&(prop.flag&PropFlags.USE_CUSTOM_GETSET)) {
+          prop.dataref = res.obj;
+          prop.ctx = ctx;
+          prop.datapath = path;
+          if (res.subkey!==undefined) {
+              let val2=prop.getValue();
+              if (typeof val2==="object") {
+                  val2 = val2.copy();
+              }
+              if (prop.type===PropTypes.FLAG) {
+                  if (val) {
+                      val2|=prop.values[res.subkey];
+                  }
+                  else {
+                    val2&=~prop.values[res.subkey];
+                  }
+                  val = val2;
+              }
+              else 
+                if (prop.type===PropTypes.ENUM) {
+                  val = prop.values[res.subkey];
+              }
+              else {
+                val2[res.subkey] = val;
+                val = val2;
+              }
+          }
+          prop.setValue(val);
+          return ;
+      }
+      if (prop!==undefined) {
+          if (prop.type===PropTypes.CURVE&&!val) {
+              throw new DataPathError("can't set curve data to nothing");
+          }
+          let use_range=(prop.type&(PropTypes.INT|PropTypes.FLOAT));
+          use_range = use_range||(res.subkey&&(prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)));
+          use_range = use_range&&prop.range;
+          use_range = use_range&&!(prop.range[0]===0.0&&prop.range[1]===0.0);
+          use_range = use_range&&typeof val==="number";
+          if (use_range) {
+              val = Math.min(Math.max(val, prop.range[0]), prop.range[1]);
+          }
+      }
+      let old=res.obj[res.key];
+      if (res.subkey!==undefined&&res.prop!==undefined&&res.prop.type===PropTypes.ENUM) {
+          let ival=res.prop.values[res.subkey];
+          if (val) {
+              res.obj[res.key] = ival;
+          }
+      }
+      else 
+        if (res.prop!==undefined&&res.prop.type===PropTypes.FLAG) {
+          if (res.subkey!==undefined) {
+              let ival=res.prop.values[res.subkey];
+              if (val) {
+                  res.obj[res.key]|=ival;
+              }
+              else {
+                res.obj[res.key]&=~ival;
+              }
+          }
+          else 
+            if (typeof val==="number"||typeof val==="boolean") {
+              val = typeof val==="boolean" ? (val&1) : val;
+              res.obj[res.key] = val;
+          }
+          else {
+            throw new DataPathError("Expected a number for a bitmask property");
+          }
+      }
+      else 
+        if (res.subkey!==undefined&&isVecProperty(res.prop)) {
+          res.obj[res.key][res.subkey] = val;
+      }
+      else 
+        if (!(prop!==undefined&&__instance_of(prop, ListIface))) {
+          res.obj[res.key] = val;
+      }
+      if (prop!==undefined&&__instance_of(prop, ListIface)) {
+          prop.set(this, res.obj, res.key, val);
+      }
+      else 
+        if (prop!==undefined) {
+          prop.dataref = res.obj;
+          prop.datapath = path;
+          prop.ctx = ctx;
+          prop._fire("change", res.obj[res.key], old);
+      }
+    }
+     getDescription(ctx, path) {
+      let rdef=this.resolvePath(ctx, path);
+      if (rdef===undefined) {
+          throw new DataPathError("invalid path "+path);
+      }
+      if (!rdef.prop||!(__instance_of(rdef.prop, ToolProperty))) {
+          return "";
+      }
+      let type=rdef.prop.type;
+      let prop=rdef.prop;
+      if (rdef.subkey!==undefined) {
+          let subkey=rdef.subkey;
+          if (type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)) {
+              if (prop.descriptions&&subkey in prop.descriptions) {
+                  return prop.descriptions[subkey];
+              }
+          }
+          else 
+            if (type&(PropTypes.ENUM|PropTypes.FLAG)) {
+              if (!(subkey in prop.values)&&subkey in prop.keys) {
+                  subkey = prop.keys[subkey];
+              }
+              
+              if (prop.descriptions&&subkey in prop.descriptions) {
+                  return prop.descriptions[subkey];
+              }
+          }
+          else 
+            if (type===PropTypes.PROPLIST) {
+              let val=tdef.value;
+              if (typeof val==="object"&&__instance_of(val, ToolProperty)) {
+                  return val.description;
+              }
+          }
+      }
+      return rdef.prop.description ? rdef.prop.description : rdef.prop.uiname;
+    }
+     validPath(ctx, path, rootStruct) {
+      try {
+        this.getValue(ctx, path, rootStruct);
+        return true;
+      }
+      catch (error) {
+          if (!(__instance_of(error, DataPathError))) {
+              throw error;
+          }
+      }
+      return false;
+    }
+     getPropName(ctx, path) {
+      let i=path.length-1;
+      while (i>=0&&path[i]!==".") {
+        i--;
+      }
+      path = path.slice(i+1, path.length).trim();
+      if (path.endsWith("]")) {
+          i = path.length-1;
+          while (i>=0&&path[i]!=="[") {
+            i--;
+          }
+          path = path.slice(0, i).trim();
+          return this.getPropName(ctx, path);
+      }
+      return path;
+    }
+     getValue(ctx, path, rootStruct=undefined) {
+      if (typeof ctx=="string") {
+          throw new Error("You forgot to pass context to getValue");
+      }
+      let ret=this.resolvePath(ctx, path, undefined, rootStruct);
+      if (ret===undefined) {
+          throw new DataPathError("invalid path "+path);
+      }
+      let exec=ret.prop!==undefined&&(ret.prop.flag&PropFlags.USE_CUSTOM_GETSET);
+      exec = exec&&!(ret.prop!==undefined&&(ret.prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4|PropTypes.QUAT)));
+      if (exec) {
+          ret.prop.dataref = ret.obj;
+          ret.prop.datapath = path;
+          ret.prop.ctx = ctx;
+          let val=ret.prop.getValue();
+          if (typeof val==="string"&&(ret.prop.type&(PropTypes.FLAG|PropTypes.ENUM))) {
+              val = ret.prop.values[val];
+          }
+          if (ret.subkey&&ret.prop.type===PropTypes.ENUM) {
+              val = val===ret.prop.values[ret.subkey];
+          }
+          else 
+            if (ret.subkey&&ret.prop.type===PropTypes.FLAG) {
+              val = val&ret.prop.values[ret.subkey];
+          }
+          return val;
+      }
+      return ret.value;
+    }
   }
-  var ___toolsys_toolprop_js=es6_import(_es6_module, './toolsys/toolprop.js');
-  for (let k in ___toolsys_toolprop_js) {
-      _es6_module.add_export(k, ___toolsys_toolprop_js[k], true);
+  _ESClass.register(ModelInterface);
+  _es6_module.add_class(ModelInterface);
+  ModelInterface = _es6_module.add_export('ModelInterface', ModelInterface);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_abstract.js');
+
+
+es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js"], function _controller_base_module(_es6_module) {
+  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
+  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
+  var toolprop_abstract=es6_import(_es6_module, '../toolsys/toolprop_abstract.js');
+  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
+  var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
+  const DataFlags={READ_ONLY: 1, 
+   USE_CUSTOM_GETSET: 2, 
+   USE_FULL_UNDO: 4}
+  _es6_module.add_export('DataFlags', DataFlags);
+  const DataTypes={STRUCT: 0, 
+   DYNAMIC_STRUCT: 1, 
+   PROP: 2, 
+   ARRAY: 3}
+  _es6_module.add_export('DataTypes', DataTypes);
+  class DataPathError extends Error {
   }
-  var toolprop_abstract1=es6_import(_es6_module, './toolsys/toolprop_abstract.js');
-  const toolprop_abstract=toolprop_abstract1;
-  _es6_module.add_export('toolprop_abstract', toolprop_abstract);
-  var ___toolsys_simple_toolsys_js=es6_import(_es6_module, './toolsys/simple_toolsys.js');
-  for (let k in ___toolsys_simple_toolsys_js) {
-      _es6_module.add_export(k, ___toolsys_simple_toolsys_js[k], true);
+  _ESClass.register(DataPathError);
+  _es6_module.add_class(DataPathError);
+  DataPathError = _es6_module.add_export('DataPathError', DataPathError);
+  
+  function getVecClass(proptype) {
+    switch (proptype) {
+      case PropTypes.VEC2:
+        return Vector2;
+      case PropTypes.VEC3:
+        return Vector3;
+      case PropTypes.VEC4:
+        return Vector4;
+      case PropTypes.QUAT:
+        return Quat;
+      default:
+        throw new Error("bad prop type "+proptype);
+    }
+  }
+  getVecClass = _es6_module.add_export('getVecClass', getVecClass);
+  function isVecProperty(prop) {
+    if (!prop||typeof prop!=="object"||prop===null)
+      return false;
+    let ok=false;
+    ok = ok||__instance_of(prop, toolprop_abstract.Vec2PropertyIF);
+    ok = ok||__instance_of(prop, toolprop_abstract.Vec3PropertyIF);
+    ok = ok||__instance_of(prop, toolprop_abstract.Vec4PropertyIF);
+    ok = ok||__instance_of(prop, toolprop.Vec2Property);
+    ok = ok||__instance_of(prop, toolprop.Vec3Property);
+    ok = ok||__instance_of(prop, toolprop.Vec4Property);
+    ok = ok||prop.type===PropTypes.VEC2;
+    ok = ok||prop.type===PropTypes.VEC3;
+    ok = ok||prop.type===PropTypes.VEC4;
+    ok = ok||prop.type===PropTypes.QUAT;
+    return ok;
+  }
+  isVecProperty = _es6_module.add_export('isVecProperty', isVecProperty);
+  class DataPath  {
+     constructor(path, apiname, prop, type=DataTypes.PROP) {
+      this.type = type;
+      this.data = prop;
+      this.apiname = apiname;
+      this.path = path;
+      this.flag = 0;
+      this.struct = undefined;
+    }
+     copy() {
+      let ret=new DataPath();
+      ret.flag = this.flag;
+      ret.type = this.type;
+      ret.data = this.data;
+      ret.apiname = this.apiname;
+      ret.path = this.path;
+      ret.struct = this.struct;
+      return ret;
+    }
+     noUndo() {
+      this.data.flag|=PropFlags.NO_UNDO;
+      return this;
+    }
+     setProp(prop) {
+      this.data = prop;
+    }
+     readOnly() {
+      this.flag|=DataFlags.READ_ONLY;
+      if (this.type===DataTypes.PROP) {
+          this.data.flag|=PropFlags.READ_ONLY;
+      }
+      return this;
+    }
+     read_only() {
+      console.warn("DataPath.read_only is deprecated; use readOnly");
+      return this.readOnly();
+    }
+     customGetSet(get, set) {
+      this.flag|=DataFlags.USE_CUSTOM_GETSET;
+      if (this.type!==DataTypes.DYNAMIC_STRUCT&&this.type!==DataTypes.STRUCT) {
+          this.data.flag|=PropFlags.USE_CUSTOM_GETSET;
+          this.data._getValue = this.data.getValue;
+          this.data._setValue = this.data.setValue;
+          if (get)
+            this.data.getValue = get;
+          if (set)
+            this.data.setValue = set;
+      }
+      else {
+        this.getSet = {get: get, 
+      set: set};
+        this.getSet.dataref = undefined;
+        this.getSet.datapath = undefined;
+        this.getSet.ctx = undefined;
+      }
+      return this;
+    }
+     customSet(set) {
+      this.customGetSet(undefined, set);
+      return this;
+    }
+     customGet(get) {
+      this.customGetSet(get, undefined);
+      return this;
+    }
+     on(type, cb) {
+      if (this.type==DataTypes.PROP) {
+          this.data.on(type, cb);
+      }
+      else {
+        throw new Error("invalid call to DataPath.on");
+      }
+      return this;
+    }
+     off(type, cb) {
+      if (this.type===DataTypes.PROP) {
+          this.data.off(type, cb);
+      }
+    }
+     simpleSlider() {
+      this.data.flag|=PropFlags.SIMPLE_SLIDER;
+      this.data.flag&=~PropFlags.FORCE_ROLLER_SLIDER;
+      return this;
+    }
+     rollerSlider() {
+      this.data.flag&=~PropFlags.SIMPLE_SLIDER;
+      this.data.flag|=PropFlags.FORCE_ROLLER_SLIDER;
+      return this;
+    }
+     noUnits() {
+      this.baseUnit("none");
+      this.displayUnit("none");
+      return this;
+    }
+     baseUnit(unit) {
+      this.data.setBaseUnit(unit);
+      return this;
+    }
+     displayUnit(unit) {
+      this.data.setDisplayUnit(unit);
+      return this;
+    }
+     unit(unit) {
+      return this.baseUnit(unit).displayUnit(unit);
+    }
+     editAsBaseUnit() {
+      this.data.flag|=PropFlags.EDIT_AS_BASE_UNIT;
+      return this;
+    }
+     range(min, max) {
+      this.data.setRange(min, max);
+      return this;
+    }
+     uiRange(min, max) {
+      this.data.setUIRange(min, max);
+      return this;
+    }
+     decimalPlaces(n) {
+      this.data.setDecimalPlaces(n);
+      return this;
+    }
+     uiNameGetter(func) {
+      this.ui_name_get = func;
+      return this;
+    }
+     expRate(exp) {
+      this.data.setExpRate(exp);
+      return this;
+    }
+     uniformSlider(state=true) {
+      this.data.uniformSlider(state);
+      return this;
+    }
+     radix(r) {
+      this.data.setRadix(r);
+      return this;
+    }
+     relativeStep(s) {
+      this.data.setRelativeStep(s);
+      return this;
+    }
+     step(s) {
+      this.data.setStep(s);
+      return this;
+    }
+     fullSaveUndo() {
+      this.flag|=DataFlags.USE_FULL_UNDO;
+      this.data.flag|=PropFlags.USE_BASE_UNDO;
+      return this;
+    }
+     icon(i) {
+      this.data.setIcon(i);
+      return this;
+    }
+     icon2(i) {
+      this.data.setIcon2(i);
+      return this;
+    }
+     icons(icons) {
+      this.data.addIcons(icons);
+      return this;
+    }
+     icons2(icons) {
+      this.data.addIcons2(icons);
+      return this;
+    }
+     descriptions(description_map) {
+      this.data.addDescriptions(description_map);
+      return this;
+    }
+     uiNames(uinames) {
+      this.data.addUINames(uinames);
+      return this;
+    }
+     description(d) {
+      this.data.description = d;
+      return this;
+    }
+  }
+  _ESClass.register(DataPath);
+  _es6_module.add_class(DataPath);
+  DataPath = _es6_module.add_export('DataPath', DataPath);
+  const StructFlags={NO_UNDO: 1}
+  _es6_module.add_export('StructFlags', StructFlags);
+  class ListIface  {
+     getStruct(api, list, key) {
+
+    }
+     get(api, list, key) {
+
+    }
+     getKey(api, list, obj) {
+
+    }
+     getActive(api, list) {
+
+    }
+     setActive(api, list, val) {
+
+    }
+     set(api, list, key, val) {
+      list[key] = val;
+    }
+     getIter() {
+
+    }
+     filter(api, list, filter) {
+
+    }
+  }
+  _ESClass.register(ListIface);
+  _es6_module.add_class(ListIface);
+  ListIface = _es6_module.add_export('ListIface', ListIface);
+  class ToolOpIface  {
+     constructor() {
+
+    }
+    static  tooldef() {
+      return {uiname: "!untitled tool", 
+     icon: -1, 
+     toolpath: "logical_module.tool", 
+     description: undefined, 
+     is_modal: false, 
+     inputs: {}, 
+     outputs: {}}
+    }
+  }
+  _ESClass.register(ToolOpIface);
+  _es6_module.add_class(ToolOpIface);
+  ToolOpIface = _es6_module.add_export('ToolOpIface', ToolOpIface);
+  
+  let DataAPIClass=undefined;
+  function setImplementationClass(cls) {
+    DataAPIClass = cls;
+  }
+  setImplementationClass = _es6_module.add_export('setImplementationClass', setImplementationClass);
+  function registerTool(cls) {
+    if (DataAPIClass===undefined) {
+        throw new Error("data api not initialized properly; call setImplementationClass");
+    }
+    return DataAPIClass.registerTool(cls);
+  }
+  registerTool = _es6_module.add_export('registerTool', registerTool);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
+
+
+es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/toolsys.js", "./controller_base.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+  var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
+  var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
+  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropFlags');
+  var BoolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'BoolProperty');
+  var IntProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'IntProperty');
+  var FloatProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'FloatProperty');
+  var FlagProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'FlagProperty');
+  var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
+  var StringProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'StringProperty');
+  var Vec3Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec3Property');
+  var Vec2Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec2Property');
+  var Vec4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec4Property');
+  var QuatProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'QuatProperty');
+  var Mat4Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Mat4Property');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var isVecProperty=es6_import_item(_es6_module, './controller_base.js', 'isVecProperty');
+  var getVecClass=es6_import_item(_es6_module, './controller_base.js', 'getVecClass');
+  class DataPathSetOp extends ToolOp {
+     constructor() {
+      super();
+      this.propType = -1;
+      this._undo = undefined;
+    }
+     setValue(ctx, val, object) {
+      let prop=this.inputs.prop;
+      let path=this.inputs.dataPath.getValue();
+      if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
+      }
+      prop.dataref = object;
+      prop.ctx = ctx;
+      prop.datapath = path;
+      try {
+        prop.setValue(val);
+        this.hadError = false;
+      }
+      catch (error) {
+          console.error("Error setting datapath", path);
+          this.hadError = true;
+      }
+    }
+    static  create(ctx, datapath, value, id, massSetPath) {
+      let rdef=ctx.api.resolvePath(ctx, datapath);
+      if (rdef===undefined||rdef.prop===undefined) {
+          console.warn("DataPathSetOp failed", rdef, rdef.prop);
+          return ;
+      }
+      let prop=rdef.prop;
+      let tool=new DataPathSetOp();
+      tool.propType = prop.type;
+      if (prop&&(prop.flag&PropFlags.USE_BASE_UNDO)) {
+          tool.inputs.fullSaveUndo.setValue(true);
+      }
+      let mask=PropTypes.FLAG|PropTypes.ENUM;
+      mask|=PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4|PropTypes.QUAT;
+      if (rdef.subkey!==undefined&&(prop.type&mask)) {
+          if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
+              let i=datapath.length-1;
+              while (i>=0&&datapath[i]!=='[') {
+                i--;
+              }
+              if (i>=0) {
+                  datapath = datapath.slice(0, i);
+              }
+              tool.inputs.prop = new IntProperty();
+          }
+          else {
+            tool.inputs.prop = new FloatProperty();
+          }
+          let subkey=rdef.subkey;
+          if (typeof subkey!=="number") {
+              subkey = rdef.prop.values[subkey];
+          }
+          if (prop.type===PropTypes.ENUM) {
+              value = subkey;
+          }
+          else 
+            if (prop.type===PropTypes.FLAG) {
+              let value2=ctx.api.getValue(ctx, datapath);
+              if (typeof value2!=="number") {
+                  value2 = typeof value2==="boolean" ? (value&1) : 0;
+              }
+              if (value) {
+                  value2|=subkey;
+              }
+              else {
+                value2&=~subkey;
+              }
+              value = value2;
+          }
+      }
+      else {
+        tool.inputs.prop = prop.copy();
+      }
+      tool.inputs.dataPath.setValue(datapath);
+      if (massSetPath) {
+          tool.inputs.massSetPath.setValue(massSetPath);
+      }
+      else {
+        tool.inputs.massSetPath.setValue("");
+      }
+      tool.id = id;
+      tool.setValue(ctx, value, rdef.obj);
+      return tool;
+    }
+     hash(massSetPath, dataPath, prop, id) {
+      massSetPath = massSetPath===undefined ? "" : massSetPath;
+      massSetPath = massSetPath===null ? "" : massSetPath;
+      let ret=""+massSetPath+":"+dataPath+":"+prop+":"+id;
+      return ret;
+    }
+     hashThis() {
+      return this.hash(this.inputs.massSetPath.getValue(), this.inputs.dataPath.getValue(), this.propType, this.id);
+    }
+     undoPre(ctx) {
+      if (this.inputs.fullSaveUndo.getValue()) {
+          return super.undoPre(ctx);
+      }
+      if (this.__ctx)
+        ctx = this.__ctx;
+      this._undo = {};
+      let paths=new Set();
+      if (this.inputs.massSetPath.getValue().trim()) {
+          let massSetPath=this.inputs.massSetPath.getValue().trim();
+          paths = new Set(ctx.api.resolveMassSetPaths(ctx, massSetPath));
+      }
+      paths.add(this.inputs.dataPath.getValue());
+      for (let path of paths) {
+          let val=ctx.api.getValue(ctx, path);
+          if (typeof val==="object") {
+              val = val.copy();
+          }
+          this._undo[path] = val;
+      }
+    }
+     undo(ctx) {
+      if (this.__ctx)
+        ctx = this.__ctx;
+      if (this.inputs.fullSaveUndo.getValue()) {
+          return super.undo(ctx);
+      }
+      for (let path in this._undo) {
+          let rdef=ctx.api.resolvePath(ctx, path);
+          if (rdef.prop!==undefined&&(rdef.prop.type&(PropTypes.ENUM|PropTypes.FLAG))) {
+              let old=rdef.obj[rdef.key];
+              if (rdef.subkey) {
+                  let key=rdef.subkey;
+                  if (typeof key!=="number") {
+                      key = rdef.prop.values[key];
+                  }
+                  if (rdef.prop.type===PropTypes.FLAG) {
+                      if (this._undo[path]) {
+                          rdef.obj[rdef.key]|=key;
+                      }
+                      else {
+                        rdef.obj[rdef.key]&=~key;
+                      }
+                  }
+                  else {
+                    rdef.obj[rdef.key] = key;
+                  }
+              }
+              else {
+                rdef.obj[rdef.key] = this._undo[path];
+              }
+              rdef.prop.dataref = rdef.obj;
+              rdef.prop.datapath = path;
+              rdef.prop.ctx = ctx;
+              rdef.prop._fire("change", rdef.obj[rdef.key], old);
+          }
+          else {
+            try {
+              ctx.api.setValue(ctx, path, this._undo[path]);
+            }
+            catch (error) {
+                util.print_stack(error);
+                console.warn("Failed to set property in undo for DataPathSetOp");
+            }
+          }
+      }
+    }
+     exec(ctx) {
+      if (this.__ctx) {
+          ctx = this.__ctx;
+      }
+      let path=this.inputs.dataPath.getValue();
+      let massSetPath=this.inputs.massSetPath.getValue().trim();
+      try {
+        ctx.api.setValue(ctx, path, this.inputs.prop.getValue());
+        this.hadError = false;
+      }
+      catch (error) {
+          console.log(error.stack);
+          console.log(error.message);
+          console.log("error setting "+path);
+          this.hadError = true;
+      }
+      if (massSetPath) {
+          try {
+            ctx.api.massSetProp(ctx, massSetPath, this.inputs.prop.getValue());
+          }
+          catch (error) {
+              console.log(error.stack);
+              console.log(error.message);
+              console.log("error setting "+path);
+              this.hadError = true;
+          }
+      }
+    }
+     modalStart(ctx) {
+      this.__ctx = ctx.toLocked();
+      super.modalStart(this.__ctx);
+      this.exec(this.__ctx);
+      this.modalEnd(false);
+    }
+    static  tooldef() {
+      return {uiname: "Property Set", 
+     toolpath: "app.prop_set", 
+     icon: -1, 
+     flag: ToolFlags.PRIVATE, 
+     is_modal: true, 
+     inputs: {dataPath: new StringProperty(), 
+      massSetPath: new StringProperty(), 
+      fullSaveUndo: new BoolProperty(false)}}
+    }
+  }
+  _ESClass.register(DataPathSetOp);
+  _es6_module.add_class(DataPathSetOp);
+  DataPathSetOp = _es6_module.add_export('DataPathSetOp', DataPathSetOp);
+  ToolOp.register(DataPathSetOp);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_ops.js');
+
+
+es6_module_define('controller', ["./toolsys/toolprop.js", "./toolsys/toolpath.js", "./controller/controller_abstract.js", "./util/html5_fileapi.js", "./util/graphpack.js", "./util/math.js", "./toolsys/toolsys.js", "./util/simple_events.js", "./util/vectormath.js", "./util/solver.js", "./curve/curve1d.js", "./util/parseutil.js", "./config/config.js", "./controller/controller_ops.js", "./toolsys/toolprop_abstract.js", "./controller/context.js", "./util/struct.js", "./controller/controller_base.js", "./curve/curve1d_base.js", "./util/util.js", "./util/colorutils.js", "./controller/controller.js"], function _controller_module(_es6_module) {
+  var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
+  for (let k in ___controller_context_js) {
+      _es6_module.add_export(k, ___controller_context_js[k], true);
   }
   var ___controller_controller_js=es6_import(_es6_module, './controller/controller.js');
   for (let k in ___controller_controller_js) {
       _es6_module.add_export(k, ___controller_controller_js[k], true);
   }
+  var ___controller_controller_abstract_js=es6_import(_es6_module, './controller/controller_abstract.js');
+  for (let k in ___controller_controller_abstract_js) {
+      _es6_module.add_export(k, ___controller_controller_abstract_js[k], true);
+  }
   var ___controller_controller_ops_js=es6_import(_es6_module, './controller/controller_ops.js');
   for (let k in ___controller_controller_ops_js) {
       _es6_module.add_export(k, ___controller_controller_ops_js[k], true);
   }
-  var ___controller_simple_controller_js=es6_import(_es6_module, './controller/simple_controller.js');
-  for (let k in ___controller_simple_controller_js) {
-      _es6_module.add_export(k, ___controller_simple_controller_js[k], true);
+  var ___controller_controller_abstract_js=es6_import(_es6_module, './controller/controller_abstract.js');
+  for (let k in ___controller_controller_abstract_js) {
+      _es6_module.add_export(k, ___controller_controller_abstract_js[k], true);
   }
-  var html5_fileapi1=es6_import(_es6_module, './util/html5_fileapi.js');
-  const html5_fileapi=html5_fileapi1;
-  _es6_module.add_export('html5_fileapi', html5_fileapi);
-  var ___util_image_js=es6_import(_es6_module, './util/image.js');
-  for (let k in ___util_image_js) {
-      _es6_module.add_export(k, ___util_image_js[k], true);
+  var ___controller_controller_base_js=es6_import(_es6_module, './controller/controller_base.js');
+  for (let k in ___controller_controller_base_js) {
+      _es6_module.add_export(k, ___controller_controller_base_js[k], true);
   }
-  var ___screen_ScreenArea_js=es6_import(_es6_module, './screen/ScreenArea.js');
-  for (let k in ___screen_ScreenArea_js) {
-      _es6_module.add_export(k, ___screen_ScreenArea_js[k], true);
+  var ___toolsys_toolsys_js=es6_import(_es6_module, './toolsys/toolsys.js');
+  for (let k in ___toolsys_toolsys_js) {
+      _es6_module.add_export(k, ___toolsys_toolsys_js[k], true);
   }
-  var ___util_ScreenOverdraw_js=es6_import(_es6_module, './util/ScreenOverdraw.js');
-  for (let k in ___util_ScreenOverdraw_js) {
-      _es6_module.add_export(k, ___util_ScreenOverdraw_js[k], true);
+  var ___toolsys_toolprop_js=es6_import(_es6_module, './toolsys/toolprop.js');
+  for (let k in ___toolsys_toolprop_js) {
+      _es6_module.add_export(k, ___toolsys_toolprop_js[k], true);
   }
-  var ___util_struct_js=es6_import(_es6_module, './util/struct.js');
-  for (let k in ___util_struct_js) {
-      _es6_module.add_export(k, ___util_struct_js[k], true);
-  }
-  var ___util_simple_events_js=es6_import(_es6_module, './util/simple_events.js');
-  for (let k in ___util_simple_events_js) {
-      _es6_module.add_export(k, ___util_simple_events_js[k], true);
-  }
-  var ___util_events_js=es6_import(_es6_module, './util/events.js');
-  for (let k in ___util_events_js) {
-      _es6_module.add_export(k, ___util_events_js[k], true);
-  }
-  var ___curve_curve1d_js=es6_import(_es6_module, './curve/curve1d.js');
-  for (let k in ___curve_curve1d_js) {
-      _es6_module.add_export(k, ___curve_curve1d_js[k], true);
+  var ___toolsys_toolpath_js=es6_import(_es6_module, './toolsys/toolpath.js');
+  for (let k in ___toolsys_toolpath_js) {
+      _es6_module.add_export(k, ___toolsys_toolpath_js[k], true);
   }
   var ___curve_curve1d_base_js=es6_import(_es6_module, './curve/curve1d_base.js');
   for (let k in ___curve_curve1d_base_js) {
       _es6_module.add_export(k, ___curve_curve1d_base_js[k], true);
   }
-  var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
-  for (let k in ___controller_context_js) {
-      _es6_module.add_export(k, ___controller_context_js[k], true);
+  var ___curve_curve1d_js=es6_import(_es6_module, './curve/curve1d.js');
+  for (let k in ___curve_curve1d_js) {
+      _es6_module.add_export(k, ___curve_curve1d_js[k], true);
   }
+  var solver1=es6_import(_es6_module, './util/solver.js');
+  const solver=solver1;
+  _es6_module.add_export('solver', solver);
+  var util1=es6_import(_es6_module, './util/util.js');
+  const util=util1;
+  _es6_module.add_export('util', util);
+  var vectormath1=es6_import(_es6_module, './util/vectormath.js');
+  const vectormath=vectormath1;
+  _es6_module.add_export('vectormath', vectormath);
+  var math1=es6_import(_es6_module, './util/math.js');
+  const math=math1;
+  _es6_module.add_export('math', math);
+  var toolprop_abstract1=es6_import(_es6_module, './toolsys/toolprop_abstract.js');
+  const toolprop_abstract=toolprop_abstract1;
+  _es6_module.add_export('toolprop_abstract', toolprop_abstract);
+  var html5_fileapi1=es6_import(_es6_module, './util/html5_fileapi.js');
+  const html5_fileapi=html5_fileapi1;
+  _es6_module.add_export('html5_fileapi', html5_fileapi);
   var parseutil1=es6_import(_es6_module, './util/parseutil.js');
   const parseutil=parseutil1;
   _es6_module.add_export('parseutil', parseutil);
-  var cconst1=es6_import_item(_es6_module, './config/const.js', 'default');
-  const cconst=cconst1;
-  _es6_module.add_export('cconst', cconst);
-}, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
-es6_module_define('electron_api', ["../../widgets/ui_menu.js", "../../core/ui_base.js", "../../config/const.js"], function _electron_api_module(_es6_module) {
+  var config1=es6_import(_es6_module, './config/config.js');
+  const config=config1;
+  _es6_module.add_export('config', config);
+  var nstructjs1=es6_import_item(_es6_module, './util/struct.js', 'default');
+  const nstructjs=nstructjs1;
+  _es6_module.add_export('nstructjs', nstructjs);
+  var ___util_vectormath_js=es6_import(_es6_module, './util/vectormath.js');
+  for (let k in ___util_vectormath_js) {
+      _es6_module.add_export(k, ___util_vectormath_js[k], true);
+  }
+  var ___util_math_js=es6_import(_es6_module, './util/math.js');
+  for (let k in ___util_math_js) {
+      _es6_module.add_export(k, ___util_math_js[k], true);
+  }
+  var ___util_colorutils_js=es6_import(_es6_module, './util/colorutils.js');
+  for (let k in ___util_colorutils_js) {
+      _es6_module.add_export(k, ___util_colorutils_js[k], true);
+  }
+  var ___util_graphpack_js=es6_import(_es6_module, './util/graphpack.js');
+  for (let k in ___util_graphpack_js) {
+      _es6_module.add_export(k, ___util_graphpack_js[k], true);
+  }
+  var ___util_solver_js=es6_import(_es6_module, './util/solver.js');
+  for (let k in ___util_solver_js) {
+      _es6_module.add_export(k, ___util_solver_js[k], true);
+  }
+  var ___util_simple_events_js=es6_import(_es6_module, './util/simple_events.js');
+  for (let k in ___util_simple_events_js) {
+      _es6_module.add_export(k, ___util_simple_events_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller.js');
+
+
+es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../util/util.js", "../util/events.js", "./curve1d_base.js", "../util/vectormath.js", "./curve1d_anim.js", "../util/struct.js"], function _curve1d_module(_es6_module) {
   "use strict";
-  var Menu=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'Menu');
-  var DropBox=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'DropBox');
-  var getIconManager=es6_import_item(_es6_module, '../../core/ui_base.js', 'getIconManager');
-  var cconst=es6_import_item(_es6_module, '../../config/const.js', 'default');
-  let _menu_init=false;
-  let _init=false;
-  function patchDropBox() {
-    DropBox.prototype._onpress = function _onpress(e) {
-      if (this._menu!==undefined) {
-          this._menu.close();
-          this._menu = undefined;
-          this._pressed = false;
-          this._redraw();
-          return ;
-      }
-      this._build_menu();
-      let getCurrentWindow=require("electron").remote.getCurrentWindow, Menu=require("electron").remote.Menu, MenuItem=require("electron").remote.MenuItem;
-      let emenu=buildElectronMenu(this._menu);
-      this._menu.close = () =>        {
-        emenu.closePopup(getCurrentWindow);
-      }
-      if (this._menu===undefined) {
-          return ;
-      }
-      this._menu._dropbox = this;
-      this.dom._background = this.getDefault("BoxDepressed");
-      this._background = this.getDefault("BoxDepressed");
-      this._redraw();
-      this._pressed = true;
-      this.setCSS();
-      let onclose=this._menu.onclose;
-      this._menu.onclose = () =>        {
-        this._pressed = false;
-        this._redraw();
-        let menu=this._menu;
-        if (menu) {
-            this._menu = undefined;
-            menu._dropbox = undefined;
-        }
-        if (onclose) {
-            onclose.call(menu);
-        }
-      }
-      let menu=this._menu;
-      let screen=this.getScreen();
-      let dpi=this.getDPI();
-      let x=e.x, y=e.y;
-      let rects=this.dom.getClientRects();
-      x = rects[0].x;
-      y = rects[0].y+Math.ceil(rects[0].height);
-      x = ~~x;
-      y = ~~y;
-      emenu.popup({x: x, 
-     y: y, 
-     callback: () =>          {
-          if (this._menu) {
-              this._menu.onclose();
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var EventDispatcher=es6_import_item(_es6_module, '../util/events.js', 'EventDispatcher');
+  let _ex_getCurve=es6_import_item(_es6_module, './curve1d_base.js', 'getCurve');
+  _es6_module.add_export('getCurve', _ex_getCurve, true);
+  let _ex_SplineTemplates=es6_import_item(_es6_module, './curve1d_bspline.js', 'SplineTemplates');
+  _es6_module.add_export('SplineTemplates', _ex_SplineTemplates, true);
+  let _ex_SplineTemplateIcons=es6_import_item(_es6_module, './curve1d_bspline.js', 'SplineTemplateIcons');
+  _es6_module.add_export('SplineTemplateIcons', _ex_SplineTemplateIcons, true);
+  var Vector2=vectormath.Vector2;
+  es6_import(_es6_module, './curve1d_basic.js');
+  es6_import(_es6_module, './curve1d_bspline.js');
+  es6_import(_es6_module, './curve1d_anim.js');
+  function mySafeJSONStringify(obj) {
+    return JSON.stringify(obj.toJSON(), function (key) {
+      let v=this[key];
+      if (typeof v==="number") {
+          if (v!==Math.floor(v)) {
+              v = parseFloat(v.toFixed(5));
           }
-        }});
+          else {
+            v = v;
+          }
+      }
+      return v;
+    });
+  }
+  mySafeJSONStringify = _es6_module.add_export('mySafeJSONStringify', mySafeJSONStringify);
+  function mySafeJSONParse(buf) {
+    return JSON.parse(buf, (key, val) =>      {    });
+  }
+  mySafeJSONParse = _es6_module.add_export('mySafeJSONParse', mySafeJSONParse);
+  
+  window.mySafeJSONStringify = mySafeJSONStringify;
+  let _ex_CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
+  _es6_module.add_export('CurveConstructors', _ex_CurveConstructors, true);
+  let _ex_CURVE_VERSION=es6_import_item(_es6_module, './curve1d_base.js', 'CURVE_VERSION');
+  _es6_module.add_export('CURVE_VERSION', _ex_CURVE_VERSION, true);
+  let _ex_CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
+  _es6_module.add_export('CurveTypeData', _ex_CurveTypeData, true);
+  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
+  var CURVE_VERSION=es6_import_item(_es6_module, './curve1d_base.js', 'CURVE_VERSION');
+  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
+  let _udigest=new util.HashDigest();
+  class Curve1D extends EventDispatcher {
+     constructor() {
+      super();
+      this.uiZoom = 1.0;
+      this.generators = [];
+      this.VERSION = CURVE_VERSION;
+      for (let gen of CurveConstructors) {
+          gen = new gen();
+          gen.parent = this;
+          this.generators.push(gen);
+      }
+      this.setGenerator("bspline");
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      let d=digest;
+      for (let g of this.generators) {
+          g.calcHashKey(d);
+      }
+      return d.get();
+    }
+     equals(b) {
+      let gen1=this.generators.active;
+      let gen2=b.generators.active;
+      if (!gen1||!gen2||gen1.constructor!==gen2.constructor) {
+          return false;
+      }
+      return gen1.equals(gen2);
+    }
+    get  generatorType() {
+      return this.generators.active ? this.generators.active.type : undefined;
+    }
+     load(b) {
+      if (b===undefined) {
+          return ;
+      }
+      let buf1=mySafeJSONStringify(b);
+      let buf2=mySafeJSONStringify(this);
+      if (buf1===buf2) {
+          return ;
+      }
+      this.loadJSON(JSON.parse(buf1));
+      this._on_change();
+      this.redraw();
+      return this;
+    }
+     copy() {
+      let ret=new Curve1D();
+      ret.loadJSON(JSON.parse(mySafeJSONStringify(this)));
+      return ret;
+    }
+     _on_change() {
+
+    }
+     redraw() {
+      this._fireEvent("draw", this);
+    }
+     setGenerator(type) {
+      for (let gen of this.generators) {
+          if (gen.constructor.define().name===type||gen.type===type||gen.constructor.name===type||gen.constructor===type) {
+              if (this.generators.active) {
+                  this.generators.active.onInactive();
+              }
+              this.generators.active = gen;
+              gen.onActive();
+              return ;
+          }
+      }
+      throw new Error("unknown curve type "+type);
+    }
+    get  fastmode() {
+      return this._fastmode;
+    }
+    set  fastmode(val) {
+      this._fastmode = val;
+      for (let gen of this.generators) {
+          gen.fastmode = val;
+      }
+    }
+     toJSON() {
+      let ret={generators: [], 
+     uiZoom: this.uiZoom, 
+     VERSION: this.VERSION, 
+     active_generator: this.generatorType};
+      for (let gen of this.generators) {
+          ret.generators.push(gen.toJSON());
+      }
+      ret.generators.sort((a, b) =>        {
+        return a.type.localeCompare(b.type);
+      });
+      return ret;
+    }
+     getGenerator(type, throw_on_error=true) {
+      for (let gen of this.generators) {
+          if (gen.type===type) {
+              return gen;
+          }
+      }
+      for (let cls of CurveConstructors) {
+          if (cls.name===type) {
+              let gen=new cls();
+              gen.type = type;
+              this.generators.push(gen);
+              return gen;
+          }
+      }
+      if (throw_on_error) {
+          throw new Error("Unknown generator "+type+".");
+      }
+      else {
+        return undefined;
+      }
+    }
+     switchGenerator(type) {
+      let gen=this.getGenerator(type);
+      if (gen!==this.generators.active) {
+          let old=this.generators.active;
+          this.generators.active = gen;
+          old.onInactive(this);
+          gen.onActive(this);
+      }
+      return gen;
+    }
+     destroy() {
+      return this;
+    }
+     loadJSON(obj) {
+      this.VERSION = obj.VERSION;
+      this.uiZoom = parseFloat(obj.uiZoom)||this.uiZoom;
+      for (let gen of obj.generators) {
+          let gen2=this.getGenerator(gen.type, false);
+          if (!gen2||!(__instance_of(gen2, CurveTypeData))) {
+              console.warn("Bad curve generator class:", gen2);
+              if (gen2) {
+                  this.generators.remove(gen2);
+              }
+              continue;
+          }
+          gen2.parent = undefined;
+          gen2.reset();
+          gen2.loadJSON(gen);
+          gen2.parent = this;
+          if (gen.type===obj.active_generator) {
+              this.generators.active = gen2;
+          }
+      }
+      return this;
+    }
+     evaluate(s) {
+      return this.generators.active.evaluate(s);
+    }
+     integrate(s, quadSteps) {
+      return this.generators.active.integrate(s, quadSteps);
+    }
+     derivative(s) {
+      return this.generators.active.derivative(s);
+    }
+     derivative2(s) {
+      return this.generators.active.derivative2(s);
+    }
+     inverse(s) {
+      return this.generators.active.inverse(s);
+    }
+     reset() {
+      this.generators.active.reset();
+    }
+     update() {
+      return this.generators.active.update();
+    }
+     draw(canvas, g, draw_transform) {
+      var w=canvas.width, h=canvas.height;
+      console.warn("draw");
+      g.save();
+      let sz=draw_transform[0], pan=draw_transform[1];
+      g.beginPath();
+      g.moveTo(-1, 0);
+      g.lineTo(1, 0);
+      g.strokeStyle = "red";
+      g.stroke();
+      g.beginPath();
+      g.moveTo(0, -1);
+      g.lineTo(0, 1);
+      g.strokeStyle = "green";
+      g.stroke();
+      var f=0, steps=64;
+      var df=1/(steps-1);
+      var w=6.0/sz;
+      let curve=this.generators.active;
+      g.beginPath();
+      for (var i=0; i<steps; i++, f+=df) {
+          var val=curve.evaluate(f);
+          (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
+      }
+      g.strokeStyle = "grey";
+      g.stroke();
+      if (this.overlay_curvefunc!==undefined) {
+          g.beginPath();
+          f = 0.0;
+          for (var i=0; i<steps; i++, f+=df) {
+              var val=this.overlay_curvefunc(f);
+              (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
+          }
+          g.strokeStyle = "green";
+          g.stroke();
+      }
+      this.generators.active.draw(canvas, g, draw_transform);
+      g.restore();
+      return this;
+    }
+     loadSTRUCT(reader) {
+      this.generators = [];
+      reader(this);
+      if (this.VERSION<=0.75) {
+          this.generators = [];
+          for (let cls of CurveConstructors) {
+              this.generators.push(new cls());
+          }
+          this.generators.active = this.getGenerator("BSplineCurve");
+      }
+      for (let gen of this.generators.concat([])) {
+          if (!(__instance_of(gen, CurveTypeData))) {
+              console.warn("Bad generator data found:", gen);
+              this.generators.remove(gen);
+              continue;
+          }
+          if (gen.type===this._active) {
+              this.generators.active = gen;
+          }
+      }
+      delete this._active;
     }
   }
-  let on_tick=() =>    {
-    let nativeTheme=require("electron").remote.nativeTheme;
-    let mode=nativeTheme.shouldUseDarkColors ? "dark" : "light";
-    if (mode!==cconst.colorSchemeType) {
-        nativeTheme.themeSource = cconst.colorSchemeType;
+  _ESClass.register(Curve1D);
+  _es6_module.add_class(Curve1D);
+  Curve1D = _es6_module.add_export('Curve1D', Curve1D);
+  Curve1D.STRUCT = `
+Curve1D {
+  generators  : array(abstract(CurveTypeData));
+  _active     : string | obj.generators.active.type;
+  VERSION     : float;
+  uiZoom      : float;
+}
+`;
+  nstructjs.register(Curve1D);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d.js');
+
+
+es6_module_define('curve1d_anim', ["../util/struct.js", "../util/util.js", "./curve1d_base.js", "./ease.js"], function _curve1d_anim_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
+  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
+  var Ease=es6_import_item(_es6_module, './ease.js', 'default');
+  var util=es6_import(_es6_module, '../util/util.js');
+  function bez3(a, b, c, t) {
+    var r1=a+(b-a)*t;
+    var r2=b+(c-b)*t;
+    return r1+(r2-r1)*t;
+  }
+  function bez4(a, b, c, d, t) {
+    var r1=bez3(a, b, c, t);
+    var r2=bez3(b, c, d, t);
+    return r1+(r2-r1)*t;
+  }
+  class ParamKey  {
+     constructor(key, val) {
+      this.key = key;
+      this.val = val;
     }
   }
-  function checkInit() {
-    if (window.haveElectron&&!_init) {
-        _init = true;
-        patchDropBox();
-        setInterval(on_tick, 350);
+  _ESClass.register(ParamKey);
+  _es6_module.add_class(ParamKey);
+  ParamKey = _es6_module.add_export('ParamKey', ParamKey);
+  ParamKey.STRUCT = `
+ParamKey {
+  key : string;
+  val : float;
+}
+`;
+  nstructjs.register(ParamKey);
+  let BOOL_FLAG=1e+17;
+  let _udigest=new util.HashDigest();
+  class SimpleCurveBase extends CurveTypeData {
+     constructor() {
+      super();
+      this.type = this.constructor.name;
+      let def=this.constructor.define();
+      let params=def.params;
+      this.params = {};
+      for (let k in params) {
+          this.params[k] = params[k][1];
+      }
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      let d=digest;
+      super.calcHashKey(d);
+      for (let k in this.params) {
+          digest.add(k);
+          digest.add(this.params[k]);
+      }
+      return d.get();
+    }
+     equals(b) {
+      if (this.type!==b.type) {
+          return false;
+      }
+      for (let k in this.params) {
+          if (Math.abs(this.params[k]-b.params[k])>1e-06) {
+              return false;
+          }
+      }
+      return true;
+    }
+     redraw() {
+      if (this.parent)
+        this.parent.redraw();
+    }
+    get  hasGUI() {
+      return true;
+    }
+     makeGUI(container) {
+      let def=this.constructor.define();
+      let params=def.params;
+      for (let k in params) {
+          let p=params[k];
+          if (p[2]===BOOL_FLAG) {
+              let check=container.check(undefined, p[0]);
+              check.checked = !!this.params[k];
+              check.key = k;
+              let this2=this;
+              check.onchange = function () {
+                this2.params[this.key] = this.checked ? 1 : 0;
+                this2.update();
+                this2.redraw();
+              };
+          }
+          else {
+            let slider=container.slider(undefined, {name: p[0], 
+        defaultval: this.params[k], 
+        min: p[2], 
+        max: p[3]});
+            slider.baseUnit = slider.displayUnit = "none";
+            slider.key = k;
+            let this2=this;
+            slider.onchange = function () {
+              this2.params[this.key] = this.value;
+              this2.update();
+              this2.redraw();
+            };
+          }
+      }
+    }
+     killGUI(container) {
+      container.clear();
+    }
+     evaluate(s) {
+      throw new Error("implement me!");
+    }
+     reset() {
+
+    }
+     update() {
+      super.update();
+    }
+     draw(canvas, g, draw_transform) {
+      let steps=128;
+      let s=0, ds=1.0/(steps-1);
+      g.beginPath();
+      for (let i=0; i<steps; i++, s+=ds) {
+          let co=this.evaluate(s);
+          if (i) {
+              g.lineTo(co[0], co[1]);
+          }
+          else {
+            g.moveTo(co[0], co[1]);
+          }
+      }
+      g.stroke();
+    }
+     _saveParams() {
+      let ret=[];
+      for (let k in this.params) {
+          ret.push(new ParamKey(k, this.params[k]));
+      }
+      return ret;
+    }
+     toJSON() {
+      return Object.assign(super.toJSON(), {params: this.params});
+    }
+     loadJSON(obj) {
+      for (let k in obj.params) {
+          this.params[k] = obj.params[k];
+      }
+      return this;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      let ps=this.params;
+      this.params = {};
+      let pdef=this.constructor.define().params;
+      if (!pdef) {
+          console.warn("Missing define function for curve", this.constructor.name);
+          return ;
+      }
+      for (let pair of ps) {
+          if (pair.key in pdef) {
+              this.params[pair.key] = pair.val;
+          }
+      }
+      for (let k in pdef) {
+          if (!(k in this.params)) {
+              this.params[k] = pdef[k][1];
+          }
+      }
     }
   }
-  checkInit = _es6_module.add_export('checkInit', checkInit);
-  let iconcache={}
-  iconcache = _es6_module.add_export('iconcache', iconcache);
-  function makeIconKey(icon, iconsheet, invertColors) {
-    return ""+icon+":"+iconsheet+":"+invertColors;
+  _ESClass.register(SimpleCurveBase);
+  _es6_module.add_class(SimpleCurveBase);
+  SimpleCurveBase = _es6_module.add_export('SimpleCurveBase', SimpleCurveBase);
+  SimpleCurveBase.STRUCT = nstructjs.inherit(SimpleCurveBase, CurveTypeData)+`
+  params : array(ParamKey) | obj._saveParams();
+}
+`;
+  nstructjs.register(SimpleCurveBase);
+  class BounceCurve extends SimpleCurveBase {
+     _evaluate(t) {
+      let params=this.params;
+      let decay=params.decay+1.0;
+      let scale=params.scale;
+      let freq=params.freq;
+      let phase=params.phase;
+      let offset=params.offset;
+      t*=freq;
+      let t2=Math.abs(Math.cos(phase+t*Math.PI*2.0))*scale;
+      
+      t2*=Math.exp(decay*t)/Math.exp(decay);
+      return t2;
+    }
+     evaluate(t) {
+      let s=this._evaluate(0.0);
+      let e=this._evaluate(1.0);
+      return (this._evaluate(t)-s)/(e-s)+this.params.offset;
+    }
+    static  define() {
+      return {params: {decay: ["Decay", 1.0, 0.1, 5.0], 
+      scale: ["Scale", 1.0, 0.01, 10.0], 
+      freq: ["Freq", 1.0, 0.01, 50.0], 
+      phase: ["Phase", 0.0, -Math.PI*2.0, Math.PI*2.0], 
+      offset: ["Offset", 0.0, -2.0, 2.0]}, 
+     name: "bounce", 
+     uiname: "Bounce"}
+    }
   }
-  function getNativeIcon(icon, iconsheet, invertColors) {
-    if (iconsheet===undefined) {
-        iconsheet = 0;
+  _ESClass.register(BounceCurve);
+  _es6_module.add_class(BounceCurve);
+  BounceCurve = _es6_module.add_export('BounceCurve', BounceCurve);
+  CurveTypeData.register(BounceCurve);
+  BounceCurve.STRUCT = nstructjs.inherit(BounceCurve, SimpleCurveBase)+`
+}`;
+  nstructjs.register(BounceCurve);
+  class ElasticCurve extends SimpleCurveBase {
+     constructor() {
+      super();
+      this._func = undefined;
+      this._last_hash = undefined;
     }
-    if (invertColors===undefined) {
-        invertColors = false;
+     evaluate(t) {
+      let hash=~~(this.params.mode*127+this.params.amplitude*256+this.params.period*512);
+      if (hash!==this._last_hash||!this._func) {
+          this._last_hash = hash;
+          if (this.params.mode) {
+              this._func = Ease.getElasticOut(this.params.amplitude, this.params.period);
+          }
+          else {
+            this._func = Ease.getElasticIn(this.params.amplitude, this.params.period);
+          }
+      }
+      return this._func(t);
     }
-    let icongen=require("./icogen.js");
-    window.icongen = icongen;
-    let nativeImage=require("electron").nativeImage;
-    let manager=getIconManager();
-    let sheet=manager.findSheet(iconsheet);
-    let images=[];
-    let sizes=icongen.GetRequiredICOImageSizes();
-    if (1) {
-        let size=16;
-        let iconsheet=manager.findClosestSheet(size);
-        let tilesize=manager.getTileSize(iconsheet);
+    static  define() {
+      return {params: {mode: ["Out Mode", false, BOOL_FLAG, BOOL_FLAG], 
+      amplitude: ["Amplitude", 1.0, 0.01, 10.0], 
+      period: ["Period", 1.0, 0.01, 5.0]}, 
+     name: "elastic", 
+     uiname: "Elastic"}
+    }
+  }
+  _ESClass.register(ElasticCurve);
+  _es6_module.add_class(ElasticCurve);
+  ElasticCurve = _es6_module.add_export('ElasticCurve', ElasticCurve);
+  CurveTypeData.register(ElasticCurve);
+  ElasticCurve.STRUCT = nstructjs.inherit(ElasticCurve, SimpleCurveBase)+`
+}`;
+  nstructjs.register(ElasticCurve);
+  class EaseCurve extends SimpleCurveBase {
+     constructor() {
+      super();
+    }
+     evaluate(t) {
+      let amp=this.params.amplitude;
+      let a1=this.params.mode_in ? 1.0-amp : 1.0/3.0;
+      let a2=this.params.mode_out ? amp : 2.0/3.0;
+      return bez4(0.0, a1, a2, 1.0, t);
+    }
+    static  define() {
+      return {params: {mode_in: ["in", true, BOOL_FLAG, BOOL_FLAG], 
+      mode_out: ["out", true, BOOL_FLAG, BOOL_FLAG], 
+      amplitude: ["Amplitude", 1.0, 0.01, 4.0]}, 
+     name: "ease", 
+     uiname: "Ease"}
+    }
+  }
+  _ESClass.register(EaseCurve);
+  _es6_module.add_class(EaseCurve);
+  EaseCurve = _es6_module.add_export('EaseCurve', EaseCurve);
+  CurveTypeData.register(EaseCurve);
+  EaseCurve.STRUCT = nstructjs.inherit(EaseCurve, SimpleCurveBase)+`
+}`;
+  nstructjs.register(EaseCurve);
+  class RandCurve extends SimpleCurveBase {
+     constructor() {
+      super();
+      this.random = new util.MersenneRandom();
+      this.seed = 0;
+    }
+    set  seed(v) {
+      this.random.seed(v);
+      this._seed = v;
+    }
+    get  seed() {
+      return this._seed;
+    }
+     evaluate(t) {
+      let r=this.random.random();
+      let decay=this.params.decay+1.0;
+      let amp=this.params.amplitude;
+      let in_mode=this.params.in_mode;
+      if (in_mode) {
+          t = 1.0-t;
+      }
+      let d;
+      if (in_mode) {
+          d = Math.exp(t*decay)/Math.exp(decay);
+      }
+      else {
+        d = Math.exp(t*decay)/Math.exp(decay);
+      }
+      t = t+(r-t)*d;
+      if (in_mode) {
+          t = 1.0-t;
+      }
+      return t;
+    }
+    static  define() {
+      return {params: {amplitude: ["Amplitude", 1.0, 0.01, 4.0], 
+      decay: ["Decay", 1.0, 0.0, 5.0], 
+      in_mode: ["In", true, BOOL_FLAG, BOOL_FLAG]}, 
+     name: "random", 
+     uiname: "Random"}
+    }
+  }
+  _ESClass.register(RandCurve);
+  _es6_module.add_class(RandCurve);
+  RandCurve = _es6_module.add_export('RandCurve', RandCurve);
+  CurveTypeData.register(RandCurve);
+  RandCurve.STRUCT = nstructjs.inherit(RandCurve, SimpleCurveBase)+`
+}`;
+  nstructjs.register(RandCurve);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_anim.js');
+
+
+es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], function _curve1d_base_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var util=es6_import(_es6_module, '../util/util.js');
+  const CurveConstructors=[];
+  _es6_module.add_export('CurveConstructors', CurveConstructors);
+  const CURVE_VERSION=1.0;
+  _es6_module.add_export('CURVE_VERSION', CURVE_VERSION);
+  const CurveFlags={SELECT: 1}
+  _es6_module.add_export('CurveFlags', CurveFlags);
+  const TangentModes={SMOOTH: 1, 
+   BREAK: 2}
+  _es6_module.add_export('TangentModes', TangentModes);
+  function getCurve(type, throw_on_error) {
+    if (throw_on_error===undefined) {
+        throw_on_error = true;
+    }
+    for (let cls of CurveConstructors) {
+        if (cls.name===type)
+          return cls;
+        if (cls.define().name===type)
+          return cls;
+    }
+    if (throw_on_error) {
+        throw new Error("Unknown curve type "+type);
+    }
+    else {
+      console.warn("Unknown curve type", type);
+      return getCurve("ease");
+    }
+  }
+  getCurve = _es6_module.add_export('getCurve', getCurve);
+  let _udigest=new util.HashDigest();
+  class CurveTypeData  {
+     constructor() {
+      this.type = this.constructor.name;
+    }
+    static  register(cls) {
+      if (cls.define===CurveTypeData.define) {
+          throw new Error("missing define() static method");
+      }
+      let def=cls.define();
+      if (!def.name) {
+          throw new Error(cls.name+".define() result is missing 'name' field");
+      }
+      CurveConstructors.push(cls);
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      let d=digest;
+      d.add(this.type);
+      return d.get();
+    }
+     toJSON() {
+      return {type: this.type}
+    }
+     equals(b) {
+      return this.type===b.type;
+    }
+     loadJSON(obj) {
+      this.type = obj.type;
+      return this;
+    }
+     redraw() {
+      if (this.parent)
+        this.parent.redraw();
+    }
+    get  hasGUI() {
+      throw new Error("get hasGUI(): implement me!");
+    }
+     makeGUI(container) {
+
+    }
+     killGUI(container) {
+      container.clear();
+    }
+     evaluate(s) {
+      throw new Error("implement me!");
+    }
+     integrate(s1, quadSteps=64) {
+      let ret=0.0, ds=s1/quadSteps;
+      for (let i=0, s=0; i<quadSteps; i++, s+=ds) {
+          ret+=this.evaluate(s)*ds;
+      }
+      return ret;
+    }
+     derivative(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.evaluate(s)-this.evaluate(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.evaluate(s+df)-this.evaluate(s))/df;
+      }
+      else {
+        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
+      }
+    }
+     derivative2(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.derivative(s)-this.derivative(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.derivative(s+df)-this.derivative(s))/df;
+      }
+      else {
+        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
+      }
+    }
+     inverse(y) {
+      let steps=9;
+      let ds=1.0/steps, s=0.0;
+      let best=undefined;
+      let ret=undefined;
+      for (let i=0; i<steps; i++, s+=ds) {
+          let s1=s, s2=s+ds;
+          let mid;
+          for (let j=0; j<11; j++) {
+              let y1=this.evaluate(s1);
+              let y2=this.evaluate(s2);
+              mid = (s1+s2)*0.5;
+              if (Math.abs(y1-y)<Math.abs(y2-y)) {
+                  s2 = mid;
+              }
+              else {
+                s1 = mid;
+              }
+          }
+          let ymid=this.evaluate(mid);
+          if (best===undefined||Math.abs(y-ymid)<best) {
+              best = Math.abs(y-ymid);
+              ret = mid;
+          }
+      }
+      return ret===undefined ? 0.0 : ret;
+    }
+    static  define() {
+      return {uiname: "Some Curve", 
+     name: "somecurve"}
+    }
+     onActive(parent, draw_transform) {
+
+    }
+     onInactive(parent, draw_transform) {
+
+    }
+     reset() {
+
+    }
+     destroy() {
+
+    }
+     update() {
+      if (this.parent)
+        this.parent._on_change();
+    }
+     draw(canvas, g, draw_transform) {
+
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(CurveTypeData);
+  _es6_module.add_class(CurveTypeData);
+  CurveTypeData = _es6_module.add_export('CurveTypeData', CurveTypeData);
+  CurveTypeData.STRUCT = `
+CurveTypeData {
+  type : string;
+}
+`;
+  nstructjs.register(CurveTypeData);
+  function evalHermiteTable(table, t) {
+    let s=t*(table.length/4);
+    let i=Math.floor(s);
+    s-=i;
+    i*=4;
+    let a=table[i]+(table[i+1]-table[i])*s;
+    let b=table[i+2]+(table[i+3]-table[i+2])*s;
+    return a+(b-a)*s;
+  }
+  evalHermiteTable = _es6_module.add_export('evalHermiteTable', evalHermiteTable);
+  function genHermiteTable(evaluate, steps) {
+    let table=new Array(steps);
+    let eps=1e-05;
+    let dt=(1.0-eps*4.001)/(steps-1);
+    let t=eps*4;
+    let lastdv1, lastf3;
+    for (let j=0; j<steps; j++, t+=dt) {
+        let f2=evaluate(t-eps);
+        let f3=evaluate(t);
+        let f4=evaluate(t+eps);
+        let dv1=(f4-f2)/(eps*2);
+        dv1/=steps;
+        if (j>0) {
+            let j2=j-1;
+            table[j2*4] = lastf3;
+            table[j2*4+1] = lastf3+lastdv1/3.0;
+            table[j2*4+2] = f3-dv1/3.0;
+            table[j2*4+3] = f3;
+        }
+        lastdv1 = dv1;
+        lastf3 = f3;
+    }
+    return table;
+  }
+  genHermiteTable = _es6_module.add_export('genHermiteTable', genHermiteTable);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_base.js');
+
+
+es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../util/vectormath.js", "./curve1d_base.js"], function _curve1d_basic_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
+  var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
+  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
+  var genHermiteTable=es6_import_item(_es6_module, './curve1d_base.js', 'genHermiteTable');
+  var evalHermiteTable=es6_import_item(_es6_module, './curve1d_base.js', 'evalHermiteTable');
+  var util=es6_import(_es6_module, '../util/util.js');
+  let _udigest=new util.HashDigest();
+  function feq(a, b) {
+    return Math.abs(a-b)<1e-05;
+  }
+  class EquationCurve extends CurveTypeData {
+     constructor(type) {
+      super();
+      this.equation = "x";
+      this._last_equation = "";
+      this.hermite = undefined;
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      let d=digest;
+      super.calcHashKey(d);
+      d.add(this.equation);
+      return d.get();
+    }
+    static  define() {
+      return {uiname: "Equation", 
+     name: "equation"}
+    }
+     equals(b) {
+      return super.equals(b)&&this.equation===b.equation;
+    }
+     toJSON() {
+      let ret=super.toJSON();
+      return Object.assign(ret, {equation: this.equation});
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      if (obj.equation!==undefined) {
+          this.equation = obj.equation;
+      }
+      return this;
+    }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+     makeGUI(container, canvas, drawTransform) {
+      this.uidata = {canvas: canvas, 
+     g: canvas.g, 
+     draw_trans: drawTransform};
+      let text=this.uidata.textbox = container.textbox(undefined, this.equation);
+      text.onchange = (val) =>        {
+        console.log(val);
+        this.equation = val;
+        this.update();
+        this.redraw();
+      };
+    }
+     killGUI(dom, gui, canvas, g, draw_transform) {
+      if (this.uidata!==undefined) {
+          this.uidata.textbox.remove();
+      }
+      this.uidata = undefined;
+    }
+     updateTextBox() {
+      if (this.uidata&&this.uidata.textbox) {
+          this.uidata.textbox.text = this.equation;
+      }
+    }
+     evaluate(s) {
+      if (!this.hermite||this._last_equation!==this.equation) {
+          this._last_equation = this.equation;
+          this.updateTextBox();
+          this._evaluate(0.0);
+          if (this._haserror) {
+              console.warn("ERROR!");
+              return 0.0;
+          }
+          let steps=32;
+          this.hermite = genHermiteTable((s) =>            {
+            return this._evaluate(s);
+          }, steps);
+      }
+      return evalHermiteTable(this.hermite, s);
+    }
+     _evaluate(s) {
+      let sin=Math.sin, cos=Math.cos, pi=Math.PI, PI=Math.PI, e=Math.E, E=Math.E, tan=Math.tan, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, acos=Math.acos, asin=Math.asin, atan=Math.atan, cosh=Math.cos, sinh=Math.sinh, log=Math.log, pow=Math.pow, exp=Math.exp, sqrt=Math.sqrt, cbrt=Math.cbrt, min=Math.min, max=Math.max;
+      try {
+        let x=s;
+        let ret=eval(this.equation);
+        this._haserror = false;
+        return ret;
+      }
+      catch (error) {
+          this._haserror = true;
+          console.warn("ERROR!");
+          return 0.0;
+      }
+    }
+     derivative(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.evaluate(s)-this.evaluate(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.evaluate(s+df)-this.evaluate(s))/df;
+      }
+      else {
+        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
+      }
+    }
+     derivative2(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.derivative(s)-this.derivative(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.derivative(s+df)-this.derivative(s))/df;
+      }
+      else {
+        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
+      }
+    }
+     inverse(y) {
+      let steps=9;
+      let ds=1.0/steps, s=0.0;
+      let best=undefined;
+      let ret=undefined;
+      for (let i=0; i<steps; i++, s+=ds) {
+          let s1=s, s2=s+ds;
+          let mid;
+          for (let j=0; j<11; j++) {
+              let y1=this.evaluate(s1);
+              let y2=this.evaluate(s2);
+              mid = (s1+s2)*0.5;
+              if (Math.abs(y1-y)<Math.abs(y2-y)) {
+                  s2 = mid;
+              }
+              else {
+                s1 = mid;
+              }
+          }
+          let ymid=this.evaluate(mid);
+          if (best===undefined||Math.abs(y-ymid)<best) {
+              best = Math.abs(y-ymid);
+              ret = mid;
+          }
+      }
+      return ret===undefined ? 0.0 : ret;
+    }
+     onActive(parent, draw_transform) {
+
+    }
+     onInactive(parent, draw_transform) {
+
+    }
+     reset() {
+      this.equation = "x";
+    }
+     destroy() {
+
+    }
+     draw(canvas, g, draw_transform) {
+      g.save();
+      if (this._haserror) {
+          g.fillStyle = g.strokeStyle = "rgba(255, 50, 0, 0.25)";
+          g.beginPath();
+          g.rect(0, 0, 1, 1);
+          g.fill();
+          g.beginPath();
+          g.moveTo(0, 0);
+          g.lineTo(1, 1);
+          g.moveTo(0, 1);
+          g.lineTo(1, 0);
+          g.lineWidth*=3;
+          g.stroke();
+          g.restore();
+          return ;
+      }
+      g.restore();
+    }
+  }
+  _ESClass.register(EquationCurve);
+  _es6_module.add_class(EquationCurve);
+  EquationCurve.STRUCT = nstructjs.inherit(EquationCurve, CurveTypeData)+`
+  equation : string;
+}
+`;
+  nstructjs.register(EquationCurve);
+  CurveTypeData.register(EquationCurve);
+  class GuassianCurve extends CurveTypeData {
+     constructor(type) {
+      super();
+      this.height = 1.0;
+      this.offset = 1.0;
+      this.deviation = 0.3;
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      super.calcHashKey(digest);
+      let d=digest;
+      d.add(this.height);
+      d.add(this.offset);
+      d.add(this.deviation);
+      return d.get();
+    }
+     equals(b) {
+      let r=super.equals(b);
+      r = r&&feq(this.height, b.height);
+      r = r&&feq(this.offset, b.offset);
+      r = r&&feq(this.deviation, b.deviation);
+      return r;
+    }
+    static  define() {
+      return {uiname: "Guassian", 
+     name: "guassian"}
+    }
+     toJSON() {
+      let ret=super.toJSON();
+      return Object.assign(ret, {height: this.height, 
+     offset: this.offset, 
+     deviation: this.deviation});
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      this.height = obj.height!==undefined ? obj.height : 1.0;
+      this.offset = obj.offset;
+      this.deviation = obj.deviation;
+      return this;
+    }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+     makeGUI(container, canvas, drawTransform) {
+      this.uidata = {canvas: canvas, 
+     g: canvas.g, 
+     draw_trans: drawTransform};
+      this.uidata.hslider = container.slider(undefined, "Height", this.height, -10, 10, 0.0001);
+      this.uidata.hslider.onchange = () =>        {
+        this.height = this.uidata.hslider.value;
+        this.redraw();
+        this.update();
+      };
+      this.uidata.oslider = container.slider(undefined, "Offset", this.offset, -10, 10, 0.0001);
+      this.uidata.oslider.onchange = () =>        {
+        this.offset = this.uidata.oslider.value;
+        this.redraw();
+        this.update();
+      };
+      this.uidata.dslider = container.slider(undefined, "STD Deviation", this.deviation, -10, 10, 0.0001);
+      this.uidata.dslider.onchange = () =>        {
+        this.deviation = this.uidata.dslider.value;
+        this.redraw();
+        this.update();
+      };
+    }
+     killGUI(dom, gui, canvas, g, draw_transform) {
+      if (this.uidata!==undefined) {
+          this.uidata.hslider.remove();
+          this.uidata.oslider.remove();
+          this.uidata.dslider.remove();
+      }
+      this.uidata = undefined;
+    }
+     evaluate(s) {
+      let r=this.height*Math.exp(-((s-this.offset)*(s-this.offset))/(2*this.deviation*this.deviation));
+      return r;
+    }
+     derivative(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.evaluate(s)-this.evaluate(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.evaluate(s+df)-this.evaluate(s))/df;
+      }
+      else {
+        return (this.evaluate(s+df)-this.evaluate(s-df))/(2*df);
+      }
+    }
+     derivative2(s) {
+      let df=0.0001;
+      if (s>1.0-df*3) {
+          return (this.derivative(s)-this.derivative(s-df))/df;
+      }
+      else 
+        if (s<df*3) {
+          return (this.derivative(s+df)-this.derivative(s))/df;
+      }
+      else {
+        return (this.derivative(s+df)-this.derivative(s-df))/(2*df);
+      }
+    }
+     inverse(y) {
+      let steps=9;
+      let ds=1.0/steps, s=0.0;
+      let best=undefined;
+      let ret=undefined;
+      for (let i=0; i<steps; i++, s+=ds) {
+          let s1=s, s2=s+ds;
+          let mid;
+          for (let j=0; j<11; j++) {
+              let y1=this.evaluate(s1);
+              let y2=this.evaluate(s2);
+              mid = (s1+s2)*0.5;
+              if (Math.abs(y1-y)<Math.abs(y2-y)) {
+                  s2 = mid;
+              }
+              else {
+                s1 = mid;
+              }
+          }
+          let ymid=this.evaluate(mid);
+          if (best===undefined||Math.abs(y-ymid)<best) {
+              best = Math.abs(y-ymid);
+              ret = mid;
+          }
+      }
+      return ret===undefined ? 0.0 : ret;
+    }
+  }
+  _ESClass.register(GuassianCurve);
+  _es6_module.add_class(GuassianCurve);
+  GuassianCurve.STRUCT = nstructjs.inherit(GuassianCurve, CurveTypeData)+`
+  height    : float;
+  offset    : float;
+  deviation : float;
+}
+`;
+  nstructjs.register(GuassianCurve);
+  CurveTypeData.register(GuassianCurve);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_basic.js');
+
+
+es6_module_define('curve1d_bspline', ["../config/config.js", "../util/vectormath.js", "./curve1d_base.js", "../util/struct.js", "../util/util.js"], function _curve1d_bspline_module(_es6_module) {
+  "use strict";
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var config=es6_import_item(_es6_module, '../config/config.js', 'default');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  let Vector2=vectormath.Vector2;
+  const SplineTemplates={CONSTANT: 0, 
+   LINEAR: 1, 
+   SHARP: 2, 
+   SQRT: 3, 
+   SMOOTH: 4, 
+   SMOOTHER: 5, 
+   SHARPER: 6, 
+   SPHERE: 7, 
+   REVERSE_LINEAR: 8, 
+   GUASSIAN: 9}
+  _es6_module.add_export('SplineTemplates', SplineTemplates);
+  const templates={[SplineTemplates.CONSTANT]: [[1, 1], [1, 1]], 
+   [SplineTemplates.LINEAR]: [[0, 0], [1, 1]], 
+   [SplineTemplates.SHARP]: [[0, 0], [0.9999, 0.0001], [1, 1]], 
+   [SplineTemplates.SQRT]: [[0, 0], [0.05, 0.25], [0.33, 0.65], [1, 1]], 
+   [SplineTemplates.SMOOTH]: ["DEG", 2, [0, 0], [1.0/3.0, 0], [2.0/3.0, 1.0], [1, 1]], 
+   [SplineTemplates.SMOOTHER]: ["DEG", 6, [0, 0], [1.0/2.25, 0], [2.0/3.0, 1.0], [1, 1]], 
+   [SplineTemplates.SHARPER]: [[0, 0], [0.3, 0.03], [0.7, 0.065], [0.9, 0.16], [1, 1]], 
+   [SplineTemplates.SPHERE]: [[0, 0], [0.01953, 0.23438], [0.08203, 0.43359], [0.18359, 0.625], [0.35938, 0.81641], [0.625, 0.97656], [1, 1]], 
+   [SplineTemplates.REVERSE_LINEAR]: [[0, 1], [1, 0]], 
+   [SplineTemplates.GUASSIAN]: ["DEG", 5, [0, 0], [0.17969, 0.007], [0.48958, 0.01172], [0.77995, 0.99609], [1, 1]]}
+  const SplineTemplateIcons={}
+  _es6_module.add_export('SplineTemplateIcons', SplineTemplateIcons);
+  let RecalcFlags={BASIS: 1, 
+   FULL: 2, 
+   ALL: 3, 
+   FULL_BASIS: 4}
+  function mySafeJSONStringify(obj) {
+    return JSON.stringify(obj.toJSON(), function (key) {
+      let v=this[key];
+      if (typeof v==="number") {
+          if (v!==Math.floor(v)) {
+              v = parseFloat(v.toFixed(5));
+          }
+          else {
+            v = v;
+          }
+      }
+      return v;
+    });
+  }
+  mySafeJSONStringify = _es6_module.add_export('mySafeJSONStringify', mySafeJSONStringify);
+  function mySafeJSONParse(buf) {
+    return JSON.parse(buf, (key, val) =>      {    });
+  }
+  mySafeJSONParse = _es6_module.add_export('mySafeJSONParse', mySafeJSONParse);
+  
+  window.mySafeJSONStringify = mySafeJSONStringify;
+  let bin_cache={}
+  window._bin_cache = bin_cache;
+  let eval2_rets=util.cachering.fromConstructor(Vector2, 32);
+  function bez3(a, b, c, t) {
+    let r1=a+(b-a)*t;
+    let r2=b+(c-b)*t;
+    return r1+(r2-r1)*t;
+  }
+  function bez4(a, b, c, d, t) {
+    let r1=bez3(a, b, c, t);
+    let r2=bez3(b, c, d, t);
+    return r1+(r2-r1)*t;
+  }
+  function binomial(n, i) {
+    if (i>n) {
+        throw new Error("Bad call to binomial(n, i), i was > than n");
+    }
+    if (i===0||i===n) {
+        return 1;
+    }
+    let key=""+n+","+i;
+    if (key in bin_cache)
+      return bin_cache[key];
+    let ret=binomial(n-1, i-1)+bin(n-1, i);
+    bin_cache[key] = ret;
+    return ret;
+  }
+  binomial = _es6_module.add_export('binomial', binomial);
+  window.bin = binomial;
+  var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
+  var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
+  var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
+  class Curve1DPoint extends Vector2 {
+     constructor(co) {
+      super(co);
+      this.rco = new Vector2(co);
+      this.sco = new Vector2(co);
+      this.startco = new Vector2();
+      this.eid = -1;
+      this.flag = 0;
+      this.tangent = TangentModes.SMOOTH;
+      Object.seal(this);
+    }
+    set  deg(v) {
+      console.warn("old file data detected");
+    }
+     copy() {
+      let ret=new Curve1DPoint(this);
+      ret.tangent = this.tangent;
+      ret.flag = this.flag;
+      ret.eid = this.eid;
+      ret.startco.load(this.startco);
+      ret.rco.load(this.rco);
+      ret.sco.load(this.sco);
+      return ret;
+    }
+     toJSON() {
+      return {0: this[0], 
+     1: this[1], 
+     eid: this.eid, 
+     flag: this.flag, 
+     tangent: this.tangent, 
+     rco: this.rco}
+    }
+    static  fromJSON(obj) {
+      let ret=new Curve1DPoint(obj);
+      ret.eid = obj.eid;
+      ret.flag = obj.flag;
+      ret.tangent = obj.tangent;
+      ret.rco.load(obj.rco);
+      return ret;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      this.sco.load(this);
+      this.rco.load(this);
+      splineCache.update(this);
+    }
+  }
+  _ESClass.register(Curve1DPoint);
+  _es6_module.add_class(Curve1DPoint);
+  Curve1DPoint = _es6_module.add_export('Curve1DPoint', Curve1DPoint);
+  
+  Curve1DPoint.STRUCT = `
+Curve1DPoint {
+  0       : float;
+  1       : float;
+  eid     : int;
+  flag    : int;
+  tangent : int;
+  rco     : vec2;
+}
+`;
+  nstructjs.register(Curve1DPoint);
+  let _udigest=new util.HashDigest();
+  class BSplineCache  {
+     constructor() {
+      this.curves = [];
+      this.map = new Map();
+      this.maxCurves = 32;
+      this.gen = 0;
+    }
+     limit() {
+      if (this.curves.length<=this.maxCurves) {
+          return ;
+      }
+      this.curves.sort((a, b) =>        {
+        return b.cache_w-a.cache_w;
+      });
+      while (this.curves.length>this.maxCurves) {
+        let curve=this.curves.pop();
+        this.map.delete(curve.calcHashKey());
+      }
+    }
+     has(curve) {
+      let curve2=this.map.get(curve.calcHashKey());
+      return curve2&&curve2.equals(curve);
+    }
+     get(curve) {
+      let key=curve.calcHashKey();
+      curve._last_cache_key = key;
+      let curve2=this.map.get(key);
+      if (curve2&&curve2.equals(curve)) {
+          curve2.cache_w = this.gen++;
+          return curve2;
+      }
+      curve2 = curve.copy();
+      curve2._last_cache_key = key;
+      curve2.updateKnots();
+      curve2.regen_basis();
+      curve2.regen_hermite();
+      this.map.set(curve2);
+      this.curves.push(curve2);
+      curve2.cache_w = this.gen++;
+      this.limit();
+      return curve2;
+    }
+     _remove(key) {
+      let curve=this.map.get(key);
+      this.map.delete(key);
+      this.curves.remove(curve);
+    }
+     update(curve) {
+      let key=curve._last_cache_key;
+      if (this.map.has(key)) {
+          this._remove(curve);
+          this.get(curve);
+      }
+    }
+  }
+  _ESClass.register(BSplineCache);
+  _es6_module.add_class(BSplineCache);
+  let splineCache=new BSplineCache();
+  window._splineCache = splineCache;
+  class BSplineCurve extends CurveTypeData {
+     constructor() {
+      super();
+      this.cache_w = 0;
+      this._last_cache_key = 0;
+      this._last_update_key = "";
+      this.fastmode = false;
+      this.points = [];
+      this.length = 0;
+      this.interpolating = false;
+      this.range = [new Vector2([0, 1]), new Vector2([0, 1])];
+      this._ps = [];
+      this.hermite = [];
+      this.fastmode = false;
+      this.deg = 6;
+      this.recalc = RecalcFlags.ALL;
+      this.basis_tables = [];
+      this.eidgen = new util.IDGen();
+      this.add(0, 0);
+      this.add(1, 1);
+      this.mpos = new Vector2();
+      this.on_mousedown = this.on_mousedown.bind(this);
+      this.on_mousemove = this.on_mousemove.bind(this);
+      this.on_mouseup = this.on_mouseup.bind(this);
+      this.on_keydown = this.on_keydown.bind(this);
+      this.on_touchstart = this.on_touchstart.bind(this);
+      this.on_touchmove = this.on_touchmove.bind(this);
+      this.on_touchend = this.on_touchend.bind(this);
+      this.on_touchcancel = this.on_touchcancel.bind(this);
+    }
+     calcHashKey(digest=_udigest.reset()) {
+      let d=digest;
+      super.calcHashKey(d);
+      d.add(this.deg);
+      d.add(this.interpolating);
+      for (let p of this.points) {
+          let x=~~(p[0]*1024);
+          let y=~~(p[1]*1024);
+          d.add(x);
+          d.add(y);
+          d.add(p.tangent);
+      }
+      d.add(this.range[0][0]);
+      d.add(this.range[0][1]);
+      d.add(this.range[1][0]);
+      d.add(this.range[1][1]);
+      return d.get();
+    }
+     copyTo(b) {
+      b.deg = this.deg;
+      b.interpolating = this.interpolating;
+      b.fastmode = this.fastmode;
+      for (let p of this.points) {
+          let p2=p.copy();
+          b.points.push(p2);
+      }
+      return b;
+    }
+     copy() {
+      let curve=new BSplineCurve();
+      this.copyTo(curve);
+      return curve;
+    }
+     equals(b) {
+      if (b.type!==this.type) {
+          return false;
+      }
+      let bad=this.points.length!==b.points.length;
+      bad = bad||this.deg!==b.deg;
+      bad = bad||this.interpolating!==b.interpolating;
+      if (bad) {
+          return false;
+      }
+      for (let i=0; i<this.points.length; i++) {
+          let p1=this.points[i];
+          let p2=b.points[i];
+          let dist=p1.vectorDistance(p2);
+          if (p1.vectorDistance(p2)>1e-05) {
+              return false;
+          }
+          if (p1.tangent!==p2.tangent) {
+              return false;
+          }
+      }
+      return true;
+    }
+    static  define() {
+      return {uiname: "B-Spline", 
+     name: "bspline"}
+    }
+     remove(p) {
+      let ret=this.points.remove(p);
+      this.length = this.points.length;
+      return ret;
+    }
+     add(x, y, no_update=false) {
+      let p=new Curve1DPoint();
+      this.recalc = RecalcFlags.ALL;
+      p.eid = this.eidgen.next();
+      p[0] = x;
+      p[1] = y;
+      p.sco.load(p);
+      p.rco.load(p);
+      this.points.push(p);
+      if (!no_update) {
+          this.update();
+      }
+      this.length = this.points.length;
+      return p;
+    }
+     update() {
+      super.update();
+    }
+     _sortPoints() {
+      if (!this.interpolating) {
+          for (let i=0; i<this.points.length; i++) {
+              this.points[i].rco.load(this.points[i]);
+          }
+      }
+      this.points.sort(function (a, b) {
+        return a[0]-b[0];
+      });
+      return this;
+    }
+     updateKnots(recalc=true, points=this.points) {
+      if (recalc) {
+          this.recalc = RecalcFlags.ALL;
+      }
+      this._sortPoints();
+      this._ps = [];
+      if (points.length<2) {
+          return ;
+      }
+      let a=points[0][0], b=points[points.length-1][0];
+      for (let i=0; i<points.length-1; i++) {
+          this._ps.push(points[i]);
+      }
+      if (points.length<3) {
+          return ;
+      }
+      let l1=points[points.length-1];
+      let l2=points[points.length-2];
+      let p=l1.copy();
+      p.rco[0] = l1.rco[0]-4e-05;
+      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
+      p = l1.copy();
+      p.rco[0] = l1.rco[0]-3e-05;
+      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
+      p = l1.copy();
+      p.rco[0] = l1.rco[0]-1e-05;
+      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
+      this._ps.push(p);
+      p = l1.copy();
+      p.rco[0] = l1.rco[0]-1e-05;
+      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*2.0/3.0;
+      this._ps.push(p);
+      this._ps.push(l1);
+      if (!this.interpolating) {
+          for (let i=0; i<this._ps.length; i++) {
+              this._ps[i].rco.load(this._ps[i]);
+          }
+      }
+      for (let i=0; i<points.length; i++) {
+          let p=points[i];
+          let x=p[0], y=p[1];
+          p.sco[0] = x;
+          p.sco[1] = y;
+      }
+    }
+     toJSON() {
+      this._sortPoints();
+      let ret=super.toJSON();
+      ret = Object.assign(ret, {points: this.points.map((p) =>          {
+          return p.toJSON();
+        }), 
+     deg: this.deg, 
+     interpolating: this.interpolating, 
+     eidgen: this.eidgen.toJSON(), 
+     range: this.range});
+      return ret;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      this.interpolating = obj.interpolating;
+      this.deg = obj.deg;
+      this.length = 0;
+      this.points = [];
+      this._ps = [];
+      if (obj.range) {
+          this.range = [new Vector2(obj.range[0]), new Vector2(obj.range[1])];
+      }
+      this.hightlight = undefined;
+      this.eidgen = util.IDGen.fromJSON(obj.eidgen);
+      this.recalc = RecalcFlags.ALL;
+      this.mpos = [0, 0];
+      for (let i=0; i<obj.points.length; i++) {
+          this.points.push(Curve1DPoint.fromJSON(obj.points[i]));
+      }
+      this.updateKnots();
+      this.redraw();
+      return this;
+    }
+     basis(t, i) {
+      if (this.recalc&RecalcFlags.FULL_BASIS) {
+          return this._basis(t, i);
+      }
+      if (this.recalc&RecalcFlags.BASIS) {
+          this.regen_basis();
+          this.recalc&=~RecalcFlags.BASIS;
+      }
+      i = Math.min(Math.max(i, 0), this._ps.length-1);
+      t = Math.min(Math.max(t, 0.0), 1.0)*0.999999999;
+      let table=this.basis_tables[i];
+      let s=t*(table.length/4)*0.99999;
+      let j=~~s;
+      s-=j;
+      j*=4;
+      return table[j]+(table[j+3]-table[j])*s;
+      return bez4(table[j], table[j+1], table[j+2], table[j+3], s);
+    }
+     reset(empty=false) {
+      this.length = 0;
+      this.points = [];
+      this._ps = [];
+      if (!empty) {
+          this.add(0, 0, true);
+          this.add(1, 1, true);
+      }
+      this.recalc = 1;
+      this.updateKnots();
+      this.update();
+      return this;
+    }
+     regen_hermite(steps) {
+      if (splineCache.has(this)) {
+          console.log("loading spline approx from cached bspline data");
+          this.hermite = splineCache.get(this).hermite;
+          return ;
+      }
+      if (steps===undefined) {
+          steps = this.fastmode ? 120 : 340;
+      }
+      if (this.interpolating) {
+          steps*=2;
+      }
+      this.hermite = new Array(steps);
+      let table=this.hermite;
+      let eps=1e-05;
+      let dt=(1.0-eps*4.001)/(steps-1);
+      let t=eps*4;
+      let lastdv1, lastf3;
+      for (let j=0; j<steps; j++, t+=dt) {
+          let f1=this._evaluate(t-eps*2);
+          let f2=this._evaluate(t-eps);
+          let f3=this._evaluate(t);
+          let f4=this._evaluate(t+eps);
+          let f5=this._evaluate(t+eps*2);
+          let dv1=(f4-f2)/(eps*2);
+          dv1/=steps;
+          if (j>0) {
+              let j2=j-1;
+              table[j2*4] = lastf3;
+              table[j2*4+1] = lastf3+lastdv1/3.0;
+              table[j2*4+2] = f3-dv1/3.0;
+              table[j2*4+3] = f3;
+          }
+          lastdv1 = dv1;
+          lastf3 = f3;
+      }
+    }
+     solve_interpolating() {
+      for (let p of this._ps) {
+          p.rco.load(p);
+      }
+      let points=this.points.concat(this.points);
+      this._evaluate2(0.5);
+      let error1=(p) =>        {
+        return this._evaluate(p[0])-p[1];
+      };
+      let error=(p) =>        {
+        return error1(p);
+      };
+      let err=0.0;
+      let g=new Vector2();
+      for (let step=0; step<25; step++) {
+          err = 0.0;
+          for (let p of this._ps) {
+              let r1=error(p);
+              const df=1e-06;
+              err+=Math.abs(r1);
+              if (p===this._ps[this._ps.length-1]) {
+                  continue;
+              }
+              g.zero();
+              for (let i=0; i<2; i++) {
+                  let orig=p.rco[i];
+                  p.rco[i]+=df;
+                  let r2=error(p);
+                  p.rco[i] = orig;
+                  g[i] = (r2-r1)/df;
+              }
+              let totgs=g.dot(g);
+              if (totgs<1e-08) {
+                  continue;
+              }
+              r1/=totgs;
+              let k=0.5;
+              p.rco[0]+=-r1*g[0]*k;
+              p.rco[1]+=-r1*g[1]*k;
+          }
+          let th=this.fastmode ? 0.001 : 5e-05;
+          if (err<th) {
+              break;
+          }
+      }
+    }
+     regen_basis() {
+      if (splineCache.has(this)) {
+          console.log("loading from cached bspline data");
+          this.basis_tables = splineCache.get(this).basis_tables;
+          return ;
+      }
+      let steps=this.fastmode ? 64 : 128;
+      if (this.interpolating) {
+          steps*=2;
+      }
+      this.basis_tables = new Array(this._ps.length);
+      for (let i=0; i<this._ps.length; i++) {
+          let table=this.basis_tables[i] = new Array((steps-1)*4);
+          let eps=1e-05;
+          let dt=(1.0-eps*8)/(steps-1);
+          let t=eps*4;
+          let lastdv1=0.0, lastf3=0.0;
+          for (let j=0; j<steps; j++, t+=dt) {
+              let f2=this._basis(t-eps, i);
+              let f3=this._basis(t, i);
+              let f4=this._basis(t+eps, i);
+              let dv1=(f4-f2)/(eps*2);
+              dv1/=steps;
+              if (j>0) {
+                  let j2=j-1;
+                  table[j2*4] = lastf3;
+                  table[j2*4+1] = lastf3+lastdv1/3.0;
+                  table[j2*4+2] = f3-dv1/3.0;
+                  table[j2*4+3] = f3;
+              }
+              lastdv1 = dv1;
+              lastf3 = f3;
+          }
+      }
+    }
+     _basis(t, i) {
+      let len=this._ps.length;
+      let ps=this._ps;
+      function safe_inv(n) {
+        return n===0 ? 0 : 1.0/n;
+      }
+      function bas(s, i, n) {
+        let kp=Math.min(Math.max(i-1, 0), len-1);
+        let kn=Math.min(Math.max(i+1, 0), len-1);
+        let knn=Math.min(Math.max(i+n, 0), len-1);
+        let knn1=Math.min(Math.max(i+n+1, 0), len-1);
+        let ki=Math.min(Math.max(i, 0), len-1);
+        if (n===0) {
+            return s>=ps[ki].rco[0]&&s<ps[kn].rco[0] ? 1 : 0;
+        }
+        else {
+          let a=(s-ps[ki].rco[0])*safe_inv(ps[knn].rco[0]-ps[ki].rco[0]+0.0001);
+          let b=(ps[knn1].rco[0]-s)*safe_inv(ps[knn1].rco[0]-ps[kn].rco[0]+0.0001);
+          return a*bas(s, i, n-1)+b*bas(s, i+1, n-1);
+        }
+      }
+      let p=this._ps[i].rco, nk, pk;
+      let deg=this.deg;
+      let b=bas(t, i-deg, deg);
+      return b;
+    }
+     evaluate(t) {
+      let a=this.points[0].rco, b=this.points[this.points.length-1].rco;
+      if (t<a[0])
+        return a[1];
+      if (t>b[0])
+        return b[1];
+      if (this.points.length===2) {
+          t = (t-a[0])/(b[0]-a[0]);
+          return a[1]+(b[1]-a[1])*t;
+      }
+      if (this.recalc) {
+          this.regen_basis();
+          if (this.interpolating) {
+              this.solve_interpolating();
+          }
+          this.regen_hermite();
+          this.recalc = 0;
+      }
+      t*=0.999999;
+      let table=this.hermite;
+      let s=t*(table.length/4);
+      let i=Math.floor(s);
+      s-=i;
+      i*=4;
+      return table[i]+(table[i+3]-table[i])*s;
+    }
+     _evaluate(t) {
+      let start_t=t;
+      if (this.points.length>1) {
+          let a=this.points[0], b=this.points[this.points.length-1];
+      }
+      for (let i=0; i<35; i++) {
+          let df=0.0001;
+          let ret1=this._evaluate2(t<0.5 ? t : t-df);
+          let ret2=this._evaluate2(t<0.5 ? t+df : t);
+          let f1=Math.abs(ret1[0]-start_t);
+          let f2=Math.abs(ret2[0]-start_t);
+          let g=(f2-f1)/df;
+          if (f1===f2)
+            break;
+          if (f1===0.0||g===0.0)
+            return this._evaluate2(t)[1];
+          let fac=-(f1/g)*0.5;
+          if (fac===0.0) {
+              fac = 0.01;
+          }
+          else 
+            if (Math.abs(fac)>0.1) {
+              fac = 0.1*Math.sign(fac);
+          }
+          t+=fac;
+          let eps=1e-05;
+          t = Math.min(Math.max(t, eps), 1.0-eps);
+      }
+      return this._evaluate2(t)[1];
+    }
+     _evaluate2(t) {
+      let ret=eval2_rets.next();
+      t*=0.9999999;
+      let totbasis=0;
+      let sumx=0;
+      let sumy=0;
+      for (let i=0; i<this._ps.length; i++) {
+          let p=this._ps[i].rco;
+          let b=this.basis(t, i);
+          sumx+=b*p[0];
+          sumy+=b*p[1];
+          totbasis+=b;
+      }
+      if (totbasis!==0.0) {
+          sumx/=totbasis;
+          sumy/=totbasis;
+      }
+      ret[0] = sumx;
+      ret[1] = sumy;
+      return ret;
+    }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+     _wrapTouchEvent(e) {
+      return {x: e.touches.length ? e.touches[0].pageX : this.mpos[0], 
+     y: e.touches.length ? e.touches[0].pageY : this.mpos[1], 
+     button: 0, 
+     shiftKey: e.shiftKey, 
+     altKey: e.altKey, 
+     ctrlKey: e.ctrlKey, 
+     isTouch: true, 
+     commandKey: e.commandKey, 
+     stopPropagation: () =>          {
+          return e.stopPropagation();
+        }, 
+     preventDefault: () =>          {
+          return e.preventDefault();
+        }}
+    }
+     on_touchstart(e) {
+      this.mpos[0] = e.touches[0].pageX;
+      this.mpos[1] = e.touches[0].pageY;
+      let e2=this._wrapTouchEvent(e);
+      this.on_mousemove(e2);
+      this.on_mousedown(e2);
+    }
+     loadTemplate(templ) {
+      if (templ===undefined||!templates[templ]) {
+          console.warn("Unknown bspline template", templ);
+          return ;
+      }
+      templ = templates[templ];
+      this.reset(true);
+      this.deg = 3.0;
+      for (let i=0; i<templ.length; i++) {
+          let p=templ[i];
+          if (p==="DEG") {
+              this.deg = templ[i+1];
+              i++;
+              continue;
+          }
+          this.add(p[0], p[1], true);
+      }
+      this.recalc = 1;
+      this.updateKnots();
+      this.update();
+      this.redraw();
+    }
+     on_touchmove(e) {
+      this.mpos[0] = e.touches[0].pageX;
+      this.mpos[1] = e.touches[0].pageY;
+      let e2=this._wrapTouchEvent(e);
+      this.on_mousemove(e2);
+    }
+     on_touchend(e) {
+      this.on_mouseup(this._wrapTouchEvent(e));
+    }
+     on_touchcancel(e) {
+      this.on_touchend(e);
+    }
+     makeGUI(container, canvas, drawTransform) {
+      this.uidata = {start_mpos: new Vector2(), 
+     transpoints: [], 
+     dom: container, 
+     canvas: canvas, 
+     g: canvas.g, 
+     transforming: false, 
+     draw_trans: drawTransform};
+      canvas.addEventListener("touchstart", this.on_touchstart);
+      canvas.addEventListener("touchmove", this.on_touchmove);
+      canvas.addEventListener("touchend", this.on_touchend);
+      canvas.addEventListener("touchcancel", this.on_touchcancel);
+      canvas.addEventListener("mousedown", this.on_mousedown);
+      canvas.addEventListener("mousemove", this.on_mousemove);
+      canvas.addEventListener("mouseup", this.on_mouseup);
+      canvas.addEventListener("keydown", this.on_keydown);
+      let bstrip=container.row().strip();
+      let makebutton=(strip, k) =>        {
+        let uiname=k[0]+k.slice(1, k.length).toLowerCase();
+        uiname = uiname.replace(/_/g, " ");
+        let icon=strip.iconbutton(-1, uiname, () =>          {
+          this.loadTemplate(SplineTemplates[k]);
+        });
+        icon.iconsheet = 0;
+        icon.customIcon = SplineTemplateIcons[k];
+      };
+      for (let k in SplineTemplates) {
+          makebutton(bstrip, k);
+      }
+      let row=container.row();
+      let fullUpdate=() =>        {
+        this.updateKnots();
+        this.update();
+        this.regen_basis();
+        this.recalc = RecalcFlags.ALL;
+        this.redraw();
+      };
+      let Icons=row.constructor.getIconEnum();
+      row.iconbutton(Icons.TINY_X, "Delete Point", () =>        {
+        for (let i=0; i<this.points.length; i++) {
+            let p=this.points[i];
+            if (p.flag&CurveFlags.SELECT) {
+                this.points.remove(p);
+                i--;
+            }
+        }
+        fullUpdate();
+      });
+      row.button("Reset", () =>        {
+        this.reset();
+      });
+      let slider=row.simpleslider(undefined, "Degree", this.deg, 1, 6, 1, true, true, (slider) =>        {
+        this.deg = Math.floor(slider.value);
+        fullUpdate();
+      });
+      slider.baseUnit = "none";
+      slider.displayUnit = "none";
+      row = container.row();
+      let check=row.check(undefined, "Interpolating");
+      check.checked = this.interpolating;
+      check.onchange = () =>        {
+        this.interpolating = check.value;
+        fullUpdate();
+      };
+      let panel=container.panel("Range");
+      let xmin=panel.slider(undefined, "X Min", this.range[0][0], -10, 10, 0.1, false, undefined, (val) =>        {
+        this.range[0][0] = val.value;
+      });
+      let xmax=panel.slider(undefined, "X Max", this.range[0][1], -10, 10, 0.1, false, undefined, (val) =>        {
+        this.range[0][1] = val.value;
+      });
+      let ymin=panel.slider(undefined, "Y Min", this.range[1][0], -10, 10, 0.1, false, undefined, (val) =>        {
+        this.range[1][0] = val.value;
+      });
+      let ymax=panel.slider(undefined, "Y Max", this.range[1][1], -10, 10, 0.1, false, undefined, (val) =>        {
+        this.range[1][1] = val.value;
+      });
+      xmin.displayUnit = xmin.baseUnit = "none";
+      ymin.displayUnit = ymin.baseUnit = "none";
+      xmax.displayUnit = xmax.baseUnit = "none";
+      ymax.displayUnit = ymax.baseUnit = "none";
+      panel.closed = true;
+      container.update.after(() =>        {
+        let key=this.calcHashKey();
+        if (key!==this._last_update_key) {
+            this._last_update_key = key;
+            slider.setValue(this.deg);
+            xmin.setValue(this.range[0][0]);
+            xmax.setValue(this.range[0][1]);
+            ymin.setValue(this.range[1][0]);
+            ymax.setValue(this.range[1][1]);
+        }
+      });
+      return this;
+    }
+     killGUI(container, canvas) {
+      if (this.uidata!==undefined) {
+          let ud=this.uidata;
+          this.uidata = undefined;
+          canvas.removeEventListener("touchstart", this.on_touchstart);
+          canvas.removeEventListener("touchmove", this.on_touchmove);
+          canvas.removeEventListener("touchend", this.on_touchend);
+          canvas.removeEventListener("touchcancel", this.on_touchcancel);
+          canvas.removeEventListener("mousedown", this.on_mousedown);
+          canvas.removeEventListener("mousemove", this.on_mousemove);
+          canvas.removeEventListener("mouseup", this.on_mouseup);
+          canvas.removeEventListener("keydown", this.on_keydown);
+      }
+      return this;
+    }
+     start_transform() {
+      this.uidata.transpoints = [];
+      for (let p of this.points) {
+          if (p.flag&CurveFlags.SELECT) {
+              this.uidata.transpoints.push(p);
+              p.startco.load(p);
+          }
+      }
+    }
+     on_mousedown(e) {
+      this.uidata.start_mpos.load(this.transform_mpos(e.x, e.y));
+      this.fastmode = true;
+      let mpos=this.transform_mpos(e.x, e.y);
+      let x=mpos[0], y=mpos[1];
+      this.do_highlight(x, y);
+      if (this.points.highlight!==undefined) {
+          if (!e.shiftKey) {
+              for (let i=0; i<this.points.length; i++) {
+                  this.points[i].flag&=~CurveFlags.SELECT;
+              }
+              this.points.highlight.flag|=CurveFlags.SELECT;
+          }
+          else {
+            this.points.highlight.flag^=CurveFlags.SELECT;
+          }
+          this.uidata.transforming = true;
+          this.start_transform();
+          this.updateKnots();
+          this.update();
+          this.redraw();
+          return ;
+      }
+      else {
+        let p=this.add(this.uidata.start_mpos[0], this.uidata.start_mpos[1]);
+        this.points.highlight = p;
+        this.updateKnots();
+        this.update();
+        this.redraw();
+        this.points.highlight.flag|=CurveFlags.SELECT;
+        this.uidata.transforming = true;
+        this.uidata.transpoints = [this.points.highlight];
+        this.uidata.transpoints[0].startco.load(this.uidata.transpoints[0]);
+      }
+    }
+     do_highlight(x, y) {
+      let trans=this.uidata.draw_trans;
+      let mindis=1e+17, minp=undefined;
+      let limit=19/trans[0], limitsqr=limit*limit;
+      for (let i=0; i<this.points.length; i++) {
+          let p=this.points[i];
+          let dx=x-p.sco[0], dy=y-p.sco[1], dis=dx*dx+dy*dy;
+          if (dis<mindis&&dis<limitsqr) {
+              mindis = dis;
+              minp = p;
+          }
+      }
+      if (this.points.highlight!==minp) {
+          this.points.highlight = minp;
+          this.redraw();
+      }
+    }
+     do_transform(x, y) {
+      let off=new Vector2([x, y]).sub(this.uidata.start_mpos);
+      for (let i=0; i<this.uidata.transpoints.length; i++) {
+          let p=this.uidata.transpoints[i];
+          p.load(p.startco).add(off);
+          p[0] = Math.min(Math.max(p[0], this.range[0][0]), this.range[0][1]);
+          p[1] = Math.min(Math.max(p[1], this.range[1][0]), this.range[1][1]);
+      }
+      this.updateKnots();
+      this.update();
+      this.redraw();
+    }
+     transform_mpos(x, y) {
+      let r=this.uidata.canvas.getClientRects()[0];
+      let dpi=devicePixelRatio;
+      x-=parseInt(r.left);
+      y-=parseInt(r.top);
+      x*=dpi;
+      y*=dpi;
+      let trans=this.uidata.draw_trans;
+      x = x/trans[0]-trans[1][0];
+      y = -y/trans[0]-trans[1][1];
+      return [x, y];
+    }
+     on_mousemove(e) {
+      if (e.isTouch&&this.uidata.transforming) {
+          e.preventDefault();
+      }
+      let mpos=this.transform_mpos(e.x, e.y);
+      let x=mpos[0], y=mpos[1];
+      if (this.uidata.transforming) {
+          this.do_transform(x, y);
+          this.evaluate(0.5);
+      }
+      else {
+        this.do_highlight(x, y);
+      }
+    }
+     end_transform() {
+      this.uidata.transforming = false;
+      this.fastmode = false;
+      this.updateKnots();
+      this.update();
+      splineCache.update(this);
+    }
+     on_mouseup(e) {
+      this.end_transform();
+    }
+     on_keydown(e) {
+      switch (e.keyCode) {
+        case 88:
+        case 46:
+          if (this.points.highlight!==undefined) {
+              this.points.remove(this.points.highlight);
+              this.recalc = RecalcFlags.ALL;
+              this.points.highlight = undefined;
+              this.updateKnots();
+              this.update();
+              if (this._save_hook!==undefined) {
+                  this._save_hook();
+              }
+          }
+          break;
+      }
+    }
+     draw(canvas, g, draw_trans) {
+      g.save();
+      if (this.uidata===undefined) {
+          return ;
+      }
+      this.uidata.canvas = canvas;
+      this.uidata.g = g;
+      this.uidata.draw_trans = draw_trans;
+      let sz=draw_trans[0], pan=draw_trans[1];
+      g.lineWidth*=3.0;
+      for (let ssi=0; ssi<2; ssi++) {
+          break;
+          for (let si=0; si<this.points.length; si++) {
+              g.beginPath();
+              let f=0;
+              for (let i=0; i<steps; i++, f+=df) {
+                  let totbasis=0;
+                  for (let j=0; j<this.points.length; j++) {
+                      totbasis+=this.basis(f, j);
+                  }
+                  let val=this.basis(f, si);
+                  if (ssi)
+                    val/=(totbasis===0 ? 1 : totbasis);
+                  (i===0 ? g.moveTo : g.lineTo).call(g, f, ssi ? val : val*0.5, w, w);
+              }
+              let color, alpha=this.points[si]===this.points.highlight ? 1.0 : 0.7;
+              if (ssi) {
+                  color = "rgba(105, 25, 5,"+alpha+")";
+              }
+              else {
+                color = "rgba(25, 145, 45,"+alpha+")";
+              }
+              g.strokeStyle = color;
+              g.stroke();
+          }
+      }
+      g.lineWidth/=3.0;
+      let w=0.03;
+      for (let p of this.points) {
+          g.beginPath();
+          if (p===this.points.highlight) {
+              g.fillStyle = "green";
+          }
+          else 
+            if (p.flag&CurveFlags.SELECT) {
+              g.fillStyle = "red";
+          }
+          else {
+            g.fillStyle = "orange";
+          }
+          g.rect(p.sco[0]-w/2, p.sco[1]-w/2, w, w);
+          g.fill();
+      }
+      g.restore();
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      this.updateKnots();
+      this.recalc = RecalcFlags.ALL;
+    }
+  }
+  _ESClass.register(BSplineCurve);
+  _es6_module.add_class(BSplineCurve);
+  BSplineCurve.STRUCT = nstructjs.inherit(BSplineCurve, CurveTypeData)+`
+  points        : array(Curve1DPoint);
+  deg           : int;
+  eidgen        : IDGen;
+  interpolating : bool;
+  range         : array(vec2);
+}
+`;
+  nstructjs.register(BSplineCurve);
+  CurveTypeData.register(BSplineCurve);
+  function makeSplineTemplateIcons(size) {
+    if (size===undefined) {
+        size = 64;
+    }
+    let dpi=devicePixelRatio;
+    size = ~~(size*dpi);
+    for (let k in SplineTemplates) {
+        let curve=new BSplineCurve();
+        curve.loadTemplate(SplineTemplates[k]);
+        curve.fastmode = true;
         let canvas=document.createElement("canvas");
         canvas.width = canvas.height = size;
         let g=canvas.getContext("2d");
-        if (invertColors) {
-            g.filter = "invert(100%)";
-        }
-        let scale=size/tilesize;
-        g.scale(scale, scale);
-        let header="data:image/png;base64,";
-        manager.canvasDraw({getDPI: () =>            {
-            return 1.0;
-          }}, canvas, g, icon, 0, 0, iconsheet);
-        let data=canvas.toDataURL();
-        data = data.slice(header.length, data.length);
-        data = Buffer.from(data, "base64");
-        require("fs").writeFileSync("myicon2.png", data);
-        images.push(data);
-    }
-    return "myicon2.png";
-    return icon;
-    return undefined;
-    window._icon = icon;
-    return icon;
-  }
-  getNativeIcon = _es6_module.add_export('getNativeIcon', getNativeIcon);
-  let map={CTRL: "Control", 
-   ALT: "Alt", 
-   SHIFT: "Shift", 
-   COMMAND: "Command"}
-  function buildElectronHotkey(hk) {
-    hk = hk.trim().replace(/[ \t-]+/g, "+");
-    for (let k in map) {
-        hk = hk.replace(k, map[k]);
-    }
-    return hk;
-  }
-  buildElectronHotkey = _es6_module.add_export('buildElectronHotkey', buildElectronHotkey);
-  function buildElectronMenu(menu) {
-    let electron=require("electron").remote;
-    let ElectronMenu=electron.Menu;
-    let ElectronMenuItem=electron.MenuItem;
-    let emenu=new ElectronMenu();
-    let buildItem=(item) =>      {
-      if (item._isMenu) {
-          let menu2=item._menu;
-          return new ElectronMenuItem({submenu: buildElectronMenu(item._menu), 
-       label: menu2.getAttribute("title")});
-      }
-      let hotkey=item.hotkey;
-      let icon=item.icon;
-      let label=""+item.label;
-      if (hotkey&&typeof hotkey!=="string") {
-          hotkey = buildElectronHotkey(hotkey);
-      }
-      else {
-        hotkey = ""+hotkey;
-      }
-      if (icon<0) {
-          icon = undefined;
-      }
-      let args={id: ""+item._id, 
-     label: label, 
-     accelerator: hotkey, 
-     icon: icon ? getNativeIcon(icon) : undefined, 
-     click: function () {
-          menu.onselect(item._id);
-        }, 
-     registerAccelerator: false}
-      return new ElectronMenuItem(args);
-    }
-    for (let item of menu.items) {
-        emenu.append(buildItem(item));
-    }
-    return emenu;
-  }
-  buildElectronMenu = _es6_module.add_export('buildElectronMenu', buildElectronMenu);
-  function initMenuBar(menuEditor) {
-    checkInit();
-    if (!window.haveElectron) {
-        return ;
-    }
-    if (_menu_init) {
-        return ;
-    }
-    _menu_init = true;
-    let electron=require("electron").remote;
-    let win=electron.getCurrentWindow();
-    let ElectronMenu=electron.Menu;
-    let ElectronMenuItem=electron.MenuItem;
-    let menu=new ElectronMenu();
-    let _roles=new Set(["undo", "redo", "cut", "copy", "paste", "delete", "about", "quit", "open", "save", "load", "paste", "cut", "zoom"]);
-    let roles={}
-    for (let k of _roles) {
-        roles[k] = k;
-    }
-    roles = Object.assign(roles, {"select all": "selectAll", 
-    "file": "fileMenu", 
-    "edit": "editMenu", 
-    "view": "viewMenu", 
-    "app": "appMenu", 
-    "help": "help", 
-    "zoom in": "zoomIn", 
-    "zoom out": "zoomOut"});
-    let header=menuEditor.header;
-    for (let dbox of header.traverse(DropBox)) {
-        dbox._build_menu();
-        dbox.update();
-        dbox._build_menu();
-        let menu2=dbox._menu;
-        menu2.ctx = dbox.ctx;
-        menu2._init();
-        menu2.update();
-        let title=dbox._genLabel();
-        let args={label: title, 
-      tooltip: dbox.description, 
-      submenu: buildElectronMenu(menu2)};
-        menu.insert(0, new ElectronMenuItem(args));
-    }
-    ElectronMenu.setApplicationMenu(menu);
-  }
-  initMenuBar = _es6_module.add_export('initMenuBar', initMenuBar);
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/electron_api.js');
-es6_module_define('icogen', [], function _icogen_module(_es6_module) {
-  "use strict";
-  if (window.haveElectron) {
-      let fs=require("fs");
-      let path=require("path");
-      let pngjsNozlib=require("pngjs-nozlib");
-      let png=require("pngjs");
-      const REQUIRED_IMAGE_SIZES=[16, 24, 32, 48, 64, 128, 256];
-      const DEFAULT_FILE_NAME='app';
-      const FILE_EXTENSION='.ico';
-      const HEADER_SIZE=6;
-      const DIRECTORY_SIZE=16;
-      const BITMAPINFOHEADER_SIZE=40;
-      const BI_RGB=0;
-      const convertPNGtoDIB=(src, width, height, bpp) =>        {
-        const cols=width*bpp;
-        const rows=height*cols;
-        const rowEnd=rows-cols;
-        const dest=Buffer.alloc(src.length);
-        for (let row=0; row<rows; row+=cols) {
-            for (let col=0; col<cols; col+=bpp) {
-                let pos=row+col;
-                const r=src.readUInt8(pos);
-                const g=src.readUInt8(pos+1);
-                const b=src.readUInt8(pos+2);
-                const a=src.readUInt8(pos+3);
-                pos = rowEnd-row+col;
-                dest.writeUInt8(b, pos);
-                dest.writeUInt8(g, pos+1);
-                dest.writeUInt8(r, pos+2);
-                dest.writeUInt8(a, pos+3);
-            }
-        }
-        return dest;
-      };
-      const createBitmapInfoHeader=(png, compression) =>        {
-        const b=Buffer.alloc(BITMAPINFOHEADER_SIZE);
-        b.writeUInt32LE(BITMAPINFOHEADER_SIZE, 0);
-        b.writeInt32LE(png.width, 4);
-        b.writeInt32LE(png.height*2, 8);
-        b.writeUInt16LE(1, 12);
-        b.writeUInt16LE(png.bpp*8, 14);
-        b.writeUInt32LE(compression, 16);
-        b.writeUInt32LE(png.data.length, 20);
-        b.writeInt32LE(0, 24);
-        b.writeInt32LE(0, 28);
-        b.writeUInt32LE(0, 32);
-        b.writeUInt32LE(0, 36);
-        return b;
-      };
-      const createDirectory=(png, offset) =>        {
-        const b=Buffer.alloc(DIRECTORY_SIZE);
-        const size=png.data.length+BITMAPINFOHEADER_SIZE;
-        const width=256<=png.width ? 0 : png.width;
-        const height=256<=png.height ? 0 : png.height;
-        const bpp=png.bpp*8;
-        b.writeUInt8(width, 0);
-        b.writeUInt8(height, 1);
-        b.writeUInt8(0, 2);
-        b.writeUInt8(0, 3);
-        b.writeUInt16LE(1, 4);
-        b.writeUInt16LE(bpp, 6);
-        b.writeUInt32LE(size, 8);
-        b.writeUInt32LE(offset, 12);
-        return b;
-      };
-      const createFileHeader=(count) =>        {
-        const b=Buffer.alloc(HEADER_SIZE);
-        b.writeUInt16LE(0, 0);
-        b.writeUInt16LE(1, 2);
-        b.writeUInt16LE(count, 4);
-        return b;
-      };
-      const checkOptions=(options) =>        {
-        if (options) {
-            return {name: typeof options.name==='string'&&options.name!=='' ? options.name : DEFAULT_FILE_NAME, 
-        sizes: Array.isArray(options.sizes) ? options.sizes : REQUIRED_IMAGE_SIZES}
-        }
-        else {
-          return {name: DEFAULT_FILE_NAME, 
-       sizes: REQUIRED_IMAGE_SIZES}
-        }
-      };
-      const GetRequiredICOImageSizes=() =>        {
-        return REQUIRED_IMAGE_SIZES;
-      };
-      let stream=require("stream");
-      class WriteStream extends stream.Writable {
-         constructor() {
-          super();
-          this.data = [];
-        }
-         _write(chunk, encoding, cb) {
-          let buf=chunk;
-          if (!(__instance_of(buf, Buffer))) {
-              Buffer.from(chunk, encoding);
-          }
-          for (let i=0; i<buf.length; i++) {
-              this.data.push(buf[i]);
-          }
-          cb(null);
-        }
-         end() {
-          this.data = Buffer.from(this.data);
-          super.end();
-        }
-      }
-      _ESClass.register(WriteStream);
-      _es6_module.add_class(WriteStream);
-      exports.GetRequiredICOImageSizes = GetRequiredICOImageSizes;
-      const GenerateICO=(images, logger) =>        {
-        if (logger===undefined) {
-            logger = console;
-        }
-        logger.log('ICO:');
-        const stream=new WriteStream();
-        stream.write(createFileHeader(images.length), 'binary');
-        let pngs=[];
-        for (let image of images) {
-            pngs.push(pngjsNozlib.PNG.sync.read(image));
-        }
-        let offset=HEADER_SIZE+DIRECTORY_SIZE*images.length;
-        pngs.forEach((png) =>          {
-          const directory=createDirectory(png, offset);
-          stream.write(directory, 'binary');
-          offset+=png.data.length+BITMAPINFOHEADER_SIZE;
-        });
-        pngs.forEach((png) =>          {
-          const header=createBitmapInfoHeader(png, BI_RGB);
-          stream.write(header, 'binary');
-          const dib=convertPNGtoDIB(png.data, png.width, png.height, png.bpp);
-          stream.write(dib, 'binary');
-        });
-        stream.end();
-        return stream.data;
-      };
-      exports.GenerateICO = GenerateICO;
-      let _default=GenerateICO;
-      exports.default = _default;
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/icogen.js');
-es6_module_define('AreaDocker', ["./ScreenArea.js", "../core/ui.js", "../config/const.js", "../widgets/ui_menu.js", "../util/struct.js", "../util/util.js", "../core/ui_base.js", "./area_wrangler.js"], function _AreaDocker_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
-  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var Area=es6_import_item(_es6_module, './ScreenArea.js', 'Area');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
-  var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
-  var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
-  var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
-  var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
-  let ignore=0;
-  window.testSnapScreenVerts = function (arg) {
-    let screen=CTX.screen;
-    screen.unlisten();
-    screen.on_resize([screen.size[0]-75, screen.size[1]], screen.size);
-    screen.on_resize = screen.updateSize = () =>      {    }
-    let p=CTX.propsbar;
-    p.pos[0]+=50;
-    p.owning_sarea.loadFromPosSize();
-    screen.regenBorders();
-    screen.size[0] = window.innerWidth-5;
-    screen.snapScreenVerts(arg);
-  }
-  class AreaDocker extends Container {
-     constructor() {
-      super();
-      this.tbar = this.tabs();
-      this.tbar.enableDrag();
-      this.tbar.addEventListener("dragstart", (e) =>        {
-        console.log("drag start", e);
-        let name=this.tbar.tbar.tabs.active.name;
-        let id=this.tbar.tbar.tabs.active._id;
-        let sarea=this.getArea().owning_sarea;
-        let area=this.getArea();
-        this.ctx.screen.dragArea = [area, sarea];
-        e.dataTransfer.setData("area", name+"|"+this._id);
-        e.preventDefault();
-      });
-      this.tbar.addEventListener("dragover", (e) =>        {
-        console.log("drag over");
-        console.log(e.dataTransfer.getData("area"));
-        let data=e.dataTransfer.getData("area");
-        if (!data) {
-            return ;
-        }
-        let area=this.ctx.screen.dragArea[0], sarea=this.ctx.screen.dragArea[1];
-        if (!area||this.getArea()===area) {
-            return ;
-        }
-        if (area.constructor.define().areaname in this.getArea().owning_sarea.editormap) {
-            return ;
-        }
-        this.ctx.screen.dragArea[1] = this.getArea().owning_sarea;
-        try {
-          sarea.removeChild(area);
-        }
-        catch (error) {
-            util.print_stack(error);
-        }
-        this.getArea().owning_sarea.appendChild(area);
-        this.rebuild();
-        e.preventDefault();
-      });
-      this.tbar.addEventListener("dragexit", (e) =>        {
-        console.log("drag exit");
-        console.log(e.dataTransfer.getData("area"));
-        if (this.tbar.__fake) {
-            this.tbar.removeTab(this.tbar.__fake);
-            this.tbar.__fake = undefined;
-        }
-      });
-      this.tbar.addEventListener("drop", (e) =>        {
-        console.log("drop event", e);
-        console.log(e.dataTransfer.getData("area"));
-      });
-      this.tbar.addEventListener("dragend", (e) =>        {
-        console.log("drag end event", e);
-        console.log(e.dataTransfer.getData("area"));
-      });
-      this.tbar.onchange = (tab) =>        {
-        if (ignore) {
-            return ;
-        }
-        if (!tab||!this.getArea()||!this.getArea().parentWidget) {
-            return ;
-        }
-        if (tab.id==="add") {
-            this.addTabMenu(tab);
-            return ;
-        }
-        console.warn("CHANGE AREA", tab.id);
-        let sarea=this.getArea().parentWidget;
-        if (!sarea) {
-            return ;
-        }
-        for (let area of sarea.editors) {
-            if (area._id===tab.id&&area!==sarea.area) {
-                let ud=saveUIData(this.tbar, "tabs");
-                sarea.switch_editor(area.constructor);
-                if (area.switcher) {
-                    ignore++;
-                    area.switcher.update();
-                    try {
-                      loadUIData(sarea.area.switcher.tbar, ud);
-                    }
-                    finally {
-                        ignore = Math.max(ignore-1, 0);
-                      }
-                    area.switcher.rebuild();
-                }
-            }
-        }
-      };
-    }
-     addTabMenu(tab) {
-      console.log("Add Tab!");
-      let rect=tab.getClientRects()[0];
-      let mpos=this.ctx.screen.mpos;
-      let menu=document.createElement("menu-x");
-      menu.closeOnMouseUp = false;
-      menu.ctx = this.ctx;
-      menu._init();
-      let prop=Area.makeAreasEnum();
-      let sarea=this.getArea().parentWidget;
-      if (!sarea) {
-          return ;
-      }
-      for (let k in Object.assign({}, prop.values)) {
-          let ok=true;
-          for (let area of sarea.editors) {
-              if (area.constructor.define().uiname===k) {
-                  ok = false;
-              }
-          }
-          if (!ok) {
-              continue;
-          }
-          let icon=prop.iconmap[k];
-          menu.addItemExtra(k, prop.values[k], undefined, icon);
-      }
-      console.log(mpos[0], mpos[1], rect.x, rect.y);
-      menu.onselect = (val) =>        {
-        console.log("menu select", val, this.getArea().parentWidget);
-        let sarea=this.getArea().parentWidget;
-        if (sarea) {
-            let cls=areaclasses[val];
-            ignore++;
-            let area, ud;
-            try {
-              ud = saveUIData(this.tbar, "tab");
-              sarea.switchEditor(cls);
-              console.log("switching", cls);
-              area = sarea.area;
-              area._init();
-            }
-            catch (error) {
-                util.print_stack(error);
-                throw error;
-            }
-            finally {
-                ignore = Math.max(ignore-1, 0);
-              }
-            console.log("AREA", area.switcher, area);
-            if (area.switcher) {
-                ignore++;
-                try {
-                  area.parentWidget = sarea;
-                  area.owning_sarea = sarea;
-                  area.switcher.parentWidget = area;
-                  area.switcher.ctx = area.ctx;
-                  area.switcher._init();
-                  area.switcher.update();
-                  console.log("loading data", ud);
-                  loadUIData(area.switcher.tbar, ud);
-                  area.switcher.rebuild();
-                  area.flushUpdate();
-                }
-                catch (error) {
-                    throw error;
-                }
-                finally {
-                    ignore = Math.max(ignore-1, 0);
-                  }
-            }
-        }
-      };
-      startMenu(menu, mpos[0], rect.y, false, 0);
-    }
-     getArea() {
-      let p=this;
-      while (p&&!(__instance_of(p, Area))) {
-        p = p.parentWidget;
-      }
-      return p;
-    }
-     _hash() {
-      let area=this.getArea();
-      if (!area)
-        return ;
-      let sarea=area.parentWidget;
-      if (!sarea) {
-          return ;
-      }
-      let hash="";
-      for (let area2 of sarea.editors) {
-          hash+=area2.tagName+":";
-      }
-      return hash+(sarea.area ? sarea.area.tagName : "");
-    }
-     rebuild() {
-      console.log("rebuild");
-      if (!this.getArea()||!this.getArea().parentWidget) {
-          this._last_hash = undefined;
-          this.tbar.clear();
-          return ;
-      }
-      ignore++;
-      let ud=saveUIData(this.tbar, "tbar");
-      this.tbar.clear();
-      let sarea=this.getArea().parentWidget;
-      for (let area of sarea.editors) {
-          let uiname=area.constructor.define().uiname;
-          let tab=this.tbar.tab(uiname, area._id);
-      }
-      let tab=this.tbar.icontab(Icons.SMALL_PLUS, "add", "Add Editor", false);
-      loadUIData(this.tbar, ud);
-      let tc=this.tbar.getTabCount();
-      this.tbar.moveTab(tab, tc-1);
-      ignore = Math.max(ignore-1, 0);
-    }
-     update() {
-      super.update();
-      if (!this.ctx)
-        return ;
-      let area=this.getArea();
-      if (!area)
-        return ;
-      let sarea=area.parentWidget;
-      if (!sarea)
-        return ;
-      let hash=this._hash();
-      if (hash!==this._last_hash) {
-          this._last_hash = hash;
-          this.rebuild();
-      }
-      if (this._last_hash) {
-          this.tbar.setActive(this.getArea()._id);
-      }
-    }
-     init() {
-      super.init();
-    }
-    static  define() {
-      return {tagname: "area-docker-x"}
-    }
-  }
-  _ESClass.register(AreaDocker);
-  _es6_module.add_class(AreaDocker);
-  AreaDocker = _es6_module.add_export('AreaDocker', AreaDocker);
-  UIBase.register(AreaDocker);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
-es6_module_define('area_wrangler', ["../util/simple_events.js", "../widgets/ui_noteframe.js", "../core/ui_base.js", "./FrameManager_mesh.js", "../core/ui.js", "../util/util.js", "../util/struct.js", "../util/vectormath.js"], function _area_wrangler_module(_es6_module) {
-  let _ScreenArea=undefined;
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
-  var haveModal=es6_import_item(_es6_module, '../util/simple_events.js', 'haveModal');
-  es6_import(_es6_module, '../util/struct.js');
-  let UIBase=ui_base.UIBase;
-  let Vector2=vectormath.Vector2;
-  let ScreenClass=undefined;
-  var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
-  var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
-  function setScreenClass(cls) {
-    ScreenClass = cls;
-  }
-  setScreenClass = _es6_module.add_export('setScreenClass', setScreenClass);
-  function getAreaIntName(name) {
-    let hash=0;
-    for (let i=0; i<name.length; i++) {
-        let c=name.charCodeAt(i);
-        if (i%2==0) {
-            hash+=c<<8;
-            hash*=13;
-            hash = hash&((1<<15)-1);
-        }
-        else {
-          hash+=c;
-        }
-    }
-    return hash;
-  }
-  getAreaIntName = _es6_module.add_export('getAreaIntName', getAreaIntName);
-  window.getAreaIntName = getAreaIntName;
-  var AreaTypes={TEST_CANVAS_EDITOR: 0}
-  AreaTypes = _es6_module.add_export('AreaTypes', AreaTypes);
-  function setAreaTypes(def) {
-    for (let k in AreaTypes) {
-        delete AreaTypes[k];
-    }
-    for (let k in def) {
-        AreaTypes[k] = def[k];
-    }
-  }
-  setAreaTypes = _es6_module.add_export('setAreaTypes', setAreaTypes);
-  let areaclasses={}
-  areaclasses = _es6_module.add_export('areaclasses', areaclasses);
-  class AreaWrangler  {
-     constructor() {
-      this.stacks = {};
-      this.lasts = {};
-      this.lastArea = undefined;
-      this.stack = [];
-      this.idgen = 0;
-      this._last_screen_id = undefined;
-    }
-     _checkWrangler(ctx) {
-      if (ctx===undefined) {
-          return true;
-      }
-      if (this._last_screen_id===undefined) {
-          this._last_screen_id = ctx.screen._id;
-          return true;
-      }
-      if (ctx.screen._id!==this._last_screen_id) {
-          this.reset();
-          this._last_screen_id = ctx.screen._id;
-          console.warn("contextWrangler detected a new screen; new file?");
-          return false;
-      }
-      return true;
-    }
-     reset() {
-      this.stacks = {};
-      this.lasts = {};
-      this.lastArea = undefined;
-      this.stack = [];
-      this._last_screen_id = undefined;
-      return this;
-    }
-     push(type, area, pushLastRef=true) {
-      if (pushLastRef||this.lasts[type.name]===undefined) {
-          this.lasts[type.name] = area;
-          this.lastArea = area;
-      }
-      if (!(type.name in this.stacks)) {
-          this.stacks[type.name] = [];
-      }
-      this.stacks[type.name].push(area);
-      this.stack.push(area);
-    }
-     pop(type, area) {
-      if (!(type.name in this.stacks)) {
-          console.warn("pop_ctx_area called in error");
-          return ;
-      }
-      if (this.stacks[type.name].length>0) {
-          this.stacks[type.name].pop();
-      }
-      if (this.stack.length>0) {
-          this.stack.pop();
-      }
-    }
-     getLastArea(type) {
-      if (type===undefined) {
-          if (this.stack.length>0) {
-              return this.stack[this.stack.length-1];
-          }
-          else {
-            return this.lastArea;
-          }
-      }
-      else {
-        if (type.name in this.stacks) {
-            let stack=this.stacks[type.name];
-            if (stack.length>0) {
-                return stack[stack.length-1];
-            }
-        }
-        return this.lasts[type.name];
-      }
-    }
-  }
-  _ESClass.register(AreaWrangler);
-  _es6_module.add_class(AreaWrangler);
-  AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
-es6_module_define('FrameManager', ["./ScreenArea.js", "../util/vectormath.js", "../widgets/ui_curvewidget.js", "../widgets/dragbox.js", "../widgets/ui_noteframe.js", "../config/const.js", "../widgets/ui_colorpicker2.js", "../widgets/ui_widgets2.js", "../widgets/ui_panel.js", "../util/util.js", "../util/struct.js", "./FrameManager_ops.js", "../widgets/ui_dialog.js", "./FrameManager_mesh.js", "../widgets/ui_menu.js", "../util/simple_events.js", "../widgets/ui_widgets.js", "../core/ui_base.js", "../widgets/ui_tabs.js", "../util/math.js", "../widgets/ui_table.js", "./AreaDocker.js", "../widgets/ui_treeview.js", "../widgets/ui_listbox.js", "../util/ScreenOverdraw.js"], function _FrameManager_module(_es6_module) {
-  var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
-  let _FrameManager=undefined;
-  es6_import(_es6_module, '../widgets/dragbox.js');
-  es6_import(_es6_module, '../widgets/ui_widgets2.js');
-  es6_import(_es6_module, '../widgets/ui_panel.js');
-  es6_import(_es6_module, '../widgets/ui_treeview.js');
-  es6_import(_es6_module, '../util/ScreenOverdraw.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var haveModal=es6_import_item(_es6_module, '../util/simple_events.js', 'haveModal');
-  var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
-  var _setScreenClass=es6_import_item(_es6_module, '../util/simple_events.js', '_setScreenClass');
-  var util=es6_import(_es6_module, '../util/util.js');
-  es6_import(_es6_module, '../widgets/ui_curvewidget.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ScreenArea=es6_import(_es6_module, './ScreenArea.js');
-  var FrameManager_ops=es6_import(_es6_module, './FrameManager_ops.js');
-  var math=es6_import(_es6_module, '../util/math.js');
-  var ui_menu=es6_import(_es6_module, '../widgets/ui_menu.js');
-  es6_import(_es6_module, '../util/struct.js');
-  var KeyMap=es6_import_item(_es6_module, '../util/simple_events.js', 'KeyMap');
-  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
-  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
-  var AreaDocker=es6_import_item(_es6_module, './AreaDocker.js', 'AreaDocker');
-  var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
-  var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
-  var ScreenBorder=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenBorder');
-  var ScreenVert=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenVert');
-  var ScreenHalfEdge=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenHalfEdge');
-  let _ex_ScreenBorder=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenBorder');
-  _es6_module.add_export('ScreenBorder', _ex_ScreenBorder, true);
-  let _ex_ScreenVert=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenVert');
-  _es6_module.add_export('ScreenVert', _ex_ScreenVert, true);
-  let _ex_ScreenHalfEdge=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenHalfEdge');
-  _es6_module.add_export('ScreenHalfEdge', _ex_ScreenHalfEdge, true);
-  var theme=es6_import_item(_es6_module, '../core/ui_base.js', 'theme');
-  var FrameManager_mesh=es6_import(_es6_module, './FrameManager_mesh.js');
-  var makePopupArea=es6_import_item(_es6_module, '../widgets/ui_dialog.js', 'makePopupArea');
-  let Area=ScreenArea.Area;
-  es6_import(_es6_module, '../widgets/ui_widgets.js');
-  es6_import(_es6_module, '../widgets/ui_tabs.js');
-  es6_import(_es6_module, '../widgets/ui_colorpicker2.js');
-  es6_import(_es6_module, '../widgets/ui_noteframe.js');
-  es6_import(_es6_module, '../widgets/ui_listbox.js');
-  es6_import(_es6_module, '../widgets/ui_table.js');
-  var AreaFlags=es6_import_item(_es6_module, './ScreenArea.js', 'AreaFlags');
-  function list(iter) {
-    let ret=[];
-    for (let item of iter) {
-        ret.push(item);
-    }
-    return ret;
-  }
-  ui_menu.startMenuEventWrangling();
-  let _events_started=false;
-  function registerToolStackGetter(func) {
-    FrameManager_ops.registerToolStackGetter(func);
-  }
-  registerToolStackGetter = _es6_module.add_export('registerToolStackGetter', registerToolStackGetter);
-  window._nstructjs = nstructjs;
-  let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, styleScrollBars=ui_base.styleScrollBars;
-  let update_stack=new Array(8192);
-  update_stack.cur = 0;
-  let screen_idgen=0;
-  class Screen extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.globalCSS = document.createElement("style");
-      this.shadow.prepend(this.globalCSS);
-      this._do_updateSize = true;
-      this._resize_callbacks = [];
-      this.allBordersMovable = cconst.DEBUG.allBordersMovable;
-      this.needsBorderRegen = true;
-      this._popup_safe = 0;
-      this.testAllKeyMaps = false;
-      this.needsTabRecalc = true;
-      this._screen_id = screen_idgen++;
-      this._popups = [];
-      this._ctx = undefined;
-      this.keymap = new KeyMap();
-      this.size = new Vector2([window.innerWidth, window.innerHeight]);
-      this.pos = new Vector2();
-      this.idgen = 0;
-      this.sareas = [];
-      this.sareas.active = undefined;
-      this.mpos = [0, 0];
-      this.screenborders = [];
-      this.screenverts = [];
-      this._vertmap = {};
-      this._edgemap = {};
-      this._idmap = {};
-      this._aabb = [new Vector2(), new Vector2()];
-      this.shadow.addEventListener("mousemove", (e) =>        {
-        let elem=this.pickElement(e.x, e.y, 1, 1, ScreenArea.ScreenArea);
-        if (0) {
-            let elem2=this.pickElement(e.x, e.y);
-            console.log(elem2 ? elem2.tagName : undefined);
-        }
-        if (elem!==undefined) {
-            if (elem.area) {
-                elem.area.push_ctx_active();
-                elem.area.pop_ctx_active();
-            }
-            this.sareas.active = elem;
-        }
-        this.mpos[0] = e.x;
-        this.mpos[1] = e.y;
-      });
-      this.shadow.addEventListener("touchmove", (e) =>        {
-        this.mpos[0] = e.touches[0].pageX;
-        this.mpos[1] = e.touches[0].pageY;
-      });
-    }
-     mergeGlobalCSS(style) {
-      return new Promise((accept, reject) =>        {
-        let sheet;
-        let finish=() =>          {
-          let sheet2=this.globalCSS.sheet;
-          if (!sheet2) {
-              this.doOnce(finish);
-              return ;
-          }
-          let map={}
-          for (let rule of sheet2.rules) {
-              map[rule.selectorText] = rule;
-          }
-          for (let rule of sheet.rules) {
-              let k=rule.selectorText;
-              if (k in map) {
-                  let rule2=map[k];
-                  if (!rule.styleMap) {
-                      for (let k in rule.style) {
-                          let desc=Object.getOwnPropertyDescriptor(rule.style, k);
-                          if (!desc||!desc.writable) {
-                              continue;
-                          }
-                          let v=rule.style[k];
-                          if (v) {
-                              rule2.style[k] = rule.style[k];
-                          }
-                      }
-                      continue;
-                  }
-                  for (let /*unprocessed ExpandNode*/[key, val] of list(rule.styleMap.entries())) {
-                      if (1||rule2.styleMap.has(key)) {
-                          let sval="";
-                          if (Array.isArray(val)) {
-                              for (let item of val) {
-                                  sval+=" "+val;
-                              }
-                              sval = sval.trim();
-                          }
-                          else {
-                            sval = (""+val).trim();
-                          }
-                          rule2.style[key] = sval;
-                          rule2.styleMap.set(key, val);
-                      }
-                      else {
-                        rule2.styleMap.append(key, val);
-                      }
-                  }
-              }
-              else {
-                sheet2.insertRule(rule.cssText);
-              }
-          }
-        }
-        if (typeof style==="string") {
-            try {
-              sheet = new CSSStyleSheet();
-            }
-            catch (error) {
-                sheet = undefined;
-            }
-            if (sheet&&sheet.replaceSync) {
-                sheet.replaceSync(style);
-                finish();
+        let steps=64;
+        curve.update();
+        let scale=0.75;
+        g.strokeStyle = "orange";
+        g.lineWidth = 4.0*dpi/(size*scale);
+        g.scale(size*scale, size*scale);
+        let m=0.05;
+        let tent=(f) =>          {
+          return 1.0-Math.abs(Math.fract(f)-0.5)*2.0;
+        };
+        for (let i=0; i<steps; i++) {
+            let s=i/(steps-1);
+            let f=1.0-curve.evaluate(tent(s));
+            s = s*(1.0-m*2.0)+m;
+            f = f*(1.0-m*2.0)+m;
+            if (i===0) {
+                g.moveTo(s, f);
             }
             else {
-              let tag=document.createElement("style");
-              tag.textContent = style;
-              document.body.appendChild(tag);
-              let cb=() =>                {
-                if (!tag.sheet) {
-                    this.doOnce(cb);
-                    return ;
-                }
-                sheet = tag.sheet;
-                finish();
-                tag.remove();
-              };
-              this.doOnce(cb);
+              g.lineTo(s, f);
             }
         }
-        else 
-          if (!(__instance_of(style, CSSStyleSheet))) {
-            sheet = style.sheet;
-            finish();
-        }
-        else {
-          sheet = style;
-          finish();
-        }
-      });
+        g.stroke();
+        let url=canvas.toDataURL();
+        let img=document.createElement("img");
+        img.src = url;
+        SplineTemplateIcons[k] = img;
+        SplineTemplateIcons[SplineTemplates[k]] = img;
     }
-     newScreenArea() {
-      let ret=document.createElement("screenarea-x");
-      ret.ctx = this.ctx;
-      if (ret.ctx) {
-          ret.init();
-      }
-      return ret;
+  }
+  function initSplineTemplates() {
+    for (let k in SplineTemplates) {
+        let curve=new BSplineCurve();
+        curve.loadTemplate(SplineTemplates[k]);
+        splineCache.get(curve);
     }
-     copy() {
-      let ret=document.createElement(this.constructor.define().tagname);
-      ret.ctx = this.ctx;
-      ret._init();
-      for (let sarea of this.sareas) {
-          let sarea2=sarea.copy(ret);
-          sarea2._ctx = this.ctx;
-          sarea2.screen = ret;
-          sarea2.parentWidget = ret;
-          ret.appendChild(sarea2);
-      }
-      for (let sarea of ret.sareas) {
-          sarea.ctx = this.ctx;
-          sarea.area.ctx = this.ctx;
-          sarea.area.push_ctx_active();
-          sarea._init();
-          sarea.area._init();
-          sarea.area.pop_ctx_active();
-          for (let area of sarea.editors) {
-              area.ctx = this.ctx;
-              area.push_ctx_active();
-              area._init();
-              area.pop_ctx_active();
-          }
-      }
-      ret.update();
-      ret.regenBorders();
-      ret.setCSS();
-      return ret;
+    makeSplineTemplateIcons();
+    window._SplineTemplateIcons = SplineTemplateIcons;
+  }
+  initSplineTemplates = _es6_module.add_export('initSplineTemplates', initSplineTemplates);
+  window.setTimeout(() =>    {
+    if (config.autoLoadSplineTemplates) {
+        initSplineTemplates();
     }
-     findScreenArea(x, y) {
-      for (let i=this.sareas.length-1; i>=0; i--) {
-          let sarea=this.sareas[i];
-          let ok=x>=sarea.pos[0]&&x<=sarea.pos[0]+sarea.size[0];
-          ok = ok&&(y>=sarea.pos[1]&&y<=sarea.pos[1]+sarea.size[1]);
-          if (ok) {
-              return sarea;
-          }
-      }
-    }
-     pickElement(x, y, sx, sy, nodeclass, excluded_classes) {
+  }, 0);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_bspline.js');
 
-    }
-     pickElement(x, y, args, sy, nodeclass, excluded_classes) {
-      let sx;
-      let clip;
-      if (typeof args==="object") {
-          sx = args.sx;
-          sy = args.sy;
-          nodeclass = args.nodeclass;
-          excluded_classes = args.excluded_classes;
-          clip = args.clip;
-      }
-      else {
-        sx = args;
-        args = {sx: sx, 
-      sy: sy, 
-      nodeclass: nodeclass, 
-      excluded_classes: excluded_classes};
-      }
-      if (clip===undefined) {
-          clip = args.clip = {pos: new Vector2(this.pos), 
-       size: new Vector2(this.size)};
-      }
-      
-      if (!this.ctx) {
-          console.warn("no ctx in screen");
-          return ;
-      }
-      let ret;
-      for (let i=this._popups.length-1; i>=0; i--) {
-          let popup=this._popups[i];
-          ret = ret||popup.pickElement(x, y, args);
-      }
-      ret = ret||super.pickElement(x, y, args);
-      return ret;
-    }
-     _enterPopupSafe() {
-      if (this._popup_safe===undefined) {
-          this._popup_safe = 0;
-      }
-      this._popup_safe++;
-    }
-    * _allAreas() {
-      for (let sarea of this.sareas) {
-          for (let area of sarea.editors) {
-              yield [area, area._area_id, sarea];
-          }
-      }
-    }
-     _exitPopupSafe() {
-      this._popup_safe = Math.max(this._popup_safe-1, 0);
-    }
-     popupMenu(menu, x, y) {
-      let popup=this.popup(undefined, x, y, false);
-      popup.add(menu);
-      menu.start();
-      return menu;
-    }
-     popup(owning_node, elem_or_x, y, closeOnMouseOut=true, popupDelay=250) {
-      let ret=this._popup(...arguments);
-      if (popupDelay===0) {
-          return ret;
-      }
-      let z=ret.style["z-index"];
-      ret.style["z-index"] = "-10";
-      let cb=() =>        {
-        let rect=ret.getClientRects()[0];
-        let size=this.size;
-        if (!rect) {
-            this.doOnce(cb);
-            return ;
-        }
-        console.log("rect", rect);
-        if (rect.bottom>size[1]) {
-            ret.style["top"] = (size[1]-rect.height-10)+"px";
-        }
-        else 
-          if (rect.top<0) {
-            ret.style["top"] = "10px";
-        }
-        if (rect.right>size[0]) {
-            ret.style["left"] = (size[0]-rect.width-10)+"px";
-        }
-        else 
-          if (rect.left<0) {
-            ret.style["left"] = "10px";
-        }
-        ret.style["z-index"] = z;
-      };
-      setTimeout(cb, popupDelay);
-      return ret;
-    }
-     draggablePopup(x, y) {
-      let ret=document.createElement("drag-box-x");
-      ret.ctx = this.ctx;
-      ret.parentWidget = this;
-      ret._init();
-      this._popups.push(ret);
-      ret._onend = () =>        {
-        if (this._popups.indexOf(ret)>=0) {
-            this._popups.remove(ret);
-        }
-      };
-      ret.style["z-index"] = 205;
-      ret.style["position"] = "absolute";
-      ret.style["left"] = x+"px";
-      ret.style["top"] = y+"px";
-      document.body.appendChild(ret);
-      return ret;
-    }
-     _popup(owning_node, elem_or_x, y, closeOnMouseOut=true) {
-      let x;
-      let sarea=this.sareas.active;
-      let w=owning_node;
-      while (w) {
-        if (__instance_of(w, ScreenArea.ScreenArea)) {
-            sarea = w;
-            break;
-        }
-        w = w.parentWidget;
-      }
-      if (typeof elem_or_x==="object") {
-          let r=elem_or_x.getClientRects()[0];
-          x = r.x;
-          y = r.y;
-      }
-      else {
-        x = elem_or_x;
-      }
-      let container=document.createElement("container-x");
-      container.ctx = this.ctx;
-      container._init();
-      let remove=container.remove;
-      container.remove = () =>        {
-        if (this._popups.indexOf(container)>=0) {
-            this._popups.remove(container);
-        }
-        return remove.apply(container, arguments);
-      };
-      container.background = this.getDefault("BoxSubBG");
-      container.style["position"] = "absolute";
-      container.style["z-index"] = 205;
-      container.style["left"] = x+"px";
-      container.style["top"] = y+"px";
-      container.style["margin"] = "0px";
-      container.parentWidget = this;
-      let mm=new math.MinMax(2);
-      let p=new Vector2();
-      let _update=container.update;
-      document.body.appendChild(container);
-      this.setCSS();
-      this._popups.push(container);
-      let touchpick, mousepick, keydown;
-      let done=false;
-      let end=() =>        {
-        if (this._popup_safe) {
-            return ;
-        }
-        if (done)
-          return ;
-        console.warn("container end");
-        this.ctx.screen.removeEventListener("touchstart", touchpick, true);
-        this.ctx.screen.removeEventListener("touchmove", touchpick, true);
-        this.ctx.screen.removeEventListener("mousedown", mousepick, true);
-        this.ctx.screen.removeEventListener("mousemove", mousepick, true);
-        this.ctx.screen.removeEventListener("mouseup", mousepick, true);
-        window.removeEventListener("keydown", keydown);
-        done = true;
-        container.remove();
-      };
-      container.end = end;
-      let _remove=container.remove;
-      container.remove = function () {
-        if (arguments.length==0) {
-            end();
-        }
-        _remove.apply(this, arguments);
-      };
-      container._ondestroy = () =>        {
-        end();
-      };
-      let bad_time=util.time_ms();
-      let last_pick_time=util.time_ms();
-      mousepick = (e, x, y, do_timeout) =>        {
-        if (do_timeout===undefined) {
-            do_timeout = true;
-        }
-        if (sarea&&sarea.area) {
-            sarea.area.push_ctx_active();
-            sarea.area.pop_ctx_active();
-        }
-        if (util.time_ms()-last_pick_time<250) {
-            return ;
-        }
-        last_pick_time = util.time_ms();
-        x = x===undefined ? e.x : x;
-        y = y===undefined ? e.y : y;
-        let elem=this.pickElement(x, y, 2, 2, undefined, [ScreenBorder]);
-        let startelem=elem;
-        if (elem===undefined) {
-            if (closeOnMouseOut) {
-                end();
-            }
-            return ;
-        }
-        let ok=false;
-        let elem2=elem;
-        while (elem) {
-          if (elem===container) {
-              ok = true;
-              break;
-          }
-          elem = elem.parentWidget;
-        }
-        if (!ok) {
-            do_timeout = !do_timeout||(util.time_ms()-bad_time>100);
-            if (closeOnMouseOut&&do_timeout) {
-                end();
-            }
-        }
-        else {
-          bad_time = util.time_ms();
-        }
-      };
-      touchpick = (e) =>        {
-        let x=e.touches[0].pageX, y=e.touches[0].pageY;
-        return mousepick(e, x, y, false);
-      };
-      keydown = (e) =>        {
-        console.log(e.keyCode);
-        switch (e.keyCode) {
-          case keymap["Escape"]:
-            end();
-            break;
-        }
-      };
-      this.ctx.screen.addEventListener("touchstart", touchpick, true);
-      this.ctx.screen.addEventListener("touchmove", touchpick, true);
-      this.ctx.screen.addEventListener("mousemove", mousepick, true);
-      this.ctx.screen.addEventListener("mousedown", mousepick, true);
-      this.ctx.screen.addEventListener("mouseup", mousepick, true);
-      window.addEventListener("keydown", keydown);
-      this.calcTabOrder();
-      return container;
-    }
-     _recalcAABB(save=true) {
-      let mm=new math.MinMax(2);
-      for (let v of this.screenverts) {
-          mm.minmax(v);
-      }
-      if (save) {
-          this._aabb[0].load(mm.min);
-          this._aabb[1].load(mm.max);
-      }
-      return [new Vector2(mm.min), new Vector2(mm.max)];
-    }
-    get  borders() {
-      let this2=this;
-      return (function* () {
-        for (let k in this2._edgemap) {
-            yield this2._edgemap[k];
-        }
-      })();
-    }
-     load() {
 
-    }
-     save() {
-
-    }
-     popupArea(area_class) {
-      return makePopupArea(area_class, this);
-    }
-     remove(trigger_destroy=true) {
-      this.unlisten();
-      if (trigger_destroy) {
-          return super.remove();
-      }
-      else {
-        HTMLElement.prototype.remove.call(this);
-      }
-    }
-    get  listening() {
-      return this.listen_timer!==undefined;
-    }
-     unlisten() {
-      if (this.listen_timer!==undefined) {
-          window.clearInterval(this.listen_timer);
-          this.listen_timer = undefined;
-      }
-    }
-     updateSize() {
-      if (!cconst.autoSizeUpdate) {
-          return ;
-      }
-      let width=window.innerWidth;
-      let height=window.innerHeight;
-      if (0) {
-          width = window.screen.availWidth||window.screen.width;
-          height = window.screen.availHeight||window.screen.height;
-          let dpi=0.985/visualViewport.scale;
-          width*=dpi*0.985;
-          height*=dpi;
-          width = ~~width;
-          height = ~~height;
-      }
-      else {
-      }
-      let ratio=window.outerHeight/window.innerHeight;
-      let scale=visualViewport.scale;
-      let pad=4;
-      width = visualViewport.width*scale-pad;
-      height = visualViewport.height*scale-pad;
-      let ox=visualViewport.offsetLeft;
-      let oy=visualViewport.offsetTop;
-      if (cconst.DEBUG.customWindowSize) {
-          let s=cconst.DEBUG.customWindowSize;
-          width = s.width;
-          height = s.height;
-          ox = 0;
-          oy = 0;
-          window._DEBUG = cconst.DEBUG;
-      }
-      let key=this._calcSizeKey(width, height, ox, oy, devicePixelRatio, scale);
-      document.body.style.margin = document.body.style.padding = "0px";
-      document.body.style["transform-origin"] = "top left";
-      document.body.style["transform"] = `translate(${ox}px,${oy}px) scale(${1.0/scale})`;
-      if (key!==this._last_ckey1) {
-          console.log("resizing", key, this._last_ckey1);
-          this._last_ckey1 = key;
-          this.on_resize(this.size, [width, height], false);
-          this.on_resize(this.size, this.size, false);
-          let scale=visualViewport.scale;
-          this.regenBorders();
-          this.setCSS();
-          this.completeUpdate();
-      }
-    }
-     listen(args={updateSize: true}) {
-      ui_menu.setWranglerScreen(this);
-      let ctx=this.ctx;
-      startEvents(() =>        {
-        return ctx.screen;
-      });
-      if (this.listen_timer!==undefined) {
-          return ;
-      }
-      this._do_updateSize = args.updateSize!==undefined ? args.updateSize : true;
-      this.listen_timer = window.setInterval(() =>        {
-        if (this.isDead()) {
-            console.log("dead screen");
-            this.unlisten();
-            return ;
-        }
-        this.update();
-      }, 150);
-    }
-     _calcSizeKey(w, h, x, y, dpi, scale) {
-      if (arguments.length!==6) {
-          throw new Error("eek");
-      }
-      let s="";
-      for (let i=0; i<arguments.length; i++) {
-          s+=arguments[i].toFixed(0)+":";
-      }
-      return s;
-    }
-     _ondestroy() {
-      if (ui_menu.getWranglerScreen()===this) {
-      }
-      this.unlisten();
-      let recurse=(n, second_pass, parent) =>        {
-        if (n.__pass===second_pass) {
-            console.warn("CYCLE IN DOM TREE!", n, parent);
-            return ;
-        }
-        n.__pass = second_pass;
-        n._forEachChildWidget((n2) =>          {
-          if (n===n2)
-            return ;
-          recurse(n2, second_pass, n);
-          try {
-            if (!second_pass&&!n2.__destroyed) {
-                n2.__destroyed = true;
-                n2._ondestroy();
-            }
-          }
-          catch (error) {
-              print_stack(error);
-              console.log("failed to exectue an ondestroy callback");
-          }
-          n2.__destroyed = true;
-          try {
-            if (second_pass) {
-                n2.remove();
-            }
-          }
-          catch (error) {
-              print_stack(error);
-              console.log("failed to remove element after ondestroy callback");
-          }
-        });
-      };
-      let id=~~(Math.random()*1024*1024);
-      recurse(this, id);
-      recurse(this, id+1);
-    }
-     destroy() {
-      this._ondestroy();
-    }
-     clear() {
-      this._ondestroy();
-      this.sareas = [];
-      this.sareas.active = undefined;
-      for (let child of list(this.childNodes)) {
-          child.remove();
-      }
-      for (let child of list(this.shadow.childNodes)) {
-          child.remove();
-      }
-    }
-     _test_save() {
-      let obj=JSON.parse(JSON.stringify(this));
-      console.log(JSON.stringify(this));
-      this.loadJSON(obj);
-    }
-     loadJSON(obj, schedule_resize=false) {
-      this.clear();
-      super.loadJSON();
-      for (let sarea of obj.sareas) {
-          let sarea2=document.createElement("screenarea-x");
-          sarea2.ctx = this.ctx;
-          sarea2.screen = this;
-          this.appendChild(sarea2);
-          sarea2.loadJSON(sarea);
-      }
-      this.regenBorders();
-      this.setCSS();
-      if (schedule_resize) {
-          window.setTimeout(() =>            {
-            this.on_resize(this.size, [window.innerWidth, window.innerHeight]);
-          }, 50);
-      }
-    }
-    static  fromJSON(obj, schedule_resize=false) {
-      let ret=document.createElement(this.define().tagname);
-      return ret.loadJSON(obj, schedule_resize);
-    }
-     toJSON() {
-      let ret={sareas: this.sareas};
-      ret.size = this.size;
-      ret.idgen = this.idgen;
-      return Object.assign(super.toJSON(), ret);
-    }
-     getHotKey(toolpath) {
-      let test=(keymap) =>        {
-        for (let hk of keymap) {
-            if (typeof hk.action!="string")
-              continue;
-            if (hk.action.trim().startsWith(toolpath.trim())) {
-                return hk;
-            }
-        }
-      };
-      let ret=test(this.keymap);
-      if (ret)
-        return ret;
-      if (this.sareas.active&&this.sareas.active.keymap) {
-          let area=this.sareas.active.area;
-          for (let keymap of area.getKeyMaps()) {
-              ret = test(keymap);
-              if (ret)
-                return ret;
-          }
-      }
-      if (ret===undefined) {
-          for (let sarea of this.sareas) {
-              let area=sarea.area;
-              for (let keymap of area.getKeyMaps()) {
-                  ret = test(keymap);
-                  if (ret) {
-                      return ret;
-                  }
-              }
-          }
-      }
-      return undefined;
-    }
-     addEventListener(type, cb, options) {
-      if (type==="resize") {
-          this._resize_callbacks.push(cb);
-      }
-      else {
-        return super.addEventListener(type, cb, options);
-      }
-    }
-     removeEventListener(type, cb, options) {
-      if (type==="resize") {
-          if (this._resize_callbacks.indexOf(cb)>=0)
-            this._resize_callbacks.remove(cb);
-      }
-      else {
-        return super.removeEventListener(type, cb, options);
-      }
-    }
-     execKeyMap(e) {
-      let handled=false;
-      console.warn("execKeyMap called", document.activeElement.tagName);
-      if (this.sareas.active) {
-          let area=this.sareas.active.area;
-          if (!area) {
-              console.warn("eek");
-              return ;
-          }
-          for (let keymap of area.getKeyMaps()) {
-              if (keymap===undefined) {
-                  console.warn("eek!");
-              }
-              if (keymap.handle(this.ctx, e)) {
-                  handled = true;
-                  break;
-              }
-          }
-      }
-      handled = handled||this.keymap.handle(this.ctx, e);
-      if (!handled&&this.testAllKeyMaps) {
-          for (let sarea of this.sareas) {
-              if (handled) {
-                  break;
-              }
-              for (let keymap of sarea.area.getKeyMaps()) {
-                  if (keymap.handle(this.ctx, e)) {
-                      handled = true;
-                      break;
-                  }
-              }
-          }
-      }
-      return handled;
-    }
-    static  define() {
-      return {tagname: "screen-x"}
-    }
-     calcTabOrder() {
-      let nodes=[];
-      let visit={};
-      let rec=(n) =>        {
-        let bad=n.tabIndex<0||n.tabIndex===undefined||n.tabIndex===null;
-        bad = bad||!(__instance_of(n, UIBase));
-        if (n._id in visit||n.hidden) {
-            return ;
-        }
-        visit[n._id] = 1;
-        if (!bad) {
-            n.__pos = n.getClientRects()[0];
-            if (n.__pos) {
-                nodes.push(n);
-            }
-        }
-        n._forEachChildWidget((n2) =>          {
-          rec(n2);
-        });
-      };
-      for (let sarea of this.sareas) {
-          rec(sarea);
-      }
-      for (let popup of this._popups) {
-          rec(popup);
-      }
-      for (let i=0; i<nodes.length; i++) {
-          let n=nodes[i];
-          n.tabIndex = i+1;
-      }
-    }
-     drawUpdate() {
-      if (window.redraw_all!==undefined) {
-          window.redraw_all();
-      }
-    }
-     update() {
-      let move=[];
-      for (let child of this.childNodes) {
-          if (__instance_of(child, ScreenArea)) {
-              move.push(child);
-          }
-      }
-      for (let child of move) {
-          console.warn("moved screen area to shadow");
-          HTMLElement.prototype.remove.call(child);
-          this.shadow.appendChild(child);
-      }
-      if (this._do_updateSize) {
-          this.updateSize();
-      }
-      if (this.needsTabRecalc) {
-          this.needsTabRecalc = false;
-          this.calcTabOrder();
-      }
-      outer: for (let sarea of this.sareas) {
-          for (let b of sarea._borders) {
-              let movable=this.isBorderMovable(b);
-              if (movable!==b.movable) {
-                  console.log("detected change in movable borders");
-                  this.regenBorders();
-                  break outer;
-              }
-          }
-      }
-      if (this._update_gen) {
-          let ret;
-          try {
-            ret = this._update_gen.next();
-          }
-          catch (error) {
-              util.print_stack(error);
-              console.log("error in update_intern tasklet");
-              this._update_gen = undefined;
-              return ;
-          }
-          if (ret!==undefined&&ret.done) {
-              this._update_gen = undefined;
-          }
-      }
-      else {
-        this._update_gen = this.update_intern();
-      }
-    }
-    get  ctx() {
-      return this._ctx;
-    }
-    set  ctx(val) {
-      this._ctx = val;
-      let rec=(n) =>        {
-        if (__instance_of(n, UIBase)) {
-            n.ctx = val;
-        }
-        for (let n2 of n.childNodes) {
-            rec(n2);
-        }
-        if (n.shadow) {
-            for (let n2 of n.shadow.childNodes) {
-                rec(n2);
-            }
-        }
-      };
-      for (let n of this.childNodes) {
-          rec(n);
-      }
-      for (let n of this.shadow.childNodes) {
-          rec(n);
-      }
-    }
-     completeSetCSS() {
-      let rec=(n) =>        {
-        n.setCSS();
-        n._forEachChildWidget((c) =>          {
-          rec(c);
-        });
-      };
-      rec(this);
-    }
-     completeUpdate() {
-      for (let step of this.update_intern()) {
-
-      }
-    }
-     updateScrollStyling() {
-      let s=theme.scrollbars;
-      if (!s)
-        return ;
-      let key=""+s.color+":"+s.color2+":"+s.border+":"+s.contrast+":"+s.width;
-      if (key!==this._last_scrollstyle_key) {
-          this._last_scrollstyle_key = key;
-          this.mergeGlobalCSS(styleScrollBars(s.color, s.color2, s.contrast, s.width, s.border, "*"));
-      }
-    }
-     update_intern() {
-      this.updateScrollStyling();
-      let popups=this._popups;
-      let cssText="";
-      let sheet=this.globalCSS.sheet;
-      if (sheet) {
-          for (let rule of sheet.rules) {
-              cssText+=rule.cssText+"\n";
-          }
-          window.cssText = cssText;
-      }
-      let cssTextHash=util.strhash(cssText);
-      if (this.needsBorderRegen) {
-          this.needsBorderRegen = false;
-          this.regenBorders();
-      }
-      super.update();
-      let this2=this;
-      for (let sarea of this.sareas) {
-          sarea.ctx = this.ctx;
-      }
-      return (function* () {
-        let stack=update_stack;
-        stack.cur = 0;
-        let lastn=this2;
-        function push(n) {
-          stack[stack.cur++] = n;
-        }
-        function pop(n) {
-          if (stack.cur<0) {
-              throw new Error("Screen.update(): stack overflow!");
-          }
-          return stack[--stack.cur];
-        }
-        let ctx=this2.ctx;
-        let SCOPE_POP=Symbol("pop");
-        let AREA_CTX_POP=Symbol("pop2");
-        let scopestack=[];
-        let areastack=[];
-        let t=util.time_ms();
-        push(this2);
-        for (let p of popups) {
-            push(p);
-        }
-        while (stack.cur>0) {
-          let n=pop();
-          if (n===undefined) {
-              continue;
-          }
-          else 
-            if (n===SCOPE_POP) {
-              scopestack.pop();
-              continue;
-          }
-          else 
-            if (n===AREA_CTX_POP) {
-              areastack.pop().pop_ctx_active(ctx, true);
-              continue;
-          }
-          if (__instance_of(n, Area)) {
-              areastack.push(n);
-              n.push_ctx_active(ctx, true);
-              push(AREA_CTX_POP);
-          }
-          if (!n.hidden&&n!==this2&&__instance_of(n, UIBase)) {
-              n._ctx = ctx;
-              if (n._screenStyleUpdateHash!==cssTextHash) {
-                  n._screenStyleTag.textContent = cssText;
-                  n._screenStyleUpdateHash = cssTextHash;
-              }
-              if (scopestack.length>0&&scopestack[scopestack.length-1]) {
-                  n.parentWidget = scopestack[scopestack.length-1];
-              }
-              n.update();
-          }
-          if (util.time_ms()-t>20) {
-              yield ;
-              t = util.time_ms();
-          }
-          for (let n2 of n.childNodes) {
-              push(n2);
-          }
-          if (n.shadow===undefined) {
-              continue;
-          }
-          for (let n2 of n.shadow.childNodes) {
-              push(n2);
-          }
-          if (__instance_of(n, UIBase)) {
-              scopestack.push(n);
-              push(SCOPE_POP);
-          }
-        }
-      })();
-    }
-     loadFromVerts() {
-      let old=[0, 0];
-      for (let sarea of this.sareas) {
-          old[0] = sarea.size[0];
-          old[1] = sarea.size[1];
-          sarea.loadFromVerts();
-          sarea.on_resize(old);
-          sarea.setCSS();
-      }
-      this.setCSS();
-    }
-     splitArea(sarea, t=0.5, horiz=true) {
-      let w=sarea.size[0], h=sarea.size[1];
-      let x=sarea.pos[0], y=sarea.size[1];
-      let s1, s2;
-      if (!horiz) {
-          s1 = sarea;
-          if (s1.ctx===undefined) {
-              s1.ctx = this.ctx;
-          }
-          s2 = s1.copy(this);
-          s1.size[0]*=t;
-          s2.size[0]*=(1.0-t);
-          s2.pos[0]+=w*t;
-      }
-      else {
-        s1 = sarea;
-        if (s1.ctx===undefined) {
-            s1.ctx = this.ctx;
-        }
-        s2 = s1.copy(this);
-        s1.size[1]*=t;
-        s2.size[1]*=(1.0-t);
-        s2.pos[1]+=h*t;
-      }
-      s2.ctx = this.ctx;
-      this.appendChild(s2);
-      s1.on_resize(s1.size);
-      s2.on_resize(s2.size);
-      this.regenBorders();
-      this.solveAreaConstraints();
-      s1.setCSS();
-      s2.setCSS();
-      this.setCSS();
-      if (s2.area!==undefined)
-        s2.area.onadd();
-      return s2;
-    }
-     setCSS() {
-      this.style["width"] = this.size[0]+"px";
-      this.style["height"] = this.size[1]+"px";
-      for (let key in this._edgemap) {
-          let b=this._edgemap[key];
-          b.setCSS();
-      }
-    }
-     regenScreenMesh() {
-      this.regenBorders();
-    }
-     regenBorders_stage2() {
-      for (let b of this.screenborders) {
-          b.halfedges = [];
-      }
-      function hashHalfEdge(border, sarea) {
-        return border._id+":"+sarea._id;
-      }
-      function has_he(border, border2, sarea) {
-        for (let he of border.halfedges) {
-            if (border2===he.border&&sarea===he.sarea) {
-                return true;
-            }
-        }
-        return false;
-      }
-      for (let b1 of this.screenborders) {
-          for (let sarea of b1.sareas) {
-              let he=new ScreenHalfEdge(b1, sarea);
-              b1.halfedges.push(he);
-          }
-          let axis=b1.horiz ? 1 : 0;
-          let min=Math.min(b1.v1[axis], b1.v2[axis]);
-          let max=Math.max(b1.v1[axis], b1.v2[axis]);
-          for (let b2 of this.walkBorderLine(b1)) {
-              if (b1===b2) {
-                  continue;
-              }
-              let ok=b2.v1[axis]>=min&&b2.v1[axis]<=max;
-              ok = ok||(b2.v2[axis]>=min&&b2.v2[axis]<=max);
-              for (let sarea of b2.sareas) {
-                  let ok2=ok&&!has_he(b2, b1, sarea);
-                  if (ok2) {
-                      let he2=new ScreenHalfEdge(b2, sarea);
-                      b1.halfedges.push(he2);
-                  }
-              }
-          }
-      }
-      for (let b of this.screenborders) {
-          let movable=true;
-          for (let sarea of b.sareas) {
-              movable = movable&&this.isBorderMovable(b);
-          }
-          b.movable = movable;
-      }
-    }
-     hasBorder(b) {
-      return b._id in this._idmap;
-    }
-     killScreenVertex(v) {
-      this.screenverts.remove(v);
-      delete this._edgemap[ScreenVert.hash(v)];
-      delete this._idmap[v._id];
-      return this;
-    }
-     freeBorder(b, sarea) {
-      if (b.sareas.indexOf(sarea)>=0) {
-          b.sareas.remove(sarea);
-      }
-      let dels=[];
-      for (let he of b.halfedges) {
-          if (he.sarea===sarea) {
-              dels.push([b, he]);
-          }
-          for (let he2 of he.border.halfedges) {
-              if (he2===he)
-                continue;
-              if (he2.sarea===sarea) {
-                  dels.push([he.border, he2]);
-              }
-          }
-      }
-      for (let d of dels) {
-          if (d[0].halfedges.indexOf(d[1])<0) {
-              console.warn("Double remove detected; use util.set?");
-              continue;
-          }
-          d[0].halfedges.remove(d[1]);
-      }
-      if (b.sareas.length===0) {
-          this.killBorder(b);
-      }
-    }
-     killBorder(b) {
-      console.log("killing border", b._id, b);
-      if (this.screenborders.indexOf(b)<0) {
-          console.log("unknown border", b);
-          b.remove();
-          return ;
-      }
-      this.screenborders.remove(b);
-      let del=[];
-      for (let he of b.halfedges) {
-          if (he===he2)
-            continue;
-          for (let he2 of he.border.halfedges) {
-              if (he2.border===b) {
-                  del.push([he.border, he2]);
-              }
-          }
-      }
-      for (let d of del) {
-          d[0].halfedges.remove(d[1]);
-      }
-      delete this._edgemap[ScreenBorder.hash(b.v1, b.v2)];
-      delete this._idmap[b._id];
-      b.v1.borders.remove(b);
-      b.v2.borders.remove(b);
-      if (b.v1.borders.length===0) {
-          this.killScreenVertex(b.v1);
-      }
-      if (b.v2.borders.length===0) {
-          this.killScreenVertex(b.v2);
-      }
-      b.remove();
-      return this;
-    }
-     regenBorders() {
-      for (let b of this.screenborders) {
-          b.remove();
-          HTMLElement.prototype.remove.call(b);
-      }
-      this._idmap = {};
-      this.screenborders = [];
-      this._edgemap = {};
-      this._vertmap = {};
-      this.screenverts = [];
-      for (let sarea of this.sareas) {
-          if (sarea.hidden)
-            continue;
-          sarea.makeBorders(this);
-      }
-      for (let key in this._edgemap) {
-          let b=this._edgemap[key];
-          b.setCSS();
-      }
-      this.regenBorders_stage2();
-      this._recalcAABB();
-      for (let b of this.screenborders) {
-          b.outer = this.isBorderOuter(b);
-          b.movable = this.isBorderMovable(b);
-          b.setCSS();
-      }
-      this.updateDebugBoxes();
-    }
-     _get_debug_overlay() {
-      if (!this._debug_overlay) {
-          this._debug_overlay = document.createElement("overdraw-x");
-          let s=this._debug_overlay;
-          s.startNode(this, this);
-      }
-      return this._debug_overlay;
-    }
-     updateDebugBoxes() {
-      if (cconst.DEBUG.screenborders) {
-          let overlay=this._get_debug_overlay();
-          overlay.clear();
-          for (let b of this.screenborders) {
-              overlay.line(b.v1, b.v2, "red");
-          }
-          let del=[];
-          for (let child of document.body.childNodes) {
-              if (child.getAttribute&&child.getAttribute("class")==="__debug") {
-                  del.push(child);
-              }
-          }
-          for (let n of del) {
-              n.remove();
-          }
-          let box=(x, y, s, text, color) =>            {
-            if (color===undefined) {
-                color = "red";
-            }
-            x-=s*0.5;
-            y-=s*0.5;
-            x = Math.min(Math.max(x, 0.0), this.size[0]-s);
-            y = Math.min(Math.max(y, 0.0), this.size[1]-s);
-            let ret=document.createElement("div");
-            ret.setAttribute("class", "__debug");
-            ret.style["position"] = "absolute";
-            ret.style["left"] = x+"px";
-            ret.style["top"] = y+"px";
-            ret.style["height"] = s+"px";
-            ret.style["width"] = s+"px";
-            ret.style["z-index"] = "1000";
-            ret.style["pointer-events"] = "none";
-            ret.style["padding"] = ret.style["margin"] = "0px";
-            ret.style['display'] = "float";
-            ret.style["background-color"] = color;
-            document.body.appendChild(ret);
-            let colors=["orange", "black", "white"];
-            for (let i=2; i>=0; i--) {
-                ret = document.createElement("div");
-                ret.setAttribute("class", "__debug");
-                ret.style["position"] = "absolute";
-                ret.style["left"] = x+"px";
-                ret.style["top"] = y+"px";
-                ret.style["height"] = s+"px";
-                ret.style["width"] = "250px";
-                ret.style["z-index"] = ""+(1005-i-1);
-                ret.style["pointer-events"] = "none";
-                ret.style["color"] = colors[i];
-                let w=(i)*2;
-                ret.style["-webkit-text-stroke-width"] = w+"px";
-                ret.style["-webkit-text-stroke-color"] = colors[i];
-                ret.style["text-stroke-width"] = w+"px";
-                ret.style["text-stroke-color"] = colors[i];
-                ret.style["padding"] = ret.style["margin"] = "0px";
-                ret.style['display'] = "float";
-                ret.style["background-color"] = "rgba(0,0,0,0)";
-                ret.innerText = ""+text;
-                document.body.appendChild(ret);
-            }
-          };
-          for (let v of this.screenverts) {
-              box(v[0], v[1], 10*v.borders.length, ""+v.borders.length, "rgba(255,0,0,0.5)");
-          }
-          for (let b of this.screenborders) {
-              for (let he of b.halfedges) {
-                  let txt=`${he.side}, ${b.sareas.length}, ${b.halfedges.length}`;
-                  let p=new Vector2(b.v1).add(b.v2).mulScalar(0.5);
-                  let size=10*b.halfedges.length;
-                  let wadd=25+size*0.5;
-                  let axis=b.horiz&1;
-                  if (p[axis]>he.sarea.pos[axis]) {
-                      p[axis]-=wadd;
-                  }
-                  else {
-                    p[axis]+=wadd;
-                  }
-                  box(p[0], p[1], size, txt, "rgba(155,255,75,0.5)");
-              }
-          }
-      }
-    }
-     checkAreaConstraint(sarea, checkOnly=false) {
-      let min=sarea.minSize, max=sarea.maxSize;
-      let vs=sarea._verts;
-      let chg=0.0;
-      let mask=0;
-      let moveBorder=(sidea, sideb, dh) =>        {
-        let b1=sarea._borders[sidea];
-        let b2=sarea._borders[sideb];
-        let bad=0;
-        for (let i=0; i<2; i++) {
-            let b=i ? b2 : b1;
-            let bad2=sarea.borderLock&(1<<sidea);
-            bad2 = bad2||!b.movable;
-            bad2 = bad2||this.isBorderOuter(b);
-            if (bad2)
-              bad|=1<<i;
-        }
-        if (bad===0) {
-            this.moveBorder(b1, dh*0.5);
-            this.moveBorder(b2, -dh*0.5);
-        }
-        else 
-          if (bad===1) {
-            this.moveBorder(b2, -dh);
-        }
-        else 
-          if (bad===2) {
-            this.moveBorder(b1, dh);
-        }
-        else 
-          if (bad===3) {
-            if (!this.isBorderOuter(b1)) {
-                this.moveBorder(b1, dh);
-            }
-            else 
-              if (!this.isBorderOuter(b2)) {
-                this.moveBorder(b2, -dh);
-            }
-            else {
-              this.moveBorder(b1, dh*0.5);
-              this.moveBorder(b2, -dh*0.5);
-            }
-        }
-      };
-      if (max[0]!==undefined&&sarea.size[0]>max[0]) {
-          let dh=(sarea.size[0]-max[0]);
-          chg+=Math.abs(dh);
-          mask|=1;
-          moveBorder(0, 2, dh);
-      }
-      if (min[0]!==undefined&&sarea.size[0]<min[0]) {
-          let dh=(min[0]-sarea.size[0]);
-          chg+=Math.abs(dh);
-          mask|=2;
-          moveBorder(2, 0, dh);
-      }
-      if (max[1]!==undefined&&sarea.size[1]>max[1]) {
-          let dh=(sarea.size[1]-max[1]);
-          chg+=Math.abs(dh);
-          mask|=4;
-          moveBorder(3, 1, dh);
-      }
-      if (min[1]!==undefined&&sarea.size[1]<min[1]) {
-          let dh=(min[1]-sarea.size[1]);
-          chg+=Math.abs(dh);
-          mask|=8;
-          moveBorder(1, 3, dh);
-      }
-      if (sarea.pos[0]+sarea.size[0]>this.size[0]) {
-          mask|=16;
-          let dh=((this.size[0]-sarea.size[0])-sarea.pos[0]);
-          chg+=Math.abs(dh);
-          if (sarea.floating) {
-              sarea.pos[0] = this.size[0]-sarea.size[0];
-              sarea.loadFromPosSize();
-          }
-          else {
-            this.moveBorder(sarea._borders[0], dh);
-            this.moveBorder(sarea._borders[2], dh);
-          }
-      }
-      if (chg===0.0) {
-          return false;
-      }
-      return mask;
-    }
-     walkBorderLine(b) {
-      let visit=new util.set();
-      let ret=[b];
-      visit.add(b);
-      let rec=(b, v) =>        {
-        for (let b2 of v.borders) {
-            if (b2===b) {
-                continue;
-            }
-            if (b2.horiz===b.horiz&&!visit.has(b2)) {
-                visit.add(b2);
-                ret.push(b2);
-                rec(b2, b2.otherVertex(v));
-            }
-        }
-      };
-      rec(b, b.v1);
-      let ret2=ret;
-      ret = [];
-      rec(b, b.v2);
-      ret2.reverse();
-      return ret2.concat(ret);
-    }
-     moveBorderWithoutVerts(halfedge, df) {
-      let side=halfedge.side;
-      let sarea=halfedge.sarea;
-      switch (side) {
-        case 0:
-          sarea.pos[0]+=df;
-          sarea.size[0]-=df;
-          break;
-        case 1:
-          sarea.size[1]+=df;
-          break;
-        case 2:
-          sarea.size[0]+=df;
-          break;
-        case 3:
-          sarea.pos[1]+=df;
-          sarea.size[1]-=df;
-          break;
-      }
-    }
-     moveBorder(b, df, strict=true) {
-      return this.moveBorderSimple(b, df, strict);
-    }
-     moveBorderSimple(b, df, strict=true) {
-      let axis=b.horiz&1;
-      let axis2=axis^1;
-      let min=Math.min(b.v1[axis2], b.v2[axis2]);
-      let max=Math.max(b.v1[axis2], b.v2[axis2]);
-      let test=(v) =>        {
-        return v[axis2]>=min&&v[axis2]<=max;
-      };
-      let vs=new util.set();
-      for (let b2 of this.walkBorderLine(b)) {
-          if (strict&&!test(b2.v1)&&!test(b2.v2)) {
-              return false;
-          }
-          vs.add(b2.v1);
-          vs.add(b2.v2);
-      }
-      for (let v of vs) {
-          v[axis]+=df;
-      }
-      for (let v of vs) {
-          for (let b of v.borders) {
-              for (let sarea of b.sareas) {
-                  sarea.loadFromVerts();
-              }
-          }
-      }
-      return true;
-    }
-     moveBorderUnused(b, df, strict=true) {
-      if (!b) {
-          console.warn("missing border");
-          return false;
-      }
-      let axis=b.horiz&1;
-      let vs=new util.set();
-      let visit=new util.set();
-      let axis2=axis^1;
-      let min=Math.min(b.v1[axis2], b.v2[axis2]);
-      let max=Math.max(b.v1[axis2], b.v2[axis2]);
-      let test=(v) =>        {
-        return v[axis2]>=min&&v[axis2]<=max;
-      };
-      let first=true;
-      let found=false;
-      let halfedges=new util.set();
-      let borders=new util.set();
-      for (let b2 of this.walkBorderLine(b)) {
-          if (!strict) {
-              vs.add(b2.v1);
-              vs.add(b2.v2);
-              continue;
-          }
-          let t1=test(b2.v1), t2=test(b2.v2);
-          if (!t1||!t2) {
-              found = true;
-              if (first) {
-                  first = false;
-                  df = Math.max(Math.abs(df), FrameManager_mesh.SnapLimit)*Math.sign(df);
-              }
-          }
-          if (!t1&&!t2) {
-              continue;
-          }
-          borders.add(b2);
-          for (let sarea of b2.sareas) {
-              halfedges.add(new ScreenHalfEdge(b2, sarea));
-          }
-          vs.add(b2.v1);
-          vs.add(b2.v2);
-      }
-      for (let b2 of this.walkBorderLine(b)) {
-          if (borders.has(b2)) {
-              continue;
-          }
-          for (let he of b2.halfedges) {
-              borders.remove(he.border);
-              if (halfedges.has(he)) {
-                  halfedges.remove(he);
-              }
-          }
-      }
-      for (let v of vs) {
-          let ok=v[axis2]>=min&&v[axis2]<=max;
-          if (!ok&&strict) {
-          }
-      }
-      if (!found||!strict) {
-          for (let v of vs) {
-              v[axis]+=df;
-          }
-      }
-      else {
-        let borders=new util.set();
-        for (let he of halfedges) {
-            borders.add(he.border);
-            this.moveBorderWithoutVerts(he, df);
-        }
-        for (let he of halfedges) {
-            he.sarea.loadFromPosSize();
-        }
-        for (let b of borders) {
-            let sareas=b.sareas.slice(0, b.sareas.length);
-            this.killBorder(b);
-            for (let sarea of sareas) {
-                sarea.loadFromPosSize();
-            }
-        }
-        return halfedges.length>0;
-      }
-      for (let sarea of b.sareas) {
-          sarea.loadFromVerts();
-      }
-      for (let he of b.halfedges) {
-          he.sarea.loadFromVerts();
-          for (let sarea of he.border.sareas) {
-              sarea.loadFromVerts();
-              for (let b2 of sarea._borders) {
-                  b2.setCSS();
-              }
-          }
-      }
-      b.setCSS();
-      return true;
-    }
-     solveAreaConstraints(snapArgument=true) {
-      let repeat=false;
-      let found=false;
-      let time=util.time_ms();
-      for (let i=0; i<10; i++) {
-          repeat = false;
-          for (let sarea of this.sareas) {
-              if (sarea.hidden)
-                continue;
-              repeat = repeat||this.checkAreaConstraint(sarea);
-          }
-          found = found||repeat;
-          if (repeat) {
-              for (let sarea of this.sareas) {
-                  sarea.loadFromVerts();
-              }
-              this.snapScreenVerts(snapArgument);
-          }
-          else {
-            break;
-          }
-      }
-      if (found) {
-          this.snapScreenVerts(snapArgument);
-          if (cconst.DEBUG.areaConstraintSolver) {
-              time = util.time_ms()-time;
-              console.log(`enforced area constraint ${time.toFixed(2)}ms`);
-          }
-          this._recalcAABB();
-          this.setCSS();
-      }
-    }
-     snapScreenVerts(fitToSize=true) {
-      let this2=this;
-      function* screenverts() {
-        for (let v of this2.screenverts) {
-            let ok=0;
-            for (let sarea of v.sareas) {
-                if (!(sarea.flag&AreaFlags.INDEPENDENT)) {
-                    ok = 1;
-                }
-            }
-            if (ok) {
-                yield v;
-            }
-        }
-      }
-      let mm=new math.MinMax(2);
-      for (let v of screenverts()) {
-          mm.minmax(v);
-      }
-      let min=mm.min, max=mm.max;
-      if (fitToSize) {
-          let vec=new Vector2(max).sub(min);
-          let sz=new Vector2(this.size);
-          sz.div(vec);
-          for (let v of screenverts()) {
-              v.sub(min).mul(sz);
-          }
-          this.pos.zero();
-      }
-      else {
-        for (let v of screenverts()) {
-
-        }
-        [min, max] = this._recalcAABB();
-        this.size.load(max).sub(min);
-        this.pos.zero();
-      }
-      let found=1;
-      for (let sarea of this.sareas) {
-          if (sarea.hidden)
-            continue;
-          let old=new Vector2(sarea.size);
-          let oldpos=new Vector2(sarea.pos);
-          sarea.loadFromVerts();
-          found = found||old.vectorDistance(sarea.size)>1;
-          found = found||oldpos.vectorDistance(sarea.pos)>1;
-          sarea.on_resize(old);
-      }
-      if (found) {
-          this._recalcAABB();
-          this.setCSS();
-      }
-    }
-     on_resize(oldsize, newsize=this.size, _set_key=true) {
-      console.warn("resizing");
-      if (_set_key) {
-          this._last_ckey1 = this._calcSizeKey(newsize[0], newsize[1], this.pos[0], this.pos[1], devicePixelRatio, visualViewport.scale);
-      }
-      let ratio=[newsize[0]/oldsize[0], newsize[1]/oldsize[1]];
-      for (let v of this.screenverts) {
-          v[0]*=ratio[0];
-          v[1]*=ratio[1];
-      }
-      let min=[1e+17, 1e+17], max=[-1e+17, -1e+17];
-      let olds=[];
-      for (let sarea of this.sareas) {
-          olds.push([sarea.size[0], sarea.size[1]]);
-          sarea.loadFromVerts();
-      }
-      this.size[0] = newsize[0];
-      this.size[1] = newsize[1];
-      this.snapScreenVerts();
-      this.solveAreaConstraints();
-      this._recalcAABB();
-      let i=0;
-      for (let sarea of this.sareas) {
-          sarea.on_resize(sarea.size, olds[i]);
-          sarea.setCSS();
-          i++;
-      }
-      this.regenBorders();
-      this.setCSS();
-      this.calcTabOrder();
-      this._fireResizeCB(oldsize);
-    }
-     _fireResizeCB(oldsize=this.size) {
-      for (let cb of this._resize_callbacks) {
-          cb(oldsize);
-      }
-    }
-     getScreenVert(pos, added_id="") {
-      let key=ScreenVert.hash(pos, added_id);
-      if (!(key in this._vertmap)) {
-          let v=new ScreenVert(pos, this.idgen++, added_id);
-          this._vertmap[key] = v;
-          this._idmap[v._id] = v;
-          this.screenverts.push(v);
-      }
-      return this._vertmap[key];
-    }
-     isBorderOuter(border) {
-      let sides=0;
-      for (let he of border.halfedges) {
-          sides|=1<<he.side;
-      }
-      let bits=0;
-      for (let i=0; i<4; i++) {
-          bits+=(sides&(1<<i)) ? 1 : 0;
-      }
-      let ret=bits<2;
-      let floating=false;
-      for (let sarea of border.sareas) {
-          floating = floating||sarea.floating;
-      }
-      if (floating) {
-          let axis=border.horiz ? 1 : 0;
-          ret = Math.abs(border.v1[axis]-this.pos[axis])<4;
-          ret = ret||Math.abs(border.v1[axis]-this.pos[axis]-this.size[axis])<4;
-      }
-      border.outer = ret;
-      return ret;
-    }
-     isBorderMovable(b, limit=5) {
-      if (this.allBordersMovable)
-        return true;
-      for (let he of b.halfedges) {
-          if (he.sarea.borderLock&(1<<he.side)) {
-              return false;
-          }
-      }
-      let ok=!this.isBorderOuter(b);
-      for (let sarea of b.sareas) {
-          if (sarea.floating) {
-              ok = true;
-              break;
-          }
-      }
-      return ok;
-    }
-     getScreenBorder(sarea, v1, v2, side) {
-      let suffix=sarea._get_v_suffix();
-      if (!(__instance_of(v1, ScreenVert))) {
-          v1 = this.getScreenVert(v1, suffix);
-      }
-      if (!(__instance_of(v2, ScreenVert))) {
-          v2 = this.getScreenVert(v2, suffix);
-      }
-      let hash=ScreenBorder.hash(v1, v2);
-      if (!(hash in this._edgemap)) {
-          let sb=this._edgemap[hash] = document.createElement("screenborder-x");
-          sb.screen = this;
-          sb.v1 = v1;
-          sb.v2 = v2;
-          sb._id = this.idgen++;
-          v1.borders.push(sb);
-          v2.borders.push(sb);
-          sb.ctx = this.ctx;
-          this.screenborders.push(sb);
-          this.appendChild(sb);
-          sb.setCSS();
-          this._edgemap[hash] = sb;
-          this._idmap[sb._id] = sb;
-      }
-      return this._edgemap[hash];
-    }
-     minmaxArea(sarea, mm=undefined) {
-      if (mm===undefined) {
-          mm = new math.MinMax(2);
-      }
-      for (let b of sarea._borders) {
-          mm.minmax(b.v1);
-          mm.minmax(b.v2);
-      }
-      return mm;
-    }
-     areasBorder(sarea1, sarea2) {
-      for (let b of sarea1._borders) {
-          for (let sa of b.sareas) {
-              if (sa===sarea2)
-                return true;
-          }
-      }
-      return false;
-    }
-     replaceArea(dst, src) {
-      if (dst===src)
-        return ;
-      src.pos[0] = dst.pos[0];
-      src.pos[1] = dst.pos[1];
-      src.size[0] = dst.size[0];
-      src.size[1] = dst.size[1];
-      src.loadFromPosSize();
-      if (this.sareas.indexOf(src)<0) {
-          this.appendChild(src);
-      }
-      src.setCSS();
-      this.removeArea(dst);
-      this.regenScreenMesh();
-      this.snapScreenVerts();
-      this._updateAll();
-    }
-     _internalRegenAll() {
-      this.snapScreenVerts();
-      this._recalcAABB();
-      this.calcTabOrder();
-      this.setCSS();
-    }
-     _updateAll() {
-      for (let sarea of this.sareas) {
-          sarea.setCSS();
-      }
-      this.setCSS();
-      this.update();
-    }
-     removeArea(sarea) {
-      if (this.sareas.indexOf(sarea)<0) {
-          console.warn(sarea, "<- Warning: tried to remove unknown area");
-          return ;
-      }
-      this.sareas.remove(sarea);
-      sarea.remove();
-      for (let i=0; i<2; i++) {
-          this.snapScreenVerts();
-          this.regenScreenMesh();
-      }
-      this._updateAll();
-      this.drawUpdate();
-    }
-     appendChild(child) {
-      if (__instance_of(child, ScreenArea.ScreenArea)) {
-          child.screen = this;
-          child.ctx = this.ctx;
-          child.parentWidget = this;
-          this.sareas.push(child);
-          if (child.size.dot(child.size)===0) {
-              child.size[0] = this.size[0];
-              child.size[1] = this.size[1];
-          }
-          if (!child._has_evts) {
-              child._has_evts = true;
-              let onfocus=(e) =>                {
-                this.sareas.active = child;
-              };
-              let onblur=(e) =>                {
-                if (this.sareas.active===child) {
-                    this.sareas.active = undefined;
-                }
-              };
-              child.addEventListener("focus", onfocus);
-              child.addEventListener("mouseenter", onfocus);
-              child.addEventListener("blur", onblur);
-              child.addEventListener("mouseleave", onblur);
-          }
-          this.regenBorders();
-          child.setCSS();
-          this.drawUpdate();
-          child._init();
-      }
-      return this.shadow.appendChild(child);
-    }
-     add(child) {
-      return this.appendChild(child);
-    }
-     hintPickerTool() {
-      (new FrameManager_ops.ToolTipViewer(this)).start();
-    }
-     splitTool() {
-      console.log("screen split!");
-      let tool=new FrameManager_ops.SplitTool(this);
-      tool.start();
-    }
-     areaDragTool(sarea=this.sareas.active) {
-      if (sarea===undefined) {
-          console.warn("no active screen area");
-          return ;
-      }
-      console.log("screen area drag!");
-      let mpos=this.mpos;
-      let tool=new FrameManager_ops.AreaDragTool(this, this.sareas.active, mpos);
-      tool.start();
-    }
-     makeBorders() {
-      for (let sarea of this.sareas) {
-          sarea.makeBorders(this);
-      }
-    }
-     on_keydown(e) {
-      if (!haveModal()&&this.execKeyMap(e)) {
-          e.preventDefault();
-          return ;
-      }
-      if (!haveModal()&&this.sareas.active!==undefined&&this.sareas.active.on_keydown) {
-          let area=this.sareas.active;
-          return this.sareas.active.on_keydown(e);
-      }
-    }
-     on_keyup(e) {
-      if (!haveModal()&&this.sareas.active!==undefined&&this.sareas.active.on_keyup) {
-          return this.sareas.active.on_keyup(e);
-      }
-    }
-     on_keypress(e) {
-      if (!haveModal()&&this.sareas.active!==undefined&&this.sareas.active.on_keypress) {
-          return this.sareas.active.on_keypress(e);
-      }
-    }
-     draw() {
-      for (let sarea of this.sareas) {
-          sarea.draw();
-      }
-    }
-    static  newSTRUCT() {
-      return document.createElement(this.define().tagname);
-    }
-     afterSTRUCT() {
-      for (let sarea of this.sareas) {
-          sarea._ctx = this.ctx;
-          sarea.afterSTRUCT();
-      }
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.size = new Vector2(this.size);
-      let sareas=this.sareas;
-      this.sareas = [];
-      for (let sarea of sareas) {
-          sarea.screen = this;
-          sarea.parentWidget = this;
-          this.appendChild(sarea);
-      }
-      this.regenBorders();
-      this.setCSS();
-      this.doOnce(() =>        {
-        this.loadUIData(this.uidata);
-        this.uidata = undefined;
-      });
-      return this;
-    }
-     test_struct() {
-      let data=[];
-      nstructjs.manager.write_object(data, this);
-      data = new DataView(new Uint8Array(data).buffer);
-      let screen2=nstructjs.manager.read_object(data, this.constructor);
-      screen2.ctx = this.ctx;
-      for (let sarea of screen2.sareas) {
-          sarea.screen = screen2;
-          sarea.ctx = this.ctx;
-          sarea.area.ctx = this.ctx;
-      }
-      let parent=this.parentElement;
-      this.remove();
-      this.ctx.screen = screen2;
-      parent.appendChild(screen2);
-      screen2.regenBorders();
-      screen2.update();
-      screen2.listen();
-      screen2.doOnce(() =>        {
-        screen2.on_resize(screen2.size, [window.innerWidth, window.innerHeight]);
-      });
-      console.log(data);
-      return screen2;
-    }
-     saveUIData() {
-      try {
-        return ui_base.saveUIData(this, "screen");
-      }
-      catch (error) {
-          util.print_stack(error);
-          console.log("Failed to save UI state data");
-      }
-    }
-     loadUIData(str) {
-      try {
-        ui_base.loadUIData(this, str);
-      }
-      catch (error) {
-          util.print_stack(error);
-          console.log("Failed to load UI state data");
-      }
-    }
-  }
-  _ESClass.register(Screen);
-  _es6_module.add_class(Screen);
-  Screen = _es6_module.add_export('Screen', Screen);
-  Screen.STRUCT = `
-pathux.Screen { 
-  size  : vec2;
-  pos   : vec2;
-  sareas : array(pathux.ScreenArea);
-  idgen : int;
-  uidata : string | obj.saveUIData();
-}
-`;
-  nstructjs.manager.add_class(Screen);
-  ui_base.UIBase.register(Screen);
-  ScreenArea.setScreenClass(Screen);
-  let get_screen_cb;
-  function startEvents(getScreenFunc) {
-    get_screen_cb = getScreenFunc;
-    if (_events_started) {
-        return ;
-    }
-    _events_started = true;
-    window.addEventListener("keydown", (e) =>      {
-      let screen=get_screen_cb();
-      return screen.on_keydown(e);
-    });
-  }
-  startEvents = _es6_module.add_export('startEvents', startEvents);
-  _setScreenClass(Screen);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager.js');
-es6_module_define('FrameManager_mesh', ["../util/struct.js", "../config/const.js", "./FrameManager_ops.js", "../core/ui_base.js", "../util/vectormath.js"], function _FrameManager_mesh_module(_es6_module) {
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var FrameManager_ops=es6_import(_es6_module, './FrameManager_ops.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  let SnapLimit=1;
-  SnapLimit = _es6_module.add_export('SnapLimit', SnapLimit);
-  function snap(c, snap_limit) {
-    if (snap_limit===undefined) {
-        snap_limit = SnapLimit;
-    }
-    if (Array.isArray(c)) {
-        for (let i=0; i<c.length; i++) {
-            c[i] = Math.floor(c[i]/snap_limit)*snap_limit;
-        }
-    }
-    else {
-      c = Math.floor(c/snap_limit)*snap_limit;
-    }
-    return c;
-  }
-  snap = _es6_module.add_export('snap', snap);
-  function snapi(c, snap_limit) {
-    if (snap_limit===undefined) {
-        snap_limit = SnapLimit;
-    }
-    if (Array.isArray(c)) {
-        for (let i=0; i<c.length; i++) {
-            c[i] = Math.ceil(c[i]/snap_limit)*snap_limit;
-        }
-    }
-    else {
-      c = Math.ceil(c/snap_limit)*snap_limit;
-    }
-    return c;
-  }
-  snapi = _es6_module.add_export('snapi', snapi);
-  class ScreenVert extends Vector2 {
-     constructor(pos, id, added_id) {
-      super(pos);
-      this.added_id = added_id;
-      this.sareas = [];
-      this.borders = [];
-      this._id = id;
-    }
-    static  hash(pos, added_id) {
-      let x=snap(pos[0]);
-      let y=snap(pos[1]);
-      return ""+x+":"+y+": + added_id";
-    }
-     valueOf() {
-      return ScreenVert.hash(this, this.added_id);
-    }
-     [Symbol.keystr]() {
-      return ScreenVert.hash(this, this.added_id);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(ScreenVert);
-  _es6_module.add_class(ScreenVert);
-  ScreenVert = _es6_module.add_export('ScreenVert', ScreenVert);
-  ScreenVert.STRUCT = `
-pathux.ScreenVert {
-  0 : float;
-  1 : float;
-}
-`;
-  nstructjs.register(ScreenVert);
-  class ScreenHalfEdge  {
-     constructor(border, sarea) {
-      this.sarea = sarea;
-      this.border = border;
-      this.side = sarea._side(border);
-    }
-    get  v1() {
-      return this.border.v1;
-    }
-    get  v2() {
-      return this.border.v2;
-    }
-     [Symbol.keystr]() {
-      return this.sarea._id+":"+this.border._id;
-    }
-  }
-  _ESClass.register(ScreenHalfEdge);
-  _es6_module.add_class(ScreenHalfEdge);
-  ScreenHalfEdge = _es6_module.add_export('ScreenHalfEdge', ScreenHalfEdge);
-  class ScreenBorder extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.visibleToPick = false;
-      this.screen = undefined;
-      this.v1 = undefined;
-      this.v2 = undefined;
-      this._id = undefined;
-      this.outer = undefined;
-      this.halfedges = [];
-      this.sareas = [];
-      this._innerstyle = document.createElement("style");
-      this._style = undefined;
-      this.shadow.appendChild(this._innerstyle);
-      this.inner = document.createElement("div");
-      this.shadow.appendChild(this.inner);
-      this.addEventListener("mousedown", (e) =>        {
-        console.log(this.sareas.length, this.sareas, "|||||");
-        let ok=this.movable;
-        if (!ok) {
-            console.log("border is not movable");
-            return ;
-        }
-        console.log("area resize start!");
-        let tool=new FrameManager_ops.AreaResizeTool(this.screen, this, [e.x, e.y]);
-        tool.start();
-        e.preventDefault();
-        e.stopPropagation();
-      });
-    }
-    get  dead() {
-      return !this.parentNode;
-    }
-    get  side() {
-      throw new Error("side accedd");
-    }
-    set  side(val) {
-      throw new Error("side accedd");
-    }
-    get  valence() {
-      let ret=0;
-      let horiz=this.horiz;
-      let visit={};
-      for (let i=0; i<2; i++) {
-          let sv=i ? this.v2 : this.v1;
-          for (let sa of sv.borders) {
-              if (sa.horiz!=this.horiz)
-                continue;
-              if (sa._id in visit)
-                continue;
-              visit[sa._id] = 1;
-              let a0x=Math.min(this.v1[0], this.v2[0]);
-              let a0y=Math.min(this.v1[1], this.v2[1]);
-              let a1x=Math.max(this.v1[0], this.v2[0]);
-              let a1y=Math.max(this.v1[1], this.v2[1]);
-              let b0x=Math.min(sa.v1[0], sa.v2[0]);
-              let b0y=Math.min(sa.v1[1], sa.v2[1]);
-              let b1x=Math.min(sa.v1[0], sa.v2[0]);
-              let b1y=Math.min(sa.v1[1], sa.v2[1]);
-              let ok;
-              let eps=0.001;
-              if (horiz) {
-                  ok = (a0y<=b1y+eps&&a1y>=a0y-eps);
-              }
-              else {
-                ok = (a0x<=b1x+eps&&a1x>=a0x-eps);
-              }
-              if (ok) {
-                  ret+=sa.sareas.length;
-              }
-          }
-      }
-      return ret;
-    }
-     otherVertex(v) {
-      if (v===this.v1)
-        return this.v2;
-      else 
-        return this.v1;
-    }
-    get  horiz() {
-      let dx=this.v2[0]-this.v1[0];
-      let dy=this.v2[1]-this.v1[1];
-      return Math.abs(dx)>Math.abs(dy);
-    }
-     setCSS() {
-      this.style["pointer-events"] = this.movable ? "auto" : "none";
-      if (this._style===undefined) {
-          this._style = document.createElement("style");
-          this.appendChild(this._style);
-      }
-      let pad=this.getDefault("ScreenBorderMousePadding");
-      let wid=this.getDefault("ScreenBorderWidth");
-      let v1=this.v1, v2=this.v2;
-      let vec=new Vector2(v2).sub(v1);
-      let x=Math.min(v1[0], v2[0]), y=Math.min(v1[1], v2[1]);
-      let w, h;
-      let cursor, bstyle;
-      this.style["display"] = "flex";
-      this.style["display"] = this.horiz ? "row" : "column";
-      this.style["justify-content"] = "center";
-      this.style["align-items"] = "center";
-      if (!this.horiz) {
-          this.style["padding-left"] = this.style["padding-right"] = pad+"px";
-          x-=wid*0.5+pad;
-          w = wid*2;
-          h = Math.abs(vec[1]);
-          cursor = 'e-resize';
-          bstyle = "border-left-style : solid;\n    border-right-style : solid;\n";
-          bstyle = "border-top-style : none;\n    border-bottom-style : none;\n";
-      }
-      else {
-        this.style["padding-top"] = this.style["padding-bottom"] = pad+"px";
-        y-=wid*0.5+pad;
-        w = Math.abs(vec[0]);
-        h = wid;
-        cursor = 'n-resize';
-        bstyle = "border-top-style : solid;\n    border-bottom-style : solid;\n";
-      }
-      let color=this.getDefault("ScreenBorderOuter");
-      let debug=cconst.DEBUG.screenborders;
-      if (debug) {
-          wid = 4;
-          let alpha=1.0;
-          let c=this.sareas.length*75;
-          let r=0, g=0, b=0;
-          if (this.movable) {
-              b = 255;
-          }
-          if (this.halfedges.length>1) {
-              g = 255;
-          }
-          if (this.outer) {
-              r = 255;
-          }
-          color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      }
-      let innerbuf=`
-        .screenborder_inner_${this._id} {
-          ${bstyle}
-          ${this.horiz ? 'height' : 'width'} : ${wid}px;
-          ${!this.horiz ? 'height' : 'width'} : 100%;
-          margin : 0px;
-          padding : 0px;
-          
-          background-color : ${this.getDefault("ScreenBorderInner")};
-          border-color : ${color};
-          border-width : ${wid*0.5}px;
-          border-style : ${debug && this.outer ? "dashed" : "solid"};
-          pointer-events : none;
-        }`;
-      let sbuf=`
-        .screenborder_${this._id} {
-        }
-    `;
-      let ok=this.movable;
-      if (!this.outer) {
-          for (let sarea of this.sareas) {
-              ok = ok||sarea.floating;
-          }
-      }
-      if (ok) {
-          sbuf+=`
-        .screenborder_${this._id}:hover {
-          cursor : ${cursor};
-        }
-      `;
-      }
-      this._style.textContent = sbuf;
-      this._innerstyle.textContent = innerbuf;
-      this.setAttribute("class", "screenborder_"+this._id);
-      this.inner.setAttribute("class", "screenborder_inner_"+this._id);
-      this.style["position"] = "absolute";
-      this.style["left"] = x+"px";
-      this.style["top"] = y+"px";
-      this.style["width"] = w+"px";
-      this.style["height"] = h+"px";
-      this.style["z-index"] = "25";
-    }
-    static  hash(v1, v2) {
-      return Math.min(v1._id, v2._id)+":"+Math.max(v1._id, v2._id);
-    }
-     valueOf() {
-      return ScreenBorder.hash(this.v1, this.v2);
-    }
-     [Symbol.keystr]() {
-      return ScreenBorder.hash(this.v1, this.v2);
-    }
-    static  define() {
-      return {tagname: "screenborder-x"}
-    }
-  }
-  _ESClass.register(ScreenBorder);
-  _es6_module.add_class(ScreenBorder);
-  ScreenBorder = _es6_module.add_export('ScreenBorder', ScreenBorder);
-  ui_base.UIBase.register(ScreenBorder);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_mesh.js');
-es6_module_define('FrameManager_ops', ["../core/ui_base.js", "../util/vectormath.js", "../widgets/ui_widgets2.js", "../util/simple_events.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../config/const.js"], function _FrameManager_ops_module(_es6_module) {
-  "use strict";
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var simple_toolsys=es6_import(_es6_module, '../toolsys/simple_toolsys.js');
-  var ToolTip=es6_import_item(_es6_module, '../widgets/ui_widgets2.js', 'ToolTip');
-  let toolstack_getter=function () {
-    throw new Error("must pass a toolstack getter to registerToolStackGetter, I know it's dumb");
-  }
-  function registerToolStackGetter(func) {
-    toolstack_getter = func;
-  }
-  registerToolStackGetter = _es6_module.add_export('registerToolStackGetter', registerToolStackGetter);
-  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, UndoFlags=simple_toolsys.UndoFlags, ToolFlags=simple_toolsys.ToolFlags;
-  var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
-  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
-  class ToolBase extends simple_toolsys.ToolOp {
-     constructor(screen) {
-      super();
-      this.screen = screen;
-      this._finished = false;
-    }
-     start() {
-      this.modalStart(undefined);
-    }
-     cancel() {
-      this.finish();
-    }
-     finish() {
-      this._finished = true;
-      this.overdraw.end();
-      this.popModal(this.screen);
-    }
-     popModal() {
-      console.log("popModal called");
-      popModalLight(this.modaldata);
-      this.modaldata = undefined;
-    }
-     modalStart(ctx) {
-      this.ctx = ctx;
-      if (this.modaldata!==undefined) {
-          console.log("Error, modaldata was not undefined");
-          popModalLight(this.modaldata);
-      }
-      this.overdraw = document.createElement("overdraw-x");
-      this.overdraw.start(this.screen);
-      let handlers={};
-      let keys=Object.getOwnPropertyNames(this);
-      for (let k in this.__proto__) {
-          keys.push(k);
-      }
-      for (let k of Object.getOwnPropertyNames(this.__proto__)) {
-          keys.push(k);
-      }
-      for (let k in this) {
-          keys.push(k);
-      }
-      for (let k of keys) {
-          if (k.startsWith("on")) {
-              handlers[k] = this[k].bind(this);
-          }
-      }
-      this.modaldata = pushModalLight(handlers);
-    }
-     on_mousemove(e) {
-
-    }
-     on_mouseup(e) {
-      this.finish();
-    }
-     on_keydown(e) {
-      console.log("s", e.keyCode);
-      switch (e.keyCode) {
-        case keymap.Escape:
-          this.cancel();
-          break;
-        case keymap.Space:
-        case keymap.Enter:
-          this.finish();
-          break;
-      }
-    }
-  }
-  _ESClass.register(ToolBase);
-  _es6_module.add_class(ToolBase);
-  ToolBase = _es6_module.add_export('ToolBase', ToolBase);
-  class AreaResizeTool extends ToolBase {
-     constructor(screen, border, mpos) {
-      if (screen===undefined)
-        screen = _appstate.screen;
-      super(screen);
-      this.start_mpos = new Vector2(mpos);
-      this.sarea = border.sareas[0];
-      if (!this.sarea||border.dead) {
-          console.log(border.dead, border);
-          throw new Error("border corruption");
-      }
-      this.screen = screen;
-      this.side = this.sarea._side(border);
-    }
-    get  border() {
-      return this.sarea._borders[this.side];
-    }
-    static  tooldef() {
-      return {uiname: "Resize Area", 
-     toolpath: "screen.area.resize", 
-     icon: ui_base.Icons.RESIZE, 
-     description: "change size of area", 
-     is_modal: true, 
-     hotkey: undefined, 
-     undoflag: UndoFlags.NO_UNDO, 
-     flag: 0, 
-     inputs: {}, 
-     outputs: {}}
-    }
-     getBorders() {
-      let horiz=this.border.horiz;
-      let ret=[];
-      let visit=new Set();
-      let rec=(v) =>        {
-        if (visit.has(v._id)) {
-            return ;
-        }
-        visit.add(v._id);
-        for (let border of v.borders) {
-            if (border.horiz==horiz&&!visit.has(border._id)) {
-                visit.add(border._id);
-                ret.push(border);
-                rec(border.otherVertex(v));
-            }
-        }
-      };
-      rec(this.border.v1);
-      rec(this.border.v2);
-      return ret;
-    }
-     on_mouseup(e) {
-      this.finish();
-    }
-     finish() {
-      super.finish();
-      this.screen.snapScreenVerts();
-      this.screen.regenBorders();
-      this.screen.snapScreenVerts();
-      this.screen.loadFromVerts();
-    }
-     on_keydown(e) {
-      switch (e.keyCode) {
-        case keymap["Escape"]:
-        case keymap["Enter"]:
-        case keymap["Space"]:
-          this.finish();
-          break;
-      }
-    }
-     on_mousemove(e) {
-      let mpos=new Vector2([e.x, e.y]);
-      mpos.sub(this.start_mpos);
-      let axis=this.border.horiz ? 1 : 0;
-      this.overdraw.clear();
-      let visit=new Set();
-      let borders=this.getBorders();
-      let color=cconst.DEBUG.screenborders ? "rgba(1.0, 0.5, 0.0, 0.1)" : "rgba(1.0, 0.5, 0.0, 1.0)";
-      let bad=false;
-      for (let border of borders) {
-          bad = bad||!this.screen.isBorderMovable(border);
-          border.oldv1 = new Vector2(border.v1);
-          border.oldv2 = new Vector2(border.v2);
-      }
-      if (bad) {
-          console.log("border is not movable");
-          return ;
-      }
-      let check=() =>        {
-        let count=0;
-        for (let sarea of this.screen.sareas) {
-            if (sarea.size[0]<15||sarea.size[1]<15) {
-                count++;
-            }
-        }
-        return count;
-      };
-      let badcount=check();
-      let snapMode=true;
-      let df=mpos[axis];
-      let border=this.border;
-      this.screen.moveBorder(border, df, false);
-      for (let border of borders) {
-          if (border.outer) {
-              snapMode = false;
-          }
-          this.overdraw.line(border.v1, border.v2, color);
-      }
-      this.start_mpos[0] = e.x;
-      this.start_mpos[1] = e.y;
-      this.screen.loadFromVerts();
-      this.screen.setCSS();
-      if (check()!=badcount) {
-          console.log("bad");
-          for (let border of borders) {
-              border.v1.load(border.oldv1);
-              border.v2.load(border.oldv2);
-          }
-      }
-      this.screen.snapScreenVerts(snapMode);
-      this.screen.loadFromVerts();
-      this.screen.solveAreaConstraints(snapMode);
-      this.screen.setCSS();
-      this.screen.updateDebugBoxes();
-      this.screen._fireResizeCB();
-    }
-  }
-  _ESClass.register(AreaResizeTool);
-  _es6_module.add_class(AreaResizeTool);
-  AreaResizeTool = _es6_module.add_export('AreaResizeTool', AreaResizeTool);
-  class SplitTool extends ToolBase {
-     constructor(screen) {
-      if (screen===undefined)
-        screen = _appstate.screen;
-      super(screen);
-      this.done = false;
-      this.screen = screen;
-      this.ctx = screen.ctx;
-      this.sarea = undefined;
-      this.t = undefined;
-      this.started = false;
-    }
-    static  tooldef() {
-      return {uiname: "Split Area", 
-     toolpath: "screen.area.split", 
-     icon: ui_base.Icons.SMALL_PLUS, 
-     description: "split an area in two", 
-     is_modal: true, 
-     hotkey: "BLEH-B", 
-     undoflag: UndoFlags.NO_UNDO, 
-     flag: 0, 
-     inputs: {}, 
-     outputs: {}}
-    }
-     modalStart(ctx) {
-      if (this.started) {
-          console.trace("double call to modalStart()");
-          return ;
-      }
-      this.overdraw = document.createElement("overdraw-x");
-      this.overdraw.start(this.screen);
-      super.modalStart(ctx);
-    }
-     cancel() {
-      return this.finish(true);
-    }
-     finish(canceled=false) {
-      if (this.done) {
-          return ;
-      }
-      this.done = true;
-      this.overdraw.end();
-      this.popModal(this.screen);
-      if (canceled||!this.sarea) {
-          return ;
-      }
-      let sarea=this.sarea, screen=this.screen;
-      let t=this.t;
-      screen.splitArea(sarea, t, this.horiz);
-      screen._internalRegenAll();
-    }
-     on_mousemove(e) {
-      let x=e.x, y=e.y;
-      let screen=this.screen;
-      let sarea=screen.findScreenArea(x, y);
-      console.log(sarea, x, y);
-      this.overdraw.clear();
-      if (sarea!==undefined) {
-          x = (x-sarea.pos[0])/(sarea.size[0]);
-          y = (y-sarea.pos[1])/(sarea.size[1]);
-          let dx=1.0-Math.abs(x-0.5);
-          let dy=1.0-Math.abs(y-0.5);
-          this.sarea = sarea;
-          let horiz=this.horiz = dx<dy;
-          if (horiz) {
-              this.t = y;
-              this.overdraw.line([sarea.pos[0], e.y], [sarea.pos[0]+sarea.size[0], e.y]);
-          }
-          else {
-            this.t = x;
-            this.overdraw.line([e.x, sarea.pos[1]], [e.x, sarea.pos[1]+sarea.size[1]]);
-          }
-      }
-    }
-     on_mousedown(e) {
-
-    }
-     on_mouseup(e) {
-      this.finish();
-      if (e.button) {
-          this.stopPropagation();
-          this.preventDefault();
-      }
-    }
-     on_keydown(e) {
-      console.log("s", e.keyCode);
-      switch (e.keyCode) {
-        case keymap.Escape:
-          this.cancel();
-          break;
-        case keymap.Space:
-        case keymap.Enter:
-          this.finish();
-          break;
-      }
-    }
-  }
-  _ESClass.register(SplitTool);
-  _es6_module.add_class(SplitTool);
-  SplitTool = _es6_module.add_export('SplitTool', SplitTool);
-  class AreaDragTool extends ToolBase {
-     constructor(screen, sarea, mpos) {
-      if (screen===undefined)
-        screen = _appstate.screen;
-      super(screen);
-      this.cursorbox = undefined;
-      this.boxes = [];
-      this.boxes.active = undefined;
-      this.sarea = sarea;
-      this.start_mpos = new Vector2(mpos);
-      this.screen = screen;
-    }
-    static  tooldef() {
-      return {uiname: "Drag Area", 
-     toolpath: "screen.area.drag", 
-     icon: ui_base.Icons.TRANSLATE, 
-     description: "move or duplicate area", 
-     is_modal: true, 
-     hotkey: undefined, 
-     undoflag: UndoFlags.NO_UNDO, 
-     flag: 0, 
-     inputs: {}, 
-     outputs: {}}
-    }
-     finish() {
-      super.finish();
-      this.screen.regenBorders();
-      this.screen.solveAreaConstraints();
-      this.screen.snapScreenVerts();
-      this.screen._recalcAABB();
-      console.log("tool finish");
-    }
-     getBoxRect(b) {
-      let sa=b.sarea;
-      let pos, size;
-      if (b.horiz==-1) {
-          pos = sa.pos;
-          size = sa.size;
-      }
-      else 
-        if (b.horiz) {
-          if (b.side=='b') {
-              pos = [sa.pos[0], sa.pos[1]+sa.size[1]*b.t];
-              size = [sa.size[0], sa.size[1]*(1.0-b.t)];
-          }
-          else {
-            pos = [sa.pos[0], sa.pos[1]];
-            size = [sa.size[0], sa.size[1]*b.t];
-          }
-      }
-      else {
-        if (b.side=='r') {
-            pos = [sa.pos[0]+sa.size[0]*b.t, sa.pos[1]];
-            size = [sa.size[0]*(1.0-b.t), sa.size[1]];
-        }
-        else {
-          pos = [sa.pos[0], sa.pos[1]];
-          size = [sa.size[0]*b.t, sa.size[1]];
-        }
-      }
-      let color="rgba(100, 100, 100, 0.2)";
-      let ret=this.overdraw.rect(pos, size, color);
-      ret.style["pointer-events"] = "none";
-      return ret;
-    }
-     doSplit(b) {
-      if (this.sarea) {
-          return this.doSplitDrop(b);
-      }
-      let src=this.sarea, dst=b.sarea;
-      let screen=this.screen;
-      let t=b.t;
-      screen.splitArea(dst, t, b.horiz);
-      screen._internalRegenAll();
-    }
-     doSplitDrop(b) {
-      if (b.horiz==-1&&b.sarea===this.sarea) {
-          return ;
-      }
-      console.log("BBBB", b.horiz, b.sarea===this.sarea, b);
-      let can_rip=false;
-      let sa=this.sarea;
-      let screen=this.screen;
-      can_rip = sa.size[0]==screen.size[0]||sa.size[1]==screen.size[1];
-      can_rip = can_rip&&b.sarea!==sa;
-      can_rip = can_rip&&(b.horiz==-1||!screen.areasBorder(sa, b.sarea));
-      let expand=b.horiz==-1&&b.sarea!==sa&&screen.areasBorder(b.sarea, sa);
-      can_rip = can_rip||expand;
-      console.log("can_rip:", can_rip, expand);
-      if (can_rip) {
-          screen.removeArea(sa);
-          screen.snapScreenVerts();
-      }
-      if (b.horiz==-1) {
-          let src=this.sarea, dst=b.sarea;
-          if (can_rip) {
-              let mm;
-              if (expand) {
-                  mm = screen.minmaxArea(src);
-                  screen.minmaxArea(dst, mm);
-              }
-              console.log("replacing. . .", expand);
-              screen.replaceArea(dst, src);
-              if (expand) {
-                  console.log("\nEXPANDING:", src.size[0], src.size[1]);
-                  src.pos[0] = mm.min[0];
-                  src.pos[1] = mm.min[1];
-                  src.size[0] = mm.max[0]-mm.min[0];
-                  src.size[1] = mm.max[1]-mm.min[1];
-                  src.loadFromPosSize();
-                  screen._internalRegenAll();
-              }
-          }
-          else {
-            screen.replaceArea(dst, src.copy());
-            screen._internalRegenAll();
-          }
-      }
-      else {
-        let src=this.sarea, dst=b.sarea;
-        let t=b.t;
-        let nsa=screen.splitArea(dst, t, b.horiz);
-        if (can_rip) {
-            screen.replaceArea(nsa, src);
-        }
-        else {
-          screen.replaceArea(nsa, src.copy());
-        }
-        screen._internalRegenAll();
-      }
-    }
-     makeBoxes(sa) {
-      let sz=util.isMobile() ? 100 : 40;
-      let cx=sa.pos[0]+sa.size[0]*0.5;
-      let cy=sa.pos[1]+sa.size[1]*0.5;
-      let color=this.color = "rgba(200, 200, 200, 0.55)";
-      let hcolor=this.hcolor = "rgba(230, 230, 230, 0.75)";
-      let idgen=0;
-      let boxes=this.boxes;
-      let box=(x, y, sz, horiz, t, side) =>        {
-        let b=this.overdraw.rect([x-sz[0]*0.5, y-sz[1]*0.5], sz, color);
-        boxes.push(b);
-        b.sarea = sa;
-        let style=document.createElement("style");
-        let cls=`mybox_${idgen++}`;
-        b.horiz = horiz;
-        b.t = t;
-        b.side = side;
-        b.setAttribute("class", cls);
-        b.setAttribute("is_box", true);
-        b.addEventListener("mousemove", this.on_mousemove.bind(this));
-        let onclick=b.onclick = (e) =>          {
-          let type=e.type.toLowerCase();
-          if ((e.type=="mousedown"||e.type=="mouseup")&&e.button!=0) {
-              return ;
-          }
-          console.log("split click");
-          if (!this._finished) {
-              this.finish();
-              this.doSplit(b);
-              e.preventDefault();
-              e.stopPropagation();
-          }
-        }
-        b.addEventListener("click", onclick);
-        b.addEventListener("mousedown", onclick);
-        b.addEventListener("mouseup", onclick);
-        b.addEventListener("mouseenter", (e) =>          {
-          console.log("mouse enter box");
-          if (this.curbox!==undefined) {
-              if (this.curbox.rect) {
-                  this.curbox.rect.remove();
-                  this.curbox.rect = undefined;
-              }
-          }
-          if (b.rect!==undefined) {
-              b.rect.remove();
-              b.rect = undefined;
-          }
-          b.rect = this.getBoxRect(b);
-          this.curbox = b;
-          console.log("setting hcolor");
-          b.setColor(hcolor);
-        });
-        b.addEventListener("mouseleave", (e) =>          {
-          console.log("mouse leave box");
-          if (b.rect) {
-              b.rect.remove();
-              b.rect = undefined;
-          }
-          if (this.curbox===b) {
-              this.curbox = undefined;
-          }
-          b.setColor(color);
-        });
-        style.textContent = `
-        .${cls}:hover {
-          background-color : orange;
-          fill:orange;stroke-width:2
-        }
-      `;
-        b.appendChild(style);
-        b.setAttribute("class", cls);
-        return b;
-      };
-      let pad=5;
-      if (this.sarea) {
-          box(cx, cy, [sz, sz], -1, -1, -1);
-      }
-      box(cx-sz*0.75-pad, cy, [sz*0.5, sz], false, 0.5, 'l');
-      box(cx-sz*1.2-pad, cy, [sz*0.25, sz], false, 0.3, 'l');
-      box(cx+sz*0.75+pad, cy, [sz*0.5, sz], false, 0.5, 'r');
-      box(cx+sz*1.2+pad, cy, [sz*0.25, sz], false, 0.7, 'r');
-      box(cx, cy-sz*0.75-pad, [sz, sz*0.5], true, 0.5, 't');
-      box(cx, cy-sz*1.2-pad, [sz, sz*0.25], true, 0.3, 't');
-      box(cx, cy+sz*0.75+pad, [sz, sz*0.5], true, 0.5, 'b');
-      box(cx, cy+sz*1.2+pad, [sz, sz*0.25], true, 0.7, 'b');
-    }
-     getActiveBox(x, y) {
-      for (let n of this.boxes) {
-          if (n.hasAttribute&&n.hasAttribute("is_box")) {
-              let rect=n.getClientRects()[0];
-              if (x>=rect.x&&y>=rect.y&&x<rect.x+rect.width&&y<rect.y+rect.height) {
-                  return n;
-              }
-          }
-      }
-    }
-     on_drag(e) {
-      this.on_mousemove(e);
-    }
-     on_dragend(e) {
-      this.on_mouseup(e);
-    }
-     on_mousemove(e) {
-      let wid=55;
-      let color="rgb(200, 200, 200, 0.7)";
-      let n=this.getActiveBox(e.x, e.y);
-      if (n!==undefined) {
-          n.setColor(this.hcolor);
-      }
-      if (this.boxes.active!==undefined&&this.boxes.active!==n) {
-          this.boxes.active.setColor(this.color);
-          this.boxes.active.dispatchEvent(new MouseEvent("mouseleave", e));
-      }
-      if (n!==undefined) {
-          n.dispatchEvent(new MouseEvent("mouseenter", e));
-      }
-      this.boxes.active = n;
-      if (this.sarea===undefined) {
-          return ;
-      }
-      if (this.cursorbox===undefined) {
-          wid = 25;
-          this.cursorbox = this.overdraw.rect([e.x-wid*0.5, e.y-wid*0.5], [wid, wid], color);
-          this.cursorbox.style["pointer-events"] = "none";
-      }
-      else {
-        this.cursorbox.style["x"] = (e.x-wid*0.5)+"px";
-        this.cursorbox.style["y"] = (e.y-wid*0.5)+"px";
-      }
-    }
-     on_mouseup(e) {
-      console.log("e.button", e.button, e, e.x, e.y, this.getActiveBox(e.x, e.y));
-      if (e.button) {
-          e.stopPropagation();
-          e.preventDefault();
-      }
-      else {
-        let box=this.getActiveBox(e.x, e.y);
-        if (box!==undefined) {
-            box.onclick(e);
-        }
-      }
-      this.finish();
-    }
-     modalStart(ctx) {
-      super.modalStart(ctx);
-      let screen=this.screen;
-      this.overdraw.clear();
-      if (this.sarea) {
-          let sa=this.sarea;
-          let box=this.overdraw.rect(sa.pos, sa.size, "rgba(100, 100, 100, 0.5)");
-          box.style["pointer-events"] = "none";
-      }
-      for (let sa of screen.sareas) {
-          this.makeBoxes(sa);
-      }
-    }
-  }
-  _ESClass.register(AreaDragTool);
-  _es6_module.add_class(AreaDragTool);
-  AreaDragTool = _es6_module.add_export('AreaDragTool', AreaDragTool);
-  class ToolTipViewer extends ToolBase {
-     constructor(screen) {
-      super(screen);
-      this.tooltip = undefined;
-      this.element = undefined;
-    }
-    static  tooldef() {
-      return {uiname: "Help Tool", 
-     toolpath: "screen.help_picker", 
-     icon: ui_base.Icons.HELP, 
-     description: "view tooltips", 
-     is_modal: true, 
-     hotkey: undefined, 
-     undoflag: UndoFlags.NO_UNDO, 
-     flag: 0, 
-     inputs: {}, 
-     outputs: {}}
-    }
-     on_mousemove(e) {
-      this.pick(e);
-    }
-     on_mousedown(e) {
-      this.pick(e);
-    }
-     on_mouseup(e) {
-      this.finish();
-    }
-     finish() {
-      super.finish();
-    }
-     on_keydown(e) {
-      switch (e.keyCode) {
-        case keymap.Escape:
-        case keymap.Enter:
-        case Keymap.Space:
-          if (this.tooltip) {
-              this.tooltip.end();
-          }
-          this.finish();
-          break;
-      }
-    }
-     pick(e) {
-      let x=e.x, y=e.y;
-      let ele=this.screen.pickElement(x, y);
-      console.log(ele ? ele.tagName : ele);
-      if (ele!==undefined&&ele!==this.element&&ele.title) {
-          if (this.tooltip) {
-              this.tooltip.end();
-          }
-          this.element = ele;
-          let tip=ele.title;
-          this.tooltip = ToolTip.show(tip, this.screen, x, y);
-      }
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }
-  _ESClass.register(ToolTipViewer);
-  _es6_module.add_class(ToolTipViewer);
-  ToolTipViewer = _es6_module.add_export('ToolTipViewer', ToolTipViewer);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_ops.js');
-es6_module_define('ScreenArea', ["../util/util.js", "../widgets/ui_noteframe.js", "./FrameManager_mesh.js", "../config/const.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui.js", "../util/simple_events.js", "../core/ui_base.js", "../util/struct.js", "./area_wrangler.js"], function _ScreenArea_module(_es6_module) {
-  let _ScreenArea=undefined;
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
-  var haveModal=es6_import_item(_es6_module, '../util/simple_events.js', 'haveModal');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  es6_import(_es6_module, '../util/struct.js');
-  let UIBase=ui_base.UIBase;
+es6_module_define('curve1d_utils', ["./curve1d_base.js", "../toolsys/toolprop.js"], function _curve1d_utils_module(_es6_module) {
+  var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
-  let Vector2=vectormath.Vector2;
-  let Screen=undefined;
-  var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
-  var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
-  const AreaFlags={HIDDEN: 1, 
-   FLOATING: 2, 
-   INDEPENDENT: 4, 
-   NO_SWITCHER: 8}
-  _es6_module.add_export('AreaFlags', AreaFlags);
-  var ___area_wrangler_js=es6_import(_es6_module, './area_wrangler.js');
-  for (let k in ___area_wrangler_js) {
-      _es6_module.add_export(k, ___area_wrangler_js[k], true);
+  function makeGenEnum() {
+    let enumdef={}
+    let uinames={}
+    let icons={}
+    for (let cls of CurveConstructors) {
+        let def=cls.define();
+        let uiname=def.uiname;
+        uiname = uiname===undefined ? def.name : uiname;
+        enumdef[def.name] = cls.name;
+        uinames[def.name] = uiname;
+        icons[def.name] = def.icon!==undefined ? def.icon : -1;
+    }
+    return new EnumProperty(undefined, enumdef).addUINames(uinames).addIcons(icons);
   }
-  var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
-  var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
-  var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
-  var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
-  let contextWrangler=new AreaWrangler();
-  window._contextWrangler = contextWrangler;
-  const BorderMask={LEFT: 1, 
-   BOTTOM: 2, 
-   RIGHT: 4, 
-   TOP: 8, 
-   ALL: 1|2|4|8}
-  _es6_module.add_export('BorderMask', BorderMask);
-  const BorderSides={LEFT: 0, 
-   BOTTOM: 1, 
-   RIGHT: 2, 
-   TOP: 3}
-  _es6_module.add_export('BorderSides', BorderSides);
-  class Area extends ui_base.UIBase {
-     constructor() {
-      super();
-      let def=this.constructor.define();
-      this.borderLock = def.borderLock||0;
-      this.flag = def.flag||0;
-      this.inactive = true;
-      this.areaDragToolEnabled = true;
-      this.owning_sarea = undefined;
-      this._area_id = contextWrangler.idgen++;
-      this.pos = undefined;
-      this.size = undefined;
-      this.minSize = [5, 5];
-      this.maxSize = [undefined, undefined];
-      let appendChild=this.shadow.appendChild;
-      this.shadow.appendChild = (child) =>        {
-        appendChild.call(this.shadow, child);
-        if (__instance_of(child, UIBase)) {
-            child.parentWidget = this;
-        }
-      };
-      let prepend=this.shadow.prepend;
-      this.shadow.prepend = (child) =>        {
-        prepend.call(this.shadow, child);
-        if (__instance_of(child, UIBase)) {
-            child.parentWidget = this;
-        }
-      };
-    }
-    set  floating(val) {
-      if (val) {
-          this.flag|=AreaFlags.FLOATING;
-      }
-      else {
-        this.flag&=~AreaFlags.FLOATING;
-      }
-    }
-    get  floating() {
-      return ~~(this.flag&AreaFlags.FLOATING);
-    }
-     init() {
-      super.init();
-      this.style["overflow"] = "hidden";
-      this.noMarginsOrPadding();
-      let onover=(e) =>        {
-        this.push_ctx_active();
-        this.pop_ctx_active();
-      };
-      super.addEventListener("mouseover", onover, {passive: true});
-      super.addEventListener("mousemove", onover, {passive: true});
-      super.addEventListener("mousein", onover, {passive: true});
-      super.addEventListener("mouseenter", onover, {passive: true});
-      super.addEventListener("touchstart", onover, {passive: true});
-      super.addEventListener("focusin", onover, {passive: true});
-      super.addEventListener("focus", onover, {passive: true});
-    }
-     _get_v_suffix() {
-      if (this.flag&AreaFlags.INDEPENDENT) {
-          return this._id;
-      }
-      else {
-        return "";
-      }
-    }
-     getKeyMaps() {
-      return this.keymap!==undefined ? [this.keymap] : [];
-    }
-     on_fileload(isActiveEditor) {
-      contextWrangler.reset();
-    }
-     buildDataPath() {
-      let p=this;
-      let sarea=this.owning_sarea;
-      if (sarea===undefined||sarea.screen===undefined) {
-          console.warn("Area.buildDataPath(): Failed to build data path");
-          return "";
-      }
-      let screen=sarea.screen;
-      let idx1=screen.sareas.indexOf(sarea);
-      let idx2=sarea.editors.indexOf(this);
-      if (idx1<0||idx2<0) {
-          throw new Error("malformed area data");
-      }
-      let ret=`screen.sareas[${idx1}].editors[${idx2}]`;
-      return ret;
-    }
-     saveData() {
-      return {_area_id: this._area_id, 
-     areaName: this.areaName}
-    }
-     loadData(obj) {
-      let id=obj._area_id;
-      if (id!==undefined&&id!==null) {
-          this._area_id = id;
-      }
-    }
-     draw() {
+  makeGenEnum = _es6_module.add_export('makeGenEnum', makeGenEnum);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_utils.js');
 
-    }
-     copy() {
-      console.warn("You might want to implement this, Area.prototype.copy based method called");
-      let ret=document.createElement(this.constructor.define().tagname);
-      return ret;
-    }
-     on_resize(size, oldsize) {
-      super.on_resize(size, oldsize);
-    }
-     on_area_focus() {
 
+es6_module_define('ease', [], function _ease_module(_es6_module) {
+  function Ease() {
+    throw "Ease cannot be instantiated.";
+  }
+  Ease;
+  Ease = _es6_module.set_default_export('Ease', Ease);
+  
+  Ease.linear = function (t) {
+    return t;
+  }
+  Ease.none = Ease.linear;
+  Ease.get = function (amount) {
+    if (amount<-1) {
+        amount = -1;
     }
-     on_area_blur() {
-
+    else 
+      if (amount>1) {
+        amount = 1;
     }
-     on_area_active() {
-
-    }
-     on_area_inactive() {
-
-    }
-    static  getActiveArea(type) {
-      return contextWrangler.getLastArea(type);
-    }
-     push_ctx_active(dontSetLastRef=false) {
-      contextWrangler.push(this.constructor, this, !dontSetLastRef);
-    }
-     pop_ctx_active(dontSetLastRef=false) {
-      contextWrangler.pop(this.constructor, this, !dontSetLastRef);
-    }
-    static  register(cls) {
-      let def=cls.define();
-      if (!def.areaname) {
-          throw new Error("Missing areaname key in define()");
+    return function (t) {
+      if (amount==0) {
+          return t;
       }
-      areaclasses[def.areaname] = cls;
-      ui_base.UIBase.register(cls);
-    }
-     getScreen() {
-      throw new Error("replace me in Area.prototype");
-    }
-     toJSON() {
-      return Object.assign(super.toJSON(), {areaname: this.constructor.define().areaname, 
-     _area_id: this._area_id});
-    }
-     loadJSON(obj) {
-      super.loadJSON(obj);
-      this._area_id = obj._area_id;
-      return this;
-    }
-     getBarHeight() {
-      return this.header.getClientRects()[0].height;
-    }
-    static  makeAreasEnum() {
-      let areas={};
-      let icons={};
-      let i=0;
-      for (let k in areaclasses) {
-          let cls=areaclasses[k];
-          let def=cls.define();
-          if (def.flag&AreaFlags.HIDDEN)
-            continue;
-          let uiname=def.uiname;
-          if (uiname===undefined) {
-              uiname = k.replace("_", " ").toLowerCase();
-              uiname = uiname[0].toUpperCase()+uiname.slice(1, uiname.length);
-          }
-          areas[uiname] = k;
-          icons[uiname] = def.icon!==undefined ? def.icon : -1;
+      if (amount<0) {
+          return t*(t*-amount+1+amount);
       }
-      let prop=new EnumProperty(undefined, areas);
-      prop.addIcons(icons);
-      return prop;
-    }
-     makeAreaSwitcher(container) {
-      if (cconst.useAreaTabSwitcher) {
-          let ret=document.createElement("area-docker-x");
-          container.add(ret);
-          return ret;
-      }
-      let prop=Area.makeAreasEnum();
-      return container.listenum(undefined, {name: this.constructor.define().uiname, 
-     enumDef: prop, 
-     callback: (id) =>          {
-          let cls=areaclasses[id];
-          this.owning_sarea.switch_editor(cls);
-        }});
-    }
-     makeHeader(container, add_note_area=true) {
-      let row=this.header = container.row();
-      row.remove();
-      container._prepend(row);
-      row.setCSS.after(() =>        {
-        return row.background = this.getDefault("AreaHeaderBG");
-      });
-      let rh=~~(16*this.getDPI());
-      container.noMarginsOrPadding();
-      row.noMarginsOrPadding();
-      row.style["width"] = "100%";
-      row.style["margin"] = "0px";
-      row.style["padding"] = "0px";
-      let mdown=false;
-      let mpos=new Vector2();
-      let mpre=(e, pageX, pageY) =>        {
-        pageX = pageX===undefined ? e.pageX : pageX;
-        pageY = pageY===undefined ? e.pageY : pageY;
-        let node=this.getScreen().pickElement(pageX, pageY);
-        if (node!==row) {
-            return false;
-        }
-        return true;
-      };
-      row.addEventListener("mouseout", (e) =>        {
-        mdown = false;
-      });
-      row.addEventListener("mouseleave", (e) =>        {
-        mdown = false;
-      });
-      row.addEventListener("mousedown", (e) =>        {
-        if (!mpre(e))
-          return ;
-        mpos[0] = e.pageX;
-        mpos[1] = e.pageY;
-        mdown = true;
-      }, false);
-      let do_mousemove=(e, pageX, pageY) =>        {
-        let mdown2=e.buttons!=0||(e.touches&&e.touches.length>0);
-        if (!mdown2||!mpre(e, pageX, pageY))
-          return ;
-        if (e.type==="mousemove"&&e.was_touch) {
-            return ;
-        }
-        let dx=pageX-mpos[0];
-        let dy=pageY-mpos[1];
-        let dis=dx*dx+dy*dy;
-        let limit=7;
-        if (dis>limit*limit) {
-            let sarea=this.owning_sarea;
-            if (sarea===undefined) {
-                console.warn("Error: missing sarea ref");
-                return ;
-            }
-            let screen=sarea.screen;
-            if (screen===undefined) {
-                console.log("Error: missing screen ref");
-                return ;
-            }
-            if (!this.areaDragToolEnabled) {
-                return ;
-            }
-            mdown = false;
-            console.log("area drag tool!", e.type, e);
-            screen.areaDragTool(this.owning_sarea);
-        }
-      };
-      row.addEventListener("mousemove", (e) =>        {
-        return do_mousemove(e, e.pageX, e.pageY);
-      }, false);
-      row.addEventListener("mouseup", (e) =>        {
-        if (!mpre(e))
-          return ;
-        mdown = false;
-      }, false);
-      row.addEventListener("touchstart", (e) =>        {
-        console.log("touchstart", e);
-        if (!mpre(e, e.touches[0].pageX, e.touches[0].pageY))
-          return ;
-        if (e.touches.length==0)
-          return ;
-        mpos[0] = e.touches[0].pageX;
-        mpos[1] = e.touches[0].pageY;
-        mdown = true;
-      }, false);
-      row.addEventListener("touchmove", (e) =>        {
-        return do_mousemove(e, e.touches[0].pageX, e.touches[0].pageY);
-      }, false);
-      let touchend=(e) =>        {
-        let node=this.getScreen().pickElement(e.pageX, e.pageY);
-        if (node!==row) {
-            return ;
-        }
-        if (e.touches.length==0)
-          return ;
-        mdown = false;
-      };
-      row.addEventListener("touchcancel", (e) =>        {
-        touchend(e);
-      }, false);
-      row.addEventListener("touchend", (e) =>        {
-        touchend(e);
-      }, false);
-      if (!(this.flag&AreaFlags.NO_SWITCHER)) {
-          this.switcher = this.makeAreaSwitcher(row);
-      }
-      if (util.isMobile()||cconst.addHelpPickers) {
-          this.helppicker = row.helppicker();
-          this.helppicker.iconsheet = 0;
-      }
-      if (add_note_area) {
-          let notef=document.createElement("noteframe-x");
-          notef.ctx = this.ctx;
-          row._add(notef);
-      }
-      this.header = row;
-      return row;
-    }
-     setCSS() {
-      if (this.size!==undefined) {
-          this.style["position"] = "absolute";
-          this.style["width"] = this.size[0]+"px";
-          this.style["height"] = this.size[1]+"px";
-      }
-    }
-     update() {
-      if (this.owning_sarea===undefined||this!==this.owning_sarea.area) {
-          return ;
-      }
-      super.update();
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-    static  define() {
-      return {tagname: undefined, 
-     areaname: undefined, 
-     uiname: undefined, 
-     icon: undefined}
-    }
-     _isDead() {
-      if (this.dead) {
-          return true;
-      }
-      let screen=this.getScreen();
-      if (screen===undefined)
-        return true;
-      if (screen.parentNode===undefined)
-        return true;
-    }
-     afterSTRUCT() {
-      let f=() =>        {
-        if (this._isDead()) {
-            return ;
-        }
-        if (!this.ctx) {
-            this.doOnce(f);
-            return ;
-        }
-        try {
-          console.log("load ui data");
-          ui_base.loadUIData(this, this.saved_uidata);
-          this.saved_uidata = undefined;
-        }
-        catch (error) {
-            console.log("failed to load ui data");
-            util.print_stack(error);
-        }
-      };
-      this.doOnce(f);
-    }
-    static  newSTRUCT(reader) {
-      return document.createElement(this.define().tagname);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-     _getSavedUIData() {
-      return ui_base.saveUIData(this, "area");
+      return t*((2-t)*amount+(1-amount));
     }
   }
-  _ESClass.register(Area);
-  _es6_module.add_class(Area);
-  Area = _es6_module.add_export('Area', Area);
-  Area.STRUCT = `
-pathux.Area { 
-  flag : int;
-  saved_uidata : string | obj._getSavedUIData();
-}
-`;
-  nstructjs.manager.add_class(Area);
-  class ScreenArea extends ui_base.UIBase {
-     constructor() {
-      super();
-      this._borders = [];
-      this._verts = [];
-      this.dead = false;
-      this._sarea_id = contextWrangler.idgen++;
-      this._pos = new Vector2();
-      this._size = new Vector2([512, 512]);
-      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
-          let wrapVector=(name, axis) =>            {
-            Object.defineProperty(this[name], axis, {get: function () {
-                return this["_"+axis];
-              }, 
-        set: function (val) {
-                console.warn(`ScreenArea.${name}[${axis}] set:`, val);
-                this["_"+axis] = val;
-              }});
-          };
-          wrapVector("size", 0);
-          wrapVector("size", 1);
-          wrapVector("pos", 0);
-          wrapVector("pos", 1);
-      }
-      this.area = undefined;
-      this.editors = [];
-      this.editormap = {};
-      this.addEventListener("mouseover", (e) =>        {
-        if (haveModal()) {
-            return ;
-        }
-        let screen=this.getScreen();
-        if (screen.sareas.active!==this&&screen.sareas.active&&screen.sareas.active.area) {
-            screen.sareas.active.area.on_area_blur();
-        }
-        if (screen.sareas.active!==this) {
-            this.area.on_area_focus();
-        }
-        screen.sareas.active = this;
-      });
-    }
-    get  floating() {
-      return this.area ? this.area.floating : undefined;
-    }
-    set  floating(val) {
-      if (this.area) {
-          this.area.floating = val;
-      }
-    }
-    get  flag() {
-      return this.area ? this.area.flag : 0;
-    }
-     _get_v_suffix() {
-      return this.area ? this.area._get_v_suffix() : "";
-    }
-    get  borderLock() {
-      return this.area!==undefined ? this.area.borderLock : 0;
-    }
-    get  minSize() {
-      return this.area!==undefined ? this.area.minSize : [5, 5];
-    }
-    get  maxSize() {
-      return this.area!==undefined ? this.area.maxSize : [undefined, undefined];
-    }
-     bringToFront() {
-      let screen=this.getScreen();
-      this.remove(false);
-      screen.sareas.remove(this);
-      screen.appendChild(this);
-      let zindex=0;
-      if (screen.style["z-index"]) {
-          zindex = parseInt(screen.style["z-index"])+1;
-      }
-      for (let sarea of screen.sareas) {
-          let zindex=sarea.style["z-index"];
-          if (sarea.style["z-index"]) {
-              zindex = Math.max(zindex, parseInt(sarea.style["z-index"])+1);
-          }
-      }
-      this.style["z-index"] = zindex;
-    }
-     _side(border) {
-      let ret=this._borders.indexOf(border);
-      if (ret<0) {
-          throw new Error("border not in screen area");
-      }
-      return ret;
-    }
-     init() {
-      super.init();
-      this.noMarginsOrPadding();
-    }
-     draw() {
-      if (this.area.draw) {
-          this.area.push_ctx_active();
-          this.area.draw();
-          this.area.pop_ctx_active();
-      }
-    }
-     _isDead() {
-      if (this.dead) {
-          return true;
-      }
-      let screen=this.getScreen();
-      if (screen===undefined)
-        return true;
-      if (screen.parentNode===undefined)
-        return true;
-    }
-     toJSON() {
-      let ret={editors: this.editors, 
-     _sarea_id: this._sarea_id, 
-     area: this.area.constructor.define().areaname, 
-     pos: this.pos, 
-     size: this.size};
-      return Object.assign(super.toJSON(), ret);
-    }
-     on_keydown(e) {
-      if (this.area.on_keydown) {
-          this.area.push_ctx_active();
-          this.area.on_keydown(e);
-          this.area.pop_ctx_active();
-      }
-    }
-     loadJSON(obj) {
-      if (obj===undefined) {
-          console.warn("undefined in loadJSON");
-          return ;
-      }
-      super.loadJSON(obj);
-      this.pos.load(obj.pos);
-      this.size.load(obj.size);
-      for (let editor of obj.editors) {
-          let areaname=editor.areaname;
-          let tagname=areaclasses[areaname].define().tagname;
-          let area=document.createElement(tagname);
-          area.owning_sarea = this;
-          this.editormap[areaname] = area;
-          this.editors.push(this.editormap[areaname]);
-          area.pos = new Vector2(obj.pos);
-          area.size = new Vector2(obj.size);
-          area.ctx = this.ctx;
-          area.inactive = true;
-          area.loadJSON(editor);
-          area.owning_sarea = undefined;
-          if (areaname===obj.area) {
-              this.area = area;
-          }
-      }
-      if (this.area!==undefined) {
-          this.area.ctx = this.ctx;
-          this.area.style["width"] = "100%";
-          this.area.style["height"] = "100%";
-          this.area.owning_sarea = this;
-          this.area.parentWidget = this;
-          this.area.pos = this.pos;
-          this.area.size = this.size;
-          this.area.inactive = false;
-          this.shadow.appendChild(this.area);
-          this.area.on_area_active();
-          this.area.onadd();
-      }
-      this.setCSS();
-    }
-     _ondestroy() {
-      super._ondestroy();
-      this.dead = true;
-      for (let editor of this.editors) {
-          if (editor===this.area)
-            continue;
-          editor._ondestroy();
-      }
-    }
-     getScreen() {
-      if (this.screen!==undefined) {
-          return this.screen;
-      }
-      let p=this.parentNode;
-      let _i=0;
-      while (p&&!(__instance_of(p, Screen))&&p!==p.parentNode) {
-        p = this.parentNode;
-        if (_i++>1000) {
-            console.warn("infinite loop detected in ScreenArea.prototype.getScreen()");
-            return undefined;
-        }
-      }
-      return p&&__instance_of(p, Screen) ? p : undefined;
-    }
-     copy(screen) {
-      let ret=document.createElement("screenarea-x");
-      ret.screen = screen;
-      ret.ctx = this.ctx;
-      ret.pos[0] = this.pos[0];
-      ret.pos[1] = this.pos[1];
-      ret.size[0] = this.size[0];
-      ret.size[1] = this.size[1];
-      for (let area of this.editors) {
-          let cpy=area.copy();
-          cpy.ctx = this.ctx;
-          cpy.parentWidget = ret;
-          ret.editors.push(cpy);
-          if (area===this.area) {
-              ret.area = cpy;
-          }
-      }
-      ret.ctx = this.ctx;
-      if (ret.area!==undefined) {
-          ret.area.ctx = this.ctx;
-          ret.area.pos = ret.pos;
-          ret.area.size = ret.size;
-          ret.area.owning_sarea = ret;
-          ret.area.parentWidget = ret;
-          ret.shadow.appendChild(ret.area);
-          if (ret.area._init_done) {
-              ret.area.push_ctx_active();
-              ret.area.on_area_active();
-              ret.area.pop_ctx_active();
-          }
-          else {
-            ret.doOnce(() =>              {
-              if (this.dead) {
-                  return ;
-              }
-              ret._init();
-              ret.area._init();
-              ret.area.push_ctx_active();
-              ret.area.on_area_active();
-              ret.area.pop_ctx_active();
-            });
-          }
-      }
-      return ret;
-    }
-     snapToScreenSize() {
-      let screen=this.getScreen();
-      let co=new Vector2();
-      let changed=0;
-      for (let v of this._verts) {
-          co.load(v);
-          v[0] = Math.min(Math.max(v[0], 0), screen.size[0]);
-          v[1] = Math.min(Math.max(v[1], 0), screen.size[1]);
-          if (co.vectorDistance(v)>0.1) {
-              changed = 1;
-          }
-      }
-      if (changed) {
-          this.loadFromVerts();
-      }
-    }
-     loadFromPosSize() {
-      let screen=this.getScreen();
-      if (!screen)
-        return ;
-      for (let b of this._borders) {
-          screen.freeBorder(b);
-      }
-      this.makeBorders(screen);
-      this.setCSS();
-      return this;
-    }
-     loadFromVerts() {
-      if (this._verts.length==0) {
-          return ;
-      }
-      let min=new Vector2([1e+17, 1e+17]);
-      let max=new Vector2([-1e+17, -1e+17]);
-      for (let v of this._verts) {
-          min.min(v);
-          max.max(v);
-      }
-      this.pos[0] = min[0];
-      this.pos[1] = min[1];
-      this.size[0] = max[0]-min[0];
-      this.size[1] = max[1]-min[1];
-      this.setCSS();
-      return this;
-    }
-     on_resize(size, oldsize) {
-      super.on_resize(size, oldsize);
-      if (this.area!==undefined) {
-          this.area.on_resize(size, oldsize);
-      }
-    }
-     makeBorders(screen) {
-      this._borders.length = 0;
-      this._verts.length = 0;
-      let p=this.pos, s=this.size;
-      let vs=[new Vector2([p[0], p[1]]), new Vector2([p[0], p[1]+s[1]]), new Vector2([p[0]+s[0], p[1]+s[1]]), new Vector2([p[0]+s[0], p[1]])];
-      for (let i=0; i<vs.length; i++) {
-          vs[i] = snap(vs[i]);
-          vs[i] = screen.getScreenVert(vs[i], i);
-          this._verts.push(vs[i]);
-      }
-      for (let i=0; i<vs.length; i++) {
-          let v1=vs[i], v2=vs[(i+1)%vs.length];
-          let b=screen.getScreenBorder(this, v1, v2, i);
-          for (let j=0; j<2; j++) {
-              let v=j ? b.v2 : b.v1;
-              if (v.sareas.indexOf(this)<0) {
-                  v.sareas.push(this);
-              }
-          }
-          if (b.sareas.indexOf(this)<0) {
-              b.sareas.push(this);
-          }
-          this._borders.push(b);
-          b.movable = screen.isBorderMovable(b);
-      }
-      return this;
-    }
-     setCSS() {
-      this.style["position"] = "absolute";
-      this.style["left"] = this.pos[0]+"px";
-      this.style["top"] = this.pos[1]+"px";
-      this.style["width"] = this.size[0]+"px";
-      this.style["height"] = this.size[1]+"px";
-      if (this.area!==undefined) {
-          this.area.setCSS();
-      }
-    }
-     appendChild(child) {
-      if (__instance_of(child, Area)) {
-          child.ctx = this.ctx;
-          child.pos = this.pos;
-          child.size = this.size;
-          if (this.editors.indexOf(child)<0) {
-              this.editors.push(child);
-          }
-          child.owning_sarea = undefined;
-      }
-      super.appendChild(child);
-      if (__instance_of(child, ui_base.UIBase)) {
-          child.parentWidget = this;
-          child.onadd();
-      }
-    }
-     switch_editor(cls) {
-      return this.switchEditor(cls);
-    }
-     switchEditor(cls) {
-      let def=cls.define();
-      let name=def.areaname;
-      if (!(name in this.editormap)) {
-          this.editormap[name] = document.createElement(def.tagname);
-          this.editormap[name].ctx = this.ctx;
-          this.editormap[name].parentWidget = this;
-          this.editormap[name].owning_sarea = this;
-          this.editormap[name].inactive = false;
-          this.editors.push(this.editormap[name]);
-      }
-      if (this.area!==undefined) {
-          this.area.pos = new Vector2(this.area.pos);
-          this.area.size = new Vector2(this.area.size);
-          this.area.owning_sarea = undefined;
-          this.area.inactive = true;
-          this.area.push_ctx_active();
-          this.area._init();
-          this.area.on_area_inactive();
-          this.area.pop_ctx_active();
-          this.area.remove();
-      }
-      this.area = this.editormap[name];
-      this.area.inactive = false;
-      this.area.parentWidget = this;
-      this.area.pos = this.pos;
-      this.area.size = this.size;
-      this.area.owning_sarea = this;
-      this.area.ctx = this.ctx;
-      this.area.packflag|=this.packflag;
-      this.shadow.appendChild(this.area);
-      this.area.style["width"] = "100%";
-      this.area.style["height"] = "100%";
-      this.area.push_ctx_active();
-      this.area._init();
-      this.area.on_resize(this.size, this.size);
-      this.area.pop_ctx_active();
-      this.area.push_ctx_active();
-      this.area.on_area_active();
-      this.area.pop_ctx_active();
-      this.regenTabOrder();
-    }
-     _checkWrangler() {
-      if (this.ctx)
-        contextWrangler._checkWrangler(this.ctx);
-    }
-     update() {
-      this._checkWrangler();
-      super.update();
-      if (this.area!==undefined) {
-          this.area.owning_sarea = this;
-          this.area.parentWidget = this;
-          this.area.size = this.size;
-          this.area.pos = this.pos;
-          let screen=this.getScreen();
-          let oldsize=[this.size[0], this.size[1]];
-          let moved=screen ? screen.checkAreaConstraint(this, true) : 0;
-          if (moved) {
-              if (cconst.DEBUG.areaConstraintSolver) {
-                  console.log("screen constraint solve", moved, this.area.minSize, this.area.maxSize, this.area.tagName, this.size);
-              }
-              screen.solveAreaConstraints();
-              screen.regenBorders();
-              this.on_resize(oldsize);
-          }
-          this.area.push_ctx_active(true);
-      }
-      this._forEachChildWidget((n) =>        {
-        n.update();
-      });
-      if (this.area!==undefined) {
-          this.area.pop_ctx_active(true);
-      }
-    }
-     appendChild(ch) {
-      if (__instance_of(ch, Area)) {
-          this.editors.push(ch);
-          this.editormap[ch.constructor.define().areaname] = ch;
-      }
-      else {
-        super.appendChild(ch);
-      }
-    }
-     removeChild(ch) {
-      if (__instance_of(ch, Area)) {
-          ch.owining_sarea = undefined;
-          ch.pos = undefined;
-          ch.size = undefined;
-          if (this.area===ch&&this.editors.length>1) {
-              let i=(this.editors.indexOf(ch)+1)%this.editors.length;
-              this.switchEditor(this.editors[i].constructor);
-          }
-          else 
-            if (this.area===ch) {
-              this.editors = [];
-              this.editormap = {};
-              this.area = undefined;
-              ch.remove();
-              return ;
-          }
-          let areaname=ch.constructor.define().areaname;
-          this.editors.remove(ch);
-          delete this.editormap[areaname];
-          ch.parentWidget = undefined;
-      }
-      else {
-        return super.removeChild(ch);
-      }
-    }
-    static  newSTRUCT() {
-      return document.createElement("screenarea-x");
-    }
-     afterSTRUCT() {
-      for (let area of this.editors) {
-          area.pos = this.pos;
-          area.size = this.size;
-          area.owning_sarea = this;
-          area.push_ctx_active();
-          area._ctx = this.ctx;
-          area.afterSTRUCT();
-          area.pop_ctx_active();
-      }
-    }
-    get  pos() {
-      return this._pos;
-    }
-    set  pos(val) {
-      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
-          console.log("ScreenArea set pos", val);
-      }
-      this._pos.load(val);
-    }
-    get  size() {
-      return this._size;
-    }
-    set  size(val) {
-      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
-          console.log("ScreenArea set size", val);
-      }
-      this._size.load(val);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.pos = new Vector2(this.pos);
-      this.size = new Vector2(this.size);
-      let editors=[];
-      for (let area of this.editors) {
-          if (!area.constructor||!area.constructor.define) {
-              continue;
-          }
-          let areaname=area.constructor.define().areaname;
-          area.inactive = true;
-          area.owning_sarea = undefined;
-          this.editormap[areaname] = area;
-          if (areaname===this.area) {
-              this.area = area;
-          }
-          area.parentWidget = this;
-          editors.push(area);
-      }
-      this.editors = editors;
-      if (typeof this.area!=="object") {
-          let area=this.editors[0];
-          console.warn("Failed to find active area!", this.area);
-          if (typeof area!=="object") {
-              for (let k in areaclasses) {
-                  area = areaclasses[k].define().tagname;
-                  area = document.createElement(area);
-                  let areaname=area.constructor.define().areaname;
-                  this.editors.push(area);
-                  this.editormap[areaname] = area;
-                  break;
-              }
-          }
-          if (area) {
-              this.area = area;
-          }
-      }
-      if (this.area!==undefined) {
-          this.area.style["width"] = "100%";
-          this.area.style["height"] = "100%";
-          this.area.owning_saea = this;
-          this.area.parentWidget = this;
-          this.area.pos = this.pos;
-          this.area.size = this.size;
-          this.area.inactive = false;
-          this.shadow.appendChild(this.area);
-          let f=() =>            {
-            if (this._isDead()) {
-                return ;
-            }
-            if (!this.ctx&&this.parentNode) {
-                console.log("waiting to start. . .");
-                this.doOnce(f);
-                return ;
-            }
-            this.area.ctx = this.ctx;
-            this.area._init();
-            this.area.on_area_active();
-            this.area.onadd();
-          };
-          this.doOnce(f);
-      }
-    }
-    static  define() {
-      return {tagname: "screenarea-x"}
+  Ease.getPowIn = function (pow) {
+    return function (t) {
+      return Math.pow(t, pow);
     }
   }
-  _ESClass.register(ScreenArea);
-  _es6_module.add_class(ScreenArea);
-  ScreenArea = _es6_module.add_export('ScreenArea', ScreenArea);
-  ScreenArea.STRUCT = `
-pathux.ScreenArea { 
-  pos      : vec2;
-  size     : vec2;
-  type     : string;
-  hidden   : bool;
-  editors  : array(abstract(pathux.Area));
-  area     : string | obj.area.constructor.define().areaname;
-}
-`;
-  nstructjs.manager.add_class(ScreenArea);
-  ui_base.UIBase.register(ScreenArea);
-  ui_base._setAreaClass(Area);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
-es6_module_define('simple_toolsys', ["./toolprop.js", "../util/events.js", "../util/simple_events.js"], function _simple_toolsys_module(_es6_module) {
-  "use strict";
-  var events=es6_import(_es6_module, '../util/events.js');
-  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
-  var PropTypes=es6_import_item(_es6_module, './toolprop.js', 'PropTypes');
-  let ToolClasses=[];
-  ToolClasses = _es6_module.add_export('ToolClasses', ToolClasses);
-  function setContextClass(cls) {
-    console.warn("setContextClass is deprecated");
-  }
-  setContextClass = _es6_module.add_export('setContextClass', setContextClass);
-  const ToolFlags={PRIVATE: 1}
-  _es6_module.add_export('ToolFlags', ToolFlags);
-  const UndoFlags={NO_UNDO: 2, 
-   IS_UNDO_ROOT: 4, 
-   UNDO_BARRIER: 8, 
-   HAS_UNDO_DATA: 16}
-  _es6_module.add_export('UndoFlags', UndoFlags);
-  class InheritFlag  {
-     constructor(slots={}) {
-      this.slots = slots;
+  Ease.getPowOut = function (pow) {
+    return function (t) {
+      return 1-Math.pow(1-t, pow);
     }
   }
-  _ESClass.register(InheritFlag);
-  _es6_module.add_class(InheritFlag);
-  let modalstack=[];
-  class ToolOp extends events.EventHandler {
-    static  tooldef() {
-      if (this===ToolOp) {
-          throw new Error("Tools must implemented static tooldef() methods!");
-      }
-      return {}
+  Ease.getPowInOut = function (pow) {
+    return function (t) {
+      if ((t*=2)<1)
+        return 0.5*Math.pow(t, pow);
+      return 1-0.5*Math.abs(Math.pow(2-t, pow));
     }
-    static  Equals(a, b) {
-      if (!a||!b)
-        return false;
-      if (a.constructor!==b.constructor)
-        return false;
-      let bad=false;
-      for (let k in a.inputs) {
-          bad = bad||!(k in b.inputs);
-          bad = bad||a.inputs[k].constructor!==b.inputs[k];
-          bad = bad||!a.inputs[k].equals(b.inputs[k]);
-          if (bad) {
-              break;
-          }
-      }
-      return !bad;
+  }
+  Ease.quadIn = Ease.getPowIn(2);
+  Ease.quadOut = Ease.getPowOut(2);
+  Ease.quadInOut = Ease.getPowInOut(2);
+  Ease.cubicIn = Ease.getPowIn(3);
+  Ease.cubicOut = Ease.getPowOut(3);
+  Ease.cubicInOut = Ease.getPowInOut(3);
+  Ease.quartIn = Ease.getPowIn(4);
+  Ease.quartOut = Ease.getPowOut(4);
+  Ease.quartInOut = Ease.getPowInOut(4);
+  Ease.quintIn = Ease.getPowIn(5);
+  Ease.quintOut = Ease.getPowOut(5);
+  Ease.quintInOut = Ease.getPowInOut(5);
+  Ease.sineIn = function (t) {
+    return 1-Math.cos(t*Math.PI/2);
+  }
+  Ease.sineOut = function (t) {
+    return Math.sin(t*Math.PI/2);
+  }
+  Ease.sineInOut = function (t) {
+    return -0.5*(Math.cos(Math.PI*t)-1);
+  }
+  Ease.getBackIn = function (amount) {
+    return function (t) {
+      return t*t*((amount+1)*t-amount);
     }
-    static  inherit(slots) {
-      return new InheritFlag(slots);
+  }
+  Ease.backIn = Ease.getBackIn(1.7);
+  Ease.getBackOut = function (amount) {
+    return function (t) {
+      return (--t*t*((amount+1)*t+amount)+1);
     }
-    static  invoke(ctx, args) {
-      let tool=new this();
-      for (let k in args) {
-          if (!(k in tool.inputs)) {
-              console.warn("Unknown tool argument "+k);
-              continue;
-          }
-          let prop=tool.inputs[k];
-          let val=args[k];
-          if ((typeof val==="string")&&prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
-              if (val in prop.values) {
-                  val = prop.values[val];
-              }
-              else {
-                console.warn("Possible invalid enum/flag:", val);
-                continue;
-              }
-          }
-          tool.inputs[k].setValue(val);
-      }
-      return tool;
+  }
+  Ease.backOut = Ease.getBackOut(1.7);
+  Ease.getBackInOut = function (amount) {
+    amount*=1.525;
+    return function (t) {
+      if ((t*=2)<1)
+        return 0.5*(t*t*((amount+1)*t-amount));
+      return 0.5*((t-=2)*t*((amount+1)*t+amount)+2);
     }
-     genToolString() {
-      let def=this.constructor.tooldef();
-      let path=def.toolpath+"(";
-      for (let k in this.inputs) {
-          let prop=this.inputs[k];
-          path+=k+"=";
-          if (prop.type===PropTypes.STRING)
-            path+="'";
-          if (prop.type===PropTypes.FLOAT) {
-              path+=prop.getValue().toFixed(3);
-          }
-          else {
-            path+=prop.getValue();
-          }
-          if (prop.type===PropTypes.STRING)
-            path+="'";
-          path+=" ";
-      }
-      path+=")";
-      return path;
+  }
+  Ease.backInOut = Ease.getBackInOut(1.7);
+  Ease.circIn = function (t) {
+    return -(Math.sqrt(1-t*t)-1);
+  }
+  Ease.circOut = function (t) {
+    return Math.sqrt(1-(--t)*t);
+  }
+  Ease.circInOut = function (t) {
+    if ((t*=2)<1)
+      return -0.5*(Math.sqrt(1-t*t)-1);
+    return 0.5*(Math.sqrt(1-(t-=2)*t)+1);
+  }
+  Ease.bounceIn = function (t) {
+    return 1-Ease.bounceOut(1-t);
+  }
+  Ease.bounceOut = function (t) {
+    if (t<1/2.75) {
+        return (7.5625*t*t);
     }
-    static  register(cls) {
-      if (ToolClasses.indexOf(cls)>=0) {
-          console.warn("Tried to register same ToolOp class twice:", cls.name, cls);
-          return ;
-      }
-      ToolClasses.push(cls);
+    else 
+      if (t<2/2.75) {
+        return (7.5625*(t-=1.5/2.75)*t+0.75);
     }
-    static  isRegistered(cls) {
-      return ToolClasses.indexOf(cls)>=0;
+    else 
+      if (t<2.5/2.75) {
+        return (7.5625*(t-=2.25/2.75)*t+0.9375);
     }
-    static  unregister(cls) {
-      if (ToolClasses.indexOf(cls)>=0) {
-          ToolClasses.remove(cls);
-      }
+    else {
+      return (7.5625*(t-=2.625/2.75)*t+0.984375);
     }
-     constructor() {
-      super();
-      this._overdraw = undefined;
-      var def=this.constructor.tooldef();
-      if (def.undoflag!==undefined) {
-          this.undoflag = def.undoflag;
-      }
-      if (def.flag!==undefined) {
-          this.flag = def.flag;
-      }
-      this._accept = this._reject = undefined;
-      this._promise = undefined;
-      for (var k in def) {
-          this[k] = def[k];
-      }
-      let getSlots=(slots, key) =>        {
-        if (slots===undefined)
-          return {}
-        if (!(__instance_of(slots, InheritFlag))) {
-            return slots;
-        }
-        slots = {}
-        let p=this.constructor;
-        while (p!==undefined&&p!==Object&&p!==ToolOp) {
-          if (p.tooldef) {
-              let def=p.tooldef();
-              if (def[key]!==undefined) {
-                  let slots2=def[key];
-                  let stop=!(__instance_of(slots2, InheritFlag));
-                  if (__instance_of(slots2, InheritFlag)) {
-                      slots2 = slots2.slots;
-                  }
-                  for (let k in slots2) {
-                      if (!(k in slots)) {
-                          slots[k] = slots2[k];
-                      }
-                  }
-                  if (stop) {
-                      break;
-                  }
-              }
-          }
-          p = p.prototype.__proto__.constructor;
-        }
-        return slots;
-      };
-      let dinputs=getSlots(def.inputs, "inputs");
-      let doutputs=getSlots(def.outputs, "outputs");
-      this.inputs = {};
-      this.outputs = {};
-      if (dinputs) {
-          for (let k in dinputs) {
-              this.inputs[k] = dinputs[k].copy();
-          }
-      }
-      if (doutputs) {
-          for (let k in doutputs) {
-              this.outputs[k] = doutputs[k].copy();
-          }
-      }
-      this.drawlines = [];
+  }
+  Ease.bounceInOut = function (t) {
+    if (t<0.5)
+      return Ease.bounceIn(t*2)*0.5;
+    return Ease.bounceOut(t*2-1)*0.5+0.5;
+  }
+  Ease.getElasticIn = function (amplitude, period) {
+    var pi2=Math.PI*2;
+    return function (t) {
+      if (t==0||t==1)
+        return t;
+      var s=period/pi2*Math.asin(1/amplitude);
+      return -(amplitude*Math.pow(2, 10*(t-=1))*Math.sin((t-s)*pi2/period));
     }
-    static  onTick() {
-      for (let toolop of modalstack) {
-          toolop.on_tick();
-      }
+  }
+  Ease.elasticIn = Ease.getElasticIn(1, 0.3);
+  Ease.getElasticOut = function (amplitude, period) {
+    var pi2=Math.PI*2;
+    return function (t) {
+      if (t==0||t==1)
+        return t;
+      var s=period/pi2*Math.asin(1/amplitude);
+      return (amplitude*Math.pow(2, -10*t)*Math.sin((t-s)*pi2/period)+1);
     }
-     on_tick() {
+  }
+  Ease.elasticOut = Ease.getElasticOut(1, 0.3);
+  Ease.getElasticInOut = function (amplitude, period) {
+    var pi2=Math.PI*2;
+    return function (t) {
+      var s=period/pi2*Math.asin(1/amplitude);
+      if ((t*=2)<1)
+        return -0.5*(amplitude*Math.pow(2, 10*(t-=1))*Math.sin((t-s)*pi2/period));
+      return amplitude*Math.pow(2, -10*(t-=1))*Math.sin((t-s)*pi2/period)*0.5+1;
+    }
+  }
+  Ease.elasticInOut = Ease.getElasticInOut(1, 0.3*1.5);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/ease.js');
 
-    }
-     on_keydown(e) {
-      switch (e.keyCode) {
-        case keymap["Enter"]:
-        case keymap["Space"]:
-          this.modalEnd(false);
-          break;
-        case keymap["Escape"]:
-          this.modalEnd(true);
-          break;
-      }
-    }
-    static  searchBoxOk(ctx) {
-      let flag=this.tooldef().flag;
-      let ret=!(flag&&(flag&ToolFlags.PRIVATE));
-      ret = ret&&this.canRun(ctx);
-      return ret;
-    }
-    static  canRun(ctx) {
-      return true;
-    }
-     undoPre(ctx) {
-      this._undo = _appstate.genUndoFile();
-    }
-     undo(ctx) {
-      _appstate.loadUndoFile(this._undo);
-    }
-     exec_pre(ctx) {
-      this.execPre(ctx);
-    }
-     execPre(ctx) {
 
-    }
-     exec(ctx) {
-
-    }
-     execPost(ctx) {
-
-    }
-     resetTempGeom() {
-      var ctx=this.modal_ctx;
-      for (var dl of this.drawlines) {
-          dl.remove();
-      }
-      this.drawlines.length = 0;
-    }
-     error(msg) {
-      console.warn(msg);
-    }
-     getOverdraw() {
-      if (this._overdraw===undefined) {
-          this._overdraw = document.createElement("overdraw-x");
-          this._overdraw.start(this.modal_ctx.screen);
-      }
-      return this._overdraw;
-    }
-     makeTempLine(v1, v2, style) {
-      let line=this.getOverdraw().line(v1, v2, style);
-      this.drawlines.push(line);
-      return line;
-    }
-     pushModal(node) {
-      throw new Error("cannot call this; use modalStart");
-    }
-     popModal() {
-      throw new Error("cannot call this; use modalEnd");
-    }
-     modalStart(ctx) {
-      if (this.modalRunning) {
-          console.warn("Warning, tool is already in modal mode consuming events");
-          return this._promise;
-      }
-      this.modal_ctx = ctx;
-      this.modalRunning = true;
-      this._promise = new Promise((accept, reject) =>        {
-        this._accept = accept;
-        this._reject = reject;
-        modalstack.push(this);
-        super.pushModal(ctx.screen);
-      });
-      return this._promise;
-    }
-     toolCancel() {
-
-    }
-     modalEnd(was_cancelled) {
-      if (this._modalstate) {
-          modalstack.pop();
-      }
-      if (this._overdraw!==undefined) {
-          this._overdraw.end();
-          this._overdraw = undefined;
-      }
-      if (was_cancelled&&this._on_cancel!==undefined) {
-          this._accept(this.modal_ctx, true);
-          this._on_cancel(this);
-      }
-      this.resetTempGeom();
-      var ctx=this.modal_ctx;
-      this.modal_ctx = undefined;
-      this.modalRunning = false;
-      this.is_modal = false;
-      super.popModal();
-      this._promise = undefined;
-      this._accept(ctx, false);
-      this._accept = this._reject = undefined;
-    }
-  }
-  _ESClass.register(ToolOp);
-  _es6_module.add_class(ToolOp);
-  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
-  class ToolMacro extends ToolOp {
-    static  tooldef() {
-      return {uiname: "Tool Macro"}
-    }
-     constructor() {
-      super();
-      this.tools = [];
-      this.curtool = 0;
-      this.has_modal = false;
-      this.connects = [];
-    }
-     connect(srctool, dsttool, callback, thisvar) {
-      this.connects.push({srctool: srctool, 
-     dsttool: dsttool, 
-     callback: callback, 
-     thisvar: thisvar});
-      return this;
-    }
-     add(tool) {
-      if (tool.is_modal) {
-          this.is_modal = true;
-      }
-      this.tools.push(tool);
-      return this;
-    }
-     _do_connections(tool) {
-      for (var c of this.connects) {
-          if (c.srctool===tool) {
-              c.callback.call(c.thisvar, c.srctool, c.dsttool);
-          }
-      }
-    }
-    static  canRun(ctx) {
-      return true;
-    }
-     modalStart(ctx) {
-      this._promise = new Promise((function (accept, reject) {
-        this._accept = accept;
-        this._reject = reject;
-      }).bind(this));
-      this.curtool = 0;
-      let i;
-      for (i = 0; i<this.tools.length; i++) {
-          if (this.tools[i].is_modal)
-            break;
-          this.tools[i].undoPre(ctx);
-          this.tools[i].execPre(ctx);
-          this.tools[i].exec(ctx);
-          this.tools[i].execPost(ctx);
-          this._do_connections(this.tools[i]);
-      }
-      var on_modal_end=(function on_modal_end() {
-        this._do_connections(this.tools[this.curtool]);
-        this.curtool++;
-        while (this.curtool<this.tools.length&&!this.tools[this.curtool].is_modal) {
-          this.tools[this.curtool].undoPre(ctx);
-          this.tools[this.curtool].execPre(ctx);
-          this.tools[this.curtool].exec(ctx);
-          this.tools[this.curtool].execPost(ctx);
-          this._do_connections(this.tools[this.curtool]);
-          this.curtool++;
-        }
-        if (this.curtool<this.tools.length) {
-            this.tools[this.curtool].undoPre(ctx);
-            this.tools[this.curtool].modalStart(ctx).then(on_modal_end);
-        }
-        else {
-          this._accept(this, false);
-        }
-      }).bind(this);
-      if (i<this.tools.length) {
-          this.curtool = i;
-          this.tools[this.curtool].undoPre(ctx);
-          this.tools[this.curtool].modalStart(ctx).then(on_modal_end);
-      }
-      return this._promise;
-    }
-     exec(ctx) {
-      for (var i=0; i<this.tools.length; i++) {
-          this.tools[i].undoPre(ctx);
-          this.tools[i].execPre(ctx);
-          this.tools[i].exec(ctx);
-          this.tools[i].execPost(ctx);
-          this._do_connections(this.tools[i]);
-      }
-    }
-     undoPre() {
-      return ;
-    }
-     undo(ctx) {
-      for (var i=this.tools.length-1; i>=0; i--) {
-          this.tools[i].undo(ctx);
-      }
-    }
-  }
-  _ESClass.register(ToolMacro);
-  _es6_module.add_class(ToolMacro);
-  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
-  class ToolStack extends Array {
-     constructor(ctx) {
-      super();
-      this.cur = -1;
-      this.ctx = ctx;
-      this.modalRunning = 0;
-    }
-    get  head() {
-      return this[this.cur];
-    }
-     setRestrictedToolContext(ctx) {
-      this.toolctx = ctx;
-    }
-     reset(ctx) {
-      if (ctx!==undefined) {
-          this.ctx = ctx;
-      }
-      this.modalRunning = 0;
-      this.cur = -1;
-      this.length = 0;
-    }
-     execOrRedo(ctx, tool, compareInputs=false) {
-      let head=this.head;
-      let ok=compareInputs ? ToolOp.Equals(head, tool) : head&&head.constructor===tool.constructor;
-      if (ok) {
-          this.undo();
-          if (!compareInputs) {
-              this.execTool(ctx, tool);
-          }
-          else {
-            this.redo();
-          }
-          return false;
-      }
-      else {
-        this.execTool(ctx, tool);
-        return true;
-      }
-    }
-     execTool(ctx, toolop) {
-      if (this.ctx===undefined) {
-          this.ctx = ctx;
-      }
-      if (!toolop.constructor.canRun(ctx)) {
-          console.log("toolop.constructor.canRun returned false");
-          return ;
-      }
-      let tctx=this.toolctx!==undefined ? this.toolctx : ctx;
-      tctx = tctx.toLocked();
-      toolop._execCtx = tctx;
-      if (!(toolop.undoflag&UndoFlags.NO_UNDO)) {
-          this.cur++;
-          this.length = this.cur+1;
-          this[this.cur] = toolop;
-          toolop.undoPre(ctx.toLocked());
-      }
-      if (toolop.is_modal) {
-          this.modalRunning = true;
-          toolop._on_cancel = (function (toolop) {
-            this.pop_i(this.cur);
-            this.cur--;
-          }).bind(this);
-          toolop.modalStart(ctx.toLocked());
-      }
-      else {
-        toolop.execPre(tctx);
-        toolop.exec(tctx);
-        toolop.execPost(tctx);
-      }
-    }
-     undo() {
-      if (this.cur>=0&&!(this[this.cur].undoflag&UndoFlags.IS_UNDO_ROOT)) {
-          let tool=this[this.cur];
-          tool.undo(tool._execCtx);
-          this.cur--;
-      }
-    }
-     redo() {
-      if (this.cur>=-1&&this.cur+1<this.length) {
-          this.cur++;
-          let tool=this[this.cur];
-          let ctx=tool._execCtx;
-          tool.undoPre(ctx);
-          tool.execPre(ctx);
-          tool.exec(ctx);
-          tool.execPost(ctx);
-      }
-    }
-  }
-  _ESClass.register(ToolStack);
-  _es6_module.add_class(ToolStack);
-  ToolStack = _es6_module.add_export('ToolStack', ToolStack);
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/simple_toolsys.js');
-es6_module_define('toolpath', ["../util/parseutil.js", "../controller/controller.js", "../util/util.js", "./simple_toolsys.js"], function _toolpath_module(_es6_module) {
-  var ToolClasses=es6_import_item(_es6_module, './simple_toolsys.js', 'ToolClasses');
-  var ToolOp=es6_import_item(_es6_module, './simple_toolsys.js', 'ToolOp');
-  var ToolFlags=es6_import_item(_es6_module, './simple_toolsys.js', 'ToolFlags');
-  var UndoFlags=es6_import_item(_es6_module, './simple_toolsys.js', 'UndoFlags');
-  var ToolMacro=es6_import_item(_es6_module, './simple_toolsys.js', 'ToolMacro');
+es6_module_define('toolpath', ["../util/util.js", "../controller/controller_base.js", "../util/parseutil.js", "./toolsys.js"], function _toolpath_module(_es6_module) {
+  var ToolClasses=es6_import_item(_es6_module, './toolsys.js', 'ToolClasses');
+  var ToolOp=es6_import_item(_es6_module, './toolsys.js', 'ToolOp');
+  var ToolFlags=es6_import_item(_es6_module, './toolsys.js', 'ToolFlags');
+  var UndoFlags=es6_import_item(_es6_module, './toolsys.js', 'UndoFlags');
+  var ToolMacro=es6_import_item(_es6_module, './toolsys.js', 'ToolMacro');
   var tokdef=es6_import_item(_es6_module, '../util/parseutil.js', 'tokdef');
   var lexer=es6_import_item(_es6_module, '../util/parseutil.js', 'lexer');
   var parser=es6_import_item(_es6_module, '../util/parseutil.js', 'parser');
   var PUTLParseError=es6_import_item(_es6_module, '../util/parseutil.js', 'PUTLParseError');
-  var DataPathError=es6_import_item(_es6_module, '../controller/controller.js', 'DataPathError');
+  var DataPathError=es6_import_item(_es6_module, '../controller/controller_base.js', 'DataPathError');
   var cachering=es6_import_item(_es6_module, '../util/util.js', 'cachering');
   let ToolPaths={}
   ToolPaths = _es6_module.add_export('ToolPaths', ToolPaths);
@@ -11294,8 +9782,10 @@ es6_module_define('toolpath', ["../util/parseutil.js", "../controller/controller
     }
   }
   initToolPaths = _es6_module.add_export('initToolPaths', initToolPaths);
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolpath.js');
-es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", "../util/util.js", "../curve/curve1d.js", "../util/vectormath.js"], function _toolprop_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolpath.js');
+
+
+es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../util/vectormath.js", "../util/util.js", "./toolprop_abstract.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -11305,7 +9795,7 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
   var ToolPropertyIF=es6_import_item(_es6_module, './toolprop_abstract.js', 'ToolPropertyIF');
   var PropTypes=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropTypes');
   var PropFlags=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropFlags');
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   let _ex_PropTypes=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropTypes');
   _es6_module.add_export('PropTypes', _ex_PropTypes, true);
   let _ex_PropFlags=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropFlags');
@@ -11340,6 +9830,22 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
     PropClasses[new cls().type] = cls;
   }
   let customPropTypeBase=17;
+  let wordmap={sel: "select", 
+   unsel: "deselect", 
+   eid: "id", 
+   props: "properties", 
+   res: "resource"}
+  var defaultRadix=10;
+  defaultRadix = _es6_module.add_export('defaultRadix', defaultRadix);
+  var defaultDecimalPlaces=4;
+  defaultDecimalPlaces = _es6_module.add_export('defaultDecimalPlaces', defaultDecimalPlaces);
+  class OnceTag  {
+     constructor(cb) {
+      this.cb = cb;
+    }
+  }
+  _ESClass.register(OnceTag);
+  _es6_module.add_class(OnceTag);
   class ToolProperty extends ToolPropertyIF {
      constructor(type, subtype, apiname, uiname, description, flag, icon) {
       super();
@@ -11355,10 +9861,82 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
       this.description = description;
       this.flag = flag;
       this.icon = icon;
-      this.decimalPlaces = 4;
-      this.radix = 10;
+      this.icon2 = icon;
+      this.decimalPlaces = defaultDecimalPlaces;
+      this.radix = defaultRadix;
       this.step = 0.05;
       this.callbacks = {};
+    }
+    static  setDefaultRadix(n) {
+      defaultRadix = n;
+    }
+    static  setDefaultDecimalPlaces(n) {
+      defaultDecimalPlaces = n;
+    }
+     setDescription(s) {
+      this.description = s;
+      return this;
+    }
+     setUIName(s) {
+      this.uiname = s;
+      return this;
+    }
+     calcMemSize() {
+      function strlen(s) {
+        return s!==undefined ? s.length+8 : 8;
+      }
+      let tot=0;
+      tot+=strlen(this.apiname)+strlen(this.uiname);
+      tot+=strlen(this.description);
+      tot+=11*8;
+      for (let k in this.callbacks) {
+          tot+=24;
+      }
+      return tot;
+    }
+    static  makeUIName(name) {
+      let parts=[""];
+      let lastc=undefined;
+      let ischar=(c) =>        {
+        c = c.charCodeAt(0);
+        let upper=c>="A".charCodeAt(0);
+        upper = upper&&c<="Z".charCodeAt(0);
+        let lower=c>="a".charCodeAt(0);
+        lower = lower&&c<="z".charCodeAt(0);
+        return upper||lower;
+      };
+      for (let i=0; i<name.length; i++) {
+          let c=name[i];
+          if (c==='_'||c==='-'||c==='$') {
+              lastc = c;
+              c = ' ';
+              parts.push('');
+              continue;
+          }
+          if (i>0&&c===c.toUpperCase()&&lastc!==lastc.toUpperCase()) {
+              if (ischar(c)&&ischar(lastc)) {
+                  parts.push('');
+              }
+          }
+          parts[parts.length-1]+=c;
+          lastc = c;
+      }
+      let subst=(word) =>        {
+        if (word in wordmap) {
+            return wordmap[word];
+        }
+        else {
+          return word;
+        }
+      };
+      parts = parts.filter((f) =>        {
+        return f.trim().length>0;
+      }).map((f) =>        {
+        return subst(f);
+      }).map((f) =>        {
+        return f[0].toUpperCase()+f.slice(1, f.length).toLowerCase();
+      }).join(" ").trim();
+      return parts;
     }
      equals(b) {
       throw new Error("implement me");
@@ -11375,6 +9953,10 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
       this.flag|=PropFlags.PRIVATE;
       return this;
     }
+     saveLastValue() {
+      this.flag|=PropFlags.SAVE_LAST_VALUE;
+      return this;
+    }
      report() {
       console.warn(...arguments);
     }
@@ -11382,9 +9964,42 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
       if (this.callbacks[type]===undefined) {
           return ;
       }
-      for (let cb of this.callbacks[type]) {
-          cb.call(this, arg1, arg2);
+      let stack=this.callbacks[type];
+      stack = stack.concat([]);
+      for (let i=0; i<stack.length; i++) {
+          let cb=stack[i];
+          if (__instance_of(cb, OnceTag)) {
+              let j=i;
+              while (j<stack.length-1) {
+                stack[j] = stack[j+1];
+                j++;
+              }
+              stack[j] = undefined;
+              stack.length--;
+              i--;
+              cb.cb.call(this, arg1, arg2);
+          }
+          else {
+            cb.call(this, arg1, arg2);
+          }
       }
+      return this;
+    }
+     clearEventCallbacks() {
+      this.callbacks = {};
+      return this;
+    }
+     once(type, cb) {
+      if (this.callbacks[type]===undefined) {
+          this.callbacks[type] = [];
+      }
+      for (let cb2 of this.callbacks[type]) {
+          if (__instance_of(cb2, OnceTag)&&cb2.cb===cb) {
+              return ;
+          }
+      }
+      cb = new OnceTag(cb);
+      this.callbacks[type].push(cb);
       return this;
     }
      on(type, cb) {
@@ -11436,11 +10051,12 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
       b.apiname = this.apiname;
       b.uiname = this.uiname;
       b.description = this.description;
-      b.flag = this.flag;
       b.icon = this.icon;
+      b.icon2 = this.icon2;
       b.baseUnit = this.baseUnit;
       b.subtype = this.subtype;
       b.displayUnit = this.displayUnit;
+      b.flag = this.flag;
       for (let k in this.callbacks) {
           b.callbacks[k] = this.callbacks[k];
       }
@@ -11448,7 +10064,6 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
      copy() {
       let ret=new this.constructor();
       this.copyTo(ret);
-      ret.data = this.data;
       return ret;
     }
      setStep(step) {
@@ -11507,6 +10122,10 @@ es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", ".
       this.icon = icon;
       return this;
     }
+     setIcon2(icon) {
+      this.icon2 = icon;
+      return this;
+    }
      loadSTRUCT(reader) {
       reader(this);
     }
@@ -11520,6 +10139,7 @@ ToolProperty {
   flag           : int;
   subtype        : int;
   icon           : int;
+  icon2          : int;
   baseUnit       : string | ""+this.baseUnit;
   displayUnit    : string | ""+this.displayUnit;
   range          : array(float) | this.range ? this.range : [-1e17, 1e17];
@@ -11533,13 +10153,68 @@ ToolProperty {
 }
 `;
   nstructjs.register(ToolProperty);
+  window.ToolProperty = ToolProperty;
+  class FloatArrayProperty extends ToolProperty {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(PropTypes.FLOAT_ARRAY, undefined, apiname, uiname, description, flag, icon);
+      this.value = [];
+      if (value!==undefined) {
+          this.setValue(value);
+      }
+    }
+     [Symbol.iterator]() {
+      return this.value[Symbol.iterator]();
+    }
+     setValue(value) {
+      super.setValue();
+      if (value===undefined) {
+          throw new Error("value was undefined in FloatArrayProperty's setValue method");
+      }
+      this.value.length = 0;
+      for (let item of value) {
+          if (typeof item!=="number"&&typeof item!=="boolean") {
+              console.log(value);
+              throw new Error("bad item for FloatArrayProperty "+item);
+          }
+          this.value.push(item);
+      }
+    }
+     push(item) {
+      if (typeof item!=="number"&&typeof item!=="boolean") {
+          console.log(value);
+          throw new Error("bad item for FloatArrayProperty "+item);
+      }
+      this.value.push(item);
+    }
+     getValue() {
+      return this.value;
+    }
+     clear() {
+      this.value.length = 0;
+      return this;
+    }
+  }
+  _ESClass.register(FloatArrayProperty);
+  _es6_module.add_class(FloatArrayProperty);
+  FloatArrayProperty = _es6_module.add_export('FloatArrayProperty', FloatArrayProperty);
+  FloatArrayProperty.STRUCT = nstructjs.inherit(FloatArrayProperty, ToolProperty)+`
+  value : array(float);
+}`;
+  nstructjs.register(FloatArrayProperty);
   class StringProperty extends ToolProperty {
      constructor(value, apiname, uiname, description, flag, icon) {
       super(PropTypes.STRING, undefined, apiname, uiname, description, flag, icon);
       this.multiLine = false;
-      if (value)
-        this.setValue(value);
+      if (value) {
+          this.setValue(value);
+      }
+      else {
+        this.setValue("");
+      }
       this.wasSet = false;
+    }
+     calcMemSize() {
+      return super.calcMemSize()+(this.data!==undefined ? this.data.length*4 : 0)+8;
     }
      equals(b) {
       return this.data===b.data;
@@ -11550,10 +10225,8 @@ ToolProperty {
       b.multiLine = this.multiLine;
       return this;
     }
-     copy() {
-      let ret=new StringProperty();
-      this.copyTo(ret);
-      return ret;
+     getValue() {
+      return this.data;
     }
      setValue(val) {
       super.setValue(val);
@@ -11568,9 +10241,10 @@ ToolProperty {
 }
 `;
   nstructjs.register(StringProperty);
-  let num_res=[/([0-9]+)/, /((0x)?[0-9a-fA-F]+(h?))/, /([0-9]+\.[0-9]*)/, /([0-9]*\.[0-9]+)/];
+  _addClass(StringProperty);
+  let num_res=[/([0-9]+)/, /((0x)?[0-9a-fA-F]+(h?))/, /([0-9]+\.[0-9]*)/, /([0-9]*\.[0-9]+)/, /(\.[0-9]+)/];
   function isNumber(f) {
-    if (f=="NaN"||(typeof f=="number"&&isNaN(f))) {
+    if (f==="NaN"||(typeof f=="number"&&isNaN(f))) {
         return false;
     }
     f = (""+f).trim();
@@ -11581,7 +10255,7 @@ ToolProperty {
             ok = false;
             continue;
         }
-        ok = ret[0].length==f.length;
+        ok = ret[0].length===f.length;
         if (ok) {
             break;
         }
@@ -11589,7 +10263,6 @@ ToolProperty {
     return ok;
   }
   isNumber = _es6_module.add_export('isNumber', isNumber);
-  _addClass(StringProperty);
   window.isNumber = isNumber;
   class NumProperty extends ToolProperty {
      constructor(type, value, apiname, uiname, description, flag, icon) {
@@ -11627,8 +10300,11 @@ ToolProperty {
           this.wasSet = false;
       }
     }
+     calcMemSize() {
+      return super.calcMemSize()+8*8;
+    }
      equals(b) {
-      return this.data==b.data;
+      return this.data===b.data;
     }
     get  ui_range() {
       this.report("NumberProperty.ui_range is deprecated");
@@ -11654,11 +10330,11 @@ ToolProperty {
       super.copyTo(b);
       b.displayUnit = this.displayUnit;
       b.baseUnit = this.baseUnit;
-      b.data = this.data;
       b.expRate = this.expRate;
       b.step = this.step;
       b.range = this.range;
       b.uiRange = this.uiRange;
+      b.data = this.data;
     }
      setExpRate(exp) {
       this.expRate = exp;
@@ -11737,6 +10413,20 @@ ToolProperty {
 }`;
   nstructjs.register(IntProperty);
   _addClass(IntProperty);
+  class ReportProperty extends StringProperty {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(value, apiname, uiname, description, flag, icon);
+      this.type = PropTypes.REPORT;
+    }
+  }
+  _ESClass.register(ReportProperty);
+  _es6_module.add_class(ReportProperty);
+  ReportProperty = _es6_module.add_export('ReportProperty', ReportProperty);
+  ReportProperty.STRUCT = nstructjs.inherit(ReportProperty, StringProperty)+`
+}
+`;
+  nstructjs.register(ReportProperty);
+  _addClass(ReportProperty);
   class BoolProperty extends ToolProperty {
      constructor(value, apiname, uiname, description, flag, icon) {
       super(PropTypes.BOOL, undefined, apiname, uiname, description, flag, icon);
@@ -11750,13 +10440,9 @@ ToolProperty {
       b.data = this.data;
       return this;
     }
-     copy() {
-      let ret=new BoolProperty();
-      this.copyTo(ret);
-      return ret;
-    }
      setValue(val) {
       this.data = !!val;
+      super.setValue(val);
       return this;
     }
      getValue() {
@@ -11825,6 +10511,7 @@ ToolProperty {
   data          : float;
 }
 `;
+  nstructjs.register(FloatProperty);
   class EnumKeyPair  {
      constructor(key, val) {
       this.key = ""+key;
@@ -11844,6 +10531,7 @@ ToolProperty {
   }
   _ESClass.register(EnumKeyPair);
   _es6_module.add_class(EnumKeyPair);
+  EnumKeyPair = _es6_module.add_export('EnumKeyPair', EnumKeyPair);
   EnumKeyPair.STRUCT = `
 EnumKeyPair {
   key        : string;
@@ -11854,7 +10542,7 @@ EnumKeyPair {
 `;
   nstructjs.register(EnumKeyPair);
   class EnumProperty extends ToolProperty {
-     constructor(string, valid_values, apiname, uiname, description, flag, icon) {
+     constructor(string_or_int, valid_values, apiname, uiname, description, flag, icon) {
       super(PropTypes.ENUM, undefined, apiname, uiname, description, flag, icon);
       this.values = {};
       this.keys = {};
@@ -11874,25 +10562,86 @@ EnumKeyPair {
             this.keys[valid_values[k]] = k;
         }
       }
-      if (string===undefined) {
+      if (string_or_int===undefined) {
           this.data = first(valid_values);
       }
       else {
-        this.setValue(string);
+        this.setValue(string_or_int);
       }
       for (var k in this.values) {
           let uin=k.replace(/[_-]/g, " ").trim();
           uin = uin.split(" ");
-          let uiname="";
-          for (let word of uin) {
-              uiname+=word[0].toUpperCase()+word.slice(1, word.length).toLowerCase()+" ";
-          }
-          uiname = uiname.trim();
+          let uiname=ToolProperty.makeUIName(k);
           this.ui_value_names[k] = uiname;
           this.descriptions[k] = uiname;
       }
       this.iconmap = {};
+      this.iconmap2 = {};
       this.wasSet = false;
+    }
+     calcHash(digest=new util.HashDigest()) {
+      for (let key in this.keys) {
+          digest.add(key);
+          digest.add(this.keys[key]);
+      }
+      return digest.get();
+    }
+     updateDefinition(enumdef_or_prop) {
+      let descriptions=this.descriptions;
+      let ui_value_names=this.ui_value_names;
+      this.values = {};
+      this.keys = {};
+      this.ui_value_names = {};
+      this.descriptions = {};
+      let enumdef;
+      if (__instance_of(enumdef_or_prop, EnumProperty)) {
+          enumdef = enumdef_or_prop.values;
+      }
+      else {
+        enumdef = enumdef_or_prop;
+      }
+      for (let k in enumdef) {
+          let v=enumdef[k];
+          this.values[k] = v;
+          this.keys[v] = k;
+      }
+      if (__instance_of(enumdef_or_prop, EnumProperty)) {
+          let prop=enumdef_or_prop;
+          this.iconmap = Object.assign({}, prop.iconmap);
+          this.iconmap2 = Object.assign({}, prop.iconmap2);
+          this.ui_value_names = Object.assign({}, prop.ui_value_names);
+          this.descriptions = Object.assign({}, prop.descriptions);
+      }
+      else {
+        for (let k in this.values) {
+            if (k in ui_value_names) {
+                this.ui_value_names[k] = ui_value_names[k];
+            }
+            else {
+              this.ui_value_names[k] = ToolProperty.makeUIName(k);
+            }
+            if (k in descriptions) {
+                this.descriptions[k] = descriptions[k];
+            }
+            else {
+              this.descriptions[k] = ToolProperty.makeUIName(k);
+            }
+        }
+      }
+      this._fire('metaChange', this);
+      return this;
+    }
+     calcMemSize() {
+      let tot=super.calcMemSize();
+      for (let k in this.values) {
+          tot+=(k.length*4+16)*4;
+      }
+      if (this.descriptions) {
+          for (let k in this.descriptions) {
+              tot+=(k.length+this.descriptions[k].length)*4;
+          }
+      }
+      return tot+64;
     }
      equals(b) {
       return this.getValue()===b.getValue();
@@ -11909,29 +10658,39 @@ EnumKeyPair {
       }
       return this;
     }
+     addIcons2(iconmap2) {
+      if (this.iconmap2===undefined) {
+          this.iconmap2 = {};
+      }
+      for (let k in iconmap2) {
+          this.iconmap2[k] = iconmap2[k];
+      }
+      return this;
+    }
      addIcons(iconmap) {
       if (this.iconmap===undefined) {
           this.iconmap = {};
       }
-      for (var k in iconmap) {
+      for (let k in iconmap) {
           this.iconmap[k] = iconmap[k];
       }
       return this;
     }
      copyTo(p) {
       super.copyTo(p);
+      p.data = this.data;
       p.keys = Object.assign({}, this.keys);
       p.values = Object.assign({}, this.values);
-      p.data = this.data;
       p.ui_value_names = this.ui_value_names;
       p.update = this.update;
       p.api_update = this.api_update;
       p.iconmap = this.iconmap;
+      p.iconmap2 = this.iconmap2;
       p.descriptions = this.descriptions;
       return p;
     }
      copy() {
-      var p=new EnumProperty("dummy", {"dummy": 0}, this.apiname, this.uiname, this.description, this.flag);
+      var p=new this.constructor("dummy", {"dummy": 0}, this.apiname, this.uiname, this.description, this.flag);
       this.copyTo(p);
       return p;
     }
@@ -11954,7 +10713,7 @@ EnumKeyPair {
     }
      _loadMap(obj) {
       if (!obj) {
-          return ;
+          return {}
       }
       let ret={};
       for (let k of obj) {
@@ -11973,17 +10732,23 @@ EnumKeyPair {
      loadSTRUCT(reader) {
       reader(this);
       super.loadSTRUCT(reader);
-      this.keys = this._loadMap(obj.keys);
-      this.values = this._loadMap(obj.values);
-      this.ui_value_names = this._loadMap(obj.ui_value_names);
-      this.iconmap = this._loadMap(obj.iconmap);
-      this.descriptions = this._loadMap(obj.descriptions);
+      this.keys = this._loadMap(this._keys);
+      this.values = this._loadMap(this._values);
+      this.ui_value_names = this._loadMap(this._ui_value_names);
+      this.iconmap = this._loadMap(this._iconmap);
+      this.iconmap2 = this._loadMap(this._iconmap2);
+      this.descriptions = this._loadMap(this._descriptions);
       if (this.data_is_int) {
           this.data = parseInt(this.data);
+          delete this.data_is_int;
+      }
+      else 
+        if (this.data in this.keys) {
+          this.data = this.keys[this.data];
       }
     }
      _is_data_int() {
-      return typeof (this.data)!=="string";
+      return typeof this.data==="number";
     }
   }
   _ESClass.register(EnumProperty);
@@ -11994,9 +10759,10 @@ EnumKeyPair {
   data            : string             | ""+this.data;
   data_is_int     : bool               | this._is_data_int();
   _keys           : array(EnumKeyPair) | this._saveMap(this.keys) ;
-  _values         : array(EnumKeyPair) | this._saveMap(this.keys) ;
+  _values         : array(EnumKeyPair) | this._saveMap(this.values) ;
   _ui_value_names : array(EnumKeyPair) | this._saveMap(this.ui_value_names) ;
   _iconmap        : array(EnumKeyPair) | this._saveMap(this.iconmap) ;
+  _iconmap2       : array(EnumKeyPair) | this._saveMap(this.iconmap2) ;
   _descriptions   : array(EnumKeyPair) | this._saveMap(this.descriptions) ;  
 }
 `;
@@ -12012,11 +10778,6 @@ EnumKeyPair {
       ToolProperty.prototype.setValue.call(this, bitmask);
       return this;
     }
-     copy() {
-      let ret=new FlagProperty();
-      this.copyTo(ret);
-      return ret;
-    }
   }
   _ESClass.register(FlagProperty);
   _es6_module.add_class(FlagProperty);
@@ -12030,6 +10791,9 @@ EnumKeyPair {
      constructor(data, apiname, uiname, description) {
       super(undefined, apiname, uiname, description);
       this.hasUniformSlider = false;
+    }
+     calcMemSize() {
+      return super.calcMemSize()+this.data.length*8;
     }
      equals(b) {
       return this.data.vectorDistance(b.data)<1e-05;
@@ -12070,11 +10834,6 @@ EnumKeyPair {
       b.data = data;
       b.data.load(this.data);
     }
-     copy() {
-      let ret=new Vec2Property();
-      this.copyTo(ret);
-      return ret;
-    }
   }
   _ESClass.register(Vec2Property);
   _es6_module.add_class(Vec2Property);
@@ -12105,11 +10864,6 @@ EnumKeyPair {
       b.data = data;
       b.data.load(this.data);
     }
-     copy() {
-      let ret=new Vec3Property();
-      this.copyTo(ret);
-      return ret;
-    }
   }
   _ESClass.register(Vec3Property);
   _es6_module.add_class(Vec3Property);
@@ -12126,9 +10880,15 @@ EnumKeyPair {
       this.type = PropTypes.VEC4;
       this.data = new Vector4(data);
     }
-     setValue(v) {
+     setValue(v, w=1.0) {
       this.data.load(v);
       ToolProperty.prototype.setValue.call(this, v);
+      if (v.length<3) {
+          this.data[2] = 0.0;
+      }
+      if (v.length<4) {
+          this.data[3] = w;
+      }
       return this;
     }
      getValue() {
@@ -12139,11 +10899,6 @@ EnumKeyPair {
       super.copyTo(b);
       b.data = data;
       b.data.load(this.data);
-    }
-     copy() {
-      let ret=new Vec4Property();
-      this.copyTo(ret);
-      return ret;
     }
   }
   _ESClass.register(Vec4Property);
@@ -12172,13 +10927,10 @@ EnumKeyPair {
       return this.data;
     }
      copyTo(b) {
+      let data=b.data;
       super.copyTo(b);
+      b.data = data;
       b.data.load(this.data);
-    }
-     copy() {
-      let ret=new QuatProperty();
-      this.copyTo(ret);
-      return ret;
     }
   }
   _ESClass.register(QuatProperty);
@@ -12194,6 +10946,9 @@ EnumKeyPair {
      constructor(data, apiname, uiname, description) {
       super(PropTypes.MATRIX4, undefined, apiname, uiname, description);
       this.data = new Matrix4(data);
+    }
+     calcMemSize() {
+      return super.calcMemSize()+16*8+32;
     }
      equals(b) {
       let m1=this.data.$matrix;
@@ -12217,13 +10972,10 @@ EnumKeyPair {
       return this.data;
     }
      copyTo(b) {
+      let data=b.data;
       super.copyTo(b);
+      b.data = data;
       b.data.load(this.data);
-    }
-     copy() {
-      let ret=new Mat4Property();
-      this.copyTo(ret);
-      return ret;
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -12260,10 +11012,22 @@ EnumKeyPair {
       }
       this.prop = prop;
       this.value = [];
-      for (let val of list) {
-          this.push(val);
+      if (list) {
+          for (let val of list) {
+              this.push(val);
+          }
       }
       this.wasSet = false;
+    }
+     calcMemSize() {
+      let tot=super.calcMemSize();
+      let psize=this.prop ? this.prop.calcMemSize()+8 : 8;
+      if (!this.prop&&this.value.length>0) {
+          psize = this.value[0].calcMemSize();
+      }
+      tot+=psize*this.value.length+8;
+      tot+=16;
+      return tot;
     }
      equals(b) {
       let l1=this.value ? this.value.length : 0;
@@ -12354,6 +11118,11 @@ EnumKeyPair {
   _ESClass.register(ListProperty);
   _es6_module.add_class(ListProperty);
   ListProperty = _es6_module.add_export('ListProperty', ListProperty);
+  ListProperty.STRUCT = nstructjs.inherit(ListProperty, ToolProperty)+`
+  prop  : abstract(ToolProperty);
+  value : array(abstract(ToolProperty));
+}`;
+  nstructjs.register(ListProperty);
   _addClass(ListProperty);
   class StringSetProperty extends ToolProperty {
      constructor(value=undefined, definition=[]) {
@@ -12380,16 +11149,28 @@ EnumKeyPair {
       this.ui_value_names = {};
       this.descriptions = {};
       this.iconmap = {};
+      this.iconmap2 = {};
       for (let v of values) {
           this.values[v] = v;
-          let uiname=v.replace(/\_/g, " ").trim();
-          uiname = uiname[0].toUpperCase()+uiname.slice(1, uiname.length);
+          let uiname=ToolProperty.makeUIName(v);
           this.ui_value_names[v] = uiname;
       }
       if (value!==undefined) {
           this.setValue(value);
       }
       this.wasSet = false;
+    }
+     calcMemSize() {
+      let tot=super.calcMemSize();
+      for (let k in this.values) {
+          tot+=(k.length+16)*5;
+      }
+      if (this.descriptions) {
+          for (let k in this.descriptions) {
+              tot+=(k.length+this.descriptions[k].length+8)*4;
+          }
+      }
+      return tot+64;
     }
      equals(b) {
       return this.value.equals(b.value);
@@ -12456,6 +11237,14 @@ EnumKeyPair {
      getValue() {
       return this.value;
     }
+     addIcons2(iconmap2) {
+      if (iconmap2===undefined)
+        return ;
+      for (let k in iconmap2) {
+          this.iconmap2[k] = iconmap2[k];
+      }
+      return this;
+    }
      addIcons(iconmap) {
       if (iconmap===undefined)
         return ;
@@ -12485,28 +11274,44 @@ EnumKeyPair {
       for (let k in this.values) {
           b.values[k] = this.values[k];
       }
+      b.ui_value_names = {};
       for (let k in this.ui_value_names) {
           b.ui_value_names[k] = this.ui_value_names[k];
       }
+      b.iconmap = {};
+      b.iconmap2 = {};
       for (let k in this.iconmap) {
           b.iconmap[k] = this.iconmap[k];
       }
+      for (let k in this.iconmap2) {
+          b.iconmap2[k] = this.iconmap2[k];
+      }
+      b.descriptions = {};
       for (let k in this.descriptions) {
           b.descriptions[k] = this.descriptions[k];
       }
     }
-     copy() {
-      let ret=new StringSetProperty(undefined, {});
-      this.copyTo(ret);
-      return ret;
+     loadSTRUCT(reader) {
+      reader(this);
+      let values=this.values;
+      this.values = {};
+      for (let s of values) {
+          this.values[s] = s;
+      }
+      this.value = new util.set(this.value);
     }
   }
   _ESClass.register(StringSetProperty);
   _es6_module.add_class(StringSetProperty);
   StringSetProperty = _es6_module.add_export('StringSetProperty', StringSetProperty);
+  StringSetProperty.STRUCT = nstructjs.inherit(StringSetProperty, ToolProperty)+`
+  value  : iter(string);
+  values : iterkeys(string);  
+}`;
+  nstructjs.register(StringSetProperty);
   _addClass(StringSetProperty);
   var Curve1D=es6_import_item(_es6_module, '../curve/curve1d.js', 'Curve1D');
-  class Curve1DProperty extends ToolPropertyIF {
+  class Curve1DProperty extends ToolProperty {
      constructor(curve, apiname, uiname, description, flag, icon) {
       super(PropTypes.CURVE, undefined, apiname, uiname, description, flag, icon);
       this.data = new Curve1D();
@@ -12514,6 +11319,9 @@ EnumKeyPair {
           this.setValue(curve);
       }
       this.wasSet = false;
+    }
+     calcMemSize() {
+      return 1024;
     }
      equals(b) {
 
@@ -12529,21 +11337,25 @@ EnumKeyPair {
           return ;
       }
       this.data.load(curve);
+      super.setValue(curve);
     }
      copyTo(b) {
       super.copyTo(b);
       b.setValue(this.data);
     }
-     copy() {
-      let ret=new Curve1DProperty();
-      this.copyTo(ret);
-      return ret;
-    }
   }
   _ESClass.register(Curve1DProperty);
   _es6_module.add_class(Curve1DProperty);
   Curve1DProperty = _es6_module.add_export('Curve1DProperty', Curve1DProperty);
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop.js');
+  Curve1DProperty.STRUCT = nstructjs.inherit(Curve1DProperty, ToolProperty)+`
+  data : Curve1D;
+}
+`;
+  nstructjs.register(Curve1DProperty);
+  _addClass(Curve1DProperty);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop.js');
+
+
 es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_abstract_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
@@ -12560,7 +11372,9 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
    QUAT: 1024, 
    PROPLIST: 4096, 
    STRSET: 8192, 
-   CURVE: 8192<<1}
+   CURVE: 8192<<1, 
+   FLOAT_ARRAY: 8192<<2, 
+   REPORT: 8192<<3}
   PropTypes = _es6_module.add_export('PropTypes', PropTypes);
   const PropSubTypes={COLOR: 1}
   _es6_module.add_export('PropSubTypes', PropSubTypes);
@@ -12571,9 +11385,11 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
    USE_CUSTOM_GETSET: 128, 
    SAVE_LAST_VALUE: 256, 
    READ_ONLY: 512, 
-   SIMPLE_SLIDER: 1024, 
-   FORCE_ROLLER_SLIDER: 2048, 
-   USE_BASE_UNDO: 1<<12}
+   SIMPLE_SLIDER: 1<<10, 
+   FORCE_ROLLER_SLIDER: 1<<11, 
+   USE_BASE_UNDO: 1<<12, 
+   EDIT_AS_BASE_UNIT: 1<<13, 
+   NO_UNDO: 1<<14}
   _es6_module.add_export('PropFlags', PropFlags);
   class ToolPropertyIF  {
      constructor(type, subtype, apiname, uiname, description, flag, icon) {
@@ -12741,6 +11557,12 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
       super(PropTypes.PROPLIST);
       this.prop = prop;
     }
+    get  length() {
+
+    }
+    set  length(val) {
+
+    }
      copyTo(b) {
 
     }
@@ -12754,12 +11576,6 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 
     }
      [Symbol.iterator]() {
-
-    }
-    get  length() {
-
-    }
-    set  length(val) {
 
     }
   }
@@ -12817,11 +11633,1212 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
   _ESClass.register(Curve1DPropertyIF);
   _es6_module.add_class(Curve1DPropertyIF);
   Curve1DPropertyIF = _es6_module.add_export('Curve1DPropertyIF', Curve1DPropertyIF);
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop_abstract.js');
-es6_module_define('colorutils', ["../util/vectormath.js", "../util/util.js", "../config/const.js"], function _colorutils_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
+
+
+es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./toolprop.js", "../controller/controller_base.js", "../util/struct.js", "../util/events.js"], function _toolsys_module(_es6_module) {
+  "use strict";
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
+  var events=es6_import(_es6_module, '../util/events.js');
+  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
+  var PropFlags=es6_import_item(_es6_module, './toolprop.js', 'PropFlags');
+  var PropTypes=es6_import_item(_es6_module, './toolprop.js', 'PropTypes');
+  var DataPath=es6_import_item(_es6_module, '../controller/controller_base.js', 'DataPath');
+  var util=es6_import(_es6_module, '../util/util.js');
+  let ToolClasses=[];
+  ToolClasses = _es6_module.add_export('ToolClasses', ToolClasses);
+  window._ToolClasses = ToolClasses;
+  function setContextClass(cls) {
+    console.warn("setContextClass is deprecated");
+  }
+  setContextClass = _es6_module.add_export('setContextClass', setContextClass);
+  const ToolFlags={PRIVATE: 1}
+  _es6_module.add_export('ToolFlags', ToolFlags);
+  const UndoFlags={NO_UNDO: 2, 
+   IS_UNDO_ROOT: 4, 
+   UNDO_BARRIER: 8, 
+   HAS_UNDO_DATA: 16}
+  _es6_module.add_export('UndoFlags', UndoFlags);
+  class InheritFlag  {
+     constructor(slots={}) {
+      this.slots = slots;
+    }
+  }
+  _ESClass.register(InheritFlag);
+  _es6_module.add_class(InheritFlag);
+  let modalstack=[];
+  let defaultUndoHandlers={undoPre: function undoPre(ctx) {
+      throw new Error("implement me");
+    }, 
+   undo: function undo(ctx) {
+      throw new Error("implement me");
+    }}
+  function setDefaultUndoHandlers(undoPre, undo) {
+    if (!undoPre||!undo) {
+        throw new Error("invalid parameters to setDefaultUndoHandlers");
+    }
+    defaultUndoHandlers.undoPre = undoPre;
+    defaultUndoHandlers.undo = undo;
+  }
+  setDefaultUndoHandlers = _es6_module.add_export('setDefaultUndoHandlers', setDefaultUndoHandlers);
+  class ToolPropertyCache  {
+     constructor() {
+      this.map = new Map();
+      this.pathmap = new Map();
+      this.accessors = {};
+      this.userSetMap = new Set();
+      this.api = undefined;
+      this.dstruct = undefined;
+    }
+     _buildAccessors(cls, key, prop, dstruct, api) {
+      let tdef=cls._getFinalToolDef();
+      this.api = api;
+      this.dstruct = dstruct;
+      if (!tdef.toolpath) {
+          console.warn("Bad tool property", cls, "it's tooldef was missing a toolpath field");
+          return ;
+      }
+      let path=tdef.toolpath.trim().split(".").filter((f) =>        {
+        return f.trim().length>0;
+      });
+      let obj=this.accessors;
+      let st=dstruct;
+      let partial="";
+      for (let i=0; i<path.length; i++) {
+          let k=path[i];
+          let pathk=k;
+          if (i===0) {
+              pathk = "accessors."+k;
+          }
+          if (i>0) {
+              partial+=".";
+          }
+          partial+=k;
+          if (!(k in obj)) {
+              obj[k] = {};
+          }
+          let st2=api.mapStruct(obj[k], true, k);
+          if (!(k in st.pathmap)) {
+              st.struct(pathk, k, k, st2);
+          }
+          st = st2;
+          this.pathmap.set(partial, obj[k]);
+          obj = obj[k];
+      }
+      let name=prop.apiname!==undefined&&prop.apiname.length>0 ? prop.apiname : key;
+      let prop2=prop.copy();
+      let dpath=new DataPath(name, name, prop2);
+      let uiname=prop.uiname;
+      if (!uiname||uiname.trim().length===0) {
+          uiname = prop.apiname;
+      }
+      if (!uiname||uiname.trim().length===0) {
+          uiname = key;
+      }
+      uiname = ToolProperty.makeUIName(uiname);
+      prop2.uiname = uiname;
+      prop2.description = prop2.description||prop2.uiname;
+      st.add(dpath);
+      obj[name] = prop2.getValue();
+    }
+     _getAccessor(cls) {
+      let toolpath=cls.tooldef().toolpath.trim();
+      return this.pathmap.get(toolpath);
+    }
+    static  getPropKey(cls, key, prop) {
+      return prop.apiname&&prop.apiname.length>0 ? prop.apiname : key;
+    }
+     useDefault(cls, key, prop) {
+      key = this.userSetMap.has(cls.tooldef().trim()+"."+this.constructor.getPropKey(key));
+      key = key.trim();
+      return key;
+    }
+     has(cls, key, prop) {
+      let obj=this._getAccessor(cls);
+      key = this.constructor.getPropKey(cls, key, prop);
+      return obj&&key in obj;
+    }
+     get(cls, key, prop) {
+      if (cls===ToolMacro) {
+          return ;
+      }
+      let obj=this._getAccessor(cls);
+      key = this.constructor.getPropKey(cls, key, prop);
+      if (obj) {
+          return obj[key];
+      }
+      return undefined;
+    }
+     set(cls, key, prop) {
+      if (cls===ToolMacro) {
+          return ;
+      }
+      let toolpath=cls.tooldef().toolpath.trim();
+      let obj=this._getAccessor(cls);
+      if (!obj) {
+          console.warn("Warning, toolop "+cls.name+" was not in the default map; unregistered?");
+          this._buildAccessors(cls, key, prop, this.dstruct, this.api);
+          obj = this.pathmap.get(toolpath);
+      }
+      if (!obj) {
+          console.error("Malformed toolpath in toolop definition: "+toolpath);
+          return ;
+      }
+      key = this.constructor.getPropKey(cls, key, prop);
+      obj[key] = prop.copy().getValue();
+      let path=toolpath+"."+key;
+      this.userSetMap.add(path);
+      return this;
+    }
+  }
+  _ESClass.register(ToolPropertyCache);
+  _es6_module.add_class(ToolPropertyCache);
+  ToolPropertyCache = _es6_module.add_export('ToolPropertyCache', ToolPropertyCache);
+  const SavedToolDefaults=new ToolPropertyCache();
+  _es6_module.add_export('SavedToolDefaults', SavedToolDefaults);
+  class ToolOp extends events.EventHandler {
+    static  tooldef() {
+      if (this===ToolOp) {
+          throw new Error("Tools must implemented static tooldef() methods!");
+      }
+      return {}
+    }
+     calcMemSize(ctx) {
+      if (this.__memsize!==undefined) {
+          return this.__memsize;
+      }
+      let tot=0;
+      for (let step=0; step<2; step++) {
+          let props=step ? this.outputs : this.inputs;
+          for (let k in props) {
+              let prop=props[k];
+              let size=prop.calcMemSize();
+              if (isNaN(size)||!isFinite(size)) {
+                  console.warn("Got NaN when calculating mem size for property", prop);
+                  continue;
+              }
+              tot+=size;
+          }
+      }
+      let size=this.calcUndoMem(ctx);
+      if (isNaN(size)||!isFinite(size)) {
+          console.warn("Got NaN in calcMemSize", this);
+      }
+      else {
+        tot+=size;
+      }
+      this.__memsize = tot;
+      return tot;
+    }
+     loadDefaults(force=true) {
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          if (!force&&prop.wasSet) {
+              continue;
+          }
+          if (this.hasDefault(prop, k)) {
+              prop.setValue(this.getDefault(prop, k));
+              prop.wasSet = false;
+          }
+      }
+      return this;
+    }
+     hasDefault(toolprop, key=toolprop.apiname) {
+      return SavedToolDefaults.has(this.constructor, key, toolprop);
+    }
+     getDefault(toolprop, key=toolprop.apiname) {
+      let cls=this.constructor;
+      if (SavedToolDefaults.has(cls, key, toolprop)) {
+          return SavedToolDefaults.get(cls, key, toolprop);
+      }
+      else {
+        return toolprop.getValue();
+      }
+    }
+    static  Equals(a, b) {
+      if (!a||!b)
+        return false;
+      if (a.constructor!==b.constructor)
+        return false;
+      let bad=false;
+      for (let k in a.inputs) {
+          bad = bad||!(k in b.inputs);
+          bad = bad||a.inputs[k].constructor!==b.inputs[k];
+          bad = bad||!a.inputs[k].equals(b.inputs[k]);
+          if (bad) {
+              break;
+          }
+      }
+      return !bad;
+    }
+     saveDefaultInputs() {
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          if (prop.flag&PropFlags.SAVE_LAST_VALUE) {
+              SavedToolDefaults.set(this.constructor, k, prop);
+          }
+      }
+      return this;
+    }
+    static  inherit(slots={}) {
+      return new InheritFlag(slots);
+    }
+    static  invoke(ctx, args) {
+      let tool=new this();
+      for (let k in args) {
+          if (!(k in tool.inputs)) {
+              console.warn("Unknown tool argument "+k);
+              continue;
+          }
+          let prop=tool.inputs[k];
+          let val=args[k];
+          if ((typeof val==="string")&&prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
+              if (val in prop.values) {
+                  val = prop.values[val];
+              }
+              else {
+                console.warn("Possible invalid enum/flag:", val);
+                continue;
+              }
+          }
+          tool.inputs[k].setValue(val);
+      }
+      return tool;
+    }
+     genToolString() {
+      let def=this.constructor.tooldef();
+      let path=def.toolpath+"(";
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          path+=k+"=";
+          if (prop.type===PropTypes.STRING)
+            path+="'";
+          if (prop.type===PropTypes.FLOAT) {
+              path+=prop.getValue().toFixed(3);
+          }
+          else {
+            path+=prop.getValue();
+          }
+          if (prop.type===PropTypes.STRING)
+            path+="'";
+          path+=" ";
+      }
+      path+=")";
+      return path;
+    }
+    static  register(cls) {
+      if (ToolClasses.indexOf(cls)>=0) {
+          console.warn("Tried to register same ToolOp class twice:", cls.name, cls);
+          return ;
+      }
+      ToolClasses.push(cls);
+    }
+    static  _regWithNstructjs(cls, structName=cls.name) {
+      if (nstructjs.isRegistered(cls)) {
+          return ;
+      }
+      let parent=cls.prototype.__proto__.constructor;
+      if (!cls.hasOwnProperty("STRUCT")) {
+          if (parent!==ToolOp&&parent!==ToolMacro&&parent!==Object) {
+              this._regWithNstructjs(parent);
+          }
+          cls.STRUCT = nstructjs.inherit(cls, parent)+'}\n';
+      }
+      nstructjs.register(cls);
+    }
+    static  isRegistered(cls) {
+      return ToolClasses.indexOf(cls)>=0;
+    }
+    static  unregister(cls) {
+      if (ToolClasses.indexOf(cls)>=0) {
+          ToolClasses.remove(cls);
+      }
+    }
+    static  _getFinalToolDef() {
+      let def=this.tooldef();
+      let getSlots=(slots, key) =>        {
+        if (slots===undefined)
+          return {}
+        if (!(__instance_of(slots, InheritFlag))) {
+            return slots;
+        }
+        slots = {}
+        let p=this;
+        while (p!==undefined&&p!==Object&&p!==ToolOp) {
+          if (p.tooldef) {
+              let def=p.tooldef();
+              if (def[key]!==undefined) {
+                  let slots2=def[key];
+                  let stop=!(__instance_of(slots2, InheritFlag));
+                  if (__instance_of(slots2, InheritFlag)) {
+                      slots2 = slots2.slots;
+                  }
+                  for (let k in slots2) {
+                      if (!(k in slots)) {
+                          slots[k] = slots2[k];
+                      }
+                  }
+                  if (stop) {
+                      break;
+                  }
+              }
+          }
+          p = p.prototype.__proto__.constructor;
+        }
+        return slots;
+      };
+      let dinputs=getSlots(def.inputs, "inputs");
+      let doutputs=getSlots(def.outputs, "outputs");
+      def.inputs = dinputs;
+      def.outputs = doutputs;
+      return def;
+    }
+     constructor() {
+      super();
+      this._overdraw = undefined;
+      this.__memsize = undefined;
+      var def=this.constructor.tooldef();
+      if (def.undoflag!==undefined) {
+          this.undoflag = def.undoflag;
+      }
+      if (def.flag!==undefined) {
+          this.flag = def.flag;
+      }
+      this._accept = this._reject = undefined;
+      this._promise = undefined;
+      for (var k in def) {
+          this[k] = def[k];
+      }
+      let getSlots=(slots, key) =>        {
+        if (slots===undefined)
+          return {}
+        if (!(__instance_of(slots, InheritFlag))) {
+            return slots;
+        }
+        slots = {}
+        let p=this.constructor;
+        while (p!==undefined&&p!==Object&&p!==ToolOp) {
+          if (p.tooldef) {
+              let def=p.tooldef();
+              if (def[key]!==undefined) {
+                  let slots2=def[key];
+                  let stop=!(__instance_of(slots2, InheritFlag));
+                  if (__instance_of(slots2, InheritFlag)) {
+                      slots2 = slots2.slots;
+                  }
+                  for (let k in slots2) {
+                      if (!(k in slots)) {
+                          slots[k] = slots2[k];
+                      }
+                  }
+                  if (stop) {
+                      break;
+                  }
+              }
+          }
+          p = p.prototype.__proto__.constructor;
+        }
+        return slots;
+      };
+      let dinputs=getSlots(def.inputs, "inputs");
+      let doutputs=getSlots(def.outputs, "outputs");
+      this.inputs = {};
+      this.outputs = {};
+      if (dinputs) {
+          for (let k in dinputs) {
+              let prop=dinputs[k].copy();
+              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
+              if (!this.hasDefault(prop, k)) {
+                  this.inputs[k] = prop;
+                  continue;
+              }
+              try {
+                prop.setValue(this.getDefault(prop, k));
+              }
+              catch (error) {
+                  console.log(error.stack);
+                  console.log(error.message);
+              }
+              prop.wasSet = false;
+              this.inputs[k] = prop;
+          }
+      }
+      if (doutputs) {
+          for (let k in doutputs) {
+              let prop=doutputs[k].copy();
+              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
+              this.outputs[k] = prop;
+          }
+      }
+      this.drawlines = [];
+    }
+    static  onTick() {
+      for (let toolop of modalstack) {
+          toolop.on_tick();
+      }
+    }
+     on_tick() {
+
+    }
+     on_keydown(e) {
+      switch (e.keyCode) {
+        case keymap["Enter"]:
+        case keymap["Space"]:
+          this.modalEnd(false);
+          break;
+        case keymap["Escape"]:
+          this.modalEnd(true);
+          break;
+      }
+    }
+    static  searchBoxOk(ctx) {
+      let flag=this.tooldef().flag;
+      let ret=!(flag&&(flag&ToolFlags.PRIVATE));
+      ret = ret&&this.canRun(ctx);
+      return ret;
+    }
+    static  canRun(ctx, toolop=undefined) {
+      return true;
+    }
+     calcUndoMem(ctx) {
+      console.warn("ToolOp.prototype.calcUndoMem: implement me!");
+      return 0;
+    }
+     undoPre(ctx) {
+      throw new Error("implement me!");
+    }
+     undo(ctx) {
+      throw new Error("implement me!");
+    }
+     redo(ctx) {
+      this._was_redo = true;
+      this.undoPre(ctx);
+      this.execPre(ctx);
+      this.exec(ctx);
+      this.execPost(ctx);
+    }
+     exec_pre(ctx) {
+      this.execPre(ctx);
+    }
+     execPre(ctx) {
+
+    }
+     exec(ctx) {
+
+    }
+     execPost(ctx) {
+
+    }
+     resetTempGeom() {
+      var ctx=this.modal_ctx;
+      for (var dl of this.drawlines) {
+          dl.remove();
+      }
+      this.drawlines.length = 0;
+    }
+     error(msg) {
+      console.warn(msg);
+    }
+     getOverdraw() {
+      if (this._overdraw===undefined) {
+          this._overdraw = document.createElement("overdraw-x");
+          this._overdraw.start(this.modal_ctx.screen);
+      }
+      return this._overdraw;
+    }
+     makeTempLine(v1, v2, style) {
+      let line=this.getOverdraw().line(v1, v2, style);
+      this.drawlines.push(line);
+      return line;
+    }
+     pushModal(node) {
+      throw new Error("cannot call this; use modalStart");
+    }
+     popModal() {
+      throw new Error("cannot call this; use modalEnd");
+    }
+     modalStart(ctx) {
+      if (this.modalRunning) {
+          console.warn("Warning, tool is already in modal mode consuming events");
+          return this._promise;
+      }
+      this.modal_ctx = ctx;
+      this.modalRunning = true;
+      this._promise = new Promise((accept, reject) =>        {
+        this._accept = accept;
+        this._reject = reject;
+        modalstack.push(this);
+        super.pushModal(ctx.screen);
+      });
+      return this._promise;
+    }
+     toolCancel() {
+
+    }
+     modalEnd(was_cancelled) {
+      if (this._modalstate) {
+          modalstack.pop();
+      }
+      if (this._overdraw!==undefined) {
+          this._overdraw.end();
+          this._overdraw = undefined;
+      }
+      if (was_cancelled&&this._on_cancel!==undefined) {
+          if (this._accept) {
+              this._accept(this.modal_ctx, true);
+          }
+          this._on_cancel(this);
+      }
+      this.resetTempGeom();
+      var ctx=this.modal_ctx;
+      this.modal_ctx = undefined;
+      this.modalRunning = false;
+      this.is_modal = false;
+      super.popModal();
+      this._promise = undefined;
+      if (this._accept) {
+          this._accept(ctx, false);
+          this._accept = this._reject = undefined;
+      }
+      this.saveDefaultInputs();
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      let outs=this.outputs;
+      let ins=this.inputs;
+      this.inputs = {};
+      this.outputs = {};
+      for (let pair of ins) {
+          this.inputs[pair.key] = pair.val;
+      }
+      for (let pair of outs) {
+          this.outputs[pair.key] = pair.val;
+      }
+    }
+     _save_inputs() {
+      let ret=[];
+      for (let k in this.inputs) {
+          ret.push(new PropKey(k, this.inputs[k]));
+      }
+      return ret;
+    }
+     _save_outputs() {
+      let ret=[];
+      for (let k in this.outputs) {
+          ret.push(new PropKey(k, this.outputs[k]));
+      }
+      return ret;
+    }
+  }
+  _ESClass.register(ToolOp);
+  _es6_module.add_class(ToolOp);
+  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
+  ToolOp.STRUCT = `
+toolsys.ToolOp {
+  inputs  : array(toolsys.PropKey) | this._save_inputs();
+  outputs : array(toolsys.PropKey) | this._save_outputs();
+}
+`;
+  nstructjs.register(ToolOp);
+  class PropKey  {
+     constructor(key, val) {
+      this.key = key;
+      this.val = val;
+    }
+  }
+  _ESClass.register(PropKey);
+  _es6_module.add_class(PropKey);
+  PropKey.STRUCT = `
+toolsys.PropKey {
+  key : string;
+  val : abstract(ToolProperty);
+}
+`;
+  nstructjs.register(PropKey);
+  class MacroLink  {
+     constructor(sourcetool_idx, srckey, srcprops="outputs", desttool_idx, dstkey, dstprops="inputs") {
+      this.source = sourcetool_idx;
+      this.dest = desttool_idx;
+      this.sourceProps = srcprops;
+      this.destProps = dstprops;
+      this.sourcePropKey = srckey;
+      this.destPropKey = dstkey;
+    }
+  }
+  _ESClass.register(MacroLink);
+  _es6_module.add_class(MacroLink);
+  MacroLink = _es6_module.add_export('MacroLink', MacroLink);
+  MacroLink.STRUCT = `
+toolsys.MacroLink {
+  source         : int;
+  dest           : int;
+  sourcePropKey  : string;
+  destPropKey    : string;
+  sourceProps    : string;
+  destProps      : string; 
+}
+`;
+  nstructjs.register(MacroLink);
+  const MacroClasses={}
+  _es6_module.add_export('MacroClasses', MacroClasses);
+  window._MacroClasses = MacroClasses;
+  let macroidgen=0;
+  class ToolMacro extends ToolOp {
+    static  tooldef() {
+      return {uiname: "Tool Macro"}
+    }
+     constructor() {
+      super();
+      this.tools = [];
+      this.curtool = 0;
+      this.has_modal = false;
+      this.connects = [];
+      this.connectLinks = [];
+    }
+     _getTypeClass() {
+      let key="";
+      for (let tool of this.tools) {
+          key = tool.constructor.name+":";
+      }
+      for (let k in this.inputs) {
+          key+=k+":";
+      }
+      if (key in MacroClasses) {
+          return MacroClasses[key];
+      }
+      let name="Macro(";
+      let i=0;
+      let is_modal;
+      for (let tool of this.tools) {
+          let def=tool.constructor.tooldef();
+          if (i>0) {
+              name+=", ";
+          }
+          else {
+            is_modal = def.is_modal;
+          }
+          if (def.uiname) {
+              name+=def.uiname;
+          }
+          else 
+            if (def.toolpath) {
+              name+=def.toolpath;
+          }
+          else {
+            name+=tool.constructor.name;
+          }
+          i++;
+      }
+      let inputs={};
+      for (let k in this.inputs) {
+          inputs[k] = this.inputs[k].copy().clearEventCallbacks();
+          inputs[k].wasSet = false;
+      }
+      let tdef={uiname: name, 
+     toolpath: key, 
+     inputs: inputs, 
+     outputs: {}, 
+     is_modal: is_modal};
+      let cls=class MacroTypeClass extends ToolOp {
+        static  tooldef() {
+          return tdef;
+        }
+      };
+      _ESClass.register(cls);
+      cls._macroTypeId = macroidgen++;
+      MacroClasses[key] = cls;
+      return cls;
+    }
+     saveDefaultInputs() {
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          if (prop.flag&PropFlags.SAVE_LAST_VALUE) {
+              SavedToolDefaults.set(this._getTypeClass(), k, prop);
+          }
+      }
+      return this;
+    }
+     hasDefault(toolprop, key=toolprop.apiname) {
+      return SavedToolDefaults.has(this._getTypeClass(), key, toolprop);
+    }
+     getDefault(toolprop, key=toolprop.apiname) {
+      let cls=this._getTypeClass();
+      if (SavedToolDefaults.has(cls, key, toolprop)) {
+          return SavedToolDefaults.get(cls, key, toolprop);
+      }
+      else {
+        return toolprop.getValue();
+      }
+    }
+     connect(srctool, srcoutput, dsttool, dstinput, srcprops="outputs", dstprops="inputs") {
+      if (typeof dsttool==="function") {
+          return this.connectCB(...arguments);
+      }
+      let i1=this.tools.indexOf(srctool);
+      let i2=this.tools.indexOf(dsttool);
+      if (i1<0||i2<0) {
+          throw new Error("tool not in macro");
+      }
+      if (srcprops==="inputs") {
+          let tool=this.tools[i1];
+          let prop=tool.inputs[srcoutput];
+          if (prop===this.inputs[srcoutput]) {
+              delete this.inputs[srcoutput];
+          }
+      }
+      if (dstprops==="inputs") {
+          let tool=this.tools[i2];
+          let prop=tool.inputs[dstinput];
+          if (this.inputs[dstinput]===prop) {
+              delete this.inputs[dstinput];
+          }
+      }
+      this.connectLinks.push(new MacroLink(i1, srcoutput, srcprops, i2, dstinput, dstprops));
+      return this;
+    }
+     connectCB(srctool, dsttool, callback, thisvar) {
+      this.connects.push({srctool: srctool, 
+     dsttool: dsttool, 
+     callback: callback, 
+     thisvar: thisvar});
+      return this;
+    }
+     add(tool) {
+      if (tool.is_modal) {
+          this.is_modal = true;
+      }
+      for (let k in tool.inputs) {
+          let prop=tool.inputs[k];
+          if (!(prop.flag&PropFlags.PRIVATE)) {
+              this.inputs[k] = prop;
+          }
+      }
+      this.tools.push(tool);
+      return this;
+    }
+     _do_connections(tool) {
+      let i=this.tools.indexOf(tool);
+      for (let c of this.connectLinks) {
+          if (c.source===i) {
+              let tool2=this.tools[c.dest];
+              tool2[c.destProps][c.destPropKey].setValue(tool[c.sourceProps][c.sourcePropKey].getValue());
+          }
+      }
+      for (var c of this.connects) {
+          if (c.srctool===tool) {
+              c.callback.call(c.thisvar, c.srctool, c.dsttool);
+          }
+      }
+    }
+    static  canRun(ctx, toolop=undefined) {
+      return true;
+    }
+     modalStart(ctx) {
+      this.loadDefaults(false);
+      this._promise = new Promise((function (accept, reject) {
+        this._accept = accept;
+        this._reject = reject;
+      }).bind(this));
+      this.curtool = 0;
+      let i;
+      for (i = 0; i<this.tools.length; i++) {
+          if (this.tools[i].is_modal)
+            break;
+          this.tools[i].undoPre(ctx);
+          this.tools[i].execPre(ctx);
+          this.tools[i].exec(ctx);
+          this.tools[i].execPost(ctx);
+          this._do_connections(this.tools[i]);
+      }
+      var on_modal_end=(function on_modal_end() {
+        this._do_connections(this.tools[this.curtool]);
+        this.curtool++;
+        while (this.curtool<this.tools.length&&!this.tools[this.curtool].is_modal) {
+          this.tools[this.curtool].undoPre(ctx);
+          this.tools[this.curtool].execPre(ctx);
+          this.tools[this.curtool].exec(ctx);
+          this.tools[this.curtool].execPost(ctx);
+          this._do_connections(this.tools[this.curtool]);
+          this.curtool++;
+        }
+        if (this.curtool<this.tools.length) {
+            this.tools[this.curtool].undoPre(ctx);
+            this.tools[this.curtool].modalStart(ctx).then(on_modal_end);
+        }
+        else {
+          this._accept(this, false);
+        }
+      }).bind(this);
+      if (i<this.tools.length) {
+          this.curtool = i;
+          this.tools[this.curtool].undoPre(ctx);
+          this.tools[this.curtool].modalStart(ctx).then(on_modal_end);
+      }
+      return this._promise;
+    }
+     loadDefaults(force=true) {
+      return super.loadDefaults(force);
+    }
+     exec(ctx) {
+      this.loadDefaults(false);
+      for (var i=0; i<this.tools.length; i++) {
+          this.tools[i].undoPre(ctx);
+          this.tools[i].execPre(ctx);
+          this.tools[i].exec(ctx);
+          this.tools[i].execPost(ctx);
+          this._do_connections(this.tools[i]);
+      }
+    }
+     redo(ctx) {
+      for (let tool of this.tools) {
+          let ctx2=tool.execCtx ? tool.execCtx : ctx;
+          tool.redo(ctx2);
+      }
+    }
+     calcUndoMem(ctx) {
+      let tot=0;
+      for (let tool of this.tools) {
+          tot+=tool.calcUndoMem(ctx);
+      }
+      return tot;
+    }
+     calcMemSize(ctx) {
+      let tot=0;
+      for (let tool of this.tools) {
+          tot+=tool.calcMemSize(ctx);
+      }
+      return tot;
+    }
+     undoPre() {
+      return ;
+    }
+     undo(ctx) {
+      for (var i=this.tools.length-1; i>=0; i--) {
+          this.tools[i].undo(ctx);
+      }
+    }
+  }
+  _ESClass.register(ToolMacro);
+  _es6_module.add_class(ToolMacro);
+  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
+  ToolMacro.STRUCT = nstructjs.inherit(ToolMacro, ToolOp, "toolsys.ToolMacro")+`
+  tools        : array(abstract(toolsys.ToolOp));
+  connectLinks : array(toolsys.MacroLink);
+}
+`;
+  nstructjs.register(ToolMacro);
+  class ToolStack extends Array {
+     constructor(ctx) {
+      super();
+      this.memLimit = 512*1024*1024;
+      this.enforceMemLimit = false;
+      this.cur = -1;
+      this.ctx = ctx;
+      this.modalRunning = 0;
+      this._undo_branch = undefined;
+    }
+    get  head() {
+      return this[this.cur];
+    }
+     limitMemory(maxmem=this.memLimit, ctx=this.ctx) {
+      if (maxmem===undefined) {
+          throw new Error("maxmem cannot be undefined");
+      }
+      let size=this.calcMemSize();
+      let start=0;
+      while (start<this.cur-2&&size>maxmem) {
+        size-=this[start].calcMemSize(ctx);
+        start++;
+      }
+      if (start===0) {
+          return size;
+      }
+      this.cur-=start;
+      for (let i=0; i<this.length-start; i++) {
+          this[i] = this[i+start];
+      }
+      this.length-=start;
+      return this.calcMemSize(ctx);
+    }
+     calcMemSize(ctx=this.ctx) {
+      let tot=0;
+      for (let tool of this) {
+          try {
+            tot+=tool.calcMemSize();
+          }
+          catch (error) {
+              util.print_stack(error);
+              console.error("Failed to execute a calcMemSize method");
+          }
+      }
+      return tot;
+    }
+     setRestrictedToolContext(ctx) {
+      this.toolctx = ctx;
+    }
+     reset(ctx) {
+      if (ctx!==undefined) {
+          this.ctx = ctx;
+      }
+      this.modalRunning = 0;
+      this.cur = -1;
+      this.length = 0;
+    }
+     execOrRedo(ctx, tool, compareInputs=false) {
+      let head=this.head;
+      let ok=compareInputs ? ToolOp.Equals(head, tool) : head&&head.constructor===tool.constructor;
+      tool.__memsize = undefined;
+      if (ok) {
+          this.undo();
+          if (!compareInputs) {
+              this.execTool(ctx, tool);
+          }
+          else {
+            this.rerun();
+          }
+          return false;
+      }
+      else {
+        this.execTool(ctx, tool);
+        return true;
+      }
+    }
+     execTool(ctx, toolop) {
+      if (this.enforceMemLimit) {
+          this.limitMemory(this.memLimit, ctx);
+      }
+      if (!toolop.constructor.canRun(ctx, toolop)) {
+          console.log("toolop.constructor.canRun returned false");
+          return ;
+      }
+      let tctx=ctx.toLocked();
+      let undoflag=toolop.constructor.tooldef().undoflag;
+      if (toolop.undoflag!==undefined) {
+          undoflag = toolop.undoflag;
+      }
+      undoflag = undoflag===undefined ? 0 : undoflag;
+      toolop.execCtx = tctx;
+      if (!(undoflag&UndoFlags.NO_UNDO)) {
+          this.cur++;
+          this._undo_branch = this.slice(this.cur+1, this.length);
+          this.length = this.cur+1;
+          this[this.cur] = toolop;
+          toolop.undoPre(tctx);
+      }
+      if (toolop.is_modal) {
+          ctx = toolop.modal_ctx = ctx;
+          this.modal_running = true;
+          toolop._on_cancel = (function (toolop) {
+            if (!(toolop.undoflag&UndoFlags.NO_UNDO)) {
+                this.pop_i(this.cur);
+                this.cur--;
+            }
+          }).bind(this);
+          toolop.modalStart(ctx);
+      }
+      else {
+        toolop.execPre(tctx);
+        toolop.exec(tctx);
+        toolop.execPost(tctx);
+        toolop.saveDefaultInputs();
+      }
+    }
+     toolCancel(ctx, tool) {
+      if (tool._was_redo) {
+          return ;
+      }
+      if (tool!==this[this.cur]) {
+          console.warn("toolCancel called in error", this, tool);
+          return ;
+      }
+      this.undo();
+      this.length = this.cur+1;
+      if (this._undo_branch!==undefined) {
+          for (let item of this._undo_branch) {
+              this.push(item);
+          }
+      }
+    }
+     undo() {
+      if (this.enforceMemLimit) {
+          this.limitMemory(this.memLimit);
+      }
+      if (this.cur>=0&&!(this[this.cur].undoflag&UndoFlags.IS_UNDO_ROOT)) {
+          let tool=this[this.cur];
+          tool.undo(tool.execCtx);
+          this.cur--;
+      }
+    }
+     rerun(tool) {
+      if (this.enforceMemLimit) {
+          this.limitMemory(this.memLimit);
+      }
+      if (tool===this[this.cur]) {
+          tool._was_redo = false;
+          if (!tool.execCtx) {
+              tool.execCtx = this.ctx;
+          }
+          tool.undo(tool.execCtx);
+          tool._was_redo = true;
+          tool.undoPre(tool.execCtx);
+          tool.execPre(tool.execCtx);
+          tool.exec(tool.execCtx);
+          tool.execPost(tool.execCtx);
+      }
+      else {
+        console.warn("Tool wasn't at head of stack", tool);
+      }
+    }
+     redo() {
+      if (this.enforceMemLimit) {
+          this.limitMemory(this.memLimit);
+      }
+      if (this.cur>=-1&&this.cur+1<this.length) {
+          this.cur++;
+          let tool=this[this.cur];
+          if (!tool.execCtx) {
+              tool.execCtx = this.ctx;
+          }
+          tool._was_redo = true;
+          tool.redo(tool.execCtx);
+          tool.saveDefaultInputs();
+      }
+    }
+     save() {
+      let data=[];
+      nstructjs.writeObject(data, this);
+      return data;
+    }
+     rewind() {
+      while (this.cur>=0) {
+        let last=this.cur;
+        this.undo();
+        if (last===this.cur) {
+            break;
+        }
+      }
+      return this;
+    }
+     replay(cb, onStep) {
+      let cur=this.cur;
+      this.rewind();
+      let last=this.cur;
+      let start=util.time_ms();
+      return new Promise((accept, reject) =>        {
+        let next=() =>          {
+          last = this.cur;
+          if (cb&&cb(ctx)===false) {
+              accept();
+              return ;
+          }
+          if (this.cur<this.length) {
+              this.cur++;
+              this.rerun();
+          }
+          if (last===this.cur) {
+              console.warn("time:", (util.time_ms()-start)/1000.0);
+              accept(this);
+          }
+          else {
+            if (onStep) {
+                let ret=onStep();
+                if (ret&&__instance_of(ret, Promise)) {
+                    ret.then(() =>                      {
+                      next();
+                    });
+                }
+                else {
+                  window.setTimeout(() =>                    {
+                    next();
+                  });
+                }
+            }
+          }
+        }
+        next();
+      });
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      for (let item of this._stack) {
+          this.push(item);
+      }
+      delete this._stack;
+    }
+     _save() {
+      for (let tool of this) {
+          let cls=tool.constructor;
+          if (!nstructjs.isRegistered(cls)) {
+              cls._regWithNstructjs(cls);
+          }
+      }
+      return this;
+    }
+  }
+  _ESClass.register(ToolStack);
+  _es6_module.add_class(ToolStack);
+  ToolStack = _es6_module.add_export('ToolStack', ToolStack);
+  ToolStack.STRUCT = `
+toolsys.ToolStack {
+  cur    : int;
+  _stack : array(abstract(toolsys.ToolOp)) | this._save();
+}
+`;
+  nstructjs.register(ToolStack);
+  window._testToolStackIO = function () {
+    let data=[];
+    let cls=_appstate.toolstack.constructor;
+    nstructjs.writeObject(data, _appstate.toolstack);
+    data = new DataView(new Uint8Array(data).buffer);
+    let toolstack=nstructjs.readObject(data, cls);
+    _appstate.toolstack.rewind();
+    toolstack.cur = -1;
+    toolstack.ctx = _appstate.toolstack.ctx;
+    _appstate.toolstack = toolstack;
+    return toolstack;
+  }
+  function buildToolSysAPI(api, registerWithNStructjs, rootCtxStruct) {
+    if (registerWithNStructjs===undefined) {
+        registerWithNStructjs = true;
+    }
+    if (rootCtxStruct===undefined) {
+        rootCtxStruct = undefined;
+    }
+    let datastruct=api.mapStruct(ToolPropertyCache, true);
+    for (let cls of ToolClasses) {
+        let def=cls._getFinalToolDef();
+        for (let k in def.inputs) {
+            let prop=def.inputs[k];
+            if (!(prop.flag&(PropFlags.PRIVATE|PropFlags.READ_ONLY))) {
+                SavedToolDefaults._buildAccessors(cls, k, prop, datastruct, api);
+            }
+        }
+    }
+    if (rootCtxStruct) {
+        rootCtxStruct.struct("toolDefaults", "toolDefaults", "Tool Defaults", api.mapStruct(ToolPropertyCache));
+    }
+    if (!registerWithNStructjs) {
+        return ;
+    }
+    for (let cls of ToolClasses) {
+        try {
+          if (!nstructjs.isRegistered(cls)) {
+              ToolOp._regWithNstructjs(cls);
+          }
+        }
+        catch (error) {
+            console.log(error.stack);
+            console.error("Failed to register a tool with nstructjs");
+        }
+    }
+  }
+  buildToolSysAPI = _es6_module.add_export('buildToolSysAPI', buildToolSysAPI);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolsys.js');
+
+
+es6_module_define('colorutils', ["../util/util.js", "../util/vectormath.js"], function _colorutils_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   let rgb_to_hsv_rets=new util.cachering(() =>    {
     return [0, 0, 0];
   }, 64);
@@ -12898,7 +12915,9 @@ es6_module_define('colorutils', ["../util/vectormath.js", "../util/util.js", "..
     return color;
   }
   hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
-}, '/dev/fairmotion/src/path.ux/scripts/util/colorutils.js');
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/colorutils.js');
+
+
 es6_module_define('cssutils', [], function _cssutils_module(_es6_module) {
   function css2matrix(s) {
     return new DOMMatrix(s);
@@ -12911,8 +12930,10 @@ es6_module_define('cssutils', [], function _cssutils_module(_es6_module) {
     return `matrix(${m.m11},${m.m12},${m.m21},${m.m22},${m.m41},${m.m42})`;
   }
   matrix2css = _es6_module.add_export('matrix2css', matrix2css);
-}, '/dev/fairmotion/src/path.ux/scripts/util/cssutils.js');
-es6_module_define('events', ["./simple_events.js", "./util.js"], function _events_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/cssutils.js');
+
+
+es6_module_define('events', ["./util.js", "./simple_events.js"], function _events_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, './util.js');
   var simple_events=es6_import(_es6_module, './simple_events.js');
@@ -12984,6 +13005,22 @@ es6_module_define('events', ["./simple_events.js", "./util.js"], function _event
         }
         ret[k] = v;
     }
+    ret.ctrlKey = e.ctrlKey;
+    ret.shiftKey = e.shiftKey;
+    ret.altKey = e.altKey;
+    for (let i=0; i<2; i++) {
+        let key=i ? "targetTouches" : "touches";
+        if (e[key]) {
+            ret[key] = [];
+            for (let t of e[key]) {
+                let t2={};
+                ret[key].push(t2);
+                for (let k in t) {
+                    t2[k] = t[k];
+                }
+            }
+        }
+    }
     return ret;
   }
   copyMouseEvent = _es6_module.add_export('copyMouseEvent', copyMouseEvent);
@@ -13020,7 +13057,8 @@ es6_module_define('events', ["./simple_events.js", "./util.js"], function _event
     }
      popModal() {
       if (this._modalstate!==undefined) {
-          simple_events.popModalLight(this._modalstate);
+          let modalstate=this._modalstate;
+          simple_events.popModalLight(modalstate);
           this._modalstate = undefined;
       }
     }
@@ -13041,8 +13079,10 @@ es6_module_define('events', ["./simple_events.js", "./util.js"], function _event
     return h;
   }
   pushModal = _es6_module.add_export('pushModal', pushModal);
-}, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
-es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
+
+
+es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_module(_es6_module) {
   var vectormath=es6_import(_es6_module, './vectormath.js');
   var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
   var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
@@ -13338,8 +13378,10 @@ es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_
     return p.parse(s);
   }
   parseExpr = _es6_module.add_export('parseExpr', parseExpr);
-}, '/dev/fairmotion/src/path.ux/scripts/util/expr.js');
-es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "./util.js"], function _graphpack_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/expr.js');
+
+
+es6_module_define('graphpack', ["./util.js", "./solver.js", "./vectormath.js", "./math.js"], function _graphpack_module(_es6_module) {
   "use strict";
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
@@ -13455,9 +13497,9 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     return islands;
   }
   graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
-  function graphPack(nodes, margin, steps, updateCb) {
-    if (margin===undefined) {
-        margin = 15;
+  function graphPack(nodes, margin_or_args, steps, updateCb) {
+    if (margin_or_args===undefined) {
+        margin_or_args = 15;
     }
     if (steps===undefined) {
         steps = 10;
@@ -13465,11 +13507,31 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     if (updateCb===undefined) {
         updateCb = undefined;
     }
+    let margin=margin_or_args;
+    let speed=1.0;
+    if (typeof margin==="object") {
+        let args=margin;
+        margin = args.margin??15;
+        steps = args.steps??10;
+        updateCb = args.updateCb;
+        speed = args.speed??1.0;
+    }
     let orignodes=nodes;
     nodes = copyGraph(nodes);
+    let decay=1.0;
+    let decayi=0;
+    let min=new Vector2().addScalar(1e+17);
+    let max=new Vector2().addScalar(-1e+17);
+    let tmp=new Vector2();
     for (let n of nodes) {
-        n.pos[0]+=(Math.random()-0.5)*5.0;
-        n.pos[1]+=(Math.random()-0.5)*5.0;
+        min.min(n.pos);
+        tmp.load(n.pos).add(n.size);
+        max.max(tmp);
+    }
+    let size=new Vector2(max).sub(min);
+    for (let n of nodes) {
+        n.pos[0]+=(Math.random()-0.5)*5.0/size[0]*speed;
+        n.pos[1]+=(Math.random()-0.5)*5.0/size[1]*speed;
     }
     let nodemap={}
     for (let n of nodes) {
@@ -13484,10 +13546,10 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let v1=params[0], v2=params[1];
+      let $_t0aire=params, v1=$_t0aire[0], v2=$_t0aire[1], restlen=$_t0aire[2];
       if (disableEdges)
         return 0;
-      return v1.absPos.vectorDistance(v2.absPos);
+      return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
     }
     let p1=new Vector2();
     let p2=new Vector2();
@@ -13508,7 +13570,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let n1=params[0], n2=params[1];
+      let $_t1gpwm=params, n1=$_t1gpwm[0], n2=$_t1gpwm[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);
@@ -13537,7 +13599,8 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
           for (let i=1; i<fakeVerts.length; i++) {
               let v1=fakeVerts[0];
               let v2=fakeVerts[i];
-              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2]);
+              let rlen=1.0;
+              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2, rlen]);
               con.k = 0.25;
               solver.add(con);
           }
@@ -13548,7 +13611,8 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
               for (let v2 of v.edges) {
                   if (v2._id<v._id)
                     continue;
-                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2]);
+                  let rlen=n1.size.vectorLength()*0.0;
+                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2, rlen]);
                   con.k = 1.0;
                   solver.add(con);
               }
@@ -13562,6 +13626,11 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
               loadBoxes(n1, n2);
               let area=math.aabb_overlap_area(p1, s1, p2, s2);
               if (area>0.01) {
+                  let size=decay*(n1.size.vectorLength()+n2.size.vectorLength())*speed;
+                  n1.pos[0]+=(Math.random()-0.5)*size;
+                  n1.pos[1]+=(Math.random()-0.5)*size;
+                  n2.pos[0]+=(Math.random()-0.5)*size;
+                  n2.pos[1]+=(Math.random()-0.5)*size;
                   isect.push([n1, n2]);
                   visit.add(key);
               }
@@ -13586,8 +13655,8 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
           if (best)
             loadGraph(nodes, best);
           for (let n of nodes) {
-              n.pos[0]+=(Math.random()-0.5)*rfac;
-              n.pos[1]+=(Math.random()-0.5)*rfac;
+              n.pos[0]+=(Math.random()-0.5)*rfac*speed;
+              n.pos[1]+=(Math.random()-0.5)*rfac*speed;
               n.vel.zero();
           }
           let c2=getCenter(nodes);
@@ -13608,7 +13677,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
       disableArea = false;
       for (let j=0; j<10; j++) {
           solver = solveStep1();
-          err = solver.solve(10, gk);
+          err = solver.solve(10, gk*speed);
       }
       for (let n of nodes) {
           n.vel.load(n.pos).sub(n.oldpos);
@@ -13632,6 +13701,18 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     }
     for (let j=0; j<steps; j++) {
         solveStep();
+        decayi++;
+        decay = Math.exp(-decayi*0.1);
+    }
+    min.zero().addScalar(1e+17);
+    max.zero().addScalar(-1e+17);
+    for (let node of (best ? best : nodes)) {
+        min.min(node.pos);
+        p2.load(node.pos).add(node.size);
+        max.max(p2);
+    }
+    for (let node of (best ? best : nodes)) {
+        node.pos.sub(min);
     }
     loadGraph(orignodes, best ? best : nodes);
     if (updateCb) {
@@ -13663,4 +13744,128 @@ es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "
     }
   }
   graphPack = _es6_module.add_export('graphPack', graphPack);
-}, '/dev/fairmotion/src/path.ux/scripts/util/graphpack.js');
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/graphpack.js');
+
+
+es6_module_define('html5_fileapi', [], function _html5_fileapi_module(_es6_module) {
+  function saveFile(data, filename, exts, mime) {
+    if (filename===undefined) {
+        filename = "unnamed";
+    }
+    if (exts===undefined) {
+        exts = [];
+    }
+    if (mime===undefined) {
+        mime = "application/x-octet-stream";
+    }
+    let blob=new Blob([data], {type: mime});
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement("a");
+    a.setAttribute("href", url);
+    a.setAttribute("download", filename);
+    a.click();
+  }
+  saveFile = _es6_module.add_export('saveFile', saveFile);
+  function loadFile(filename, exts) {
+    if (filename===undefined) {
+        filename = "unnamed";
+    }
+    if (exts===undefined) {
+        exts = [];
+    }
+    let input=document.createElement("input");
+    input.type = "file";
+    exts = exts.join(",");
+    input.setAttribute("accept", exts);
+    return new Promise((accept, reject) =>      {
+      input.onchange = function (e) {
+        if (this.files===undefined||this.files.length!==1) {
+            reject("file load error");
+            return ;
+        }
+        let file=this.files[0];
+        let reader=new FileReader();
+        reader.onload = function (e2) {
+          accept(e2.target.result);
+        }
+        reader.readAsArrayBuffer(file);
+      }
+      input.click();
+    });
+  }
+  loadFile = _es6_module.add_export('loadFile', loadFile);
+  window._testLoadFile = function (exts) {
+    if (exts===undefined) {
+        exts = ["*.*"];
+    }
+    loadFile(undefined, exts).then((data) =>      {
+      console.log("got file data:", data);
+    });
+  }
+  window._testSaveFile = function () {
+    let buf=_appstate.createFile();
+    saveFile(buf, "unnamed.w3d", [".w3d"]);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/html5_fileapi.js');
+
+
+es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
+  var util=es6_import(_es6_module, './util.js');
+  function getImageData(image) {
+    if (typeof image=="string") {
+        let src=image;
+        image = new Image();
+        image.src = src;
+    }
+    function render() {
+      let canvas=document.createElement("canvas");
+      let g=canvas.getContext("2d");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      g.drawImage(image, 0, 0);
+      return g.getImageData(0, 0, image.width, image.height);
+    }
+    return new Promise((accept, reject) =>      {
+      if (!image.complete) {
+          image.onload = () =>            {
+            console.log("image loaded");
+            accept(render(image));
+          };
+      }
+      else {
+        accept(render(image));
+      }
+    });
+  }
+  getImageData = _es6_module.add_export('getImageData', getImageData);
+  function loadImageFile() {
+    let this2=this;
+    return new Promise((accept, reject) =>      {
+      let input=document.createElement("input");
+      input.type = "file";
+      input.addEventListener("change", function (e) {
+        let files=this.files;
+        console.log("file!", e, this.files);
+        console.log("got file", e, files);
+        if (files.length==0)
+          return ;
+        var reader=new FileReader();
+        reader.onload = function (e) {
+          var img=new Image();
+          let dataurl=img.src = e.target.result;
+          window._image_url = e.target.result;
+          img.onload = (e) =>            {
+            this2.getImageData(img).then((data) =>              {
+              data.dataurl = dataurl;
+              accept(data);
+            });
+          }
+        }
+        reader.readAsDataURL(files[0]);
+      });
+      input.click();
+    });
+  }
+  loadImageFile = _es6_module.add_export('loadImageFile', loadImageFile);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/image.js');
+

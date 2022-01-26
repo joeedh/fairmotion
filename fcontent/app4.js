@@ -1,122 +1,4 @@
-es6_module_define('html5_fileapi', [], function _html5_fileapi_module(_es6_module) {
-  function saveFile(data, filename, exts, mime) {
-    if (filename===undefined) {
-        filename = "unnamed";
-    }
-    if (exts===undefined) {
-        exts = [];
-    }
-    if (mime===undefined) {
-        mime = "application/x-octet-stream";
-    }
-    let blob=new Blob([data], {type: mime});
-    let url=URL.createObjectURL(blob);
-    let a=document.createElement("a");
-    a.setAttribute("href", url);
-    a.setAttribute("download", filename);
-    a.click();
-  }
-  saveFile = _es6_module.add_export('saveFile', saveFile);
-  function loadFile(filename, exts) {
-    if (filename===undefined) {
-        filename = "unnamed";
-    }
-    if (exts===undefined) {
-        exts = [];
-    }
-    let input=document.createElement("input");
-    input.type = "file";
-    exts = exts.join(",");
-    input.setAttribute("accept", exts);
-    return new Promise((accept, reject) =>      {
-      input.onchange = function (e) {
-        if (this.files===undefined||this.files.length!==1) {
-            reject("file load error");
-            return ;
-        }
-        let file=this.files[0];
-        let reader=new FileReader();
-        reader.onload = function (e2) {
-          accept(e2.target.result);
-        }
-        reader.readAsArrayBuffer(file);
-      }
-      input.click();
-    });
-  }
-  loadFile = _es6_module.add_export('loadFile', loadFile);
-  window._testLoadFile = function (exts) {
-    if (exts===undefined) {
-        exts = ["*.*"];
-    }
-    loadFile(undefined, exts).then((data) =>      {
-      console.log("got file data:", data);
-    });
-  }
-  window._testSaveFile = function () {
-    let buf=_appstate.createFile();
-    saveFile(buf, "unnamed.w3d", [".w3d"]);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/html5_fileapi.js');
-es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
-  var util=es6_import(_es6_module, './util.js');
-  function getImageData(image) {
-    if (typeof image=="string") {
-        let src=image;
-        image = new Image();
-        image.src = src;
-    }
-    function render() {
-      let canvas=document.createElement("canvas");
-      let g=canvas.getContext("2d");
-      canvas.width = image.width;
-      canvas.height = image.height;
-      g.drawImage(image, 0, 0);
-      return g.getImageData(0, 0, image.width, image.height);
-    }
-    return new Promise((accept, reject) =>      {
-      if (!image.complete) {
-          image.onload = () =>            {
-            console.log("image loaded");
-            accept(render(image));
-          };
-      }
-      else {
-        accept(render(image));
-      }
-    });
-  }
-  getImageData = _es6_module.add_export('getImageData', getImageData);
-  function loadImageFile() {
-    let this2=this;
-    return new Promise((accept, reject) =>      {
-      let input=document.createElement("input");
-      input.type = "file";
-      input.addEventListener("change", function (e) {
-        let files=this.files;
-        console.log("file!", e, this.files);
-        console.log("got file", e, files);
-        if (files.length==0)
-          return ;
-        var reader=new FileReader();
-        reader.onload = function (e) {
-          var img=new Image();
-          let dataurl=img.src = e.target.result;
-          window._image_url = e.target.result;
-          img.onload = (e) =>            {
-            this2.getImageData(img).then((data) =>              {
-              data.dataurl = dataurl;
-              accept(data);
-            });
-          }
-        }
-        reader.readAsDataURL(files[0]);
-      });
-      input.click();
-    });
-  }
-  loadImageFile = _es6_module.add_export('loadImageFile', loadImageFile);
-}, '/dev/fairmotion/src/path.ux/scripts/util/image.js');
+
 es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, './util.js');
@@ -126,6 +8,672 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   var Vector4=es6_import_item(_es6_module, './vectormath.js', 'Vector4');
   var Matrix4=es6_import_item(_es6_module, './vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, './vectormath.js', 'Quat');
+  let dtvtmps=util.cachering.fromConstructor(Vector3, 32);
+  let quad_co_rets2=util.cachering.fromConstructor(Vector2, 512);
+  function quad_bilinear(v1, v2, v3, v4, u, v) {
+    return -((v1-v2)*u-v1-(u*v1-u*v2+u*v3-u*v4-v1+v4)*v);
+  }
+  quad_bilinear = _es6_module.add_export('quad_bilinear', quad_bilinear);
+  function quad_uv_2d(p, v1, v2, v3, v4) {
+    let u, v;
+    let v2x=v2[0]-v1[0];
+    let v2y=v2[1]-v1[1];
+    let v3x=v3[0]-v1[0];
+    let v3y=v3[1]-v1[1];
+    let v4x=v4[0]-v1[0];
+    let v4y=v4[1]-v1[1];
+    let x=p[0]-v1[0];
+    let y=p[1]-v1[1];
+    let sqrt=Math.sqrt;
+    let A=2*(((v4y+y)*x-2*v4x*y)*v3y+(v4x*y-v4y*x)*(v4y+y)-((v4x-x)*v2y-v3x*y)*(v4y-y))*v2x-2*((v4x*y-v4y*x)*(v4x+x)-(v4x-x)*v3y*x+((2*v4y-y)*x-v4x*y)*v3x)*v2y+(v4x*y-v4y*x+v3y*x-v3x*y)**2+(v4x-x)**2*v2y**2+(v4y-y)**2*v2x**2;
+    let B=v4x*y-v4y*x+v3y*x-v3x*y;
+    let C1=(2*(v3x-v4x)*v2y-2*(v3y-v4y)*v2x);
+    let C2=(2*(v3x*v4y-v3y*v4x+v2y*v4x)-2*v2x*v4y);
+    let u1, u2;
+    if (A<0.0) {
+        console.log("A was < 0", A);
+        A = -A;
+        C1 = C2 = 0.0;
+    }
+    if (Math.abs(C1)<1e-05) {
+        let dx=v2x;
+        let dy=v2y;
+        console.log("C1 bad");
+        let l=Math.sqrt(dx*dx+dy*dy);
+        if (l>1e-06) {
+            dx/=l*l;
+            dy/=l*l;
+        }
+        u1 = u2 = dx*x+dy*y;
+    }
+    else {
+      u1 = (-(B+sqrt(A)-(v4y-y)*v2x)-(v4x-x)*v2y)/C1;
+      u2 = (-(B-sqrt(A)-(v4y-y)*v2x)-(v4x-x)*v2y)/C1;
+    }
+    if (Math.abs(C2)<1e-05) {
+        let dx, dy;
+        dx = v3x-v2x;
+        dy = v3y-v2y;
+        console.log("C2 bad");
+        let l=Math.sqrt(dx**2+dy**2);
+        if (l>1e-05) {
+            dx/=l*l;
+            dy/=l*l;
+        }
+        v1 = v2 = x*dx+y*dy;
+    }
+    else {
+      v1 = (-(B-sqrt(A)+(v4y+y)*v2x)+(v4x+x)*v2y)/C2;
+      v2 = (-(B+sqrt(A)+(v4y+y)*v2x)+(v4x+x)*v2y)/C2;
+    }
+    let ret=quad_co_rets2.next();
+    let d1=(u1-0.5)**2+(v1-0.5)**2;
+    let d2=(u2-0.5)**2+(v2-0.5)**2;
+    if (d1<d2) {
+        ret[0] = u1;
+        ret[1] = v1;
+    }
+    else {
+      ret[0] = u2;
+      ret[1] = v2;
+    }
+    return ret;
+  }
+  const ClosestModes={CLOSEST: 0, 
+   START: 1, 
+   END: 2, 
+   ENDPOINTS: 3, 
+   ALL: 4}
+  _es6_module.add_export('ClosestModes', ClosestModes);
+  let advs=util.cachering.fromConstructor(Vector4, 128);
+  class AbstractCurve  {
+     evaluate(t) {
+      throw new Error("implement me");
+    }
+     derivative(t) {
+
+    }
+     curvature(t) {
+
+    }
+     normal(t) {
+
+    }
+     width(t) {
+
+    }
+  }
+  _ESClass.register(AbstractCurve);
+  _es6_module.add_class(AbstractCurve);
+  AbstractCurve = _es6_module.add_export('AbstractCurve', AbstractCurve);
+  class ClosestCurveRets  {
+     constructor() {
+      this.p = new Vector3();
+      this.t = 0;
+    }
+  }
+  _ESClass.register(ClosestCurveRets);
+  _es6_module.add_class(ClosestCurveRets);
+  ClosestCurveRets = _es6_module.add_export('ClosestCurveRets', ClosestCurveRets);
+  let cvrets=util.cachering.fromConstructor(ClosestCurveRets, 2048);
+  let cvarrays=new util.ArrayPool();
+  let cvtmp=new Array(1024);
+  function closestPoint(p, curve, mode) {
+    let steps=5;
+    let s=0, ds=1.0/steps;
+    let ri=0;
+    for (let i=0; i<steps; i++, s+=ds) {
+        let c1=curve.evaluate(s);
+        let c2=curve.evaluate(s+ds);
+    }
+  }
+  closestPoint = _es6_module.add_export('closestPoint', closestPoint);
+  let poly_normal_tmps=util.cachering.fromConstructor(Vector3, 64);
+  let pncent=new Vector3();
+  function normal_poly(vs) {
+    if (vs.length===3) {
+        return poly_normal_tmps.next().load(normal_tri(vs[0], vs[1], vs[2]));
+    }
+    else 
+      if (vs.length===4) {
+        return poly_normal_tmps.next().load(normal_quad(vs[0], vs[1], vs[2], vs[3]));
+    }
+    if (vs.length===0) {
+        return poly_normal_tmps.next().zero();
+    }
+    let cent=pncent.zero();
+    let tot=0;
+    for (let v of vs) {
+        cent.add(v);
+        tot++;
+    }
+    cent.mulScalar(1.0/tot);
+    let n=poly_normal_tmps.next().zero();
+    for (let i=0; i<vs.length; i++) {
+        let a=vs[i];
+        let b=vs[(i+1)%vs.length];
+        let c=cent;
+        let n2=normal_tri(a, b, c);
+        n.add(n2);
+    }
+    n.normalize();
+    return n;
+  }
+  normal_poly = _es6_module.add_export('normal_poly', normal_poly);
+  let barycentric_v2_rets=util.cachering.fromConstructor(Vector2, 2048);
+  let calc_proj_refs=new util.cachering(() =>    {
+    return [0, 0];
+  }, 64);
+  function dihedral_v3_sqr(v1, v2, v3, v4) {
+    let bx=v2[0]-v1[0];
+    let by=v2[1]-v1[1];
+    let bz=v2[2]-v1[2];
+    let cx=v3[0]-v1[0];
+    let cy=v3[1]-v1[1];
+    let cz=v3[2]-v1[2];
+    let dx=v4[0]-v1[0];
+    let dy=v4[1]-v1[1];
+    let dz=v4[2]-v1[2];
+    return ((bx*cz-bz*cx)*(cx*dz-cz*dx)+(by*cz-bz*cy)*(cy*dz-cz*dy)+(bx*cy-by*cx)*(cx*dy-cy*dx))**2/(((bx*cz-bz*cx)**2+(by*cz-bz*cy)**2+(bx*cy-by*cx)**2)*((cx*dz-cz*dx)**2+(cy*dz-cz*dy)**2+(cx*dy-cy*dx)**2));
+  }
+  dihedral_v3_sqr = _es6_module.add_export('dihedral_v3_sqr', dihedral_v3_sqr);
+  let tet_area_tmps=util.cachering.fromConstructor(Vector3, 64);
+  function tet_volume(a, b, c, d) {
+    a = tet_area_tmps.next().load(a);
+    b = tet_area_tmps.next().load(b);
+    c = tet_area_tmps.next().load(c);
+    d = tet_area_tmps.next().load(d);
+    a.sub(d);
+    b.sub(d);
+    c.sub(d);
+    b.cross(c);
+    return a.dot(b)/6.0;
+  }
+  tet_volume = _es6_module.add_export('tet_volume', tet_volume);
+  function calc_projection_axes(no) {
+    let ax=Math.abs(no[0]), ay=Math.abs(no[1]), az=Math.abs(no[2]);
+    let ret=calc_proj_refs.next();
+    if (ax>ay&&ax>az) {
+        ret[0] = 1;
+        ret[1] = 2;
+    }
+    else 
+      if (ay>az&&ay>ax) {
+        ret[0] = 0;
+        ret[1] = 2;
+    }
+    else {
+      ret[0] = 0;
+      ret[1] = 1;
+    }
+    return ret;
+  }
+  calc_projection_axes = _es6_module.add_export('calc_projection_axes', calc_projection_axes);
+  let _avtmps=util.cachering.fromConstructor(Vector3, 128);
+  function inrect_3d(p, min, max) {
+    let ok=p[0]>=min[0]&&p[0]<=max[0];
+    ok = ok&&p[1]>=min[1]&&p[1]<=max[1];
+    ok = ok&&p[2]>=min[2]&&p[2]<=max[2];
+    return ok;
+  }
+  function aabb_isect_line_3d(v1, v2, min, max) {
+    let inside=inrect_3d(v1, min, max);
+    inside = inside||inrect_3d(v2, min, max);
+    if (inside) {
+        return true;
+    }
+    let cent=_avtmps.next().load(min).interp(max, 0.5);
+    let p=closest_point_on_line(cent, v1, v2, true);
+    if (!p) {
+        return false;
+    }
+    p = p[0];
+    return inrect_3d(p, min, max);
+  }
+  aabb_isect_line_3d = _es6_module.add_export('aabb_isect_line_3d', aabb_isect_line_3d);
+  function aabb_isect_cylinder_3d(v1, v2, radius, min, max) {
+    let inside=inrect_3d(v1, min, max);
+    inside = inside||inrect_3d(v2, min, max);
+    if (inside) {
+        return true;
+    }
+    let cent=_avtmps.next().load(min).interp(max, 0.5);
+    let p=closest_point_on_line(cent, v1, v2, true);
+    if (!p) {
+        return false;
+    }
+    p = p[0];
+    let size=_avtmps.next().load(max).sub(min);
+    size.mulScalar(0.5);
+    size.addScalar(radius);
+    p.sub(cent).abs();
+    return p[0]<=size[0]&&p[1]<=size[1]&&p[2]<=size[2];
+  }
+  aabb_isect_cylinder_3d = _es6_module.add_export('aabb_isect_cylinder_3d', aabb_isect_cylinder_3d);
+  function barycentric_v2(p, v1, v2, v3, axis1, axis2, out) {
+    if (axis1===undefined) {
+        axis1 = 0;
+    }
+    if (axis2===undefined) {
+        axis2 = 1;
+    }
+    if (out===undefined) {
+        out = undefined;
+    }
+    let div=(v2[axis1]*v3[axis2]-v2[axis2]*v3[axis1]+(v2[axis2]-v3[axis2])*v1[axis1]-(v2[axis1]-v3[axis1])*v1[axis2]);
+    if (Math.abs(div)<1e-06) {
+        div = 1e-05;
+    }
+    let u=(v2[axis1]*v3[axis2]-v2[axis2]*v3[axis1]+(v2[axis2]-v3[axis2])*p[axis1]-(v2[axis1]-v3[axis1])*p[axis2])/div;
+    let v=(-(v1[axis1]*v3[axis2]-v1[axis2]*v3[axis1]+(v1[axis2]-v3[axis2])*p[axis1])+(v1[axis1]-v3[axis1])*p[axis2])/div;
+    if (!out) {
+        out = barycentric_v2_rets.next();
+    }
+    out[0] = u;
+    out[1] = v;
+    return out;
+  }
+  barycentric_v2 = _es6_module.add_export('barycentric_v2', barycentric_v2);
+  function _linedis2(co, v1, v2) {
+    let v1x=v1[0]-co[0];
+    let v1y=v1[1]-co[1];
+    let v1z=v1[2]-co[2];
+    let v2x=v2[0]-co[0];
+    let v2y=v2[1]-co[1];
+    let v2z=v2[2]-co[2];
+    let dis=(((v1y-v2y)*v1y+(v1z-v2z)*v1z+(v1x-v2x)*v1x)*(v1y-v2y)-v1y)**2+(((v1y-v2y)*v1y+(v1z-v2z)*v1z+(v1x-v2x)*v1x)*(v1z-v2z)-v1z)**2+(((v1y-v2y)*v1y+(v1z-v2z)*v1z+(v1x-v2x)*v1x)*(v1x-v2x)-v1x)**2;
+    return dis;
+  }
+  let closest_p_tri_rets=new util.cachering(() =>    {
+    return {co: new Vector3(), 
+    uv: new Vector2(), 
+    dist: 0}
+  }, 512);
+  let cpt_v1=new Vector3();
+  let cpt_v2=new Vector3();
+  let cpt_v3=new Vector3();
+  let cpt_v4=new Vector3();
+  let cpt_v5=new Vector3();
+  let cpt_v6=new Vector3();
+  let cpt_p=new Vector3();
+  let cpt_n=new Vector3();
+  let cpt_mat=new Matrix4();
+  let cpt_mat2=new Matrix4();
+  let cpt_b=new Vector3();
+  function closest_point_on_quad(p, v1, v2, v3, v4, n, uvw) {
+    let a=closest_point_on_tri(p, v1, v2, v3, n, uvw);
+    let b=closest_point_on_tri(p, v1, v3, v4, n, uvw);
+    return a.dist<=b.dist ? a : b;
+  }
+  closest_point_on_quad = _es6_module.add_export('closest_point_on_quad', closest_point_on_quad);
+  function closest_point_on_tri(p, v1, v2, v3, n, uvw) {
+    let op=p;
+    if (uvw) {
+        uvw[0] = uvw[1] = 0.0;
+        if (uvw.length>2) {
+            uvw[2] = 0.0;
+        }
+    }
+    v1 = cpt_v1.load(v1);
+    v2 = cpt_v2.load(v2);
+    v3 = cpt_v3.load(v3);
+    p = cpt_p.load(p);
+    if (n===undefined) {
+        n = cpt_n.load(normal_tri(v1, v2, v3));
+    }
+    v1.sub(p);
+    v2.sub(p);
+    v3.sub(p);
+    p.zero();
+    let ax1, ax2;
+    let ax=Math.abs(n[0]), ay=Math.abs(n[1]), az=Math.abs(n[2]);
+    if (ax===0.0&&ay===0.0&&az===0.0) {
+        console.log("eek1", n, v1, v2, v3);
+        let ret=closest_p_tri_rets.next();
+        ret.dist = 1e+17;
+        ret.co.zero();
+        ret.uv.zero();
+        return ret;
+    }
+    let ax3;
+    if (ax>=ay&&ax>=az) {
+        ax1 = 1;
+        ax2 = 2;
+        ax3 = 0;
+    }
+    else 
+      if (ay>=ax&&ay>=az) {
+        ax1 = 0;
+        ax2 = 2;
+        ax3 = 1;
+    }
+    else {
+      ax1 = 0;
+      ax2 = 1;
+      ax3 = 2;
+    }
+    let mat=cpt_mat;
+    let mat2=cpt_mat2;
+    mat.makeIdentity();
+    let m=mat.$matrix;
+    m.m11 = v1[ax1];
+    m.m12 = v2[ax1];
+    m.m13 = v3[ax1];
+    m.m14 = 0.0;
+    m.m21 = v1[ax2];
+    m.m22 = v2[ax2];
+    m.m23 = v3[ax2];
+    m.m24 = 0.0;
+    m.m31 = 1;
+    m.m32 = 1;
+    m.m33 = 1;
+    m.m34 = 0.0;
+    mat.transpose();
+    let b=cpt_b.zero();
+    b[0] = p[ax1];
+    b[1] = p[ax2];
+    b[2] = 1.0;
+    b[3] = 0.0;
+    mat2.load(mat).transpose();
+    mat.preMultiply(mat2);
+    if (mat.invert()===null) {
+        console.log("eek2", mat.determinant(), ax1, ax2, n);
+        let ret=closest_p_tri_rets.next();
+        ret.dist = 1e+17;
+        ret.co.zero();
+        ret.uv.zero();
+        return ret;
+    }
+    mat.multiply(mat2);
+    b.multVecMatrix(mat);
+    let u=b[0];
+    let v=b[1];
+    let w=b[2];
+    for (let i=0; i<1; i++) {
+        u = Math.min(Math.max(u, 0.0), 1.0);
+        v = Math.min(Math.max(v, 0.0), 1.0);
+        w = Math.min(Math.max(w, 0.0), 1.0);
+        let tot=u+v+w;
+        if (tot!==0.0) {
+            tot = 1.0/tot;
+            u*=tot;
+            v*=tot;
+            w*=tot;
+        }
+    }
+    if (uvw) {
+        uvw[0] = u;
+        uvw[1] = v;
+        if (uvw.length>2) {
+            uvw[2] = w;
+        }
+    }
+    let x=v1[0]*u+v2[0]*v+v3[0]*w;
+    let y=v1[1]*u+v2[1]*v+v3[1]*w;
+    let z=v1[2]*u+v2[2]*v+v3[2]*w;
+    let ret=closest_p_tri_rets.next();
+    ret.co.loadXYZ(x, y, z);
+    ret.uv[0] = u;
+    ret.uv[1] = v;
+    ret.dist = ret.co.vectorLength();
+    ret.co.add(op);
+    return ret;
+  }
+  closest_point_on_tri = _es6_module.add_export('closest_point_on_tri', closest_point_on_tri);
+  function dist_to_tri_v3_old(co, v1, v2, v3, no) {
+    if (no===undefined) {
+        no = undefined;
+    }
+    if (!no) {
+        no = dtvtmps.next().load(normal_tri(v1, v2, v3));
+    }
+    let p=dtvtmps.next().load(co);
+    p.sub(v1);
+    let planedis=-p.dot(no);
+    let $_t0rkgu=calc_projection_axes(no), axis=$_t0rkgu[0], axis2=$_t0rkgu[1];
+    let p1=dtvtmps.next();
+    let p2=dtvtmps.next();
+    let p3=dtvtmps.next();
+    p1[0] = v1[axis];
+    p1[1] = v1[axis2];
+    p1[2] = 0.0;
+    p2[0] = v2[axis];
+    p2[1] = v2[axis2];
+    p2[2] = 0.0;
+    p3[0] = v3[axis];
+    p3[1] = v3[axis2];
+    p3[2] = 0.0;
+    let pp=dtvtmps.next();
+    pp[0] = co[axis];
+    pp[1] = co[axis2];
+    pp[2] = 0.0;
+    if (point_in_tri(pp, p1, p2, p3)) {
+        return Math.abs(planedis);
+    }
+    else {
+      let dis=1e+17;
+      if (0) {
+          dis = Math.min(dis, _linedis2(co, v1, v2));
+          dis = Math.min(dis, _linedis2(co, v2, v3));
+          dis = Math.min(dis, _linedis2(co, v3, v1));
+          dis = Math.sqrt(dis);
+      }
+      else {
+        dis = Math.min(dis, dist_to_line_sqr(co, v1, v2, true));
+        dis = Math.min(dis, dist_to_line_sqr(co, v2, v3, true));
+        dis = Math.min(dis, dist_to_line_sqr(co, v3, v1, true));
+        dis = Math.sqrt(dis);
+      }
+      return dis;
+    }
+    if (0) {
+        p.add(a).addFac(no, planedis);
+        if (Math.abs(p.dot(no))>1e-06) {
+            console.log(p.dot(no), p, no);
+            throw new Error("");
+        }
+        a.add(co);
+        b.add(co);
+        c.add(co);
+        let ax=a[0], bx=b[0], cx=c[0];
+        let ay=a[1], by=b[1], cy=c[1];
+        let az=a[2], bz=b[2], cz=c[2];
+        let div=((bx*cz-bz*cx)*ay-(by*cz-bz*cy)*ax-(bx*cy-by*cx)*az);
+        if (div===0.0) {
+            return 0.0;
+        }
+        let x1=co[0], y1=co[1], z1=co[2];
+        let u=((cx*z1-cz*x1)*by-(cy*z1-cz*y1)*bx-(cx*y1-cy*x1)*bz)/div;
+        let v=(-((cx*z1-cz*x1)*ay-(cy*z1-cz*y1)*ax)+(cx*y1-cy*x1)*az)/div;
+        let w=((bx*z1-bz*x1)*ay-(by*z1-bz*y1)*ax-(bx*y1-by*x1)*az)/div;
+        if (isNaN(u)||isNaN(v)||isNaN(w)) {
+            console.log(u, v, w, co, a, b, c, div);
+            throw new Error("NaN!");
+        }
+        u = Math.min(Math.max(u, 0), 1.0);
+        v = Math.min(Math.max(v, 0), 1.0);
+        w = Math.min(Math.max(w, 0), 1.0);
+        let tot=u+v+w;
+        if (tot>0) {
+            tot = 1.0/tot;
+            u*=tot;
+            v*=tot;
+            w*=tot;
+        }
+        p2.addFac(v1, u);
+        p2.addFac(v2, v);
+        p2.addFac(v3, w);
+        return p2.vectorDistance(co);
+    }
+  }
+  dist_to_tri_v3_old = _es6_module.add_export('dist_to_tri_v3_old', dist_to_tri_v3_old);
+  function dist_to_tri_v3(p, v1, v2, v3, n) {
+    return dist_to_tri_v3_old(p, v1, v2, v3, n);
+  }
+  dist_to_tri_v3 = _es6_module.add_export('dist_to_tri_v3', dist_to_tri_v3);
+  let _dt3s_n=new Vector3();
+  function dist_to_tri_v3_sqr(p, v1, v2, v3, n) {
+    if (n===undefined) {
+        n = _dt3s_n;
+        n.load(normal_tri(v1, v2, v3));
+    }
+    let axis1, axis2, axis3;
+    let nx=n[0]<0.0 ? -n[0] : n[0];
+    let ny=n[1]<0.0 ? -n[1] : n[1];
+    let nz=n[2]<0.0 ? -n[2] : n[2];
+    const feps=1e-07;
+    if (nx>ny&&nx>nz) {
+        axis1 = 1;
+        axis2 = 2;
+        axis3 = 0;
+    }
+    else 
+      if (ny>nx&&ny>nz) {
+        axis1 = 0;
+        axis2 = 2;
+        axis3 = 1;
+    }
+    else {
+      axis1 = 0;
+      axis2 = 1;
+      axis3 = 2;
+    }
+    let planedis=(p[0]-v1[0])*n[0]+(p[1]-v1[1])*n[1]+(p[2]-v1[2])*n[2];
+    planedis = planedis<0.0 ? -planedis : planedis;
+    let ax=v1[axis1], ay=v1[axis2], az=v1[axis3];
+    let bx=v2[axis1]-ax, by=v2[axis2]-ay, bz=v2[axis3]-az;
+    let cx=v3[axis1]-ax, cy=v3[axis2]-ay, cz=v3[axis3]-az;
+    let bx2=bx*bx, by2=by*by, bz2=bz*bz, cx2=cx*cx, cy2=cy*cy, cz2=cz*cz;
+    let x1=p[axis1]-ax;
+    let y1=p[axis2]-ay;
+    let z1=p[axis3]-az;
+    const testf=0.0;
+    let l1=Math.sqrt(bx**2+by**2);
+    let l2=Math.sqrt((cx-bx)**2+(cy-by)**2);
+    let l3=Math.sqrt(cx**2+cy**2);
+    let s1=x1*by-y1*bx<testf;
+    let s2=(x1-bx)*(cy-by)-(y1-by)*(cx-bx)<testf;
+    let s3=(x1*-cy+y1*cx)<testf;
+    if (1&&n[axis3]<0.0) {
+        s1 = !s1;
+        s2 = !s2;
+        s3 = !s3;
+    }
+    let mask=(s1&1)|(s2<<1)|(s3<<2);
+    if (mask===0||mask===7) {
+        return planedis*planedis;
+    }
+    let d1, d2, d3, div;
+    let dis=0.0;
+    let lx, ly, lz;
+    lx = bx;
+    ly = by;
+    lz = bz;
+    nx = n[axis1];
+    ny = n[axis2];
+    nz = n[axis3];
+    switch (mask) {
+      case 1:
+        div = (bx2+by2);
+        if (div>feps) {
+            d1 = (bx*y1-by*x1);
+            d1 = (d1*d1)/div;
+            lx = -by;
+            ly = bx;
+            lz = bz;
+        }
+        else {
+          d1 = x1*x1+y1*y1;
+          lx = x1;
+          ly = y1;
+          lz = z1;
+        }
+        dis = d1;
+        break;
+      case 3:
+        lx = x1-bx;
+        ly = y1-by;
+        lz = z1-bz;
+        dis = lx*lx+ly*ly;
+        return lx*lx+ly*ly+lz*lz;
+      case 2:
+        div = (bx-cx)**2+(by-cy)**2;
+        if (div>feps) {
+            d2 = ((bx-cx)*y1-(by-cy)*x1);
+            d2 = d2/div;
+            lx = (by-cy);
+            ly = (cx-bx);
+            lz = cz-bz;
+        }
+        else {
+          d2 = (x1-bx)*(x1-bx)+(y1-by)*(y1-by);
+          lx = x1-bx;
+          ly = y1-by;
+          lz = z1-bz;
+        }
+        dis = d2;
+        break;
+      case 6:
+        lx = x1-cx;
+        ly = y1-cy;
+        lz = z1-cz;
+        return lx*lx+ly*ly+lz*lz;
+      case 4:
+        div = (cx2+cy2);
+        if (div>feps) {
+            d3 = (cx*y1-cy*x1);
+            d3 = (d3*d3)/div;
+            lx = cy;
+            ly = -cx;
+            lz = cz;
+        }
+        else {
+          d3 = (x1-cx)*(x1-cx)+(y1-cy)*(y1-cy);
+          lx = x1-cx;
+          ly = y1-cy;
+          lz = z1-cz;
+        }
+        dis = d3;
+        break;
+      case 5:
+        lx = x1;
+        ly = y1;
+        lz = z1;
+        return lx*lx+ly*ly+lz*lz;
+    }
+    let d=lx*nx+ly*ny+lz*nz;
+    d = -d;
+    lx+=nx*d;
+    ly+=ny*d;
+    lz+=nz*d;
+    if (0&&Math.random()>0.999) {
+        console.log("d", d.toFixed(6));
+        console.log(lx*nx+ly*ny+lz*nz);
+    }
+    let mul=((lx**2+ly**2)*nz**2+(lx*nx+ly*ny)**2)/((lx**2+ly**2)*nz**2);
+    if (Math.random()>0.999) {
+        console.log(mul.toFixed(4));
+    }
+    if (0) {
+        let odis=dis;
+        dis = x1**2+y1**2+z1**2;
+        if (Math.random()>0.999) {
+            console.log((dis/odis).toFixed(4), mul.toFixed(4));
+        }
+        mul = 1.0;
+    }
+    return dis*mul+planedis*planedis;
+  }
+  dist_to_tri_v3_sqr = _es6_module.add_export('dist_to_tri_v3_sqr', dist_to_tri_v3_sqr);
+  let tri_area_temps=util.cachering.fromConstructor(Vector3, 64);
+  function tri_area(v1, v2, v3) {
+    let l1=v1.vectorDistance(v2);
+    let l2=v2.vectorDistance(v3);
+    let l3=v3.vectorDistance(v1);
+    let s=(l1+l2+l3)/2.0;
+    return Math.sqrt(s*(s-l1)*(s-l2)*(s-l3));
+  }
+  tri_area = _es6_module.add_export('tri_area', tri_area);
   function aabb_overlap_area(pos1, size1, pos2, size2) {
     let r1=0.0, r2=0.0;
     for (let i=0; i<2; i++) {
@@ -147,19 +695,32 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   }
   aabb_overlap_area = _es6_module.add_export('aabb_overlap_area', aabb_overlap_area);
   function aabb_isect_2d(pos1, size1, pos2, size2) {
-    var ret=0;
-    for (var i=0; i<2; i++) {
-        var a=pos1[i];
-        var b=pos1[i]+size1[i];
-        var c=pos2[i];
-        var d=pos2[i]+size2[i];
+    let ret=0;
+    for (let i=0; i<2; i++) {
+        let a=pos1[i];
+        let b=pos1[i]+size1[i];
+        let c=pos2[i];
+        let d=pos2[i]+size2[i];
         if (b>=c&&a<=d)
           ret+=1;
     }
-    return ret==2;
+    return ret===2;
   }
   aabb_isect_2d = _es6_module.add_export('aabb_isect_2d', aabb_isect_2d);
   
+  function aabb_isect_3d(pos1, size1, pos2, size2) {
+    let ret=0;
+    for (let i=0; i<3; i++) {
+        let a=pos1[i];
+        let b=pos1[i]+size1[i];
+        let c=pos2[i];
+        let d=pos2[i]+size2[i];
+        if (b>=c&&a<=d)
+          ret+=1;
+    }
+    return ret===3;
+  }
+  aabb_isect_3d = _es6_module.add_export('aabb_isect_3d', aabb_isect_3d);
   let aabb_intersect_vs=util.cachering.fromConstructor(Vector2, 32);
   let aabb_intersect_rets=new util.cachering(() =>    {
     return {pos: new Vector2(), 
@@ -273,6 +834,29 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
       test_aabb_intersect_2d();
     }, rate);
   }
+  let aabb_intersect_vs3=util.cachering.fromConstructor(Vector3, 64);
+  function aabb_intersect_3d(min1, max1, min2, max2) {
+    let tot=0;
+    for (let i=0; i<2; i++) {
+        if (max1[i]>=min2[i]&&min1[i]<=max2[i]) {
+            tot++;
+        }
+    }
+    if (tot!==3) {
+        return false;
+    }
+    return true;
+  }
+  aabb_intersect_3d = _es6_module.add_export('aabb_intersect_3d', aabb_intersect_3d);
+  function aabb_union(a, b) {
+    for (let i=0; i<2; i++) {
+        for (let j=0; j<a[i].length; j++) {
+            a[i][j] = i ? Math.max(a[i][j], b[i][j]) : Math.min(a[i][j], b[i][j]);
+        }
+    }
+    return a;
+  }
+  aabb_union = _es6_module.add_export('aabb_union', aabb_union);
   function aabb_union_2d(pos1, size1, pos2, size2) {
     let v1=aabb_intersect_vs.next();
     let v2=aabb_intersect_vs.next();
@@ -439,6 +1023,11 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
       this._static_mr_co = new Array(this.totaxis);
       this._static_mr_cs = new Array(this.totaxis*this.totaxis);
     }
+    static  fromSTRUCT(reader) {
+      var ret=new MinMax();
+      reader(ret);
+      return ret;
+    }
      load(mm) {
       if (this.totaxis==1) {
           this.min = mm.min;
@@ -525,33 +1114,37 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
         }
       }
     }
-    static  fromSTRUCT(reader) {
-      var ret=new MinMax();
-      reader(ret);
-      return ret;
-    }
   }
   _ESClass.register(MinMax);
   _es6_module.add_class(MinMax);
   MinMax = _es6_module.add_export('MinMax', MinMax);
   
   MinMax.STRUCT = "\n  math.MinMax {\n    min     : vec3;\n    max     : vec3;\n    _min    : vec3;\n    _max    : vec3;\n    totaxis : int;\n  }\n";
+  function winding_axis(a, b, c, up_axis) {
+    let xaxis=(up_axis+1)%3;
+    let yaxis=(up_axis+2)%3;
+    let x1=a[xaxis], y1=a[yaxis];
+    let x2=b[xaxis], y2=b[yaxis];
+    let x3=c[xaxis], y3=c[yaxis];
+    let dx1=x1-x2, dy1=y1-y2;
+    let dx2=x3-x2, dy2=y3-y2;
+    let f=dx1*dy2-dy1*dx2;
+    return f>=0.0;
+  }
+  winding_axis = _es6_module.add_export('winding_axis', winding_axis);
   function winding(a, b, c, zero_z, tol) {
-    if (tol==undefined)
-      tol = 0.0;
-    for (var i=0; i<a.length; i++) {
-        _cross_vec1[i] = b[i]-a[i];
-        _cross_vec2[i] = c[i]-a[i];
+    if (tol===undefined) {
+        tol = 0.0;
     }
-    if (a.length==2||zero_z) {
-        _cross_vec1[2] = 0.0;
-        _cross_vec2[2] = 0.0;
+    let t1=_cross_vec1;
+    let t2=_cross_vec2;
+    for (let i=0; i<a.length; i++) {
+        t1[i] = b[i]-a[i];
+        t2[i] = c[i]-a[i];
     }
-    _cross_vec1.cross(_cross_vec2);
-    return _cross_vec1[2]>tol;
+    return t1[0]*t2[1]-t1[1]*t2[0]>tol;
   }
   winding = _es6_module.add_export('winding', winding);
-  
   function inrect_2d(p, pos, size) {
     if (p==undefined||pos==undefined||size==undefined) {
         console.trace();
@@ -632,12 +1225,14 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   }
   expand_line = _es6_module.add_export('expand_line', expand_line);
   
-  function colinear(a, b, c) {
+  function colinear(a, b, c, limit) {
+    if (limit===undefined) {
+        limit = 2.2e-16;
+    }
     for (var i=0; i<3; i++) {
         _cross_vec1[i] = b[i]-a[i];
         _cross_vec2[i] = c[i]-a[i];
     }
-    var limit=2.2e-16;
     if (a.vectorDistance(b)<feps*100&&a.vectorDistance(c)<feps*100) {
         return true;
     }
@@ -715,7 +1310,19 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   line_line_isect = _es6_module.add_export('line_line_isect', line_line_isect);
   function line_line_cross(v1, v2, v3, v4) {
     var l1=_llc_l3, l2=_llc_l4;
-    l1[0].load(v1), l1[1].load(v2), l2[0].load(v3), l2[1].load(v4);
+    var a=l1[0], b=l1[1], c=l2[0], d=l2[1];
+    a[0] = v1[0];
+    a[1] = v1[1];
+    a[2] = v1[2];
+    b[0] = v2[0];
+    b[1] = v2[1];
+    b[2] = v2[2];
+    c[0] = v3[0];
+    c[1] = v3[1];
+    c[2] = v3[2];
+    d[0] = v4[0];
+    d[1] = v4[1];
+    d[2] = v4[2];
     var a=l1[0];
     var b=l1[1];
     var c=l2[0];
@@ -783,23 +1390,123 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     return p[0]>=min[0]&&p[0]<=max[0]&&p[1]>=min[1]&&p[1]<=max[1]&&p[2]>=min[2]&&p[2]<=max[2];
   }
   point_in_aabb = _es6_module.add_export('point_in_aabb', point_in_aabb);
+  let asi_rect=new Array(8);
+  for (let i=0; i<8; i++) {
+      asi_rect[i] = new Vector3();
+  }
+  let aabb_sphere_isect_vs=util.cachering.fromConstructor(Vector3, 64);
   function aabb_sphere_isect(p, r, min, max) {
-    var v1=_asi_v1, v2=_asi_v2, v3=_asi_v3, mvec=_asi_v4;
-    min = _asi_v5.load(min);
-    max = _asi_v6.load(max);
-    if (min.length==2) {
-        min[2] = max[2] = 0.0;
+    let p1=aabb_sphere_isect_vs.next().load(p);
+    let min1=aabb_sphere_isect_vs.next().load(min);
+    let max1=aabb_sphere_isect_vs.next().load(max);
+    if (p.length===2) {
+        p1[2] = 0.0;
     }
-    mvec.load(max).sub(min).normalize().mulScalar(r+0.0001);
-    v1.sub(mvec);
-    v2.add(mvec);
-    v3.load(p);
-    if (p.length==2) {
-        mvec[2] = v1[2] = v2[2] = v3[2] = 0.0;
+    if (min1.length===2) {
+        min1[2] = 0.0;
     }
-    return point_in_aabb(v1, min, max)||point_in_aabb(v2, min, max)||point_in_aabb(v3, min, max);
+    if (max.length===2) {
+        max1[2] = 0.0;
+    }
+    p = p1;
+    min = min1;
+    max = max1;
+    let cent=aabb_sphere_isect_vs.next().load(min).interp(max, 0.5);
+    p.sub(cent);
+    min.sub(cent);
+    max.sub(cent);
+    r*=r;
+    let isect=point_in_aabb(p, min, max);
+    if (isect) {
+        return true;
+    }
+    let rect=asi_rect;
+    rect[0].loadXYZ(min[0], min[1], min[2]);
+    rect[1].loadXYZ(min[0], max[1], min[2]);
+    rect[2].loadXYZ(max[0], max[1], min[2]);
+    rect[3].loadXYZ(max[0], min[1], min[2]);
+    rect[4].loadXYZ(min[0], min[1], max[2]);
+    rect[5].loadXYZ(min[0], max[1], max[2]);
+    rect[6].loadXYZ(max[0], max[1], max[2]);
+    rect[7].loadXYZ(max[0], min[1], max[2]);
+    for (let i=0; i<8; i++) {
+        if (p.vectorDistanceSqr(rect[i])<r) {
+            return true;
+        }
+    }
+    let p2=aabb_sphere_isect_vs.next().load(p);
+    for (let i=0; i<3; i++) {
+        p2.load(p);
+        let i2=(i+1)%3;
+        let i3=(i+2)%3;
+        p2[i] = p2[i]<0.0 ? min[i] : max[i];
+        p2[i2] = Math.min(Math.max(p2[i2], min[i2]), max[i2]);
+        p2[i3] = Math.min(Math.max(p2[i3], min[i3]), max[i3]);
+        let isect=p2.vectorDistanceSqr(p)<=r;
+        if (isect) {
+            return true;
+        }
+    }
+    return false;
   }
   aabb_sphere_isect = _es6_module.add_export('aabb_sphere_isect', aabb_sphere_isect);
+  
+  function aabb_sphere_dist(p, min, max) {
+    let p1=aabb_sphere_isect_vs.next().load(p);
+    let min1=aabb_sphere_isect_vs.next().load(min);
+    let max1=aabb_sphere_isect_vs.next().load(max);
+    if (p.length===2) {
+        p1[2] = 0.0;
+    }
+    if (min1.length===2) {
+        min1[2] = 0.0;
+    }
+    if (max.length===2) {
+        max1[2] = 0.0;
+    }
+    p = p1;
+    min = min1;
+    max = max1;
+    let cent=aabb_sphere_isect_vs.next().load(min).interp(max, 0.5);
+    p.sub(cent);
+    min.sub(cent);
+    max.sub(cent);
+    let isect=point_in_aabb(p, min, max);
+    if (isect) {
+        return 0.0;
+    }
+    let rect=asi_rect;
+    rect[0].loadXYZ(min[0], min[1], min[2]);
+    rect[1].loadXYZ(min[0], max[1], min[2]);
+    rect[2].loadXYZ(max[0], max[1], min[2]);
+    rect[3].loadXYZ(max[0], min[1], min[2]);
+    rect[4].loadXYZ(min[0], min[1], max[2]);
+    rect[5].loadXYZ(min[0], max[1], max[2]);
+    rect[6].loadXYZ(max[0], max[1], max[2]);
+    rect[7].loadXYZ(max[0], min[1], max[2]);
+    let mindis;
+    for (let i=0; i<8; i++) {
+        let dis=p.vectorDistanceSqr(rect[i]);
+        if (mindis===undefined||dis<mindis) {
+            mindis = dis;
+        }
+    }
+    let p2=aabb_sphere_isect_vs.next().load(p);
+    for (let i=0; i<3; i++) {
+        p2.load(p);
+        let i2=(i+1)%3;
+        let i3=(i+2)%3;
+        p2[i] = p2[i]<0.0 ? min[i] : max[i];
+        p2[i2] = Math.min(Math.max(p2[i2], min[i2]), max[i2]);
+        p2[i3] = Math.min(Math.max(p2[i3], min[i3]), max[i3]);
+        let dis=p2.vectorDistanceSqr(p);
+        if (mindis===undefined||dis<mindis) {
+            mindis = dis;
+        }
+    }
+    return mindis===undefined ? 1e+17 : mindis;
+  }
+  aabb_sphere_dist = _es6_module.add_export('aabb_sphere_dist', aabb_sphere_dist);
   
   function point_in_tri(p, v1, v2, v3) {
     var w1=winding(p, v1, v2);
@@ -817,28 +1524,60 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   var $e1_normal_tri=new Vector3();
   var $e3_normal_tri=new Vector3();
   var $e2_normal_tri=new Vector3();
+  function isNum(f) {
+    let ok=typeof f==="number";
+    ok = ok&&!isNaN(f)&&isFinite(f);
+    return ok;
+  }
+  isNum = _es6_module.add_export('isNum', isNum);
+  const _normal_tri_rets=util.cachering.fromConstructor(Vector3, 64);
   function normal_tri(v1, v2, v3) {
-    $e1_normal_tri[0] = v2[0]-v1[0];
-    $e1_normal_tri[1] = v2[1]-v1[1];
-    $e1_normal_tri[2] = v2[2]-v1[2];
-    $e2_normal_tri[0] = v3[0]-v1[0];
-    $e2_normal_tri[1] = v3[1]-v1[1];
-    $e2_normal_tri[2] = v3[2]-v1[2];
-    $e3_normal_tri[0] = $e1_normal_tri[1]*$e2_normal_tri[2]-$e1_normal_tri[2]*$e2_normal_tri[1];
-    $e3_normal_tri[1] = $e1_normal_tri[2]*$e2_normal_tri[0]-$e1_normal_tri[0]*$e2_normal_tri[2];
-    $e3_normal_tri[2] = $e1_normal_tri[0]*$e2_normal_tri[1]-$e1_normal_tri[1]*$e2_normal_tri[0];
-    var _len=Math.sqrt($e3_normal_tri[0]*$e3_normal_tri[0]+$e3_normal_tri[1]*$e3_normal_tri[1]+$e3_normal_tri[2]*$e3_normal_tri[2]);
-    if (_len>1e-05)
-      _len = 1.0/_len;
-    $e3_normal_tri[0]*=_len;
-    $e3_normal_tri[1]*=_len;
-    $e3_normal_tri[2]*=_len;
-    return $e3_normal_tri;
+    let x1=v2[0]-v1[0];
+    let y1=v2[1]-v1[1];
+    let z1=v2[2]-v1[2];
+    let x2=v3[0]-v1[0];
+    let y2=v3[1]-v1[1];
+    let z2=v3[2]-v1[2];
+    if (!isNum(x1+y1+z1+z2+y2+z2)) {
+        throw new Error("NaN in normal_tri");
+    }
+    let x3, y3, z3;
+    x1 = v2[0]-v1[0];
+    y1 = v2[1]-v1[1];
+    z1 = v2[2]-v1[2];
+    x2 = v3[0]-v1[0];
+    y2 = v3[1]-v1[1];
+    z2 = v3[2]-v1[2];
+    x3 = y1*z2-z1*y2;
+    y3 = z1*x2-x1*z2;
+    z3 = x1*y2-y1*x2;
+    let len=Math.sqrt(x3*x3+y3*y3+z3*z3);
+    if (len>1e-05)
+      len = 1.0/len;
+    x3*=len;
+    y3*=len;
+    z3*=len;
+    let n=_normal_tri_rets.next();
+    if (!isNum(x3+y3+z3)) {
+        throw new Error("NaN!");
+    }
+    n[0] = x3;
+    n[1] = y3;
+    n[2] = z3;
+    return n;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
   
   var $n2_normal_quad=new Vector3();
+  let _q1=new Vector3(), _q2=new Vector3(), _q3=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
+    _q1.load(normal_tri(v1, v2, v3));
+    _q2.load(normal_tri(v2, v3, v4));
+    _q1.add(_q2).normalize();
+    return _q1;
+  }
+  normal_quad = _es6_module.add_export('normal_quad', normal_quad);
+  function normal_quad_old(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
     $n2_normal_quad[0] = n[0];
     $n2_normal_quad[1] = n[1];
@@ -855,7 +1594,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     $n2_normal_quad[2]*=_len;
     return $n2_normal_quad;
   }
-  normal_quad = _es6_module.add_export('normal_quad', normal_quad);
+  normal_quad_old = _es6_module.add_export('normal_quad_old', normal_quad_old);
   
   var _li_vi=new Vector3();
   function line_isect(v1, v2, v3, v4, calc_t) {
@@ -930,22 +1669,40 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   var dt3l_v3=new Vector3();
   var dt3l_v4=new Vector3();
   var dt3l_v5=new Vector3();
-  function dist_to_line(p, v1, v2, clip) {
-    if (clip==undefined) {
+  function dist_to_line_sqr(p, v1, v2, clip) {
+    if (clip===undefined) {
         clip = true;
     }
-    v1 = dt3l_v4.load(v1);
-    v2 = dt3l_v5.load(v2);
-    var n=dt3l_v1;
-    var vec=dt3l_v3;
-    n.load(v2).sub(v1).normalize();
-    vec.load(p).sub(v1);
-    var t=vec.dot(n);
-    if (clip) {
-        t = Math.min(Math.max(t, 0.0), v1.vectorDistance(v2));
+    let px=p[0]-v1[0];
+    let py=p[1]-v1[1];
+    let pz=p.length<3 ? 0.0 : p[2]-v1[2];
+    pz = pz===undefined ? 0.0 : pz;
+    let v2x=v2[0]-v1[0];
+    let v2y=v2[1]-v1[1];
+    let v2z=v2.length<3 ? 0.0 : v2[2]-v1[2];
+    let len=v2x*v2x+v2y*v2y+v2z*v2z;
+    if (len===0.0) {
+        return Math.sqrt(px*px+py*py+pz*pz);
     }
-    n.mulScalar(t).add(v1);
-    return n.vectorDistance(p);
+    let len2=1.0/len;
+    v2x*=len2;
+    v2y*=len2;
+    v2z*=len2;
+    let t=px*v2x+py*v2y+pz*v2z;
+    if (clip) {
+        t = Math.min(Math.max(t, 0.0), len);
+    }
+    v2x*=t;
+    v2y*=t;
+    v2z*=t;
+    return (v2x-px)*(v2x-px)+(v2y-py)*(v2y-py)+(v2z-pz)*(v2z-pz);
+  }
+  dist_to_line_sqr = _es6_module.add_export('dist_to_line_sqr', dist_to_line_sqr);
+  function dist_to_line(p, v1, v2, clip) {
+    if (clip===undefined) {
+        clip = true;
+    }
+    return Math.sqrt(dist_to_line_sqr(p, v1, v2, clip));
   }
   dist_to_line = _es6_module.add_export('dist_to_line', dist_to_line);
   var _cplw_vs4=util.cachering.fromConstructor(Vector4, 64);
@@ -1011,14 +1768,21 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   }, 64);
   var _closest_tmps=[new Vector3(), new Vector3(), new Vector3()];
   function closest_point_on_line(p, v1, v2, clip) {
-    if (clip==undefined)
-      clip = true;
+    if (clip===undefined) {
+        clip = true;
+    }
     var l1=_closest_tmps[0], l2=_closest_tmps[1];
-    l1.load(v2).sub(v1).normalize();
+    var len;
+    l1.load(v2).sub(v1);
+    if (clip) {
+        len = l1.vectorLength();
+    }
+    l1.normalize();
     l2.load(p).sub(v1);
     var t=l2.dot(l1);
     if (clip) {
-        t = t*(t<0.0)+t*(t>1.0)+(t>1.0);
+        t = t<0.0 ? 0.0 : t;
+        t = t>len ? len : t;
     }
     var p=_closest_point_on_line_cache.next();
     p.load(l1).mulScalar(t).add(v1);
@@ -1320,6 +2084,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   _es6_module.add_class(PlaneOps);
   PlaneOps = _es6_module.add_export('PlaneOps', PlaneOps);
   var _isrp_ret=new Vector3();
+  let isect_ray_plane_rets=util.cachering.fromConstructor(Vector3, 256);
   function isect_ray_plane(planeorigin, planenormal, rayorigin, raynormal) {
     let po=planeorigin, pn=planenormal, ro=rayorigin, rn=raynormal;
     let div=(pn[1]*rn[1]+pn[2]*rn[2]+pn[0]*rn[0]);
@@ -1328,7 +2093,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     }
     let t=((po[1]-ro[1])*pn[1]+(po[2]-ro[2])*pn[2]+(po[0]-ro[0])*pn[0])/div;
     _isrp_ret.load(ro).addFac(rn, t);
-    return _isrp_ret;
+    return isect_ray_plane_rets.next().load(_isrp_ret);
   }
   isect_ray_plane = _es6_module.add_export('isect_ray_plane', isect_ray_plane);
   function _old_isect_ray_plane(planeorigin, planenormal, rayorigin, raynormal) {
@@ -1461,7 +2226,268 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   _ESClass.register(Mat4Stack);
   _es6_module.add_class(Mat4Stack);
   Mat4Stack = _es6_module.add_export('Mat4Stack', Mat4Stack);
-}, '/dev/fairmotion/src/path.ux/scripts/util/math.js');
+  const tril_rets=util.cachering.fromConstructor(Vector3, 128);
+  function lreport() {
+  }
+  function trilinear_v3(uvw, boxverts) {
+    let $_t1dbkn=uvw, u=$_t1dbkn[0], v=$_t1dbkn[1], w=$_t1dbkn[2];
+    const a1x=boxverts[0][0], a1y=boxverts[0][1], a1z=boxverts[0][2];
+    const b1x=boxverts[1][0]-a1x, b1y=boxverts[1][1]-a1y, b1z=boxverts[1][2]-a1z;
+    const c1x=boxverts[2][0]-a1x, c1y=boxverts[2][1]-a1y, c1z=boxverts[2][2]-a1z;
+    const d1x=boxverts[3][0]-a1x, d1y=boxverts[3][1]-a1y, d1z=boxverts[3][2]-a1z;
+    const a2x=boxverts[4][0]-a1x, a2y=boxverts[4][1]-a1y, a2z=boxverts[4][2]-a1z;
+    const b2x=boxverts[5][0]-a1x, b2y=boxverts[5][1]-a1y, b2z=boxverts[5][2]-a1z;
+    const c2x=boxverts[6][0]-a1x, c2y=boxverts[6][1]-a1y, c2z=boxverts[6][2]-a1z;
+    const d2x=boxverts[7][0]-a1x, d2y=boxverts[7][1]-a1y, d2z=boxverts[7][2]-a1z;
+    const x=(((a2x-b2x)*v-a2x+(c2x-d2x)*v+d2x)*u-((a2x-b2x)*v-a2x)-(((c1x-d1x)*v+d1x-b1x*v)*u+b1x*v))*w+((c1x-d1x)*v+d1x-b1x*v)*u+b1x*v;
+    const y=(((a2y-b2y)*v-a2y+(c2y-d2y)*v+d2y)*u-((a2y-b2y)*v-a2y)-(((c1y-d1y)*v+d1y-b1y*v)*u+b1y*v))*w+((c1y-d1y)*v+d1y-b1y*v)*u+b1y*v;
+    const z=(((a2z-b2z)*v-a2z+(c2z-d2z)*v+d2z)*u-((a2z-b2z)*v-a2z)-(((c1z-d1z)*v+d1z-b1z*v)*u+b1z*v))*w+((c1z-d1z)*v+d1z-b1z*v)*u+b1z*v;
+    let p=tril_rets.next();
+    p[0] = x+a1x;
+    p[1] = y+a1y;
+    p[2] = z+a1z;
+    return p;
+  }
+  trilinear_v3 = _es6_module.add_export('trilinear_v3', trilinear_v3);
+  let tril_co_rets=util.cachering.fromConstructor(Vector3, 128);
+  let tril_co_tmps=util.cachering.fromConstructor(Vector3, 16);
+  let tril_mat_1=new Matrix4();
+  let tril_mat_2=new Matrix4();
+  let wtable=[[[0.5, 0.5, 0], [0.5, 0.5, 0], [0.5, 0.5, 0]], [[0.5, 0.5, 0], [0.0, 0.5, 0.5], [0.5, 0.5, 0]], [[0.0, 0.5, 0.5], [0.0, 0.5, 0.5], [0.5, 0.5, 0]], [[0.0, 0.5, 0.5], [0.5, 0.5, 0], [0.5, 0.5, 0]]];
+  for (let i=0; i<4; i++) {
+      let w=wtable[i];
+      w = [w[0], w[1], [0.0, 0.5, 0.5]];
+      wtable.push(w);
+  }
+  const pih_tmps=util.cachering.fromConstructor(Vector3, 16);
+  const boxfaces_table=[[0, 1, 2, 3], [7, 6, 5, 4], [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0]];
+  let boxfaces_tmp=new Array(6);
+  for (let i=0; i<6; i++) {
+      boxfaces_tmp[i] = new Vector3();
+  }
+  let boxfacenormals_tmp=new Array(6);
+  for (let i=0; i<6; i++) {
+      boxfacenormals_tmp[i] = new Vector3();
+  }
+  function point_in_hex(p, boxverts, boxfacecents, boxfacenormals) {
+    if (boxfacecents===undefined) {
+        boxfacecents = undefined;
+    }
+    if (boxfacenormals===undefined) {
+        boxfacenormals = undefined;
+    }
+    if (!boxfacecents) {
+        boxfacecents = boxfaces_tmp;
+        for (let i=0; i<6; i++) {
+            let $_t2otnk=boxfaces_table[i], v1=$_t2otnk[0], v2=$_t2otnk[1], v3=$_t2otnk[2], v4=$_t2otnk[3];
+            v1 = boxverts[v1];
+            v2 = boxverts[v2];
+            v3 = boxverts[v3];
+            v4 = boxverts[v4];
+            boxfacecents[i].load(v1).add(v2).add(v3).add(v4).mulScalar(0.25);
+        }
+    }
+    if (!boxfacenormals) {
+        boxfacenormals = boxfacenormals_tmp;
+        for (let i=0; i<6; i++) {
+            let $_t3sogn=boxfaces_table[i], v1=$_t3sogn[0], v2=$_t3sogn[1], v3=$_t3sogn[2], v4=$_t3sogn[3];
+            v1 = boxverts[v1];
+            v2 = boxverts[v2];
+            v3 = boxverts[v3];
+            v4 = boxverts[v4];
+            let n=normal_quad(v1, v2, v3, v4);
+            boxfacenormals[i].load(n).negate();
+        }
+    }
+    let t1=pih_tmps.next();
+    let t2=pih_tmps.next();
+    let cent=pih_tmps.next().zero();
+    for (let i=0; i<6; i++) {
+        cent.add(boxfacecents[i]);
+    }
+    cent.mulScalar(1.0/6.0);
+    let ret=true;
+    for (let i=0; i<6; i++) {
+        t1.load(p).sub(boxfacecents[i]);
+        t2.load(cent).sub(boxfacecents[i]);
+        let n=boxfacenormals[i];
+        if (1) {
+            t1.normalize();
+            t2.normalize();
+        }
+        if (t1.dot(t2)<0) {
+            ret = false;
+            return false;
+        }
+    }
+    return ret;
+  }
+  point_in_hex = _es6_module.add_export('point_in_hex', point_in_hex);
+  const boxverts_tmp=new Array(8);
+  for (let i=0; i<8; i++) {
+      boxverts_tmp[i] = new Vector3();
+  }
+  function trilinear_co(p, boxverts) {
+    let uvw=tril_co_rets.next();
+    uvw.zero();
+    let u=tril_co_tmps.next();
+    let v=tril_co_tmps.next();
+    let w=tril_co_tmps.next();
+    u.loadXYZ(0.0, 0.5, 1.0);
+    v.loadXYZ(0.0, 0.5, 1.0);
+    w.loadXYZ(0.0, 0.5, 1.0);
+    let uvw2=tril_co_tmps.next();
+    for (let step=0; step<4; step++) {
+        uvw.loadXYZ(u[1], v[1], w[1]);
+        let mini=undefined;
+        let mindis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
+        for (let i=0; i<8; i++) {
+            let $_t4hhov=wtable[i], t1=$_t4hhov[0], t2=$_t4hhov[1], t3=$_t4hhov[2];
+            let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
+            let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
+            let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
+            let du=Math.abs(u2-u[1]);
+            let dv=Math.abs(v2-v[1]);
+            let dw=Math.abs(w2-w[1]);
+            uvw.loadXYZ(u2, v2, w2);
+            let dis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
+            if (mindis===undefined||dis<mindis) {
+            }
+            if (1) {
+                let bv=boxverts_tmp;
+                bv[0].loadXYZ(u2-du, v2-dv, w2-dw);
+                bv[1].loadXYZ(u2-du, v2+dv, w2-dw);
+                bv[2].loadXYZ(u2+du, v2+dv, w2-dw);
+                bv[3].loadXYZ(u2+du, v2-dv, w2-dw);
+                bv[4].loadXYZ(u2-du, v2-dv, w2+dw);
+                bv[5].loadXYZ(u2-du, v2+dv, w2+dw);
+                bv[6].loadXYZ(u2+du, v2+dv, w2+dw);
+                bv[7].loadXYZ(u2+du, v2-dv, w2+dw);
+                for (let j=0; j<8; j++) {
+                    bv[j].load(trilinear_v3(bv[j], boxverts));
+                }
+                if (point_in_hex(p, bv)) {
+                    mini = i;
+                    mindis = dis;
+                    break;
+                }
+            }
+        }
+        if (mini===undefined) {
+            lreport("mindis:", (mindis**0.5).toFixed(3));
+            break;
+        }
+        let $_t5ftud=wtable[mini], t1=$_t5ftud[0], t2=$_t5ftud[1], t3=$_t5ftud[2];
+        let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
+        let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
+        let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
+        let du=Math.abs(u2-u[1]);
+        let dv=Math.abs(v2-v[1]);
+        let dw=Math.abs(w2-w[1]);
+        u[0] = u2-du;
+        v[0] = v2-dv;
+        w[0] = w2-dw;
+        u[1] = u2;
+        v[1] = v2;
+        w[1] = w2;
+        u[2] = u2+du;
+        v[2] = v2+dv;
+        w[2] = w2+dw;
+        lreport("mindis:", (mindis**0.5).toFixed(3), u2, v2, w2);
+    }
+    uvw.loadXYZ(u[1], v[1], w[1]);
+    return trilinear_co2(p, boxverts, uvw);
+  }
+  trilinear_co = _es6_module.add_export('trilinear_co', trilinear_co);
+  function trilinear_co2(p, boxverts, uvw) {
+    let grad=tril_co_tmps.next();
+    let df=1e-05;
+    let mat=tril_mat_1;
+    let m=mat.$matrix;
+    let mat2=tril_mat_2;
+    let r1=tril_co_tmps.next();
+    for (let step=0; step<55; step++) {
+        let totg=0;
+        for (let i=0; i<3; i++) {
+            let axis_error=0.0;
+            if (uvw[i]<0) {
+                axis_error = -uvw[i];
+            }
+            else 
+              if (uvw[i]>1.0) {
+                axis_error = uvw[i]-1.0;
+            }
+            r1[i] = trilinear_v3(uvw, boxverts).vectorDistance(p)+10.0*axis_error;
+            let orig=uvw[i];
+            uvw[i]+=df;
+            if (uvw[i]<0) {
+                axis_error = -uvw[i];
+            }
+            else 
+              if (uvw[i]>1.0) {
+                axis_error = uvw[i]-1.0;
+            }
+            else {
+              axis_error = 0.0;
+            }
+            let r2=trilinear_v3(uvw, boxverts).vectorDistance(p)+10.0*axis_error;
+            uvw[i] = orig;
+            grad[i] = (r2-r1[i])/df;
+            totg+=grad[i]**2;
+        }
+        if (totg===0.0) {
+            break;
+        }
+        let err=trilinear_v3(uvw, boxverts).vectorDistance(p);
+        if (1) {
+            uvw.addFac(grad, -err/totg*0.85);
+        }
+        else {
+          mat.makeIdentity();
+          m.m11 = grad[0];
+          m.m12 = grad[1];
+          m.m13 = grad[2];
+          m.m22 = m.m33 = m.m44 = 0.0;
+          mat.transpose();
+          mat2.load(mat).transpose();
+          mat.preMultiply(mat2).invert();
+          mat.multiply(mat2);
+          grad.load(r1);
+          grad.multVecMatrix(mat);
+          uvw.addFac(grad, -1.0);
+        }
+        lreport("error:", err.toFixed(3), uvw);
+        if (r1.dot(r1)**0.5<0.0001) {
+            break;
+        }
+    }
+    lreport("\n");
+    return uvw;
+  }
+  trilinear_co2 = _es6_module.add_export('trilinear_co2', trilinear_co2);
+  let angle_tri_v3_rets=util.cachering.fromConstructor(Vector3, 32);
+  let angle_tri_v3_vs=util.cachering.fromConstructor(Vector3, 32);
+  function tri_angles(v1, v2, v3) {
+    let t1=angle_tri_v3_vs.next().load(v1).sub(v2);
+    let t2=angle_tri_v3_vs.next().load(v3).sub(v2);
+    let t3=angle_tri_v3_vs.next().load(v2).sub(v3);
+    t1.normalize();
+    t2.normalize();
+    t3.normalize();
+    let th1=Math.acos(t1.dot(t2)*0.99999);
+    t2.negate();
+    let th2=Math.acos(t2.dot(t3)*0.99999);
+    let th3=Math.PI-(th1+th2);
+    let ret=angle_tri_v3_rets.next();
+    ret[0] = th1;
+    ret[1] = th2;
+    ret[2] = th3;
+    return ret;
+  }
+  tri_angles = _es6_module.add_export('tri_angles', tri_angles);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/math.js');
+
+
 es6_module_define('mobile-detect', [], function _mobile_detect_module(_es6_module) {
   (function (define, undefined) {
     define(function () {
@@ -1975,9 +3001,11 @@ es6_module_define('mobile-detect', [], function _mobile_detect_module(_es6_modul
       throw new Error('unknown environment');
     }
   })());
-}, '/dev/fairmotion/src/path.ux/scripts/util/mobile-detect.js');
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/mobile-detect.js');
+
+
 es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
-  (function () {
+  let nexports=(function () {
     if (typeof window==="undefined"&&typeof global!="undefined") {
         global._nGlobal = global;
     }
@@ -1989,176 +3017,63 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       window._nGlobal = window;
     }
     let exports;
+    let module={}
     if (typeof window==="undefined"&&typeof global!=="undefined") {
         console.log("Nodejs!");
     }
     else {
       exports = {};
-      _nGlobal.module = {};
+      _nGlobal.module = {exports: exports};
     }
     'use strict';
-    "use strict";
-    function ClassGetter(func) {
-      this.func = func;
-    }
-    function ClassSetter(func) {
-      this.func = func;
-    }
-    var prototype_idgen=1;
-    var defined_classes=[];
-    var StaticMethod=function StaticMethod(func) {
-      this.func = func;
-    }
-    var handle_statics=function (cls, methods, parent) {
-      for (var i=0; i<methods.length; i++) {
-          var m=methods[i];
-          if (__instance_of(m, StaticMethod)) {
-              cls[m.func.name] = m.func;
+    if (Array.prototype.pop_i===undefined) {
+        Array.prototype.pop_i = function (idx) {
+          if (idx<0||idx>=this.length) {
+              throw new Error("Index out of range");
           }
-      }
-      if (parent!=undefined) {
-          for (var k in parent) {
-              var v=parent[k];
-              if ((typeof v=="object"||typeof v=="function")&&"_is_static_method" in v&&!(k in cls)) {
-                  cls[k] = v;
-              }
+          while (idx<this.length) {
+            this[idx] = this[idx+1];
+            idx++;
           }
-      }
+          this.length-=1;
+        };
     }
-    var Class=function Class(methods) {
-      var construct=undefined;
-      var parent=undefined;
-      if (arguments.length>1) {
-          parent = methods;
-          methods = arguments[1];
-      }
-      for (var i=0; i<methods.length; i++) {
-          var f=methods[i];
-          if (f.name=="constructor") {
-              construct = f;
-              break;
+    if (Array.prototype.remove===undefined) {
+        Array.prototype.remove = function (item, suppress_error) {
+          var i=this.indexOf(item);
+          if (i<0) {
+              if (suppress_error)
+                console.trace("Warning: item not in array", item);
+              else 
+                throw new Error("Error: item not in array "+item);
+              return ;
           }
-      }
-      if (construct==undefined) {
-          console.trace("Warning, constructor was not defined", methods);
-          if (parent!=undefined) {
-              construct = function () {
-                parent.apply(this, arguments);
-              };
-          }
-          else {
-            construct = function () {
-            };
-          }
-      }
-      if (parent!=undefined) {
-          construct.prototype = Object.create(parent.prototype);
-      }
-      construct.prototype.__prototypeid__ = prototype_idgen++;
-      construct.__keystr__ = function () {
-        return this.prototype.__prototypeid__;
-      }
-      construct.__parent__ = parent;
-      construct.__statics__ = [];
-      var getters={}
-      var setters={}
-      var getset={}
-      for (var i=0; i<methods.length; i++) {
-          var f=methods[i];
-          if (__instance_of(f, ClassSetter)) {
-              setters[f.func.name] = f.func;
-              getset[f.func.name] = 1;
-          }
-          else 
-            if (__instance_of(f, ClassGetter)) {
-              getters[f.func.name] = f.func;
-              getset[f.func.name] = 1;
-          }
-      }
-      for (var k in getset) {
-          var def={enumerable: true, 
-       configurable: true, 
-       get: getters[k], 
-       set: setters[k]};
-          Object.defineProperty(construct.prototype, k, def);
-      }
-      handle_statics(construct, methods, parent);
-      if (parent!=undefined)
-        construct.__parent__ = parent;
-      for (var i=0; i<methods.length; i++) {
-          var f=methods[i];
-          if (__instance_of(f, StaticMethod)||__instance_of(f, ClassGetter)||__instance_of(f, ClassSetter))
-            continue;
-          construct.prototype[f.name] = f;
-      }
-      return construct;
+          this.pop_i(i);
+        };
     }
-    Class.getter = function (func) {
-      return new ClassGetter(func);
+    if (String.prototype.contains===undefined) {
+        String.prototype.contains = function (substr) {
+          return String.search(substr)!=null;
+        };
     }
-    Class.setter = function (func) {
-      return new ClassSetter(func);
+    Symbol["_struct_keystr"] = Symbol("_struct_keystr");
+    String.prototype[Symbol._struct_keystr] = function () {
+      return this;
     }
-    Class.static_method = function (func) {
-      func._is_static_method = true;
-      return new StaticMethod(func);
+    Number.prototype[Symbol._struct_keystr] = Boolean.prototype[Symbol._struct_keystr] = function () {
+      return ""+this;
     }
-    var EmptySlot={}
-    var set$1=Class([function constructor(input) {
-      this.items = [];
-      this.keys = {}
-      this.freelist = [];
-      this.length = 0;
-      if (input!=undefined) {
-          input.forEach(function (item) {
-            this.add(item);
-          }, this);
-      }
-    }, function add(item) {
-      var key=item.__keystr__();
-      if (key in this.keys)
-        return ;
-      if (this.freelist.length>0) {
-          var i=this.freelist.pop();
-          this.keys[key] = i;
-          items[i] = i;
-      }
-      else {
-        var i=this.items.length;
-        this.keys[key] = i;
-        this.items.push(item);
-      }
-      this.length++;
-    }, function remove(item) {
-      var key=item.__keystr__();
-      if (!(key in this.keys)) {
-          console.trace("Warning, item", item, "is not in set");
-          return ;
-      }
-      var i=this.keys[key];
-      this.freelist.push(i);
-      this.items[i] = EmptySlot;
-      delete this.items[i];
-      this.length--;
-    }, function has(item) {
-      return item.__keystr__() in this.keys;
-    }, function forEach(func, thisvar) {
-      for (var i=0; i<this.items.length; i++) {
-          var item=this.items[i];
-          if (item===EmptySlot)
-            continue;
-          thisvar!=undefined ? func.call(thisvar, time) : func(item);
-      }
-    }]);
-    var struct_typesystem=Object.freeze({__proto__: null, 
-    defined_classes: defined_classes, 
-    Class: Class, 
-    set: set$1});
-    var Class$1=Class;
     var _o_basic_types={"String": 0, 
     "Number": 0, 
     "Array": 0, 
     "Function": 0}
+    const _export_truncateDollarSign_=function (s) {
+      let i=s.search("$");
+      if (i>0) {
+          return s.slice(0, i).trim();
+      }
+      return s;
+    }
     const _export_cachering_=class cachering extends Array {
        constructor(cb, tot) {
         super();
@@ -2214,7 +3129,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         if (typeof obj=="string")
         return obj;
       else 
-        return obj.__keystr__();
+        return obj[Symbol._struct_keystr]();
     }
     const _export_get_callstack_=function get_callstack(err) {
       var callstack=[];
@@ -2292,111 +3207,207 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           console.log(cs[i]);
       }
     }
-    var set$2=Class$1([function constructor(input) {
-      this.items = [];
-      this.keys = {}
-      this.freelist = [];
-      this.length = 0;
-      if (input!=undefined&&__instance_of(input, Array)) {
-          for (var i=0; i<input.length; i++) {
-              this.add(input[i]);
-          }
+    const EmptySlot=Symbol("emptyslot");
+    var set$1=class set  {
+       constructor(input) {
+        this.items = [];
+        this.keys = {};
+        this.freelist = [];
+        this.length = 0;
+        if (typeof input=="string") {
+            input = new String(input);
+        }
+        if (input!==undefined) {
+            if (Symbol.iterator in input) {
+                for (var item of input) {
+                    this.add(item);
+                }
+            }
+            else 
+              if ("forEach" in input) {
+                input.forEach(function (item) {
+                  this.add(item);
+                }, this);
+            }
+            else 
+              if (__instance_of(input, Array)) {
+                for (var i=0; i<input.length; i++) {
+                    this.add(input[i]);
+                }
+            }
+        }
       }
-      else 
-        if (input!=undefined&&input.forEach!=undefined) {
-          input.forEach(function (item) {
-            this.add(input[i]);
-          }, this);
+       [Symbol.iterator]() {
+        return new SetIter(this);
       }
-    }, function add(obj) {
-      var key=set_getkey(obj);
-      if (key in this.keys)
-        return ;
-      if (this.freelist.length>0) {
-          var i=this.freelist.pop();
-          this.keys[key] = i;
-          this.items[i] = obj;
+       equals(setb) {
+        for (let item of this) {
+            if (!setb.has(item)) {
+                return false;
+            }
+        }
+        for (let item of setb) {
+            if (!this.has(item)) {
+                return false;
+            }
+        }
+        return true;
       }
-      else {
-        this.keys[key] = this.items.length;
-        this.items.push(obj);
+       clear() {
+        this.items.length = 0;
+        this.keys = {};
+        this.freelist.length = 0;
+        this.length = 0;
+        return this;
       }
-      this.length++;
-    }, function remove(obj, raise_error) {
-      var key=set_getkey(obj);
-      if (!(keystr in this.keys)) {
-          if (raise_error)
-            throw new Error("Object not in set");
-          else 
-            console.trace("Object not in set", obj);
+       filter(f, thisvar) {
+        let i=0;
+        let ret=new set();
+        for (let item of this) {
+            if (f.call(thisvar, item, i++, this)) {
+                ret.add(item);
+            }
+        }
+        return ret;
+      }
+       map(f, thisvar) {
+        let ret=new set();
+        let i=0;
+        for (let item of this) {
+            ret.add(f.call(thisvar, item, i++, this));
+        }
+        return ret;
+      }
+       reduce(f, initial) {
+        if (initial===undefined) {
+            for (let item of this) {
+                initial = item;
+                break;
+            }
+        }
+        let i=0;
+        for (let item of this) {
+            initial = f(initial, item, i++, this);
+        }
+        return initial;
+      }
+       copy() {
+        let ret=new set();
+        for (let item of this) {
+            ret.add(item);
+        }
+        return ret;
+      }
+       add(item) {
+        var key=item[Symbol._struct_keystr]();
+        if (key in this.keys)
           return ;
+        if (this.freelist.length>0) {
+            var i=this.freelist.pop();
+            this.keys[key] = i;
+            this.items[i] = item;
+        }
+        else {
+          var i=this.items.length;
+          this.keys[key] = i;
+          this.items.push(item);
+        }
+        this.length++;
       }
-      var i=this.keys[keystr];
-      this.freelist.push(i);
-      this.items[i] = undefined;
-      delete this.keys[keystr];
-      this.length--;
-    }, function has(obj) {
-      return set_getkey(obj) in this.keys;
-    }, function forEach(func, thisvar) {
-      for (var i=0; i<this.items.length; i++) {
-          var item=this.items[i];
-          if (item==undefined)
-            continue;
-          if (thisvar!=undefined)
-            func.call(thisvar, item);
-          else 
-            func(item);
+       remove(item, ignore_existence) {
+        var key=item[Symbol._struct_keystr]();
+        if (!(key in this.keys)) {
+            if (!ignore_existence) {
+                console.warn("Warning, item", item, "is not in set");
+            }
+            return ;
+        }
+        var i=this.keys[key];
+        this.freelist.push(i);
+        this.items[i] = EmptySlot;
+        delete this.keys[key];
+        this.length--;
       }
-    }]);
-    var IDGen=Class$1([function constructor() {
-      this.cur_id = 1;
-    }, function gen_id() {
-      return this.cur_id++;
-    }, Class$1.static_method(function fromSTRUCT(reader) {
-      var ret=new IDGen();
-      reader(ret);
-      return ret;
-    })]);
-    IDGen.STRUCT = ["struct_util.IDGen {", "  cur_id : int;", "}"].join("\n");
+       has(item) {
+        return item[Symbol._struct_keystr]() in this.keys;
+      }
+       forEach(func, thisvar) {
+        for (var i=0; i<this.items.length; i++) {
+            var item=this.items[i];
+            if (item===EmptySlot)
+              continue;
+            thisvar!==undefined ? func.call(thisvar, item) : func(item);
+        }
+      }
+    }
+    _ESClass.register(set$1);
+    var IDGen=class IDGen  {
+       constructor() {
+        this.cur_id = 1;
+      }
+       gen_id() {
+        return this.cur_id++;
+      }
+      static  fromSTRUCT(reader) {
+        var ret=new IDGen();
+        reader(ret);
+        return ret;
+      }
+    }
+    _ESClass.register(IDGen);
+    IDGen.STRUCT = `
+struct_util.IDGen {
+  cur_id : int;
+}
+`;
     var struct_util=Object.freeze({__proto__: null, 
+    truncateDollarSign: _export_truncateDollarSign_, 
     cachering: _export_cachering_, 
     is_obj_lit: is_obj_lit, 
     get_callstack: _export_get_callstack_, 
     print_stack: _export_print_stack_, 
-    set: set$2, 
+    set: set$1, 
     IDGen: IDGen});
+    "use strict";
     const _module_exports_={}
     _module_exports_.STRUCT_ENDIAN = true;
-    var Class$2=Class;
-    var temp_dataview=new DataView(new ArrayBuffer(16));
-    var uint8_view=new Uint8Array(temp_dataview.buffer);
-    var unpack_context=_module_exports_.unpack_context = Class$2([function constructor() {
-      this.i = 0;
-    }]);
-    var pack_byte=_module_exports_.pack_byte = function (array, val) {
+    let temp_dataview=new DataView(new ArrayBuffer(16));
+    let uint8_view=new Uint8Array(temp_dataview.buffer);
+    let unpack_context=_module_exports_.unpack_context = class unpack_context  {
+       constructor() {
+        this.i = 0;
+      }
+    }
+    _ESClass.register(_module_exports_.unpack_context);
+    let pack_byte=_module_exports_.pack_byte = function (array, val) {
       array.push(val);
     }
-    var pack_bytes=_module_exports_.pack_bytes = function (array, bytes) {
-      for (var i=0; i<bytes.length; i++) {
+    let pack_sbyte=_module_exports_.pack_sbyte = function (array, val) {
+      if (val<0) {
+          val = 256+val;
+      }
+      array.push(val);
+    }
+    let pack_bytes=_module_exports_.pack_bytes = function (array, bytes) {
+      for (let i=0; i<bytes.length; i++) {
           array.push(bytes[i]);
       }
     }
-    var pack_int=_module_exports_.pack_int = function (array, val) {
+    let pack_int=_module_exports_.pack_int = function (array, val) {
       temp_dataview.setInt32(0, val, _module_exports_.STRUCT_ENDIAN);
       array.push(uint8_view[0]);
       array.push(uint8_view[1]);
       array.push(uint8_view[2]);
       array.push(uint8_view[3]);
     }
-    var pack_uint=_module_exports_.pack_uint = function (array, val) {
+    let pack_uint=_module_exports_.pack_uint = function (array, val) {
       temp_dataview.setUint32(0, val, _module_exports_.STRUCT_ENDIAN);
       array.push(uint8_view[0]);
       array.push(uint8_view[1]);
       array.push(uint8_view[2]);
       array.push(uint8_view[3]);
     }
-    var pack_ushort=_module_exports_.pack_ushort = function (array, val) {
+    let pack_ushort=_module_exports_.pack_ushort = function (array, val) {
       temp_dataview.setUint16(0, val, _module_exports_.STRUCT_ENDIAN);
       array.push(uint8_view[0]);
       array.push(uint8_view[1]);
@@ -2424,11 +3435,11 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       array.push(uint8_view[0]);
       array.push(uint8_view[1]);
     }
-    var encode_utf8=_module_exports_.encode_utf8 = function encode_utf8(arr, str) {
-      for (var i=0; i<str.length; i++) {
-          var c=str.charCodeAt(i);
+    let encode_utf8=_module_exports_.encode_utf8 = function encode_utf8(arr, str) {
+      for (let i=0; i<str.length; i++) {
+          let c=str.charCodeAt(i);
           while (c!=0) {
-            var uc=c&127;
+            let uc=c&127;
             c = c>>7;
             if (c!=0)
               uc|=128;
@@ -2436,14 +3447,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           }
       }
     }
-    var decode_utf8=_module_exports_.decode_utf8 = function decode_utf8(arr) {
-      var str="";
-      var i=0;
+    let decode_utf8=_module_exports_.decode_utf8 = function decode_utf8(arr) {
+      let str="";
+      let i=0;
       while (i<arr.length) {
-        var c=arr[i];
-        var sum=c&127;
-        var j=0;
-        var lasti=i;
+        let c=arr[i];
+        let sum=c&127;
+        let j=0;
+        let lasti=i;
         while (i<arr.length&&(c&128)) {
           j+=7;
           i++;
@@ -2451,30 +3462,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           c = (c&127)<<j;
           sum|=c;
         }
-        if (sum==0)
+        if (sum===0)
           break;
         str+=String.fromCharCode(sum);
         i++;
       }
       return str;
     }
-    var test_utf8=_module_exports_.test_utf8 = function test_utf8() {
-      var s="a"+String.fromCharCode(8800)+"b";
-      var arr=[];
+    let test_utf8=_module_exports_.test_utf8 = function test_utf8() {
+      let s="a"+String.fromCharCode(8800)+"b";
+      let arr=[];
       encode_utf8(arr, s);
-      var s2=decode_utf8(arr);
+      let s2=decode_utf8(arr);
       if (s!=s2) {
           throw new Error("UTF-8 encoding/decoding test failed");
       }
       return true;
     }
     function truncate_utf8(arr, maxlen) {
-      var len=Math.min(arr.length, maxlen);
-      var last_codepoint=0;
-      var last2=0;
-      var incode=false;
-      var i=0;
-      var code=0;
+      let len=Math.min(arr.length, maxlen);
+      let last_codepoint=0;
+      let last2=0;
+      let incode=false;
+      let i=0;
+      let code=0;
       while (i<len) {
         incode = arr[i]&128;
         if (!incode) {
@@ -2489,15 +3500,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         arr.length = last2;
       return arr;
     }
-    var _static_sbuf_ss=new Array(2048);
-    var pack_static_string=_module_exports_.pack_static_string = function pack_static_string(data, str, length) {
+    let _static_sbuf_ss=new Array(2048);
+    let pack_static_string=_module_exports_.pack_static_string = function pack_static_string(data, str, length) {
       if (length==undefined)
         throw new Error("'length' paremter is not optional for pack_static_string()");
-      var arr=length<2048 ? _static_sbuf_ss : new Array();
+      let arr=length<2048 ? _static_sbuf_ss : new Array();
       arr.length = 0;
       encode_utf8(arr, str);
       truncate_utf8(arr, length);
-      for (var i=0; i<length; i++) {
+      for (let i=0; i<length; i++) {
           if (i>=arr.length) {
               data.push(0);
           }
@@ -2506,32 +3517,35 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           }
       }
     }
-    var _static_sbuf=new Array(32);
-    var pack_string=_module_exports_.pack_string = function pack_string(data, str) {
+    let _static_sbuf=new Array(32);
+    let pack_string=_module_exports_.pack_string = function pack_string(data, str) {
       _static_sbuf.length = 0;
       encode_utf8(_static_sbuf, str);
       pack_int(data, _static_sbuf.length);
-      for (var i=0; i<_static_sbuf.length; i++) {
+      for (let i=0; i<_static_sbuf.length; i++) {
           data.push(_static_sbuf[i]);
       }
     }
-    var unpack_bytes=_module_exports_.unpack_bytes = function unpack_bytes(dview, uctx, len) {
-      var ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
+    let unpack_bytes=_module_exports_.unpack_bytes = function unpack_bytes(dview, uctx, len) {
+      let ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
       uctx.i+=len;
       return ret;
     }
-    var unpack_byte=_module_exports_.unpack_byte = function (dview, uctx) {
+    let unpack_byte=_module_exports_.unpack_byte = function (dview, uctx) {
       return dview.getUint8(uctx.i++);
     }
-    var unpack_int=_module_exports_.unpack_int = function (dview, uctx) {
+    let unpack_sbyte=_module_exports_.unpack_sbyte = function (dview, uctx) {
+      return dview.getInt8(uctx.i++);
+    }
+    let unpack_int=_module_exports_.unpack_int = function (dview, uctx) {
       uctx.i+=4;
       return dview.getInt32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
     }
-    var unpack_uint=_module_exports_.unpack_uint = function (dview, uctx) {
+    let unpack_uint=_module_exports_.unpack_uint = function (dview, uctx) {
       uctx.i+=4;
       return dview.getUint32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
     }
-    var unpack_ushort=_module_exports_.unpack_ushort = function (dview, uctx) {
+    let unpack_ushort=_module_exports_.unpack_ushort = function (dview, uctx) {
       uctx.i+=2;
       return dview.getUint16(uctx.i-2, _module_exports_.STRUCT_ENDIAN);
     }
@@ -2547,27 +3561,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       uctx.i+=2;
       return dview.getInt16(uctx.i-2, _module_exports_.STRUCT_ENDIAN);
     }
-    var _static_arr_us=new Array(32);
+    let _static_arr_us=new Array(32);
     _module_exports_.unpack_string = function (data, uctx) {
-      var str="";
-      var slen=unpack_int(data, uctx);
-      var arr=slen<2048 ? _static_arr_us : new Array(slen);
+      let slen=unpack_int(data, uctx);
+      if (!slen) {
+          return "";
+      }
+      let str="";
+      let arr=slen<2048 ? _static_arr_us : new Array(slen);
       arr.length = slen;
-      for (var i=0; i<slen; i++) {
+      for (let i=0; i<slen; i++) {
           arr[i] = unpack_byte(data, uctx);
       }
       return decode_utf8(arr);
     }
-    var _static_arr_uss=new Array(2048);
+    let _static_arr_uss=new Array(2048);
     _module_exports_.unpack_static_string = function unpack_static_string(data, uctx, length) {
-      var str="";
+      let str="";
       if (length==undefined)
         throw new Error("'length' cannot be undefined in unpack_static_string()");
-      var arr=length<2048 ? _static_arr_uss : new Array(length);
+      let arr=length<2048 ? _static_arr_uss : new Array(length);
       arr.length = 0;
-      var done=false;
-      for (var i=0; i<length; i++) {
-          var c=unpack_byte(data, uctx);
+      let done=false;
+      for (let i=0; i<length; i++) {
+          let c=unpack_byte(data, uctx);
           if (c==0) {
               done = true;
           }
@@ -2581,7 +3598,6 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     let _export_parser_;
     "use strict";
     var t;
-    var Class$3=Class;
     const _export_token_=class token  {
        constructor(type, val, lexpos, lineno, lexer, parser) {
         this.type = type;
@@ -2986,7 +4002,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     PUTIL_ParseError: PUTIL_ParseError, 
     lexer: _export_lexer_});
     "use strict";
-    var StructEnum={T_INT: 0, 
+    let NStruct=class NStruct  {
+       constructor(name) {
+        this.fields = [];
+        this.id = -1;
+        this.name = name;
+      }
+    }
+    _ESClass.register(NStruct);
+    let StructEnum={T_INT: 0, 
     T_FLOAT: 1, 
     T_DOUBLE: 2, 
     T_STRING: 7, 
@@ -3001,8 +4025,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     T_ITERKEYS: 16, 
     T_UINT: 17, 
     T_USHORT: 18, 
-    T_STATIC_ARRAY: 19}
-    var StructTypes={"int": StructEnum.T_INT, 
+    T_STATIC_ARRAY: 19, 
+    T_SIGNED_BYTE: 20}
+    let ValueTypes=new Set([StructEnum.T_INT, StructEnum.T_FLOAT, StructEnum.T_DOUBLE, StructEnum.T_STRING, StructEnum.T_STATIC_STRING, StructEnum.T_SHORT, StructEnum.T_BYTE, StructEnum.T_BOOL, StructEnum.T_UINT, StructEnum.T_USHORT, StructEnum.T_SIGNED_BYTE]);
+    let StructTypes={"int": StructEnum.T_INT, 
     "uint": StructEnum.T_UINT, 
     "ushort": StructEnum.T_USHORT, 
     "float": StructEnum.T_FLOAT, 
@@ -3016,35 +4042,36 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     "short": StructEnum.T_SHORT, 
     "byte": StructEnum.T_BYTE, 
     "bool": StructEnum.T_BOOL, 
-    "iterkeys": StructEnum.T_ITERKEYS}
-    var StructTypeMap={}
-    for (var k in StructTypes) {
+    "iterkeys": StructEnum.T_ITERKEYS, 
+    "sbyte": StructEnum.T_SIGNED_BYTE}
+    let StructTypeMap={}
+    for (let k in StructTypes) {
         StructTypeMap[StructTypes[k]] = k;
     }
     function gen_tabstr(t) {
-      var s="";
-      for (var i=0; i<t; i++) {
+      let s="";
+      for (let i=0; i<t; i++) {
           s+="  ";
       }
       return s;
     }
     function StructParser() {
-      var basic_types=new set$2(["int", "float", "double", "string", "short", "byte", "bool", "uint", "ushort"]);
-      var reserved_tokens=new set$2(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
+      let basic_types=new set$1(["int", "float", "double", "string", "short", "byte", "sbyte", "bool", "uint", "ushort"]);
+      let reserved_tokens=new set$1(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "sbyte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
       function tk(name, re, func) {
         return new _export_tokdef_(name, re, func);
       }
-      var tokens=[tk("ID", /[a-zA-Z_]+[a-zA-Z0-9_\.]*/, function (t) {
+      let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_\.$]*/, function (t) {
         if (reserved_tokens.has(t.value)) {
             t.type = t.value.toUpperCase();
         }
         return t;
       }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
-        var js="";
-        var lexer=t.lexer;
+        let js="";
+        let lexer=t.lexer;
         while (lexer.lexpos<lexer.lexdata.length) {
-          var c=lexer.lexdata[lexer.lexpos];
-          if (c=="\n")
+          let c=lexer.lexdata[lexer.lexpos];
+          if (c==="\n")
             break;
           js+=c;
           lexer.lexpos++;
@@ -3065,12 +4092,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function errfunc(lexer) {
         return true;
       }
-      var lex=new _export_lexer_(tokens, errfunc);
-      var parser=new _export_parser_(lex);
+      let lex=new _export_lexer_(tokens, errfunc);
+      let parser=new _export_parser_(lex);
       function p_Static_String(p) {
         p.expect("STATIC_STRING");
         p.expect("SOPEN");
-        var num=p.expect("NUM");
+        let num=p.expect("NUM");
         p.expect("SCLOSE");
         return {type: StructEnum.T_STATIC_STRING, 
       data: {maxlength: num}}
@@ -3078,7 +4105,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_DataRef(p) {
         p.expect("DATAREF");
         p.expect("LPARAM");
-        var tname=p.expect("ID");
+        let tname=p.expect("ID");
         p.expect("RPARAM");
         return {type: StructEnum.T_DATAREF, 
       data: tname}
@@ -3086,8 +4113,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_Array(p) {
         p.expect("ARRAY");
         p.expect("LPARAM");
-        var arraytype=p_Type(p);
-        var itername="";
+        let arraytype=p_Type(p);
+        let itername="";
         if (p.optional("COMMA")) {
             itername = arraytype.data.replace(/"/g, "");
             arraytype = p_Type(p);
@@ -3100,8 +4127,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_Iter(p) {
         p.expect("ITER");
         p.expect("LPARAM");
-        var arraytype=p_Type(p);
-        var itername="";
+        let arraytype=p_Type(p);
+        let itername="";
         if (p.optional("COMMA")) {
             itername = arraytype.data.replace(/"/g, "");
             arraytype = p_Type(p);
@@ -3114,10 +4141,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_StaticArray(p) {
         p.expect("STATIC_ARRAY");
         p.expect("SOPEN");
-        var arraytype=p_Type(p);
-        var itername="";
+        let arraytype=p_Type(p);
+        let itername="";
         p.expect("COMMA");
-        var size=p.expect("NUM");
+        let size=p.expect("NUM");
         if (size<0||Math.abs(size-Math.floor(size))>1e-06) {
             console.log(Math.abs(size-Math.floor(size)));
             p.error("Expected an integer");
@@ -3135,8 +4162,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_IterKeys(p) {
         p.expect("ITERKEYS");
         p.expect("LPARAM");
-        var arraytype=p_Type(p);
-        var itername="";
+        let arraytype=p_Type(p);
+        let itername="";
         if (p.optional("COMMA")) {
             itername = arraytype.data.replace(/"/g, "");
             arraytype = p_Type(p);
@@ -3149,14 +4176,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       function p_Abstract(p) {
         p.expect("ABSTRACT");
         p.expect("LPARAM");
-        var type=p.expect("ID");
+        let type=p.expect("ID");
         p.expect("RPARAM");
         return {type: StructEnum.T_TSTRUCT, 
       data: type}
       }
       function p_Type(p) {
-        var tok=p.peek();
-        if (tok.type=="ID") {
+        let tok=p.peek();
+        if (tok.type==="ID") {
             p.next();
             return {type: StructEnum.T_STRUCT, 
         data: tok.value}
@@ -3167,15 +4194,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             return {type: StructTypes[tok.type.toLowerCase()]}
         }
         else 
-          if (tok.type=="ARRAY") {
+          if (tok.type==="ARRAY") {
             return p_Array(p);
         }
         else 
-          if (tok.type=="ITER") {
+          if (tok.type==="ITER") {
             return p_Iter(p);
         }
         else 
-          if (tok.type=="ITERKEYS") {
+          if (tok.type==="ITERKEYS") {
             return p_IterKeys(p);
         }
         else 
@@ -3183,15 +4210,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             return p_StaticArray(p);
         }
         else 
-          if (tok.type=="STATIC_STRING") {
+          if (tok.type==="STATIC_STRING") {
             return p_Static_String(p);
         }
         else 
-          if (tok.type=="ABSTRACT") {
+          if (tok.type==="ABSTRACT") {
             return p_Abstract(p);
         }
         else 
-          if (tok.type=="DATAREF") {
+          if (tok.type==="DATAREF") {
             return p_DataRef(p);
         }
         else {
@@ -3200,7 +4227,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       function p_ID_or_num(p) {
         let t=p.peeknext();
-        if (t.type=="NUM") {
+        if (t.type==="NUM") {
             p.next();
             return t.value;
         }
@@ -3209,21 +4236,21 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
       }
       function p_Field(p) {
-        var field={}
+        let field={}
         field.name = p_ID_or_num(p);
         p.expect("COLON");
         field.type = p_Type(p);
         field.set = undefined;
         field.get = undefined;
         let check=0;
-        var tok=p.peek();
-        if (tok.type=="JSCRIPT") {
+        let tok=p.peek();
+        if (tok.type==="JSCRIPT") {
             field.get = tok.value;
             check = 1;
             p.next();
         }
         tok = p.peek();
-        if (tok.type=="JSCRIPT") {
+        if (tok.type==="JSCRIPT") {
             check = 1;
             field.set = tok.value;
             p.next();
@@ -3232,13 +4259,11 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return field;
       }
       function p_Struct(p) {
-        var st={}
-        st.name = p.expect("ID", "struct name");
-        st.fields = [];
-        st.id = -1;
-        var tok=p.peek();
-        var id=-1;
-        if (tok.type=="ID"&&tok.value=="id") {
+        let name=p.expect("ID", "struct name");
+        let st=new NStruct(name);
+        let tok=p.peek();
+        let id=-1;
+        if (tok.type==="ID"&&tok.value==="id") {
             p.next();
             p.expect("EQUALS");
             st.id = p.expect("NUM");
@@ -3263,7 +4288,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     }
     const _export_struct_parse_=StructParser();
     var struct_parser=Object.freeze({__proto__: null, 
+    NStruct: NStruct, 
     StructEnum: StructEnum, 
+    ValueTypes: ValueTypes, 
     StructTypes: StructTypes, 
     StructTypeMap: StructTypeMap, 
     struct_parse: _export_struct_parse_});
@@ -3276,6 +4303,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     let pack_float=_module_exports_.pack_float;
     let pack_string$1=_module_exports_.pack_string;
     let pack_byte$1=_module_exports_.pack_byte;
+    let pack_sbyte$1=_module_exports_.pack_sbyte;
     let pack_double=_module_exports_.pack_double;
     let pack_static_string$1=_module_exports_.pack_static_string;
     let pack_short=_module_exports_.pack_short;
@@ -3285,15 +4313,16 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     let unpack_ushort$1=_module_exports_.unpack_ushort;
     let unpack_string=_module_exports_.unpack_string;
     let unpack_byte$1=_module_exports_.unpack_byte;
+    let unpack_sbyte$1=_module_exports_.unpack_sbyte;
     let unpack_double=_module_exports_.unpack_double;
     let unpack_static_string=_module_exports_.unpack_static_string;
     let unpack_short=_module_exports_.unpack_short;
-    var _static_envcode_null="";
+    let _static_envcode_null="";
     let packer_debug, packer_debug_start, packer_debug_end;
-    var packdebug_tablevel=0;
+    let packdebug_tablevel=0;
     function gen_tabstr$1(tot) {
-      var ret="";
-      for (var i=0; i<tot; i++) {
+      let ret="";
+      for (let i=0; i<tot; i++) {
           ret+=" ";
       }
       return ret;
@@ -3308,8 +4337,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       debug = t;
       if (debug) {
           packer_debug = function (msg) {
-            if (msg!=undefined) {
-                var t=gen_tabstr$1(packdebug_tablevel);
+            if (msg!==undefined) {
+                let t=gen_tabstr$1(packdebug_tablevel);
                 console.log(t+msg);
             }
             else {
@@ -3340,6 +4369,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     let packNull=function (manager, data, field, type) {
       StructFieldTypeMap[type.type].packNull(manager, data, field, type);
     }
+    let toJSON=function (manager, val, obj, field, type) {
+      return _export_StructFieldTypeMap_[type.type].toJSON(manager, val, obj, field, type);
+    }
+    let fromJSON=function (manager, val, obj, field, type, instance) {
+      return _export_StructFieldTypeMap_[type.type].fromJSON(manager, val, obj, field, type, instance);
+    }
     function unpack_field(manager, data, type, uctx) {
       let name;
       if (debug) {
@@ -3347,18 +4382,6 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           packer_debug_start("R start "+name);
       }
       let ret=_export_StructFieldTypeMap_[type.type].unpack(manager, data, type, uctx);
-      if (debug) {
-          packer_debug_end("R end "+name);
-      }
-      return ret;
-    }
-    let fromJSON=function fromJSON(manager, data, owner, type) {
-      let name;
-      if (debug) {
-          name = _export_StructFieldTypeMap_[type.type].define().name;
-          packer_debug_start("R start "+name);
-      }
-      let ret=_export_StructFieldTypeMap_[type.type].readJSON(manager, data, owner, type);
       if (debug) {
           packer_debug_end("R end "+name);
       }
@@ -3388,27 +4411,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return ret;
     }
-    let toJSON=function toJSON(manager, val, obj, field, type) {
-      let name;
-      if (debug) {
-          name = _export_StructFieldTypeMap_[type.type].define().name;
-          packer_debug_start("W start "+name);
-      }
-      let typeid=type;
-      if (typeof typeid!=="number") {
-          typeid = typeid.type;
-      }
-      if (typeof typeid!=="number") {
-          typeid = typeid.type;
-      }
-      let ret=_export_StructFieldTypeMap_[typeid].toJSON(manager, val, obj, field, type);
-      if (debug) {
-          packer_debug_end("W end "+name);
-      }
-      return ret;
-    }
     let StructEnum$1=StructEnum;
-    var _ws_env=[[undefined, undefined]];
+    let _ws_env=[[undefined, undefined]];
     let StructFieldType=class StructFieldType  {
       static  pack(manager, data, val, obj, field, type) {
 
@@ -3416,17 +4420,17 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  unpack(manager, data, type, uctx) {
 
       }
-      static  toJSON(manager, val, obj, field, type) {
-        return val;
-      }
-      static  readJSON(manager, data, owner, type) {
-        return data;
-      }
       static  packNull(manager, data, field, type) {
         this.pack(manager, data, 0, 0, field, type);
       }
       static  format(type) {
         return this.define().name;
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        return val;
+      }
+      static  fromJSON(manager, val, obj, field, type, instance) {
+        return val;
       }
       static  useHelperJS(field) {
         return true;
@@ -3546,8 +4550,17 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  format(type) {
         return type.data;
       }
+      static  fromJSON(manager, val, obj, field, type, instance) {
+        let stt=manager.get_struct(type.data);
+        return manager.readJSON(val, stt, instance);
+      }
       static  toJSON(manager, val, obj, field, type) {
-        return manager.writeJSON(val);
+        let stt=manager.get_struct(type.data);
+        return manager.writeJSON(val, stt);
+      }
+      static  unpackInto(manager, data, type, uctx, dest) {
+        let cls2=manager.get_struct_cls(type.data);
+        return manager.read_object(data, cls2, uctx, dest);
       }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
@@ -3557,12 +4570,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
       }
       static  unpack(manager, data, type, uctx) {
-        var cls2=manager.get_struct_cls(type.data);
+        let cls2=manager.get_struct_cls(type.data);
         return manager.read_object(data, cls2, uctx);
-      }
-      static  readJSON(manager, data, owner, type) {
-        var cls2=manager.get_struct_cls(type.data);
-        return manager.readJSON(data, cls2);
       }
       static  define() {
         return {type: StructEnum$1.T_STRUCT, 
@@ -3574,26 +4583,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     StructFieldType.register(StructStructField);
     class StructTStructField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        var cls=manager.get_struct_cls(type.data);
-        var stt=manager.get_struct(type.data);
-        if (val.constructor.structName!=type.data&&(__instance_of(val, cls))) {
-            stt = manager.get_struct(val.constructor.structName);
-        }
-        else 
-          if (val.constructor.structName==type.data) {
-            stt = manager.get_struct(type.data);
-        }
-        else {
-          console.trace();
-          throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
-        }
-        packer_debug("int "+stt.id);
-        pack_int$1(data, stt.id);
-        manager.write_struct(data, val, stt);
-      }
-      static  toJSON(manager, val, obj, field, type) {
-        var cls=manager.get_struct_cls(type.data);
-        var stt=manager.get_struct(type.data);
+        let cls=manager.get_struct_cls(type.data);
+        let stt=manager.get_struct(type.data);
         if (val.constructor.structName!==type.data&&(__instance_of(val, cls))) {
             stt = manager.get_struct(val.constructor.structName);
         }
@@ -3606,20 +4597,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
         }
         packer_debug("int "+stt.id);
-        return {type: stt.name, 
-      data: manager.writeJSON(val, stt)}
+        pack_int$1(data, stt.id);
+        manager.write_struct(data, val, stt);
+      }
+      static  fromJSON(manager, val, obj, field, type, instance) {
+        let stt=manager.get_struct(val._structName);
+        return manager.readJSON(val, stt, instance);
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        let stt=manager.get_struct(val.constructor.structName);
+        let ret=manager.writeJSON(val, stt);
+        ret._structName = ""+stt.name;
+        return ret;
       }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
         pack_int$1(data, stt.id);
-        packNull(manager, data, field, {type: STructEnum.T_STRUCT, 
+        packNull(manager, data, field, {type: StructEnum$1.T_STRUCT, 
       data: type.data});
       }
       static  format(type) {
         return "abstract("+type.data+")";
       }
-      static  unpack(manager, data, type, uctx) {
-        var id=_module_exports_.unpack_int(data, uctx);
+      static  unpackInto(manager, data, type, uctx, dest) {
+        let id=_module_exports_.unpack_int(data, uctx);
         packer_debug("-int "+id);
         if (!(id in manager.struct_ids)) {
             packer_debug("struct id: "+id);
@@ -3629,28 +4630,26 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             packer_debug_end("tstruct");
             throw new Error("Unknown struct type "+id+".");
         }
-        var cls2=manager.get_struct_id(id);
+        let cls2=manager.get_struct_id(id);
         packer_debug("struct name: "+cls2.name);
         cls2 = manager.struct_cls[cls2.name];
-        let ret=manager.read_object(data, cls2, uctx);
-        return ret;
+        return manager.read_object(data, cls2, uctx, dest);
       }
-      static  readJSON(manager, data, owner, type) {
-        var sttname=data.type;
-        packer_debug("-int "+sttname);
-        if (sttname===undefined||!(sttname in manager.structs)) {
-            packer_debug("struct name: "+sttname);
+      static  unpack(manager, data, type, uctx) {
+        let id=_module_exports_.unpack_int(data, uctx);
+        packer_debug("-int "+id);
+        if (!(id in manager.struct_ids)) {
+            packer_debug("struct id: "+id);
             console.trace();
-            console.log(sttname);
+            console.log(id);
             console.log(manager.struct_ids);
             packer_debug_end("tstruct");
-            throw new Error("Unknown struct "+sttname+".");
+            throw new Error("Unknown struct type "+id+".");
         }
-        var cls2=manager.structs[sttname];
-        packer_debug("struct class name: "+cls2.name);
+        let cls2=manager.get_struct_id(id);
+        packer_debug("struct name: "+cls2.name);
         cls2 = manager.struct_cls[cls2.name];
-        let ret=manager.readJSON(data.data, cls2);
-        return ret;
+        return manager.read_object(data, cls2, uctx);
       }
       static  define() {
         return {type: StructEnum$1.T_TSTRUCT, 
@@ -3662,7 +4661,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     StructFieldType.register(StructTStructField);
     class StructArrayField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        if (!val) {
+        if (val===undefined) {
             console.trace();
             console.log("Undefined array fed to struct struct packer!");
             console.log("Field: ", field);
@@ -3674,12 +4673,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         packer_debug("int "+val.length);
         _module_exports_.pack_int(data, val.length);
-        var d=type.data;
-        var itername=d.iname;
-        var type2=d.type;
-        var env=_ws_env;
-        for (var i=0; i<val.length; i++) {
-            var val2=val[i];
+        let d=type.data;
+        let itername=d.iname;
+        let type2=d.type;
+        let env=_ws_env;
+        for (let i=0; i<val.length; i++) {
+            let val2=val[i];
             if (itername!==""&&itername!==undefined&&field.get) {
                 env[0][0] = itername;
                 env[0][1] = val2;
@@ -3687,44 +4686,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             }
             let fakeField=fakeFields.next();
             fakeField.type = type2;
-            do_pack(manager, data, val2, val, fakeField, type2);
+            do_pack(manager, data, val2, obj, fakeField, type2);
         }
-      }
-      static  toJSON(manager, val, obj, field, type) {
-        if (!val) {
-            console.trace();
-            console.log("Undefined array fed to struct struct packer!");
-            console.log("Field: ", field);
-            console.log("Type: ", type);
-            console.log("");
-            packer_debug("int 0");
-            _module_exports_.pack_int(data, 0);
-            return ;
-        }
-        packer_debug("int "+val.length);
-        var d=type.data;
-        var itername=d.iname;
-        var type2=d.type;
-        var env=_ws_env;
-        var ret=[];
-        for (var i=0; i<val.length; i++) {
-            var val2=val[i];
-            if (itername!==""&&itername!==undefined&&field.get) {
-                env[0][0] = itername;
-                env[0][1] = val2;
-                val2 = manager._env_call(field.get, obj, env);
-            }
-            let fakeField=fakeFields.next();
-            fakeField.type = type2;
-            ret.push(toJSON(manager, val2, val, fakeField, type2));
-        }
-        return ret;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
       }
       static  format(type) {
-        if (type.data.iname!==""&&type.data.iname!=undefined) {
+        if (type.data.iname!==""&&type.data.iname!==undefined) {
             return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
         }
         else {
@@ -3734,26 +4703,51 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  useHelperJS(field) {
         return !field.type.data.iname;
       }
+      static  fromJSON(manager, val, obj, field, type, instance) {
+        let ret=instance||[];
+        ret.length = 0;
+        for (let i=0; i<val.length; i++) {
+            let val2=fromJSON(manager, val[i], val, field, type.data.type, undefined);
+            if (val2===undefined) {
+                console.log(val2);
+                console.error("eeek");
+                process.exit();
+            }
+            ret.push(val2);
+        }
+        return ret;
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        val = val||[];
+        let json=[];
+        let itername=type.data.iname;
+        for (let i=0; i<val.length; i++) {
+            let val2=val[i];
+            let env=_ws_env;
+            if (itername!==""&&itername!==undefined&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            json.push(toJSON(manager, val2, val, field, type.data.type));
+        }
+        return json;
+      }
+      static  unpackInto(manager, data, type, uctx, dest) {
+        let len=_module_exports_.unpack_int(data, uctx);
+        dest.length = 0;
+        for (let i=0; i<len; i++) {
+            dest.push(unpack_field(manager, data, type.data.type, uctx));
+        }
+      }
       static  unpack(manager, data, type, uctx) {
-        var len=_module_exports_.unpack_int(data, uctx);
+        let len=_module_exports_.unpack_int(data, uctx);
         packer_debug("-int "+len);
-        var arr=new Array(len);
-        for (var i=0; i<len; i++) {
+        let arr=new Array(len);
+        for (let i=0; i<len; i++) {
             arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
         return arr;
-      }
-      static  readJSON(manager, data, owner, type) {
-        let ret=[];
-        let type2=type.data.type;
-        if (!data) {
-            console.warn("Corrupted json data", owner);
-            return [];
-        }
-        for (let item of data) {
-            ret.push(fromJSON(manager, item, data, type2));
-        }
-        return ret;
       }
       static  define() {
         return {type: StructEnum$1.T_ARRAY, 
@@ -3791,56 +4785,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         });
         packer_debug("int "+len);
         _module_exports_.pack_int(data, len);
-        var d=type.data, itername=d.iname, type2=d.type;
-        var env=_ws_env;
-        var i=0;
-        forEach(function (val2) {
-          if (i>=len) {
-              if (warninglvl>0)
-                console.trace("Warning: iterator returned different length of list!", val, i);
-              return ;
-          }
-          if (itername!=""&&itername!=undefined&&field.get) {
-              env[0][0] = itername;
-              env[0][1] = val2;
-              val2 = manager._env_call(field.get, obj, env);
-          }
-          let fakeField=fakeFields.next();
-          fakeField.type = type2;
-          do_pack(manager, data, val2, val, fakeField, type2);
-          i++;
-        }, this);
-      }
-      static  toJSON(manager, val, obj, field, type) {
-        function forEach(cb, thisvar) {
-          if (val&&val[Symbol.iterator]) {
-              for (let item of val) {
-                  cb.call(thisvar, item);
-              }
-          }
-          else 
-            if (val&&val.forEach) {
-              val.forEach(function (item) {
-                cb.call(thisvar, item);
-              });
-          }
-          else {
-            console.trace();
-            console.log("Undefined iterable list fed to struct struct packer!", val);
-            console.log("Field: ", field);
-            console.log("Type: ", type);
-            console.log("");
-          }
-        }
-        let len=0.0;
-        let ret=[];
-        forEach(() =>          {
-          len++;
-        });
-        packer_debug("int "+len);
-        var d=type.data, itername=d.iname, type2=d.type;
-        var env=_ws_env;
-        var i=0;
+        let d=type.data, itername=d.iname, type2=d.type;
+        let env=_ws_env;
+        let i=0;
         forEach(function (val2) {
           if (i>=len) {
               if (warninglvl>0)
@@ -3854,10 +4801,27 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           }
           let fakeField=fakeFields.next();
           fakeField.type = type2;
-          ret.push(toJSON(manager, val2, val, fakeField, type2));
+          do_pack(manager, data, val2, obj, fakeField, type2);
           i++;
         }, this);
-        return ret;
+      }
+      static  fromJSON() {
+        return StructArrayField.fromJSON(...arguments);
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        val = val||[];
+        let json=[];
+        let itername=type.data.iname;
+        for (let val2 of val) {
+            let env=_ws_env;
+            if (itername!==""&&itername!==undefined&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            json.push(toJSON(manager, val2, val, field, type.data.type));
+        }
+        return json;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
@@ -3866,33 +4830,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return !field.type.data.iname;
       }
       static  format(type) {
-        if (type.data.iname!=""&&type.data.iname!=undefined) {
+        if (type.data.iname!==""&&type.data.iname!==undefined) {
             return "iter("+type.data.iname+", "+fmt_type(type.data.type)+")";
         }
         else {
           return "iter("+fmt_type(type.data.type)+")";
         }
       }
-      static  unpack(manager, data, type, uctx) {
-        var len=_module_exports_.unpack_int(data, uctx);
+      static  unpackInto(manager, data, type, uctx, arr) {
+        let len=_module_exports_.unpack_int(data, uctx);
         packer_debug("-int "+len);
-        var arr=new Array(len);
-        for (var i=0; i<len; i++) {
-            arr[i] = unpack_field(manager, data, type.data.type, uctx);
+        arr.length = 0;
+        for (let i=0; i<len; i++) {
+            arr.push(unpack_field(manager, data, type.data.type, uctx));
         }
         return arr;
       }
-      static  readJSON(manager, data, owner, type) {
-        let ret=[];
-        let type2=type.data.type;
-        if (!data) {
-            console.warn("Corrupted json data", owner);
-            return [];
+      static  unpack(manager, data, type, uctx) {
+        let len=_module_exports_.unpack_int(data, uctx);
+        packer_debug("-int "+len);
+        let arr=new Array(len);
+        for (let i=0; i<len; i++) {
+            arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
-        for (let item of data) {
-            ret.push(fromJSON(manager, item, data, type2));
-        }
-        return ret;
+        return arr;
       }
       static  define() {
         return {type: StructEnum$1.T_ITER, 
@@ -3932,6 +4893,21 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     _ESClass.register(StructByteField);
     _es6_module.add_class(StructByteField);
     StructFieldType.register(StructByteField);
+    class StructSignedByteField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_sbyte$1(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_sbyte$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_SIGNED_BYTE, 
+      name: "sbyte"}
+      }
+    }
+    _ESClass.register(StructSignedByteField);
+    _es6_module.add_class(StructSignedByteField);
+    StructFieldType.register(StructSignedByteField);
     class StructBoolField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
         pack_byte$1(data, !!val);
@@ -3964,9 +4940,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         packer_debug("int "+len);
         _module_exports_.pack_int(data, len);
-        var d=type.data, itername=d.iname, type2=d.type;
-        var env=_ws_env;
-        var i=0;
+        let d=type.data, itername=d.iname, type2=d.type;
+        let env=_ws_env;
+        let i=0;
         for (let val2 in val) {
             if (i>=len) {
                 if (warninglvl>0)
@@ -3981,53 +4957,31 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             else {
               val2 = val[val2];
             }
-            var f2={type: type2, 
+            let f2={type: type2, 
         get: undefined, 
         set: undefined};
-            do_pack(manager, data, val2, val, f2, type2);
+            do_pack(manager, data, val2, obj, f2, type2);
             i++;
         }
       }
+      static  fromJSON() {
+        return StructArrayField.fromJSON(...arguments);
+      }
       static  toJSON(manager, val, obj, field, type) {
-        if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
-            console.warn("Bad object fed to iterkeys in struct packer!", val);
-            console.log("Field: ", field);
-            console.log("Type: ", type);
-            console.log("");
-            _module_exports_.pack_int(data, 0);
-            packer_debug_end("iterkeys");
-            return ;
-        }
-        let len=0.0;
+        val = val||[];
+        let json=[];
+        let itername=type.data.iname;
         for (let k in val) {
-            len++;
-        }
-        packer_debug("int "+len);
-        var d=type.data, itername=d.iname, type2=d.type;
-        var env=_ws_env;
-        var ret=[];
-        var i=0;
-        for (let val2 in val) {
-            if (i>=len) {
-                if (warninglvl>0)
-                  console.warn("Warning: object keys magically replaced on us", val, i);
-                return ;
-            }
-            if (itername&&itername.trim().length>0&&field.get) {
+            let val2=val[k];
+            let env=_ws_env;
+            if (itername!==""&&itername!==undefined&&field.get) {
                 env[0][0] = itername;
                 env[0][1] = val2;
                 val2 = manager._env_call(field.get, obj, env);
             }
-            else {
-              val2 = val[val2];
-            }
-            var f2={type: type2, 
-        get: undefined, 
-        set: undefined};
-            ret.push(toJSON(manager, val2, val, f2, type2));
-            i++;
+            json.push(toJSON(manager, val2, val, field, type.data.type));
         }
-        return ret;
+        return json;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
@@ -4036,33 +4990,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return !field.type.data.iname;
       }
       static  format(type) {
-        if (type.data.iname!=""&&type.data.iname!=undefined) {
+        if (type.data.iname!==""&&type.data.iname!==undefined) {
             return "iterkeys("+type.data.iname+", "+fmt_type(type.data.type)+")";
         }
         else {
           return "iterkeys("+fmt_type(type.data.type)+")";
         }
       }
-      static  unpack(manager, data, type, uctx) {
-        var len=unpack_int$1(data, uctx);
+      static  unpackInto(manager, data, type, uctx, arr) {
+        let len=unpack_int$1(data, uctx);
         packer_debug("-int "+len);
-        var arr=new Array(len);
-        for (var i=0; i<len; i++) {
-            arr[i] = unpack_field(manager, data, type.data.type, uctx);
+        arr.length = 0;
+        for (let i=0; i<len; i++) {
+            arr.push(unpack_field(manager, data, type.data.type, uctx));
         }
         return arr;
       }
-      static  readJSON(manager, data, owner, type) {
-        let ret=[];
-        let type2=type.data.type;
-        if (!data) {
-            console.warn("Corrupted json data", owner);
-            return [];
+      static  unpack(manager, data, type, uctx) {
+        let len=unpack_int$1(data, uctx);
+        packer_debug("-int "+len);
+        let arr=new Array(len);
+        for (let i=0; i<len; i++) {
+            arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
-        for (let item of data) {
-            ret.push(fromJSON(manager, item, data, type2));
-        }
-        return ret;
+        return arr;
       }
       static  define() {
         return {type: StructEnum$1.T_ITERKEYS, 
@@ -4115,7 +5066,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         for (let i=0; i<type.data.size; i++) {
             let i2=Math.min(i, Math.min(val.length-1, type.data.size));
             let val2=val[i2];
-            if (itername!=""&&itername!=undefined&&field.get) {
+            if (itername!==""&&itername!==undefined&&field.get) {
                 let env=_ws_env;
                 env[0][0] = itername;
                 env[0][1] = val2;
@@ -4124,37 +5075,20 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             do_pack(manager, data, val2, val, field, type.data.type);
         }
       }
-      static  toJSON(manager, val, obj, field, type) {
-        if (type.data.size===undefined) {
-            throw new Error("type.data.size was undefined");
-        }
-        let itername=type.data.iname;
-        if (val===undefined||!val.length) {
-            this.packNull(manager, data, field, type);
-            return ;
-        }
-        let ret=[];
-        for (let i=0; i<type.data.size; i++) {
-            let i2=Math.min(i, Math.min(val.length-1, type.data.size));
-            let val2=val[i2];
-            if (itername!==""&&itername!==undefined&&field.get) {
-                let env=_ws_env;
-                env[0][0] = itername;
-                env[0][1] = val2;
-                val2 = manager._env_call(field.get, obj, env);
-            }
-            ret.push(toJSON(manager, val2, val, field, type.data.type));
-        }
-        return ret;
-      }
       static  useHelperJS(field) {
         return !field.type.data.iname;
+      }
+      static  fromJSON() {
+        return StructArrayField.fromJSON(...arguments);
       }
       static  packNull(manager, data, field, type) {
         let size=type.data.size;
         for (let i=0; i<size; i++) {
             packNull(manager, data, field, type.data.type);
         }
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        return StructArrayField.toJSON(...arguments);
       }
       static  format(type) {
         let type2=_export_StructFieldTypeMap_[type.data.type.type].format(type.data.type);
@@ -4165,23 +5099,19 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         ret+=`]`;
         return ret;
       }
-      static  unpack(manager, data, type, uctx) {
+      static  unpackInto(manager, data, type, uctx, ret) {
         packer_debug("-size: "+type.data.size);
-        let ret=[];
+        ret.length = 0;
         for (let i=0; i<type.data.size; i++) {
             ret.push(unpack_field(manager, data, type.data.type, uctx));
         }
         return ret;
       }
-      static  readJSON(manager, data, owner, type) {
+      static  unpack(manager, data, type, uctx) {
+        packer_debug("-size: "+type.data.size);
         let ret=[];
-        let type2=type.data.type;
-        if (!data) {
-            console.warn("Corrupted json data", owner);
-            return [];
-        }
-        for (let item of data) {
-            ret.push(fromJSON(manager, item, data, type2));
+        for (let i=0; i<type.data.size; i++) {
+            ret.push(unpack_field(manager, data, type.data.type, uctx));
         }
         return ret;
       }
@@ -4193,21 +5123,30 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     _ESClass.register(StructStaticArrayField);
     _es6_module.add_class(StructStaticArrayField);
     StructFieldType.register(StructStaticArrayField);
-    let _export_manager_;
     "use strict";
+    const NStruct$1=NStruct;
     let StructFieldTypeMap$1=_export_StructFieldTypeMap_;
     let warninglvl$1=2;
-    var StructTypeMap$1=StructTypeMap;
-    var StructTypes$1=StructTypes;
-    var Class$4=Class;
-    var struct_parse=_export_struct_parse_;
-    var StructEnum$2=StructEnum;
-    var _static_envcode_null$1="";
-    var debug_struct=0;
-    var packdebug_tablevel$1=0;
+    const _module_exports_$1={}
+    function unmangle(name) {
+      if (_module_exports_$1.truncateDollarSign) {
+          return _export_truncateDollarSign_(name);
+      }
+      else {
+        return name;
+      }
+    }
+    let StructTypeMap$1=StructTypeMap;
+    let StructTypes$1=StructTypes;
+    let struct_parse=_export_struct_parse_;
+    let StructEnum$2=StructEnum;
+    let _static_envcode_null$1="";
+    let debug_struct=0;
+    let packdebug_tablevel$1=0;
+    _module_exports_$1.truncateDollarSign = true;
     function gen_tabstr$2(tot) {
-      var ret="";
-      for (var i=0; i<tot; i++) {
+      let ret="";
+      for (let i=0; i<tot; i++) {
           ret+=" ";
       }
       return ret;
@@ -4216,7 +5155,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     if (debug_struct) {
         packer_debug$1 = function (msg) {
           if (msg!==undefined) {
-              var t=gen_tabstr$2(packdebug_tablevel$1);
+              let t=gen_tabstr$2(packdebug_tablevel$1);
               console.log(t+msg);
           }
           else {
@@ -4240,20 +5179,20 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       packer_debug_end$1 = function () {
       };
     }
-    const _export_setWarningMode_$1=(t) =>      {
+    _module_exports_$1.setWarningMode = (t) =>      {
       _export_setWarningMode_(t);
       if (typeof t!=="number"||isNaN(t)) {
           throw new Error("Expected a single number (>= 0) argument to setWarningMode");
       }
       warninglvl$1 = t;
     }
-    const _export_setDebugMode_$1=(t) =>      {
+    _module_exports_$1.setDebugMode = (t) =>      {
       debug_struct = t;
       _export_setDebugMode_(t);
       if (debug_struct) {
           packer_debug$1 = function (msg) {
-            if (msg!=undefined) {
-                var t=gen_tabstr$2(packdebug_tablevel$1);
+            if (msg!==undefined) {
+                let t=gen_tabstr$2(packdebug_tablevel$1);
                 console.log(t+msg);
             }
             else {
@@ -4278,12 +5217,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         };
       }
     }
-    var _ws_env$1=[[undefined, undefined]];
+    let _ws_env$1=[[undefined, undefined]];
     function do_pack$1(data, val, obj, thestruct, field, type) {
       StructFieldTypeMap$1[field.type.type].pack(manager, data, val, obj, field, type);
     }
     function define_empty_class(name) {
-      var cls=function () {
+      let cls=function () {
       }
       cls.prototype = Object.create(Object.prototype);
       cls.constructor = cls.prototype.constructor = cls;
@@ -4297,7 +5236,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return cls;
     }
-    var STRUCT=class STRUCT  {
+    let STRUCT=_module_exports_$1.STRUCT = class STRUCT  {
        constructor() {
         this.idgen = new IDGen();
         this.allowOverriding = true;
@@ -4307,8 +5246,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         this.compiled_code = {};
         this.null_natives = {};
         function define_null_native(name, cls) {
-          var obj=define_empty_class(name);
-          var stt=struct_parse.parse(obj.STRUCT);
+          let obj=define_empty_class(name);
+          let stt=struct_parse.parse(obj.STRUCT);
           stt.id = this.idgen.gen_id();
           this.structs[name] = stt;
           this.struct_cls[name] = cls;
@@ -4355,30 +5294,39 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           }
           return ret;
         }
+        function throwError(stt, field, msg) {
+          let buf=STRUCT.formatStruct(stt);
+          console.error(buf+"\n\n"+msg);
+          if (onerror) {
+              onerror(msg, stt, field);
+          }
+          else {
+            throw new Error(msg);
+          }
+        }
         for (let k in this.structs) {
             let stt=this.structs[k];
             for (let field of stt.fields) {
+                if (field.name==="this") {
+                    let type=field.type.type;
+                    if (ValueTypes.has(type)) {
+                        throwError(stt, field, "'this' cannot be used with value types");
+                    }
+                }
                 let type=getType(field.type);
                 if (type.type!==StructEnum$2.T_STRUCT&&type.type!==StructEnum$2.T_TSTRUCT) {
                     continue;
                 }
                 if (!(type.data in this.structs)) {
                     let msg=stt.name+":"+field.name+": Unknown struct "+type.data+".";
-                    let buf=STRUCT.formatStruct(stt);
-                    console.error(buf+"\n\n"+msg);
-                    if (onerror) {
-                        onerror(msg, stt, field);
-                    }
-                    else {
-                      throw new Error(msg);
-                    }
+                    throwError(stt, field, msg);
                 }
             }
         }
       }
        forEach(func, thisvar) {
-        for (var k in this.structs) {
-            var stt=this.structs[k];
+        for (let k in this.structs) {
+            let stt=this.structs[k];
             if (thisvar!==undefined)
               func.call(thisvar, stt);
             else 
@@ -4387,44 +5335,44 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
        parse_structs(buf, defined_classes) {
         if (defined_classes===undefined) {
-            defined_classes = _export_manager_;
+            defined_classes = _module_exports_$1.manager;
         }
         if (__instance_of(defined_classes, STRUCT)) {
-            var struct2=defined_classes;
+            let struct2=defined_classes;
             defined_classes = [];
-            for (var k in struct2.struct_cls) {
+            for (let k in struct2.struct_cls) {
                 defined_classes.push(struct2.struct_cls[k]);
             }
         }
         if (defined_classes===undefined) {
             defined_classes = [];
-            for (var k in _export_manager_.struct_cls) {
-                defined_classes.push(_export_manager_.struct_cls[k]);
+            for (let k in _module_exports_$1.manager.struct_cls) {
+                defined_classes.push(_module_exports_$1.manager.struct_cls[k]);
             }
         }
-        var clsmap={};
-        for (var i=0; i<defined_classes.length; i++) {
-            var cls=defined_classes[i];
+        let clsmap={};
+        for (let i=0; i<defined_classes.length; i++) {
+            let cls=defined_classes[i];
             if (!cls.structName&&cls.STRUCT) {
-                var stt=struct_parse.parse(cls.STRUCT.trim());
+                let stt=struct_parse.parse(cls.STRUCT.trim());
                 cls.structName = stt.name;
             }
             else 
               if (!cls.structName&&cls.name!=="Object") {
                 if (warninglvl$1>0)
-                  console.log("Warning, bad class in registered class list", cls.name, cls);
+                  console.log("Warning, bad class in registered class list", unmangle(cls.name), cls);
                 continue;
             }
             clsmap[cls.structName] = defined_classes[i];
         }
         struct_parse.input(buf);
         while (!struct_parse.at_end()) {
-          var stt=struct_parse.parse(undefined, false);
+          let stt=struct_parse.parse(undefined, false);
           if (!(stt.name in clsmap)) {
               if (!(stt.name in this.null_natives))
                 if (warninglvl$1>0)
                 console.log("WARNING: struct "+stt.name+" is missing from class list.");
-              var dummy=define_empty_class(stt.name);
+              let dummy=define_empty_class(stt.name);
               dummy.STRUCT = STRUCT.fmt_struct(stt);
               dummy.structName = stt.name;
               dummy.prototype.structName = dummy.name;
@@ -4439,7 +5387,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             if (stt.id!==-1)
               this.struct_ids[stt.id] = stt;
           }
-          var tok=struct_parse.peek();
+          let tok=struct_parse.peek();
           while (tok&&(tok.value==="\n"||tok.value==="\r"||tok.value==="\t"||tok.value===" ")) {
             tok = struct_parse.peek();
           }
@@ -4447,6 +5395,16 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
        register(cls, structName) {
         return this.add_class(cls, structName);
+      }
+       unregister(cls) {
+        if (!cls||!cls.structName||!(cls.structName in this.struct_cls)) {
+            console.warn("Class not registered with nstructjs", cls);
+            return ;
+        }
+        let st=this.structs[cls.structName];
+        delete this.structs[cls.structName];
+        delete this.struct_cls[cls.structName];
+        delete this.struct_ids[st.id];
       }
        add_class(cls, structName) {
         if (cls.STRUCT) {
@@ -4460,17 +5418,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               }
             }
             if (bad) {
-                console.warn("Generating STRUCT script for derived class "+cls.name);
+                console.warn("Generating STRUCT script for derived class "+unmangle(cls.name));
                 if (!structName) {
-                    structName = cls.name;
+                    structName = unmangle(cls.name);
                 }
                 cls.STRUCT = STRUCT.inherit(cls, p)+`\n}`;
             }
         }
         if (!cls.STRUCT) {
-            throw new Error("class "+cls.name+" has no STRUCT script");
+            throw new Error("class "+unmangle(cls.name)+" has no STRUCT script");
         }
-        var stt=struct_parse.parse(cls.STRUCT);
+        let stt=struct_parse.parse(cls.STRUCT);
+        stt.name = unmangle(stt.name);
         cls.structName = stt.name;
         if (cls.newSTRUCT===undefined) {
             cls.newSTRUCT = function () {
@@ -4484,17 +5443,13 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           if (cls.structName===undefined) {
             cls.structName = stt.name;
         }
-        else 
-          if (cls.structName!==undefined) {
-            stt.name = cls.structName;
-        }
         else {
-          throw new Error("Missing structName parameter");
+          stt.name = cls.structName;
         }
         if (cls.structName in this.structs) {
-            console.warn("Struct "+cls.structName+" is already registered", cls);
+            console.warn("Struct "+unmangle(cls.structName)+" is already registered", cls);
             if (!this.allowOverriding) {
-                throw new Error("Struct "+cls.structName+" is already registered");
+                throw new Error("Struct "+unmangle(cls.structName)+" is already registered");
             }
             return ;
         }
@@ -4504,12 +5459,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         this.struct_cls[cls.structName] = cls;
         this.struct_ids[stt.id] = stt;
       }
+       isRegistered(cls) {
+        if (!cls.hasOwnProperty("structName")) {
+            return false;
+        }
+        return cls===this.struct_cls[cls.structName];
+      }
        get_struct_id(id) {
         return this.struct_ids[id];
       }
        get_struct(name) {
         if (!(name in this.structs)) {
-            console.trace();
+            console.warn("Unknown struct", name);
             throw new Error("Unknown struct "+name);
         }
         return this.structs[name];
@@ -4525,8 +5486,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         if (!parent.STRUCT) {
             return structName+"{\n";
         }
-        var stt=struct_parse.parse(parent.STRUCT);
-        var code=structName+"{\n";
+        let stt=struct_parse.parse(parent.STRUCT);
+        let code=structName+"{\n";
         code+=STRUCT.fmt_struct(stt, true);
         return code;
       }
@@ -4550,12 +5511,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  chain_fromSTRUCT(cls, reader) {
         if (warninglvl$1>0)
           console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
-        var proto=cls.prototype;
-        var parent=cls.prototype.prototype.constructor;
-        var obj=parent.fromSTRUCT(reader);
+        let proto=cls.prototype;
+        let parent=cls.prototype.prototype.constructor;
+        let obj=parent.fromSTRUCT(reader);
         let obj2=new cls();
         let keys=Object.keys(obj).concat(Object.getOwnPropertySymbols(obj));
-        for (var i=0; i<keys.length; i++) {
+        for (let i=0; i<keys.length; i++) {
             let k=keys[i];
             try {
               obj2[k] = obj[k];
@@ -4571,18 +5532,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return this.fmt_struct(stt, internal_only, no_helper_js);
       }
       static  fmt_struct(stt, internal_only, no_helper_js) {
-        if (internal_only==undefined)
+        if (internal_only===undefined)
           internal_only = false;
-        if (no_helper_js==undefined)
+        if (no_helper_js===undefined)
           no_helper_js = false;
-        var s="";
+        let s="";
         if (!internal_only) {
             s+=stt.name;
-            if (stt.id!=-1)
+            if (stt.id!==-1)
               s+=" id="+stt.id;
             s+=" {\n";
         }
-        var tab="  ";
+        let tab="  ";
         function fmt_type(type) {
           return StructFieldTypeMap$1[type.type].format(type);
           if (type.type===StructEnum$2.T_ARRAY||type.type===StructEnum$2.T_ITER||type.type===StructEnum$2.T_ITERKEYS) {
@@ -4609,11 +5570,11 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             return StructTypeMap$1[type.type];
           }
         }
-        var fields=stt.fields;
-        for (var i=0; i<fields.length; i++) {
-            var f=fields[i];
+        let fields=stt.fields;
+        for (let i=0; i<fields.length; i++) {
+            let f=fields[i];
             s+=tab+f.name+" : "+fmt_type(f.type);
-            if (!no_helper_js&&f.get!=undefined) {
+            if (!no_helper_js&&f.get!==undefined) {
                 s+=" | "+f.get.trim();
             }
             s+=";\n";
@@ -4623,21 +5584,21 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return s;
       }
        _env_call(code, obj, env) {
-        var envcode=_static_envcode_null$1;
+        let envcode=_static_envcode_null$1;
         if (env!==undefined) {
             envcode = "";
-            for (var i=0; i<env.length; i++) {
-                envcode = "var "+env[i][0]+" = env["+i.toString()+"][1];\n"+envcode;
+            for (let i=0; i<env.length; i++) {
+                envcode = "let "+env[i][0]+" = env["+i.toString()+"][1];\n"+envcode;
             }
         }
-        var fullcode="";
+        let fullcode="";
         if (envcode!==_static_envcode_null$1)
           fullcode = envcode+code;
         else 
           fullcode = code;
-        var func;
+        let func;
         if (!(fullcode in this.compiled_code)) {
-            var code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+            let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
             try {
               func = _structEval(code2);
             }
@@ -4657,7 +5618,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         catch (err) {
             _export_print_stack_(err);
-            var code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+            let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
             console.log(code2);
             console.log(" ");
             throw err;
@@ -4669,20 +5630,20 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           let cls=StructFieldTypeMap$1[type];
           return cls.useHelperJS(field);
         }
-        var fields=stt.fields;
-        var thestruct=this;
-        for (var i=0; i<fields.length; i++) {
-            var f=fields[i];
-            var t1=f.type;
-            var t2=t1.type;
+        let fields=stt.fields;
+        let thestruct=this;
+        for (let i=0; i<fields.length; i++) {
+            let f=fields[i];
+            let t1=f.type;
+            let t2=t1.type;
             if (use_helper_js(f)) {
-                var val;
-                var type=t2;
-                if (f.get!=undefined) {
+                let val;
+                let type=t2;
+                if (f.get!==undefined) {
                     val = thestruct._env_call(f.get, obj);
                 }
                 else {
-                  val = obj[f.name];
+                  val = f.name==="this" ? obj : obj[f.name];
                 }
                 if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
                     console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
@@ -4690,14 +5651,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
                 do_pack$1(data, val, obj, thestruct, f, t1);
             }
             else {
-              var val=obj[f.name];
+              let val=f.name==="this" ? obj : obj[f.name];
               do_pack$1(data, val, obj, thestruct, f, t1);
             }
         }
       }
        write_object(data, obj) {
-        var cls=obj.constructor.structName;
-        var stt=this.get_struct(cls);
+        let cls=obj.constructor.structName;
+        let stt=this.get_struct(cls);
         if (data===undefined) {
             data = [];
         }
@@ -4705,117 +5666,76 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return data;
       }
        readObject(data, cls_or_struct_id, uctx) {
+        if (__instance_of(data, Uint8Array)||__instance_of(data, Uint8ClampedArray)) {
+            data = new DataView(data.buffer);
+        }
+        else 
+          if (__instance_of(data, Array)) {
+            data = new DataView(new Uint8Array(data).buffer);
+        }
         return this.read_object(data, cls_or_struct_id, uctx);
       }
        writeObject(data, obj) {
         return this.write_object(data, obj);
       }
        writeJSON(obj, stt=undefined) {
-        var cls=obj.constructor.structName;
-        stt = stt||this.get_struct(cls);
+        let cls=obj.constructor;
+        stt = stt||this.get_struct(cls.structName);
         function use_helper_js(field) {
           let type=field.type.type;
           let cls=StructFieldTypeMap$1[type];
           return cls.useHelperJS(field);
         }
         let toJSON$1=toJSON;
-        var fields=stt.fields;
-        var thestruct=this;
+        let fields=stt.fields;
+        let thestruct=this;
         let json={};
-        for (var i=0; i<fields.length; i++) {
-            var f=fields[i];
-            var t1=f.type;
-            var t2=t1.type;
-            var val;
+        for (let i=0; i<fields.length; i++) {
+            let f=fields[i];
+            let val;
+            let t1=f.type;
+            let json2;
             if (use_helper_js(f)) {
-                var type=t2;
                 if (f.get!==undefined) {
                     val = thestruct._env_call(f.get, obj);
                 }
                 else {
-                  val = obj[f.name];
+                  val = f.name==="this" ? obj : obj[f.name];
                 }
                 if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
                     console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
                 }
-                json[f.name] = toJSON$1(this, val, obj, f, t1);
+                json2 = toJSON$1(this, val, obj, f, t1);
             }
             else {
-              val = obj[f.name];
-              json[f.name] = toJSON$1(this, val, obj, f, t1);
+              val = f.name==="this" ? obj : obj[f.name];
+              json2 = toJSON$1(this, val, obj, f, t1);
+            }
+            if (f.name!=='this') {
+                json[f.name] = json2;
+            }
+            else {
+              let isArray=Array.isArray(json2);
+              isArray = isArray||f.type.type===StructTypes$1.T_ARRAY;
+              isArray = isArray||f.type.type===StructTypes$1.T_STATIC_ARRAY;
+              if (isArray) {
+                  json.length = json2.length;
+                  for (let i=0; i<json2.length; i++) {
+                      json[i] = json2[i];
+                  }
+              }
+              else {
+                Object.assign(json, json2);
+              }
             }
         }
         return json;
       }
-       read_object(data, cls_or_struct_id, uctx) {
-        var cls, stt;
+       read_object(data, cls_or_struct_id, uctx, objInstance) {
+        let cls, stt;
         if (__instance_of(data, Array)) {
             data = new DataView(new Uint8Array(data).buffer);
         }
-        if (typeof cls_or_struct_id=="number") {
-            cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
-        }
-        else {
-          cls = cls_or_struct_id;
-        }
-        if (cls===undefined) {
-            throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
-        }
-        stt = this.structs[cls.structName];
-        if (uctx==undefined) {
-            uctx = new _module_exports_.unpack_context();
-            packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
-        }
-        var thestruct=this;
-        let this2=this;
-        function unpack_field(type) {
-          return StructFieldTypeMap$1[type.type].unpack(this2, data, type, uctx);
-        }
-        let was_run=false;
-        function load(obj) {
-          if (was_run) {
-              return ;
-          }
-          was_run = true;
-          var fields=stt.fields;
-          var flen=fields.length;
-          for (var i=0; i<flen; i++) {
-              var f=fields[i];
-              var val=unpack_field(f.type);
-              obj[f.name] = val;
-          }
-        }
-        if (cls.prototype.loadSTRUCT!==undefined) {
-            let obj;
-            if (cls.newSTRUCT!==undefined) {
-                obj = cls.newSTRUCT();
-            }
-            else {
-              obj = new cls();
-            }
-            obj.loadSTRUCT(load);
-            return obj;
-        }
-        else 
-          if (cls.fromSTRUCT!==undefined) {
-            if (warninglvl$1>1)
-              console.warn("Warning: class "+cls.name+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
-            return cls.fromSTRUCT(load);
-        }
-        else {
-          let obj;
-          if (cls.newSTRUCT!==undefined) {
-              obj = cls.newSTRUCT();
-          }
-          else {
-            obj = new cls();
-          }
-          load(obj);
-          return obj;
-        }
-      }
-       readJSON(data, cls_or_struct_id) {
-        var cls, stt;
         if (typeof cls_or_struct_id==="number") {
             cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
         }
@@ -4826,72 +5746,172 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
         }
         stt = this.structs[cls.structName];
-        let fromJSON$1=fromJSON;
-        var thestruct=this;
+        if (uctx===undefined) {
+            uctx = new _module_exports_.unpack_context();
+            packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+        }
+        let thestruct=this;
         let this2=this;
+        function unpack_field(type) {
+          return StructFieldTypeMap$1[type.type].unpack(this2, data, type, uctx);
+        }
+        function unpack_into(type, dest) {
+          return StructFieldTypeMap$1[type.type].unpackInto(this2, data, type, uctx, dest);
+        }
         let was_run=false;
-        function reader(obj) {
-          if (was_run) {
-              return ;
-          }
-          was_run = true;
-          var fields=stt.fields;
-          var flen=fields.length;
-          for (var i=0; i<flen; i++) {
-              var f=fields[i];
-              packer_debug$1("Load field "+f.name);
-              obj[f.name] = fromJSON$1(thestruct, data[f.name], data, f.type);
+        function makeLoader(stt) {
+          return function load(obj) {
+            if (was_run) {
+                return ;
+            }
+            was_run = true;
+            let fields=stt.fields;
+            let flen=fields.length;
+            for (let i=0; i<flen; i++) {
+                let f=fields[i];
+                if (f.name==='this') {
+                    unpack_into(f.type, obj);
+                }
+                else {
+                  obj[f.name] = unpack_field(f.type);
+                }
+            }
           }
         }
+        let load=makeLoader(stt);
         if (cls.prototype.loadSTRUCT!==undefined) {
-            let obj;
-            if (cls.newSTRUCT!==undefined) {
-                obj = cls.newSTRUCT();
+            let obj=objInstance;
+            if (!obj&&cls.newSTRUCT!==undefined) {
+                obj = cls.newSTRUCT(load);
             }
-            else {
-              obj = new cls();
+            else 
+              if (!obj) {
+                obj = new cls();
             }
-            obj.loadSTRUCT(reader);
+            obj.loadSTRUCT(load);
             return obj;
         }
         else 
           if (cls.fromSTRUCT!==undefined) {
             if (warninglvl$1>1)
-              console.warn("Warning: class "+cls.name+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
-            return cls.fromSTRUCT(reader);
+              console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+            return cls.fromSTRUCT(load);
         }
         else {
-          let obj;
-          if (cls.newSTRUCT!==undefined) {
-              obj = cls.newSTRUCT();
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
           }
-          else {
-            obj = new cls();
+          else 
+            if (!obj) {
+              obj = new cls();
           }
-          reader(obj);
+          load(obj);
+          return obj;
+        }
+      }
+       readJSON(json, cls_or_struct_id, objInstance=undefined) {
+        let cls, stt;
+        if (typeof cls_or_struct_id==="number") {
+            cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+        }
+        else 
+          if (__instance_of(cls_or_struct_id, NStruct$1)) {
+            cls = this.get_struct_cls(cls_or_struct_id.name);
+        }
+        else {
+          cls = cls_or_struct_id;
+        }
+        if (cls===undefined) {
+            throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+        }
+        stt = this.structs[cls.structName];
+        packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+        let thestruct=this;
+        let this2=this;
+        let was_run=false;
+        let fromJSON$1=fromJSON;
+        function makeLoader(stt) {
+          return function load(obj) {
+            if (was_run) {
+                return ;
+            }
+            was_run = true;
+            let fields=stt.fields;
+            let flen=fields.length;
+            for (let i=0; i<flen; i++) {
+                let f=fields[i];
+                let val;
+                if (f.name==='this') {
+                    val = json;
+                }
+                else {
+                  val = json[f.name];
+                }
+                if (val===undefined) {
+                    console.warn("nstructjs.readJSON: Missing field "+f.name+" in struct "+stt.name);
+                    continue;
+                }
+                let instance=f.name==='this' ? obj : objInstance;
+                let ret=fromJSON$1(this2, val, obj, f, f.type, instance);
+                if (f.name!=='this') {
+                    obj[f.name] = ret;
+                }
+            }
+          }
+        }
+        let load=makeLoader(stt);
+        if (cls.prototype.loadSTRUCT!==undefined) {
+            let obj=objInstance;
+            if (!obj&&cls.newSTRUCT!==undefined) {
+                obj = cls.newSTRUCT(load);
+            }
+            else 
+              if (!obj) {
+                obj = new cls();
+            }
+            obj.loadSTRUCT(load);
+            return obj;
+        }
+        else 
+          if (cls.fromSTRUCT!==undefined) {
+            if (warninglvl$1>1)
+              console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+            return cls.fromSTRUCT(load);
+        }
+        else {
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
+          }
+          else 
+            if (!obj) {
+              obj = new cls();
+          }
+          load(obj);
           return obj;
         }
       }
     }
-    _ESClass.register(STRUCT);
-    var manager=_export_manager_ = new STRUCT();
-    var write_scripts=function write_scripts(manager, include_code) {
+    _ESClass.register(_module_exports_$1.STRUCT);
+    let manager=_module_exports_$1.manager = new STRUCT();
+    let write_scripts=_module_exports_$1.write_scripts = function write_scripts(manager, include_code) {
       if (include_code===undefined) {
           include_code = false;
       }
       if (manager===undefined)
-        manager = _export_manager_;
-      var buf="";
+        manager = _module_exports_$1.manager;
+      let buf="";
       manager.forEach(function (stt) {
         buf+=STRUCT.fmt_struct(stt, false, !include_code)+"\n";
       });
-      var buf2=buf;
+      let buf2=buf;
       buf = "";
-      for (var i=0; i<buf2.length; i++) {
-          var c=buf2[i];
+      for (let i=0; i<buf2.length; i++) {
+          let c=buf2[i];
           if (c==="\n") {
               buf+="\n";
-              var i2=i;
+              let i2=i;
               while (i<buf2.length&&(buf2[i]===" "||buf2[i]==="\t"||buf2[i]==="\n")) {
                 i++;
               }
@@ -4904,14 +5924,6 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return buf;
     }
-    var struct_intern=Object.freeze({__proto__: null, 
-    get manager() {
-        return _export_manager_;
-      }, 
-    setWarningMode: _export_setWarningMode_$1, 
-    setDebugMode: _export_setDebugMode_$1, 
-    STRUCT: STRUCT, 
-    write_scripts: write_scripts});
     "use strict";
     if (typeof btoa==="undefined") {
         _nGlobal.btoa = function btoa(str) {
@@ -5015,9 +6027,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         this.version.major = _module_exports_.unpack_short(dataview, this.unpack_ctx);
         this.version.minor = _module_exports_.unpack_byte(dataview, this.unpack_ctx);
         this.version.micro = _module_exports_.unpack_byte(dataview, this.unpack_ctx);
-        let struct=this.struct = new STRUCT();
+        let struct=this.struct = new _module_exports_$1.STRUCT();
         let scripts=_module_exports_.unpack_string(dataview, this.unpack_ctx);
-        this.struct.parse_structs(scripts, _export_manager_);
+        this.struct.parse_structs(scripts, _module_exports_$1.manager);
         let blocks=[];
         let dviewlen=dataview.buffer.byteLength;
         while (this.unpack_ctx.i<dviewlen) {
@@ -5046,14 +6058,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
       }
        write(blocks) {
-        this.struct = _export_manager_;
+        this.struct = _module_exports_$1.manager;
         this.blocks = blocks;
         let data=[];
         _module_exports_.pack_static_string(data, this.magic, 4);
         _module_exports_.pack_short(data, this.version.major);
         _module_exports_.pack_byte(data, this.version.minor&255);
         _module_exports_.pack_byte(data, this.version.micro&255);
-        let scripts=write_scripts();
+        let scripts=_module_exports_$1.write_scripts();
         _module_exports_.pack_string(data, scripts);
         let struct=this.struct;
         for (let block of blocks) {
@@ -5108,6 +6120,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     Block: Block, 
     FileError: FileError, 
     FileHelper: FileHelper});
+    var struct_typesystem=Object.freeze({__proto__: null});
     if (typeof window!=="undefined") {
         window._nGlobal = window;
     }
@@ -5119,70 +6132,90 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       global._nGlobal = global;
     }
     _nGlobal._structEval = eval;
-    const _module_exports_$1={}
-    _module_exports_$1.unpack_context = _module_exports_.unpack_context;
-    Object.defineProperty(_module_exports_$1, "STRUCT_ENDIAN", {get: function () {
+    const _module_exports_$2={}
+    _module_exports_$2.unpack_context = _module_exports_.unpack_context;
+    Object.defineProperty(_module_exports_$2, "STRUCT_ENDIAN", {get: function () {
         return _module_exports_.STRUCT_ENDIAN;
       }, 
     set: function (val) {
         _module_exports_.STRUCT_ENDIAN = val;
       }});
-    for (let k in struct_intern) {
-        _module_exports_$1[k] = struct_intern[k];
+    for (let k in _module_exports_$1) {
+        _module_exports_$2[k] = _module_exports_$1[k];
     }
     var StructTypeMap$2=StructTypeMap;
     var StructTypes$2=StructTypes;
-    var Class$5=Class;
-    for (var k$1 in struct_intern) {
-        _module_exports_$1[k$1] = struct_intern[k$1];
+    var Class=undefined;
+    for (var k in _module_exports_$1) {
+        _module_exports_$2[k] = _module_exports_$1[k];
     }
-    _module_exports_$1.validateStructs = function validateStructs(onerror) {
-      return _module_exports_$1.manager.validateStructs(onerror);
+    _module_exports_$2.truncateDollarSign = function (value) {
+      if (value===undefined) {
+          value = true;
+      }
+      _module_exports_$1.truncateDollarSign = !!value;
     }
-    _module_exports_$1.setAllowOverriding = function setAllowOverriding(t) {
-      return _module_exports_$1.manager.allowOverriding = !!t;
+    _module_exports_$2.validateStructs = function validateStructs(onerror) {
+      return _module_exports_$2.manager.validateStructs(onerror);
     }
-    _module_exports_$1.register = function register(cls, structName) {
-      return _module_exports_$1.manager.register(cls, structName);
+    _module_exports_$2.setAllowOverriding = function setAllowOverriding(t) {
+      return _module_exports_$2.manager.allowOverriding = !!t;
     }
-    _module_exports_$1.inherit = function (child, parent, structName) {
+    _module_exports_$2.isRegistered = function isRegistered(cls) {
+      return _module_exports_$2.manager.isRegistered(cls);
+    }
+    _module_exports_$2.register = function register(cls, structName) {
+      return _module_exports_$2.manager.register(cls, structName);
+    }
+    _module_exports_$2.unregister = function unregister(cls) {
+      _module_exports_$2.manager.unregister(cls);
+    }
+    _module_exports_$2.inherit = function (child, parent, structName) {
       if (structName===undefined) {
           structName = child.name;
       }
-      return _module_exports_$1.STRUCT.inherit(...arguments);
+      return _module_exports_$2.STRUCT.inherit(...arguments);
     }
-    _module_exports_$1.readObject = function (data, cls, __uctx) {
+    _module_exports_$2.readObject = function (data, cls, __uctx) {
       if (__uctx===undefined) {
           __uctx = undefined;
       }
-      return _module_exports_$1.manager.readObject(data, cls, __uctx);
+      return _module_exports_$2.manager.readObject(data, cls, __uctx);
     }
-    _module_exports_$1.writeObject = function (data, obj) {
-      return _module_exports_$1.manager.writeObject(data.obj);
+    _module_exports_$2.writeObject = function (data, obj) {
+      return _module_exports_$2.manager.writeObject(data, obj);
     }
-    _module_exports_$1.writeJSON = function (obj) {
-      return _module_exports_$1.manager.writeJSON(obj);
+    _module_exports_$2.writeJSON = function (obj) {
+      return _module_exports_$2.manager.writeJSON(obj);
     }
-    _module_exports_$1.readJSON = function (json, class_or_struct_id) {
-      return _module_exports_$1.manager.readJSON(json, class_or_struct_id);
+    _module_exports_$2.readJSON = function (json, class_or_struct_id) {
+      return _module_exports_$2.manager.readJSON(json, class_or_struct_id);
     }
-    _module_exports_$1.setDebugMode = _export_setDebugMode_$1;
-    _module_exports_$1.setWarningMode = _export_setWarningMode_$1;
-    _module_exports_$1.useTinyEval = () =>      {    }
-    _module_exports_$1.binpack = _module_exports_;
-    _module_exports_$1.util = struct_util;
-    _module_exports_$1.typesystem = struct_typesystem;
-    _module_exports_$1.parseutil = struct_parseutil;
-    _module_exports_$1.parser = struct_parser;
-    _module_exports_$1.filehelper = struct_filehelper;
-    module.exports = _module_exports_$1;
-    if (!(typeof window==="undefined"&&typeof global!=="undefined")) {
+    _module_exports_$2.setDebugMode = _module_exports_$1.setDebugMode;
+    _module_exports_$2.setWarningMode = _module_exports_$1.setWarningMode;
+    _module_exports_$2.useTinyEval = () =>      {    }
+    _module_exports_$2.binpack = _module_exports_;
+    _module_exports_$2.util = struct_util;
+    _module_exports_$2.typesystem = struct_typesystem;
+    _module_exports_$2.parseutil = struct_parseutil;
+    _module_exports_$2.parser = struct_parser;
+    _module_exports_$2.filehelper = struct_filehelper;
+    module.exports = _module_exports_$2;
+    let glob=!((typeof window==="undefined"&&typeof self==="undefined")&&typeof global!=="undefined");
+    glob = glob||(typeof global!=="undefined"&&typeof global.require==="undefined");
+    if (glob) {
         _nGlobal.nstructjs = module.exports;
         _nGlobal.module = undefined;
     }
-    return exports;
+    return module.exports;
   })();
-}, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
+  if (typeof window==="undefined"&&typeof global!=="undefined"&&typeof module!=="undefined") {
+      console.log("Nodejs!", nexports);
+      module.exports = exports = nexports;
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/nstructjs.js');
+
+
 es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
   class token  {
      constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
@@ -5193,6 +6226,10 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.lineno = lineno;
       this.lexer = lexer;
       this.parser = parser;
+    }
+     setValue(val) {
+      this.value = val;
+      return this;
     }
      toString() {
       if (this.value!==undefined)
@@ -5234,6 +6271,16 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.statestack = [["__main__", 0]];
       this.states = {"__main__": [tokdef, errfunc]};
       this.statedata = 0;
+    }
+     copy() {
+      let ret=new lexer(this.tokdef, this.errfunc);
+      for (let k in this.states) {
+          let state=this.states[k];
+          state = [state[0], state[1]];
+          ret.states[k] = state;
+      }
+      ret.statedata = this.statedata;
+      return ret;
     }
      add_state(name, tokdef, errfunc) {
       if (errfunc===undefined) {
@@ -5351,6 +6398,12 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.lexer = lexer;
       this.errfunc = errfunc;
       this.start = undefined;
+      this.userdata = undefined;
+    }
+     copy() {
+      let ret=new parser(this.lexer.copy(), this.errfunc);
+      ret.start = this.start;
+      return ret;
     }
      parse(data, err_on_unconsumed) {
       if (err_on_unconsumed===undefined)
@@ -5563,290 +6616,12 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     var ret=p_Struct(parser);
     console.log(JSON.stringify(ret));
   }
-}, '/dev/fairmotion/src/path.ux/scripts/util/parseutil.js');
-es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util.js", "./math.js", "../core/ui_base.js", "./events.js"], function _ScreenOverdraw_module(_es6_module) {
-  "use strict";
-  let SVG_URL='http://www.w3.org/2000/svg';
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/parseutil.js');
+
+
+es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/config.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
-  var vectormath=es6_import(_es6_module, './vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var events=es6_import(_es6_module, './events.js');
-  var math=es6_import(_es6_module, './math.js');
-  let Vector2=vectormath.Vector2;
-  class Overdraw extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.visibleToPick = false;
-      this.screen = undefined;
-      this.shapes = [];
-      this.otherChildren = [];
-      this.font = undefined;
-      let style=document.createElement("style");
-      style.textContent = `
-      .overdrawx {
-        pointer-events : none;
-      }
-    `;
-      this.shadow.appendChild(style);
-      this.zindex_base = 1000;
-    }
-     startNode(node, screen) {
-      if (screen) {
-          this.screen = screen;
-          this.ctx = screen.ctx;
-      }
-      if (!this.parentNode) {
-          node.appendChild(this);
-      }
-      this.style["display"] = "float";
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
-      this.style["width"] = "100%";
-      this.style["height"] = "100%";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.svg.style["pointer-events"] = "none";
-      this.shadow.appendChild(this.svg);
-    }
-     start(screen) {
-      this.screen = screen;
-      this.ctx = screen.ctx;
-      screen.parentNode.appendChild(this);
-      this.style["display"] = "float";
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
-      this.style["width"] = screen.size[0]+"px";
-      this.style["height"] = screen.size[1]+"px";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.shadow.appendChild(this.svg);
-    }
-     clear() {
-      for (let child of list(this.svg.childNodes)) {
-          child.remove();
-      }
-      for (let child of this.otherChildren) {
-          child.remove();
-      }
-      this.otherChildren.length = 0;
-    }
-     drawTextBubbles(texts, cos, colors) {
-      let boxes=[];
-      let elems=[];
-      let cent=new Vector2();
-      for (let i=0; i<texts.length; i++) {
-          let co=cos[i];
-          let text=texts[i];
-          let color;
-          if (colors!==undefined) {
-              color = colors[i];
-          }
-          cent.add(co);
-          let box=this.text(texts[i], co[0], co[1], {color: color});
-          boxes.push(box);
-          let font=box.style["font"];
-          let pat=/[0-9]+px/;
-          let size=font.match(pat)[0];
-          if (size===undefined) {
-              size = this.getDefault("DefaultText").size;
-          }
-          else {
-            size = ui_base.parsepx(size);
-          }
-          let tsize=ui_base.measureTextBlock(this, text, undefined, undefined, size, font);
-          box.minsize = [~~tsize.width, ~~tsize.height];
-          let pad=ui_base.parsepx(box.style["padding"]);
-          box.minsize[0]+=pad*2;
-          box.minsize[1]+=pad*2;
-          let x=ui_base.parsepx(box.style["left"]);
-          let y=ui_base.parsepx(box.style["top"]);
-          box.grads = new Array(4);
-          box.params = [x, y, box.minsize[0], box.minsize[1]];
-          box.startpos = new Vector2([x, y]);
-          box.setCSS = function () {
-            this.style["padding"] = "0px";
-            this.style["margin"] = "0px";
-            this.style["left"] = ~~this.params[0]+"px";
-            this.style["top"] = ~~this.params[1]+"px";
-            this.style["width"] = ~~this.params[2]+"px";
-            this.style["height"] = ~~this.params[3]+"px";
-          };
-          box.setCSS();
-          elems.push(box);
-      }
-      if (boxes.length===0) {
-          return ;
-      }
-      cent.mulScalar(1.0/boxes.length);
-      function error() {
-        let p1=[0, 0], p2=[0, 0];
-        let s1=[0, 0], s2=[0, 0];
-        let ret=0.0;
-        for (let box1 of boxes) {
-            for (let box2 of boxes) {
-                if (box2===box1) {
-                    continue;
-                }
-                s1[0] = box1.params[2];
-                s1[1] = box1.params[3];
-                s2[0] = box2.params[2];
-                s2[1] = box2.params[3];
-                let overlap=math.aabb_overlap_area(box1.params, s1, box2.params, s2);
-                ret+=overlap;
-            }
-            ret+=box1.startpos.vectorDistance(box1.params)*0.25;
-        }
-        return ret;
-      }
-      function solve() {
-        let r1=error();
-        if (r1===0.0) {
-            return ;
-        }
-        let df=0.0001;
-        let totgs=0.0;
-        for (let box of boxes) {
-            for (let i=0; i<box.params.length; i++) {
-                let orig=box.params[i];
-                box.params[i]+=df;
-                let r2=error();
-                box.params[i] = orig;
-                box.grads[i] = (r2-r1)/df;
-                totgs+=box.grads[i]**2;
-            }
-        }
-        if (totgs===0.0) {
-            return ;
-        }
-        r1/=totgs;
-        let k=0.4;
-        for (let box of boxes) {
-            for (let i=0; i<box.params.length; i++) {
-                box.params[i]+=-r1*box.grads[i]*k;
-            }
-            box.params[2] = Math.max(box.params[2], box.minsize[0]);
-            box.params[3] = Math.max(box.params[3], box.minsize[1]);
-            box.setCSS();
-        }
-      }
-      for (let i=0; i<15; i++) {
-          solve();
-      }
-      for (let box of boxes) {
-          elems.push(this.line(box.startpos, box.params));
-      }
-      return elems;
-    }
-     text(text, x, y, args={}) {
-      args = Object.assign({}, args);
-      if (args.font===undefined) {
-          if (this.font!==undefined)
-            args.font = this.font;
-          else 
-            args.font = this.getDefault("DefaultText").genCSS();
-      }
-      if (!args["background-color"]) {
-          args["background-color"] = "rgba(75, 75, 75, 0.75)";
-      }
-      args.color = args.color ? args.color : "white";
-      if (typeof args.color==="object") {
-          args.color = ui_base.color2css(args.color);
-      }
-      args["padding"] = args["padding"]===undefined ? "5px" : args["padding"];
-      args["border-color"] = args["border-color"] ? args["border-color"] : "grey";
-      args["border-radius"] = args["border-radius"] ? args["border-radius"] : "25px";
-      args["border-width"] = args["border-width"]!==undefined ? args["border-width"] : "2px";
-      if (typeof args["border-width"]==="number") {
-          args["border-width"] = ""+args["border-width"]+"px";
-      }
-      if (typeof args["border-radius"]==="number") {
-          args["border-radius"] = ""+args["border-radius"]+"px";
-      }
-      let box=document.createElement("div");
-      box.setAttribute("class", "overdrawx");
-      box.style["position"] = "absolute";
-      box.style["width"] = "min-contents";
-      box.style["height"] = "min-contents";
-      box.style["border-width"] = args["border-width"];
-      box.style["border-radius"] = "25px";
-      box.style["pointer-events"] = "none";
-      box.style["z-index"] = this.zindex_base+1;
-      box.style["background-color"] = args["background-color"];
-      box.style["padding"] = args["padding"];
-      box.style["left"] = x+"px";
-      box.style["top"] = y+"px";
-      box.style["display"] = "flex";
-      box.style["justify-content"] = "center";
-      box.style["align-items"] = "center";
-      box.innerText = text;
-      box.style["font"] = args.font;
-      box.style["color"] = args.color;
-      this.otherChildren.push(box);
-      this.shadow.appendChild(box);
-      return box;
-    }
-     circle(p, r, stroke="black", fill="none") {
-      let circle=document.createElementNS(SVG_URL, "circle");
-      circle.setAttribute("cx", p[0]);
-      circle.setAttribute("cy", p[1]);
-      circle.setAttribute("r", r);
-      if (fill) {
-          circle.setAttribute("style", `stroke:${stroke};stroke-width:2;fill:${fill}`);
-      }
-      else {
-        circle.setAttribute("style", `stroke:${stroke};stroke-width:2`);
-      }
-      this.svg.appendChild(circle);
-      return circle;
-    }
-     line(v1, v2, color="black") {
-      let line=document.createElementNS(SVG_URL, "line");
-      line.setAttribute("x1", v1[0]);
-      line.setAttribute("y1", v1[1]);
-      line.setAttribute("x2", v2[0]);
-      line.setAttribute("y2", v2[1]);
-      line.setAttribute("style", `stroke:${color};stroke-width:2`);
-      this.svg.appendChild(line);
-      return line;
-    }
-     rect(p, size, color="black") {
-      let line=document.createElementNS(SVG_URL, "rect");
-      line.setAttribute("x", p[0]);
-      line.setAttribute("y", p[1]);
-      line.setAttribute("width", size[0]);
-      line.setAttribute("height", size[1]);
-      line.setAttribute("style", `fill:${color};stroke-width:2`);
-      line.setColor = (color) =>        {
-        line.setAttribute("style", `fill:${color};stroke-width:2`);
-      };
-      this.svg.appendChild(line);
-      return line;
-    }
-     end() {
-      this.clear();
-      this.remove();
-    }
-    static  define() {
-      return {tagname: "overdraw-x"}
-    }
-  }
-  _ESClass.register(Overdraw);
-  _es6_module.add_class(Overdraw);
-  Overdraw = _es6_module.add_export('Overdraw', Overdraw);
-  ui_base.UIBase.register(Overdraw);
-}, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/const.js"], function _simple_events_module(_es6_module) {
-  var util=es6_import(_es6_module, './util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var cconst=es6_import_item(_es6_module, '../config/config.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   let modalstack=[];
   modalstack = _es6_module.add_export('modalstack', modalstack);
@@ -6236,10 +7011,41 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
     return ret;
   }
   pushModalLight = _es6_module.add_export('pushModalLight', pushModalLight);
+  if (0) {
+      let addevent=EventTarget.prototype.addEventListener;
+      let remevent=EventTarget.prototype.removeEventListener;
+      const funckey=Symbol("eventfunc");
+      EventTarget.prototype.addEventListener = function (name, func, args) {
+        console.warn("listener added", name, func, args);
+        let func2=function (e) {
+          let proxy=new Proxy(e, {get: function get(target, p, receiver) {
+              if (p==="preventDefault") {
+                  return function () {
+                    console.warn("preventDefault", name, arguments);
+                    return e.preventDefault(...arguments);
+                  }
+              }
+              else 
+                if (p==="stopPropagation") {
+                  return function () {
+                    console.warn("stopPropagation", name, arguments);
+                    return e.preventDefault(...arguments);
+                  }
+              }
+              return e[p];
+            }});
+          return func.call(this, proxy);
+        }
+        func[funckey] = func2;
+        return addevent.call(this, name, func2, args);
+      };
+      EventTarget.prototype.removeEventListener = function (name, func, args) {
+        console.warn("listener removed", name, func, args);
+        func = func[funckey];
+        return remevent.call(this, name, func, args);
+      };
+  }
   function popModalLight(state) {
-    if (cconst.DEBUG.modalEvents) {
-        console.warn("popModalLight");
-    }
     if (state===undefined) {
         console.warn("Bad call to popModalLight: state was undefined");
         return ;
@@ -6258,6 +7064,9 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
     }
     state.handlers = {}
     modalstack.remove(state);
+    if (cconst.DEBUG.modalEvents) {
+        console.warn("popModalLight", modalstack);
+    }
   }
   popModalLight = _es6_module.add_export('popModalLight', popModalLight);
   function haveModal() {
@@ -6314,7 +7123,9 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
       keymap_latin_1[String.fromCharCode(i+48)] = i+48;
   }
   for (var k in keymap_latin_1) {
-      keymap_latin_1[keymap_latin_1[k]] = k;
+      if (!(k in keymap_latin_1)) {
+          keymap_latin_1[keymap_latin_1[k]] = k;
+      }
   }
   var keymap_latin_1_rev={}
   for (var k in keymap_latin_1) {
@@ -6380,7 +7191,7 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
           mods.add("command");
       }
       for (let hk of this) {
-          let ok=e.keyCode==hk.key;
+          let ok=e.keyCode===hk.key;
           if (!ok)
             continue;
           let count=0;
@@ -6392,10 +7203,11 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
               }
               count++;
           }
-          if (count!=mods.length) {
+          if (count!==mods.length) {
               ok = false;
           }
           if (ok) {
+              console.log("handling hotkey", hk, this);
               try {
                 hk.exec(ctx);
               }
@@ -6417,8 +7229,10 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
   _ESClass.register(KeyMap);
   _es6_module.add_class(KeyMap);
   KeyMap = _es6_module.add_export('KeyMap', KeyMap);
-}, '/dev/fairmotion/src/path.ux/scripts/util/simple_events.js');
-es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], function _solver_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/simple_events.js');
+
+
+es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], function _solver_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
   var util=es6_import(_es6_module, './util.js');
@@ -6435,9 +7249,14 @@ es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], funct
       this.df = 0.0005;
       this.threshold = 0.0001;
       this.func = func;
+      this.funcDv = null;
     }
      evaluate(no_dvs=false) {
       let r1=this.func(this.params);
+      if (this.funcDv) {
+          this.funcDv(this.params, this.glst);
+          return r1;
+      }
       if (Math.abs(r1)<this.threshold)
         return 0.0;
       let df=this.df;
@@ -6464,13 +7283,21 @@ es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], funct
      constructor() {
       this.constraints = [];
       this.gk = 0.99;
+      this.simple = false;
+      this.randCons = false;
     }
      add(con) {
       this.constraints.push(con);
     }
      solveStep(gk=this.gk) {
       let err=0.0;
-      for (let con of this.constraints) {
+      let cons=this.constraints;
+      for (let ci=0; ci<cons.length; ci++) {
+          let ri=ci;
+          if (this.randCons) {
+              ri = ~~(Math.random()*this.constraints.length*0.99999);
+          }
+          let con=cons[ri];
           let r1=con.evaluate();
           if (r1===0.0)
             continue;
@@ -6495,10 +7322,51 @@ es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], funct
       }
       return err;
     }
-     solve(steps, gk=this.gk) {
+     solveStepSimple(gk=this.gk) {
+      let err=0.0;
+      let cons=this.constraints;
+      for (let ci=0; ci<cons.length; ci++) {
+          let ri=ci;
+          if (this.randCons) {
+              ri = ~~(Math.random()*this.constraints.length*0.99999);
+          }
+          let con=cons[ri];
+          let r1=con.evaluate();
+          if (r1===0.0)
+            continue;
+          err+=Math.abs(r1);
+          let totgs=0.0;
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  totgs+=gs[j]*gs[j];
+              }
+          }
+          if (totgs===0.0) {
+              continue;
+          }
+          totgs = 0.0001/Math.sqrt(totgs);
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  ks[j]+=-totgs*gs[j]*con.k*gk;
+              }
+          }
+      }
+      return err;
+    }
+     solve(steps, gk=this.gk, printError=false) {
       let err=0.0;
       for (let i=0; i<steps; i++) {
-          err = this.solveStep(gk);
+          if (this.simple) {
+              err = this.solveStepSimple(gk);
+          }
+          else {
+            err = this.solveStep(gk);
+          }
+          if (printError) {
+              console.warn("average error:", (err/this.constraints.length).toFixed(4));
+          }
           if (err<0.01/this.constraints.length) {
               break;
           }
@@ -6509,50 +7377,31 @@ es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], funct
   _ESClass.register(Solver);
   _es6_module.add_class(Solver);
   Solver = _es6_module.add_export('Solver', Solver);
-}, '/dev/fairmotion/src/path.ux/scripts/util/solver.js');
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/solver.js');
+
+
 es6_module_define('struct', ["./nstructjs.js"], function _struct_module(_es6_module) {
   es6_import(_es6_module, './nstructjs.js');
   let nstructjs=window.nstructjs;
   nstructjs = _es6_module.add_export('nstructjs', nstructjs);
-  const STRUCT=nstructjs.STRUCT;
-  _es6_module.add_export('STRUCT', STRUCT);
-  const manager=nstructjs.manager;
-  _es6_module.add_export('manager', manager);
-  const write_scripts=nstructjs.write_scripts;
-  _es6_module.add_export('write_scripts', write_scripts);
-  const inherit=nstructjs.inherit;
-  _es6_module.add_export('inherit', inherit);
-  const setDebugMode=nstructjs.setDebugMode;
-  _es6_module.add_export('setDebugMode', setDebugMode);
-  const validateStructs=nstructjs.validateStructs;
-  _es6_module.add_export('validateStructs', validateStructs);
-  const readObject=nstructjs.readObject;
-  _es6_module.add_export('readObject', readObject);
-  const writeObject=nstructjs.writeObject;
-  _es6_module.add_export('writeObject', writeObject);
-  const _nstructjs=nstructjs;
-  _es6_module.add_export('_nstructjs', _nstructjs);
-  const readJSON=nstructjs.readJSON;
-  _es6_module.add_export('readJSON', readJSON);
-  const writeJSON=nstructjs.writeJSON;
-  _es6_module.add_export('writeJSON', writeJSON);
-  const setAllowOverriding=nstructjs.setAllowOverriding;
-  _es6_module.add_export('setAllowOverriding', setAllowOverriding);
-  function register(cls) {
-    manager.add_class(cls);
-  }
-  register = _es6_module.add_export('register', register);
-  function setEndian(little_endian) {
-    if (little_endian===undefined) {
-        little_endian = true;
-    }
-    nstructjs.STRUCT_ENDIAN = little_endian;
-  }
-  setEndian = _es6_module.add_export('setEndian', setEndian);
-}, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
-es6_module_define('vectormath', ["./util.js", "./struct.js"], function _vectormath_module(_es6_module) {
+  _es6_module.set_default_export(undefined, Object.assign({setEndian: function setEndian(mode) {
+      nstructjs.STRUCT_ENDIAN = mode;
+    }}, nstructjs));
+  
+  delete window.nstructjs;
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/struct.js');
+
+
+es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
-  es6_import(_es6_module, './struct.js');
+  var nstructjs=es6_import_item(_es6_module, './struct.js', 'default');
+  const EulerOrders={XYZ: 0, 
+   XZY: 1, 
+   YXZ: 2, 
+   YZX: 3, 
+   ZXY: 4, 
+   ZYX: 5}
+  _es6_module.add_export('EulerOrders', EulerOrders);
   window.makeCompiledVectormathCode = function (mode) {
     if (mode===undefined) {
         mode = "es";
@@ -6567,18 +7416,18 @@ es6_module_define('vectormath', ["./util.js", "./struct.js"], function _vectorma
         return `var ${name} = exports.${name} =`;
       }
     }
-    let classes=[Vector2, Vector3, Vector4, Quat];
+    let classes=[Vector2, Vector3, Vector4, a];
     let lens={Vector2: 2, 
     Vector3: 3, 
     Vector4: 4, 
     Quat: 4}
     let modecode="";
     let nstructjscode=`
-  let g = typeof window != "undefined" ? window : "undefined";
+  let g = typeof window !== "undefined" ? window : "undefined";
   
-  g = g || (typeof global != "undefined" ? global : "undefined");
-  g = g || (typeof self != "undefined" ? self : "undefined");
-  g = g || (typeof globals != "undefined" ? globals : "undefined");
+  g = g || (typeof global !== "undefined" ? global : "undefined");
+  g = g || (typeof self !== "undefined" ? self : "undefined");
+  g = g || (typeof globals !== "undefined" ? globals : "undefined");
 
   if (typeof nstructjs === "undefined") {
     //add nstructjs stub
@@ -6647,6 +7496,8 @@ var DOT_NORM_SNAP_LIMIT = 0.00000000001;
 ${doExports("BaseVector")} class BaseVector extends Array {
   constructor() {
     super();
+    
+    this.vec = undefined; //for compatibility with old files
   }
 
   copy() {
@@ -6717,16 +7568,18 @@ ${doExports("BaseVector")} class BaseVector extends Array {
             zero+=" = 0.0";
             if (k==="constructor") {
                 s+=`  constructor(data) {
-    super();
+    super(${l});
         
+    this.vec = undefined; //for compatibility with old files
+    
     if (arguments.length > 1) {
       throw new Error("unexpected argument");
     }
 
-    this.length = ${l};
+    //this.length = ${l};
     ${zero};
 
-    if (data != undefined) {
+    if (data !== undefined) {
       this.load(data);
     }
   }
@@ -6784,7 +7637,7 @@ ${doExports("BaseVector")} class BaseVector extends Array {
   var DOT_NORM_SNAP_LIMIT=1e-11;
   var M_SQRT2=Math.sqrt(2.0);
   var FLT_EPSILON=2.22e-16;
-  var basic_funcs={equals: [["b"], "this[X] == b[X]", "&&"], 
+  var basic_funcs={equals: [["b"], "this[X] === b[X]", "&&"], 
    zero: [[], "0.0;"], 
    negate: [[], "-this[X];"], 
    combine: [["b", "u", "v"], "this[X]*u + this[X]*v;"], 
@@ -6799,6 +7652,8 @@ ${doExports("BaseVector")} class BaseVector extends Array {
    divScalar: [["b"], "this[X] / b;"], 
    addScalar: [["b"], "this[X] + b;"], 
    subScalar: [["b"], "this[X] - b;"], 
+   minScalar: [["b"], "Math.min(this[X], b);"], 
+   maxScalar: [["b"], "Math.max(this[X], b);"], 
    ceil: [[], "Math.ceil(this[X])"], 
    floor: [[], "Math.floor(this[X])"], 
    abs: [[], "Math.abs(this[X])"], 
@@ -6814,15 +7669,6 @@ ${doExports("BaseVector")} class BaseVector extends Array {
     else 
       return Math.acos(fac);
   }
-  function saasin(fac) {
-    if (fac<=-1.0)
-      return -Math.pi/2.0;
-    else 
-      if (fac>=1.0)
-      return Math.pi/2.0;
-    else 
-      return Math.asin(fac);
-  }
   function make_norm_safe_dot(cls) {
     var _dot=cls.prototype.dot;
     cls.prototype._dot = _dot;
@@ -6835,147 +7681,143 @@ ${doExports("BaseVector")} class BaseVector extends Array {
       return ret;
     }
   }
-  class BaseVector extends Array {
-     constructor() {
-      super();
-    }
-    static  Angle3(a, b, c) {
-      let dx1, dy1, dz1=0.0, dw1=0.0;
-      let dx2, dy2, dz2=0.0, dw2=0.0;
-      dx1 = a[0]-b[0];
-      dy1 = a[1]-b[1];
-      if (a.length>2&&b.length>2)
-        dz1 = a[2]-b[2];
-      if (a.length>3&&b.length>3)
-        dw1 = a[3]-b[3];
-      dx2 = c[0]-b[0];
-      dy2 = c[1]-b[1];
-      if (c.length>2&&b.length>2)
-        dz2 = c[2]-b[2];
-      if (c.length>3&&b.length>3)
-        dw2 = c[3]-b[3];
-      let l1=Math.sqrt(dx1*dx1+dy1*dy1+dz1*dz1+dw1*dw1);
-      let l2=Math.sqrt(dx2*dx2+dy2*dy2+dz2*dz2+dw2*dw2);
-      let eps=1e-05;
-      if (l1==0.0||l2==0.0) {
-          return 0.0;
+  function getBaseVector(parent) {
+    return class BaseVector extends parent {
+       constructor() {
+        super(...arguments);
+        this.vec = undefined;
       }
-      l1 = (1.0-eps)/l1;
-      l2 = (1.0-eps)/l2;
-      dx1*=l1;
-      dy1*=l1;
-      dz1*=l1;
-      dw1*=l1;
-      dx2*=l2;
-      dy2*=l2;
-      dz2*=l2;
-      dw2*=l2;
-      return Math.acos(dx1*dx2+dy1*dy2+dz1*dz2+dw1*dw2);
-    }
-     copy() {
-      return new this.constructor(this);
-    }
-     load(data) {
-      throw new Error("Implement me!");
-    }
-     init_swizzle(size) {
-      var ret={};
-      var cls=size==4 ? Vector4 : (size==3 ? Vector3 : Vector2);
-      for (var k in cls.prototype) {
-          var v=cls.prototype[k];
-          if (typeof v!="function"&&!(__instance_of(v, Function)))
-            continue;
-          ret[k] = v.bind(this);
-      }
-      return ret;
-    }
-     vectorLength() {
-      return sqrt(this.dot(this));
-    }
-     normalize() {
-      var l=this.vectorLength();
-      if (l>1e-08) {
-          this.mulScalar(1.0/l);
-      }
-      return this;
-    }
-    static  inherit(cls, vectorsize) {
-      make_norm_safe_dot(cls);
-      var f;
-      var vectorDotDistance="f = function vectorDotDistance(b) {\n";
-      for (var i=0; i<vectorsize; i++) {
-          vectorDotDistance+="  let d"+i+" = this["+i+"]-b["+i+"];\n\n  ";
-      }
-      vectorDotDistance+="  return ";
-      for (var i=0; i<vectorsize; i++) {
-          if (i>0)
-            vectorDotDistance+=" + ";
-          vectorDotDistance+="d"+i+"*d"+i;
-      }
-      vectorDotDistance+=";\n";
-      vectorDotDistance+="};";
-      cls.prototype.vectorDotDistance = eval(vectorDotDistance);
-      var f;
-      var vectorDistance="f = function vectorDistance(b) {\n";
-      for (var i=0; i<vectorsize; i++) {
-          vectorDistance+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
-      }
-      vectorDistance+="  return Math.sqrt(";
-      for (var i=0; i<vectorsize; i++) {
-          if (i>0)
-            vectorDistance+=" + ";
-          vectorDistance+="d"+i+"*d"+i;
-      }
-      vectorDistance+=");\n";
-      vectorDistance+="};";
-      cls.prototype.vectorDistance = eval(vectorDistance);
-      for (var k in basic_funcs) {
-          var func=basic_funcs[k];
-          var args=func[0];
-          var line=func[1];
-          var f;
-          var code="f = function "+k+"(";
-          for (var i=0; i<args.length; i++) {
-              if (i>0)
-                code+=", ";
-              line = line.replace(args[i], args[i].toLowerCase());
-              code+=args[i].toLowerCase();
-          }
-          code+=") {\n";
-          if (func.length>2) {
-              code+="  return ";
-              for (var i=0; i<vectorsize; i++) {
-                  if (i>0)
-                    code+=func[2];
-                  code+="("+line.replace(/X/g, ""+i)+")";
-              }
-              code+=";\n";
-          }
-          else {
-            for (var i=0; i<vectorsize; i++) {
-                var line2=line.replace(/X/g, ""+i);
-                code+="  this["+i+"] = "+line2+";\n";
+      static  inherit(cls, vectorsize) {
+        make_norm_safe_dot(cls);
+        var f;
+        var vectorDotDistance="f = function vectorDotDistance(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDotDistance+="  let d"+i+" = this["+i+"]-b["+i+"];\n\n  ";
+        }
+        vectorDotDistance+="  return ";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDotDistance+=" + ";
+            vectorDotDistance+="d"+i+"*d"+i;
+        }
+        vectorDotDistance+=";\n";
+        vectorDotDistance+="};";
+        cls.prototype.vectorDotDistance = eval(vectorDotDistance);
+        var f;
+        var vectorDistance="f = function vectorDistance(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDistance+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
+        }
+        vectorDistance+="  return Math.sqrt(";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDistance+=" + ";
+            vectorDistance+="d"+i+"*d"+i;
+        }
+        vectorDistance+=");\n";
+        vectorDistance+="};";
+        cls.prototype.vectorDistance = eval(vectorDistance);
+        var vectorDistanceSqr="f = function vectorDistanceSqr(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDistanceSqr+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
+        }
+        vectorDistanceSqr+="  return (";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDistanceSqr+=" + ";
+            vectorDistanceSqr+="d"+i+"*d"+i;
+        }
+        vectorDistanceSqr+=");\n";
+        vectorDistanceSqr+="};";
+        cls.prototype.vectorDistanceSqr = eval(vectorDistanceSqr);
+        for (var k in basic_funcs) {
+            var func=basic_funcs[k];
+            var args=func[0];
+            var line=func[1];
+            var f;
+            var code="f = function "+k+"(";
+            for (var i=0; i<args.length; i++) {
+                if (i>0)
+                  code+=", ";
+                line = line.replace(args[i], args[i].toLowerCase());
+                code+=args[i].toLowerCase();
             }
-            code+="  return this;\n";
-          }
-          code+="}\n";
-          var f=eval(code);
-          cls.prototype[k] = f;
+            code+=") {\n";
+            if (func.length>2) {
+                code+="  return ";
+                for (var i=0; i<vectorsize; i++) {
+                    if (i>0)
+                      code+=func[2];
+                    code+="("+line.replace(/X/g, ""+i)+")";
+                }
+                code+=";\n";
+            }
+            else {
+              for (var i=0; i<vectorsize; i++) {
+                  var line2=line.replace(/X/g, ""+i);
+                  code+="  this["+i+"] = "+line2+";\n";
+              }
+              code+="  return this;\n";
+            }
+            code+="}\n";
+            var f=eval(code);
+            cls.prototype[k] = f;
+        }
+      }
+       copy() {
+        return new this.constructor(this);
+      }
+       load(data) {
+        throw new Error("Implement me!");
+      }
+       init_swizzle(size) {
+        var ret={};
+        var cls=size===4 ? Vector4 : (size===3 ? Vector3 : Vector2);
+        for (var k in cls.prototype) {
+            var v=cls.prototype[k];
+            if (typeof v!=="function"&&!(__instance_of(v, Function)))
+              continue;
+            ret[k] = v.bind(this);
+        }
+        return ret;
+      }
+       vectorLength() {
+        return sqrt(this.dot(this));
+      }
+       swapAxes(axis1, axis2) {
+        let t=this[axis1];
+        this[axis1] = this[axis2];
+        this[axis2] = t;
+        return this;
+      }
+       normalize() {
+        let l=this.vectorLength();
+        if (l>1e-08) {
+            this.mulScalar(1.0/l);
+        }
+        return this;
       }
     }
+    _ESClass.register(BaseVector);
+    _es6_module.add_class(BaseVector);
   }
-  _ESClass.register(BaseVector);
-  _es6_module.add_class(BaseVector);
-  BaseVector = _es6_module.add_export('BaseVector', BaseVector);
+  const BaseVector=getBaseVector(Array);
+  _es6_module.add_export('BaseVector', BaseVector);
+  const F64BaseVector=getBaseVector(Float64Array);
+  _es6_module.add_export('F64BaseVector', F64BaseVector);
+  const F32BaseVector=getBaseVector(Float32Array);
+  _es6_module.add_export('F32BaseVector', F32BaseVector);
+  function myclamp(f, a, b) {
+    return Math.min(Math.max(f, a), b);
+  }
   class Vector4 extends BaseVector {
      constructor(data) {
-      super();
+      super(4);
       if (arguments.length>1) {
           throw new Error("unexpected argument");
       }
-      this.length = 4;
       this[0] = this[1] = this[2] = this[3] = 0.0;
-      if (data!=undefined) {
+      if (data!==undefined) {
           this.load(data);
       }
     }
@@ -7000,7 +7842,7 @@ ${doExports("BaseVector")} class BaseVector extends Array {
       return this;
     }
      load(data) {
-      if (data==undefined)
+      if (data===undefined)
         return this;
       this[0] = data[0];
       this[1] = data[1];
@@ -7012,15 +7854,15 @@ ${doExports("BaseVector")} class BaseVector extends Array {
       return this[0]*b[0]+this[1]*b[1]+this[2]*b[2]+this[3]*b[3];
     }
      mulVecQuat(q) {
-      var t0=-this[1]*this[0]-this[2]*this[1]-this[3]*this[2];
-      var t1=this[0]*this[0]+this[2]*this[2]-this[3]*this[1];
-      var t2=this[0]*this[1]+this[3]*this[0]-this[1]*this[2];
-      this[2] = this[0]*this[2]+this[1]*this[1]-this[2]*this[0];
+      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
+      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
+      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
       this[0] = t1;
       this[1] = t2;
-      t1 = t0*-this[1]+this[0]*this[0]-this[1]*this[3]+this[2]*this[2];
-      t2 = t0*-this[2]+this[1]*this[0]-this[2]*this[1]+this[0]*this[3];
-      this[2] = t0*-this[3]+this[2]*this[0]-this[0]*this[2]+this[1]*this[1];
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
+      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
       this[0] = t1;
       this[1] = t2;
       return this;
@@ -7046,21 +7888,15 @@ ${doExports("BaseVector")} class BaseVector extends Array {
       return this;
     }
      preNormalizedAngle(v2) {
-      if (this.dot(v2)<0.0) {
-          var vec=new Vector4();
-          vec[0] = -v2[0];
-          vec[1] = -v2[1];
-          vec[2] = -v2[2];
-          vec[3] = -v2[3];
-          return Math.pi-2.0*saasin(vec.vectorDistance(this)/2.0);
-      }
-      else 
-        return 2.0*saasin(v2.vectorDistance(this)/2.0);
+      let th=this.dot(v2)*0.99999;
+      return Math.acos(th);
     }
      loadSTRUCT(reader) {
       reader(this);
-      this.load(this.vec);
-      delete this.vec;
+      if (typeof this.vec!=="undefined") {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
     }
   }
   _ESClass.register(Vector4);
@@ -7069,23 +7905,38 @@ ${doExports("BaseVector")} class BaseVector extends Array {
   
   Vector4.STRUCT = `
 vec4 {
-  vec : array(float) | this;
+  0 : float;
+  1 : float;
+  2 : float;
+  3 : float;
 }
 `;
   nstructjs.manager.add_class(Vector4);
   var _v3nd_n1_normalizedDot, _v3nd_n2_normalizedDot;
   var _v3nd4_n1_normalizedDot4, _v3nd4_n2_normalizedDot4;
-  class Vector3 extends BaseVector {
+  class Vector3 extends F64BaseVector {
      constructor(data) {
-      super();
+      super(3);
       if (arguments.length>1) {
           throw new Error("unexpected argument");
       }
-      this.length = 3;
       this[0] = this[1] = this[2] = 0.0;
-      if (data!=undefined) {
+      if (data!==undefined) {
           this.load(data);
       }
+      if (this.constructor===Vector3) {
+          Object.preventExtensions(this);
+      }
+    }
+    static  normalizedDot4(v1, v2, v3, v4) {
+      $_v3nd4_n1_normalizedDot4.load(v2).sub(v1).normalize();
+      $_v3nd4_n2_normalizedDot4.load(v4).sub(v3).normalize();
+      return $_v3nd4_n1_normalizedDot4.dot($_v3nd4_n2_normalizedDot4);
+    }
+    static  normalizedDot3(v1, center, v2) {
+      $_v3nd4_n1_normalizedDot3.load(v1).sub(center).normalize();
+      $_v3nd4_n2_normalizedDot3.load(v2).sub(center).normalize();
+      return $_v3nd4_n1_normalizedDot3.dot($_v3nd4_n2_normalizedDot3);
     }
      toCSS() {
       let r=~~(this[0]*255);
@@ -7111,7 +7962,7 @@ vec4 {
       return this;
     }
      load(data) {
-      if (data==undefined)
+      if (data===undefined)
         return this;
       this[0] = data[0];
       this[1] = data[1];
@@ -7128,13 +7979,22 @@ vec4 {
       $_v3nd_n2_normalizedDot.normalize();
       return $_v3nd_n1_normalizedDot.dot($_v3nd_n2_normalizedDot);
     }
-    static  normalizedDot4(v1, v2, v3, v4) {
-      $_v3nd4_n1_normalizedDot4.load(v2).sub(v1).normalize();
-      $_v3nd4_n2_normalizedDot4.load(v4).sub(v3).normalize();
-      return $_v3nd4_n1_normalizedDot4.dot($_v3nd4_n2_normalizedDot4);
+     mulVecQuat(q) {
+      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
+      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
+      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
+      this[0] = t1;
+      this[1] = t2;
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
+      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
+      this[0] = t1;
+      this[1] = t2;
+      return this;
     }
      multVecMatrix(matrix, ignore_w) {
-      if (ignore_w==undefined) {
+      if (ignore_w===undefined) {
           ignore_w = false;
       }
       var x=this[0];
@@ -7144,7 +8004,7 @@ vec4 {
       this[1] = matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22+z*matrix.$matrix.m32;
       this[2] = matrix.$matrix.m43+x*matrix.$matrix.m13+y*matrix.$matrix.m23+z*matrix.$matrix.m33;
       var w=matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24+z*matrix.$matrix.m34;
-      if (!ignore_w&&w!=1&&w!=0&&matrix.isPersp) {
+      if (!ignore_w&&w!==1&&w!==0&&matrix.isPersp) {
           this[0]/=w;
           this[1]/=w;
           this[2]/=w;
@@ -7163,7 +8023,7 @@ vec4 {
      rot2d(A, axis) {
       var x=this[0];
       var y=this[1];
-      if (axis==1) {
+      if (axis===1) {
           this[0] = x*cos(A)+y*sin(A);
           this[1] = y*cos(A)-x*sin(A);
       }
@@ -7174,20 +8034,15 @@ vec4 {
       return this;
     }
      preNormalizedAngle(v2) {
-      if (this.dot(v2)<0.0) {
-          var vec=new Vector3();
-          vec[0] = -v2[0];
-          vec[1] = -v2[1];
-          vec[2] = -v2[2];
-          return Math.pi-2.0*saasin(vec.vectorDistance(this)/2.0);
-      }
-      else 
-        return 2.0*saasin(v2.vectorDistance(this)/2.0);
+      let th=this.dot(v2)*0.99999;
+      return Math.acos(th);
     }
      loadSTRUCT(reader) {
       reader(this);
-      this.load(this.vec);
-      delete this.vec;
+      if (typeof this.vec!=="undefined") {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
     }
   }
   _ESClass.register(Vector3);
@@ -7195,17 +8050,18 @@ vec4 {
   Vector3 = _es6_module.add_export('Vector3', Vector3);
   Vector3.STRUCT = `
 vec3 {
-  vec : array(float) | obj;
+  0 : float;
+  1 : float;
+  2 : float;
 }
 `;
   nstructjs.manager.add_class(Vector3);
   class Vector2 extends BaseVector {
      constructor(data) {
-      super();
+      super(2);
       if (arguments.length>1) {
           throw new Error("unexpected argument");
       }
-      this.length = 2;
       this[0] = this[1] = 0.0;
       if (data!==undefined) {
           this.load(data);
@@ -7233,8 +8089,13 @@ vec3 {
      loadJSON(obj) {
       return this.load(obj);
     }
+     loadXY(x, y) {
+      this[0] = x;
+      this[1] = y;
+      return this;
+    }
      load(data) {
-      if (data==undefined)
+      if (data===undefined)
         return this;
       this[0] = data[0];
       this[1] = data[1];
@@ -7243,7 +8104,7 @@ vec3 {
      rot2d(A, axis) {
       var x=this[0];
       var y=this[1];
-      if (axis==1) {
+      if (axis===1) {
           this[0] = x*cos(A)+y*sin(A);
           this[1] = y*cos(A)-x*sin(A);
       }
@@ -7272,25 +8133,27 @@ vec3 {
       return this;
     }
      mulVecQuat(q) {
-      let w=1.0;
-      let z=0.0;
-      var t0=-this[1]*this[0]-z*this[1]-w*z;
-      var t1=this[0]*this[0]+z*z-w*this[1];
-      var t2=this[0]*this[1]+w*this[0]-this[1]*z;
-      z = this[0]*z+this[1]*this[1]-z*this[0];
+      let t0=-q[1]*this[0]-q[2]*this[1];
+      let t1=q[0]*this[0]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0];
+      let z=q[1]*this[1]-q[2]*this[0];
       this[0] = t1;
       this[1] = t2;
-      t1 = t0*-this[1]+this[0]*this[0]-this[1]*w+z*z;
-      t2 = t0*-z+this[1]*this[0]-z*this[1]+this[0]*w;
-      z = t0*-w+z*this[0]-this[0]*z+this[1]*this[1];
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+z*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-z*q[1]+this[0]*q[3];
       this[0] = t1;
       this[1] = t2;
       return this;
     }
+     vectorLengthSqr() {
+      return this.dot(this);
+    }
      loadSTRUCT(reader) {
       reader(this);
-      this.load(this.vec);
-      delete this.vec;
+      if (typeof this.vec!==undefined) {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
     }
   }
   _ESClass.register(Vector2);
@@ -7299,7 +8162,8 @@ vec3 {
   
   Vector2.STRUCT = `
 vec2 {
-  vec : array(float) | obj;
+  0 : float;
+  1 : float;
 }
 `;
   nstructjs.manager.add_class(Vector2);
@@ -7310,7 +8174,7 @@ vec2 {
       this[1] = this[2] = this[3] = 0.0;
     }
      isZero() {
-      return (this[0]==0&&this[1]==0&&this[2]==0&&this[3]==0);
+      return (this[0]===0&&this[1]===0&&this[2]===0&&this[3]===0);
     }
      mulQuat(qt) {
       var a=this[0]*qt[0]-this[1]*qt[1]-this[2]*qt[2]-this[3]*qt[3];
@@ -7331,7 +8195,7 @@ vec2 {
     }
      invert() {
       var f=this.dot(this);
-      if (f==0.0)
+      if (f===0.0)
         return ;
       conjugate_qt(q);
       this.mulscalar(1.0/f);
@@ -7358,7 +8222,7 @@ vec2 {
       return this;
     }
      toMatrix(m) {
-      if (m==undefined) {
+      if (m===undefined) {
           m = new Matrix4();
       }
       var q0=M_SQRT2*this[0];
@@ -7391,7 +8255,8 @@ vec2 {
       return m;
     }
      matrixToQuat(wmat) {
-      var mat=new Matrix4(wmat);
+      var mat=temp_mats.next();
+      mat.load(wmat);
       mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
       mat.$matrix.m44 = 1.0;
       var r1=new Vector3([mat.$matrix.m11, mat.$matrix.m12, mat.$matrix.m13]);
@@ -7450,7 +8315,7 @@ vec2 {
     }
      normalize() {
       var len=Math.sqrt(this.dot(this));
-      if (len!=0.0) {
+      if (len!==0.0) {
           this.mulScalar(1.0/len);
       }
       else {
@@ -7462,7 +8327,7 @@ vec2 {
      axisAngleToQuat(axis, angle) {
       let nor=_quat_vs3_temps.next().load(axis);
       nor.normalize();
-      if (nor.dot(nor)!=0.0) {
+      if (nor.dot(nor)!==0.0) {
           var phi=angle/2.0;
           var si=Math.sin(phi);
           this[0] = Math.cos(phi);
@@ -7475,19 +8340,24 @@ vec2 {
       }
       return this;
     }
-     rotationBetweenVecs(v1, v2) {
+     rotationBetweenVecs(v1, v2, fac=1.0) {
       v1 = new Vector3(v1);
       v2 = new Vector3(v2);
       v1.normalize();
       v2.normalize();
-      var axis=new Vector3(v1);
+      if (Math.abs(v1.dot(v2))>0.9999) {
+          this.makeUnitQuat();
+          return this;
+      }
+      let axis=new Vector3(v1);
       axis.cross(v2);
-      var angle=v1.preNormalizedAngle(v2);
+      let angle=v1.preNormalizedAngle(v2)*fac;
       this.axisAngleToQuat(axis, angle);
+      return this;
     }
      quatInterp(quat2, t) {
-      var quat=new Quat();
-      var cosom=this[0]*quat2[0]+this[1]*quat2[1]+this[2]*quat2[2]+this[3]*quat2[3];
+      let quat=new Quat();
+      let cosom=this[0]*quat2[0]+this[1]*quat2[1]+this[2]*quat2[2]+this[3]*quat2[3];
       if (cosom<0.0) {
           cosom = -cosom;
           quat[0] = -this[0];
@@ -7501,7 +8371,7 @@ vec2 {
         quat[2] = this[2];
         quat[3] = this[3];
       }
-      var omega, sinom, sc1, sc2;
+      let omega, sinom, sc1, sc2;
       if ((1.0-cosom)>0.0001) {
           omega = Math.acos(cosom);
           sinom = Math.sin(omega);
@@ -7518,28 +8388,21 @@ vec2 {
       this[3] = sc1*quat[3]+sc2*quat2[3];
       return this;
     }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.load(this.vec);
-      delete this.vec;
-    }
   }
   _ESClass.register(Quat);
   _es6_module.add_class(Quat);
   Quat = _es6_module.add_export('Quat', Quat);
   
-  Quat.STRUCT = `
-quat {
-  vec : array(float) | obj;
+  Quat.STRUCT = nstructjs.inherit(Quat, Vector4, 'quat')+`
 }
 `;
-  nstructjs.manager.add_class(Quat);
+  nstructjs.register(Quat);
   _v3nd4_n1_normalizedDot4 = new Vector3();
   _v3nd4_n2_normalizedDot4 = new Vector3();
   _v3nd_n1_normalizedDot = new Vector3();
   _v3nd_n2_normalizedDot = new Vector3();
   BaseVector.inherit(Vector4, 4);
-  BaseVector.inherit(Vector3, 3);
+  F64BaseVector.inherit(Vector3, 3);
   BaseVector.inherit(Vector2, 2);
   lookat_cache_vs3 = util.cachering.fromConstructor(Vector3, 64);
   lookat_cache_vs4 = util.cachering.fromConstructor(Vector4, 64);
@@ -7548,6 +8411,8 @@ quat {
   var $_v3nd_n2_normalizedDot=new Vector3();
   var $_v3nd4_n1_normalizedDot4=new Vector3();
   var $_v3nd4_n2_normalizedDot4=new Vector3();
+  var $_v3nd4_n1_normalizedDot3=new Vector3();
+  var $_v3nd4_n2_normalizedDot3=new Vector3();
   var M_SQRT2=Math.sqrt(2.0);
   var FLT_EPSILON=2.22e-16;
   class internal_matrix  {
@@ -7574,7 +8439,11 @@ quat {
   _es6_module.add_class(internal_matrix);
   var lookat_cache_vs3;
   var lookat_cache_vs4;
+  var lookat_cache_ms;
+  var euler_rotate_mats;
   var makenormalcache;
+  var temp_mats;
+  let preMultTemp;
   class Matrix4  {
      constructor(m) {
       this.$matrix = new internal_matrix();
@@ -7589,33 +8458,140 @@ quat {
           }
       }
     }
+    static  fromJSON() {
+      var mat=new Matrix4();
+      mat.load(json.items);
+      mat.isPersp = json.isPersp;
+      return mat;
+    }
      clone() {
       return new Matrix4(this);
+    }
+     addToHashDigest(hash) {
+      let m=this.$matrix;
+      hash.add(m.m11);
+      hash.add(m.m12);
+      hash.add(m.m13);
+      hash.add(m.m14);
+      hash.add(m.m21);
+      hash.add(m.m22);
+      hash.add(m.m23);
+      hash.add(m.m24);
+      hash.add(m.m31);
+      hash.add(m.m32);
+      hash.add(m.m33);
+      hash.add(m.m34);
+      hash.add(m.m41);
+      hash.add(m.m42);
+      hash.add(m.m43);
+      hash.add(m.m44);
+      return this;
     }
      equals(m) {
       let m1=this.$matrix;
       let m2=m.$matrix;
       let ok=1;
-      ok = ok&&m1.m11==m2.m11;
-      ok = ok&&m1.m12==m2.m12;
-      ok = ok&&m1.m13==m2.m13;
-      ok = ok&&m1.m14==m2.m14;
-      ok = ok&&m1.m21==m2.m21;
-      ok = ok&&m1.m22==m2.m22;
-      ok = ok&&m1.m23==m2.m23;
-      ok = ok&&m1.m24==m2.m24;
-      ok = ok&&m1.m31==m2.m31;
-      ok = ok&&m1.m32==m2.m32;
-      ok = ok&&m1.m33==m2.m33;
-      ok = ok&&m1.m34==m2.m34;
-      ok = ok&&m1.m41==m2.m41;
-      ok = ok&&m1.m42==m2.m42;
-      ok = ok&&m1.m43==m2.m43;
-      ok = ok&&m1.m44==m2.m44;
+      ok = ok&&m1.m11===m2.m11;
+      ok = ok&&m1.m12===m2.m12;
+      ok = ok&&m1.m13===m2.m13;
+      ok = ok&&m1.m14===m2.m14;
+      ok = ok&&m1.m21===m2.m21;
+      ok = ok&&m1.m22===m2.m22;
+      ok = ok&&m1.m23===m2.m23;
+      ok = ok&&m1.m24===m2.m24;
+      ok = ok&&m1.m31===m2.m31;
+      ok = ok&&m1.m32===m2.m32;
+      ok = ok&&m1.m33===m2.m33;
+      ok = ok&&m1.m34===m2.m34;
+      ok = ok&&m1.m41===m2.m41;
+      ok = ok&&m1.m42===m2.m42;
+      ok = ok&&m1.m43===m2.m43;
+      ok = ok&&m1.m44===m2.m44;
       return ok;
     }
+     loadColumn(i, vec) {
+      let m=this.$matrix;
+      let have4=vec.length>3;
+      switch (i) {
+        case 0:
+          m.m11 = vec[0];
+          m.m21 = vec[1];
+          m.m31 = vec[2];
+          if (have4) {
+              m.m41 = vec[3];
+          }
+          break;
+        case 1:
+          m.m12 = vec[0];
+          m.m22 = vec[1];
+          m.m32 = vec[2];
+          if (have4) {
+              m.m42 = vec[3];
+          }
+          break;
+        case 2:
+          m.m13 = vec[0];
+          m.m23 = vec[1];
+          m.m33 = vec[2];
+          if (have4) {
+              m.m43 = vec[3];
+          }
+          break;
+        case 3:
+          m.m14 = vec[0];
+          m.m24 = vec[1];
+          m.m34 = vec[2];
+          if (have4) {
+              m.m44 = vec[3];
+          }
+          break;
+      }
+      return this;
+    }
+     copyColumnTo(i, vec) {
+      let m=this.$matrix;
+      let have4=vec.length>3;
+      switch (i) {
+        case 0:
+          vec[0] = m.m11;
+          vec[1] = m.m21;
+          vec[2] = m.m31;
+          if (have4) {
+              vec[3] = m.m41;
+          }
+          break;
+        case 1:
+          vec[0] = m.m12;
+          vec[1] = m.m22;
+          vec[2] = m.m32;
+          if (have4) {
+              vec[3] = m.m42;
+          }
+          break;
+        case 2:
+          vec[0] = m.m13;
+          vec[1] = m.m23;
+          vec[2] = m.m33;
+          if (have4) {
+              vec[3] = m.m43;
+          }
+          break;
+        case 3:
+          vec[0] = m.m14;
+          vec[1] = m.m24;
+          vec[2] = m.m34;
+          if (have4) {
+              vec[3] = m.m44;
+          }
+          break;
+      }
+      return vec;
+    }
+     copyColumn(i) {
+      return this.copyColumnTo(i, new Vector3());
+    }
      load() {
-      if (arguments.length==1&&typeof arguments[0]=='object') {
+      if (arguments.length===1&&typeof arguments[0]==='object') {
           var matrix;
           if (__instance_of(arguments[0], Matrix4)) {
               matrix = arguments[0].$matrix;
@@ -7667,12 +8643,6 @@ quat {
       return {isPersp: this.isPersp, 
      items: this.getAsArray()}
     }
-    static  fromJSON() {
-      var mat=new Matrix4();
-      mat.load(json.items);
-      mat.isPersp = json.isPersp;
-      return mat;
-    }
      getAsArray() {
       return [this.$matrix.m11, this.$matrix.m12, this.$matrix.m13, this.$matrix.m14, this.$matrix.m21, this.$matrix.m22, this.$matrix.m23, this.$matrix.m24, this.$matrix.m31, this.$matrix.m32, this.$matrix.m33, this.$matrix.m34, this.$matrix.m41, this.$matrix.m42, this.$matrix.m43, this.$matrix.m44];
     }
@@ -7680,7 +8650,7 @@ quat {
       return new Float32Array(this.getAsArray());
     }
      setUniform(ctx, loc, transpose) {
-      if (Matrix4.setUniformArray==undefined) {
+      if (Matrix4.setUniformArray===undefined) {
           Matrix4.setUniformWebGLArray = new Float32Array(16);
           Matrix4.setUniformArray = new Array(16);
       }
@@ -7769,9 +8739,10 @@ quat {
       this.$matrix.m42/=det;
       this.$matrix.m43/=det;
       this.$matrix.m44/=det;
+      return this;
     }
      translate(x, y, z) {
-      if (typeof x=='object'&&"length" in x) {
+      if (typeof x==='object'&&"length" in x) {
           var t=x;
           x = t[0];
           y = t[1];
@@ -7780,7 +8751,7 @@ quat {
       x = x===undefined ? 0 : x;
       y = y===undefined ? 0 : y;
       z = z===undefined ? 0 : z;
-      var matrix=new Matrix4();
+      var matrix=temp_mats.next().makeIdentity();
       matrix.$matrix.m41 = x;
       matrix.$matrix.m42 = y;
       matrix.$matrix.m43 = z;
@@ -7788,7 +8759,7 @@ quat {
       return this;
     }
      preTranslate(x, y, z) {
-      if (typeof x=='object'&&"length" in x) {
+      if (typeof x==='object'&&"length" in x) {
           var t=x;
           x = t[0];
           y = t[1];
@@ -7797,7 +8768,7 @@ quat {
       x = x===undefined ? 0 : x;
       y = y===undefined ? 0 : y;
       z = z===undefined ? 0 : z;
-      var matrix=new Matrix4();
+      var matrix=temp_mats.next().makeIdentity();
       matrix.$matrix.m41 = x;
       matrix.$matrix.m42 = y;
       matrix.$matrix.m43 = z;
@@ -7805,7 +8776,7 @@ quat {
       return this;
     }
      scale(x, y, z, w=1.0) {
-      if (typeof x=='object'&&"length" in x) {
+      if (typeof x==='object'&&"length" in x) {
           var t=x;
           x = t[0];
           y = t[1];
@@ -7828,7 +8799,7 @@ quat {
             y = x;
         }
       }
-      var matrix=new Matrix4();
+      var matrix=temp_mats.next().makeIdentity();
       matrix.$matrix.m11 = x;
       matrix.$matrix.m22 = y;
       matrix.$matrix.m33 = z;
@@ -7837,9 +8808,80 @@ quat {
       return this;
     }
      preScale(x, y, z, w=1.0) {
-      let mat=new Matrix4();
+      let mat=temp_mats.next().makeIdentity();
       mat.scale(x, y, z, w);
       this.preMultiply(mat);
+      return this;
+    }
+     euler_rotate_order(x, y, z, order=EulerOrders.XYZ) {
+      if (y===undefined) {
+          y = 0.0;
+      }
+      if (z===undefined) {
+          z = 0.0;
+      }
+      x = -x;
+      y = -y;
+      z = -z;
+      let xmat=euler_rotate_mats.next().makeIdentity();
+      let m=xmat.$matrix;
+      let c=Math.cos(x), s=Math.sin(x);
+      m.m22 = c;
+      m.m23 = s;
+      m.m32 = -s;
+      m.m33 = c;
+      let ymat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(y);
+      s = Math.sin(y);
+      m = ymat.$matrix;
+      m.m11 = c;
+      m.m13 = -s;
+      m.m31 = s;
+      m.m33 = c;
+      let zmat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(z);
+      s = Math.sin(z);
+      m = zmat.$matrix;
+      m.m11 = c;
+      m.m12 = s;
+      m.m21 = -s;
+      m.m22 = c;
+      let a, b;
+      switch (order) {
+        case EulerOrders.XYZ:
+          a = xmat;
+          b = ymat;
+          c = zmat;
+          break;
+        case EulerOrders.XZY:
+          a = xmat;
+          b = zmat;
+          c = ymat;
+          break;
+        case EulerOrders.YXZ:
+          a = ymat;
+          b = xmat;
+          c = zmat;
+          break;
+        case EulerOrders.YZX:
+          a = ymat;
+          b = zmat;
+          c = xmat;
+          break;
+        case EulerOrders.ZXY:
+          a = zmat;
+          b = xmat;
+          c = ymat;
+          break;
+        case EulerOrders.ZYX:
+          a = zmat;
+          b = ymat;
+          c = xmat;
+          break;
+      }
+      b.preMultiply(c);
+      b.multiply(a);
+      this.preMultiply(b);
       return this;
     }
      euler_rotate(x, y, z) {
@@ -7850,14 +8892,14 @@ quat {
           z = 0.0;
       }
       window.Matrix4 = Matrix4;
-      var xmat=new Matrix4();
+      var xmat=euler_rotate_mats.next().makeIdentity();
       var m=xmat.$matrix;
       var c=Math.cos(x), s=Math.sin(x);
       m.m22 = c;
       m.m23 = s;
       m.m32 = -s;
       m.m33 = c;
-      var ymat=new Matrix4();
+      var ymat=euler_rotate_mats.next().makeIdentity();
       c = Math.cos(y);
       s = Math.sin(y);
       var m=ymat.$matrix;
@@ -7866,7 +8908,7 @@ quat {
       m.m31 = s;
       m.m33 = c;
       ymat.multiply(xmat);
-      var zmat=new Matrix4();
+      var zmat=euler_rotate_mats.next().makeIdentity();
       c = Math.cos(z);
       s = Math.sin(z);
       var m=zmat.$matrix;
@@ -7883,7 +8925,7 @@ quat {
       var m=this.$matrix;
       function dec(d) {
         var ret=d.toFixed(3);
-        if (ret[0]!="-")
+        if (ret[0]!=="-")
           ret = " "+ret;
         return ret;
       }
@@ -7894,19 +8936,19 @@ quat {
       return s;
     }
      rotate(angle, x, y, z) {
-      if (typeof x=='object'&&"length" in x) {
+      if (typeof x==='object'&&"length" in x) {
           var t=x;
           x = t[0];
           y = t[1];
           z = t[2];
       }
       else {
-        if (arguments.length==1) {
+        if (arguments.length===1) {
             x = y = 0;
             z = 1;
         }
         else 
-          if (arguments.length==3) {
+          if (arguments.length===3) {
             this.rotate(angle, 1, 0, 0);
             this.rotate(x, 0, 1, 0);
             this.rotate(y, 0, 0, 1);
@@ -7918,19 +8960,19 @@ quat {
       var cosA=Math.cos(angle);
       var sinA2=sinA*sinA;
       var len=Math.sqrt(x*x+y*y+z*z);
-      if (len==0) {
+      if (len===0) {
           x = 0;
           y = 0;
           z = 1;
       }
       else 
-        if (len!=1) {
+        if (len!==1) {
           x/=len;
           y/=len;
           z/=len;
       }
-      var mat=new Matrix4();
-      if (x==1&&y==0&&z==0) {
+      var mat=temp_mats.next().makeIdentity();
+      if (x===1&&y===0&&z===0) {
           mat.$matrix.m11 = 1;
           mat.$matrix.m12 = 0;
           mat.$matrix.m13 = 0;
@@ -7945,7 +8987,7 @@ quat {
           mat.$matrix.m44 = 1;
       }
       else 
-        if (x==0&&y==1&&z==0) {
+        if (x===0&&y===1&&z===0) {
           mat.$matrix.m11 = 1-2*sinA2;
           mat.$matrix.m12 = 0;
           mat.$matrix.m13 = -2*sinA*cosA;
@@ -7960,7 +9002,7 @@ quat {
           mat.$matrix.m44 = 1;
       }
       else 
-        if (x==0&&y==0&&z==1) {
+        if (x===0&&y===0&&z===1) {
           mat.$matrix.m11 = 1-2*sinA2;
           mat.$matrix.m12 = 2*sinA*cosA;
           mat.$matrix.m13 = 0;
@@ -8015,6 +9057,21 @@ quat {
       }
       return this;
     }
+     setTranslation(x, y, z, resetW=true) {
+      if (typeof x==="object") {
+          y = x[1];
+          z = x[2];
+          x = x[0];
+      }
+      let m=this.$matrix;
+      m.m41 = x;
+      m.m42 = y;
+      m.m43 = z;
+      if (resetW) {
+          m.m44 = 1.0;
+      }
+      return this;
+    }
      makeNormalMatrix(normal, up=undefined) {
       if (normal===undefined) {
           throw new Error("normal cannot be undefined");
@@ -8022,30 +9079,21 @@ quat {
       let n=makenormalcache.next().load(normal).normalize();
       if (up===undefined) {
           up = makenormalcache.next().zero();
-          let ax=Math.abs(n[0]), ay=Math.abs(n[1]), az=Math.abs(n[2]);
-          let axis;
-          if (ax>ay&&ax>az) {
-              axis = 2;
-          }
-          else 
-            if (ay>=ax&&ay>=az) {
-              axis = 0;
+          if (Math.abs(n[2])>0.95) {
+              up[1] = 1.0;
           }
           else {
-            axis = 1;
+            up[2] = 1.0;
           }
-          up[axis] = 1;
-          up.cross(n).normalize();
       }
-      else {
-        up = makenormalcache.next().load(up).normalize();
-      }
-      if (up.dot(normal)>0.999) {
+      up = makenormalcache.next().load(up);
+      up.normalize();
+      if (up.dot(normal)>0.99) {
           this.makeIdentity();
           return this;
       }
       else 
-        if (up.dot(normal)<-0.999) {
+        if (up.dot(normal)<-0.99) {
           this.makeIdentity();
           this.scale(1.0, 1.0, -1.0);
           return this;
@@ -8059,11 +9107,9 @@ quat {
       m.m11 = x[0];
       m.m12 = x[1];
       m.m13 = x[2];
-      m.m14 = 0.0;
       m.m21 = y[0];
       m.m22 = y[1];
       m.m23 = y[2];
-      m.m24 = 0.0;
       m.m31 = n[0];
       m.m32 = n[1];
       m.m33 = n[2];
@@ -8071,10 +9117,9 @@ quat {
       return this;
     }
      preMultiply(mat) {
-      var tmp=new Matrix4();
-      tmp.load(mat);
-      tmp.multiply(this);
-      this.load(tmp);
+      preMultTemp.load(mat);
+      preMultTemp.multiply(this);
+      this.load(preMultTemp);
       return this;
     }
      multiply(mat) {
@@ -8138,7 +9183,7 @@ quat {
       var tx=(left+right)/(left-right);
       var ty=(top+bottom)/(top-bottom);
       var tz=(far+near)/(far-near);
-      var matrix=new Matrix4();
+      var matrix=temp_mats.next().makeIdentity();
       matrix.$matrix.m11 = 2/(left-right);
       matrix.$matrix.m12 = 0;
       matrix.$matrix.m13 = 0;
@@ -8159,7 +9204,7 @@ quat {
       return this;
     }
      frustum(left, right, bottom, top, near, far) {
-      var matrix=new Matrix4();
+      var matrix=temp_mats.next().makeIdentity();
       var A=(right+left)/(right-left);
       var B=(top+bottom)/(top-bottom);
       var C=-(far+near)/(far-near);
@@ -8185,7 +9230,7 @@ quat {
       return this;
     }
      orthographic(scale, aspect, near, far) {
-      let mat=new Matrix4();
+      let mat=temp_mats.next().makeIdentity();
       let zscale=far-near;
       mat.scale(2.0/aspect, 2.0, -1.0/scale/zscale, 1.0/scale);
       mat.translate(0.0, 0.0, 0.5*zscale-near);
@@ -8202,7 +9247,8 @@ quat {
       return this;
     }
      lookat(pos, target, up) {
-      var matrix=new Matrix4();
+      var matrix=lookat_cache_ms.next();
+      matrix.makeIdentity();
       var vec=lookat_cache_vs3.next().load(pos).sub(target);
       var len=vec.vectorLength();
       vec.normalize();
@@ -8264,10 +9310,38 @@ quat {
       }
       return this;
     }
-     decompose(_translate, _rotate, _scale, _skew, _perspective) {
-      if (this.$matrix.m44==0)
+     alignAxis(axis, vec) {
+      vec = new Vector3(vec);
+      vec.normalize();
+      let mat=this.inputs.transformMatrix.getValue();
+      let m=mat.$matrix;
+      let mat2=new Matrix4(mat);
+      let loc=new Vector3(), scale=new Vector3(), rot=new Vector3();
+      mat2.decompose(loc, rot, scale);
+      mat2.makeRotationOnly();
+      let axes=mat2.getAsVecs();
+      let axis2=(axis+1)%3;
+      let axis3=(axis+2)%3;
+      axes[axis].load(vec);
+      axes[axis2].cross(axes[axis]).cross(axes[axis]);
+      axes[axis3].load(axes[axis]).cross(axes[axis2]);
+      axes[0][3] = 1.0;
+      axes[1][3] = 1.0;
+      axes[2][3] = 1.0;
+      axes[0].normalize();
+      axes[1].normalize();
+      axes[2].normalize();
+      this.loadFromVecs(axes);
+      this.scale(scale[0], scale[1], scale[2]);
+      m.m41 = loc[0];
+      m.m42 = loc[1];
+      m.m43 = loc[2];
+      return this;
+    }
+     decompose(_translate, _rotate, _scale, _skew, _perspective, order=EulerOrders.XYZ) {
+      if (this.$matrix.m44===0)
         return false;
-      let mat=new Matrix4(this);
+      let mat=temp_mats.next().load(this);
       let m=mat.$matrix;
       let t=_translate, r=_rotate, s=_scale;
       if (t) {
@@ -8299,9 +9373,87 @@ quat {
           s[2] = l3;
       }
       if (r) {
-          r[0] = Math.atan2(m.m23, m.m33);
-          r[1] = Math.atan2(-m.m13, Math.sqrt(m.m23*m.m23+m.m33*m.m33));
-          r[2] = Math.atan2(m.m12, m.m11);
+          let clamp=myclamp;
+          let rmat=temp_mats.next().load(this);
+          rmat.normalize();
+          m = rmat.$matrix;
+          let m11=m.m11, m12=m.m12, m13=m.m13, m14=m.m14;
+          let m21=m.m21, m22=m.m22, m23=m.m23, m24=m.m24;
+          let m31=m.m31, m32=m.m32, m33=m.m33, m34=m.m34;
+          if (order===EulerOrders.XYZ) {
+              r[1] = Math.asin(clamp(m13, -1, 1));
+              if (Math.abs(m13)<0.9999999) {
+                  r[0] = Math.atan2(-m23, m33);
+                  r[2] = Math.atan2(-m12, m11);
+              }
+              else {
+                r[0] = Math.atan2(m32, m22);
+                r[2] = 0;
+              }
+          }
+          else 
+            if (order===EulerOrders.YXZ) {
+              r[0] = Math.asin(-clamp(m23, -1, 1));
+              if (Math.abs(m23)<0.9999999) {
+                  r[1] = Math.atan2(m13, m33);
+                  r[2] = Math.atan2(m21, m22);
+              }
+              else {
+                r[1] = Math.atan2(-m31, m11);
+                r[2] = 0;
+              }
+          }
+          else 
+            if (order===EulerOrders.ZXY) {
+              r[0] = Math.asin(clamp(m32, -1, 1));
+              if (Math.abs(m32)<0.9999999) {
+                  r[1] = Math.atan2(-m31, m33);
+                  r[2] = Math.atan2(-m12, m22);
+              }
+              else {
+                r[1] = 0;
+                r[2] = Math.atan2(m21, m11);
+              }
+          }
+          else 
+            if (order===EulerOrders.ZYX) {
+              r[1] = Math.asin(-clamp(m31, -1, 1));
+              if (Math.abs(m31)<0.9999999) {
+                  r[0] = Math.atan2(m32, m33);
+                  r[2] = Math.atan2(m21, m11);
+              }
+              else {
+                r[0] = 0;
+                r[2] = Math.atan2(-m12, m22);
+              }
+          }
+          else 
+            if (order===EulerOrders.YZX) {
+              r[2] = Math.asin(clamp(m21, -1, 1));
+              if (Math.abs(m21)<0.9999999) {
+                  r[0] = Math.atan2(-m23, m22);
+                  r[1] = Math.atan2(-m31, m11);
+              }
+              else {
+                r[0] = 0;
+                r[1] = Math.atan2(m13, m33);
+              }
+          }
+          else 
+            if (order===EulerOrders.XZY) {
+              r[2] = Math.asin(-clamp(m12, -1, 1));
+              if (Math.abs(m12)<0.9999999) {
+                  r[0] = Math.atan2(m32, m22);
+                  r[1] = Math.atan2(m13, m11);
+              }
+              else {
+                r[0] = Math.atan2(-m23, m33);
+                r[1] = 0;
+              }
+          }
+          else {
+            console.warn('unsupported euler order:', order);
+          }
       }
     }
      _determinant2x2(a, b, c, d) {
@@ -8382,6 +9534,7 @@ mat4 {
 }
 `;
   nstructjs.register(Matrix4);
+  preMultTemp = new Matrix4();
   window.testmat = (x, y, z) =>    {
     if (x===undefined) {
         x = 0;
@@ -8406,1333 +9559,1449 @@ mat4 {
     console.log(mat.toString());
     return r;
   }
-}, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
-es6_module_define('dragbox', ["../core/ui_theme.js", "../util/simple_events.js", "../core/ui.js", "../core/ui_base.js"], function _dragbox_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
-  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
-  var parsepx=es6_import_item(_es6_module, '../core/ui_theme.js', 'parsepx');
-  function startDrag(box) {
-    if (box._modal) {
-        popModalLight(box._modal);
-        box._modal = undefined;
-        return ;
-    }
-    let first=true;
-    let lastx=0;
-    let lasty=0;
-    let handlers={on_mousemove: function on_mousemove(e) {
-        let x=e.x, y=e.y;
-        if (first) {
-            lastx = x;
-            lasty = y;
-            first = false;
-            return ;
-        }
-        let dx=x-lastx;
-        let dy=y-lasty;
-        let hx=parsepx(box.style["left"]);
-        let hy=parsepx(box.style["top"]);
-        hx+=dx;
-        hy+=dy;
-        console.log(hx, hy);
-        box.style["left"] = hx+"px";
-        box.style["top"] = hy+"px";
-        lastx = x;
-        lasty = y;
-      }, 
-    end: function end() {
-        if (box._modal) {
-            popModalLight(box._modal);
-            box._modal = undefined;
-        }
-      }, 
-    on_mouseup: function on_mouseup(e) {
-        this.end();
-      }, 
-    on_keydown: function on_keydown(e) {
-        switch (e.keyCode) {
-          case keymap["Escape"]:
-          case keymap["Return"]:
-            this.end();
-            break;
-        }
-      }}
-    box._modal = pushModalLight(handlers);
-  }
-  class DragBox extends Container {
-     constructor() {
-      super();
-      this._done = false;
-      this.header = document.createElement("rowframe-x");
-      this.contents = document.createElement("container-x");
-      this.header.style["border-radius"] = "20px";
-      this.header.parentWidget = this;
-      this.contents.parentWidget = this;
-      this.shadow.appendChild(this.header);
-      this.shadow.appendChild(this.contents);
-    }
-     init() {
-      super.init();
-      let header=this.header;
-      header.ctx = this.ctx;
-      this.contents.ctx = this.ctx;
-      header._init();
-      this.contents._init();
-      this.style["min-width"] = "350px";
-      header.style["height"] = "35px";
-      let icon=header.iconbutton(Icons.DELETE, "Hide", () =>        {
-        this.end();
-      });
-      icon.iconsheet = 0;
-      this.addEventListener("mousedown", (e) =>        {
-        console.log("start drag");
-        startDrag(this);
-      }, {capture: false});
-      header.background = this.getDefault("Background");
-      this.setCSS();
-    }
-     add() {
-      return this.contents.add(...arguments);
-    }
-     prepend(n) {
-      return this.contents.prepend(n);
-    }
-     appendChild(n) {
-      return this.contents.appendChild(n);
-    }
-     col() {
-      return this.contents.col(...arguments);
-    }
-     row() {
-      return this.contents.row(...arguments);
-    }
-     strip() {
-      return this.contents.strip(...arguments);
-    }
-     button() {
-      return this.contents.button(...arguments);
-    }
-     iconbutton() {
-      return this.contents.iconbutton(...arguments);
-    }
-     iconcheck() {
-      return this.contents.iconcheck(...arguments);
-    }
-     tool() {
-      return this.contents.tool(...arguments);
-    }
-     menu() {
-      return this.contents.menu(...arguments);
-    }
-     prop() {
-      return this.contents.prop(...arguments);
-    }
-     listenum() {
-      return this.contents.listenum(...arguments);
-    }
-     check() {
-      return this.contents.check(...arguments);
-    }
-     iconenum() {
-      return this.contents.iconenum(...arguments);
-    }
-     slider() {
-      return this.contents.slider(...arguments);
-    }
-     simpleslider() {
-      return this.contents.simpleslider(...arguments);
-    }
-     curve() {
-      return this.contents.curve(...arguments);
-    }
-     textbox() {
-      return this.contents.textbox(...arguments);
-    }
-     textarea() {
-      return this.contents.textarea(...arguments);
-    }
-     viewer() {
-      return this.contents.viewer(...arguments);
-    }
-     panel() {
-      return this.contents.panel(...arguments);
-    }
-     tabs() {
-      return this.contents.tabs(...arguments);
-    }
-     table() {
-      return this.contents.table(...arguments);
-    }
-     end() {
-      if (this._done) {
-          return ;
-      }
-      this.remove();
-      if (this._onend) {
-          this._onend();
-      }
-      if (this.onend) {
-          this.onend();
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      this.background = this.getDefault("Background");
-    }
-    static  define() {
-      return {tagname: "drag-box-x", 
-     style: "panel"}
-    }
-  }
-  _ESClass.register(DragBox);
-  _es6_module.add_class(DragBox);
-  DragBox = _es6_module.add_export('DragBox', DragBox);
-  UIBase.register(DragBox);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
-es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../util/struct.js", "../core/ui_base.js", "../screen/ScreenArea.js"], function _theme_editor_module(_es6_module) {
-  var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
-  var nstructjs=es6_import(_es6_module, '../util/struct.js');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var theme=es6_import_item(_es6_module, '../core/ui_base.js', 'theme');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var color2css=es6_import_item(_es6_module, '../core/ui_theme.js', 'color2css');
-  var css2color=es6_import_item(_es6_module, '../core/ui_theme.js', 'css2color');
-  var CSSFont=es6_import_item(_es6_module, '../core/ui_theme.js', 'CSSFont');
-  let basic_colors={'white': [1, 1, 1], 
-   'grey': [0.5, 0.5, 0.5], 
-   'gray': [0.5, 0.5, 0.5], 
-   'black': [0, 0, 0], 
-   'red': [1, 0, 0], 
-   'yellow': [1, 1, 0], 
-   'green': [0, 1, 0], 
-   'teal': [0, 1, 1], 
-   'cyan': [0, 1, 1], 
-   'blue': [0, 0, 1], 
-   'orange': [1, 0.5, 0.25], 
-   'brown': [0.5, 0.4, 0.3], 
-   'purple': [1, 0, 1], 
-   'pink': [1, 0.5, 0.5]}
-  class ThemeEditor extends Container {
-     constructor() {
-      super();
-    }
-     init() {
-      super.init();
-      this.build();
-    }
-     doFolder(key, obj) {
-      let panel=this.panel(key);
-      panel.style["margin-left"] = "15px";
-      let row=panel.row();
-      let col1=row.col();
-      let col2=row.col();
-      let do_onchange=(key, k) =>        {
-        if (this.onchange) {
-            this.onchange(key, k);
-        }
-      };
-      let ok=false;
-      let _i=0;
-      let dokey=(k, v) =>        {
-        let col=_i%2==0 ? col1 : col2;
-        if (k.toLowerCase().search("flag")>=0) {
-            return ;
-        }
-        if (typeof v==="string") {
-            let v2=v.toLowerCase().trim();
-            let iscolor=v2 in basic_colors;
-            iscolor = iscolor||v2.search("rgb")>=0;
-            iscolor = iscolor||v2[0]==="#";
-            if (iscolor) {
-                let cw=col.colorbutton();
-                ok = true;
-                _i++;
-                try {
-                  cw.setRGBA(css2color(v2));
-                }
-                catch (error) {
-                    console.warn("Failed to set color "+k, v2);
-                }
-                cw.onchange = () =>                  {
-                  console.log("setting '"+k+"' to "+color2css(cw.rgba), key);
-                  theme[key][k] = color2css(cw.rgba);
-                  do_onchange(key, k);
-                };
-                cw.label = k;
-            }
-            else {
-              let box=col.textbox();
-              box.onchange = () =>                {
-                theme[key][k] = box.text;
-                do_onchange(key, k);
-              };
-              box.text = v;
-            }
-        }
-        else 
-          if (typeof v==="number") {
-            let slider=col.slider(undefined, k, v, 0, 256, 0.01, false);
-            ok = true;
-            _i++;
-            slider.onchange = () =>              {
-              theme[key][k] = slider.value;
-              do_onchange(key, k);
-            };
-        }
-        else 
-          if (typeof v==="object"&&__instance_of(v, CSSFont)) {
-            let panel2=col.panel(k);
-            ok = true;
-            _i++;
-            let textbox=(key) =>              {
-              panel2.label(key);
-              panel2.textbox(undefined, v[key]).onchange = function () {
-                v[key] = this.text;
-                do_onchange(key, k);
-              }
-            };
-            textbox("font");
-            textbox("variant");
-            textbox("weight");
-            textbox("style");
-            let cw=panel2.colorbutton();
-            cw.label = "color";
-            cw.setRGBA(css2color(v.color));
-            cw.onchange = () =>              {
-              v.color = color2css(cw.rgba);
-              do_onchange(key, k);
-            };
-            let slider=panel2.slider(undefined, "size", v.size);
-            slider.onchange = () =>              {
-              v.size = slider.value;
-              do_onchange(key, k);
-            };
-        }
-      };
-      for (let k in obj) {
-          let v=obj[k];
-          dokey(k, v);
-      }
-      if (!ok) {
-          panel.remove();
-      }
-      else {
-        panel.closed = true;
-      }
-    }
-     build() {
-      let keys=Object.keys(theme);
-      keys.sort();
-      for (let k of keys) {
-          let v=theme[k];
-          if (typeof v==="object") {
-              this.doFolder(k, v);
-          }
-      }
-    }
-    static  define() {
-      return {tagname: "theme-editor-x", 
-     style: "theme-editor"}
-    }
-  }
-  _ESClass.register(ThemeEditor);
-  _es6_module.add_class(ThemeEditor);
-  ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
-  UIBase.register(ThemeEditor);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-es6_module_define('ui_button', ["../controller/simple_controller.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../util/vectormath.js", "../config/const.js", "../util/events.js", "../toolsys/toolprop.js", "../core/ui_base.js"], function _ui_button_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../util/events.js');
-  var simple_toolsys=es6_import(_es6_module, '../toolsys/simple_toolsys.js');
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  var DataPathError=es6_import_item(_es6_module, '../controller/simple_controller.js', 'DataPathError');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  let keymap=events.keymap;
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let parsepx=ui_base.parsepx;
-  class Button extends UIBase {
-     constructor() {
-      super();
-      let dpi=this.getDPI();
-      this._last_update_key = "";
-      this._name = "";
-      this._namePad = undefined;
-      this._last_w = 0;
-      this._last_h = 0;
-      this._last_dpi = dpi;
-      this._lastw = undefined;
-      this._lasth = undefined;
-      this.dom = document.createElement("canvas");
-      this.g = this.dom.getContext("2d");
-      this.dom.setAttribute("class", "canvas1");
-      this.dom.tabIndex = 0;
-      this._last_bg = undefined;
-      this.addEventListener("keydown", (e) =>        {
-        if (this.disabled)
-          return ;
-        if (cconst.DEBUG.buttonEvents)
-          console.log(e.keyCode);
-        switch (e.keyCode) {
-          case 27:
-            this.blur();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-          case 32:
-          case 13:
-            this.click();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-        }
-      });
-      this.addEventListener("focusin", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 1;
-        this._redraw();
-        this.focus();
-      });
-      this.addEventListener("blur", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 0;
-        this._redraw();
-      });
-      this._last_disabled = false;
-      this._auto_depress = true;
-      let style=document.createElement("style");
-      style.textContent = `.canvas1 {
-      -moz-user-focus: normal;
-      moz-user-focus: normal;
-      user-focus: normal;
-      padding : 0px;
-      margin : 0px;
-    }
-    `;
-      this.shadow.appendChild(style);
-      let form=this._div = document.createElement("div");
-      form.style["tabindex"] = 4;
-      form.tabIndex = 4;
-      form.setAttribute("type", "hidden");
-      form.type = "hidden";
-      form.style["-moz-user-focus"] = "normal";
-      form.setAttribute("class", "canvas1");
-      form.style["padding"] = form.style["margin"] = "0px";
-      form.appendChild(this.dom);
-      this.shadow.appendChild(form);
-    }
-    get  tabIndex() {
-      return this._div.tabIndex;
-    }
-    set  tabIndex(val) {
-      this._div.tabIndex = val;
-    }
-    get  boxpad() {
-      throw new Error("Button.boxpad is deprecated");
-      return this.getDefault("BoxMargin");
-    }
-     click() {
-      if (this._onpress) {
-          let rect=this.getClientRects();
-          let x=rect.x+rect.width*0.5;
-          let y=rect.y+rect.height*0.5;
-          let e={x: x, 
-       y: y, 
-       stopPropagation: () =>              {            }, 
-       preventDefault: () =>              {            }};
-          this._onpress(e);
-      }
-      super.click();
-    }
-    set  boxpad(val) {
-      throw new Error("Deprecated call to Button.boxpad setter");
-    }
-     init() {
-      let dpi=this.getDPI();
-      let width=~~(this.getDefault("defaultWidth"));
-      let height=~~(this.getDefault("defaultHeight"));
-      this.dom.style["width"] = width+"px";
-      this.dom.style["height"] = height+"px";
-      this.dom.style["padding"] = this.dom.style["margin"] = "0px";
-      this.dom.width = Math.ceil(width*dpi);
-      this.dom.height = Math.ceil(parsepx(this.dom.style["height"])*dpi);
-      this._name = undefined;
-      this.updateName();
-      this.bindEvents();
-      this._redraw();
-    }
-     setAttribute(key, val) {
-      super.setAttribute(key, val);
-      if (key=="name") {
-          this.updateName();
-          this.updateWidth();
-      }
-    }
-    get  r() {
-      return this.getDefault("BoxRadius");
-    }
-    set  r(val) {
-      this.overrideDefault("BoxRadius", val);
-    }
-     bindEvents() {
-      let press_gen=0;
-      let press=(e) =>        {
-        e.stopPropagation();
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button press", this._pressed, this.disabled, e.button);
-        if (this.disabled)
-          return ;
-        this._pressed = true;
-        if (util.isMobile()&&this.onclick&&e.button===0) {
-            this.onclick();
-        }
-        if (this._onpress) {
-            this._onpress(this);
-        }
-        this._redraw();
-        e.preventDefault();
-      };
-      let depress=(e) =>        {
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button depress", e.button, e.was_touch);
-        if (this._auto_depress) {
-            this._pressed = false;
-            if (this.disabled)
-              return ;
-            this._redraw();
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        if (util.isMobile()||e.type==="mouseup"&&e.button) {
-            return ;
-        }
-        this._redraw();
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        if (this.onclick&&e.touches!==undefined) {
-            this.onclick(this);
-        }
-        this.undoBreakPoint();
-      };
-      this.addEventListener("mousedown", press, {captured: true, 
-     passive: false});
-      this.addEventListener("mouseup", depress, {captured: true, 
-     passive: false});
-      this.addEventListener("mouseover", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = true;
-        this._repos_canvas();
-        this._redraw();
-      });
-      this.addEventListener("mouseout", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = false;
-        this._repos_canvas();
-        this._redraw();
-      });
-    }
-     updateDisabled() {
-      if (this._last_disabled!=this.disabled) {
-          this._last_disabled = this.disabled;
-          this.dom._background = this.getDefault("BoxBG");
-          this._repos_canvas();
-          this._redraw();
-          if (cconst.DEBUG.buttonEvents)
-            console.log("disabled update!", this.disabled, this.style["background-color"]);
-      }
-    }
-     updateDefaultSize() {
-      let height=~~(this.getDefault("defaultHeight"))+this.getDefault("BoxMargin");
-      let size=this.getDefault("DefaultText").size*1.33;
-      if (height===undefined||size===undefined||isNaN(height)||isNaN(size)) {
-          return ;
-      }
-      height = ~~Math.max(height, size);
-      height = height+"px";
-      if (height!==this.style["height"]) {
-          this.style["height"] = height;
-          this.dom.style["height"] = height;
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     _calcUpdateKey() {
-      let ret=this.getDefault("BoxBG")+":"+this.getDefault("BoxHighlight")+":";
-      ret+=this.style["background-color"]+":";
-      ret+=this.getDefault("BoxRadius")+":"+this.getDefault("BoxMargin")+":";
-      ret+=this.getAttribute("name")+":";
-      return ret;
-    }
-     update() {
-      super.update();
-      this.style["user-select"] = "none";
-      this.dom.style["user-select"] = "none";
-      this.updateDefaultSize();
-      this.updateWidth();
-      this.updateDPI();
-      this.updateName();
-      this.updateDisabled();
-      if (this.background!==this._last_bg) {
-          this._last_bg = this.background;
-          this._repos_canvas();
-          this._redraw();
-      }
-      let key=this._calcUpdateKey();
-      if (key!==this._last_update_key) {
-          this._last_update_key = key;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      let name=this._name;
-      if (name===undefined) {
-          return ;
-      }
-      let dpi=this.getDPI();
-      let pad=this.getDefault("BoxMargin");
-      let ts=this.getDefault("DefaultText").size;
-      let tw=ui_base.measureText(this, this._genLabel(), {size: ts, 
-     font: this.getDefault("DefaultText")}).width/dpi+18+pad;
-      if (this._namePad!==undefined) {
-          tw+=this._namePad;
-      }
-      let w=this.getDefault("numslider_width")/dpi;
-      w = Math.max(w, tw);
-      w = ~~w;
-      this.dom.style["width"] = w+"px";
-    }
-     updateName() {
-      if (!this.hasAttribute("name")) {
-          return ;
-      }
-      let name=this.getAttribute("name");
-      if (name!==this._name) {
-          this._name = name;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     updateWidth(w_add=0) {
+  lookat_cache_ms = util.cachering.fromConstructor(Matrix4, 64);
+  euler_rotate_mats = util.cachering.fromConstructor(Matrix4, 64);
+  temp_mats = util.cachering.fromConstructor(Matrix4, 64);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/vectormath.js');
 
-    }
-     _repos_canvas() {
-      let dpi=this.getDPI();
-      let w=parsepx(this.dom.style["width"]);
-      let h=parsepx(this.dom.style["height"]);
-      let w2=~~(w*dpi);
-      let h2=~~(h*dpi);
-      w = w2/dpi;
-      h = h2/dpi;
-      this.dom.width = w2;
-      this.dom.style["width"] = w+"px";
-      this.dom.height = h2;
-      this.dom.style["height"] = h+"px";
-    }
-     updateDPI() {
-      let dpi=this.getDPI();
-      if (this._last_dpi!==dpi) {
-          this._last_dpi = dpi;
-          this.g.font = undefined;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-      if (this.style["background-color"]) {
-          this.dom._background = this.style["background-color"];
-          this.style["background-color"] = "";
-      }
-    }
-     _genLabel() {
-      return ""+this._name;
-    }
-     _redraw(draw_text=true) {
-      let dpi=this.getDPI();
-      if (this._pressed) {
-          this.dom._background = this.getDefault("BoxDepressed");
-      }
-      else 
-        if (this._highlight) {
-          this.dom._background = this.getDefault("BoxHighlight");
-      }
-      else {
-        this.dom._background = this.getDefault("BoxBG");
-      }
-      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, undefined, undefined);
-      if (this._focus) {
-          let w=this.dom.width, h=this.dom.height;
-          let p=1/dpi;
-          this.g.translate(p, p);
-          let lw=this.g.lineWidth;
-          this.g.lineWidth = 2*dpi;
-          ui_base.drawRoundBox(this, this.dom, this.g, w-p*2, h-p*2, this.r, "stroke", this.getDefault("BoxHighlight"));
-          this.g.lineWidth = lw;
-          this.g.translate(-p, -p);
-      }
-      if (draw_text) {
-          this._draw_text();
-      }
-    }
-     _draw_text() {
-      let dpi=this.getDPI();
-      if (util.isMobile()) {
-          dpi = dpi;
-      }
-      let pad=this.getDefault("BoxMargin")*dpi;
-      let ts=this.getDefault("DefaultText").size*dpi;
-      let text=this._genLabel();
-      let font=this.getDefault("DefaultText");
-      let w=this.dom.width, h=this.dom.height;
-      let tw=ui_base.measureText(this, text, undefined, undefined, ts, font).width;
-      let cx=pad*0.5+5*dpi;
-      let cy=h*0.5+ts*0.5;
-      let g=this.g;
-      ui_base.drawText(this, ~~cx, ~~cy, text, {canvas: this.dom, 
-     g: this.g, 
-     size: ts/dpi, 
-     font: font});
-    }
-    static  define() {
-      return {tagname: "button-x", 
-     style: "button"}
-    }
+
+es6_module_define('pathux', ["./widgets/ui_treeview.js", "./path-controller/util/html5_fileapi.js", "./path-controller/util/graphpack.js", "./widgets/ui_richedit.js", "./widgets/ui_numsliders.js", "./xmlpage/xmlpage.js", "./widgets/ui_listbox.js", "./config/const.js", "./widgets/ui_button.js", "./widgets/ui_lasttool.js", "./screen/ScreenArea.js", "./widgets/ui_widgets2.js", "./widgets/ui_menu.js", "./widgets/ui_curvewidget.js", "./core/units.js", "./core/ui_base.js", "./platforms/electron/electron_api.js", "./widgets/theme_editor.js", "./path-controller/util/polyfill.js", "./widgets/ui_textbox.js", "./widgets/ui_tabs.js", "./util/ScreenOverdraw.js", "./core/ui.js", "./widgets/ui_table.js", "./widgets/ui_widgets.js", "./widgets/ui_noteframe.js", "./widgets/ui_panel.js", "./path-controller/controller.js", "./platforms/platform.js", "./widgets/ui_progress.js", "./screen/FrameManager.js", "./core/ui_theme.js", "./widgets/ui_colorpicker2.js"], function _pathux_module(_es6_module) {
+  es6_import(_es6_module, './path-controller/util/polyfill.js');
+  var ___xmlpage_xmlpage_js=es6_import(_es6_module, './xmlpage/xmlpage.js');
+  for (let k in ___xmlpage_xmlpage_js) {
+      _es6_module.add_export(k, ___xmlpage_xmlpage_js[k], true);
   }
-  _ESClass.register(Button);
-  _es6_module.add_class(Button);
-  Button = _es6_module.add_export('Button', Button);
-  UIBase.register(Button);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
-es6_module_define('ui_colorpicker', ["../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui.js", "../core/ui_base.js", "../util/util.js"], function _ui_colorpicker_module(_es6_module) {
+  var ___core_ui_base_js=es6_import(_es6_module, './core/ui_base.js');
+  for (let k in ___core_ui_base_js) {
+      _es6_module.add_export(k, ___core_ui_base_js[k], true);
+  }
+  var ___core_ui_js=es6_import(_es6_module, './core/ui.js');
+  for (let k in ___core_ui_js) {
+      _es6_module.add_export(k, ___core_ui_js[k], true);
+  }
+  var ___widgets_ui_widgets_js=es6_import(_es6_module, './widgets/ui_widgets.js');
+  for (let k in ___widgets_ui_widgets_js) {
+      _es6_module.add_export(k, ___widgets_ui_widgets_js[k], true);
+  }
+  var ___widgets_ui_widgets2_js=es6_import(_es6_module, './widgets/ui_widgets2.js');
+  for (let k in ___widgets_ui_widgets2_js) {
+      _es6_module.add_export(k, ___widgets_ui_widgets2_js[k], true);
+  }
+  var ___core_ui_theme_js=es6_import(_es6_module, './core/ui_theme.js');
+  for (let k in ___core_ui_theme_js) {
+      _es6_module.add_export(k, ___core_ui_theme_js[k], true);
+  }
+  var ___core_units_js=es6_import(_es6_module, './core/units.js');
+  for (let k in ___core_units_js) {
+      _es6_module.add_export(k, ___core_units_js[k], true);
+  }
+  var ___widgets_ui_button_js=es6_import(_es6_module, './widgets/ui_button.js');
+  for (let k in ___widgets_ui_button_js) {
+      _es6_module.add_export(k, ___widgets_ui_button_js[k], true);
+  }
+  var ___widgets_ui_richedit_js=es6_import(_es6_module, './widgets/ui_richedit.js');
+  for (let k in ___widgets_ui_richedit_js) {
+      _es6_module.add_export(k, ___widgets_ui_richedit_js[k], true);
+  }
+  var ___widgets_ui_curvewidget_js=es6_import(_es6_module, './widgets/ui_curvewidget.js');
+  for (let k in ___widgets_ui_curvewidget_js) {
+      _es6_module.add_export(k, ___widgets_ui_curvewidget_js[k], true);
+  }
+  var ___widgets_ui_panel_js=es6_import(_es6_module, './widgets/ui_panel.js');
+  for (let k in ___widgets_ui_panel_js) {
+      _es6_module.add_export(k, ___widgets_ui_panel_js[k], true);
+  }
+  var ___widgets_ui_colorpicker2_js=es6_import(_es6_module, './widgets/ui_colorpicker2.js');
+  for (let k in ___widgets_ui_colorpicker2_js) {
+      _es6_module.add_export(k, ___widgets_ui_colorpicker2_js[k], true);
+  }
+  var ___widgets_ui_tabs_js=es6_import(_es6_module, './widgets/ui_tabs.js');
+  for (let k in ___widgets_ui_tabs_js) {
+      _es6_module.add_export(k, ___widgets_ui_tabs_js[k], true);
+  }
+  var ___widgets_ui_listbox_js=es6_import(_es6_module, './widgets/ui_listbox.js');
+  for (let k in ___widgets_ui_listbox_js) {
+      _es6_module.add_export(k, ___widgets_ui_listbox_js[k], true);
+  }
+  var ___widgets_ui_menu_js=es6_import(_es6_module, './widgets/ui_menu.js');
+  for (let k in ___widgets_ui_menu_js) {
+      _es6_module.add_export(k, ___widgets_ui_menu_js[k], true);
+  }
+  var ___widgets_ui_progress_js=es6_import(_es6_module, './widgets/ui_progress.js');
+  for (let k in ___widgets_ui_progress_js) {
+      _es6_module.add_export(k, ___widgets_ui_progress_js[k], true);
+  }
+  var ___widgets_ui_table_js=es6_import(_es6_module, './widgets/ui_table.js');
+  for (let k in ___widgets_ui_table_js) {
+      _es6_module.add_export(k, ___widgets_ui_table_js[k], true);
+  }
+  var ___widgets_ui_noteframe_js=es6_import(_es6_module, './widgets/ui_noteframe.js');
+  for (let k in ___widgets_ui_noteframe_js) {
+      _es6_module.add_export(k, ___widgets_ui_noteframe_js[k], true);
+  }
+  var ___widgets_ui_numsliders_js=es6_import(_es6_module, './widgets/ui_numsliders.js');
+  for (let k in ___widgets_ui_numsliders_js) {
+      _es6_module.add_export(k, ___widgets_ui_numsliders_js[k], true);
+  }
+  var ___widgets_ui_lasttool_js=es6_import(_es6_module, './widgets/ui_lasttool.js');
+  for (let k in ___widgets_ui_lasttool_js) {
+      _es6_module.add_export(k, ___widgets_ui_lasttool_js[k], true);
+  }
+  var ___widgets_ui_textbox_js=es6_import(_es6_module, './widgets/ui_textbox.js');
+  for (let k in ___widgets_ui_textbox_js) {
+      _es6_module.add_export(k, ___widgets_ui_textbox_js[k], true);
+  }
+  var ___path_controller_util_graphpack_js=es6_import(_es6_module, './path-controller/util/graphpack.js');
+  for (let k in ___path_controller_util_graphpack_js) {
+      _es6_module.add_export(k, ___path_controller_util_graphpack_js[k], true);
+  }
+  var ___path_controller_util_html5_fileapi_js=es6_import(_es6_module, './path-controller/util/html5_fileapi.js');
+  for (let k in ___path_controller_util_html5_fileapi_js) {
+      _es6_module.add_export(k, ___path_controller_util_html5_fileapi_js[k], true);
+  }
+  var ___path_controller_controller_js=es6_import(_es6_module, './path-controller/controller.js');
+  for (let k in ___path_controller_controller_js) {
+      _es6_module.add_export(k, ___path_controller_controller_js[k], true);
+  }
+  var controller1=es6_import(_es6_module, './path-controller/controller.js');
+  const controller=controller1;
+  _es6_module.add_export('controller', controller);
+  var ui_noteframe=es6_import(_es6_module, './widgets/ui_noteframe.js');
+  controller1.setNotifier(ui_noteframe);
+  var platform1=es6_import(_es6_module, './platforms/platform.js');
+  const platform=platform1;
+  _es6_module.add_export('platform', platform);
+  var electron_api1=es6_import(_es6_module, './platforms/electron/electron_api.js');
+  const electron_api=electron_api1;
+  _es6_module.add_export('electron_api', electron_api);
+  var ___platforms_platform_js=es6_import(_es6_module, './platforms/platform.js');
+  for (let k in ___platforms_platform_js) {
+      _es6_module.add_export(k, ___platforms_platform_js[k], true);
+  }
+  var ___widgets_theme_editor_js=es6_import(_es6_module, './widgets/theme_editor.js');
+  for (let k in ___widgets_theme_editor_js) {
+      _es6_module.add_export(k, ___widgets_theme_editor_js[k], true);
+  }
+  var ___widgets_ui_treeview_js=es6_import(_es6_module, './widgets/ui_treeview.js');
+  for (let k in ___widgets_ui_treeview_js) {
+      _es6_module.add_export(k, ___widgets_ui_treeview_js[k], true);
+  }
+  var ___screen_FrameManager_js=es6_import(_es6_module, './screen/FrameManager.js');
+  for (let k in ___screen_FrameManager_js) {
+      _es6_module.add_export(k, ___screen_FrameManager_js[k], true);
+  }
+  var ___screen_ScreenArea_js=es6_import(_es6_module, './screen/ScreenArea.js');
+  for (let k in ___screen_ScreenArea_js) {
+      _es6_module.add_export(k, ___screen_ScreenArea_js[k], true);
+  }
+  var ___util_ScreenOverdraw_js=es6_import(_es6_module, './util/ScreenOverdraw.js');
+  for (let k in ___util_ScreenOverdraw_js) {
+      _es6_module.add_export(k, ___util_ScreenOverdraw_js[k], true);
+  }
+  var cconst1=es6_import_item(_es6_module, './config/const.js', 'default');
+  const cconst=cconst1;
+  _es6_module.add_export('cconst', cconst);
+}, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
+
+
+es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js", "../platform_base.js", "../../core/ui_base.js", "../../widgets/ui_menu.js"], function _electron_api_module(_es6_module) {
   "use strict";
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../util/events.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
-  let rgb_to_hsv_rets=new util.cachering(() =>    {
-    return [0, 0, 0];
-  }, 64);
-  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
-  function rgb_to_hsv(r, g, b) {
-    var computedH=0;
-    var computedS=0;
-    var computedV=0;
-    if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
-        throw new Error('Please enter numeric RGB values!');
-        return ;
+  function getElectronVersion() {
+    let key=navigator.userAgent;
+    let i=key.search("Electron");
+    key = key.slice(i+9, key.length);
+    i = key.search(/[ \t]/);
+    if (i>=0) {
+        key = key.slice(0, i);
     }
-    var minRGB=Math.min(r, Math.min(g, b));
-    var maxRGB=Math.max(r, Math.max(g, b));
-    if (minRGB==maxRGB) {
-        computedV = minRGB;
-        let ret=rgb_to_hsv_rets.next();
-        ret[0] = 0, ret[1] = 0, ret[2] = computedV;
-        return ret;
-    }
-    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
-    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
-    computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
-    computedS = (maxRGB-minRGB)/maxRGB;
-    computedV = maxRGB;
-    let ret=rgb_to_hsv_rets.next();
-    ret[0] = computedH, ret[1] = computedS, ret[2] = computedV;
-    return ret;
+    key = key.trim();
+    key = key.split(".").map((f) =>      {
+      return parseInt(f);
+    });
+    return key;
   }
-  rgb_to_hsv = _es6_module.add_export('rgb_to_hsv', rgb_to_hsv);
-  let hsv_to_rgb_rets=new util.cachering(() =>    {
-    return [0, 0, 0];
-  }, 64);
-  function hsv_to_rgb(h, s, v) {
-    let c=0, m=0, x=0;
-    let ret=hsv_to_rgb_rets.next();
-    ret[0] = ret[1] = ret[2] = 0.0;
-    h*=360.0;
-    c = v*s;
-    x = c*(1.0-Math.abs(((h/60.0)%2)-1.0));
-    m = v-c;
-    let color;
-    function RgbF_Create(r, g, b) {
-      ret[0] = r;
-      ret[1] = g;
-      ret[2] = b;
-      return ret;
-    }
-    if (h>=0.0&&h<60.0) {
-        color = RgbF_Create(c+m, x+m, m);
-    }
-    else 
-      if (h>=60.0&&h<120.0) {
-        color = RgbF_Create(x+m, c+m, m);
-    }
-    else 
-      if (h>=120.0&&h<180.0) {
-        color = RgbF_Create(m, c+m, x+m);
-    }
-    else 
-      if (h>=180.0&&h<240.0) {
-        color = RgbF_Create(m, x+m, c+m);
-    }
-    else 
-      if (h>=240.0&&h<300.0) {
-        color = RgbF_Create(x+m, m, c+m);
-    }
-    else 
-      if (h>=300.0&&h<360.0) {
-        color = RgbF_Create(c+m, m, x+m);
-    }
-    else {
-      color = RgbF_Create(m, m, m);
-    }
-    return color;
+  function getElectron() {
+    return require('electron');
   }
-  hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let UPW=1.25, VPW=0.75;
-  let sample_rets=new util.cachering(() =>    {
-    return [0, 0];
-  }, 64);
-  function inv_sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, UPW);
-    ret[1] = Math.pow(v, VPW);
-    return ret;
+  function myRequire(mod) {
+    return globalThis.require(mod);
   }
-  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
-  function sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, 1.0/UPW);
-    ret[1] = Math.pow(v, 1.0/VPW);
-    return ret;
-  }
-  sample = _es6_module.add_export('sample', sample);
-  let fieldrand=new util.MersenneRandom(0);
-  let fields={}
-  function getFieldImage(size, hsva) {
-    fieldrand.seed(0);
-    let hue=hsva[0];
-    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
-    let key=size+":"+hue.toFixed(4);
-    if (key in fields)
-      return fields[key];
-    let size2=128;
-    let image={width: size, 
-    height: size, 
-    image: new ImageData(size2, size2)}
-    let scale=size2/size;
-    let idata=image.image.data;
-    let dpi=this.getDPI();
-    let band=ui_base.IsMobile() ? 35 : 20;
-    let r2=Math.ceil(size*0.5), r1=r2-band*dpi;
-    let pad=5*dpi;
-    let px1=size*0.5-r1/Math.sqrt(2.0)+pad;
-    let py1=size*0.5-r1/Math.sqrt(2.0)+pad;
-    let pw=r1/Math.sqrt(2)*2-pad*2, ph=pw;
-    image.params = {r1: r1, 
-    r2: r2, 
-    box: {x: px1, 
-     y: py1, 
-     width: pw, 
-     height: ph}}
-    for (let i=0; i<size2*size2; i++) {
-        let x=i%size2, y = ~~(i/size2);
-        let idx=i*4;
-        let alpha=0.0;
-        let r=Math.sqrt((x-size2*0.5)**2+(y-size2*0.5)**2);
-        if (r<r2*scale&&r>r1*scale) {
-            let th=Math.atan2(y-size2*0.5, x-size2*0.5)/(2*Math.PI)+0.5;
-            let eps=0.001;
-            th = th*(1.0-eps*2)+eps;
-            let r=0, g=0, b=0;
-            if (th<1.0/6.0) {
-                r = 1.0;
-                g = th*6.0;
-            }
-            else 
-              if (th<2.0/6.0) {
-                th-=1.0/6.0;
-                r = 1.0-th*6.0;
-                g = 1.0;
-            }
-            else 
-              if (th<3.0/6.0) {
-                th-=2.0/6.0;
-                g = 1.0;
-                b = th*6.0;
-            }
-            else 
-              if (th<4.0/6.0) {
-                th-=3.0/6.0;
-                b = 1.0;
-                g = 1.0-th*6.0;
-            }
-            else 
-              if (th<5.0/6.0) {
-                th-=4.0/6.0;
-                r = th*6.0;
-                b = 1.0;
-            }
-            else 
-              if (th<6.0/6.0) {
-                th-=5.0/6.0;
-                r = 1.0;
-                b = 1.0-th*6.0;
-            }
-            r = r*255+(fieldrand.random()-0.5);
-            g = g*255+(fieldrand.random()-0.5);
-            b = b*255+(fieldrand.random()-0.5);
-            idata[idx] = r;
-            idata[idx+1] = g;
-            idata[idx+2] = b;
-            alpha = 1.0;
-        }
-        let px2=(px1+pw)*scale, py2=(py1+ph)*scale;
-        if (x>px1*scale&&y>py1*scale&&x<px2&&y<py2) {
-            let u=1.0-(x-px1*scale)/(px2-px1*scale);
-            let v=1.0-(y-py1*scale)/(py2-py1*scale);
-            u = Math.pow(u, UPW);
-            v = Math.pow(v, VPW);
-            let r=0, g=0, b=0;
-            r = hue_rgb[0]*(1.0-u)+u;
-            g = hue_rgb[1]*(1.0-u)+u;
-            b = hue_rgb[2]*(1.0-u)+u;
-            let fac=1.0;
-            idata[idx+0] = r*v*255+(fieldrand.random()-0.5)*fac;
-            idata[idx+1] = g*v*255+(fieldrand.random()-0.5)*fac;
-            idata[idx+2] = b*v*255+(fieldrand.random()-0.5)*fac;
-            alpha = 1.0;
-        }
-        idata[idx+3] = alpha*255;
+  var Menu=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'Menu');
+  var DropBox=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'DropBox');
+  var getIconManager=es6_import_item(_es6_module, '../../core/ui_base.js', 'getIconManager');
+  var cconst=es6_import_item(_es6_module, '../../config/const.js', 'default');
+  var util=es6_import(_es6_module, '../../util/util.js');
+  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
+  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
+  function getFilename(path) {
+    let filename=path.replace(/\\/g, "/");
+    let i=filename.length-1;
+    while (i>=0&&filename[i]!=="/") {
+      i--;
     }
-    let image2=document.createElement("canvas");
-    image2.width = size2;
-    image2.height = size2;
-    let g=image2.getContext("2d");
-    g.putImageData(image.image, 0, 0);
-    image.canvas = image2;
-    image.scale = size/size2;
-    fields[key] = image;
-    return image;
-  }
-  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
-  let _update_temp=new Vector4();
-  class SimpleBox  {
-     constructor(pos=[0, 0], size=[1, 1]) {
-      this.pos = new Vector2(pos);
-      this.size = new Vector2(size);
-      this.r = 0;
+    if (i>0) {
+        filename = filename.slice(i, filename.length).trim();
     }
+    return filename;
   }
-  _ESClass.register(SimpleBox);
-  _es6_module.add_class(SimpleBox);
-  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
-  class ColorField extends UIBase {
-     constructor() {
+  let _menu_init=false;
+  let _init=false;
+  let mimemap={"js": "application/javascript", 
+   "json": "text/json", 
+   "png": "image/png", 
+   "svg": "image/svg+xml", 
+   "jpg": "image/jpeg", 
+   "txt": "text/plain", 
+   "html": "text/html", 
+   "css": "text/css", 
+   "ts": "application/typescript", 
+   "py": "application/python", 
+   "c": "application/c", 
+   "cpp": "application/cpp", 
+   "cc": "application/cpp", 
+   "h": "application/c", 
+   "hh": "application/cpp", 
+   "hpp": "application/cpp", 
+   "xml": "text/xml", 
+   "sh": "application/bash", 
+   "mjs": "application/javascript", 
+   "cjs": "application/javascript", 
+   "gif": "image/gif"}
+  let electron_menu_idgen=1;
+  let ipcRenderer;
+  class ElectronMenu extends Array {
+     constructor(args={}) {
       super();
-      this.hsva = [0.05, 0.6, 0.15, 1.0];
-      this.rgba = new Vector4([0, 0, 0, 0]);
-      this._recalcRGBA();
-      this._last_dpi = undefined;
-      let canvas=this.canvas = document.createElement("canvas");
-      let g=this.g = canvas.getContext("2d");
-      this.shadow.appendChild(canvas);
-      let mx, my;
-      let do_mouse=(e) =>        {
-        let r=this.canvas.getClientRects()[0];
-        let dpi=this.getDPI();
-        mx = (e.pageX-r.x)*dpi;
-        my = (e.pageY-r.y)*dpi;
-      };
-      let do_touch=(e) =>        {
-        if (e.touches.length==0) {
-            mx = my = undefined;
-            return ;
-        }
-        let r=this.canvas.getClientRects()[0];
-        let dpi=this.getDPI();
-        let t=e.touches[0];
-        mx = (t.pageX-r.x)*dpi;
-        my = (t.pageY-r.y)*dpi;
-      };
-      this.canvas.addEventListener("mousedown", (e) =>        {
-        do_mouse(e);
-        return this.on_mousedown(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("mousemove", (e) =>        {
-        do_mouse(e);
-        return this.on_mousemove(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("mouseup", (e) =>        {
-        do_mouse(e);
-        return this.on_mouseup(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("touchstart", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mousedown(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchmove", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mousemove(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchend", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mouseup(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchcancel", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mouseup(e, mx, my, 0);
-      });
-      this.updateCanvas(true);
-    }
-     pick_h(x, y) {
-      let field=this._field;
-      let size=field.width;
-      let dpi=this.getDPI();
-      if (field===undefined) {
-          console.error("no field in colorpicker");
-          return ;
-      }
-      let th=Math.atan2(y-size/2, x-size/2)/(2*Math.PI)+0.5;
-      this.hsva[0] = th;
-      this.update(true);
-      this._recalcRGBA();
-      if (this.onchange) {
-          this.onchange(this.hsva, this.rgba);
+      this._ipcId = electron_menu_idgen++;
+      for (let k in args) {
+          this[k] = args[k];
       }
     }
-     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
-      this.hsva[0] = h;
-      this.hsva[1] = s;
-      this.hsva[2] = v;
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
+     insert(i, item) {
+      this.length++;
+      let j=this.length-1;
+      while (j>i) {
+        this[j] = this[j-1];
+        j--;
       }
-    }
-     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
-      let ret=rgb_to_hsv(r, g, b);
-      this.hsva[0] = ret[0];
-      this.hsva[1] = ret[1];
-      this.hsva[2] = ret[2];
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     _recalcRGBA() {
-      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
-      this.rgba[0] = ret[0];
-      this.rgba[1] = ret[1];
-      this.rgba[2] = ret[2];
-      this.rgba[3] = this.hsva[3];
+      this[i] = item;
       return this;
     }
-     on_mousedown(e, x, y, button) {
-      if (button!=0)
-        return ;
-      let field=this._field;
-      if (field===undefined)
-        return ;
-      let size=field.width;
-      let dpi=this.getDPI();
-      let r=Math.sqrt((x-size/2)**2+(y-size/2)**2);
-      let pad=5*dpi;
-      let px1=field.params.box.x, py1=field.params.box.y, px2=px1+field.params.box.width, py2=py1+field.params.box.height;
-      px1-=pad*0.5;
-      py1-=pad*0.5;
-      px2+=pad*0.5;
-      py2+=pad*0.5;
-      if (r>field.params.r1-pad&&r<field.params.r2+pad) {
-          this.pick_h(x, y);
-          this._mode = "h";
-      }
-      else 
-        if (x>=px1&&x<=px2&&y>=py1&&y<=py2) {
-          this.pick_sv(x, y);
-          console.log("in box");
-          this._mode = "sv";
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      console.log(x, y);
+    static  setApplicationMenu(menu) {
+      initElectronIpc();
+      ipcRenderer.invoke("set-menu-bar", menu);
     }
-     pick_sv(x, y) {
-      let sv=this._sample_box(x, y);
-      this.hsva[1] = sv[0];
-      this.hsva[2] = sv[1];
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
+     closePopup() {
+      ipcRenderer.invoke("close-menu", this._ipcId);
     }
-     _sample_box(x, y) {
-      let field=this._field;
-      if (field===undefined) {
-          return [-1, -1];
-      }
-      let px=field.params.box.x, py=field.params.box.y, pw=field.params.box.width, ph=field.params.box.height;
-      let u=(x-px)/pw;
-      let v=1.0-(y-py)/ph;
-      u = Math.min(Math.max(u, 0.0), 1.0);
-      v = Math.min(Math.max(v, 0.0), 1.0);
-      let ret=sample(u, 1.0-v);
-      u = ret[0], v = 1.0-ret[1];
-      return [u, v];
+     append(item) {
+      this.push(item);
     }
-     on_mousemove(e, x, y, button) {
-      if (this._mode=="h") {
-          this.pick_h(x, y);
-      }
-      else 
-        if (this._mode=="sv") {
-          this.pick_sv(x, y);
-      }
-      e.preventDefault();
-      e.stopPropagation();
-    }
-     on_mouseup(e, x, y, button) {
-      this._mode = undefined;
-      e.preventDefault();
-      e.stopPropagation();
-      console.log(x, y);
-    }
-     updateCanvas(force_update=false, _in_update=false) {
-      let canvas=this.canvas;
-      let update=force_update;
-      if (update) {
-          let size=this.getDefault("fieldsize");
-          let dpi=this.getDPI();
-          canvas.style["width"] = size+"px";
-          canvas.style["height"] = size+"px";
-          canvas.width = canvas.height = Math.ceil(size*dpi);
-          if (!_in_update)
-            this._redraw();
-          return true;
-      }
-    }
-     _redraw() {
-      let canvas=this.canvas, g=this.g;
-      let dpi=this.getDPI();
-      let size=canvas.width;
-      let field=this._field = getFieldImage(size, this.hsva);
-      let w=size, h=size*field.height/field.width;
-      g.clearRect(0, 0, w, h);
-      g.drawImage(field.canvas, 0, 0, field.width, field.height);
-      g.lineWidth = 2.0;
-      function circle(x, y, r) {
-        g.strokeStyle = "white";
-        g.beginPath();
-        g.arc(x, y, r, -Math.PI, Math.PI);
-        g.stroke();
-        g.strokeStyle = "grey";
-        g.beginPath();
-        g.arc(x, y, r-1, -Math.PI, Math.PI);
-        g.stroke();
-        g.fillStyle = "black";
-        g.beginPath();
-        g.arc(x, y, 2*dpi, -Math.PI, Math.PI);
-        g.fill();
-      }
-      let hsva=this.hsva;
-      let r=(field.params.r2-field.params.r1)*0.7;
-      let bandr=(field.params.r2+field.params.r1)*0.5;
-      let th=Math.fract(1.0-hsva[0]-0.25);
-      let x=Math.sin(th*Math.PI*2)*bandr+size/2;
-      let y=Math.cos(th*Math.PI*2)*bandr+size/2;
-      circle(x, y, r);
-      let u=this.hsva[1], v=1.0-this.hsva[2];
-      let ret=inv_sample(u, v);
-      u = ret[0], v = ret[1];
-      x = field.params.box.x+u*field.params.box.width;
-      y = field.params.box.y+v*field.params.box.height;
-      circle(x, y, r);
-    }
-     updateDPI(force_update=false, _in_update=false) {
-      let dpi=this.getDPI();
-      let update=force_update;
-      update = update||dpi!=this._last_dpi;
-      if (update) {
-          this._last_dpi = dpi;
-          this.updateCanvas(true);
-          if (!_in_update)
-            this._redraw();
-          return true;
-      }
-    }
-     update(force_update=false) {
-      super.update();
-      let redraw=false;
-      redraw = redraw||this.updateCanvas(force_update, true);
-      redraw = redraw||this.updateDPI(force_update, true);
-      if (redraw) {
-          this._redraw();
-      }
-    }
-    static  define() {
-      return {tagname: "colorfield0-x", 
-     style: "colorfield"}
+     popup(args) {
+      let $_t0ravh=args, x=$_t0ravh.x, y=$_t0ravh.y, callback=$_t0ravh.callback;
+      callback = wrapRemoteCallback("popup_menu_click", callback);
+      const $_t1slfe=require('electron'), ipcRenderer=$_t1slfe.ipcRenderer;
+      ipcRenderer.invoke("popup-menu", this, x, y, callback);
     }
   }
-  _ESClass.register(ColorField);
-  _es6_module.add_class(ColorField);
-  ColorField = _es6_module.add_export('ColorField', ColorField);
-  UIBase.register(ColorField);
-  class ColorPicker extends ui.ColumnFrame {
+  _ESClass.register(ElectronMenu);
+  _es6_module.add_class(ElectronMenu);
+  ElectronMenu = _es6_module.add_export('ElectronMenu', ElectronMenu);
+  let callbacks={}
+  let keybase=1;
+  function wrapRemoteCallback(key, callback) {
+    key = "remote_"+key+(keybase++);
+    callbacks[key] = callback;
+    return key;
+  }
+  wrapRemoteCallback = _es6_module.add_export('wrapRemoteCallback', wrapRemoteCallback);
+  let ipcInit=false;
+  function initElectronIpc() {
+    if (ipcInit) {
+        return ;
+    }
+    ipcInit = true;
+    ipcRenderer = require('electron').ipcRenderer;
+    ipcRenderer.on('invoke-menu-callback', (event, key, args) =>      {
+      console.error("Electron menu callback", key, args);
+      callbacks[key].apply(undefined, args);
+    });
+  }
+  class ElectronMenuItem  {
+     constructor(args) {
+      for (let k in args) {
+          this[k] = args[k];
+      }
+      if (this.click) {
+          this.click = wrapRemoteCallback("menu_click", this.click);
+      }
+    }
+  }
+  _ESClass.register(ElectronMenuItem);
+  _es6_module.add_class(ElectronMenuItem);
+  ElectronMenuItem = _es6_module.add_export('ElectronMenuItem', ElectronMenuItem);
+  function patchDropBox() {
+    initElectronIpc();
+    DropBox.prototype._onpress = function _onpress(e) {
+      if (this._menu!==undefined) {
+          this._menu.close();
+          this._menu = undefined;
+          this._pressed = false;
+          this._redraw();
+          return ;
+      }
+      this._build_menu();
+      let emenu=buildElectronMenu(this._menu);
+      this._menu.close = () =>        {
+        emenu.closePopup();
+      }
+      if (this._menu===undefined) {
+          return ;
+      }
+      this._menu._dropbox = this;
+      this.dom._background = this.getDefault("BoxDepressed");
+      this._background = this.getDefault("BoxDepressed");
+      this._redraw();
+      this._pressed = true;
+      this.setCSS();
+      let onclose=this._menu.onclose;
+      this._menu.onclose = () =>        {
+        this._pressed = false;
+        this._redraw();
+        let menu=this._menu;
+        if (menu) {
+            this._menu = undefined;
+            menu._dropbox = undefined;
+        }
+        if (onclose) {
+            onclose.call(menu);
+        }
+      }
+      let menu=this._menu;
+      let screen=this.getScreen();
+      let dpi=this.getDPI();
+      let x=e.x, y=e.y;
+      let rects=this.dom.getClientRects();
+      x = rects[0].x;
+      y = rects[0].y+Math.ceil(rects[0].height);
+      x = ~~x;
+      y = ~~y;
+      emenu.popup({x: x, 
+     y: y, 
+     callback: () =>          {
+          if (this._menu) {
+              this._menu.onclose();
+          }
+        }});
+    }
+  }
+  let on_tick=() =>    {
+    let nativeTheme=getElectron().remote.nativeTheme;
+    let mode=nativeTheme.shouldUseDarkColors ? "dark" : "light";
+    if (mode!==cconst.colorSchemeType) {
+        nativeTheme.themeSource = cconst.colorSchemeType;
+    }
+  }
+  function checkInit() {
+    if (window.haveElectron&&!_init) {
+        _init = true;
+        patchDropBox();
+        setInterval(on_tick, 350);
+    }
+  }
+  checkInit = _es6_module.add_export('checkInit', checkInit);
+  let iconcache={}
+  iconcache = _es6_module.add_export('iconcache', iconcache);
+  function makeIconKey(icon, iconsheet, invertColors) {
+    return ""+icon+":"+iconsheet+":"+invertColors;
+  }
+  function getNativeIcon(icon, iconsheet, invertColors, size) {
+    if (iconsheet===undefined) {
+        iconsheet = 0;
+    }
+    if (invertColors===undefined) {
+        invertColors = false;
+    }
+    if (size===undefined) {
+        size = 16;
+    }
+    let icongen;
+    try {
+      icongen = myRequire("./icogen.js");
+    }
+    catch (error) {
+        icongen = myRequire("./icogen.cjs");
+    }
+    window.icongen = icongen;
+    let nativeImage=getElectron().nativeImage;
+    let manager=getIconManager();
+    let sheet=manager.findSheet(iconsheet);
+    let images=[];
+    let sizes=icongen.GetRequiredICOImageSizes();
+    if (1) {
+        let iconsheet=manager.findClosestSheet(size);
+        let tilesize=manager.getTileSize(iconsheet);
+        let canvas=document.createElement("canvas");
+        let g=canvas.getContext("2d");
+        canvas.width = canvas.height = size;
+        if (invertColors) {
+            g.filter = "invert(100%)";
+        }
+        let scale=size/tilesize;
+        g.scale(scale, scale);
+        manager.canvasDraw({getDPI: () =>            {
+            return 1.0;
+          }}, canvas, g, icon, 0, 0, iconsheet);
+        let header="data:image/png;base64,";
+        let data=canvas.toDataURL();
+        data = data.slice(header.length, data.length);
+        data = Buffer.from(data, "base64");
+        myRequire("fs").writeFileSync("./myicon2.png", data);
+        images.push(data);
+    }
+    return "myicon2.png";
+    return icon;
+    return undefined;
+    window._icon = icon;
+    return icon;
+  }
+  getNativeIcon = _es6_module.add_export('getNativeIcon', getNativeIcon);
+  let map={CTRL: "Control", 
+   ALT: "Alt", 
+   SHIFT: "Shift", 
+   COMMAND: "Command"}
+  function buildElectronHotkey(hk) {
+    hk = hk.trim().replace(/[ \t-]+/g, "+");
+    for (let k in map) {
+        hk = hk.replace(k, map[k]);
+    }
+    return hk;
+  }
+  buildElectronHotkey = _es6_module.add_export('buildElectronHotkey', buildElectronHotkey);
+  function buildElectronMenu(menu) {
+    let electron=getElectron().remote;
+    initElectronIpc();
+    let emenu=new ElectronMenu();
+    let buildItem=(item) =>      {
+      if (item._isMenu) {
+          let menu2=item._menu;
+          return new ElectronMenuItem({submenu: buildElectronMenu(item._menu), 
+       label: menu2.getAttribute("title")});
+      }
+      let hotkey=item.hotkey;
+      let icon=item.icon;
+      let label=""+item.label;
+      if (hotkey&&typeof hotkey!=="string") {
+          hotkey = buildElectronHotkey(hotkey);
+      }
+      else {
+        hotkey = ""+hotkey;
+      }
+      if (icon<0) {
+          icon = undefined;
+      }
+      let args={id: ""+item._id, 
+     label: label, 
+     accelerator: hotkey, 
+     icon: icon ? getNativeIcon(icon) : undefined, 
+     click: function () {
+          menu.onselect(item._id);
+        }, 
+     registerAccelerator: false}
+      return new ElectronMenuItem(args);
+    }
+    for (let item of menu.items) {
+        emenu.append(buildItem(item));
+    }
+    return emenu;
+  }
+  buildElectronMenu = _es6_module.add_export('buildElectronMenu', buildElectronMenu);
+  function initMenuBar(menuEditor, override) {
+    if (override===undefined) {
+        override = false;
+    }
+    checkInit();
+    if (!window.haveElectron) {
+        return ;
+    }
+    if (_menu_init&&!override) {
+        return ;
+    }
+    _menu_init = true;
+    let electron=getElectron().remote;
+    let menu=new ElectronMenu();
+    let _roles=new Set(["undo", "redo", "cut", "copy", "paste", "delete", "about", "quit", "open", "save", "load", "paste", "cut", "zoom"]);
+    let roles={}
+    for (let k of _roles) {
+        roles[k] = k;
+    }
+    roles = Object.assign(roles, {"select all": "selectAll", 
+    "file": "fileMenu", 
+    "edit": "editMenu", 
+    "view": "viewMenu", 
+    "app": "appMenu", 
+    "help": "help", 
+    "zoom in": "zoomIn", 
+    "zoom out": "zoomOut"});
+    let header=menuEditor.header;
+    for (let dbox of header.traverse(DropBox)) {
+        dbox._build_menu();
+        dbox.update();
+        dbox._build_menu();
+        let menu2=dbox._menu;
+        menu2.ctx = dbox.ctx;
+        menu2._init();
+        menu2.update();
+        let title=dbox._genLabel();
+        let args={label: title, 
+      tooltip: dbox.description, 
+      submenu: buildElectronMenu(menu2)};
+        console.error(menu);
+        menu.insert(0, new ElectronMenuItem(args));
+    }
+    ElectronMenu.setApplicationMenu(menu);
+  }
+  initMenuBar = _es6_module.add_export('initMenuBar', initMenuBar);
+  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
+  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
+  class platform extends PlatformAPI {
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      const $_t2kpmj=require('electron').remote, dialog=$_t2kpmj.dialog;
+      console.log(args.filters);
+      let eargs={defaultPath: args.defaultPath, 
+     filters: this._sanitizeFilters(args.filters??[]), 
+     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
+      if (args.multi) {
+          eargs.properties.push("multiSelections");
+      }
+      if (!args.addToRecentList) {
+          eargs.properties.push("dontAddToRecent");
+      }
+      initElectronIpc();
+      return new Promise((accept, reject) =>        {
+        ipcRenderer.invoke('show-open-dialog', eargs, wrapRemoteCallback("open-dialog", (ret) =>          {
+          if (ret.canceled||ret.cancelled) {
+              reject("cancel");
+          }
+          else {
+            accept(ret.filePaths.map((f) =>              {
+              return new FilePath(f, getFilename(f));
+            }));
+          }
+        }), makeRemoteCallback("show-open-dialog", (error) =>          {
+          reject(error);
+        }));
+      });
+    }
+    static  _sanitizeFilters(filters) {
+      let filters2=[];
+      for (let filter of filters) {
+          if (Array.isArray(filter)) {
+              let ext=filter[0];
+              filter = {extensions: filter};
+              ext = ext.replace(/\./g, "").trim().toLowerCase();
+              if (ext in mimemap) {
+                  filter.mime = mimemap[ext];
+              }
+              filter.name = ext;
+          }
+          console.log(filter.extensions);
+          filter.extensions = filter.extensions.map((f) =>            {
+            return f.startsWith(".") ? f.slice(1, f.length) : f;
+          });
+          filters2.push(filter);
+      }
+      return filters2;
+    }
+    static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
+      const $_t3oqtm=require('electron').remote, dialog=$_t3oqtm.dialog;
+      console.log(args.filters);
+      let eargs={defaultPath: args.defaultPath, 
+     filters: this._sanitizeFilters(args.filters??[]), 
+     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
+      if (args.multi) {
+          eargs.properties.push("multiSelections");
+      }
+      if (!args.addToRecentList) {
+          eargs.properties.push("dontAddToRecent");
+      }
+      return new Promise((accept, reject) =>        {
+        dialog.showSaveDialog(undefined, eargs).then((ret) =>          {
+          if (ret.canceled) {
+              reject("cancel");
+          }
+          else {
+            let path=ret.filePath;
+            let filedata=filedata_cb();
+            if (__instance_of(filedata, ArrayBuffer)) {
+                filedata = new Uint8Array(filedata);
+            }
+            require('fs').writeFileSync(path, filedata);
+            console.log("saved file", filedata);
+            accept(new FilePath(path, getFilename(path)));
+          }
+        });
+      });
+    }
+    static  readFile(path, mime) {
+      return new Promise((accept, reject) =>        {
+        let fs=require('fs');
+        if (isMimeText(mime)) {
+            accept(fs.readFileSync(path.data, "utf8"));
+        }
+        else {
+          accept(fs.readFileSync(path.data).buffer);
+        }
+      });
+    }
+    static  writeFile(data, handle, mime) {
+      return new Promise((accept, reject) =>        {
+        let fs=require('fs');
+        fs.writeFileSync(handle.data, data);
+        accept(handle);
+      });
+    }
+  }
+  _ESClass.register(platform);
+  _es6_module.add_class(platform);
+  platform = _es6_module.add_export('platform', platform);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/electron_api.js');
+
+
+es6_module_define('icogen', [], function _icogen_module(_es6_module) {
+  "use strict";
+  if (window.haveElectron) {
+      let fs=require("fs");
+      let path=require("path");
+      let pngjsNozlib=require("pngjs-nozlib");
+      let png=require("pngjs");
+      const REQUIRED_IMAGE_SIZES=[16, 24, 32, 48, 64, 128, 256];
+      const DEFAULT_FILE_NAME='app';
+      const FILE_EXTENSION='.ico';
+      const HEADER_SIZE=6;
+      const DIRECTORY_SIZE=16;
+      const BITMAPINFOHEADER_SIZE=40;
+      const BI_RGB=0;
+      const convertPNGtoDIB=(src, width, height, bpp) =>        {
+        const cols=width*bpp;
+        const rows=height*cols;
+        const rowEnd=rows-cols;
+        const dest=Buffer.alloc(src.length);
+        for (let row=0; row<rows; row+=cols) {
+            for (let col=0; col<cols; col+=bpp) {
+                let pos=row+col;
+                const r=src.readUInt8(pos);
+                const g=src.readUInt8(pos+1);
+                const b=src.readUInt8(pos+2);
+                const a=src.readUInt8(pos+3);
+                pos = rowEnd-row+col;
+                dest.writeUInt8(b, pos);
+                dest.writeUInt8(g, pos+1);
+                dest.writeUInt8(r, pos+2);
+                dest.writeUInt8(a, pos+3);
+            }
+        }
+        return dest;
+      };
+      const createBitmapInfoHeader=(png, compression) =>        {
+        const b=Buffer.alloc(BITMAPINFOHEADER_SIZE);
+        b.writeUInt32LE(BITMAPINFOHEADER_SIZE, 0);
+        b.writeInt32LE(png.width, 4);
+        b.writeInt32LE(png.height*2, 8);
+        b.writeUInt16LE(1, 12);
+        b.writeUInt16LE(png.bpp*8, 14);
+        b.writeUInt32LE(compression, 16);
+        b.writeUInt32LE(png.data.length, 20);
+        b.writeInt32LE(0, 24);
+        b.writeInt32LE(0, 28);
+        b.writeUInt32LE(0, 32);
+        b.writeUInt32LE(0, 36);
+        return b;
+      };
+      const createDirectory=(png, offset) =>        {
+        const b=Buffer.alloc(DIRECTORY_SIZE);
+        const size=png.data.length+BITMAPINFOHEADER_SIZE;
+        const width=256<=png.width ? 0 : png.width;
+        const height=256<=png.height ? 0 : png.height;
+        const bpp=png.bpp*8;
+        b.writeUInt8(width, 0);
+        b.writeUInt8(height, 1);
+        b.writeUInt8(0, 2);
+        b.writeUInt8(0, 3);
+        b.writeUInt16LE(1, 4);
+        b.writeUInt16LE(bpp, 6);
+        b.writeUInt32LE(size, 8);
+        b.writeUInt32LE(offset, 12);
+        return b;
+      };
+      const createFileHeader=(count) =>        {
+        const b=Buffer.alloc(HEADER_SIZE);
+        b.writeUInt16LE(0, 0);
+        b.writeUInt16LE(1, 2);
+        b.writeUInt16LE(count, 4);
+        return b;
+      };
+      const checkOptions=(options) =>        {
+        if (options) {
+            return {name: typeof options.name==='string'&&options.name!=='' ? options.name : DEFAULT_FILE_NAME, 
+        sizes: Array.isArray(options.sizes) ? options.sizes : REQUIRED_IMAGE_SIZES}
+        }
+        else {
+          return {name: DEFAULT_FILE_NAME, 
+       sizes: REQUIRED_IMAGE_SIZES}
+        }
+      };
+      const GetRequiredICOImageSizes=() =>        {
+        return REQUIRED_IMAGE_SIZES;
+      };
+      let stream=require("stream");
+      class WriteStream extends stream.Writable {
+         constructor() {
+          super();
+          this.data = [];
+        }
+         _write(chunk, encoding, cb) {
+          let buf=chunk;
+          if (!(__instance_of(buf, Buffer))) {
+              Buffer.from(chunk, encoding);
+          }
+          for (let i=0; i<buf.length; i++) {
+              this.data.push(buf[i]);
+          }
+          cb(null);
+        }
+         end() {
+          this.data = Buffer.from(this.data);
+          super.end();
+        }
+      }
+      _ESClass.register(WriteStream);
+      _es6_module.add_class(WriteStream);
+      exports.GetRequiredICOImageSizes = GetRequiredICOImageSizes;
+      const GenerateICO=(images, logger) =>        {
+        if (logger===undefined) {
+            logger = console;
+        }
+        logger.log('ICO:');
+        const stream=new WriteStream();
+        stream.write(createFileHeader(images.length), 'binary');
+        let pngs=[];
+        for (let image of images) {
+            pngs.push(pngjsNozlib.PNG.sync.read(image));
+        }
+        let offset=HEADER_SIZE+DIRECTORY_SIZE*images.length;
+        pngs.forEach((png) =>          {
+          const directory=createDirectory(png, offset);
+          stream.write(directory, 'binary');
+          offset+=png.data.length+BITMAPINFOHEADER_SIZE;
+        });
+        pngs.forEach((png) =>          {
+          const header=createBitmapInfoHeader(png, BI_RGB);
+          stream.write(header, 'binary');
+          const dib=convertPNGtoDIB(png.data, png.width, png.height, png.bpp);
+          stream.write(dib, 'binary');
+        });
+        stream.end();
+        return stream.data;
+      };
+      exports.GenerateICO = GenerateICO;
+      let _default=GenerateICO;
+      exports.default = _default;
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/icogen.js');
+
+
+es6_module_define('platform', [], function _platform_module(_es6_module) {
+  let promise;
+  if (window.haveElectron) {
+      promise = _es_dynamic_import(_es6_module, './electron/electron_api.js');
+  }
+  else {
+    promise = _es_dynamic_import(_es6_module, './web/web_api.js');
+  }
+  var platform;
+  platform = _es6_module.add_export('platform', platform);
+  promise.then((module) =>    {
+    platform = module.platform;
+  });
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform.js');
+
+
+es6_module_define('platform_base', [], function _platform_base_module(_es6_module) {
+  const mimeMap={".js": "application/javascript", 
+   ".json": "text/json", 
+   ".html": "text/html", 
+   ".txt": "text/plain", 
+   ".jpg": "image/jpeg", 
+   ".png": "image/png", 
+   ".tiff": "image/tiff", 
+   ".gif": "image/gif", 
+   ".bmp": "image/bitmap", 
+   ".tga": "image/targa", 
+   ".svg": "image/svg+xml", 
+   ".xml": "text/xml"}
+  _es6_module.add_export('mimeMap', mimeMap);
+  var textMimes=new Set(["application/javascript", "application/x-javscript", "image/svg+xml", "application/xml"]);
+  textMimes = _es6_module.add_export('textMimes', textMimes);
+  function isMimeText(mime) {
+    if (!mime) {
+        return false;
+    }
+    if (mime.startsWith("text")) {
+        return true;
+    }
+    return textMimes.has(mime);
+  }
+  isMimeText = _es6_module.add_export('isMimeText', isMimeText);
+  function getExtension(path) {
+    if (!path) {
+        return "";
+    }
+    let i=path.length;
+    while (i>0&&path[i]!==".") {
+      i--;
+    }
+    return path.slice(i, path.length).trim().toLowerCase();
+  }
+  getExtension = _es6_module.add_export('getExtension', getExtension);
+  function getMime(path) {
+    let ext=getExtension(path);
+    if (ext in mimeMap) {
+        return mimeMap[ext];
+    }
+    return "application/x-octet-stream";
+  }
+  getMime = _es6_module.add_export('getMime', getMime);
+  class PlatformAPI  {
+    static  writeFile(data, handle, mime) {
+      throw new Error("implement me");
+    }
+    static  resolveURL(path, base=location.href) {
+      base = base.trim();
+      if (path.startsWith("./")) {
+          path = path.slice(2, path.length).trim();
+      }
+      while (path.startsWith("/")) {
+        path = path.slice(1, path.length).trim();
+      }
+      while (base.endsWith("/")) {
+        base = base.slice(0, base.length-1).trim();
+      }
+      let exts=["html", "txt", "js", "php", "cgi"];
+      for (let ext of exts) {
+          ext = "."+ext;
+          if (base.endsWith(ext)) {
+              let i=base.length-1;
+              while (i>0&&base[i]!=="/") {
+                i--;
+              }
+              base = base.slice(0, i).trim();
+          }
+      }
+      while (base.endsWith("/")) {
+        base = base.slice(0, base.length-1).trim();
+      }
+      path = (base+"/"+path).split("/");
+      let path2=[];
+      for (let i=0; i<path.length; i++) {
+          if (path[i]==="..") {
+              path2.pop();
+          }
+          else {
+            path2.push(path[i]);
+          }
+      }
+      return path2.join("/");
+    }
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      throw new Error("implement me");
+    }
+    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
+      throw new Error("implement me");
+    }
+    static  readFile(path, mime) {
+      throw new Error("implement me");
+    }
+  }
+  _ESClass.register(PlatformAPI);
+  _es6_module.add_class(PlatformAPI);
+  PlatformAPI = _es6_module.add_export('PlatformAPI', PlatformAPI);
+  class FileDialogArgs  {
+     constructor() {
+      this.multi = false;
+      this.addToRecentList = false;
+      this.filters = [];
+    }
+  }
+  _ESClass.register(FileDialogArgs);
+  _es6_module.add_class(FileDialogArgs);
+  FileDialogArgs = _es6_module.add_export('FileDialogArgs', FileDialogArgs);
+  class FilePath  {
+     constructor(data, filename="unnamed") {
+      this.data = data;
+      this.filename = filename;
+    }
+  }
+  _ESClass.register(FilePath);
+  _es6_module.add_class(FilePath);
+  FilePath = _es6_module.add_export('FilePath', FilePath);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform_base.js');
+
+
+es6_module_define('web_api', ["../../path-controller/util/html5_fileapi.js", "../platform_base.js"], function _web_api_module(_es6_module) {
+  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
+  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
+  var saveFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'saveFile');
+  var loadFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'loadFile');
+  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
+  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
+  var mimeMap=es6_import_item(_es6_module, '../platform_base.js', 'mimeMap');
+  function getWebFilters(filters) {
+    if (filters===undefined) {
+        filters = [];
+    }
+    let types=[];
+    for (let item of filters) {
+        let mime=item.mime;
+        let exts=[];
+        for (let ext of item.extensions) {
+            ext = "."+ext;
+            if (ext.toLowerCase() in mimeMap) {
+                mime = mime!==undefined ? mime : mimeMap[ext.toLowerCase()];
+            }
+            exts.push(ext);
+        }
+        if (!mime) {
+            mime = "application/x-octet-stream";
+        }
+        types.push({description: item.name, 
+      accept: {[mime]: exts}});
+    }
+    return types;
+  }
+  getWebFilters = _es6_module.add_export('getWebFilters', getWebFilters);
+  class platform extends PlatformAPI {
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      let types=getWebFilters(args.filters);
+      return new Promise((accept, reject) =>        {
+        window.showOpenFilePicker({multiple: args.multi, 
+      types: types}).then((arg) =>          {
+          let paths=[];
+          for (let file of arg) {
+              paths.push(new FilePath(file, file.name));
+          }
+          accept(paths);
+        });
+      });
+    }
+    static  writeFile(data, handle, mime) {
+      handle = handle.data;
+      return handle.createWritable().then((file) =>        {
+        file.write(data);
+        file.close();
+      });
+    }
+    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
+      if (!window.showSaveFilePicker) {
+          return this.showSaveDialog_old(...arguments);
+      }
+      let types=getWebFilters(args.filters);
+      return new Promise((accept, reject) =>        {
+        let fname;
+        let saveHandle=window.showSaveFilePicker({types: types});
+        let handle;
+        saveHandle.then((handle1) =>          {
+          handle = handle1;
+          fname = handle.name;
+          console.log("saveHandle", handle);
+          return handle.createWritable();
+        }).then((file) =>          {
+          let savedata=savedata_cb();
+          if (__instance_of(savedata, Uint8Array)||__instance_of(savedata, DataView)) {
+              savedata = savedata.buffer;
+          }
+          file.write(savedata);
+          file.close();
+          let path=new FilePath(handle, fname);
+          accept(path);
+        });
+      });
+    }
+    static  showSaveDialog_old(title, savedata, args=new FileDialogArgs()) {
+      let exts=[];
+      for (let list of args.filters) {
+          if (!Array.isArray(list)&&list.filters) {
+              list = list.filters;
+          }
+          for (let ext of list) {
+              exts.push(ext);
+          }
+      }
+      return new Promise((accept, reject) =>        {
+        saveFile(savedata);
+        window.setTimeout(() =>          {
+          accept("undefined");
+        });
+      });
+    }
+    static  readFile(path, mime="") {
+      if (mime==="") {
+          mime = path.filename;
+          let i=mime.length-1;
+          while (i>0&&mime[i]!==".") {
+            i--;
+          }
+          mime = mime.slice(i, mime.length).trim().toLowerCase();
+          if (mime in mimeMap) {
+              mime = mimeMap[mime];
+          }
+      }
+      return new Promise((accept, reject) =>        {
+        path.data.getFile().then((file) =>          {
+          console.log("file!", file);
+          let promise;
+          if (isMimeText(mime)) {
+              promise = file.text();
+          }
+          else {
+            promise = file.arrayBuffer();
+          }
+          promise.then((data) =>            {
+            accept(data);
+          });
+        });
+      });
+      return new Promise((accept, reject) =>        {
+        let data=path.data;
+        if (isMimeText(mime)) {
+            let s='';
+            data = new Uint8Array(data);
+            for (let i=0; i<data.length; i++) {
+                s+=String.fromCharCode(data[i]);
+            }
+            data = s;
+        }
+        accept(data);
+      });
+    }
+  }
+  _ESClass.register(platform);
+  _es6_module.add_class(platform);
+  platform = _es6_module.add_export('platform', platform);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/web/web_api.js');
+
+
+es6_module_define('AreaDocker', ["../config/const.js", "../core/ui_base.js", "../path-controller/util/struct.js", "./ScreenArea.js", "../widgets/ui_menu.js", "../core/ui.js", "./area_wrangler.js", "../path-controller/util/util.js"], function _AreaDocker_module(_es6_module) {
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var Area=es6_import_item(_es6_module, './ScreenArea.js', 'Area');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
+  var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
+  var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
+  var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
+  var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
+  let ignore=0;
+  window.testSnapScreenVerts = function (arg) {
+    let screen=CTX.screen;
+    screen.unlisten();
+    screen.on_resize([screen.size[0]-75, screen.size[1]], screen.size);
+    screen.on_resize = screen.updateSize = () =>      {    }
+    let p=CTX.propsbar;
+    p.pos[0]+=50;
+    p.owning_sarea.loadFromPosSize();
+    screen.regenBorders();
+    screen.size[0] = window.innerWidth-5;
+    screen.snapScreenVerts(arg);
+  }
+  class AreaDocker extends Container {
      constructor() {
       super();
-      this.field = document.createElement("colorfield-x");
-      this.field.setAttribute("class", "colorpicker");
-      this.field.onchange = (hsva, rgba) =>        {
-        if (this.onchange) {
-            this.onchange(hsva, rgba);
+      this.tbar = this.tabs();
+      this.tbar.enableDrag();
+      this.tbar.addEventListener("dragstart", (e) =>        {
+        console.log("drag start", e);
+        let name=this.tbar.tbar.tabs.active.name;
+        let id=this.tbar.tbar.tabs.active._id;
+        let sarea=this.getArea().owning_sarea;
+        let area=this.getArea();
+        this.ctx.screen.dragArea = [area, sarea];
+        e.dataTransfer.setData("area", name+"|"+this._id);
+        e.preventDefault();
+      });
+      this.tbar.addEventListener("dragover", (e) =>        {
+        console.log("drag over");
+        console.log(e.dataTransfer.getData("area"));
+        let data=e.dataTransfer.getData("area");
+        if (!data) {
+            return ;
         }
-        this._setDataPath();
-        this._setSliders();
+        let $_t0rrig=this.ctx.screen.dragArea, area=$_t0rrig[0], sarea=$_t0rrig[1];
+        if (!area||this.getArea()===area) {
+            return ;
+        }
+        if (area.constructor.define().areaname in this.getArea().owning_sarea.editormap) {
+            return ;
+        }
+        this.ctx.screen.dragArea[1] = this.getArea().owning_sarea;
+        try {
+          sarea.removeChild(area);
+        }
+        catch (error) {
+            util.print_stack(error);
+        }
+        this.getArea().owning_sarea.appendChild(area);
+        this.rebuild();
+        e.preventDefault();
+      });
+      this.tbar.addEventListener("dragexit", (e) =>        {
+        console.log("drag exit");
+        console.log(e.dataTransfer.getData("area"));
+        if (this.tbar.__fake) {
+            this.tbar.removeTab(this.tbar.__fake);
+            this.tbar.__fake = undefined;
+        }
+      });
+      this.tbar.addEventListener("drop", (e) =>        {
+        console.log("drop event", e);
+        console.log(e.dataTransfer.getData("area"));
+      });
+      this.tbar.addEventListener("dragend", (e) =>        {
+        console.log("drag end event", e);
+        console.log(e.dataTransfer.getData("area"));
+      });
+      this.tbar.onchange = (tab) =>        {
+        if (ignore) {
+            return ;
+        }
+        if (!tab||!this.getArea()||!this.getArea().parentWidget) {
+            return ;
+        }
+        if (tab.id==="add") {
+            this.addTabMenu(tab);
+            return ;
+        }
+        console.warn("CHANGE AREA", tab.id, this.id);
+        let sarea=this.getArea().parentWidget;
+        if (!sarea) {
+            return ;
+        }
+        for (let area of sarea.editors) {
+            if (area._id===tab.id&&area!==sarea.area) {
+                let ud=saveUIData(this.tbar, "tabs");
+                sarea.switch_editor(area.constructor);
+                area._init();
+                area.flushUpdate();
+                if (area.switcher) {
+                    ignore++;
+                    area.switcher.update();
+                    area.switcher.tbar.setActive(area._id);
+                    try {
+                      loadUIData(sarea.area.switcher.tbar, ud);
+                    }
+                    finally {
+                        ignore = Math.max(ignore-1, 0);
+                      }
+                    area.switcher.rebuild();
+                }
+            }
+        }
       };
-      let style=document.createElement("style");
-      style.textContent = `
-      .colorpicker {
-        background-color : ${ui_base.getDefault("InnerPanelBG")};
-      }
-    `;
-      this._style = style;
-      this.shadow.appendChild(style);
-      this.field.ctx = this.ctx;
-      this.shadow.appendChild(this.field);
     }
-    static  setDefault(node) {
-      let tabs=node.tabs();
-      let tab=tabs.tab("HSV");
-      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
-      });
-      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
-      });
-      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
-      });
-      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
-      });
-      tab = tabs.tab("RGB");
-      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
-      });
-      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
-      });
-      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
-      });
-      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
-      });
-      node._setSliders();
-    }
-     _setSliders() {
-      if (this.h===undefined) {
-          console.warn("colorpicker ERROR");
+     addTabMenu(tab) {
+      console.log("Add Tab!");
+      let rect=tab.getClientRects()[0];
+      let mpos=this.ctx.screen.mpos;
+      let menu=UIBase.createElement("menu-x");
+      menu.closeOnMouseUp = false;
+      menu.ctx = this.ctx;
+      menu._init();
+      let prop=Area.makeAreasEnum();
+      let sarea=this.getArea().parentWidget;
+      if (!sarea) {
           return ;
       }
-      let hsva=this.hsva;
-      this.h.setValue(hsva[0], false);
-      this.s.setValue(hsva[1], false);
-      this.v.setValue(hsva[2], false);
-      this.a.setValue(hsva[3], false);
-      let rgba=this.rgba;
-      this.r.setValue(rgba[0], false);
-      this.g.setValue(rgba[1], false);
-      this.b.setValue(rgba[2], false);
-      this.a2.setValue(rgba[3], false);
+      for (let k in Object.assign({}, prop.values)) {
+          let ok=true;
+          for (let area of sarea.editors) {
+              if (area.constructor.define().uiname===k) {
+                  ok = false;
+              }
+          }
+          if (!ok) {
+              continue;
+          }
+          let icon=prop.iconmap[k];
+          menu.addItemExtra(k, prop.values[k], undefined, icon);
+      }
+      console.log(mpos[0], mpos[1], rect.x, rect.y);
+      menu.onselect = (val) =>        {
+        console.log("menu select", val, this.getArea().parentWidget);
+        let sarea=this.getArea().parentWidget;
+        if (sarea) {
+            let cls=areaclasses[val];
+            ignore++;
+            let area, ud;
+            try {
+              ud = saveUIData(this.tbar, "tab");
+              sarea.switchEditor(cls);
+              console.log("switching", cls);
+              area = sarea.area;
+              area._init();
+            }
+            catch (error) {
+                util.print_stack(error);
+                throw error;
+            }
+            finally {
+                ignore = Math.max(ignore-1, 0);
+              }
+            console.log("AREA", area.switcher, area);
+            if (area.switcher) {
+                ignore++;
+                try {
+                  area.parentWidget = sarea;
+                  area.owning_sarea = sarea;
+                  area.switcher.parentWidget = area;
+                  area.switcher.ctx = area.ctx;
+                  area.switcher._init();
+                  area.switcher.update();
+                  console.log("loading data", ud);
+                  loadUIData(area.switcher.tbar, ud);
+                  area.switcher.rebuild();
+                  area.flushUpdate();
+                }
+                catch (error) {
+                    throw error;
+                }
+                finally {
+                    ignore = Math.max(ignore-1, 0);
+                  }
+            }
+        }
+      };
+      startMenu(menu, mpos[0], rect.y, false, 0);
     }
-    get  hsva() {
-      return this.field.hsva;
+     getArea() {
+      let p=this;
+      while (p&&!(__instance_of(p, Area))) {
+        p = p.parentWidget;
+      }
+      return p;
     }
-    get  rgba() {
-      return this.field.rgba;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
+     _hash() {
+      let area=this.getArea();
+      if (!area)
+        return ;
+      let sarea=area.parentWidget;
+      if (!sarea) {
           return ;
       }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          this.disabled = true;
+      let hash="";
+      for (let area2 of sarea.editors) {
+          hash+=area2.tagName+":";
+      }
+      return hash+(sarea.area ? sarea.area.tagName : "");
+    }
+     rebuild() {
+      console.log("rebuild");
+      if (!this.getArea()||!this.getArea().parentWidget) {
+          this._last_hash = undefined;
+          this.tbar.clear();
           return ;
       }
-      this.disabled = false;
-      _update_temp.load(val);
-      if (prop.type==PropTypes.VEC3) {
-          _update_temp[3] = 1.0;
+      ignore++;
+      let ud=saveUIData(this.tbar, "tbar");
+      this.tbar.clear();
+      let sarea=this.getArea().parentWidget;
+      for (let area of sarea.editors) {
+          let uiname=area.constructor.define().uiname;
+          let tab=this.tbar.tab(uiname, area._id);
       }
-      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
-          console.log("VAL", val);
-          console.log("color changed!");
-          this.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3]);
-      }
+      let tab=this.tbar.icontab(Icons.SMALL_PLUS, "add", "Add Editor", false);
+      loadUIData(this.tbar, ud);
+      let tc=this.tbar.getTabCount();
+      this.tbar.moveTab(tab, tc-1);
+      ignore = Math.max(ignore-1, 0);
     }
      update() {
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
       super.update();
-    }
-     _setDataPath() {
-      if (this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.field.rgba);
+      if (!this.ctx)
+        return ;
+      let area=this.getArea();
+      if (!area)
+        return ;
+      let sarea=area.parentWidget;
+      if (!sarea)
+        return ;
+      let hash=this._hash();
+      if (hash!==this._last_hash) {
+          this._last_hash = hash;
+          this.rebuild();
+      }
+      if (this.isDead()||!this.getArea()) {
+          ignore++;
+          this.tbar.setActive(this.getArea()._id);
+          ignore--;
       }
     }
-     setHSVA(h, s, v, a) {
-      this.field.setHSVA(h, s, v, a);
-      this._setDataPath();
-    }
-     setRGBA(r, g, b, a) {
-      this.field.setRGBA(r, g, b, a);
-      this._setDataPath();
+     init() {
+      super.init();
     }
     static  define() {
-      return {tagname: "colorpicker0-x"}
+      return {tagname: "area-docker-x"}
     }
   }
-  _ESClass.register(ColorPicker);
-  _es6_module.add_class(ColorPicker);
-  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
-  UIBase.register(ColorPicker);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
+  _ESClass.register(AreaDocker);
+  _es6_module.add_class(AreaDocker);
+  AreaDocker = _es6_module.add_export('AreaDocker', AreaDocker);
+  UIBase.internalRegister(AreaDocker);
+}, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
+
+
+es6_module_define('area_wrangler', ["../path-controller/util/vectormath.js", "./FrameManager_mesh.js", "../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../core/ui.js", "../widgets/ui_noteframe.js", "../core/ui_base.js", "../path-controller/util/struct.js"], function _area_wrangler_module(_es6_module) {
+  let _ScreenArea=undefined;
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
+  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
+  es6_import(_es6_module, '../path-controller/util/struct.js');
+  let UIBase=ui_base.UIBase;
+  let Vector2=vectormath.Vector2;
+  let ScreenClass=undefined;
+  var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
+  var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
+  function setScreenClass(cls) {
+    ScreenClass = cls;
+  }
+  setScreenClass = _es6_module.add_export('setScreenClass', setScreenClass);
+  function getAreaIntName(name) {
+    let hash=0;
+    for (let i=0; i<name.length; i++) {
+        let c=name.charCodeAt(i);
+        if (i%2===0) {
+            hash+=c<<8;
+            hash*=13;
+            hash = hash&((1<<15)-1);
+        }
+        else {
+          hash+=c;
+        }
+    }
+    return hash;
+  }
+  getAreaIntName = _es6_module.add_export('getAreaIntName', getAreaIntName);
+  window.getAreaIntName = getAreaIntName;
+  var AreaTypes={TEST_CANVAS_EDITOR: 0}
+  AreaTypes = _es6_module.add_export('AreaTypes', AreaTypes);
+  function setAreaTypes(def) {
+    for (let k in AreaTypes) {
+        delete AreaTypes[k];
+    }
+    for (let k in def) {
+        AreaTypes[k] = def[k];
+    }
+  }
+  setAreaTypes = _es6_module.add_export('setAreaTypes', setAreaTypes);
+  let areaclasses={}
+  areaclasses = _es6_module.add_export('areaclasses', areaclasses);
+  class AreaWrangler  {
+     constructor() {
+      this.stacks = {};
+      this.lasts = {};
+      this.lastArea = undefined;
+      this.stack = [];
+      this.idgen = 0;
+      this._last_screen_id = undefined;
+    }
+     _checkWrangler(ctx) {
+      if (ctx===undefined) {
+          return true;
+      }
+      if (this._last_screen_id===undefined) {
+          this._last_screen_id = ctx.screen._id;
+          return true;
+      }
+      if (ctx.screen._id!==this._last_screen_id) {
+          this.reset();
+          this._last_screen_id = ctx.screen._id;
+          console.warn("contextWrangler detected a new screen; new file?");
+          return false;
+      }
+      return true;
+    }
+     reset() {
+      this.stacks = {};
+      this.lasts = {};
+      this.lastArea = undefined;
+      this.stack = [];
+      this._last_screen_id = undefined;
+      return this;
+    }
+     push(type, area, pushLastRef=true) {
+      if (!(type.name in this.stacks)) {
+          this.stacks[type.name] = [];
+      }
+      this.stacks[type.name].push(this.lasts[type.name]);
+      if (pushLastRef||this.lasts[type.name]===undefined) {
+          this.lasts[type.name] = area;
+          this.lastArea = area;
+      }
+      this.stacks[type.name].push(area);
+      this.stack.push(area);
+    }
+     updateLastRef(type, area) {
+      this.lasts[type.name] = area;
+      this.lastArea = area;
+    }
+     pop(type, area) {
+      if (!(type.name in this.stacks)) {
+          console.warn("pop_ctx_area called in error");
+          return ;
+      }
+      if (this.stacks[type.name].length>0) {
+          this.stacks[type.name].pop();
+          let last=this.stacks[type.name].pop();
+          if (last&&last.isConnected) {
+              this.lasts[type.name] = last;
+          }
+      }
+      else {
+        console.error("pop_ctx_area called in error");
+      }
+      if (this.stack.length>0) {
+          this.stack.pop();
+      }
+    }
+     getLastArea(type) {
+      if (type===undefined) {
+          if (this.stack.length>0) {
+              return this.stack[this.stack.length-1];
+          }
+          else {
+            return this.lastArea;
+          }
+      }
+      else {
+        if (type.name in this.stacks) {
+            let stack=this.stacks[type.name];
+            if (stack.length>0) {
+                return stack[stack.length-1];
+            }
+        }
+        return this.lasts[type.name];
+      }
+    }
+  }
+  _ESClass.register(AreaWrangler);
+  _es6_module.add_class(AreaWrangler);
+  AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
+}, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
+

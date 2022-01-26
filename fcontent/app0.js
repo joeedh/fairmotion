@@ -1,3 +1,4 @@
+
 es6_module_define('evillog', [], function _evillog_module(_es6_module) {
   "use strict";
   function evillog() {
@@ -9,6 +10,8 @@ es6_module_define('evillog', [], function _evillog_module(_es6_module) {
   }
   evillog = _es6_module.add_export('evillog', evillog);
 }, '/dev/fairmotion/src/core/evillog.js');
+
+
 "not_a_module";
 if (Array.prototype.pop_i===undefined) {
     Array.prototype.pop_i = function pop_i(idx, throw_on_error) {
@@ -175,173 +178,18 @@ function setattr(obj, attr, val) {
 function delattr(obj, attr) {
   delete obj[attr];
 }
+
+
 "not_a_module";
 "no_type_logging";
 function a() {
 }
+
+
 es6_module_define('object_cache', [], function _object_cache_module(_es6_module) {
-  "use strict";
-  var $_mh;
-  var $_swapt;
-  var CACHE_CYCLE_SIZE=256;
-  function _cache_copy_object(obj) {
-    var ob2;
-    if (typeof obj=="string")
-      return String(obj);
-    else 
-      if (typeof obj=="number")
-      return Number(obj);
-    else 
-      if (typeof obj=="boolean")
-      return Boolean(obj);
-    else 
-      if (typeof obj=="function")
-      return obj;
-    else 
-      if (__instance_of(obj, String))
-      return new obj.constructor(obj);
-    else 
-      if (__instance_of(obj, Number))
-      return new obj.constructor(obj);
-    else 
-      if (__instance_of(obj, Boolean))
-      return new obj.constructor(obj);
-    else 
-      if (obj===undefined)
-      return undefined;
-    else 
-      if (obj===null)
-      return null;
-    else 
-      if (typeof (obj.copy)=="function")
-      return obj.copy();
-    if (obj.constructor&&obj.constructor.prototype) {
-        ob2 = Object.create(obj.constructor.prototype);
-        ob2.constructor = obj.constructor;
-    }
-    if (obj.constructor==Array||typeof obj=="array")
-      ob2 = new Array(obj.length);
-    else 
-      ob2 = {}
-    var keys=Object.getOwnPropertyNames(obj);
-    for (var i=0; i<keys.length; i++) {
-        var k=keys[i];
-        var d=Object.getOwnPropertyDescriptor(obj, k);
-        if (("get" in d)||("set" in d)) {
-            Object.defineProperty(ob2, k, d);
-        }
-        else 
-          if (obj.hasOwnProperty(k)&&k!="_c_id") {
-            ob2[k] = _cache_copy_object(obj[k]);
-        }
-    }
-    return ob2;
-  }
-  var copy_object_deep=_cache_copy_object;
-  var _cache_id_gen=1;
-  class CacheCycle extends GArray {
-     constructor(obj, tot) {
-      super(tot);
-      for (var i=0; i<tot; i++) {
-          this[i] = _cache_copy_object(obj);
-          this[i]._cache_id = _cache_id_gen++;
-      }
-      this.cur = 0;
-      this.length = tot;
-    }
-     next() {
-      var ret=this[this.cur];
-      this.cur = (this.cur+1)%this.length;
-      return ret;
-    }
-  }
-  _ESClass.register(CacheCycle);
-  _es6_module.add_class(CacheCycle);
-  
-  var _c_idgen=0;
-  class ObjectCache  {
-     constructor() {
-      this.cycles = {};
-      this.arrays = {};
-      this.idmap = {};
-    }
-     cache_remove(obj) {
-      if (obj==undefined||!("_cache_id" in obj)) {
-          console.trace();
-          console.log("WARNING: non-cached object ", obj, ", passed to ObjectCache.cache_remove");
-          return ;
-      }
-      var cycle=this.cycles[obj._cache_id];
-      cycle.remove(obj);
-      delete obj._cache_id;
-    }
-     raw_fetch(templ, tot=CACHE_CYCLE_SIZE) {
-      var id=templ._c_id;
-      if (id==undefined)
-        id = _c_idgen++;
-      if (!(id in this.cycles)) {
-          this.cycles[id] = new CacheCycle(templ, tot);
-          var c=this.cycles[id];
-          for (var i=0; i<c.length; i++) {
-              this.idmap[c[i]._cache_id] = c;
-          }
-      }
-      if (templ._c_id==undefined)
-        templ._c_id = id;
-      return this.cycles[id].next();
-    }
-     is_cache_obj(obj) {
-      return "_cache_id" in obj;
-    }
-     fetch(descriptor) {
-      var d=descriptor;
-      if (d.cachesize==undefined)
-        d.cachesize = CACHE_CYCLE_SIZE;
-      var obj=this.raw_fetch(d.obj, d.cachesize);
-      if (d.init!=undefined)
-        d.init(obj);
-      return obj;
-    }
-     getarr() {
-      var arr=this.array(arguments.length);
-      for (var i=0; i<arguments.length; i++) {
-          arr[i] = arguments[i];
-      }
-      return arr;
-    }
-     array(len) {
-      var arr;
-      if (!(len in this.arrays)) {
-          arr = new Array(len);
-          arr.length = len;
-          this.arrays[len] = arr;
-      }
-      else {
-        arr = this.arrays[len];
-      }
-      var arr2=this.raw_fetch(arr, 8192);
-      arr2.length = len;
-      if (arr2.length>8) {
-          for (var i=0; i<arr2.length; i++) {
-              arr2[i] = undefined;
-          }
-          arr2.length = len;
-      }
-      return arr2;
-    }
-  }
-  _ESClass.register(ObjectCache);
-  _es6_module.add_class(ObjectCache);
-  var objcache=window.objcache = new ObjectCache();
-  var _itempl={done: false, 
-   value: undefined}
-  function cached_iret() {
-    var ret=objcache.raw_fetch(_itempl);
-    ret.done = false;
-    ret.value = undefined;
-    return ret;
-  }
 }, '/dev/fairmotion/src/util/object_cache.js');
+
+
 es6_module_define('bezier', [], function _bezier_module(_es6_module) {
   function d2bez3(k1, k2, k3, s) {
     return 2.0*(k1-k2-(k2-k3));
@@ -446,6 +294,8 @@ es6_module_define('bezier', [], function _bezier_module(_es6_module) {
   }
   thbez4 = _es6_module.add_export('thbez4', thbez4);
 }, '/dev/fairmotion/src/util/bezier.js');
+
+
 "not_a_module";
 var CryptoJS=CryptoJS||(function (Math, undefined) {
   var C={}
@@ -792,6 +642,8 @@ var CryptoJS=CryptoJS||(function (Math, undefined) {
   C.SHA1 = Hasher._createHelper(SHA1);
   C.HmacSHA1 = Hasher._createHmacHelper(SHA1);
 }());
+
+
 "not_a_module";
 var Base64String={compressToUTF16: function (input) {
     var output="", i, c, current, status=0;
@@ -1019,6 +871,8 @@ var Base64String={compressToUTF16: function (input) {
     }
     return output;
   }};
+
+
 "not_a_module";
 var LZString={_keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", 
   _f: String.fromCharCode, 
@@ -1615,3 +1469,4 @@ var LZString={_keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123
 if (typeof module!=='undefined'&&module!=null) {
     module.exports = LZString;
 }
+

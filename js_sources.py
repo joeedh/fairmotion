@@ -28,6 +28,7 @@ for path in glob.glob("src/path.ux/scripts/**", recursive=True):
 
     if path.endswith("jobs.js") or path.endswith("isect.js") or "kdtree" in path:
       continue
+
     pathux.append(path)
 
 tools = list(glob.glob("src/editors/viewport/toolmodes/*.js"))
@@ -275,10 +276,6 @@ sources = [
   "src/paint/imagecanvas_base.js",
   "src/paint/paint_base.js",
   "src/paint/paint_op_base.js",
-
-  "src/datafiles/iconsheet.svg",
-  "src/datafiles/iconsheet.png",
-  "src/datafiles/iconsheet16.png",
 ]
 
 watch_targets = [
@@ -288,6 +285,7 @@ for path in glob.glob("addons/*", recursive=True):
     watch_targets.append(path)
 
 copy_targets = {
+  "iconsheet.svg" :   "src/datafiles/iconsheet.svg",
    "vectordraw_canvas2d_worker.js" : "src/vectordraw/vectordraw_canvas2d_worker.js",
    "vectordraw_skia_worker.js" : "src/vectordraw/vectordraw_skia_worker.js",
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",

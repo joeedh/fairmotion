@@ -27,7 +27,7 @@ res = [
 'throw', 'try', 'catch', 'delete', 'typeof', 'instanceof',
 'with', 'switch', 'case', 'default', 'yield',
 'const', 'short', 'double', 'char',
-'signed', 'variable', 'template', 'byte',
+'signed', 'variable', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from',
 'await', "enum"

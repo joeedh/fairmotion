@@ -68,10 +68,10 @@ ES6Module.prototype = {
   },
   
   add_export : function(name, object, allow_override=false) {
-    if (object != undefined)
+    if (object !== undefined)
       this.already_processed[name] = object;
     
-    if (!allow_override && name in this.exports && this.exports[name] != undefined) {
+    if (!allow_override && name in this.exports && this.exports[name] !== undefined) {
       return this.exports[name];
     }
     
@@ -92,7 +92,7 @@ ES6Module.prototype = {
   },
   
   add_global : function(name, object) {
-    if (object != undefined)
+    if (object !== undefined)
       this.already_processed[name] = object;
     
     if (name in this.exports) {
@@ -118,14 +118,14 @@ ES6Module.prototype = {
   },
   
   set_default_export : function(name, object) {
-    if (this.default_export != undefined) {
+    if (this.default_export !== undefined) {
       throw new Error("Can only have one default export");
     }
     
     this.exports["default"] = object;
     this.default_export = object;
     
-    if (name != undefined && name != '') {
+    if (name !== undefined && name !== '') {
       return this.add_export(name, object);
     }
     
@@ -222,9 +222,13 @@ function _es6_pop_basepath(path) {
 
 function es6_module_define(name, depends, callback, path) {
   path = path === undefined ? name : path;
-  
-  debug("defining module ", name, "with dependencies", JSON.stringify(depends));
-  
+
+  if (_debug_modules === 2) {
+    debug("defining module ", path, "with dependencies", JSON.stringify(depends));
+  } else {
+    debug("defining module ", path);
+  }
+
   //if (name in _defined_modules) {
     //throw new Error("Duplicate module name '" + name + "'");
   //  console.log("Warning, duplicate module name \""+name+"\",", " make sure to use path in import statements");

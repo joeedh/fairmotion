@@ -1682,6 +1682,8 @@ window.genNewDataAPI = () => {
     }
   };
 
+  console.warn("ContextStruct:", ContextStruct);
+
   recurse(ContextStruct, "");
   console.log(structs);
   console.log(out);

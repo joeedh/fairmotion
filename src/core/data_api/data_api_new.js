@@ -68,13 +68,13 @@ export function makeAPI(api = new DataAPI()) {
         return g_app_state.toolstack.undostack[key];
       },
       function getStruct(api, list, key) {
-        OpStackArray.flag|=DataFlags.RECALC_CACHE;
-        if (tool.apistruct!=undefined) {
-          tool.apistruct.flag|=DataFlags.RECALC_CACHE;
+        OpStackArray.flag |= DataFlags.RECALC_CACHE;
+        if (tool.apistruct != undefined) {
+          tool.apistruct.flag |= DataFlags.RECALC_CACHE;
           return tool.apistruct;
         }
         tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
-        tool.apistruct.flag|=DataFlags.RECALC_CACHE;
+        tool.apistruct.flag |= DataFlags.RECALC_CACHE;
         return tool.apistruct;
       },
       function getLength(api, list) {
@@ -102,128 +102,155 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_View2DHandler(api) {
     View2DHandlerStruct.float("propradius", "propradius", "Magnet Radius").range(0.1, 1024).step(0.5).expRate(1.75).decimalPlaces(2);
-    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function(old) {return (function () {
-      redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "half_pix_size");
-    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function(old) {return (function () {
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function (old) {
+      return (function () {
+        redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "half_pix_size")
+      .icon(Icons.HALF_PIXEL_SIZE);
+    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function (old) {
+      return (function () {
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     View2DHandlerStruct.color4("default_stroke", "default_stroke", "Stroke");
     View2DHandlerStruct.color4("default_fill", "default_fill", "Fill");
     View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames({
-      SELECT : "Select",
-      APPEND : "Append",
-      RESIZE : "Resize",
-      ROTATE : "Rotate",
-      PEN    : "Pen"
+      SELECT: "Select",
+      APPEND: "Append",
+      RESIZE: "Resize",
+      ROTATE: "Rotate",
+      PEN   : "Pen"
     }).descriptions({
-      SELECT : "Select",
-      APPEND : "Append",
-      RESIZE : "Resize",
-      ROTATE : "Rotate",
-      PEN    : "Pen"
+      SELECT: "Select",
+      APPEND: "Append",
+      RESIZE: "Resize",
+      ROTATE: "Rotate",
+      PEN   : "Pen"
     }).icons({
-      SELECT : Icons.CURSOR_ARROW,
-      APPEND : Icons.APPEND_VERTEX,
-      RESIZE : Icons.RESIZE,
-      ROTATE : Icons.ROTATE,
-      PEN    : Icons.PEN_TOOL
+      SELECT: Icons.CURSOR_ARROW,
+      APPEND: Icons.APPEND_VERTEX,
+      RESIZE: Icons.RESIZE,
+      ROTATE: Icons.ROTATE,
+      PEN   : Icons.PEN_TOOL
     });
-    View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points");
+    View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points")
+      .icon(Icons.DRAW_SMALL_VERTS);
     View2DHandlerStruct.enum("selectmode", "selectmode", SelMask, "Selection Mode").uiNames({
-      VERTEX  : "Vertex",
-      SEGMENT : "Segment",
-      FACE    : "Face",
-      OBJECT  : "Object"
+      VERTEX : "Vertex",
+      SEGMENT: "Segment",
+      FACE   : "Face",
+      OBJECT : "Object"
     }).descriptions({
-      VERTEX  : "Vertex",
-      SEGMENT : "Segment",
-      FACE    : "Face",
-      OBJECT  : "Object"
+      VERTEX : "Vertex",
+      SEGMENT: "Segment",
+      FACE   : "Face",
+      OBJECT : "Object"
     }).icons({
-      VERTEX  : Icons.VERT_MODE,
-      SEGMENT : Icons.EDGE_MODE,
-      FACE    : Icons.FACE_MODE,
-      OBJECT  : Icons.OBJECT_MODE
+      VERTEX : Icons.VERT_MODE,
+      SEGMENT: Icons.EDGE_MODE,
+      FACE   : Icons.FACE_MODE,
+      OBJECT : Icons.OBJECT_MODE,
+      HANDLE : Icons.SHOW_HANDLES,
     }).customSet(function (prop, val) {
       console.log("selmask_enum.userSetData", this, prop, val);
-      this.selectmode = val|(this.selectmode&SelMask.HANDLE);
+      this.selectmode = val | (this.selectmode & SelMask.HANDLE);
       return this.selectmode;
     });
     View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames({
-      VERTEX   : "Vertex",
-      HANDLE   : "Handle",
-      SEGMENT  : "Segment",
-      FACE     : "Face",
-      TOPOLOGY : "Topology",
-      OBJECT   : "Object"
+      VERTEX  : "Vertex",
+      HANDLE  : "Handle",
+      SEGMENT : "Segment",
+      FACE    : "Face",
+      TOPOLOGY: "Topology",
+      OBJECT  : "Object"
     }).descriptions({
-      VERTEX   : "Vertex",
-      HANDLE   : "Handle",
-      SEGMENT  : "Segment",
-      FACE     : "Face",
-      TOPOLOGY : "Topology",
-      OBJECT   : "Object"
+      VERTEX  : "Vertex",
+      HANDLE  : "Handle",
+      SEGMENT : "Segment",
+      FACE    : "Face",
+      TOPOLOGY: "Topology",
+      OBJECT  : "Object"
     }).icons({
-      1       : Icons.VERT_MODE,
-      2       : Icons.SHOW_HANDLES,
-      4       : Icons.EDGE_MODE,
-      16      : Icons.FACE_MODE,
-      32      : Icons.OBJECT_MODE,
-      VERTEX  : Icons.VERT_MODE,
-      HANDLE  : Icons.SHOW_HANDLES,
-      SEGMENT : Icons.EDGE_MODE,
-      FACE    : Icons.FACE_MODE,
-      OBJECT  : Icons.OBJECT_MODE
-    }).on("change", function(old) {return (function () {
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls");
-    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function(old) {return (function () {
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames({
-      PROP_TRANSFORM : "Prop Transform"
-    }).descriptions({
-      PROP_TRANSFORM : "Prop Transform"
-    }).icons({
-      1              : Icons.PROP_TRANSFORM,
-      PROP_TRANSFORM : Icons.PROP_TRANSFORM
+      1      : Icons.VERT_MODE,
+      2      : Icons.SHOW_HANDLES,
+      4      : Icons.EDGE_MODE,
+      16     : Icons.FACE_MODE,
+      32     : Icons.OBJECT_MODE,
+      VERTEX : Icons.VERT_MODE,
+      HANDLE : Icons.SHOW_HANDLES,
+      SEGMENT: Icons.EDGE_MODE,
+      FACE   : Icons.FACE_MODE,
+      OBJECT : Icons.OBJECT_MODE
+    }).on("change", function (old) {
+      return (function () {
+        window.redraw_viewport();
+      }).call(this.dataref, old)
     });
-    View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode");
-    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function(old) {return (function () {
-      this.ctx.spline.regen_sort();
-      redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function(old) {return (function () {
-      this.ctx.spline.regen_sort();
-      redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function(old) {return (function () {
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function(old) {return (function () {
-      redraw_viewport();
-    }).call(this.dataref, old)});
-    View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths");
-    View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).on("change", function(old) {return (function (ctx, path) {
-      this.ctx.view2d.set_zoom(this.data);
-    }).call(this.dataref, old)});
+    View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls")
+      .icon(Icons.ONLY_RENDER);
+    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function (old) {
+      return (function () {
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames({
+      PROP_TRANSFORM: "Prop Transform"
+    }).descriptions({
+      PROP_TRANSFORM: "Prop Transform"
+    }).icons({
+      1             : Icons.PROP_TRANSFORM,
+      PROP_TRANSFORM: Icons.PROP_TRANSFORM
+    });
+    View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode")
+      .icon(Icons.CURSOR_ARROW);
+    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function (old) {
+      return (function () {
+        this.ctx.spline.regen_sort();
+        redraw_viewport();
+      }).call(this.dataref, old)
+    })
+      .icon(Icons.ENABLE_BLUR);
+    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function (old) {
+      return (function () {
+        this.ctx.spline.regen_sort();
+        redraw_viewport();
+      }).call(this.dataref, old)
+    })
+      .icon(Icons.MAKE_POLYGON);
+    View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function (old) {
+      return (function () {
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function (old) {
+      return (function () {
+        redraw_viewport();
+      }).call(this.dataref, old)
+    })
+      .icon(Icons.DRAW_NORMALS);
+    View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths")
+      .icon(Icons.SHOW_ANIMPATHS);
+    View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).on("change", function (old) {
+      return (function (ctx, path) {
+        this.ctx.view2d.set_zoom(this.data);
+      }).call(this.dataref, old)
+    });
     View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
     View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames({
-      SMOOTH      : "Smooth",
-      LESS_SMOOTH : "Less Smooth",
-      BROKEN      : "Broken"
+      SMOOTH     : "Smooth",
+      LESS_SMOOTH: "Less Smooth",
+      BROKEN     : "Broken"
     }).descriptions({
-      SMOOTH      : "New Line Mode",
-      LESS_SMOOTH : "New Line Mode",
-      BROKEN      : "New Line Mode"
+      SMOOTH     : "New Line Mode",
+      LESS_SMOOTH: "New Line Mode",
+      BROKEN     : "New Line Mode"
     }).icons({
-      SMOOTH      : Icons.EXTRUDE_MODE_G2,
-      LESS_SMOOTH : Icons.EXTRUDE_MODE_G1,
-      BROKEN      : Icons.EXTRUDE_MODE_G0
+      SMOOTH     : Icons.EXTRUDE_MODE_G2,
+      LESS_SMOOTH: Icons.EXTRUDE_MODE_G1,
+      BROKEN     : Icons.EXTRUDE_MODE_G0
     });
     View2DHandlerStruct.bool("pin_paths", "pin_paths", "Pin Paths");
     View2DHandlerStruct.struct("background_image", "background_image", "undefined", api.mapStruct(ImageUser, true));
@@ -232,40 +259,54 @@ export function makeAPI(api = new DataAPI()) {
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api) {
-    MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+    MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
-      SELECT       : "Select",
-      MASK_TO_FACE : "Mask To Face"
+      SELECT      : "Select",
+      MASK_TO_FACE: "Mask To Face"
     }).descriptions({
-      SELECT       : "Select",
-      MASK_TO_FACE : "Mask To Face"
-    }).icons(DataTypes).on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", function(old) {return (function (material) {
-      material.update();
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+      SELECT      : "Select",
+      MASK_TO_FACE: "Mask To Face"
+    }).icons(DataTypes).on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", function (old) {
+      return (function (material) {
+        material.update();
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
   }
 
   var ImageUserStruct = api.mapStruct(ImageUser, true);
@@ -279,22 +320,28 @@ export function makeAPI(api = new DataAPI()) {
   var DopeSheetEditorStruct = api.mapStruct(DopeSheetEditor, true);
 
   function api_define_DopeSheetEditor(api) {
-    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function(old) {return (function (owner) {
-      owner.rebuild();
-    }).call(this.dataref, old)});
+    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function (old) {
+      return (function (owner) {
+        owner.rebuild();
+      }).call(this.dataref, old)
+    });
     DopeSheetEditorStruct.bool("pinned", "pinned", "Pin");
-    DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (owner) {
-      owner.updateKeyPositions();
-    }).call(this.dataref, old)});
+    DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (owner) {
+        owner.updateKeyPositions();
+      }).call(this.dataref, old)
+    });
   }
 
   var CurveEditorStruct = api.mapStruct(CurveEditor, true);
 
   function api_define_CurveEditor(api) {
-    CurveEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function(old) {return (function () {
-      if (this.ctx!=undefined&&this.ctx.editcurve!=undefined)
-        this.ctx.editcurve.do_full_recalc();
-    }).call(this.dataref, old)});
+    CurveEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function (old) {
+      return (function () {
+        if (this.ctx != undefined && this.ctx.editcurve != undefined)
+          this.ctx.editcurve.do_full_recalc();
+      }).call(this.dataref, old)
+    });
     CurveEditorStruct.bool("pinned", "pinned", "Pin");
   }
 
@@ -313,7 +360,7 @@ export function makeAPI(api = new DataAPI()) {
         return AnimKeyStruct2;
       },
       function getLength(api, list) {
-        var tot=0.0;
+        var tot = 0.0;
         for (var k in list) {
           tot++;
         }
@@ -330,7 +377,7 @@ export function makeAPI(api = new DataAPI()) {
     SplineFrameSetStruct.struct("pathspline", "pathspline", "undefined", api.mapStruct(Spline, true));
     SplineFrameSetStruct.list("vertex_animdata", "keypaths", [
       function getIter(api, list) {
-        let list2=list;
+        let list2 = list;
         return (function* () {
           for (let k in list2) {
             yield list2[k];
@@ -344,7 +391,7 @@ export function makeAPI(api = new DataAPI()) {
         return animdata_struct;
       },
       function getLength(api, list) {
-        let i=0;
+        let i = 0;
         for (let k in list) {
           i++;
         }
@@ -380,7 +427,7 @@ export function makeAPI(api = new DataAPI()) {
         return AnimKeyStruct2;
       },
       function getLength(api, list) {
-        var tot=0.0;
+        var tot = 0.0;
         for (var k in list) {
           tot++;
         }
@@ -519,7 +566,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -550,7 +597,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -581,7 +628,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -612,7 +659,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -643,7 +690,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -674,7 +721,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -705,7 +752,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -736,7 +783,7 @@ export function makeAPI(api = new DataAPI()) {
         return obj.eid;
       },
       function getLength(api, list) {
-        let len=0;
+        let len = 0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
           len++;
         }
@@ -790,57 +837,57 @@ export function makeAPI(api = new DataAPI()) {
     SplineFaceStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineFaceStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
     SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Break Curvatures",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Break Curvatures",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).descriptions({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).icons({
-      2                : Icons.EXTRUDE_MODE_G0,
-      32               : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
+      2               : Icons.EXTRUDE_MODE_G0,
+      32              : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
     });
   }
 
   var SplineSegmentStruct = api.mapStruct(SplineSegment, true);
 
   function api_define_SplineSegment(api) {
-    SplineSegmentStruct.bool("editable", "editable", "Element is visible and can be edited").customGet(function() {
+    SplineSegmentStruct.bool("editable", "editable", "Element is visible and can be edited").customGet(function () {
       let seg = this.dataref;
       //XXX mass set path code will sometimes set
       //this.ctx to seg.
@@ -863,82 +910,92 @@ export function makeAPI(api = new DataAPI()) {
       return ok;
     });
 
-    SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
-      g_app_state.ctx.spline.regen_sort();
-      segment.mat.update();
-      segment.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    SplineSegmentStruct.float("w2", "w2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
-      g_app_state.ctx.spline.regen_sort();
-      segment.mat.update();
-      segment.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    SplineSegmentStruct.float("shift1", "shift1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
-      g_app_state.ctx.spline.regen_sort();
-      segment.mat.update();
-      segment.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    SplineSegmentStruct.float("shift2", "shift2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
-      g_app_state.ctx.spline.regen_sort();
-      segment.mat.update();
-      segment.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+    SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (segment) {
+        g_app_state.ctx.spline.regen_sort();
+        segment.mat.update();
+        segment.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    SplineSegmentStruct.float("w2", "w2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (segment) {
+        g_app_state.ctx.spline.regen_sort();
+        segment.mat.update();
+        segment.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    SplineSegmentStruct.float("shift1", "shift1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (segment) {
+        g_app_state.ctx.spline.regen_sort();
+        segment.mat.update();
+        segment.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    SplineSegmentStruct.float("shift2", "shift2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (segment) {
+        g_app_state.ctx.spline.regen_sort();
+        segment.mat.update();
+        segment.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Break Curvatures",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Break Curvatures",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).descriptions({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).icons({
-      2                : Icons.EXTRUDE_MODE_G0,
-      32               : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
-    }).on("change", function(old) {return (function (segment) {
-      new Context().spline.regen_sort();
-      segment.flag|=SplineFlags.REDRAW;
-      console.log(segment);
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+      2               : Icons.EXTRUDE_MODE_G0,
+      32              : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
+    }).on("change", function (old) {
+      return (function (segment) {
+        new Context().spline.regen_sort();
+        segment.flag |= SplineFlags.REDRAW;
+        console.log(segment);
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     SplineSegmentStruct.bool("renderable", "renderable", "renderable");
     SplineSegmentStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
     SplineSegmentStruct.float("z", "z", "z").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
@@ -949,68 +1006,74 @@ export function makeAPI(api = new DataAPI()) {
   function api_define_SplineVertex(api) {
     SplineVertexStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Break Curvatures",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Break Curvatures",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).descriptions({
-      SELECT             : "Select",
-      BREAK_TANGENTS     : "Break Tangents",
-      USE_HANDLES        : "Use Handles",
-      UPDATE             : "Update",
-      TEMP_TAG           : "Temp Tag",
-      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
-      HIDE               : "Hide",
-      FRAME_DIRTY        : "Frame Dirty",
-      PINNED             : "Pinned",
-      NO_RENDER          : "No Render",
-      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
-      UPDATE_AABB        : "Update Aabb",
-      DRAW_TEMP          : "Draw Temp",
-      GHOST              : "Ghost",
-      UI_SELECT          : "Ui Select",
-      FIXED_KS           : "Fixed Ks",
-      REDRAW_PRE         : "Redraw Pre",
-      REDRAW             : "Redraw",
-      COINCIDENT         : "Coincident"
+      SELECT            : "Select",
+      BREAK_TANGENTS    : "Break Tangents",
+      USE_HANDLES       : "Use Handles",
+      UPDATE            : "Update",
+      TEMP_TAG          : "Temp Tag",
+      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+      HIDE              : "Hide",
+      FRAME_DIRTY       : "Frame Dirty",
+      PINNED            : "Pinned",
+      NO_RENDER         : "No Render",
+      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+      UPDATE_AABB       : "Update Aabb",
+      DRAW_TEMP         : "Draw Temp",
+      GHOST             : "Ghost",
+      UI_SELECT         : "Ui Select",
+      FIXED_KS          : "Fixed Ks",
+      REDRAW_PRE        : "Redraw Pre",
+      REDRAW            : "Redraw",
+      COINCIDENT        : "Coincident"
     }).icons({
-      2                : Icons.EXTRUDE_MODE_G0,
-      32               : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
-    }).on("change", function(old) {return (function (owner) {
-      this.ctx.spline.regen_sort();
-      if (owner!==undefined) {
-        owner.flag|=SplineFlags.UPDATE;
-      }
-      this.ctx.spline.propagate_update_flags();
-      this.ctx.spline.resolve = 1;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+      2               : Icons.EXTRUDE_MODE_G0,
+      32              : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
+    }).on("change", function (old) {
+      return (function (owner) {
+        this.ctx.spline.regen_sort();
+        if (owner !== undefined) {
+          owner.flag |= SplineFlags.UPDATE;
+        }
+        this.ctx.spline.propagate_update_flags();
+        this.ctx.spline.resolve = 1;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (vert) {
-      vert.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
-    SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (vert) {
-      vert.flag|=SplineFlags.REDRAW;
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+    SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (vert) {
+        vert.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
+    SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function (vert) {
+        vert.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
   }
 
   var SplineLayerStruct = api.mapStruct(SplineLayer, true);
@@ -1019,30 +1082,32 @@ export function makeAPI(api = new DataAPI()) {
     SplineLayerStruct.int("id", "id", "id").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     ;
     SplineLayerStruct.flags("flag", "flag", SplineLayerFlags, "flag").uiNames({
-      8          : "Mask To Prev",
-      HIDE       : "Hide",
-      CAN_SELECT : "Can Select",
-      MASK       : "Mask"
+      8         : "Mask To Prev",
+      HIDE      : "Hide",
+      CAN_SELECT: "Can Select",
+      MASK      : "Mask"
     }).descriptions({
-      MASK : "Use previous layer as a mask"
-    }).icons(DataTypes).on("change", function(old) {return (function () {
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+      MASK: "Use previous layer as a mask"
+    }).icons(DataTypes).on("change", function (old) {
+      return (function () {
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
   }
 
   var VertexAnimDataStruct = api.mapStruct(VertexAnimData, true);
 
   function api_define_VertexAnimData(api) {
     VertexAnimDataStruct.flags("animflag", "animflag", VDAnimFlags, "animflag").uiNames({
-      SELECT            : "Select",
-      STEP_FUNC         : "Step Func",
-      HIDE              : "Hide",
-      OWNER_IS_EDITABLE : "Owner Is Editable"
+      SELECT           : "Select",
+      STEP_FUNC        : "Step Func",
+      HIDE             : "Hide",
+      OWNER_IS_EDITABLE: "Owner Is Editable"
     }).descriptions({
-      SELECT            : "Select",
-      STEP_FUNC         : "Step Func",
-      HIDE              : "Hide",
-      OWNER_IS_EDITABLE : "Owner Is Editable"
+      SELECT           : "Select",
+      STEP_FUNC        : "Step Func",
+      HIDE             : "Hide",
+      OWNER_IS_EDITABLE: "Owner Is Editable"
     }).icons(DataTypes);
     VertexAnimDataStruct.int("eid", "owning_vertex", "Owning Vertex").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
   }
@@ -1056,49 +1121,55 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_AppSettings(api) {
     AppSettingsStruct.enum("unit_scheme", "unit_system", {
-      imperial : "imperial",
-      metric   : "metric"
+      imperial: "imperial",
+      metric  : "metric"
     }, "System").uiNames({
-      imperial : "Imperial",
-      metric   : "Metric"
+      imperial: "Imperial",
+      metric  : "Metric"
     }).descriptions({
-      imperial : "Imperial",
-      metric   : "Metric"
-    }).icons(DataTypes).on("change", function(old) {return (function () {
-      g_app_state.session.settings.save();
-    }).call(this.dataref, old)});
+      imperial: "Imperial",
+      metric  : "Metric"
+    }).icons(DataTypes).on("change", function (old) {
+      return (function () {
+        g_app_state.session.settings.save();
+      }).call(this.dataref, old)
+    });
     AppSettingsStruct.enum("unit", "default_unit", {
-      cm   : "cm",
-      "in" : "in",
-      ft   : "ft",
-      m    : "m",
-      mm   : "mm",
-      km   : "km",
-      mile : "mile"
+      cm  : "cm",
+      "in": "in",
+      ft  : "ft",
+      m   : "m",
+      mm  : "mm",
+      km  : "km",
+      mile: "mile"
     }, "Default Unit").descriptions({
-      cm   : "Cm",
-      "in" : "In",
-      ft   : "Ft",
-      m    : "M",
-      mm   : "Mm",
-      km   : "Km",
-      mile : "Mile"
-    }).icons(DataTypes).on("change", function(old) {return (function () {
-      g_app_state.session.settings.save();
-    }).call(this.dataref, old)});
+      cm  : "Cm",
+      "in": "In",
+      ft  : "Ft",
+      m   : "M",
+      mm  : "Mm",
+      km  : "Km",
+      mile: "Mile"
+    }).icons(DataTypes).on("change", function (old) {
+      return (function () {
+        g_app_state.session.settings.save();
+      }).call(this.dataref, old)
+    });
   }
 
   var SceneObjectStruct = api.mapStruct(SceneObject, true);
 
   function api_define_SceneObject(api) {
     ;
-    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function () {
-      if (this.ctx.mesh!==undefined)
-        this.ctx.mesh.regen_render();
-      if (this.ctx.view2d!==undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
-        this.ctx.object.dag_update();
-      }
-    }).call(this.dataref, old)});
+    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      return (function () {
+        if (this.ctx.mesh !== undefined)
+          this.ctx.mesh.regen_render();
+        if (this.ctx.view2d !== undefined && this.ctx.view2d.selectmode & EditModes.GEOMETRY) {
+          this.ctx.object.dag_update();
+        }
+      }).call(this.dataref, old)
+    });
   }
 
   var SceneStruct = api.mapStruct(Scene, true);
@@ -1116,7 +1187,7 @@ export function makeAPI(api = new DataAPI()) {
         return AnimKeyStruct2;
       },
       function getLength(api, list) {
-        var tot=0.0;
+        var tot = 0.0;
         for (var k in list) {
           tot++;
         }
@@ -1130,12 +1201,14 @@ export function makeAPI(api = new DataAPI()) {
           }*/
     ]);
     ;
-    SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5).on("change", function(old) {return ((owner, old) =>      {
-      let time=owner.time;
-      owner.time = old;
-      owner.change_time(g_app_state.ctx, time);
-      window.redraw_viewport();
-    }).call(this.dataref, old)});
+    SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5).on("change", function (old) {
+      return ((owner, old) => {
+        let time = owner.time;
+        owner.time = old;
+        owner.change_time(g_app_state.ctx, time);
+        window.redraw_viewport();
+      }).call(this.dataref, old)
+    });
     SceneStruct.list("objects", "objects", [
       function getIter(api, list) {
         return new obj_value_iter(list.object_idmap);
@@ -1187,7 +1260,7 @@ export function makeAPI(api = new DataAPI()) {
     DataListStruct.int("typeid", "typeid", "typeid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     DataListStruct.list("idmap", "items", [
       function getIter(api, list) {
-        let ret=[];
+        let ret = [];
         for (var k in list) {
           ret.push(list[k]);
         }
@@ -1200,7 +1273,7 @@ export function makeAPI(api = new DataAPI()) {
         return datablock_structs[item.lib_type];
       },
       function getLength(api, list) {
-        let count=0;
+        let count = 0;
         for (let k in list) {
           count++;
         }
@@ -1222,7 +1295,8 @@ export function makeAPI(api = new DataAPI()) {
   var OpStackEditorStruct = api.mapStruct(OpStackEditor, true);
 
   function api_define_OpStackEditor(api) {
-    OpStackEditorStruct.bool("filter_sel", "filter_sel", "Filter Sel");
+    OpStackEditorStruct.bool("filter_sel", "filter_sel", "Filter Sel")
+      .icon(Icons.FILTER_SEL_OPS);
   }
 
   var SplineToolModeStruct = api.mapStruct(SplineToolMode, true);

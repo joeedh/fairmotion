@@ -40,25 +40,7 @@ import {Editor} from '../editors/editor_base.js';
 import cconst from '../path.ux/scripts/config/const.js';
 import {termColor} from '../path.ux/scripts/util/util.js';
 
-cconst.loadConstants(config.PathUXConstants);
-
 import {USE_PATHUX_API} from './const.js';
-
-//set iconsheets, need to find proper place for it other than here in AppState.js
-iconmanager.reset(16);
-
-setTheme(theme.theme);
-setIconMap(window.Icons);
-
-if (window.devicePixelRatio > 1.1) {
-  //iconmanager.add(document.getElementById("iconsheet24"), 24, 16);
-} else {
-  //iconmanager.add(document.getElementById("iconsheet16"), 16);
-}
-//to deal with dpi/zoom hell, just use twice as big of icons and scale
-iconmanager.add(document.getElementById("iconsheet32"), 32, 16);
-iconmanager.add(document.getElementById("iconsheet64"), 64, 32);
-//iconmanager.add(document.getElementById("iconsheet64"), 64);
 
 import {Area} from '../path.ux/scripts/screen/ScreenArea.js';
 

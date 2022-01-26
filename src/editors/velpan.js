@@ -4,6 +4,7 @@ import {keymap} from '../path.ux/scripts/util/simple_events.js';
 import {StringProperty, Vec2Property} from '../path.ux/scripts/toolsys/toolprop.js';
 import '../datafiles/icon_enum.js';
 import * as util from '../path.ux/scripts/util/util.js'
+import {nstructjs} from '../path.ux/scripts/pathux.js';
 
 export let VelPanFlags = {
   UNIFORM_SCALE : 1

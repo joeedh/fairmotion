@@ -40,27 +40,34 @@ def module_transform(node, typespace):
     if type(n[0]) == VarDeclNode and "const" in n[0].modifiers:
       is_const = True
       print("const export!")
-      
-    for n2 in n[:]:
-      n.remove(n2)
-      n.parent.insert(pi, n2)
-      pi += 1
+
+    if n.name is not None: #can happen with default exports
+        for n2 in n[:]:
+          n.remove(n2)
+          n.parent.insert(pi, n2)
+          pi += 1
      
     if not n.is_default:
       if not is_const:
         n2 = js_parse("""
           $s = _es6_module.add_export('$s', $s);
-        """, [n.name, n.name, n.name]);
+        """, [n.name, n.name, n.name])
       else:
         n2 = js_parse("""
           _es6_module.add_export('$s', $s);
-        """, [n.name, n.name, n.name]);
+        """, [n.name, n.name, n.name])
       
-    else: 
-      n2 = js_parse("""
-        $s = _es6_module.set_default_export('$s', $s);
-      """, [n.name, n.name, n.name]);
-      
+    else:
+      if n.name is not None:
+          n2 = js_parse("""
+            _es6_module.set_default_export('$s', $s);
+          """, [n.name, n.name])
+      else:
+          n2 = js_parse("""
+            _es6_module.set_default_export(undefined, $n);
+          """, [n[0]])
+
+    print(n)
     n.parent.insert(pi, n2)
 
   def get_module_ident(name):

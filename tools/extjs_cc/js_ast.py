@@ -241,7 +241,7 @@ class Node (object):
     
     name += termColor(str(type(self)), self.get_color()).replace("js_ast.", "").replace("<class", "").replace(">", "").replace(" ", "").replace("'", "")
     if len(self.children) == 0:
-      return t + name + " " + self.extra_str()
+      return t + str(name) + " " + str(self.extra_str())
     else:
       s = t + name + " " + self.extra_str() + termColor(" {\n", self.get_color())
       for c in self.children:
@@ -2617,8 +2617,8 @@ class ExportNode(Node):
   
   def extra_str(self):
     if self.bindname != self.name:
-      return self.name + " as " + self.bindname
-    return self.name 
+      return str(self.name) + " as " + self.bindname
+    return str(self.name)
   
   #just pass through
   def gen_js(self, tlevel=0):

@@ -3172,13 +3172,15 @@ def p_export_decl(p):
     n = p[3]
     
     name = get_name(n)
-    
+
     if type(p[3]) == AssignNode and type(p[3][0]) == IdentNode:
         p[3] = VarDeclNode(p[3][1], local=True, name=p[3][0].val)
         
     p[0] = ExportNode(name, is_default=True)
     p[0].is_default = True
     p[0].add(p[3])
+
+    print(p[0])
   elif len(p) == 4 and type(p[2]) == list:
     p[0] = StatementList()
     for n in p[2]:

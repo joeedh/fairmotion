@@ -175,7 +175,7 @@ window.startup_intern = function startup() {
     config.exports.HAVE_EVAL = false;
   }
 
-  imagecanvas_webgl = _es6_get_module("imagecanvas_webgl", true);
+  window.imagecanvas_webgl = _es6_get_module("imagecanvas_webgl", true);
   imagecanvas_webgl.exports.initWebGL();
 
   window.setTimeout(() => {
@@ -197,12 +197,16 @@ window.startup_intern = function startup() {
       startup_report("parsing serialization scripts...");
       init_struct_packer();
 
+      startup_report("loading icons and theme...");
+      init_pathux();
+
       startup_report("initializing data api...");
 
       init_data_api();
 
-      var body = document.body;
-      g_app_state = new AppState(undefined, undefined, undefined);
+      let body = document.body;
+
+      window.g_app_state = new AppState(undefined, undefined, undefined);
       let w = window.innerWidth, h = window.innerHeight;
 
       g_app_state.size = [w, h];
@@ -219,6 +223,28 @@ window.startup_intern = function startup() {
   }
 }
 
+function init_pathux() {
+  let ui_base = _es6_get_module("ui_base", true).exports;
+  let {iconmanager, setTheme, setIconMap} = ui_base;
+
+  let theme = _es6_get_module(_rootpath_src + "src/editors/theme.js").exports.theme;
+  let config = _es6_get_module(_rootpath_src + "src/config/config.js").exports;
+  let cconst = _es6_get_module(_rootpath_src + "src/path.ux/scripts/config/const.js").default_export;
+
+  console.error("THEME", theme);
+
+  cconst.loadConstants(config.PathUXConstants);
+
+  //set iconsheets, need to find proper place for it other than here in AppState.js
+  iconmanager.reset(16);
+
+  setTheme(theme.theme);
+  setIconMap(window.Icons);
+
+  iconmanager.add(document.getElementById("iconsheet"), 32, 16);
+  iconmanager.add(document.getElementById("iconsheet"), 32, 32);
+  iconmanager.add(document.getElementById("iconsheet"), 32, 50);
+}
 
 function init_event_system() {
   let eventmanager = es6_get_module_meta(_rootpath_src + "src/core/eventmanager.js").exports;

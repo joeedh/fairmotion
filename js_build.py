@@ -171,6 +171,21 @@ if not os.path.exists(db_path):
 def np(path):
   return os.path.abspath(os.path.normpath(path))
 
+class _DBUser:
+    def __init__(self, db):
+        self.db = db
+        self.users = 1
+
+    def addUser(self):
+        self.users += 1
+        #print("adduser", self.users)
+        return self.db
+
+    def remUser(self):
+        self.users -= 1
+        #print("decuser", self.users)
+        return self.users <= 0
+
 open_dbs = {}
 open_paths = {}
 _pathmap = {}
@@ -183,26 +198,78 @@ def open_db(path):
 
   pathkey = np(path)
   if pathkey in open_paths:
-    return open_paths[pathkey]
+    return open_paths[pathkey].addUser()
 
   _in_db_func = True
   db = CachedDB(shelve.open(path), pathkey)
   _in_db_func = False
 
   open_dbs[id(db)] = db
-  open_paths[pathkey] = db
+  open_paths[pathkey] = _DBUser(db)
   _pathmap[id(db)] = pathkey
 
   return db
 
 def close_db(db):
+  dbuser = open_paths[_pathmap[id(db)]]
+
+  if not dbuser.remUser():
+    return
+
   _in_db_func = True
   db.close()
   _in_db_func = False
 
-  del open_dbs[id(db)]
   del open_paths[_pathmap[id(db)]]
+  del open_dbs[id(db)]
   del _pathmap[id(db)]
+
+class DataBase:
+    def __init__(self, path):
+        self._open = False
+        self.path = path
+        self.db = None
+
+    def __enter__(self):
+        self._open = True
+        self.db = open_db(self.path)
+        return self
+
+    def __exit__(self, exc1, exc2, exc3):
+        self._open = False
+        close_db(self.db)
+        self.db = None
+
+    def __contains__(self, key):
+        return self.db.__contains__(key)
+
+    def __getitem__(self, key):
+        return self.db[key]
+
+    def __setitem__(self, key, val):
+        self.db[key] = val
+
+    def __iter__(self):
+        return self.db.__iter__()
+
+    def __delitem__(self, key):
+        return self.db.__delitem__(key)
+
+    def __del__(self):
+        if self._open:
+            self.exit(self)
+
+    def keys(self):
+        return self.db.keys()
+
+    def values(self):
+        return self.db.values()
+
+    def items(self):
+        return self.db.items()
+
+    def __len__(self):
+        return len(self.db)
 
 libc = None
 def load_libc():
@@ -548,53 +615,52 @@ def safe_stat(path):
 def do_rebuild(abspath, targetpath):
   prof_start("do_rebuild")
 
-  global db, db_depend
+  with DataBase("jbuild.db") as db, DataBase("jbuild_dependencies.db") as db_depend:
+      fname = os.path.split(abspath)[1]
 
-  fname = os.path.split(abspath)[1]
-
-  if not os.path.exists(targetpath) and not targetpath.endswith(".svg"):
-    print(util.termColor("Missing: " + str(targetpath), "yellow"))
-    return True
-
-  if "[Conflict]" in abspath:
-      prof_end("do_rebuild")
-      return False
-
-  if build_cmd in ["filter", "single"] and fname.lower() not in filter:
-    prof_end("do_rebuild")
-    return False
-
-  if abspath not in db or build_cmd in ["cleanbuild", "single"]:
-    prof_end("do_rebuild")
-    #print("not in db!", abspath)
-
-    return True
-
-  if safe_stat(abspath) != db[abspath]:
-    prof_end("do_rebuild")
-    print("time update!", abspath)
-
-    return True
-
-  if abspath in db_depend:
-    #build_depend(abspath)
-
-    if abspath not in db_depend:
-      prof_end("do_rebuild")
-      return False
-
-    for path2 in db_depend[abspath]:
-      if path2 in db and safe_stat(path2) != db[path2]:
-        print("time update!", path2)
-        prof_end("do_rebuild")
+      if not os.path.exists(targetpath) and not targetpath.endswith(".svg"):
+        print(util.termColor("Missing: " + str(targetpath), "yellow"))
         return True
 
-      elif path2 not in db:
+      if "[Conflict]" in abspath:
+          prof_end("do_rebuild")
+          return False
+
+      if build_cmd in ["filter", "single"] and fname.lower() not in filter:
         prof_end("do_rebuild")
+        return False
+
+      if abspath not in db or build_cmd in ["cleanbuild", "single"]:
+        prof_end("do_rebuild")
+        #print("not in db!", abspath)
+
         return True
 
-  prof_end("do_rebuild")
-  return False
+      if safe_stat(abspath) != db[abspath]:
+        prof_end("do_rebuild")
+        print("time update!", abspath)
+
+        return True
+
+      if abspath in db_depend:
+        #build_depend(abspath)
+
+        if abspath not in db_depend:
+          prof_end("do_rebuild")
+          return False
+
+        for path2 in db_depend[abspath]:
+          if path2 in db and safe_stat(path2) != db[path2]:
+            print("time update!", path2)
+            prof_end("do_rebuild")
+            return True
+
+          elif path2 not in db:
+            prof_end("do_rebuild")
+            return True
+
+      prof_end("do_rebuild")
+      return False
 
 def failed_ret(ret):
   return ret != 0
@@ -638,203 +704,192 @@ def filter_srcs(files):
   procs = []
   time_start()
 
-  db = open_db("jbuild.db")
-  db_depend = open_db("jbuild_dependencies.db")
+  with DataBase("jbuild.db") as db:
+    with DataBase("jbuild_dependencies.db") as db_depend:
+      if build_cmd == "cleanbuild":
+        print("CLEAN BUILD!")
 
-  if build_cmd == "cleanbuild":
-    print("CLEAN BUILD!")
+        for k in db:
+          db[k] = 0
+        db.sync()
 
-    for k in db:
-      db[k] = 0;
-    db.sync();
+      i = 0
+      for f, target, abspath, rebuild in iter_files(files):
+        fname = os.path.split(abspath)[1]
 
-  i = 0;
-  for f, target, abspath, rebuild in iter_files(files):
-    fname = os.path.split(abspath)[1]
+        if not do_rebuild(abspath, np(target)):
+          i += 1
+          continue
 
-    if not do_rebuild(abspath, np(target)):
-      i += 1
-      continue
-
-    files[i].build = REBUILD
-    build_depend(abspath);
-    i += 1
-
-  close_db(db)
-  close_db(db_depend)
+        files[i].build = REBUILD
+        build_depend(abspath)
+        i += 1
 
 def build_target(files):
   global db, db_depend, procs
 
-  db = open_db("jbuild.db")
-  db_depend = open_db("jbuild_dependencies.db")
+  with DataBase("jbuild.db") as db:
+      with DataBase("jbuild_dependencies.db") as db_depend:
+          if build_cmd == "cleanbuild":
+            print("CLEAN BUILD 2!")
 
-  if build_cmd == "cleanbuild":
-    print("CLEAN BUILD 2!")
+            for k in db:
+              db[k] = 0;
+            db.sync();
 
-    for k in db:
-      db[k] = 0;
-    db.sync();
+          built_files = []
+          failed_files = []
+          fi = 0
 
-  built_files = []
-  failed_files = []
-  fi = 0
+          filtered = list(iter_files(files))
+          build_final = False
+          first = True
 
-  filtered = list(iter_files(files))
-  build_final = False
-  first = True
+          commands = []
 
-  commands = []
+          for f, target, abspath, rebuild in filtered:
+            fname = os.path.split(abspath)[1]
+            sf = files[fi]
+            fi += 1
 
-  for f, target, abspath, rebuild in filtered:
-    fname = os.path.split(abspath)[1]
-    sf = files[fi]
-    fi += 1
+            build_final |= rebuild in [REBUILD, WASBUILT]
+            if rebuild != REBUILD: continue
 
-    build_final |= rebuild in [REBUILD, WASBUILT]
-    if rebuild != REBUILD: continue
+            if first:
+                note.clearNote(THENOTE);
+                note.showNote(THENOTE, NOTETITLE, "Starting Build")
+                first = False
 
-    if first:
-        note.clearNote(THENOTE);
-        note.showNote(THENOTE, NOTETITLE, "Starting Build")
-        first = False
+            sf.build = WASBUILT
 
-    sf.build = WASBUILT
+            built_files.append([abspath, safe_stat(abspath), f])
+            pathtime = built_files[-1];
 
-    built_files.append([abspath, safe_stat(abspath), f])
-    pathtime = built_files[-1];
+            re_size = 0
+            use_popen = None
+            for k in handlers:
+              if re.match(k, f) and len(k) > re_size:
+                cmd = handlers[k].func(np(f), np(target))
+                use_popen = handlers[k].use_popen
+                re_size = len(k)
 
-    re_size = 0
-    use_popen = None
-    for k in handlers:
-      if re.match(k, f) and len(k) > re_size:
-        cmd = handlers[k].func(np(f), np(target))
-        use_popen = handlers[k].use_popen
-        re_size = len(k)
+            perc = int((float(len(filtered)-fi) / len(filtered))*100.0)
 
-    perc = int((float(len(filtered)-fi) / len(filtered))*100.0)
+            """
+            dcmd = cmd.replace(JCC, "js_cc").replace(PYBIN, "")
+            dcmd = dcmd.split(" ")
+            dcmd2 = ""
+            for n in dcmd:
+              if n.strip() == "": continue
+              n = n.strip()
+              if "/" in n or "\\" in n:
+                n = os.path.split(n)[1]
+              dcmd2 += n + " "
+            dcmd = dcmd2
+            """
 
-    """
-    dcmd = cmd.replace(JCC, "js_cc").replace(PYBIN, "")
-    dcmd = dcmd.split(" ")
-    dcmd2 = ""
-    for n in dcmd:
-      if n.strip() == "": continue
-      n = n.strip()
-      if "/" in n or "\\" in n:
-        n = os.path.split(n)[1]
-      dcmd2 += n + " "
-    dcmd = dcmd2
-    """
+            dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
+            dcmd = (util.termColor("[%i%%] " % perc, "cyan") + dcmd.strip())
 
-    dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
-    dcmd = (util.termColor("[%i%%] " % perc, "cyan") + dcmd.strip())
-    
-    #execute build command
+            #execute build command
 
-    if len(failed_files) > 0: continue
+            if len(failed_files) > 0: continue
 
-    if use_popen:
-      #shlex doesn't like backslashes
-      if win32:
-        cmd = cmd.replace("\\", "/")
-      else:
-        cmd = cmd.replace("\\", "\\\\")
+            if False and use_popen:
+              #shlex doesn't like backslashes
+              if win32:
+                cmd = cmd.replace("\\", "/")
+              else:
+                cmd = cmd.replace("\\", "\\\\")
 
-      cmdlist = shlex.split(cmd)
+              cmdlist = shlex.split(cmd)
 
-      commands.append([cmdlist, dcmd, f])
-    else:
-      print(cmd)
-      ret = os.system(cmd)
+              commands.append([cmdlist, dcmd, f])
+            else:
+              print(cmd)
+              ret = os.system(cmd)
 
-      if failed_ret(ret):
-        failed_files.append(f)
-      else:
-        db[pathtime[0]] = pathtime[1]
+              if failed_ret(ret):
+                failed_files.append(f)
+              else:
+                db[pathtime[0]] = pathtime[1]
 
-  while len(procs) > 0 or len(commands) > 0:
-    for i, c in enumerate(commands[:]):
-        if len(procs) >= num_cores:
-            break
+          while len(procs) > 0 or len(commands) > 0:
+            for i, c in enumerate(commands[:]):
+                if len(procs) >= num_cores:
+                    break
 
-        cmdlist, dcmd, f = commands.pop()
-        
-        reportbuf = dcmd #" ".join(cmdlist)
-        print(reportbuf);
-        note.appendNote(THENOTE, reportbuf)
-        
-        proc = subprocess.Popen(cmdlist)
-        procs.append([proc, f, pathtime])
+                cmdlist, dcmd, f = commands.pop()
 
-    newprocs = []
-    for p in procs:
-      if p[0].poll() == None:
-        newprocs.append(p)
-      else:
-        ret = p[0].returncode
-        
-        if failed_ret(ret):
-          failed_files.append(p[1])
-    
-    
-    procs = newprocs
-    note.sleep(0.05)
+                reportbuf = dcmd #" ".join(cmdlist)
+                print(reportbuf);
+                note.appendNote(THENOTE, reportbuf)
 
-  if len(failed_files) == 0 and len(built_files) > 0:
-    note.showNote(THENOTE, NOTETITLE, "Done!");
-    note.sleep(1)
-    
-  if len(failed_files) > 0:
-    note.showNote(THENOTE, NOTETITLE, "Build Failed")
-    note.sleep(1);
+                proc = subprocess.Popen(cmdlist)
+                procs.append([proc, f, pathtime])
 
-    print("build failure\n\n", failed_files)
+            newprocs = []
+            for p in procs:
+              if p[0].poll() == None:
+                newprocs.append(p)
+              else:
+                ret = p[0].returncode
 
-    for f in failed_files:
-      for i, f2 in enumerate(built_files):
-        if f2[2] == f: break
+                if failed_ret(ret):
+                  failed_files.append(p[1])
 
-      built_files.pop(i)
 
-    for pathtime in built_files:
-      db[pathtime[0]] = pathtime[1]
+            procs = newprocs
+            note.sleep(0.05)
 
-    close_db(db)
-    close_db(db_depend)
+          if len(failed_files) == 0 and len(built_files) > 0:
+            note.showNote(THENOTE, NOTETITLE, "Done!");
+            note.sleep(1)
 
-    sys.stdout.flush()
-    
-    if build_cmd != "loop":
-      note.destroy()
-      sys.exit(-1)
-    else:
-      return 0
-    
-  #note.hideNote(THENOTE)
-  
-  for pathtime in built_files:
-    if pathtime[0] in db:
-      print("saving", db[pathtime[0]], pathtime[1])
+          if len(failed_files) > 0:
+            note.showNote(THENOTE, NOTETITLE, "Build Failed")
+            note.sleep(1);
 
-    db[pathtime[0]] = pathtime[1]
+            print("build failure\n\n", failed_files)
 
-  close_db(db)
-  close_db(db_depend)
+            for f in failed_files:
+              for i, f2 in enumerate(built_files):
+                if f2[2] == f: break
 
-  #write aggregate, minified file
-  if build_final:
-    #note.showNote(THENOTE, NOTETITLE, "\n\nwriting %s..." % (target_path+files.target))
-    #note.sleep(0.5);
-    #note.hideNote(THENOTE)
-    
-    print("\n\nwriting %s..." % (target_path+files.target))
-    sys.stdout.flush()
-    aggregate(files, target_path+files.target)
-    print("done.")
+              built_files.pop(i)
 
-  if build_cmd != "loop":
-    util.doprint("build finished")
+            for pathtime in built_files:
+              db[pathtime[0]] = pathtime[1]
+
+            sys.stdout.flush()
+
+            if build_cmd != "loop":
+              note.destroy()
+              sys.exit(-1)
+            else:
+              return 0
+
+          #note.hideNote(THENOTE)
+
+          for pathtime in built_files:
+            if pathtime[0] in db:
+              print("saving", db[pathtime[0]], pathtime[1])
+
+            db[pathtime[0]] = pathtime[1]
+
+          #write aggregate, minified file
+          if build_final:
+            #note.showNote(THENOTE, NOTETITLE, "\n\nwriting %s..." % (target_path+files.target))
+            #note.sleep(0.5);
+            #note.hideNote(THENOTE)
+
+            print("\n\nwriting %s..." % (target_path+files.target))
+            sys.stdout.flush()
+            aggregate(files, target_path+files.target)
+            print("done.")
+
+          if build_cmd != "loop":
+            util.doprint("build finished")
 
   return build_final
 
@@ -865,7 +920,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
       bootstrap += buf + "\n"
       file.close()
 
-      continue;
+      continue
 
     #st = os.stat(f.target)
     #totsize += st.st_size
@@ -881,8 +936,11 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
   if fname.endswith(".js"):
     fname = fname[:-3]
 
-  c = 0;
-  fi = 0;
+  c = 0
+  fi = 0
+
+  def makepath(fname, fi):
+    return target_path+fname+str(fi)+".js"
 
   outbuf = ""
   for f in files2:
@@ -892,7 +950,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
 
     c += len(buf)
     if c > maxsize:
-      path  = target_path+fname+str(fi)+".js"
+      path = makepath(fname, fi)
       do_write = True
 
       if os.path.exists(path):
@@ -902,20 +960,19 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
 
         do_write = buf2 != outbuf
 
+      if do_write:
+        with open(path, "w") as out:
+            out.write(outbuf)
+
+      outbuf = ""
       c = 0
       fi += 1
 
-      if do_write:
-        out = open(path, "w")
-        out.write(outbuf)
-        out.close()
+    outbuf += "\n" + buf + "\n"
 
-      outbuf = ""
-
-    outbuf += buf
-
-  path  = target_path+fname+str(fi)+".js"
+  path = makepath(fname, fi)
   do_write = True
+
   if os.path.exists(path):
     out = open(path, "r")
     buf2 = out.read()
@@ -924,9 +981,8 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
     do_write = buf2 != outbuf
 
   if do_write:
-    out = open(path, "w")
-    out.write(outbuf)
-    out.close()
+    with open(path, "w") as out:
+      out.write(outbuf)
 
   fi += 1
 
@@ -948,7 +1004,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
 
 def aggregate(files, outpath=target_path+"app.js"):
   aggregate_multi(files, outpath)
-  return;
+  return
 
   outfile = open(outpath, "w")
 
@@ -1011,82 +1067,79 @@ def aggregate(files, outpath=target_path+"app.js"):
 
 
 def do_copy_targets():
-  global copy_targets
-  global db, db_depend
+    global copy_targets
 
-  db = open_db("jbuild.db")
-  db_depend = open_db("jbuild_dependencies.db")
+    with DataBase("jbuild.db") as db, DataBase("jbuild_dependencies.db") as db_depend:
+      build_final = False
 
-  build_final = False
+      def doskip(f):
+          abspath = np(f.target)
+          src = f[0].source
+          skip = False
 
-  def doskip(f):
-      abspath = np(f.target)
-      src = f[0].source
-      skip = False
-
-      if f.optional and not os.path.exists(f[0].source):
-        skip = True
-        return skip, "", "", src, None
+          if f.optional and not os.path.exists(f[0].source):
+            skip = True
+            return skip, "", "", src, None
 
 
-      fname = f[0].source
-      if (os.path.sep in fname):
-        fname = os.path.split(fname)[1]
+          fname = f[0].source
+          if (os.path.sep in fname):
+            fname = os.path.split(fname)[1]
 
-      stat = safe_stat(f[0].source)
-      skip = not (abspath not in db or db[abspath] < stat)
-      skip = skip and not build_cmd == "clean";
-      skip = skip and not (build_cmd == "single" and  filter.lower() in abspath.lower())
-      skip = skip and not (build_cmd == "single" and  filter.lower() in f[0].source.lower())
+          stat = safe_stat(f[0].source)
+          skip = not (abspath not in db or db[abspath] < stat)
+          skip = skip and not build_cmd == "clean";
+          skip = skip and not (build_cmd == "single" and  filter.lower() in abspath.lower())
+          skip = skip and not (build_cmd == "single" and  filter.lower() in f[0].source.lower())
 
-      return skip, fname, abspath, src, stat
+          return skip, fname, abspath, src, stat
 
-  try:
-    for f in watch_targets:
-      skip, fname, abspath, src, stat = doskip(f)
+      try:
+        for f in watch_targets:
+          skip, fname, abspath, src, stat = doskip(f)
 
-      if not skip:
-        print("watch update: ", f[0].source)
-        sys.stdout.flush()
-        build_final = True
+          if not skip:
+            print("watch update: ", f[0].source)
+            sys.stdout.flush()
+            build_final = True
 
-        db[abspath] = stat
+            db[abspath] = stat
 
-    for f in copy_targets:
-      skip, fname, abspath, src, stat = doskip(f)
+        for f in copy_targets:
+          skip, fname, abspath, src, stat = doskip(f)
 
-      if skip: continue
+          if skip: continue
 
-      build_final = True
+          build_final = True
 
-      #db[abspath] = stat
-      cmd = cp_handler(src, abspath)
-      print(cmd)
-      ret = os.system(cmd)
+          #db[abspath] = stat
+          cmd = cp_handler(src, abspath)
+          print(cmd)
+          ret = os.system(cmd)
 
-      if ret == 0:
-        db[abspath] = stat
-      else:
-        print("build failure\n\n")
+          if ret == 0:
+            db[abspath] = stat
+          else:
+            print("build failure\n\n")
 
-        sys.stderr.write("build failure\n");
-        if build_cmd != "loop":
-          sys.exit(-1)
-        else:
-          break
-  except:
-    import traceback
+            sys.stderr.write("build failure\n");
+            if build_cmd != "loop":
+              sys.exit(-1)
+            else:
+              break
+      except:
+        import traceback
 
-    db.close()
-    db_depend.close()
+        db.close()
+        db_depend.close()
 
-    try: #ignore dumb errors from traceback
-        #traceback.print_stack()
-        traceback.print_exc()
-    except:
-        pass
+        try: #ignore dumb errors from traceback
+            #traceback.print_stack()
+            traceback.print_exc()
+        except:
+            pass
 
-  return build_final
+    return build_final
 
 def build_platforms():
     from platforms import build

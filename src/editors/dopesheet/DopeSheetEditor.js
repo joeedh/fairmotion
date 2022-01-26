@@ -1,4 +1,3 @@
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase, css2color, color2css, Icons} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
@@ -11,6 +10,7 @@ import {eventWasTouch} from "../../path.ux/scripts/util/simple_events.js";
 import {aabb_isect_2d} from '../../util/mathlib.js';
 //import {gen_editor_switcher} from 'UIWidgets_special';
 
+import {nstructjs} from '../../path.ux/scripts/pathux.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from '../events.js';
 

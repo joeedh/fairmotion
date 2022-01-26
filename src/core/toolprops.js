@@ -1,7 +1,6 @@
 "use strict";
 
-import {STRUCT} from './struct.js';
-import * as nstructjs from "../path.ux/scripts/util/struct.js";
+import {nstructjs} from '../path.ux/scripts/pathux.js';
 import {pack_int, pack_float, pack_static_string} from './ajax.js';
 import {setPropTypes, ToolProperty, FlagProperty} from '../path.ux/scripts/toolsys/toolprop.js';
 import * as toolprop from '../path.ux/scripts/toolsys/toolprop.js';
@@ -463,7 +462,7 @@ export class DataRefProperty extends ToolProperty {
   }
 }
 
-DataRefProperty.STRUCT = STRUCT.inherit(DataRefProperty, ToolProperty) + `
+DataRefProperty.STRUCT = nstructjs.inherit(DataRefProperty, ToolProperty) + `
   data  : DataRef | this.data == undefined ? new DataRef(-1) : this.data;
   types : iter(int);
 }`;;
@@ -585,7 +584,7 @@ export class TransformProperty extends ToolProperty {
   }
 
 }
-TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty) + `
+TransformProperty.STRUCT = nstructjs.inherit(TransformProperty, ToolProperty) + `
   data : mat4;
 }`;
 

@@ -8,6 +8,6 @@
     "pngjs-nozlib": "^1.0.0"
   },
   "devDependencies": {
-    "electron": "^12.0.0"
+    "electron": "^16.0.7"
   }
 }

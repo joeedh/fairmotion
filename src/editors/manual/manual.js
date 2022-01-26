@@ -1,6 +1,7 @@
 import {Editor} from '../editor_base.js';
 import * as util from '../../path.ux/scripts/util/util.js';
 import {ModalStates} from '../../core/toolops_api.js';
+import {nstructjs} from '../../path.ux/scripts/pathux.js';
 
 import * as docbrowser from '../../path.ux/scripts/docbrowser/docbrowser.js';
 

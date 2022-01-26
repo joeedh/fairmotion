@@ -1,5 +1,5 @@
 
-es6_module_define('ui_base', ["./anim.js", "../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../path-controller/util/cssutils.js", "../path-controller/util/math.js", "./aspect.js", "./units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/controller/controller.js", "../config/const.js", "./ui_theme.js", "../path-controller/util/vectormath.js", "../util/colorutils.js", "./theme.js", "../icon_enum.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["./units.js", "./ui_theme.js", "./theme.js", "./anim.js", "../icon_enum.js", "../path-controller/util/simple_events.js", "../config/const.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/cssutils.js", "../path-controller/controller/controller.js", "./aspect.js", "../path-controller/util/util.js", "../path-controller/util/math.js", "../util/colorutils.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
   var cssutils=es6_import(_es6_module, '../path-controller/util/cssutils.js');
   var Animator=es6_import_item(_es6_module, './anim.js', 'Animator');
@@ -6893,7 +6893,7 @@ es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js"
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
 
 
-es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/toolsys.js", "./controller_base.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../toolsys/toolsys.js", "./controller_base.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -6922,6 +6922,15 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/tools
       let prop=this.inputs.prop;
       let path=this.inputs.dataPath.getValue();
       if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
+          let rdef=ctx.api.resolvePath(ctx, path);
+          if (rdef.subkey!==undefined) {
+              let subkey=rdef.subkey;
+              if (typeof subkey==="string") {
+                  subkey = rdef.prop.values[subkey];
+              }
+              this.inputs.flagBit.setValue(subkey);
+              this.inputs.useFlagBit.setValue(true);
+          }
       }
       prop.dataref = object;
       prop.ctx = ctx;
@@ -6944,6 +6953,7 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/tools
       let prop=rdef.prop;
       let tool=new DataPathSetOp();
       tool.propType = prop.type;
+      tool.inputs.destType.setValue(prop.type);
       if (prop&&(prop.flag&PropFlags.USE_BASE_UNDO)) {
           tool.inputs.fullSaveUndo.setValue(true);
       }
@@ -6966,6 +6976,10 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/tools
           let subkey=rdef.subkey;
           if (typeof subkey!=="number") {
               subkey = rdef.prop.values[subkey];
+          }
+          if (prop.type===PropTypes.FLAG) {
+              tool.inputs.flagBit.setValue(subkey);
+              tool.inputs.useFlagBit.setValue(true);
           }
           if (prop.type===PropTypes.ENUM) {
               value = subkey;
@@ -7092,8 +7106,14 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/tools
           this.hadError = true;
       }
       if (massSetPath) {
+          let value=this.inputs.prop.getValue();
+          let useFlagBit=this.inputs.useFlagBit.getValue();
+          if (useFlagBit&&this.inputs.destType.getValue()===PropTypes.FLAG) {
+              let bit=this.inputs.flagBit.getValue();
+              value = !!(value&bit);
+          }
           try {
-            ctx.api.massSetProp(ctx, massSetPath, this.inputs.prop.getValue());
+            ctx.api.massSetProp(ctx, massSetPath, value);
           }
           catch (error) {
               console.log(error.stack);
@@ -7117,7 +7137,10 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/tools
      is_modal: true, 
      inputs: {dataPath: new StringProperty(), 
       massSetPath: new StringProperty(), 
-      fullSaveUndo: new BoolProperty(false)}}
+      fullSaveUndo: new BoolProperty(false), 
+      flagBit: new IntProperty(), 
+      useFlagBit: new BoolProperty(), 
+      destType: new EnumProperty(PropTypes.INT, PropTypes)}}
     }
   }
   _ESClass.register(DataPathSetOp);

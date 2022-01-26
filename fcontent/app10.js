@@ -3821,7 +3821,7 @@ import {DataLib, DataBlock, DataList} from "../lib_api.js";
 }, '/dev/fairmotion/src/core/data_api/data_api_define.js');
 
 
-es6_module_define('data_api_new', ["../../scene/sceneobject.js", "../units.js", "../../curve/spline.js", "../imageblock.js", "../../curve/spline_base.js", "../../editors/settings/SettingsEditor.js", "../context.js", "../../editors/curve/CurveEditor.js", "../../editors/viewport/toolmodes/splinetool.js", "../UserSettings.js", "../animdata.js", "../../editors/ops/ops_editor.js", "../../editors/viewport/toolmodes/toolmode.js", "../../path.ux/scripts/pathux.js", "../../editors/viewport/view2d.js", "../toolops_api.js", "../../editors/viewport/view2d_base.js", "../../scene/scene.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/selectmode.js", "../frameset.js", "../lib_api.js", "../../curve/spline_types.js", "../../curve/spline_element_array.js", "../toolprops.js", "./data_api.js", "../../editors/dopesheet/DopeSheetEditor.js"], function _data_api_new_module(_es6_module) {
+es6_module_define('data_api_new', ["../units.js", "../../editors/viewport/toolmodes/toolmode.js", "../../scene/sceneobject.js", "../../editors/viewport/toolmodes/splinetool.js", "../../curve/spline_element_array.js", "../../editors/viewport/view2d.js", "../../scene/scene.js", "../../editors/curve/CurveEditor.js", "../../editors/viewport/spline_createops.js", "../toolprops.js", "../context.js", "../../editors/viewport/view2d_base.js", "../../editors/settings/SettingsEditor.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_base.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/ops/ops_editor.js", "../lib_api.js", "../animdata.js", "../../curve/spline.js", "../toolops_api.js", "./data_api.js", "../../editors/viewport/selectmode.js", "../UserSettings.js", "../../curve/spline_types.js", "../imageblock.js", "../frameset.js"], function _data_api_new_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -4530,28 +4530,21 @@ es6_module_define('data_api_new', ["../../scene/sceneobject.js", "../units.js", 
      32: Icons.EXTRUDE_MODE_G1, 
      BREAK_TANGENTS: Icons.EXTRUDE_MODE_G0, 
      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1}).on("change", function (old) {
-        return (function (owner) {
-          this.ctx.spline.regen_sort();
-          if (owner!==undefined) {
-              owner.flag|=SplineFlags.UPDATE;
-          }
-          this.ctx.spline.propagate_update_flags();
-          this.ctx.spline.resolve = 1;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
+        this.ctx.spline.regen_sort();
+        if (this.dataref!==undefined) {
+            this.dataref.flag|=SplineFlags.UPDATE;
+        }
+        this.ctx.spline.resolve = 1;
+        window.redraw_viewport();
       });
       SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
       SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (vert) {
-          vert.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
+        this.dataref.flag|=SplineFlags.REDRAW;
+        window.redraw_viewport();
       });
       SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (vert) {
-          vert.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
+        this.dataref.flag|=SplineFlags.REDRAW;
+        window.redraw_viewport();
       });
     }
     var SplineLayerStruct=api.mapStruct(SplineLayer, true);
@@ -4613,13 +4606,11 @@ es6_module_define('data_api_new', ["../../scene/sceneobject.js", "../units.js", 
     function api_define_SceneObject(api) {
       
       SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function () {
-          if (this.ctx.mesh!==undefined)
-            this.ctx.mesh.regen_render();
-          if (this.ctx.view2d!==undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
-              this.ctx.object.dag_update();
-          }
-        }).call(this.dataref, old);
+        if (this.ctx.mesh!==undefined)
+          this.ctx.mesh.regen_render();
+        if (this.ctx.view2d!==undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
+            this.ctx.object.dag_update();
+        }
       });
     }
     var SceneStruct=api.mapStruct(Scene, true);
@@ -4640,12 +4631,10 @@ es6_module_define('data_api_new', ["../../scene/sceneobject.js", "../units.js", 
       }]);
       
       SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5).on("change", function (old) {
-        return ((owner, old) =>          {
-          let time=owner.time;
-          owner.time = old;
-          owner.change_time(g_app_state.ctx, time);
-          window.redraw_viewport();
-        }).call(this.dataref, old);
+        let time=this.dataref.time;
+        this.dataref.time = old;
+        this.dataref.change_time(g_app_state.ctx, time);
+        window.redraw_viewport();
       });
       SceneStruct.list("objects", "objects", [function getIter(api, list) {
         return new obj_value_iter(list.object_idmap);

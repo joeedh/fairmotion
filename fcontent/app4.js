@@ -9704,7 +9704,7 @@ es6_module_define('pathux', ["./widgets/ui_treeview.js", "./path-controller/util
 }, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
 
 
-es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js", "../platform_base.js", "../../core/ui_base.js", "../../widgets/ui_menu.js"], function _electron_api_module(_es6_module) {
+es6_module_define('electron_api', ["../../core/ui_base.js", "../platform_base.js", "../../util/util.js", "../../config/const.js", "../../widgets/ui_menu.js"], function _electron_api_module(_es6_module) {
   "use strict";
   function getElectronVersion() {
     let key=navigator.userAgent;
@@ -9798,9 +9798,9 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
       this.push(item);
     }
      popup(args) {
-      let $_t0ravh=args, x=$_t0ravh.x, y=$_t0ravh.y, callback=$_t0ravh.callback;
+      let $_t0goke=args, x=$_t0goke.x, y=$_t0goke.y, callback=$_t0goke.callback;
       callback = wrapRemoteCallback("popup_menu_click", callback);
-      const $_t1slfe=require('electron'), ipcRenderer=$_t1slfe.ipcRenderer;
+      const $_t1cwus=require('electron'), ipcRenderer=$_t1cwus.ipcRenderer;
       ipcRenderer.invoke("popup-menu", this, x, y, callback);
     }
   }
@@ -9823,7 +9823,6 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
     ipcInit = true;
     ipcRenderer = require('electron').ipcRenderer;
     ipcRenderer.on('invoke-menu-callback', (event, key, args) =>      {
-      console.error("Electron menu callback", key, args);
       callbacks[key].apply(undefined, args);
     });
   }
@@ -10056,7 +10055,6 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
         let args={label: title, 
       tooltip: dbox.description, 
       submenu: buildElectronMenu(menu2)};
-        console.error(menu);
         menu.insert(0, new ElectronMenuItem(args));
     }
     ElectronMenu.setApplicationMenu(menu);
@@ -10066,7 +10064,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
   var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
   class platform extends PlatformAPI {
     static  showOpenDialog(title, args=new FileDialogArgs()) {
-      const $_t2kpmj=require('electron').remote, dialog=$_t2kpmj.dialog;
+      const $_t2rurj=require('electron').remote, dialog=$_t2rurj.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -10088,7 +10086,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
               return new FilePath(f, getFilename(f));
             }));
           }
-        }), makeRemoteCallback("show-open-dialog", (error) =>          {
+        }), wrapRemoteCallback("show-open-dialog", (error) =>          {
           reject(error);
         }));
       });
@@ -10114,7 +10112,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
       return filters2;
     }
     static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
-      const $_t3oqtm=require('electron').remote, dialog=$_t3oqtm.dialog;
+      const $_t3fgwb=require('electron').remote, dialog=$_t3fgwb.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -10126,7 +10124,8 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
           eargs.properties.push("dontAddToRecent");
       }
       return new Promise((accept, reject) =>        {
-        dialog.showSaveDialog(undefined, eargs).then((ret) =>          {
+        initElectronIpc();
+        let onthen=(ret) =>          {
           if (ret.canceled) {
               reject("cancel");
           }
@@ -10140,7 +10139,11 @@ es6_module_define('electron_api', ["../../config/const.js", "../../util/util.js"
             console.log("saved file", filedata);
             accept(new FilePath(path, getFilename(path)));
           }
-        });
+        }
+        let oncatch=(error) =>          {
+          reject(error);
+        }
+        ipcRenderer.invoke('show-save-dialog', eargs, wrapRemoteCallback('dialog', onthen), wrapRemoteCallback('dialog', oncatch));
       });
     }
     static  readFile(path, mime) {

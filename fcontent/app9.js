@@ -1,5 +1,5 @@
 
-es6_module_define('transform_spline', ["../dopesheet/dopesheet_transdata.js", "./transdata.js", "../../util/mathlib.js", "../../curve/spline_types.js", "./selectmode.js", "../../core/toolops_api.js", "../../wasm/native_api.js", "../events.js", "./view2d_base.js"], function _transform_spline_module(_es6_module) {
+es6_module_define('transform_spline', ["../events.js", "./view2d_base.js", "../../curve/spline_types.js", "./transdata.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js", "./selectmode.js", "../../util/mathlib.js", "../../wasm/native_api.js"], function _transform_spline_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
@@ -42,7 +42,7 @@ es6_module_define('transform_spline', ["../dopesheet/dopesheet_transdata.js", ".
       co.load(item.start_data.co);
       co.multVecMatrix(mat);
       v.load(co).sub(item.start_data.co).mulScalar(w).add(item.start_data.co);
-      v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+      v.flag|=SplineFlags.UPDATE|SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY;
       if (v.type===SplineTypes.HANDLE) {
           var seg=v.owning_segment;
           seg.update();
@@ -1501,7 +1501,7 @@ es6_module_define('spline_createops', ["../../curve/spline_types.js", "../../pat
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
 
 
-es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "../../core/animdata.js", "./transform.js", "../../curve/spline_draw.js", "../../core/frameset.js", "../../core/toolops_api.js", "../../curve/spline_types.js", "../../core/context.js", "../../curve/spline_base.js", "../../core/toolprops.js", "../../curve/spline.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/toolprops.js", "../../path.ux/scripts/util/struct.js", "../../curve/spline_types.js", "../../curve/spline_draw.js", "../../core/context.js", "../../core/toolops_api.js", "./transform.js", "../../core/animdata.js", "../../curve/spline.js", "../../core/frameset.js", "../../curve/spline_base.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -1623,6 +1623,10 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
         spline.is_anim_path = is_anim_path;
       console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
       idgen.max_cur(max_cur-1);
+      window.redraw_viewport();
+    }
+     execPost(ctx) {
+      window.redraw_viewport();
     }
   }
   _ESClass.register(SplineLocalToolOp);
@@ -8867,7 +8871,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
 
 
-es6_module_define('view2d', ["./view2d_spline_ops.js", "../../path.ux/scripts/screen/ScreenArea.js", "./toolmodes/pentool.js", "./view2d_ops.js", "../../core/context.js", "../../path.ux/scripts/util/util.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_menu.js", "./toolmodes/all.js", "./view2d_editor.js", "./selectmode.js", "../../core/toolops_api.js", "../events.js", "../../path.ux/scripts/core/ui.js", "./manipulator.js", "../../path.ux/scripts/core/ui_base.js", "../../core/imageblock.js", "../editor_base.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmodes/pentool.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/core/ui.js", "../../core/context.js", "./selectmode.js", "./manipulator.js", "../../path.ux/scripts/screen/ScreenArea.js", "./view2d_editor.js", "../events.js", "../../core/imageblock.js", "./toolmodes/all.js", "./view2d_spline_ops.js", "../../core/toolops_api.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/struct.js", "../../path.ux/scripts/core/ui_base.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var SessionFlags=es6_import_item(_es6_module, './view2d_editor.js', 'SessionFlags');
@@ -9482,9 +9486,9 @@ es6_module_define('view2d', ["./view2d_spline_ops.js", "../../path.ux/scripts/sc
       row.prop("view2d.draw_faces");
       let strip=row.strip();
       strip.useDataPathUndo = true;
-      let mass_set_path="spline.selected_verts{$.flag & 1}";
-      strip.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path+".flag[BREAK_TANGENTS]");
-      strip.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path+".flag[BREAK_CURVATURES]");
+      let mass_set_path="spline.selected_verts[{$.flag & 1}]";
+      strip.prop("spline.verts.active.flag[BREAK_TANGENTS]", undefined, mass_set_path+".flag[BREAK_TANGENTS]");
+      strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path+".flag[BREAK_CURVATURES]");
       strip.prop("view2d.half_pix_size");
       strip = row.strip();
       strip.tool("spline.split_pick_edge()");

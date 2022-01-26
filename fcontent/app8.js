@@ -4054,7 +4054,7 @@ export const d;
 }, '/dev/fairmotion/src/addon_api/addon_api.js');
 
 
-es6_module_define('scene', ["../core/frameset.js", "../core/struct.js", "../core/eventdag.js", "../editors/viewport/toolmodes/toolmode.js", "../core/lib_api.js", "../curve/spline_base.js", "./collection.js", "../editors/viewport/selectmode.js", "./sceneobject.js"], function _scene_module(_es6_module) {
+es6_module_define('scene', ["../editors/viewport/toolmodes/toolmode.js", "../editors/viewport/selectmode.js", "../core/eventdag.js", "../core/lib_api.js", "../curve/spline_base.js", "./sceneobject.js", "../core/frameset.js", "../core/struct.js", "./collection.js"], function _scene_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
@@ -4245,7 +4245,7 @@ es6_module_define('scene', ["../core/frameset.js", "../core/struct.js", "../core
       window.redraw_viewport();
       this.time = time;
       ctx.frameset.change_time(time, _update_animation);
-      ctx.api.onFrameChange(ctx, time);
+      ctx.state.onFrameChange(ctx, time);
       this.dag_update("on_time_change", true);
     }
      copy() {
@@ -10130,7 +10130,7 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
 
 
-es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", "./transform_spline.js", "../dopesheet/dopesheet_transdata.js", "./transdata.js", "../../curve/spline_types.js", "../../util/mathlib.js", "./view2d_base.js", "../events.js", "../../core/toolops_api.js", "../../wasm/native_api.js"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js", "../../wasm/native_api.js", "./selectmode.js", "./view2d_base.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js", "./transdata.js", "../events.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
@@ -10210,7 +10210,7 @@ es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", ".
     }
      ensure_transdata(ctx) {
       var selmode=this.inputs.datamode.data;
-      if (this.transdata==undefined) {
+      if (this.transdata===undefined) {
           this.types = [];
           if (selmode&SelMask.TOPOLOGY)
             this.types.push(TransSplineVert);
@@ -10476,6 +10476,7 @@ es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", ".
           ctx.frameset.on_ctx_update(ctx);
           delete this.transdata;
       }
+      window.redraw_viewport();
     }
   }
   _ESClass.register(TranslateOp);
@@ -10532,6 +10533,7 @@ es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", ".
           ctx.frameset.on_ctx_update(ctx);
           delete this.transdata;
       }
+      window.redraw_viewport();
     }
   }
   _ESClass.register(NonUniformScaleOp);
@@ -10598,6 +10600,7 @@ es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", ".
           ctx.frameset.on_ctx_update(ctx);
           delete this.transdata;
       }
+      window.redraw_viewport();
     }
   }
   _ESClass.register(ScaleOp);
@@ -10650,6 +10653,7 @@ es6_module_define('transform', ["./selectmode.js", "../../core/toolprops.js", ".
           ctx.frameset.on_ctx_update(ctx);
           delete this.transdata;
       }
+      window.redraw_viewport();
     }
   }
   _ESClass.register(RotateOp);

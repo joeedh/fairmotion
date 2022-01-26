@@ -684,7 +684,7 @@ es6_module_define('ui_treeview', ["../path-controller/util/simple_events.js", ".
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_treeview.js');
 
 
-es6_module_define('ui_widgets', ["../path-controller/toolsys/toolsys.js", "../path-controller/util/events.js", "./ui_button.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "./ui_textbox.js", "../path-controller/util/util.js", "../core/units.js", "../path-controller/controller/controller.js", "../path-controller/util/simple_events.js"], function _ui_widgets_module(_es6_module) {
+es6_module_define('ui_widgets', ["../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/events.js", "../core/units.js", "../path-controller/toolsys/toolsys.js", "./ui_button.js", "./ui_textbox.js", "../config/const.js", "../path-controller/controller/controller.js", "../path-controller/util/vectormath.js"], function _ui_widgets_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -1315,9 +1315,9 @@ es6_module_define('ui_widgets', ["../path-controller/toolsys/toolsys.js", "../pa
       return ;
     }
      _on_press() {
-      this.checked^=1;
+      this.checked^=true;
       if (this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.checked);
+          this.setPathValue(this.ctx, this.getAttribute("datapath"), !!this.checked);
       }
       this.setCSS();
     }
@@ -1396,7 +1396,7 @@ es6_module_define('ui_widgets', ["../path-controller/toolsys/toolsys.js", "../pa
           this.drawCheck = false;
       }
       if (this.drawCheck) {
-          this._extraIcon = Icons.ENUM_CHECKED;
+          this._extraIcon = ui_base.Icons.ENUM_CHECKED;
       }
       if (this.hasAttribute("datapath")) {
           this.updateDataPath();

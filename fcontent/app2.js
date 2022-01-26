@@ -1318,7 +1318,7 @@ es6_module_define('image_ops', ["../core/toolops_api.js", "../curve/spline.js", 
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../config/config.js", "../path.ux/scripts/core/ui_base.js", "../util/strutils.js", "../path.ux/scripts/util/util.js", "../datafiles/theme.js", "../editors/theme.js", "./struct.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["../editors/theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/util/util.js", "./struct.js", "../datafiles/theme.js", "../config/config.js", "../util/strutils.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -2039,7 +2039,7 @@ es6_module_define('context', ["../editors/console/console.js", "../editors/curve
 }, '/dev/fairmotion/src/core/context.js');
 
 
-es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js", "./data_api/data_api.js", "./toolprops.js", "./AppState.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./const.js", "../path.ux/scripts/pathux.js", "./toolops_api.js", "./data_api/data_api.js", "./context.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2053,19 +2053,28 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
   var CollectionProperty=es6_import_item(_es6_module, './toolprops.js', 'CollectionProperty');
   var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
+  var pathux=es6_import(_es6_module, '../path.ux/scripts/pathux.js');
   var USE_PATHUX_API=es6_import_item(_es6_module, './const.js', 'USE_PATHUX_API');
-  class ToolStack  {
+  class ToolStack extends pathux.ToolStack {
     
     
     
     
     
      constructor(appstate) {
-      this.undocur = 0;
-      this.undostack = new Array();
+      super();
       this.appstate = appstate;
       this.valcache = appstate.toolop_input_cache;
       this.do_truncate = true;
+    }
+    get  undostack() {
+      return this;
+    }
+    get  undocur() {
+      return this.cur;
+    }
+    set  undocur(v) {
+      this.cur = v;
     }
      reexec_stack2(validate=false) {
       let stack=this.undostack;
@@ -2139,49 +2148,15 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
           tool.exec(ctx);
       }
     }
-     default_inputs(ctx, tool) {
-      let cache=this.valcache;
-      function get_default(key, defaultval, input_prop) {
-        key = tool.constructor.name+":"+key;
-        if (key in cache)
-          return cache[key];
-        cache[key] = defaultval;
-        return defaultval;
-      }
-      let tctx=ctx.toLocked();
-      for (let k in tool.inputs) {
-          tool.inputs[k].ctx = tctx;
-      }
-      for (let k in tool.outputs) {
-          tool.outputs[k].ctx = tctx;
-      }
-      tool.default_inputs(ctx, get_default);
-    }
      truncate_stack() {
-      if (this.undocur!==this.undostack.length) {
-          if (this.undocur===0) {
-              this.undostack = new Array();
+      if (this.cur!==this.length) {
+          if (this.cur===0) {
+              this.length = 0;
           }
           else {
-            this.undostack = this.undostack.slice(0, this.undocur);
+            this.length = this.cur;
           }
       }
-    }
-     undo_push(tool) {
-      if (this.do_truncate) {
-          this.truncate_stack();
-          this.undostack.push(tool);
-      }
-      else {
-        this.undostack.insert(this.undocur, tool);
-        for (let i=this.undocur-1; i<this.undostack.length; i++) {
-            if (i<0)
-              continue;
-            this.undostack[i].stack_index = i;
-        }
-      }
-      tool.stack_index = this.undostack.indexOf(tool);
-      this.undocur++;
     }
      toolop_cancel(op, executeUndo) {
       if (executeUndo===undefined) {
@@ -2197,56 +2172,8 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
         }
       }
     }
-    get  head() {
-      return this.undostack[this.undocur-1];
-    }
-     undo() {
-      the_global_dag.exec(this.ctx);
-      if (this.undocur>0&&(this.undostack[this.undocur-1].undoflag&UndoFlags.UNDO_BARRIER))
-        return ;
-      if (this.undocur>0&&!(this.undostack[this.undocur-1].undoflag&UndoFlags.HAS_UNDO_DATA))
-        return ;
-      if (this.undocur>0) {
-          this.undocur--;
-          let tool=this.undostack[this.undocur];
-          let ctx=new FullContext();
-          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          tool.saved_context.set_context(ctx);
-          tool.undo(tctx);
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          if (this.undocur>0)
-            this.rebuild_last_tool(this.undostack[this.undocur-1]);
-          window.redraw_viewport();
-      }
-    }
-     redo() {
-      the_global_dag.exec(this.ctx);
-      if (this.undocur<this.undostack.length) {
-          let tool=this.undostack[this.undocur];
-          let ctx=new FullContext();
-          tool.saved_context.set_context(ctx);
-          tool.is_modal = false;
-          if (!(tool.undoflag&UndoFlags.NO_UNDO)) {
-              tool.undoPre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
-              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          }
-          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          tool.exec_pre(tctx);
-          tool.exec(tctx);
-          if (tool.redo_post) {
-              tool.redo_post(ctx);
-          }
-          this.undocur++;
-          if (this.undocur>0)
-            this.rebuild_last_tool(this.undostack[this.undocur-1]);
-      }
-    }
      reexec_tool(tool) {
+      console.error("reexec_tool called");
       if (!(tool.undoflag&UndoFlags.HAS_UNDO_DATA)) {
           this.reexec_stack();
       }
@@ -2277,10 +2204,10 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
       tool.saved_context = new SavedContext(new FullContext());
     }
      kill_opstack() {
-      this.undostack = new Array();
-      this.undocur = 0;
+      this.reset();
     }
      gen_tool_datastruct(tool) {
+      return ;
       let datastruct=new DataStruct([]);
       let this2=this;
       let stacktool=tool;
@@ -2328,6 +2255,7 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
       return datastruct;
     }
      rebuild_last_tool(tool) {
+      return ;
       if (USE_PATHUX_API) {
           return ;
       }
@@ -2359,50 +2287,24 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
           }
       }
     }
-     exec_datapath(ctx, path, val, undo_push=true, use_simple_undo=false, cls=DataPathOp) {
-      let api=g_app_state.api;
-      let prop=api.get_prop_meta(ctx, path);
-      if (prop===undefined) {
-          console.trace("Error in exec_datapath", path);
-          return ;
-      }
-      let good=this.undostack.length>0&&__instance_of(this.undostack[this.undocur-1], cls);
-      good = good&&this.undostack[this.undocur-1].path===path;
-      let exists=false;
-      if (undo_push||!good) {
-          let op=new cls(path, use_simple_undo);
-      }
-      else {
-        op = this.undostack[this.undocur-1];
-        this.undo();
-        exists = true;
-      }
-      let input=op.get_prop_input(path, prop);
-      input.setValue(val);
-      if (exists) {
-          this.redo();
-      }
-      else {
-        this.exec_tool(op);
-      }
-    }
      exec_tool(tool) {
       console.warn("exec_tool deprecated in favor of execTool");
       return this.execTool(g_app_state.ctx, tool);
-    }
-     execToolRepeat(ctx, cls, args={}) {
-      let tools=cls.getRepeat(ctx, args);
-      for (let tool of tools) {
-          tool.flag|=ToolFlags.USE_TOOL_CONTEXT;
-      }
-      let macro=new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
-      this.execTool(macro);
     }
      error(msg) {
       console.error(msg);
       g_app_state.ctx.error(msg);
     }
      execTool(ctx, tool) {
+      the_global_dag.exec(this.ctx);
+      this.set_tool_coll_flag(tool);
+      let ret=super.execTool(ctx, tool);
+      if (typeof tool==="object") {
+          tool.stack_index = this.indexOf(tool);
+      }
+      return ret;
+    }
+     _execTool(ctx, tool) {
       if (__instance_of(ctx, ToolOp)) {
           console.warn("Bad arguments to g_app_state.toolstack.execTool()");
           tool = ctx;
@@ -2461,15 +2363,16 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
           this.rebuild_last_tool(tool);
       }
     }
-    static  fromSTRUCT(reader) {
-      let ts=new ToolStack(g_app_state);
-      reader(ts);
-      ts.undostack = new Array(ts.undostack);
-      for (let i=0; i<ts.undostack.length; i++) {
-          ts.undostack[i].stack_index = i;
-          ts.set_tool_coll_flag(ts.undostack[i]);
+     loadSTRUCT(reader) {
+      reader(this);
+      this.cur = this.undocur;
+      for (let item of this.undostack) {
+          this.push(item);
       }
-      return ts;
+      for (let i=0; i<this.length; i++) {
+          this[i].stack_index = i;
+          this.set_tool_coll_flag(this[i]);
+      }
     }
   }
   _ESClass.register(ToolStack);
@@ -2485,7 +2388,7 @@ es6_module_define('toolstack', ["./const.js", "./toolops_api.js", "./context.js"
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["./lib_api.js", "./context.js", "../path.ux/scripts/screen/FrameManager.js", "./notifications.js", "../path.ux/scripts/config/const.js", "../util/strutils.js", "./toolops_api.js", "../editors/console/console.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./const.js", "../editors/ops/ops_editor.js", "../editors/editor_base.js", "../editors/viewport/view2d.js", "./startup/startup_file.js", "../config/config.js", "./UserSettings.js", "../editors/all.js", "./ajax.js", "./data_api/data_api_new.js", "./lib_utils.js", "../../platforms/platform.js", "../curve/spline_base.js", "./toolprops.js", "./fileapi/fileapi.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/ScreenArea.js", "./frameset.js", "../editors/menubar/MenuBar.js", "./struct.js", "./raster.js", "./toolstack.js", "../editors/theme.js", "./data_api/data_api_pathux.js", "./startup/startup_file_example.js", "../editors/viewport/view2d_ops.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/util/util.js", "../editors/curve/CurveEditor.js", "../editors/material/MaterialEditor.js", "../scene/scene.js", "../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./data_api/data_api.js", "./jobs.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../editors/ops/ops_editor.js", "./context.js", "./lib_utils.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/all.js", "./toolstack.js", "../scene/scene.js", "../editors/console/console.js", "../editors/menubar/MenuBar.js", "./startup/startup_file_example.js", "./startup/startup_file.js", "./data_api/data_api_pathux.js", "../editors/viewport/view2d_ops.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../path.ux/scripts/core/ui_base.js", "../editors/curve/CurveEditor.js", "./jobs.js", "../../platforms/platform.js", "./const.js", "../path.ux/scripts/util/util.js", "./lib_api.js", "../config/config.js", "./notifications.js", "../curve/spline_base.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/config/const.js", "./toolops_api.js", "../editors/dopesheet/DopeSheetEditor.js", "./data_api/data_api_new.js", "../util/strutils.js", "./UserSettings.js", "./raster.js", "./ajax.js", "./fileapi/fileapi.js", "../editors/editor_base.js", "./toolprops.js", "./data_api/data_api.js", "./struct.js", "./frameset.js", "../editors/viewport/view2d.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../path.ux/scripts/screen/ScreenArea.js", "../editors/theme.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2924,6 +2827,15 @@ es6_module_define('AppState', ["./lib_api.js", "./context.js", "../path.ux/scrip
       }
       else {
         this.modalStateStack.remove(state);
+      }
+    }
+     onFrameChange(ctx, time) {
+      for (let id in ctx.datalib.idmap) {
+          let block=ctx.datalib.idmap[id];
+          for (let ch of block.lib_anim_channels) {
+              console.warn("anim: setting path", ch.path, ch.evaluate(time));
+              ctx.api.setValue(ctx, ch.path, ch.evaluate(time));
+          }
       }
     }
     get  active_splinepath() {

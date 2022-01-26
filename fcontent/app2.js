@@ -1318,7 +1318,7 @@ es6_module_define('image_ops', ["../core/toolops_api.js", "../curve/spline.js", 
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["./struct.js", "../datafiles/theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_theme.js", "../util/strutils.js", "../editors/theme.js", "../config/config.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../config/config.js", "../path.ux/scripts/core/ui_base.js", "../util/strutils.js", "../path.ux/scripts/util/util.js", "../datafiles/theme.js", "../editors/theme.js", "./struct.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1337,6 +1337,7 @@ es6_module_define('UserSettings', ["./struct.js", "../datafiles/theme.js", "../p
     setTheme(theme);
   }
   loadTheme = _es6_module.add_export('loadTheme', loadTheme);
+  loadTheme(defaultTheme);
   class RecentPath  {
      constructor(path, displayname) {
       this.path = path;

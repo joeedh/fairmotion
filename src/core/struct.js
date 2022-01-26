@@ -2,6 +2,7 @@ import {nstructjs} from "../path.ux/scripts/pathux.js";
 import * as PUTL from "../util/parseutil.js";
 
 import {Matrix4, Vector2, Vector3, Vector4, Quat} from "../path.ux/scripts/pathux.js";
+import {ToolOp} from './toolops_api.js';
 
 export let STRUCT = nstructjs.STRUCT;
 export function profile_reset() {}
@@ -182,6 +183,19 @@ window.init_struct_packer = function() {
 
   window._struct_scripts = buf;
 
+  //toolops are registered with nstructjs elsewhere
+  let isToolOp = (cls) => {
+    if (cls === ToolOp) {
+      return true;
+    }
+
+    if (cls.__proto__ !== Object && cls.__proto__ !== Object.__proto__) {
+      return isToolOp(cls.__proto__);
+    }
+
+    return false;
+  }
+
   for (var cls of defined_classes) {
     if (cls.name == "Matrix4UI" || cls.name == "Matrix4" || cls.name == "Vector3" || cls.name == "Vector4" || cls.name == "Vector2") {
       //XXX dumb, kind of locked into the custom vector STRUCT types that's not in nstructjs
@@ -195,7 +209,7 @@ window.init_struct_packer = function() {
     }
 
     try {
-      if (cls.STRUCT !== undefined) {
+      if (cls.STRUCT !== undefined && !istruct.isRegistered(cls) && !isToolOp(cls)) {
         istruct.register(cls);
       }
     } catch (err) {

@@ -83,7 +83,11 @@ ToolProperty.prototype.report = function() {
   g_app_state.notes.label(s);
 }
 
+let propfire = ToolProperty.prototype._fire;
+
 ToolProperty.prototype._fire = function() {
+  propfire.apply(this, arguments);
+
   if (this.update) {
     this.update(this.dataref);
   }

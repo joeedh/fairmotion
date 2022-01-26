@@ -842,6 +842,8 @@ export class SplineSegment extends SplineElement {
   }
 
   _material_update() {
+    console.warn("segment material update!");
+
     this.flag |= SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
     this.v1.flag |= SplineFlags.UPDATE;
     this.v2.flag |= SplineFlags.UPDATE;

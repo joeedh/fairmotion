@@ -259,54 +259,46 @@ export function makeAPI(api = new DataAPI()) {
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api) {
-    MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", function (old) {
-      return (function (material) {
-        material.update();
+    MaterialStruct.color4("fillcolor", "fillcolor", "fill")
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
-      return (function (material) {
-        material.update();
+      });
+    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4)
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
-      return (function (material) {
-        material.update();
+      });
+    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4)
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+      });
     MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
       SELECT      : "Select",
       MASK_TO_FACE: "Mask To Face"
     }).descriptions({
       SELECT      : "Select",
       MASK_TO_FACE: "Mask To Face"
-    }).icons(DataTypes).on("change", function (old) {
-      return (function (material) {
-        material.update();
+    }).icons(DataTypes)
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+      });
     MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function (old) {
-      return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+      this.dataref.update();
+      window.redraw_viewport();
     });
-    MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (material) {
-        material.update();
+    MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4)
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", function (old) {
-      return (function (material) {
-        material.update();
+      });
+    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke")
+      .on("change", function (old) {
+        this.dataref.update();
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+      });
   }
 
   var ImageUserStruct = api.mapStruct(ImageUser, true);
@@ -450,6 +442,9 @@ export function makeAPI(api = new DataAPI()) {
       function get(api, list, key) {
         return list.local_idmap[key];
       },
+      function getActive(api, list) {
+        return list.active;
+      },
       function getStruct(api, list, key) {
         return SplineFaceStruct;
       },
@@ -477,6 +472,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineSegmentStruct;
+      },
+      function getActive(api, list) {
+        return list.active;
       },
       function getLength(api, list) {
         return list.length;
@@ -506,6 +504,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineVertexStruct;
       },
+      function getActive(api, list) {
+        return list.active;
+      },
       function getKey(api, list, obj) {
         return obj.eid;
       },
@@ -530,6 +531,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function get(api, list, key) {
         return list.local_idmap[key];
+      },
+      function getActive(api, list) {
+        return list.active;
       },
       function getStruct(api, list, key) {
         return SplineVertexStruct;
@@ -558,6 +562,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function get(api, list, key) {
         return list.local_idmap[key];
+      },
+      function getActive(api, list) {
+        return list.active;
       },
       function getStruct(api, list, key) {
         return SplineFaceStruct;

@@ -26,8 +26,14 @@ let resolvepath_rets = new cachering(() => {return {
 
 export function register_toolops() {
   function isTool(t : function) {
-    if (t.tooldef === undefined)
+    if (t.tooldef === undefined || !t.hasOwnProperty("tooldef") || t.tooldef === ToolOp.tooldef)
       return false;
+
+    if (!t.tooldef().toolpath) {
+      //likely a base class
+      return false;
+    }
+
     if (t === ToolOpAbstract || t === ToolOp || t === ToolMacro)
       return false;
 
@@ -61,6 +67,7 @@ export function register_toolops() {
       toolmap[def.toolpath] = cls
 
     toollist.push(cls);
+    ToolOp.register(cls);
   }
 }
 

@@ -23,7 +23,7 @@ let mimemap = {
   ".jpg" : "image/jpg",
   ".tiff" : "image/tiff",
   ".wasm" : "application/wasm",
-  ".svg" : "text/svg",
+  ".svg" : "image/svg+xml",
   ".html" : "text/html",
   ".txt"  : "text/plain"
 };

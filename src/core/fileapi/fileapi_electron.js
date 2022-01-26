@@ -135,6 +135,7 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
   }, wrapRemoteCallback("dialog", onthen), wrapRemoteCallback('dialog', oncatch));
 }
 
+
 export function can_access_path(path) {
   try {
     fs.accessSync(path, fs.constants.R_OK | fs.constants.W_OK);

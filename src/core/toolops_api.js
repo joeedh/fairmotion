@@ -185,6 +185,11 @@ window.init_toolop_structs = function () {
         break;
     }
 
+    //ignore base classes whose tooldefs() lack .toolpath
+    ok = ok && cls.tooldef !== ToolOp.tooldef;
+    ok = ok && cls.tooldef && cls.tooldef().toolpath;
+    ok = ok || cls === ToolOp;
+
     if (!ok) continue;
 
     //console.log("-->", cls.name);
@@ -200,14 +205,17 @@ window.init_toolop_structs = function () {
 
       cls.STRUCT += "  }";
 
-      nstructjs.register(cls);
+      if (cls === ToolOp) {
+        nstructjs.register(cls);
+      }
     }
 
     //if (!cls.tooldef().toolpath) {
     //  console.error("Missing toolpath", cls);
     //}
 
-    ToolOp.register(cls);
+    //pathux does this for us now
+    //ToolOp.register(cls);
   }
 };
 

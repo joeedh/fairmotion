@@ -188,11 +188,16 @@ window.startup_intern = function startup() {
   //remove default mouse handlers (especially right click)
   document.onselectstart = function() { return false; };
   document.oncontextmenu = function() { return false; };
-            
+
   //hrm, should probably remove this if check
   //it was added for allshape, which had to deal
   //with webgl context loss/regain cycles.
   if (window.g_app_state === undefined) {
+      console.log(_es6_get_module(_rootpath_src + "src/core/data_api/data_api_pathux.js").exports);
+
+      let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api_pathux.js").exports;
+      register_toolops();
+
       //initialize struct pack system
       startup_report("parsing serialization scripts...");
       init_struct_packer();

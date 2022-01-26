@@ -103,11 +103,15 @@ ToolOpSettings {
 }
 `;
 
+export const SETTINGS_VERSION = 1;
+
 export class AppSettings {
   constructor() {
     this.reload_defaults(false);
     this.recent_paths = [];
     this.tool_settings = [];
+
+    this.version = SETTINGS_VERSION;
   }
 
   _getToolOpS(toolcls) {
@@ -172,6 +176,11 @@ export class AppSettings {
 
     this.recent_paths = b.recent_paths;
 
+    if (b.version < 1) {
+      console.error("Resetting theme");
+      this.reloadDefaultTheme();
+    }
+
     return this;
   }
 
@@ -206,7 +215,7 @@ export class AppSettings {
           }
         }
         
-        if (settings == undefined) {
+        if (settings === undefined) {
           console.trace("  could not find settings block");
           reject("could not find settings block, but did get a file");
           return;
@@ -266,6 +275,9 @@ export class AppSettings {
   }
 
   loadSTRUCT(reader) {
+    //make sure we detect old settings without version fields
+    this.version = 0;
+
     reader(this);
 
     if (typeof this.theme !== "string") {
@@ -280,6 +292,7 @@ AppSettings {
   tool_settings : array(ToolOpSettings);
   theme         : string;
   recent_paths  : array(RecentPath);
+  version       : int;
 }
 `;
 

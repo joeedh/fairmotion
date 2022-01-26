@@ -76,9 +76,7 @@ global data_ops_list = undefined;
 import {register_toolops} from "./data_api_pathux.js";
 
 window.api_define_ops = function() {
-  register_toolops();
-
-  data_ops_list = {
+  window.data_ops_list = {
     "spline.add_layer" : function(ctx, args) {
       return new AddLayerOp(args.name);
     },

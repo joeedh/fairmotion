@@ -4399,7 +4399,7 @@ import {DataLib, DataBlock, DataList} from "../lib_api.js";
 }, '/dev/fairmotion/src/core/data_api/data_api_define.js');
 
 
-es6_module_define('data_api_new', ["../units.js", "../../editors/viewport/toolmodes/toolmode.js", "../../scene/sceneobject.js", "../../editors/viewport/toolmodes/splinetool.js", "../../curve/spline_element_array.js", "../../editors/viewport/view2d.js", "../../scene/scene.js", "../../editors/curve/CurveEditor.js", "../../editors/viewport/spline_createops.js", "../toolprops.js", "../context.js", "../../editors/viewport/view2d_base.js", "../../editors/settings/SettingsEditor.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_base.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/ops/ops_editor.js", "../lib_api.js", "../animdata.js", "../../curve/spline.js", "../toolops_api.js", "./data_api.js", "../../editors/viewport/selectmode.js", "../UserSettings.js", "../../curve/spline_types.js", "../imageblock.js", "../frameset.js"], function _data_api_new_module(_es6_module) {
+es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveEditor.js", "../../editors/ops/ops_editor.js", "../toolops_api.js", "../../curve/spline.js", "../../scene/sceneobject.js", "../lib_api.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../../editors/settings/SettingsEditor.js", "../UserSettings.js", "../../editors/viewport/selectmode.js", "../units.js", "../../editors/dopesheet/DopeSheetEditor.js", "../toolprops.js", "../../editors/viewport/view2d_base.js", "../../scene/scene.js", "../frameset.js", "../imageblock.js", "../../curve/spline_base.js", "../../curve/spline_element_array.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_types.js", "../../editors/viewport/toolmodes/splinetool.js", "./data_api.js", "../context.js", "../../editors/viewport/toolmodes/toolmode.js"], function _data_api_new_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -4598,10 +4598,15 @@ es6_module_define('data_api_new', ["../units.js", "../../editors/viewport/toolmo
         }).call(this.dataref, old);
       }).icon(Icons.DRAW_NORMALS);
       View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths").icon(Icons.SHOW_ANIMPATHS);
-      View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).on("change", function (old) {
-        return (function (ctx, path) {
-          this.ctx.view2d.set_zoom(this.data);
-        }).call(this.dataref, old);
+      View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).customGetSet(function () {
+        if (!this.dataref) {
+            return 0;
+        }
+        return this.dataref.zoom;
+      }, function (val) {
+        if (this.dataref) {
+            this.dataref.set_zoom(val);
+        }
       });
       View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
       View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);

@@ -1,5 +1,5 @@
 
-es6_module_define('spline', ["./spline_strokegroup.js", "../path.ux/scripts/pathux.js", "../core/lib_api.js", "../core/struct.js", "./spline_query.js", "./spline_draw.js", "../core/toolops_api.js", "../wasm/native_api.js", "./spline_element_array.js", "./spline_math.js", "./spline_multires.js", "../core/eventdag.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "./solver.js", "../config/config.js", "./spline_types.js", "../path.ux/scripts/config/const.js", "./solver_new.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["./spline_types.js", "../path.ux/scripts/config/const.js", "../wasm/native_api.js", "../core/lib_api.js", "../editors/viewport/view2d_editor.js", "../core/toolops_api.js", "./spline_element_array.js", "../path.ux/scripts/pathux.js", "../core/eventdag.js", "../config/config.js", "./solver_new.js", "./solver.js", "./spline_multires.js", "../core/struct.js", "./spline_query.js", "./spline_draw.js", "../editors/viewport/selectmode.js", "./spline_math.js", "./spline_strokegroup.js"], function _spline_module(_es6_module) {
   "use strict";
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   const MMLEN=8;
@@ -573,12 +573,12 @@ es6_module_define('spline', ["./spline_strokegroup.js", "../path.ux/scripts/path
       var mmlen=MMLEN;
       var d=0, i=0;
       var datasize=view.getInt32(0);
-      if (datasize!=UMUL) {
+      if (datasize!==UMUL) {
           return undefined;
       }
       i+=4/UMUL;
       while (i<data.length) {
-        if (d==0) {
+        if (d===0) {
             var mink=view.getFloat32(i*UMUL);
             var maxk=view.getFloat32(i*UMUL+4);
             i+=8/UMUL;

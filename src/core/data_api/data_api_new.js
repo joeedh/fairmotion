@@ -232,11 +232,18 @@ export function makeAPI(api = new DataAPI()) {
       .icon(Icons.DRAW_NORMALS);
     View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths")
       .icon(Icons.SHOW_ANIMPATHS);
-    View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).on("change", function (old) {
-      return (function (ctx, path) {
-        this.ctx.view2d.set_zoom(this.data);
-      }).call(this.dataref, old)
-    });
+    View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3)
+      .customGetSet(function () {
+        if (!this.dataref) {
+          return 0;
+        }
+        return this.dataref.zoom;
+      }, function (val) {
+        if (this.dataref) {
+          this.dataref.set_zoom(val);
+        }
+      });
+
     View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
     View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames({

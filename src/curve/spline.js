@@ -820,7 +820,7 @@ export class Spline extends DataBlock {
     var d = 0, i = 0;
     
     var datasize = view.getInt32(0);
-    if (datasize != UMUL) {
+    if (datasize !== UMUL) {
       return undefined; //invalid
     }
     
@@ -829,7 +829,7 @@ export class Spline extends DataBlock {
     //console.log("mink, maxk", mink, maxk);
     
     while (i < data.length) {
-      if (d == 0) {
+      if (d === 0) {
         var mink = view.getFloat32(i*UMUL);
         var maxk = view.getFloat32(i*UMUL+4);
         

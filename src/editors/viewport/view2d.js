@@ -201,23 +201,22 @@ export class View2DHandler extends Editor {
       name  : "view2d",
       uiName: "view2d",
 
-      inputs : {
-      },
+      inputs: {},
 
-      outputs : {
-        onDrawPre : undefined
+      outputs: {
+        onDrawPre: undefined
       }
     }
   }
 
-  dag_exec(ctx : FullContext, inputs : any, outputs : any, graph : EventDag) {
+  dag_exec(ctx: FullContext, inputs: any, outputs: any, graph: EventDag) {
     if (!this.isConnected) {
       window.the_global_dag.remove(this);
       return;
     }
   }
 
-  getKeyMaps() : Array<KeyMap> {
+  getKeyMaps(): Array<KeyMap> {
     let ret = super.getKeyMaps() || [];
     if (this.ctx.toolmode) {
       ret = ret.concat(this.ctx.toolmode.getKeyMaps());
@@ -1178,7 +1177,12 @@ export class View2DHandler extends Editor {
     //if (this.bad_event(event))
     //  return;
 
-    if (this.widgets.on_click(this._widget_mouseevent(event), this)) {
+    if (event.altKey && !event.shiftKey && !event.ctrlKey && event.button === 0) {
+      event.button = 2;
+    }
+
+    if (event.button !== 1 && event.button !== 2 &&
+      this.widgets.on_click(this._widget_mouseevent(event), this)) {
       return;
     }
 
@@ -1198,10 +1202,10 @@ export class View2DHandler extends Editor {
       if (tottouch >= 2) {
         var tool = new PanOp();
 
-        g_app_state.toolstack.exec_tool(tool);
+        this.ctx.api.execTool(this.ctx, tool);
       } else if (is_middle && this.shift) {
         console.log("Panning");
-      } else if (event.button == 0) {
+      } else if (event.button === 0) {
         this._mstart = new Vector2(this.mpos);
       }
     }
@@ -1209,7 +1213,7 @@ export class View2DHandler extends Editor {
     if (event.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
       var tool = new PanOp();
 
-      g_app_state.toolstack.exec_tool(tool);
+      this.ctx.api.execTool(this.ctx, tool);
       //this.rightclick_menu(event);
     }
   }
@@ -1260,7 +1264,7 @@ export class View2DHandler extends Editor {
 
     var this2 = this;
 
-    function switch_on_multitouch(op : TranslateOp, event : MouseEvent, cancel_func : any) {
+    function switch_on_multitouch(op: TranslateOp, event: MouseEvent, cancel_func: any) {
       if (g_app_state.screen.tottouch > 1) {
         this2._mstart = null;
         cancel_func();

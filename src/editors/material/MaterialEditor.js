@@ -452,10 +452,13 @@ export class MaterialEditor extends Editor {
 
     //"spline.faces{($.flag & 1) && !$.hidden}.fillcolor"
 
+    //let set_path = "spline.editable_faces[{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}]";
+    let set_path = "spline.editable_faces[{$.flag & 1}]";
+
     panel2.prop("spline.active_face.mat.fillcolor", undefined,
-      "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
+      set_path + ".mat.fillcolor");
     panel.prop("spline.active_face.mat.blur", undefined,
-      "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
+      set_path + ".mat.blur");
 
     return panel
   }
@@ -535,7 +538,7 @@ export class MaterialEditor extends Editor {
 
     panel = tab.panel("Animation Settings")
 
-    set_prefix = "frameset.keypaths{$.animflag & 8}";
+    set_prefix = "frameset.keypaths[{$.animflag & 8}]";
     panel.prop("frameset.active_keypath.animflag[STEP_FUNC]", undefined, set_prefix + ".animflag[STEP_FUNC]");
     return panel;
   }

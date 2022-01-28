@@ -56,10 +56,10 @@ export class DuplicateTransformMacro extends ToolMacro {
     var tool = new DuplicateOp();
     let macro = new DuplicateTransformMacro();
     
-    macro.add_tool(tool);
+    macro.add(tool);
 
     var transop = new TranslateOp(ctx.view2d.mpos, 1|2);
-    macro.add_tool(transop);
+    macro.add(transop);
 
     return macro;
   }
@@ -483,7 +483,7 @@ export class SplineEditor extends View2DEditor {
       
       console.log("select linked", ret);
 
-      if (ret != undefined) {
+      if (ret !== undefined) {
         var tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
         tool.inputs.vertex_eid.setValue(ret[0].eid);
         tool.inputs.mode.setValue("SELECT");

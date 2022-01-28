@@ -314,11 +314,7 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
     is_modal : true
   }}
 
-  start_modal(ctx) {
-    return this.modal_start(ctx);
-  }
-
-  modal_start(ctx) {
+  modalStart(ctx) {
     console.log("Select linked pick", ctx);
     this.modalEnd();
 

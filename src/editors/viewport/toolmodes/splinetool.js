@@ -458,7 +458,7 @@ export class SplineToolMode extends ToolMode {
   }
 
   _do_touch_undo(event) {
-    console.log(event.touches && event.touches.length > 1, this._cancel_on_touch, "<---");
+    //console.log(event.touches && event.touches.length > 1, this._cancel_on_touch, "<---");
 
     if (event.touches && event.touches.length > 1 && this._cancel_on_touch) {
       console.log("touch undo!");

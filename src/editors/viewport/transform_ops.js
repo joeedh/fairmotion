@@ -145,7 +145,11 @@ export class WidgetResizeOp extends TransformOp {
       } else {
         this.unhide();
       }*/
-      this.checkDagLink(ctx);
+
+      if (ctx.state.modalstate !== ModalStates.TRANSFORMING) {
+        //only update in real time during transforming
+        return;
+      }
 
       let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
       
@@ -158,7 +162,9 @@ export class WidgetResizeOp extends TransformOp {
         update = this.hidden;  //update if not already unhidden
         this.unhide();
       }
-      
+
+      this.checkDagLink(ctx);
+
       let cx = (minmax.min[0]+minmax.max[0])*0.5;
       let cy = (minmax.min[1]+minmax.max[1])*0.5;
 

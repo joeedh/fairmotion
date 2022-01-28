@@ -391,6 +391,7 @@ export class Manipulator {
   dag_exec(ctx, inputs, outputs, graph) {
     if (this.dead || this.hidden) {
       the_global_dag.remove(this);
+      window.redraw_viewport();
       return;
     }
 
@@ -403,10 +404,16 @@ export class Manipulator {
 
       this._node = window.the_global_dag.direct_node(ctx, this, true);
       window.the_global_dag.link(ctx.view2d, "onDrawPre", this, "depend");
+
+      window.redraw_viewport();
     }
   }
 
   hide() {
+    if (!this.hidden) {
+      window.redraw_viewport();
+    }
+
     console.warn("hide!");
     the_global_dag.remove(this);
 
@@ -418,6 +425,10 @@ export class Manipulator {
   }
 
   unhide() {
+    if (this.hidden) {
+      window.redraw_viewport();
+    }
+
     this.checkDagLink(this.ctx);
 
     if (this.hidden) {
@@ -606,6 +617,8 @@ export class ManipulatorManager {
     } else {
       this.stack.remove(mn);
     }
+
+    window.redraw_viewport();
   }
 
   push(mn) {
@@ -648,6 +661,10 @@ export class ManipulatorManager {
   }
 
   on_click(event: MouseEvent, view2d: View2DHandler): Boolean {
+    if (event.button === 1 || event.button === 2) {
+      return;
+    }
+
     return this.active !== undefined ? this.active.on_click(event, view2d) : undefined;
   }
 

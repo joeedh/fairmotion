@@ -253,11 +253,11 @@ window.api_define_ops = function() {
       
       macro.description = tool.description;
       
-      macro.add_tool(tool);
+      macro.add(tool);
       macro.icon = tool.icon;
       
       var transop = new TranslateOp(ctx.view2d.mpos, 1|2);
-      macro.add_tool(transop);
+      macro.add(transop);
       
       return macro;
     },

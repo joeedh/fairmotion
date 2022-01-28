@@ -3470,8 +3470,6 @@ es6_module_define('startup_file', [], function _startup_file_module(_es6_module)
 
 "not_a_module";
 window.init_redraw_globals_2 = function init_redraw_globals() {
-  let eventmanager=es6_get_module_meta(_rootpath_src+"/core/eventmanager.js").exports;
-  let eman=eventmanager.manager;
 };
 window.init_redraw_globals = function init_redraw_globals() {
   function myrequestAnimationFrame(func1) {
@@ -3728,7 +3726,7 @@ window.startup_intern = function startup() {
   }
   if (window.g_app_state===undefined) {
       console.log(_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports);
-      let $_t0aseu=_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports, register_toolops=$_t0aseu.register_toolops;
+      let $_t0hupn=_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports, register_toolops=$_t0hupn.register_toolops;
       register_toolops();
       startup_report("parsing serialization scripts...");
       init_struct_packer();
@@ -3751,12 +3749,16 @@ window.startup_intern = function startup() {
 };
 function init_pathux() {
   let ui_base=_es6_get_module("ui_base", true).exports;
-  let $_t1oukh=ui_base, iconmanager=$_t1oukh.iconmanager, setTheme=$_t1oukh.setTheme, setIconMap=$_t1oukh.setIconMap;
+  let $_t1joma=ui_base, iconmanager=$_t1joma.iconmanager, setTheme=$_t1joma.setTheme, setIconMap=$_t1joma.setIconMap;
   let theme=_es6_get_module(_rootpath_src+"src/editors/theme.js").exports.theme;
   let config=_es6_get_module(_rootpath_src+"src/config/config.js").exports;
   let cconst=_es6_get_module(_rootpath_src+"src/path.ux/scripts/config/const.js").default_export;
   console.error("THEME", theme);
-  cconst.loadConstants(config.PathUXConstants);
+  let cfg=Object.assign({}, config.PathUXConstants);
+  if (config.DEBUG) {
+      cfg = Object.assign(cfg, config.DEBUG);
+  }
+  cconst.loadConstants(cfg);
   iconmanager.reset(16);
   setTheme(theme.theme);
   setIconMap(window.Icons);
@@ -3765,31 +3767,22 @@ function init_pathux() {
   iconmanager.add(document.getElementById("iconsheet"), 32, 50);
 }
 function init_event_system() {
-  let eventmanager=es6_get_module_meta(_rootpath_src+"src/core/eventmanager.js").exports;
-  let eman=eventmanager.manager;
   let FrameManager=es6_get_module_meta(_rootpath_src+"src/path.ux/scripts/screen/FrameManager.js").exports;
   FrameManager.startEvents(() =>    {
     return g_app_state ? g_app_state.screen : undefined;
   });
   window._stime = 10;
   window.setInterval(function () {
-    if (window.redraw_start_times==undefined)
+    if (window.redraw_start_times===undefined)
       return ;
-    for (var k in redraw_start_times) {
-        var t=redraw_start_times[k];
+    for (var k in window.redraw_start_times) {
+        var t=window.redraw_start_times[k];
         if (time_ms()-t>1500) {
             pop_solve(k);
         }
     }
   }, 32);
   var config=_es6_get_module(_rootpath_src+"src/config/config.js");
-  window.setInterval(function () {
-    if (g_app_state!==undefined&&g_app_state.screen!==undefined) {
-        if (!g_app_state.screen.listening) {
-            g_app_state.screen.listen();
-        }
-    }
-  }, config.ON_TICK_TIMER_MS);
   function gen_keystr(key, keystate) {
     if (typeof key=="number") {
         key = String.fromCharCode(key);
@@ -3854,7 +3847,7 @@ function init_event_system() {
    ctrl: true})] = 0;
   window._handle_key_exclude = function handle_key_exclude(e) {
     var kc=charmap[e.keyCode];
-    if (kc==undefined)
+    if (kc===undefined)
       kc = "";
     var keystr=gen_keystr(kc, {shift: e.shiftKey, 
     alt: e.altKey, 
@@ -3864,7 +3857,9 @@ function init_event_system() {
         e.preventDefault();
     }
   }
-  eman.init(window);
+  window.addEventListener("keydown", (e) =>    {
+    _handle_key_exclude(e);
+  });
 }
 
 
@@ -9448,8 +9443,6 @@ es6_module_define('eventmanager', [], function _eventmanager_module(_es6_module)
   _ESClass.register(EventManager);
   _es6_module.add_class(EventManager);
   EventManager = _es6_module.add_export('EventManager', EventManager);
-  var manager=new EventManager();
-  manager = _es6_module.add_export('manager', manager);
 }, '/dev/fairmotion/src/core/eventmanager.js');
 
 

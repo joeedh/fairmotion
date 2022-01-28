@@ -1,5 +1,583 @@
 
-es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spline_draw.js", "../../core/struct.js", "./view2d_base.js", "../events.js", "../../curve/spline.js", "./spline_selectops.js", "../../curve/spline_types.js", "./transform_ops.js", "./selectmode.js", "./view2d_editor.js", "../../core/toolops_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "./transform.js", "./spline_createops.js", "../../core/animdata.js", "../../core/lib_api.js"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_ops', ["../../core/toolprops.js", "../../core/frameset.js", "../../curve/spline.js", "../../core/struct.js", "../../core/toolops_api.js", "../../curve/spline_draw_new.js", "../../vectordraw/vectordraw_canvas2d_simple.js", "../../core/fileapi/fileapi.js", "../../core/ajax.js", "../../scene/sceneobject.js", "../../curve/spline_draw.js", "../events.js", "../../path.ux/scripts/pathux.js", "../../scene/scene.js"], function _view2d_ops_module(_es6_module) {
+  "use strict";
+  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
+  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
+  var unpack_ctx=es6_import_item(_es6_module, '../../core/ajax.js', 'unpack_ctx');
+  var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
+  var HotKey=es6_import_item(_es6_module, '../events.js', 'HotKey');
+  var charmap=es6_import_item(_es6_module, '../events.js', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, '../events.js', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, '../events.js', 'EventHandler');
+  var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
+  var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
+  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
+  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
+  var TPropFlags=es6_import_item(_es6_module, '../../core/toolprops.js', 'TPropFlags');
+  var SceneObject=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'SceneObject');
+  var ObjectFlags=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'ObjectFlags');
+  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector3');
+  var Matrix4=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Matrix4');
+  var Vector4=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Quat');
+  class View2dOp extends ToolOp {
+     constructor() {
+      super();
+      this.tempLines = [];
+    }
+     makeTempLine(v1, v2, color) {
+      return this.new_drawline(v1, v2, color);
+    }
+     resetTempGeom() {
+      return super.reset_drawlines();
+    }
+  }
+  _ESClass.register(View2dOp);
+  _es6_module.add_class(View2dOp);
+  View2dOp = _es6_module.add_export('View2dOp', View2dOp);
+  class PanOp extends ToolOp {
+    
+    
+    
+    
+    
+     constructor(start_mpos) {
+      super();
+      this.is_modal = true;
+      this.undoflag|=UndoFlags.NO_UNDO;
+      if (start_mpos!==undefined) {
+          this.start_mpos = new Vector2(start_mpos);
+          this.start_mpos[2] = 0.0;
+          this.first = false;
+      }
+      else {
+        this.start_mpos = new Vector2();
+        this.first = true;
+      }
+      this.start_cameramat = new Matrix4();
+      this.cameramat = new Matrix4();
+    }
+    static  tooldef() {
+      return {uiname: "Pan", 
+     toolpath: "view2d.pan", 
+     undoflag: UndoFlags.NO_UNDO, 
+     inputs: {}, 
+     outputs: {}, 
+     is_modal: true}
+    }
+     on_mousemove(event) {
+      var mpos=new Vector2([event.x, event.y, 0]);
+      var ctx=this.modal_ctx;
+      mpos = new Vector2(ctx.view2d.getLocalMouse(event.x, event.y));
+      if (this.first) {
+          this.first = false;
+          this.start_cameramat.load(ctx.view2d.cameramat);
+          this.start_mpos.load(mpos);
+          return ;
+      }
+      mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
+      mpos[1] = -mpos[1];
+      console.log("mpos", mpos[0], mpos[1]);
+      this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
+      ctx.view2d.set_cameramat(this.cameramat);
+      if (!event.touches) {
+          ctx.view2d.resetVelPan();
+      }
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }
+     on_mouseup(event) {
+      this.end_modal();
+    }
+  }
+  _ESClass.register(PanOp);
+  _es6_module.add_class(PanOp);
+  PanOp = _es6_module.add_export('PanOp', PanOp);
+  var $v1_yKWE_exec_pan;
+  var $v2_ewQp_exec_pan;
+  class ViewRotateZoomPanOp extends ToolOp {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.undoflag = UndoFlags.NO_UNDO;
+      this.transdata = null;
+      this.is_modal = true;
+      this.inputs = {};
+      this.outputs = {};
+      this.first_call = false;
+      this.start_mat = undefined;
+      this.startcos = [undefined, undefined, undefined];
+      this.startids = [undefined, undefined, undefined];
+      this.start_zoom = 0;
+      this.mv1 = new Vector3();
+      this.mv2 = new Vector3();
+      this.mv3 = new Vector3();
+      this.mv4 = new Vector3();
+      this.mv5 = new Vector3();
+      this.mv6 = new Vector3();
+    }
+    static  tooldef() {
+      return {toolpath: "view2d.viewrotatezoom", 
+     uiname: "View Rotate Zoom", 
+     is_modal: true, 
+     undoflag: UndoFlags.NO_UNDO, 
+     inputs: {}, 
+     outputs: {}}
+    }
+     can_call(ctx) {
+      return true;
+    }
+     start_modal(ctx) {
+      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
+      this.first_call = true;
+      this.start_zoom = ctx.view2d.zoomwheel;
+    }
+     proj(out, mpos) {
+      var size=this.modal_ctx.view2d.size;
+      out.loadxy(mpos);
+      out[0] = out[0]/(size[0]*0.5)-1.0;
+      out[1] = out[1]/(size[1]*0.5)-1.0;
+    }
+     on_mousemove(event) {
+      var ctx=this.modal_ctx;
+      var view2d=ctx.view2d;
+      var screen=g_app_state.screen;
+      if (screen.tottouch===0) {
+          this.end_modal();
+      }
+      if (this.first_call===true) {
+          var touches=[];
+          for (let k in screen.touchstate) {
+              touches.push(k);
+          }
+          this.first_call = false;
+          var v1=new Vector3();
+          var v2=new Vector3();
+          this.proj(v1, screen.touchstate[touches[0]]);
+          this.proj(v2, screen.touchstate[touches[1]]);
+          this.startids = [touches[0], touches[1], undefined];
+          this.startcos = [v1, v2, undefined];
+          this.mv1.load(v1);
+          this.mv2.load(v1);
+          this.mv3.load(v2);
+          this.mv4.load(v2);
+          this.exec(this.modal_tctx);
+      }
+      if (screen.tottouch===2&&this.startids[2]!==undefined)
+        this.transition("rotate");
+      if (this.startids[2]===undefined) {
+          for (let k in screen.touchstate) {
+              if (k!==this.startids[0]&&k!==this.startids[1]) {
+                  this.startids[2] = k;
+                  this.startcos[2] = new Vector3();
+                  this.proj(this.startcos[2], screen.touchstate[k]);
+                  this.mv5.load(this.startcos[2]);
+                  this.transition("pan");
+                  break;
+              }
+          }
+      }
+      if (this.startids[0] in screen.touchstate) {
+          this.proj(this.mv2, screen.touchstate[this.startids[0]]);
+      }
+      if (this.startids[1] in screen.touchstate) {
+          this.proj(this.mv4, screen.touchstate[this.startids[1]]);
+      }
+      if (this.startids[2]!==undefined&&this.startids[2] in screen.touchstate) {
+          this.proj(this.mv6, screen.touchstate[this.startids[2]]);
+      }
+      this.exec(this.modal_tctx);
+    }
+     exec(ctx) {
+      ctx = this.modal_ctx;
+      var v1=new Vector3(this.mv1);
+      var v2=new Vector3(this.mv2);
+      var newmat;
+      if (this.startids[2]===undefined) {
+          if (v1.vectorDistance(v2)<0.01)
+            return ;
+          var vec=new Vector3(v2);
+          vec.sub(v1);
+          var perp=new Vector3([-vec[1], vec[0], 0.0]);
+          var q=new Quat();
+          q.axisAngleToQuat(perp, vec.vectorLength()*2);
+          var mat=q.toMatrix();
+          newmat = new Matrix4(mat);
+          newmat.multiply(this.start_mat);
+      }
+      else {
+        newmat = ctx.view2d.drawmats.cameramat;
+      }
+      var v3=this.mv3, v4=this.mv4;
+      var startdis=v3.vectorDistance(v1);
+      var zoom;
+      if (startdis>0.01) {
+          zoom = v4.vectorDistance(v2)/startdis;
+      }
+      else {
+        zoom = v4.vectorDistance(v2);
+      }
+      var view2d=ctx.view2d;
+      var range=(view2d.zoom_wheelrange[1]-view2d.zoom_wheelrange[0]);
+      var zoom2=(this.start_zoom-view2d.zoom_wheelrange[0])/range;
+      zoom2+=0.025*(zoom-1.0);
+      zoom2 = zoom2*range+view2d.zoom_wheelrange[0];
+      view2d.drawmats.cameramat = newmat;
+      if (this.startids[2]!==undefined)
+        this.exec_pan(ctx);
+    }
+     exec_pan(ctx) {
+      var view2d=ctx.view2d;
+      $v1_yKWE_exec_pan.load(this.mv5);
+      $v2_ewQp_exec_pan.load(this.mv6);
+      $v1_yKWE_exec_pan[2] = 0.9;
+      $v2_ewQp_exec_pan[2] = 0.9;
+      var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
+      iprojmat.invert();
+      var scenter=new Vector3(this.center);
+      scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
+      if (isNaN(scenter[2]))
+        scenter[2] = 0.0;
+      $v1_yKWE_exec_pan[2] = scenter[2];
+      $v2_ewQp_exec_pan[2] = scenter[2];
+      $v1_yKWE_exec_pan.multVecMatrix(iprojmat);
+      $v2_ewQp_exec_pan.multVecMatrix(iprojmat);
+      var vec=new Vector3($v2_ewQp_exec_pan);
+      vec.sub($v1_yKWE_exec_pan);
+      var newmat=new Matrix4(this.start_mat);
+      if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
+        return ;
+      newmat.translate(vec);
+      view2d.drawmats.cameramat = newmat;
+    }
+     transition(mode) {
+      this.start_mat = new Matrix4(this.modal_ctx.view2d.drawmats.cameramat);
+      if (mode==="rotate") {
+          this.startids[2] = undefined;
+          this.startcos[0].load(this.mv2);
+          this.mv1.load(this.mv2);
+      }
+    }
+     on_mouseup(event) {
+      if (DEBUG.modal)
+        console.log("modal end");
+      for (let k in event.touches) {
+          if (this.startids[2]===k) {
+              this.transition("rotate");
+          }
+      }
+      if (g_app_state.screen.tottouch===0)
+        this.end_modal();
+    }
+  }
+  var $v1_yKWE_exec_pan=new Vector3();
+  var $v2_ewQp_exec_pan=new Vector3();
+  _ESClass.register(ViewRotateZoomPanOp);
+  _es6_module.add_class(ViewRotateZoomPanOp);
+  class ViewRotateOp extends ToolOp {
+     constructor() {
+      super();
+      this.transdata = null;
+    }
+    static  tooldef() {
+      return {toolpath: "view2d.orbit", 
+     uiname: "Orbit", 
+     is_modal: true, 
+     undoflag: UndoFlags.NO_UNDO, 
+     inputs: {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
+      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}, 
+     outputs: {}}
+    }
+     can_call(ctx) {
+      return true;
+    }
+     start_modal(ctx) {
+      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
+      this.first_call = true;
+    }
+     on_mousemove(event) {
+      if (this.first_call===true) {
+          this.first_call = false;
+          this.start_mpos = new Vector3([event.x, event.y, 0]);
+          this.start_mpos[0] = this.start_mpos[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
+          this.start_mpos[1] = this.start_mpos[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
+      }
+      var mstart=new Vector3(this.start_mpos);
+      var mend=new Vector3([event.x, event.y, 0.0]);
+      mend[0] = mend[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
+      mend[1] = mend[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
+      var vec=new Vector3(mend);
+      vec.sub(mstart);
+      this.inputs.MV1.data = mstart;
+      this.inputs.MV2.data = mend;
+      this.exec(this.modal_ctx);
+    }
+     exec(ctx) {
+      ctx = this.modal_ctx;
+      var v1=new Vector3(this.inputs.MV1.data);
+      var v2=new Vector3(this.inputs.MV2.data);
+      if (v1.vectorDistance(v2)<0.01)
+        return ;
+      var vec=new Vector3(v2);
+      vec.sub(v1);
+      var perp=new Vector3([-vec[1], vec[0], 0.0]);
+      var q=new Quat();
+      q.axisAngleToQuat(perp, vec.vectorLength()*2);
+      var mat=q.toMatrix();
+      var newmat=new Matrix4(mat);
+      newmat.multiply(this.start_mat);
+      ctx.view2d.drawmats.cameramat = newmat;
+      ctx.view2d.on_view_change();
+    }
+     on_mouseup(event) {
+      if (DEBUG.modal)
+        console.log("modal end");
+      this.end_modal();
+    }
+  }
+  _ESClass.register(ViewRotateOp);
+  _es6_module.add_class(ViewRotateOp);
+  class ViewPanOp extends ToolOp {
+    
+    
+    
+    static  tooldef() {
+      return {toolpath: "view2d.pan", 
+     inputs: {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
+      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}, 
+     outputs: {}, 
+     is_modal: true, 
+     undoflag: UndoFlags.NO_UNDO}
+    }
+     constructor() {
+      super("view2d_pan", "Pan");
+      this.transdata = null;
+      this.outputs = {};
+    }
+     can_call(ctx) {
+      return true;
+    }
+     start_modal(ctx) {
+      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
+      this.first_call = true;
+      this.center = new Vector3();
+      var i=0;
+      for (let v of ctx.mesh.verts) {
+          if (isNaN(v.co[0])||isNaN(v.co[1])||isNaN(v.co[2]))
+            continue;
+          this.center.add(v.co);
+          i+=1;
+          if (i>200)
+            break;
+      }
+      if (i>0)
+        this.center.mulScalar(1.0/i);
+    }
+     on_mousemove(event) {
+      if (this.first_call===true) {
+          this.first_call = false;
+          this.start_mpos = new Vector3([event.x, event.y, 0]);
+          this.start_mpos[0] = this.start_mpos[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
+          this.start_mpos[1] = this.start_mpos[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
+      }
+      var mstart=new Vector3(this.start_mpos);
+      var mend=new Vector3([event.x, event.y, 0.0]);
+      mend[0] = mend[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
+      mend[1] = mend[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
+      this.inputs.MV1.data = mstart;
+      this.inputs.MV2.data = mend;
+      this.exec(this.modal_ctx);
+    }
+     exec(ctx) {
+      ctx = this.modal_ctx;
+      var v1=new Vector3(this.inputs.MV1.data);
+      var v2=new Vector3(this.inputs.MV2.data);
+      if (v1.vectorDistance(v2)<0.01)
+        return ;
+      v1[2] = 0.9;
+      v2[2] = 0.9;
+      var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
+      iprojmat.invert();
+      var scenter=new Vector3(this.center);
+      scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
+      if (isNaN(scenter[2]))
+        scenter[2] = 0.0;
+      v1[2] = scenter[2];
+      v2[2] = scenter[2];
+      v1.multVecMatrix(iprojmat);
+      v2.multVecMatrix(iprojmat);
+      var vec=new Vector3(v2);
+      vec.sub(v1);
+      var newmat=new Matrix4(this.start_mat);
+      if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
+        return ;
+      newmat.translate(vec);
+      ctx.view2d.drawmats.cameramat = newmat;
+      ctx.view2d.on_view_change();
+    }
+     on_mouseup(event) {
+      if (DEBUG.modal)
+        console.log("modal end");
+      this.end_modal();
+    }
+  }
+  _ESClass.register(ViewPanOp);
+  _es6_module.add_class(ViewPanOp);
+  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
+  class BasicFileDataOp extends ToolOp {
+    
+    
+     constructor(data) {
+      super();
+      this.is_modal = false;
+      this.undoflag = UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER;
+      if (data)
+        this.inputs.data.setValue(data);
+      this.saved_context = new SavedContext();
+    }
+    static  tooldef() {
+      return {uiname: "internal file load op", 
+     toolpath: "app.basic_file_with_data", 
+     undoflag: UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER, 
+     inputs: {data: new StringProperty("", "filedata", "file data in base64", TPropFlags.PRIVATE)}}
+    }
+     exec(ctx) {
+      var data=new DataView(b64decode(this.inputs.data.data).buffer);
+      console.log(this.inputs.data.data.length, data.byteLength);
+      g_app_state.load_scene_file(data);
+    }
+  }
+  _ESClass.register(BasicFileDataOp);
+  _es6_module.add_class(BasicFileDataOp);
+  BasicFileDataOp = _es6_module.add_export('BasicFileDataOp', BasicFileDataOp);
+  var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
+  var SplineFrameSet=es6_import_item(_es6_module, '../../core/frameset.js', 'SplineFrameSet');
+  var Scene=es6_import_item(_es6_module, '../../scene/scene.js', 'Scene');
+  class BasicFileOp extends ToolOp {
+     constructor() {
+      super();
+    }
+    static  tooldef() {
+      return {toolpath: "app.basic_file", 
+     uiname: "Make Basic File (internal)", 
+     undoflag: UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER, 
+     description: "Internal tool op; makes basic file"}
+    }
+     exec(ctx) {
+      var datalib=ctx.datalib;
+      var splineset=new SplineFrameSet();
+      splineset.set_fake_user();
+      datalib.add(splineset);
+      var scene=new Scene();
+      datalib.add(scene);
+      scene._initCollection(datalib);
+      scene.set_fake_user();
+      var ob=scene.addFrameset(datalib, splineset);
+      scene.setActiveObject(ob);
+    }
+  }
+  _ESClass.register(BasicFileOp);
+  _es6_module.add_class(BasicFileOp);
+  BasicFileOp = _es6_module.add_export('BasicFileOp', BasicFileOp);
+  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
+  class FrameChangeOp extends ToolOp {
+     constructor(frame) {
+      super();
+      this._undo = undefined;
+      if (frame!==undefined)
+        this.inputs.frame.setValue(frame);
+    }
+    static  tooldef() {
+      return {toolpath: "scene.change_frame", 
+     uiname: "Change Frame", 
+     inputs: {frame: new FloatProperty(0, "frame", "frame", "frame")}}
+    }
+     undo_pre(ctx) {
+      this._undo = ctx.scene.time;
+    }
+     undo(ctx) {
+      ctx.scene.change_time(ctx, this._undo);
+    }
+     exec(ctx) {
+      ctx.scene.change_time(ctx, this.inputs.frame.data);
+    }
+  }
+  _ESClass.register(FrameChangeOp);
+  _es6_module.add_class(FrameChangeOp);
+  FrameChangeOp = _es6_module.add_export('FrameChangeOp', FrameChangeOp);
+  var SimpleCanvasDraw2D=es6_import_item(_es6_module, '../../vectordraw/vectordraw_canvas2d_simple.js', 'SimpleCanvasDraw2D');
+  var draw_spline=es6_import_item(_es6_module, '../../curve/spline_draw.js', 'draw_spline');
+  var save_file=es6_import_item(_es6_module, '../../core/fileapi/fileapi.js', 'save_file');
+  var SplineDrawer=es6_import_item(_es6_module, '../../curve/spline_draw_new.js', 'SplineDrawer');
+  class ExportCanvasImage extends ToolOp {
+    static  tooldef() {
+      return {toolpath: "view2d.export_image", 
+     uiname: "Save Canvas Image", 
+     description: "Export visible canvas", 
+     undoflag: UndoFlags.NO_UNDO}
+    }
+     exec(ctx) {
+      var view2d=g_app_state.active_view2d;
+      var spline=ctx.frameset.spline;
+      var canvas=document.createElement("canvas");
+      canvas.width = view2d.size[0];
+      canvas.height = view2d.size[1];
+      var g=canvas.getContext("2d");
+      var vecdrawer=new SimpleCanvasDraw2D();
+      vecdrawer.canvas = canvas;
+      vecdrawer.g = g;
+      var drawer=new SplineDrawer(spline, vecdrawer);
+      var old=spline.drawer;
+      spline.drawer = drawer;
+      console.log("saving image. . .");
+      drawer.recalc_all = true;
+      drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(), [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
+      try {
+        draw_spline(spline, [], g, view2d, view2d.genMatrix(), view2d.selectmode, view2d.only_render, view2d.draw_normals, 1.0, true, ctx.frameset.time);
+      }
+      catch (error) {
+          print_stack(error);
+          console.trace("Draw error");
+          g_app_state.notes.label("Error drawing canvas");
+          return ;
+      }
+      spline.drawer = old;
+      var url=canvas.toDataURL();
+      url = atob(url.slice(url.search("base64,")+7, url.length));
+      var data=new Uint8Array(url.length);
+      for (let i=0; i<data.length; i++) {
+          data[i] = url.charCodeAt(i);
+      }
+      save_file(data, true, false, "PNG", ["png"], function () {
+        console.trace("ERROR ERROR!!\n");
+        g_app_state.notes.label("Error drawing canvas");
+        return ;
+      });
+    }
+  }
+  _ESClass.register(ExportCanvasImage);
+  _es6_module.add_class(ExportCanvasImage);
+  ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
+  
+}, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
+
+
+es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_editor.js", "./transform.js", "../../core/toolops_api.js", "../../core/animdata.js", "./spline_editops.js", "./selectmode.js", "../../curve/spline_draw.js", "../../path.ux/scripts/screen/ScreenArea.js", "./spline_selectops.js", "../../curve/spline_types.js", "../../core/struct.js", "../../curve/spline.js", "./view2d_base.js", "./spline_createops.js", "./transform_ops.js", "../events.js"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, './spline_createops.js', 'ExtrudeVertOp');
   var DeleteVertOp=es6_import_item(_es6_module, './spline_editops.js', 'DeleteVertOp');
@@ -57,9 +635,9 @@ es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spli
     static  invoke(ctx, args) {
       var tool=new DuplicateOp();
       let macro=new DuplicateTransformMacro();
-      macro.add_tool(tool);
+      macro.add(tool);
       var transop=new TranslateOp(ctx.view2d.mpos, 1|2);
-      macro.add_tool(transop);
+      macro.add(transop);
       return macro;
     }
     static  tooldef() {
@@ -234,7 +812,7 @@ es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spli
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
   var EditorTypes=es6_import_item(_es6_module, './view2d_base.js', 'EditorTypes');
-  var $ops_F_yU_tools_menu;
+  var $ops_fCqh_tools_menu;
   class SplineEditor extends View2DEditor {
     
     
@@ -342,7 +920,7 @@ es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spli
         var mpos=ctx.keymap_mpos;
         var ret=ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
         console.log("select linked", ret);
-        if (ret!=undefined) {
+        if (ret!==undefined) {
             var tool=new SelectLinkedOp(true, ctx.view2d.selectmode);
             tool.inputs.vertex_eid.setValue(ret[0].eid);
             tool.inputs.mode.setValue("SELECT");
@@ -406,7 +984,7 @@ es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spli
       return false;
     }
      tools_menu(ctx, mpos, view2d) {
-      var menu=view2d.toolop_menu(ctx, "Tools", $ops_F_yU_tools_menu);
+      var menu=view2d.toolop_menu(ctx, "Tools", $ops_fCqh_tools_menu);
       view2d.call_menu(menu, view2d, mpos);
     }
      on_inactive(view2d) {
@@ -618,7 +1196,7 @@ es6_module_define('view2d_spline_ops', ["./spline_editops.js", "../../curve/spli
       view2d.call_menu(menu, view2d, [event.x, event.y]);
     }
   }
-  var $ops_F_yU_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $ops_fCqh_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
   _ESClass.register(SplineEditor);
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
@@ -5092,7 +5670,7 @@ es6_module_define('data_api_pathux', ["../../path.ux/scripts/path-controller/con
 
 
 var data_ops_list;
-es6_module_define('data_api_opdefine', ["../../editors/viewport/view2d_editor.js", "./data_api_pathux.js", "../../path.ux/scripts/screen/FrameManager_ops.js", "../../../platforms/Electron/theplatform.js", "../../editors/viewport/view2d_ops.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d_spline_ops.js", "../../image/image_ops.js", "../safe_eval.js", "../../editors/viewport/view2d.js", "../../path.ux/scripts/screen/FrameManager.js", "../../editors/viewport/transform_spline.js", "../../editors/dopesheet/dopesheet_ops_new.js", "../../editors/viewport/spline_editops.js", "../../editors/viewport/transdata.js", "../../editors/viewport/spline_animops.js", "../toolops_api.js", "../../editors/viewport/spline_selectops.js", "../../editors/viewport/transform.js", "../../editors/viewport/spline_layerops.js"], function _data_api_opdefine_module(_es6_module) {
+es6_module_define('data_api_opdefine', ["../../editors/dopesheet/dopesheet_ops_new.js", "../../editors/viewport/view2d.js", "../../../platforms/Electron/theplatform.js", "../../editors/viewport/transform.js", "../../editors/viewport/view2d_ops.js", "../../editors/viewport/transdata.js", "../../editors/viewport/transform_spline.js", "./data_api_pathux.js", "../../image/image_ops.js", "../../editors/viewport/view2d_spline_ops.js", "../../editors/viewport/spline_selectops.js", "../../editors/viewport/view2d_editor.js", "../../editors/viewport/spline_layerops.js", "../../path.ux/scripts/screen/FrameManager.js", "../../editors/viewport/spline_editops.js", "../../editors/viewport/spline_createops.js", "../../path.ux/scripts/screen/FrameManager_ops.js", "../../editors/viewport/spline_animops.js", "../safe_eval.js", "../toolops_api.js"], function _data_api_opdefine_module(_es6_module) {
   var LoadImageOp=es6_import_item(_es6_module, '../../image/image_ops.js', 'LoadImageOp');
   var DeleteVertOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DeleteVertOp');
   var DeleteSegmentOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DeleteSegmentOp');
@@ -5308,10 +5886,10 @@ es6_module_define('data_api_opdefine', ["../../editors/viewport/view2d_editor.js
         var tool=new DuplicateOp();
         var macro=new ToolMacro("duplicate_transform", "Duplicate");
         macro.description = tool.description;
-        macro.add_tool(tool);
+        macro.add(tool);
         macro.icon = tool.icon;
         var transop=new TranslateOp(ctx.view2d.mpos, 1|2);
-        macro.add_tool(transop);
+        macro.add(transop);
         return macro;
       }, 
     "spline.toggle_select_all": function (ctx, args) {

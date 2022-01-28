@@ -6054,9 +6054,8 @@ es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
 
 
-es6_module_define('vectordraw_jobs', ["../config/config.js", "../path.ux/scripts/util/simple_events.js", "../core/eventmanager.js", "../../platforms/platform.js", "./vectordraw_jobs_base.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js", "./vectordraw_jobs_base.js", "../../platforms/platform.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
-  var eventmanager=es6_import(_es6_module, '../core/eventmanager.js');
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
   let MS=MESSAGES;
   let Debug=0;

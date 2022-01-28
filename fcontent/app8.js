@@ -8883,8 +8883,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
   window.the_global_dag = undefined;
   class NodeBase  {
      dag_update(output_socket_name, data) {
-      var graph=window.the_global_dag;
-      var node=graph.get_node(this, false);
+      let graph=window.the_global_dag;
+      let node=graph.get_node(this, false);
       if (node!==undefined) {
           node.dag_update(output_socket_name, data);
       }
@@ -8900,9 +8900,9 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       return new InheritFlag(data);
     }
      dag_unlink() {
-      var graph=window.the_global_dag;
-      var node=graph.get_node(this, false);
-      if (node!=undefined)
+      let graph=window.the_global_dag;
+      let node=graph.get_node(this, false);
+      if (node!==undefined)
         window.the_global_dag.remove(node);
     }
   }
@@ -8964,12 +8964,12 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
   _ESClass.register(DataPathWrapperNode);
   _es6_module.add_class(DataPathWrapperNode);
   DataPathWrapperNode = _es6_module.add_export('DataPathWrapperNode', DataPathWrapperNode);
-  var DagFlags={UPDATE: 1, 
+  let DagFlags={UPDATE: 1, 
    TEMP: 2, 
    DEAD: 4}
   DagFlags = _es6_module.add_export('DagFlags', DagFlags);
   function make_slot(stype, k, v, node) {
-    var type;
+    let type;
     if (v===undefined||v===null)
       type = DataTypes.DEPEND;
     else 
@@ -8979,10 +8979,10 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       if (v===true||k===false)
       type = DataTypes.BOOL;
     else 
-      if (typeof v=="number")
+      if (typeof v==="number")
       type = DataTypes.NUMBER;
     else 
-      if (typeof v=="string"||__instance_of(v, String))
+      if (typeof v==="string"||__instance_of(v, String))
       type = DataTypes.STRING;
     else 
       if (__instance_of(v, Vector2))
@@ -8998,8 +8998,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       type = DataTypes.MATRIX4;
     else 
       if (__instance_of(v, Array)) {
-        for (var i=0; i<v.length; i++) {
-            if (typeof (v[i])!="number"&&typeof (v[i])!=undefined) {
+        for (let i=0; i<v.length; i++) {
+            if (typeof (v[i])!=="number"&&typeof (v[i])!==undefined) {
                 warntrace("WARNING: bad array being passed around!!", v);
             }
             type = DataTypes.ARRAY;
@@ -9106,12 +9106,12 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
           console.trace("dag_update:", field, data);
       }
       if (field===undefined) {
-          for (var k in this.outputs) {
+          for (let k in this.outputs) {
               this.dag_update(k);
           }
           return ;
       }
-      var sock=this.outputs[field];
+      let sock=this.outputs[field];
       if (arguments.length>1) {
           sock.loadData(data);
       }
@@ -9120,10 +9120,10 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.graph.on_update(this, field);
     }
      unlink() {
-      for (var k in this.inputs) {
+      for (let k in this.inputs) {
           this.inputs[k].disconnect_all();
       }
-      for (var k in this.outputs) {
+      for (let k in this.outputs) {
           this.outputs[k].disconnect_all();
       }
     }
@@ -9137,7 +9137,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.datapath = path;
     }
      get_owner(ctx) {
-      if (this._owner!=undefined)
+      if (this._owner!==undefined)
         return this._owner;
       this._owner = ctx.api.getValue(ctx, this.datapath);
       return this._owner;
@@ -9149,16 +9149,16 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
   class DirectNode extends EventNode {
      constructor(id) {
       super();
-      this.objid = id;
+      this.__dag_id = id;
     }
      get_owner(ctx) {
-      return this.graph.object_idmap[this.objid];
+      return this.graph.object_idmap[this.__dag_id];
     }
   }
   _ESClass.register(DirectNode);
   _es6_module.add_class(DirectNode);
   DirectNode = _es6_module.add_export('DirectNode', DirectNode);
-  var DataTypes={DEPEND: 1, 
+  let DataTypes={DEPEND: 1, 
    NUMBER: 2, 
    BOOL: 4, 
    STRING: 8, 
@@ -9186,7 +9186,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
   }
   function makeDefaultSlotData(type) {
     let ret=TypeDefaults[type];
-    if (typeof ret=="function") {
+    if (typeof ret==="function") {
         return ret();
     }
     return ret;
@@ -9203,7 +9203,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.src = src;
     }
      opposite(socket) {
-      return socket==this.dst ? this.src : this.dst;
+      return socket===this.dst ? this.src : this.dst;
     }
   }
   _ESClass.register(EventEdge);
@@ -9223,7 +9223,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.flag|=DagFlags.UPDATE;
     }
      copy() {
-      var s=new EventSocket(this.name, undefined, this.type, this.datatype);
+      let s=new EventSocket(this.name, undefined, this.type, this.datatype);
       s.loadData(this.data, false);
       if (s.data===undefined) {
           s.data = makeDefaultSlotData(this.datatype);
@@ -9249,45 +9249,45 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
     }
      connect(b) {
-      if (b.type==this.type) {
+      if (b.type===this.type) {
           throw new Error("Cannot put two inputs or outputs together");
       }
-      var src, dst;
-      if (this.type=="i") {
+      let src, dst;
+      if (this.type==="i") {
           src = b, dst = this;
       }
       else 
-        if (this.type=="o") {
+        if (this.type==="o") {
           src = this, dst = b;
       }
       else {
         throw new Error("Malformed socket type.  this.type, b.type, this, b:", this.type, b.type, this, b);
       }
-      var edge=new EventEdge(dst, src);
+      let edge=new EventEdge(dst, src);
       this.edges.push(edge);
       b.edges.push(edge);
     }
      _find_edge(b) {
-      for (var i=0; i<this.edges.length; i++) {
+      for (let i=0; i<this.edges.length; i++) {
           if (this.edges[i].opposite(this)===b)
             return this.edges[i];
       }
       return undefined;
     }
      disconnect(other_socket) {
-      if (other_socket==undefined) {
+      if (other_socket===undefined) {
           warntrace("Warning, no other_socket in disconnect!");
           return ;
       }
-      var e=this._find_edge(other_socket);
-      if (e!=undefined) {
+      let e=this._find_edge(other_socket);
+      if (e!==undefined) {
           other_socket.edges.remove(e);
           this.edges.remove(e);
       }
     }
      disconnect_all() {
       while (this.edges.length>0) {
-        var e=this.edges[0];
+        let e=this.edges[0];
         e.opposite(this).edges.remove(e);
         this.edges.remove(e);
       }
@@ -9297,9 +9297,10 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
   _es6_module.add_class(EventSocket);
   EventSocket = _es6_module.add_export('EventSocket', EventSocket);
   window._NodeBase = NodeBase;
+  const sarr=[0], darr=[0];
   function gen_callback_exec(func, thisvar) {
-    for (var k of Object.getOwnPropertyNames(NodeBase.prototype)) {
-        if (k=="toString")
+    for (let k of Object.getOwnPropertyNames(NodeBase.prototype)) {
+        if (k==="toString")
           continue;
         func[k] = NodeBase.prototype[k];
     }
@@ -9311,8 +9312,6 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       return func.apply(thisvar, arguments);
     }
   }
-  var $sarr_LypC_link;
-  var $darr_lADq_link;
   class EventDag  {
      constructor(ctx) {
       this.nodes = [];
@@ -9323,14 +9322,14 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.object_idmap = {};
       this.idmap = {};
       this.ctx = ctx;
-      if (_event_dag_idgen==undefined)
+      if (_event_dag_idgen===undefined)
         _event_dag_idgen = new EIDGen();
       this.object_idgen = _event_dag_idgen;
       this.idgen = new EIDGen();
       this.resort = true;
     }
      reset_cache() {
-      for (var n of this.nodes) {
+      for (let n of this.nodes) {
           if (__instance_of(n, IndirectNode)) {
               n._owner = undefined;
           }
@@ -9350,7 +9349,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
               node[key] = socks;
               for (let k in sockdef) {
                   let sock=sockdef[k].copy();
-                  if (sock.datatype==DataTypes.ARRAY||sock.datatype==DataTypes.SET) {
+                  if (sock.datatype===DataTypes.ARRAY||sock.datatype===DataTypes.SET) {
                       sock.data = makeDefaultSlotData(sock.datatype);
                   }
                   sock.type = stype;
@@ -9370,7 +9369,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
         return this.node_pathmap[path];
       if (!auto_create)
         return undefined;
-      var node=new IndirectNode(path);
+      let node=new IndirectNode(path);
       this.node_pathmap[path] = node;
       if (object===undefined) {
           ctx = ctx===undefined ? this.ctx : ctx;
@@ -9387,9 +9386,9 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
       if (!auto_create)
         return undefined;
-      if (object.__dag_id==undefined)
+      if (object.__dag_id===undefined)
         object.__dag_id = this.object_idgen.gen_id();
-      var node=new DirectNode(object.__dag_id);
+      let node=new DirectNode(object.__dag_id);
       node.id = object.__dag_id;
       this.object_idmap[object.__dag_id] = object;
       this.node_idmap[object.__dag_id] = node;
@@ -9407,7 +9406,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
      remove(node) {
       if (!(__instance_of(node, EventNode))) {
           node = this.get_node(node, false);
-          if (node==undefined) {
+          if (node===undefined) {
               console.log("node already removed");
               return ;
           }
@@ -9417,8 +9416,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
       node.unlink();
       if (__instance_of(node, DirectNode)) {
-          delete this.object_idmap[node.objid];
-          delete this.node_idmap[node.objid];
+          delete this.object_idmap[node.__dag_id];
+          delete this.node_idmap[node.__dag_id];
       }
       else 
         if (__instance_of(node, IndirectNode)) {
@@ -9431,11 +9430,23 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
       this.resort = true;
     }
+     has(object) {
+      if (object.__dag_id!==undefined) {
+          return object.__dag_id in this.node_idmap;
+      }
+      if (__instance_of(object, EventNode)) {
+          return object.__dag_id in this.node_idmap;
+      }
+      else {
+        object = this.get_node(object, false);
+        return object ? object.__dag_id in this.node_idmap : false;
+      }
+    }
      get_node(object, auto_create=true) {
       if (__instance_of(object, EventNode)) {
           return object;
       }
-      var node;
+      let node;
       if (DataPathNode.isDataPathNode(object)) {
           node = this.indirect_node(this.ctx, object.dag_get_datapath(), object, auto_create);
       }
@@ -9445,7 +9456,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       if (node!==undefined&&object.dag_exec!==undefined&&node.dag_exec===undefined) {
           object = undefined;
           node.dag_exec = function (ctx, inputs, outputs, graph) {
-            var owner=this.get_owner(ctx);
+            let owner=this.get_owner(ctx);
             if (owner!==undefined) {
                 return owner.dag_exec.apply(owner, arguments);
             }
@@ -9454,17 +9465,17 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       return node;
     }
      link(src, srcfield, dst, dstfield, dstthis) {
-      var obja=src, objb=dst;
-      var srcnode=this.get_node(src);
+      let obja=src, objb=dst;
+      let srcnode=this.get_node(src);
       if (!(__instance_of(srcfield, Array))) {
-          $sarr_LypC_link[0] = srcfield;
-          srcfield = $sarr_LypC_link;
+          sarr[0] = srcfield;
+          srcfield = sarr;
       }
       if (!(__instance_of(dstfield, Array))) {
-          $darr_lADq_link[0] = dstfield;
-          dstfield = $darr_lADq_link;
+          darr[0] = dstfield;
+          dstfield = darr;
       }
-      if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
+      if ((typeof dst==="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
           gen_callback_exec(dst, dstthis);
           dst._dag_callback_init = true;
           delete dst.__prototypeid__;
@@ -9474,9 +9485,9 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
        outputs: {}};
           dst.constructor.nodedef = wrap_ndef(ndef);
           if (__instance_of(srcfield, Array)) {
-              for (var i=0; i<srcfield.length; i++) {
-                  var field=srcfield[i];
-                  var field2=dstfield[i];
+              for (let i=0; i<srcfield.length; i++) {
+                  let field=srcfield[i];
+                  let field2=dstfield[i];
                   if (!(field in srcnode.outputs)) {
                       console.trace(field, Object.keys(srcnode.outputs), srcnode);
                       throw new Error("Field not in outputs: "+field);
@@ -9486,12 +9497,12 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
               }
           }
       }
-      var dstnode=this.get_node(dst);
+      let dstnode=this.get_node(dst);
       if (__instance_of(srcfield, Array)) {
-          if (srcfield.length!=dstfield.length) {
+          if (srcfield.length!==dstfield.length) {
               throw new Error("Error, both arguments must be arrays of equal length!", srcfield, dstfield);
           }
-          for (var i=0; i<dstfield.length; i++) {
+          for (let i=0; i<dstfield.length; i++) {
               if (!(dstfield[i] in dstnode.inputs))
                 throw new Error("Event inputs does not exist: "+dstfield[i]);
               if (!(srcfield[i] in srcnode.outputs))
@@ -9510,55 +9521,55 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       this.resort = true;
     }
      prune_dead_nodes() {
-      var dellist=[];
-      for (var n of this.nodes) {
-          var tot=0;
-          for (var k in n.inputs) {
+      let dellist=[];
+      for (let n of this.nodes) {
+          let tot=0;
+          for (let k in n.inputs) {
               tot+=n.inputs[k].edges.length;
           }
-          for (var k in n.outputs) {
+          for (let k in n.outputs) {
               tot+=n.outputs[k].edges.length;
           }
-          if (tot==0) {
+          if (tot===0) {
               dellist.push(n);
           }
       }
-      for (var n of dellist) {
+      for (let n of dellist) {
           this.remove(n);
       }
     }
      sort() {
       this.prune_dead_nodes();
-      var sortlist=[];
-      var visit={};
-      for (var n of this.nodes) {
+      let sortlist=[];
+      let visit={};
+      for (let n of this.nodes) {
           n.flag&=~DagFlags.TEMP;
       }
       function sort(n) {
         n.flag|=DagFlags.TEMP;
-        for (var k in n.inputs) {
-            var sock=n.inputs[k];
-            for (var i=0; i<sock.length; i++) {
-                var n2=sock.edges[i].opposite(sock).node;
+        for (let k in n.inputs) {
+            let sock=n.inputs[k];
+            for (let i=0; i<sock.length; i++) {
+                let n2=sock.edges[i].opposite(sock).node;
                 if (!(n2.flag&DagFlags.TEMP)) {
                     sort(n2);
                 }
             }
         }
         sortlist.push(n);
-        for (var k in n.outputs) {
-            var sock=n.outputs[k];
-            for (var i=0; i<sock.length; i++) {
-                var n2=sock.edges[i].opposite(sock).node;
+        for (let k in n.outputs) {
+            let sock=n.outputs[k];
+            for (let i=0; i<sock.length; i++) {
+                let n2=sock.edges[i].opposite(sock).node;
                 if (!(n2.flag&DagFlags.TEMP)) {
                     sort(n2);
                 }
             }
         }
       }
-      var nlen=this.nodes.length, nodes=this.nodes;
-      for (var i=0; i<nlen; i++) {
-          var n=nodes[i];
+      let nlen=this.nodes.length, nodes=this.nodes;
+      for (let i=0; i<nlen; i++) {
+          let n=nodes[i];
           if (n.flag&DagFlags.TEMP)
             continue;
           sort(n);
@@ -9588,10 +9599,10 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       if (this.resort) {
           this.sort();
       }
-      var sortlist=this.sortlist;
-      var slen=sortlist.length;
-      for (var i=0; i<slen; i++) {
-          var n=sortlist[i];
+      let sortlist=this.sortlist;
+      let slen=sortlist.length;
+      for (let i=0; i<slen; i++) {
+          let n=sortlist[i];
           if (!n) {
               console.warn("dead node in event dag");
               sortlist[i] = sortlist[sortlist.length-1];
@@ -9603,17 +9614,17 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
           if (!(n.flag&DagFlags.UPDATE))
             continue;
           n.flag&=~DagFlags.UPDATE;
-          var owner=n.get_owner(ctx);
+          let owner=n.get_owner(ctx);
           if (owner===undefined) {
               console.warn("Bad owner!");
               n.flag|=DagFlags.DEAD;
               continue;
           }
-          for (var k in n.inputs) {
-              var sock=n.inputs[k];
-              for (var j=0; j<sock.edges.length; j++) {
-                  var e=sock.edges[j], s2=e.opposite(sock);
-                  var n2=s2.node, owner2=n2.get_owner(ctx);
+          for (let k in n.inputs) {
+              let sock=n.inputs[k];
+              for (let j=0; j<sock.edges.length; j++) {
+                  let e=sock.edges[j], s2=e.opposite(sock);
+                  let n2=s2.node, owner2=n2.get_owner(ctx);
                   if (n2===undefined) {
                       n2.flag|=DagFlags.DEAD;
                       continue;
@@ -9627,25 +9638,45 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
           if (owner.dag_exec) {
               owner.dag_exec(ctx, n.inputs, n.outputs, this);
           }
-          for (var k in n.outputs) {
-              var s=n.outputs[k];
+          for (let k in n.outputs) {
+              let s=n.outputs[k];
               if (!(s.flag&DagFlags.UPDATE))
                 continue;
               s.flag&=~DagFlags.UPDATE;
               if (DEBUG.dag)
                 console.log("Propegating updated socket", k);
-              for (var j=0; j<s.edges.length; j++) {
+              for (let j=0; j<s.edges.length; j++) {
                   s.edges[j].opposite(s).node.flag|=DagFlags.UPDATE;
               }
           }
       }
     }
   }
-  var $sarr_LypC_link=[0];
-  var $darr_lADq_link=[0];
   _ESClass.register(EventDag);
   _es6_module.add_class(EventDag);
   EventDag = _es6_module.add_export('EventDag', EventDag);
+  let req=undefined;
+  window.updateDataGraph = function (force) {
+    console.warn("use updateEventDag not updateDataGraph!");
+    window.updateEventDag(force);
+  }
+  window.updateEventDag = function (force) {
+    if (force===undefined) {
+        force = false;
+    }
+    if (force) {
+        the_global_dag.exec();
+        return ;
+    }
+    if (req) {
+        return ;
+    }
+    req = 1;
+    window.setTimeout(() =>      {
+      req = undefined;
+      the_global_dag.exec();
+    }, 0);
+  }
   window.init_event_graph = function init_event_graph(ctx) {
     window.the_global_dag = new EventDag(ctx);
     window.the_global_dag.startUpdateTimer();
@@ -10083,9 +10114,10 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
       this.undodata = {};
       this.doprop = top.inputs.proportional.data;
       this.propradius = top.inputs.propradius.data;
-      this.center = new Vector3();
-      this.start_center = new Vector3();
-      this.minmax = new MinMax(3);
+      this.center = new Vector2();
+      this.scenter = new Vector2();
+      this.start_center = new Vector2();
+      this.minmax = new MinMax(2);
       for (var t of this.types) {
           if (datamode&t.selectmode) {
               t.gen_data(ctx, this, this.data);
@@ -10130,7 +10162,7 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
 
 
-es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js", "../../wasm/native_api.js", "./selectmode.js", "./view2d_base.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js", "./transdata.js", "../events.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["./selectmode.js", "../../wasm/native_api.js", "../../core/toolops_api.js", "../../util/mathlib.js", "../events.js", "./view2d_base.js", "../../core/toolprops.js", "./transform_spline.js", "../../curve/spline_types.js", "../dopesheet/dopesheet_transdata.js", "./transdata.js"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
@@ -10173,24 +10205,31 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
      constructor(start_mpos, datamode) {
       super();
       this.first = true;
-      this.types = new GArray([TransSplineVert]);
+      this.types = [TransSplineVert];
       this.first_viewport_redraw = true;
       if (start_mpos!==undefined&&typeof start_mpos!="number"&&__instance_of(start_mpos, Array)) {
           this.user_start_mpos = start_mpos;
       }
       if (datamode!==undefined)
         this.inputs.datamode.setValue(datamode);
-      this.modaldata = {};
+      this.modalTemp = {};
     }
     static  invoke(ctx, args) {
-      var op=new this();
-      if ("datamode" in args) {
-          op.inputs.datamode.setValue(args["datamode"]);
+      if (args.datamode==="selectmode") {
+          args.datamode = ctx.selectmode;
       }
+      let user_start_mpos;
       if ("mpos" in args) {
-          this.user_start_mpos = args["mpos"];
+          user_start_mpos = args["mpos"];
+          delete args.mpos;
       }
-      op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
+      let op=super.invoke(ctx, args);
+      if (user_start_mpos) {
+          op.user_start_mpos = user_start_mpos;
+      }
+      if (!("edit_all_layers" in args)) {
+          op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
+      }
       if (ctx.view2d.session_flag&SessionFlags.PROP_TRANSFORM) {
           op.inputs.proportional.setValue(true);
           op.inputs.propradius.setValue(ctx.view2d.propradius);
@@ -10209,18 +10248,21 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       constrain: new BoolProperty(false, "constrain", "Enable Constraint", "Enable Constraint Axis")}}
     }
      ensure_transdata(ctx) {
-      var selmode=this.inputs.datamode.data;
+      let selmode=this.inputs.datamode.data;
       if (this.transdata===undefined) {
           this.types = [];
           if (selmode&SelMask.TOPOLOGY)
             this.types.push(TransSplineVert);
           this.transdata = new TransData(ctx, this, this.inputs.datamode.data);
       }
+      if (this.inputs.use_pivot.getValue()) {
+          this.transdata.center.load(this.inputs.pivot.getValue());
+      }
       return this.transdata;
     }
      finish(ctx) {
       delete this.transdata;
-      delete this.modaldata;
+      delete this.modalTemp;
       ctx.frameset.on_ctx_update(ctx);
     }
      cancel() {
@@ -10231,15 +10273,15 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       }
     }
      undo_pre(ctx) {
-      var td=this.ensure_transdata(ctx);
-      var undo=this._undo = {};
+      let td=this.ensure_transdata(ctx);
+      let undo=this._undo = {};
       undo.edit_all_layers = this.inputs.edit_all_layers.data;
       for (var i=0; i<this.types.length; i++) {
           this.types[i].undo_pre(ctx, td, undo);
       }
     }
      undo(ctx, suppress_ctx_update=false) {
-      var undo=this._undo;
+      let undo=this._undo;
       for (var i=0; i<this.types.length; i++) {
           this.types[i].undo(ctx, undo);
       }
@@ -10249,10 +10291,10 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       window.redraw_viewport();
     }
      modalEnd(was_cancelled) {
-      var ctx=this.modal_ctx;
-      this.post_mousemove(event, true);
+      let ctx=this.modal_ctx;
       ctx.appstate.popModalState(ModalStates.TRANSFORMING);
       super.modalEnd(was_cancelled);
+      ctx.spline.regen_solve();
       this.finish(ctx);
     }
      modalStart(ctx) {
@@ -10262,14 +10304,15 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       ctx.spline.regen_solve();
       ctx.spline.checkSolve();
       this.ensure_transdata(ctx);
-      this.modaldata = {};
+      this.modalTemp = {};
     }
      on_mousemove(event) {
-      var td=this.ensure_transdata(this.modal_ctx);
-      var ctx=this.modal_ctx;
-      var mpos=new Vector2([event.x, event.y, 0]);
-      mpos.load(ctx.view2d.getLocalMouse(event.x, event.y));
-      var md=this.modaldata;
+      let td=this.ensure_transdata(this.modal_ctx);
+      let ctx=this.modal_ctx;
+      td.scenter.load(td.center);
+      ctx.view2d.project(td.scenter);
+      let mpos=new Vector2(ctx.view2d.getLocalMouse(event.x, event.y));
+      let md=this.modalTemp;
       if (this.first) {
           md.start_mpos = new Vector2(mpos);
           md.mpos = new Vector2(mpos);
@@ -10288,16 +10331,16 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       this.draw_helper_lines(md, ctx);
     }
      post_mousemove(event, force_solve=false) {
-      var td=this.transdata, view2d=this.modal_ctx.view2d;
-      var md=this.modaldata, do_last=true;
-      var min1=post_mousemove_cachering.next(), max1=post_mousemove_cachering.next();
-      var min2=post_mousemove_cachering.next(), max2=post_mousemove_cachering.next();
+      let td=this.transdata, view2d=this.modal_ctx.view2d;
+      let md=this.modalTemp, do_last=true;
+      let min1=post_mousemove_cachering.next(), max1=post_mousemove_cachering.next();
+      let min2=post_mousemove_cachering.next(), max2=post_mousemove_cachering.next();
       if (this.first_viewport_redraw) {
           md.draw_minmax = new MinMax(3);
           do_last = false;
       }
-      var ctx=this.modal_ctx;
-      var minmax=md.draw_minmax;
+      let ctx=this.modal_ctx;
+      let minmax=md.draw_minmax;
       min1.load(minmax.min);
       max1.load(minmax.max);
       minmax.reset();
@@ -10317,14 +10360,14 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       else {
         min2.load(minmax.min), max2.load(minmax.max);
       }
-      var found=false;
+      let found=false;
       for (var i=0; i<this.types; i++) {
           if (this.types[i]===TransSplineVert) {
               found = true;
               break;
           }
       }
-      var this2=this;
+      let this2=this;
       redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
       if (!ctx.spline.solving) {
           if (force_solve&&!ctx.spline.solving) {
@@ -10347,19 +10390,19 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
      draw_helper_lines(md, ctx) {
       this.reset_drawlines();
       if (this.inputs.proportional.data) {
-          var rad=this.inputs.propradius.data;
-          var steps=64, t=-Math.PI, dt=(Math.PI*2.0)/(steps-1);
-          var td=this.transdata;
-          var v1=new Vector2(), v2=new Vector2();
-          var r=this.inputs.propradius.data;
-          var cent=new Vector2(td.center);
+          let rad=this.inputs.propradius.data;
+          let steps=64, t=-Math.PI, dt=(Math.PI*2.0)/(steps-1);
+          let td=this.transdata;
+          let v1=new Vector2(), v2=new Vector2();
+          let r=this.inputs.propradius.data;
+          let cent=new Vector2(td.center);
           ctx.view2d.project(cent);
           for (var i=0; i<steps-1; i++, t+=dt) {
               v1[0] = Math.sin(t)*r+cent[0];
               v1[1] = Math.cos(t)*r+cent[1];
               v2[0] = Math.sin(t+dt)*r+cent[0];
               v2[1] = Math.cos(t+dt)*r+cent[1];
-              var dl=this.new_drawline(v1, v2);
+              let dl=this.new_drawline(v1, v2);
               dl.clr[0] = dl.clr[1] = dl.clr[2] = 0.1;
               dl.clr[3] = 0.01;
               dl.width = 2;
@@ -10368,7 +10411,7 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
     }
      on_keydown(event) {
       console.log(event.keyCode);
-      var propdelta=15;
+      let propdelta=15;
       switch (event.keyCode) {
         case 88:
         case 89:
@@ -10392,7 +10435,7 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
               this.transdata.calc_propweights();
               this.modal_ctx.view2d.propradius = this.inputs.propradius.data;
               this.exec(this.modal_ctx);
-              this.draw_helper_lines(this.modaldata, this.modal_ctx);
+              this.draw_helper_lines(this.modalTemp, this.modal_ctx);
               window.redraw_viewport();
           }
           break;
@@ -10403,7 +10446,7 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
               this.transdata.calc_propweights();
               this.modal_ctx.view2d.propradius = this.inputs.propradius.data;
               this.exec(this.modal_ctx);
-              this.draw_helper_lines(this.modaldata, this.modal_ctx);
+              this.draw_helper_lines(this.modalTemp, this.modal_ctx);
               window.redraw_viewport();
           }
           break;
@@ -10436,32 +10479,36 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
      on_mousemove(event) {
       let first=this.first;
       super.on_mousemove(event);
-      if (this.modaldata===undefined) {
+      this.draw_helper_lines(this.modalTemp, this.modal_ctx);
+      if (this.modalTemp===undefined) {
           console.trace("ERROR: corrupted modal event call in TransformOp");
           return ;
+      }
+      let ctx=this.modal_ctx;
+      let td=this.transdata;
+      let view2d=ctx.view2d;
+      if (td) {
+          td.scenter.load(td.center);
+          view2d.project(td.scenter);
       }
       if (first) {
           return ;
       }
-      var md=this.modaldata;
-      var ctx=this.modal_ctx;
-      var td=this.transdata;
-      let view2d=ctx.view2d;
-      var start=mousemove_cachering.next(), off=mousemove_cachering.next();
+      let md=this.modalTemp;
+      let start=mousemove_cachering.next(), off=mousemove_cachering.next();
       start.load(md.start_mpos);
       off.load(md.mpos);
       ctx.view2d.unproject(start);
       ctx.view2d.unproject(off);
       off.sub(start);
-      off.mulScalar(view2d.dpi_scale);
       this.inputs.translation.setValue(off);
       this.exec(ctx);
       this.post_mousemove(event);
     }
      exec(ctx) {
-      var td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
-      var mat=new Matrix4();
-      var off=this.inputs.translation.data;
+      let td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
+      let mat=new Matrix4();
+      let off=this.inputs.translation.data;
       if (this.inputs.constrain.data) {
           off = new Vector2(off);
           off.mul(this.inputs.constraint_axis.data);
@@ -10495,25 +10542,26 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
     }
      on_mousemove(event) {
       super.on_mousemove(event);
-      var md=this.modaldata;
-      var ctx=this.modal_ctx;
-      var td=this.transdata;
-      var scale=mousemove_cachering.next();
-      var off1=mousemove_cachering.next();
-      var off2=mousemove_cachering.next();
+      let md=this.modalTemp;
+      let ctx=this.modal_ctx;
+      let td=this.transdata;
+      let scale=mousemove_cachering.next();
+      let off1=mousemove_cachering.next();
+      let off2=mousemove_cachering.next();
       off1.load(md.mpos).sub(td.scenter).vectorLength();
       off2.load(md.start_mpos).sub(td.scenter).vectorLength();
-      scale[0] = off1[0]!=off2[0]&&off2[0]!=0.0 ? off1[0]/off2[0] : 1.0;
-      scale[1] = off1[1]!=off2[1]&&off2[1]!=0.0 ? off1[1]/off2[1] : 1.0;
+      scale[0] = off1[0]!==off2[0]&&off2[0]!==0.0 ? off1[0]/off2[0] : 1.0;
+      scale[1] = off1[1]!==off2[1]&&off2[1]!==0.0 ? off1[1]/off2[1] : 1.0;
       this.inputs.scale.setValue(scale);
       this.exec(ctx);
       this.post_mousemove(event);
+      this.draw_helper_lines(this.modalTemp, this.modal_ctx);
     }
      exec(ctx) {
-      var td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
-      var mat=new Matrix4();
-      var scale=this.inputs.scale.data;
-      var cent=td.center;
+      let td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
+      let mat=new Matrix4();
+      let scale=this.inputs.scale.data;
+      let cent=td.center;
       mat.makeIdentity();
       if (this.inputs.constrain.data) {
           scale = new Vector2(scale);
@@ -10544,6 +10592,9 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       super(user_start_mpos, datamode);
     }
     static  invoke(ctx, args) {
+      if (args.datamode==="selectmode") {
+          args.datamode = ctx.selectmode;
+      }
       let ret=super.invoke(ctx, args);
       if (!("scaleLineWidths" in args)) {
           ret.inputs.scaleLineWidths.setValue(ctx.settings.getToolOpSetting(this, "scaleLineWidths", ret.inputs.scaleLineWidths.getValue()));
@@ -10564,23 +10615,23 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
     }
      on_mousemove(event) {
       super.on_mousemove(event);
-      var md=this.modaldata;
-      var ctx=this.modal_ctx;
-      var td=this.transdata;
-      var scale=mousemove_cachering.next();
-      var off=mousemove_cachering.next();
-      var l1=off.load(md.mpos).sub(td.scenter).vectorLength();
-      var l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
+      let md=this.modalTemp;
+      let ctx=this.modal_ctx;
+      let td=this.transdata;
+      let scale=mousemove_cachering.next();
+      let off=mousemove_cachering.next();
+      let l1=off.load(md.mpos).sub(td.scenter).vectorLength();
+      let l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
       scale[0] = scale[1] = l1/l2;
       this.inputs.scale.setValue(scale);
       this.exec(ctx);
       this.post_mousemove(event);
     }
      exec(ctx) {
-      var td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
-      var mat=new Matrix4();
-      var scale=this.inputs.scale.data;
-      var cent=td.center;
+      let td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
+      let mat=new Matrix4();
+      let scale=this.inputs.scale.data;
+      let cent=td.center;
       mat.makeIdentity();
       if (this.inputs.constrain.data) {
           scale = new Vector2(scale);
@@ -10621,16 +10672,15 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
     }
      on_mousemove(event) {
       super.on_mousemove(event);
-      var md=this.modaldata;
-      var ctx=this.modal_ctx;
-      var td=this.transdata;
-      var off=mousemove_cachering.next();
+      let md=this.modalTemp;
+      let ctx=this.modal_ctx;
+      let td=this.transdata;
+      let off=mousemove_cachering.next();
       this.reset_drawlines();
-      var l1=off.load(md.mpos).sub(td.scenter).vectorLength();
-      var l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
-      var dl=this.new_drawline(md.mpos, td.scenter);
-      ctx.view2d.unproject(dl.v1), ctx.view2d.unproject(dl.v2);
-      var angle=Math.atan2(md.start_mpos[0]-td.scenter[0], md.start_mpos[1]-td.scenter[1])-Math.atan2(md.mpos[0]-td.scenter[0], md.mpos[1]-td.scenter[1]);
+      let l1=off.load(md.mpos).sub(td.scenter).vectorLength();
+      let l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
+      let dl=this.new_drawline(md.mpos, td.scenter);
+      let angle=Math.atan2(md.start_mpos[0]-td.scenter[0], md.start_mpos[1]-td.scenter[1])-Math.atan2(md.mpos[0]-td.scenter[0], md.mpos[1]-td.scenter[1]);
       this.angle_sum+=angle;
       md.start_mpos.load(md.mpos);
       this.inputs.angle.setValue(this.angle_sum);
@@ -10638,9 +10688,9 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
       this.post_mousemove(event);
     }
      exec(ctx) {
-      var td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
-      var mat=new Matrix4();
-      var cent=td.center;
+      let td=this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
+      let mat=new Matrix4();
+      let cent=td.center;
       mat.makeIdentity();
       mat.translate(cent[0], cent[1], 0);
       mat.rotate(this.inputs.angle.data, 0, 0, 1);
@@ -10662,7 +10712,7 @@ es6_module_define('transform', ["../../util/mathlib.js", "./transform_spline.js"
 }, '/dev/fairmotion/src/editors/viewport/transform.js');
 
 
-es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/multires_transdata.js", "../../wasm/native_api.js", "../../util/mathlib.js", "./transdata.js", "../../core/toolprops.js", "./selectmode.js", "./transform.js", "../dopesheet/dopesheet_transdata.js", "../events.js", "../../curve/spline_types.js"], function _transform_ops_module(_es6_module) {
+es6_module_define('transform_ops', ["../events.js", "../../curve/spline_types.js", "./multires/multires_transdata.js", "../../core/toolops_api.js", "./transdata.js", "./selectmode.js", "./transform.js", "../dopesheet/dopesheet_transdata.js", "../../wasm/native_api.js", "../../core/toolprops.js", "../../util/mathlib.js"], function _transform_ops_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var TransformOp=es6_import_item(_es6_module, './transform.js', 'TransformOp');
   var ScaleOp=es6_import_item(_es6_module, './transform.js', 'ScaleOp');
@@ -10771,6 +10821,9 @@ es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/mul
       set_handles();
       widget.co = new Vector2(cent);
       widget.on_tick = function (ctx) {
+        if (ctx.state.modalstate!==ModalStates.TRANSFORMING) {
+            return ;
+        }
         let totsel=WidgetResizeOp._get_bounds(minmax, spline, ctx);
         let update=false;
         if (totsel<2) {
@@ -10781,12 +10834,13 @@ es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/mul
           update = this.hidden;
           this.unhide();
         }
+        this.checkDagLink(ctx);
         let cx=(minmax.min[0]+minmax.max[0])*0.5;
         let cy=(minmax.min[1]+minmax.max[1])*0.5;
         let w2=(minmax.max[0]-minmax.min[0])*0.5;
         let h2=(minmax.max[1]-minmax.min[1])*0.5;
-        update = update||cx!=this.co[0]||cy!=this.co[1];
-        update = update||w2!=w||h2!=h;
+        update = update||cx!==this.co[0]||cy!==this.co[1];
+        update = update||w2!==w||h2!==h;
         if (update) {
             w = w2, h = h2;
             this.co[0] = cx;
@@ -10898,7 +10952,7 @@ es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/mul
       let w=(minmax.max[0]-minmax.min[0])*0.5;
       let h=(minmax.max[1]-minmax.min[1])*0.5;
       let len=9;
-      if (w==0&h==0) {
+      if (w===0&h===0) {
           return ;
       }
       let r=Math.sqrt(w*w+h*h)*Math.sqrt(2)*0.5;
@@ -10919,8 +10973,8 @@ es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/mul
         let cy=(minmax.min[1]+minmax.max[1])*0.5;
         let w2=(minmax.max[0]-minmax.min[0])*0.5;
         let h2=(minmax.max[1]-minmax.min[1])*0.5;
-        update = update||cx!=this.co[0]||cy!=this.co[1];
-        update = update||w2!=w||h2!=h;
+        update = update||cx!==this.co[0]||cy!==this.co[1];
+        update = update||w2!==w||h2!==h;
         if (update) {
             this.co[0] = cx;
             this.co[1] = cy;
@@ -10953,7 +11007,7 @@ es6_module_define('transform_ops', ["../../core/toolops_api.js", "./multires/mul
         let toolop=new ScaleOp(mpos, view2d.selectmode);
         let co=new Vector3(widget.co);
         if (!e.shiftKey) {
-            co[1]+=id=='b' ? h : -h;
+            co[1]+=id==='b' ? h : -h;
         }
         toolop.inputs.use_pivot.setValue(true);
         toolop.inputs.pivot.setValue(co);
@@ -10989,110 +11043,4 @@ es6_module_define('transform_query', ["./transform_object.js", "./selectmode.js"
   }
   getTransDataType = _es6_module.add_export('getTransDataType', getTransDataType);
 }, '/dev/fairmotion/src/editors/viewport/transform_query.js');
-
-
-es6_module_define('transform_object', ["../../scene/sceneobject.js", "./selectmode.js", "./transform_spline.js", "./transdata.js", "../../path.ux/scripts/util/vectormath.js"], function _transform_object_module(_es6_module) {
-  var TransDataType=es6_import_item(_es6_module, './transdata.js', 'TransDataType');
-  var TransData=es6_import_item(_es6_module, './transdata.js', 'TransData');
-  var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
-  var TransDataItem=es6_import_item(_es6_module, './transdata.js', 'TransDataItem');
-  var TransSplineVert=es6_import_item(_es6_module, './transform_spline.js', 'TransSplineVert');
-  var UpdateFlags=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'UpdateFlags');
-  es6_import(_es6_module, '../../path.ux/scripts/util/vectormath.js');
-  let iter_cachering=new cachering(() =>    {
-    let ret=new TransDataItem();
-    ret.start_data = new Matrix4();
-    return ret;
-  }, 512);
-  class TransSceneObject extends TransDataType {
-    static  iter_data(ctx, td) {
-      return (function* () {
-        let scene=ctx.scene;
-        for (let ob in scene.objects.selected_editable) {
-            let ti=iter_cachering.next();
-            ob.recalcMatrix();
-            ti.type = TransSceneObject;
-            ti.data = ob;
-            ti.start_data.load(ob.matrix);
-            yield ti;
-        }
-      })();
-    }
-    static  getDataPath(ctx, td, ti) {
-      return `scene.objects[${ti.data.id}]`;
-    }
-    static  gen_data(ctx, td, data) {
-      let scene=ctx.scene;
-      for (let ob in scene.objects.selected_editable) {
-          let ti=new TransDataItem();
-          ob.recalcMatrix();
-          ti.type = TransSceneObject;
-          ti.data = ob;
-          ti.start_data = new Matrix4(ob.matrix);
-          data.push(ti);
-      }
-    }
-    static  calc_prop_distances(ctx, td, data) {
-
-    }
-    static  update(ctx, td) {
-      for (let ti of td.data) {
-          if (ti.type===TransSceneObject) {
-              ti.data.update(UpdateFlags.TRANSFORM);
-          }
-      }
-      window.redraw_viewport();
-    }
-    static  undo(ctx, undo_obj) {
-      let scene=ctx.scene;
-      for (let id in undo_obj.object) {
-          let ob=scene.get(id);
-          let ud=undo_obj.object[id];
-          ob.loc.load(ud.loc);
-          ob.scale.load(ud.scale);
-          ob.rot = ud.rot;
-          ob.matrix.load(ud.matrix);
-          ob.update();
-          ob.recalcAABB();
-      }
-      window.redraw_viewport();
-    }
-    static  undo_pre(ctx, td, undo_obj) {
-      let ud=undo_obj["object"] = {};
-      let scene=ctx.scene;
-      for (let ob in scene.objects.selected_editable) {
-          ud[ob.id] = {matrix: new Matrix4(ob.matrix), 
-       loc: new Vector2(ob.loc), 
-       scale: new Vector2(ob.scale), 
-       rot: ob.rot};
-      }
-    }
-    static  apply(ctx, td, item, mat, w) {
-      let rot=new Vector3(), loc=new Vector3(), scale=new Vector3();
-      for (let ti of td.data) {
-          if (ti.type!==TransSceneObject) {
-              continue;
-          }
-          let ob=ti.data;
-          let mat=ob.matrix;
-          mat.load(ti.start_data).multiply(mat);
-          if (mat.decompose(loc, rot, scale)) {
-              ob.loc.load(loc);
-              ob.scale.load(scale);
-              ob.rot = rot[2];
-          }
-      }
-    }
-    static  calc_draw_aabb(ctx, td, minmax) {
-
-    }
-    static  aabb(ctx, td, item, minmax, selected_only) {
-
-    }
-  }
-  _ESClass.register(TransSceneObject);
-  _es6_module.add_class(TransSceneObject);
-  TransSceneObject = _es6_module.add_export('TransSceneObject', TransSceneObject);
-  TransSceneObject.selectmode = SelMask.OBJECT;
-}, '/dev/fairmotion/src/editors/viewport/transform_object.js');
 

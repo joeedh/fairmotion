@@ -1806,7 +1806,7 @@ AppSettings {
 }, '/dev/fairmotion/src/core/UserSettings.js');
 
 
-es6_module_define('context', ["../editors/console/console.js", "../editors/curve/CurveEditor.js", "../editors/viewport/view2d.js", "../scene/scene.js", "../editors/editor_base.js", "../editors/settings/SettingsEditor.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/pathux.js", "./frameset.js", "./data_api/data_api.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/material/MaterialEditor.js", "./lib_api.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/dopesheet/DopeSheetEditor.js", "../curve/spline.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../editors/menubar/MenuBar.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/ops/ops_editor.js", "../editors/settings/SettingsEditor.js", "./data_api/data_api.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/console/console.js", "../editors/material/MaterialEditor.js", "../editors/editor_base.js", "../editors/viewport/view2d.js", "../curve/spline.js", "./lib_api.js", "../path.ux/scripts/pathux.js", "./frameset.js", "../scene/scene.js", "../path.ux/scripts/screen/FrameManager_ops.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
   var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
@@ -1933,6 +1933,11 @@ es6_module_define('context', ["../editors/console/console.js", "../editors/curve
   _es6_module.add_class(ViewContextOverlay);
   ViewContextOverlay = _es6_module.add_export('ViewContextOverlay', ViewContextOverlay);
   class BaseContext extends Context {
+    
+    
+    
+    
+    
      constructor(state=g_app_state) {
       super(state);
       this.reset(state);
@@ -1998,9 +2003,6 @@ es6_module_define('context', ["../editors/console/console.js", "../editors/curve
   _es6_module.add_class(BaseContext);
   BaseContext = _es6_module.add_export('BaseContext', BaseContext);
   class FullContext extends BaseContext {
-    
-    
-    
     
     
      constructor(state=g_app_state) {
@@ -2388,7 +2390,7 @@ es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./const.js",
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["../editors/ops/ops_editor.js", "./context.js", "./lib_utils.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/all.js", "./toolstack.js", "../scene/scene.js", "../editors/console/console.js", "../editors/menubar/MenuBar.js", "./startup/startup_file_example.js", "./startup/startup_file.js", "./data_api/data_api_pathux.js", "../editors/viewport/view2d_ops.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../path.ux/scripts/core/ui_base.js", "../editors/curve/CurveEditor.js", "./jobs.js", "../../platforms/platform.js", "./const.js", "../path.ux/scripts/util/util.js", "./lib_api.js", "../config/config.js", "./notifications.js", "../curve/spline_base.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/config/const.js", "./toolops_api.js", "../editors/dopesheet/DopeSheetEditor.js", "./data_api/data_api_new.js", "../util/strutils.js", "./UserSettings.js", "./raster.js", "./ajax.js", "./fileapi/fileapi.js", "../editors/editor_base.js", "./toolprops.js", "./data_api/data_api.js", "./struct.js", "./frameset.js", "../editors/viewport/view2d.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../path.ux/scripts/screen/ScreenArea.js", "../editors/theme.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./startup/startup_file_example.js", "../editors/viewport/view2d_ops.js", "../path.ux/scripts/screen/FrameManager.js", "./data_api/data_api_pathux.js", "./lib_utils.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../editors/editor_base.js", "../editors/curve/CurveEditor.js", "./startup/startup_file.js", "../../platforms/platform.js", "./toolops_api.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../scene/scene.js", "../editors/material/MaterialEditor.js", "./frameset.js", "./data_api/data_api_new.js", "./raster.js", "../editors/ops/ops_editor.js", "./lib_api.js", "../editors/console/console.js", "./context.js", "../editors/viewport/view2d.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./toolstack.js", "../editors/theme.js", "./data_api/data_api.js", "../path.ux/scripts/screen/ScreenArea.js", "./ajax.js", "./struct.js", "../path.ux/scripts/util/util.js", "../editors/all.js", "../util/strutils.js", "../config/config.js", "../path.ux/scripts/config/const.js", "./fileapi/fileapi.js", "./UserSettings.js", "./toolprops.js", "../editors/menubar/MenuBar.js", "./jobs.js", "./notifications.js", "../path.ux/scripts/core/ui_base.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2490,6 +2492,7 @@ es6_module_define('AppState', ["../editors/ops/ops_editor.js", "./context.js", "
     g_app_state.screen = screen;
     g_app_state.eventhandler = screen;
     app.appendChild(screen);
+    screen.listen();
   }
   gen_screen = _es6_module.add_export('gen_screen', gen_screen);
   es6_import(_es6_module, './startup/startup_file_example.js');
@@ -2934,6 +2937,9 @@ es6_module_define('AppState', ["../editors/ops/ops_editor.js", "./context.js", "
       this.screen = screen;
       this.eventhandler = screen;
       this.active_view2d = view2d;
+      if (!screen.listening) {
+          screen.listen();
+      }
       this.toolstack = toolstack;
       this.screen.ctx = this.ctx = new FullContext();
       if (the_global_dag!==undefined)
@@ -3432,6 +3438,9 @@ es6_module_define('AppState', ["../editors/ops/ops_editor.js", "./context.js", "
         }
         this2.screen = screen;
         resetAreaStacks();
+        if (!screen.listening) {
+            screen.listen();
+        }
         this2.size = size;
         for (let sa of screen.sareas) {
             if (__instance_of(sa.area, View2DHandler)) {

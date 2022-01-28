@@ -3113,7 +3113,7 @@ es6_module_define('pentool', ["../transform_ops.js", "../../../core/context.js",
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
 
 
-es6_module_define('splinetool', ["../transform_ops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/util/util.js", "../view2d_editor.js", "./toolmode.js", "../spline_selectops.js", "../../../curve/spline_types.js", "../../../path.ux/scripts/core/ui_base.js", "../../../core/context.js", "../spline_createops.js", "../selectmode.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/pathux.js", "../view2d_ops.js", "../transform.js", "../spline_editops.js", "../../events.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../curve/spline_types.js", "../spline_editops.js", "../spline_createops.js", "../spline_selectops.js", "../transform_ops.js", "../selectmode.js", "../../../curve/spline_draw.js", "../../../core/toolops_api.js", "../transform.js", "../../../path.ux/scripts/util/util.js", "../view2d_ops.js", "../view2d_editor.js", "./toolmode.js", "../../../path.ux/scripts/pathux.js", "../../../path.ux/scripts/core/ui_base.js", "../../../core/context.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -3122,13 +3122,8 @@ es6_module_define('splinetool', ["../transform_ops.js", "../../../core/toolops_a
   var DeleteSegmentOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteSegmentOp');
   var WidgetResizeOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetResizeOp');
   var WidgetRotateOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetRotateOp');
-  var KeyMap=es6_import_item(_es6_module, '../../events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, '../../events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, '../../events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, '../../events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, '../../events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, '../../events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, '../../events.js', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'KeyMap');
+  var HotKey=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'HotKey');
   var SelectLinkedOp=es6_import_item(_es6_module, '../spline_selectops.js', 'SelectLinkedOp');
   var SelectOneOp=es6_import_item(_es6_module, '../spline_selectops.js', 'SelectOneOp');
   var SelOpModes=es6_import_item(_es6_module, '../spline_selectops.js', 'SelOpModes');
@@ -3229,62 +3224,37 @@ es6_module_define('splinetool', ["../transform_ops.js", "../../../core/toolops_a
      nodeFlag: 0}
     }
      defineKeyMap() {
-      let k=this.keymap = new KeyMap("view2d:splinetool");
-      k.add_tool(new HotKey("PageUp", [], "Send Face Up"), "spline.change_face_z(offset=1, selmode='selectmode')");
-      k.add_tool(new HotKey("PageDown", [], "Send Face Down"), "spline.change_face_z(offset=-1, selmode='selectmode')");
-      k.add_tool(new HotKey("G", [], "Translate"), "spline.translate(datamode='selectmode')");
-      k.add_tool(new HotKey("S", [], "Scale"), "spline.scale(datamode='selectmode')");
-      k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"), "spline.shift_time()");
-      k.add_tool(new HotKey("R", [], "Rotate"), "spline.rotate(datamode='selectmode')");
-      k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all(mode='SELECT')");
-      k.add_tool(new HotKey("A", ["ALT"], "Deselect All"), "spline.toggle_select_all(mode='DESELECT')");
-      k.add_tool(new HotKey("H", [], "Hide Selection"), "spline.hide(selmode=selectmode)");
-      k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"), "spline.unhide(selmode=selectmode)");
-      k.add_tool(new HotKey("G", ["CTRL"], "Ghost Selection"), "spline.hide(selmode=selectmode, ghost=1)");
-      k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"), "spline.unhide(selmode=selectmode, ghost=1)");
-      k.add_tool(new HotKey("L", [], "Select Linked"), "spline.select_linked_pick(mode=SELECT)");
-      k.add_tool(new HotKey("L", ["SHIFT"], "Deselect Linked"), "spline.select_linked_pick(mode=DESELECT)");
-      k.add_tool(new HotKey("B", [], "Toggle Break-Tangents"), "spline.toggle_break_tangents()");
-      k.add_tool(new HotKey("B", ["SHIFT"], "Toggle Break-Curvature"), "spline.toggle_break_curvature()");
       var this2=this;
       function del_tool(ctx) {
         console.log("delete");
         if (this2.selectmode&SelMask.SEGMENT) {
             console.log("kill segments");
-            var op=new DeleteSegmentOp();
+            let op=new DeleteSegmentOp();
             g_app_state.toolstack.exec_tool(op);
         }
         else 
           if (this2.selectmode&SelMask.FACE) {
             console.log("kill faces");
-            var op=new DeleteFaceOp();
+            let op=new DeleteFaceOp();
             g_app_state.toolstack.exec_tool(op);
         }
         else {
           console.log("kill verts");
-          var op=new DeleteVertOp();
+          let op=new DeleteVertOp();
           g_app_state.toolstack.exec_tool(op);
         }
       }
-      k.add(new HotKey("X", [], "Delete"), new FuncKeyHandler(del_tool));
-      k.add(new HotKey("Delete", [], "Delete"), new FuncKeyHandler(del_tool));
-      k.add(new HotKey("Backspace", [], "Delete"), new FuncKeyHandler(del_tool));
-      k.add_tool(new HotKey("D", [], "Dissolve Vertices"), "spline.dissolve_verts()");
-      k.add_tool(new HotKey("D", ["SHIFT"], "Duplicate"), "spline.duplicate_transform()");
-      k.add_tool(new HotKey("F", [], "Create Face/Edge"), "spline.make_edge_face()");
-      k.add_tool(new HotKey("E", [], "Split Segments"), "spline.split_edges()");
-      k.add_tool(new HotKey("M", [], "Mirror Verts"), "spline.mirror_verts()");
-      k.add_tool(new HotKey("C", [], "Circle Select"), "view2d.circle_select()");
-      k.add(new HotKey("Z", [], "Toggle Only Render"), new FuncKeyHandler(function (ctx) {
-        console.warn("ZKEY");
+      this.keymap = new KeyMap([new HotKey("PageUp", [], "spline.change_face_z(offset=1, selmode='selectmode')|Move Up"), new HotKey("PageDown", [], "spline.change_face_z(offset=-1, selmode='selectmode')|Move Down"), new HotKey("G", [], "spline.translate(datamode='selectmode')"), new HotKey("S", [], "spline.scale(datamode='selectmode')"), new HotKey("R", [], "spline.rotate(datamode='selectmode')"), new HotKey("S", ["SHIFT"], "spline.shift_time()"), new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"), new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"), new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"), new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"), new HotKey("G", [], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"), new HotKey("G", [], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"), new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"), new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"), new HotKey("X", [], del_tool, "Delete"), new HotKey("Delete", [], del_tool, "Delete"), new HotKey("Backspace", [], del_tool, "Delete"), new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"), new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"), new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"), new HotKey("E", [], "spline.split_edges()|Split Segments"), new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"), new HotKey("C", [], "view2d.circle_select()|Circle Select"), new HotKey("Z", [], function (ctx) {
+        console.warn("ZKEY", arguments, this);
         ctx.view2d.only_render^=1;
         window.redraw_viewport();
-      }));
-      k.add(new HotKey("W", [], "Tools Menu"), new FuncKeyHandler(function (ctx) {
+      }, "Toggle Only Render"), new HotKey("W", [], function (ctx) {
         var mpos=ctx.keymap_mpos;
         mpos = ctx.screen.mpos;
         ctx.view2d.tools_menu(ctx, mpos);
-      }));
+      }, "Tools Menu")]);
+      return ;
+      let k=this.keymap = new KeyMap("view2d:splinetool");
     }
      tools_menu(ctx, mpos, view2d) {
       let ops=["spline.flip_segments()", "spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
@@ -3452,7 +3422,6 @@ es6_module_define('splinetool', ["../transform_ops.js", "../../../core/toolops_a
       }
     }
      _do_touch_undo(event) {
-      console.log(event.touches&&event.touches.length>1, this._cancel_on_touch, "<---");
       if (event.touches&&event.touches.length>1&&this._cancel_on_touch) {
           console.log("touch undo!");
           this.ctx.toolstack.undo();

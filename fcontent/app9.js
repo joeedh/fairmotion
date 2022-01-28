@@ -1,4 +1,110 @@
 
+es6_module_define('transform_object', ["../../scene/sceneobject.js", "./selectmode.js", "./transform_spline.js", "./transdata.js", "../../path.ux/scripts/util/vectormath.js"], function _transform_object_module(_es6_module) {
+  var TransDataType=es6_import_item(_es6_module, './transdata.js', 'TransDataType');
+  var TransData=es6_import_item(_es6_module, './transdata.js', 'TransData');
+  var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
+  var TransDataItem=es6_import_item(_es6_module, './transdata.js', 'TransDataItem');
+  var TransSplineVert=es6_import_item(_es6_module, './transform_spline.js', 'TransSplineVert');
+  var UpdateFlags=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'UpdateFlags');
+  es6_import(_es6_module, '../../path.ux/scripts/util/vectormath.js');
+  let iter_cachering=new cachering(() =>    {
+    let ret=new TransDataItem();
+    ret.start_data = new Matrix4();
+    return ret;
+  }, 512);
+  class TransSceneObject extends TransDataType {
+    static  iter_data(ctx, td) {
+      return (function* () {
+        let scene=ctx.scene;
+        for (let ob in scene.objects.selected_editable) {
+            let ti=iter_cachering.next();
+            ob.recalcMatrix();
+            ti.type = TransSceneObject;
+            ti.data = ob;
+            ti.start_data.load(ob.matrix);
+            yield ti;
+        }
+      })();
+    }
+    static  getDataPath(ctx, td, ti) {
+      return `scene.objects[${ti.data.id}]`;
+    }
+    static  gen_data(ctx, td, data) {
+      let scene=ctx.scene;
+      for (let ob in scene.objects.selected_editable) {
+          let ti=new TransDataItem();
+          ob.recalcMatrix();
+          ti.type = TransSceneObject;
+          ti.data = ob;
+          ti.start_data = new Matrix4(ob.matrix);
+          data.push(ti);
+      }
+    }
+    static  calc_prop_distances(ctx, td, data) {
+
+    }
+    static  update(ctx, td) {
+      for (let ti of td.data) {
+          if (ti.type===TransSceneObject) {
+              ti.data.update(UpdateFlags.TRANSFORM);
+          }
+      }
+      window.redraw_viewport();
+    }
+    static  undo(ctx, undo_obj) {
+      let scene=ctx.scene;
+      for (let id in undo_obj.object) {
+          let ob=scene.get(id);
+          let ud=undo_obj.object[id];
+          ob.loc.load(ud.loc);
+          ob.scale.load(ud.scale);
+          ob.rot = ud.rot;
+          ob.matrix.load(ud.matrix);
+          ob.update();
+          ob.recalcAABB();
+      }
+      window.redraw_viewport();
+    }
+    static  undo_pre(ctx, td, undo_obj) {
+      let ud=undo_obj["object"] = {};
+      let scene=ctx.scene;
+      for (let ob in scene.objects.selected_editable) {
+          ud[ob.id] = {matrix: new Matrix4(ob.matrix), 
+       loc: new Vector2(ob.loc), 
+       scale: new Vector2(ob.scale), 
+       rot: ob.rot};
+      }
+    }
+    static  apply(ctx, td, item, mat, w) {
+      let rot=new Vector3(), loc=new Vector3(), scale=new Vector3();
+      for (let ti of td.data) {
+          if (ti.type!==TransSceneObject) {
+              continue;
+          }
+          let ob=ti.data;
+          let mat=ob.matrix;
+          mat.load(ti.start_data).multiply(mat);
+          if (mat.decompose(loc, rot, scale)) {
+              ob.loc.load(loc);
+              ob.scale.load(scale);
+              ob.rot = rot[2];
+          }
+      }
+    }
+    static  calc_draw_aabb(ctx, td, minmax) {
+
+    }
+    static  aabb(ctx, td, item, minmax, selected_only) {
+
+    }
+  }
+  _ESClass.register(TransSceneObject);
+  _es6_module.add_class(TransSceneObject);
+  TransSceneObject = _es6_module.add_export('TransSceneObject', TransSceneObject);
+  TransSceneObject.selectmode = SelMask.OBJECT;
+}, '/dev/fairmotion/src/editors/viewport/transform_object.js');
+
+
 es6_module_define('transform_spline', ["../events.js", "./view2d_base.js", "../../curve/spline_types.js", "./transdata.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js", "./selectmode.js", "../../util/mathlib.js", "../../wasm/native_api.js"], function _transform_spline_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
@@ -397,7 +503,7 @@ es6_module_define('transform_spline', ["../events.js", "./view2d_base.js", "../.
 }, '/dev/fairmotion/src/editors/viewport/transform_spline.js');
 
 
-es6_module_define('spline_selectops', ["../../core/toolprops.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../curve/spline_draw.js", "../../curve/spline_types.js"], function _spline_selectops_module(_es6_module) {
+es6_module_define('spline_selectops', ["../../core/toolprops.js", "../../core/animdata.js", "../../core/toolops_api.js", "../../curve/spline_draw.js", "../../curve/spline_types.js"], function _spline_selectops_module(_es6_module) {
   "use strict";
   let PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
@@ -647,10 +753,7 @@ es6_module_define('spline_selectops', ["../../core/toolprops.js", "../../core/to
      inputs: ToolOp.inherit(), 
      is_modal: true}
     }
-     start_modal(ctx) {
-      return this.modal_start(ctx);
-    }
-     modal_start(ctx) {
+     modalStart(ctx) {
       console.log("Select linked pick", ctx);
       this.modalEnd();
       if (!ctx.view2d||!ctx.spline) {
@@ -4490,7 +4593,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "./selectmode.js", "
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
 
 
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/widgets/ui_table.js", "../../core/struct.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../../path.ux/scripts/screen/ScreenArea.js", "../viewport/spline_layerops.js", "../../core/toolprops.js", "../viewport/spline_editops.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/widgets/ui_table.js", "../../core/toolprops.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../editor_base.js", "../viewport/spline_layerops.js", "../viewport/spline_editops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js", "../../core/struct.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -4828,8 +4931,9 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/widgets/ui_table.js"
       var ctx=this.ctx;
       let panel=tabs.tab("Fill");
       let panel2=panel.panel("Fill Color");
-      panel2.prop("spline.active_face.mat.fillcolor", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
-      panel.prop("spline.active_face.mat.blur", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
+      let set_path="spline.editable_faces[{$.flag & 1}]";
+      panel2.prop("spline.active_face.mat.fillcolor", undefined, set_path+".mat.fillcolor");
+      panel.prop("spline.active_face.mat.blur", undefined, set_path+".mat.blur");
       return panel;
     }
      strokePanel(tabs) {
@@ -4872,7 +4976,7 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/widgets/ui_table.js"
       panel.prop("spline.active_vertex.width", undefined, set_prefix+".width");
       panel.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
       panel = tab.panel("Animation Settings");
-      set_prefix = "frameset.keypaths{$.animflag & 8}";
+      set_prefix = "frameset.keypaths[{$.animflag & 8}]";
       panel.prop("frameset.active_keypath.animflag[STEP_FUNC]", undefined, set_prefix+".animflag[STEP_FUNC]");
       return panel;
     }
@@ -8025,21 +8129,17 @@ es6_module_define('app_ops', ["../util/strutils.js", "../../platforms/platform.j
 }, '/dev/fairmotion/src/editors/app_ops.js');
 
 
-es6_module_define('editor_base', ["../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/core/ui_base.js", "../core/context.js", "../core/toolops_api.js", "../path.ux/scripts/util/util.js", "../core/struct.js", "./events.js"], function _editor_base_module(_es6_module) {
+es6_module_define('editor_base', ["../core/toolops_api.js", "../core/context.js", "../path.ux/scripts/screen/ScreenArea.js", "../core/struct.js", "../path.ux/scripts/pathux.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/util/util.js"], function _editor_base_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var ui_base=es6_import(_es6_module, '../path.ux/scripts/core/ui_base.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
-  var KeyMap=es6_import_item(_es6_module, './events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, './events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, './events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, './events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, './events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, './events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, './events.js', 'EventHandler');
   var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
+  var HotKey=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'HotKey');
+  var KeyMap=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'KeyMap');
+  var haveModal=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'haveModal');
   var _area_active_stacks={}
   _area_active_stacks = _es6_module.add_export('_area_active_stacks', _area_active_stacks);
   var _area_active_lasts={}
@@ -8078,7 +8178,31 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/FrameManager.js", "
     }
      define_keymap() {
       this.keymap = new KeyMap("screen");
-      var k=this.keymap;
+      class FuncKeyHandler  {
+         constructor(f) {
+          this.f = f;
+        }
+      }
+      _ESClass.register(FuncKeyHandler);
+      _es6_module.add_class(FuncKeyHandler);
+      let k={add_tool: (hotkey, tool) =>          {
+          tool = typeof tool==="object"&&__instance_of(tool, FuncKeyHandler) ? tool.f : tool;
+          hotkey.uiname = ""+hotkey.action;
+          hotkey.action = tool;
+          this.keymap.add(hotkey);
+        }, 
+     add: (hotkey, action) =>          {
+          action = typeof action==="object"&&__instance_of(action, FuncKeyHandler) ? action.f : action;
+          hotkey.uiname = ""+hotkey.action;
+          hotkey.action = action;
+          this.keymap.add(hotkey);
+        }, 
+     add_func: (hotkey, action) =>          {
+          action = typeof action==="object"&&__instance_of(action, FuncKeyHandler) ? action.f : action;
+          hotkey.uiname = ""+hotkey.action;
+          hotkey.action = action;
+          this.keymap.add(hotkey);
+        }};
       k.add_tool(new HotKey("O", ["CTRL"], "Open File"), "appstate.open()");
       k.add_tool(new HotKey("O", ["CTRL", "SHIFT"], "Open Recent"), "appstate.open_recent()");
       k.add_tool(new HotKey("S", ["CTRL", "ALT"], "Save File"), "appstate.save_as()");
@@ -8123,33 +8247,6 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/FrameManager.js", "
           }
           yield km;
       }
-    }
-     on_keyup(e) {
-      if (g_app_state.eventhandler!==this)
-        return g_app_state.eventhandler.on_keyup(e);
-    }
-     on_keydown(e) {
-      window._handle_key_exclude(e);
-      if (g_app_state.eventhandler!==this)
-        return g_app_state.eventhandler.on_keydown(e);
-      if (this.keymap.process_event(this.ctx, e)) {
-          return ;
-      }
-      let area=this.pickElement(this.mpos[0], this.mpos[1], undefined, undefined, Area);
-      if (area===undefined) {
-          return ;
-      }
-      area.push_ctx_active();
-      var ret=false;
-      try {
-        ret = area.keymap.process_event(this.ctx, e);
-      }
-      catch (error) {
-          print_stack(error);
-          console.log("Error executing hotkey");
-      }
-      area.pop_ctx_active();
-      return ret;
     }
      stopPlayback() {
       if (g_app_state.modalstate===ModalStates.PLAYING) {
@@ -8315,6 +8412,9 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/FrameManager.js", "
     }
     static  wrapContextEvent(f) {
       return function (e) {
+        if (haveModal()) {
+            return ;
+        }
         this.push_ctx_active();
         try {
           f(e);
@@ -8365,15 +8465,15 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   "use strict";
   var dist_to_line_v2=es6_import_item(_es6_module, '../../util/mathlib.js', 'dist_to_line_v2');
   var config=es6_import(_es6_module, '../../config/config.js');
-  var ManipFlags={}
+  let ManipFlags={}
   ManipFlags = _es6_module.add_export('ManipFlags', ManipFlags);
-  var HandleShapes={ARROW: 0, 
+  let HandleShapes={ARROW: 0, 
    HAMMER: 1, 
    ROTCIRCLE: 2, 
    SIMPLE_CIRCLE: 3, 
    OUTLINE: 4}
   HandleShapes = _es6_module.add_export('HandleShapes', HandleShapes);
-  var HandleColors={DEFAULT: [0, 0, 0, 1], 
+  let HandleColors={DEFAULT: [0, 0, 0, 1], 
    HIGHLIGHT: [0.4, 0.4, 0.4, 1], 
    SELECT: [1.0, 0.7, 0.3, 1]}
   HandleColors = _es6_module.add_export('HandleColors', HandleColors);
@@ -8410,8 +8510,8 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   _es6_module.add_class(HandleBase);
   HandleBase = _es6_module.add_export('HandleBase', HandleBase);
   HandleBase;
-  var $min_qMmK_update;
-  var $max_CUdb_update;
+  var $min_yuo8_update;
+  var $max_Zkem_update;
   class ManipHandle extends HandleBase {
     
     
@@ -8428,7 +8528,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
       this.parent = undefined;
       this.linewidth = 1.5;
-      if (this.color.length==3)
+      if (this.color.length===3)
         this.color.push(1.0);
       this._min = new Vector2(v1);
       this._max = new Vector2(v2);
@@ -8453,28 +8553,28 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       this._min[1] = this.v1[1]+this.parent.co[1];
       this._max[0] = this.v2[0]+this.parent.co[0];
       this._max[1] = this.v2[1]+this.parent.co[1];
-      var minx=Math.min(this._min[0], this._max[0]);
-      var miny=Math.min(this._min[1], this._max[1]);
-      var maxx=Math.max(this._min[0], this._max[0]);
-      var maxy=Math.max(this._min[1], this._max[1]);
+      let minx=Math.min(this._min[0], this._max[0]);
+      let miny=Math.min(this._min[1], this._max[1]);
+      let maxx=Math.max(this._min[0], this._max[0]);
+      let maxy=Math.max(this._min[1], this._max[1]);
       this._min[0] = minx;
       this._min[1] = miny;
       this._max[0] = maxx;
       this._max[1] = maxy;
     }
      update() {
-      var p=this._redraw_pad;
-      $min_qMmK_update[0] = this._min[0]-p;
-      $min_qMmK_update[1] = this._min[1]-p;
-      $max_CUdb_update[0] = this._max[0]+p;
-      $max_CUdb_update[1] = this._max[1]+p;
-      window.redraw_viewport($min_qMmK_update, $max_CUdb_update);
+      let p=this._redraw_pad;
+      $min_yuo8_update[0] = this._min[0]-p;
+      $min_yuo8_update[1] = this._min[1]-p;
+      $max_Zkem_update[0] = this._max[0]+p;
+      $max_Zkem_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_yuo8_update, $max_Zkem_update);
       this.update_aabb();
-      $min_qMmK_update[0] = this._min[0]-p;
-      $min_qMmK_update[1] = this._min[1]-p;
-      $max_CUdb_update[0] = this._max[0]+p;
-      $max_CUdb_update[1] = this._max[1]+p;
-      window.redraw_viewport($min_qMmK_update, $max_CUdb_update);
+      $min_yuo8_update[0] = this._min[0]-p;
+      $min_yuo8_update[1] = this._min[1]-p;
+      $max_Zkem_update[0] = this._max[0]+p;
+      $max_Zkem_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_yuo8_update, $max_Zkem_update);
     }
      [Symbol.keystr]() {
       return "MH"+this._hid.toString;
@@ -8490,12 +8590,12 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       let style="rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
       g.strokeStyle = g.fillStyle = style;
       g.lineWidth = this.linewidth;
-      if (this.shape==HandleShapes.ARROW) {
+      if (this.shape===HandleShapes.ARROW) {
           g.beginPath();
           let dx=this.v2[0]-this.v1[0], dy=this.v2[1]-this.v1[1];
           let dx2=this.v1[1]-this.v2[1], dy2=this.v2[0]-this.v1[0];
           let l=Math.sqrt(dx2*dx2+dy2*dy2);
-          if (l==0.0) {
+          if (l===0.0) {
               g.beginPath();
               g.rect(this.v1[0]-5, this.v1[1]-5, 10, 10);
               g.fill();
@@ -8518,7 +8618,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
           g.fill();
       }
       else 
-        if (this.shape==HandleShapes.OUTLINE) {
+        if (this.shape===HandleShapes.OUTLINE) {
           g.beginPath();
           g.moveTo(this.v1[0], this.v1[1]);
           g.lineTo(this.v1[0], this.v2[1]);
@@ -8535,13 +8635,13 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       }
     }
   }
-  var $min_qMmK_update=new Vector2();
-  var $max_CUdb_update=new Vector2();
+  var $min_yuo8_update=new Vector2();
+  var $max_Zkem_update=new Vector2();
   _ESClass.register(ManipHandle);
   _es6_module.add_class(ManipHandle);
   ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
-  var $min_1xA4_update;
-  var $max_6Qcc_update;
+  var $min_KVTG_update;
+  var $max_WMi4_update;
   class ManipCircle extends HandleBase {
     
     
@@ -8558,7 +8658,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
       this.parent = undefined;
       this.linewidth = 1.5;
-      if (this.color.length==3)
+      if (this.color.length===3)
         this.color.push(1.0);
       this._min = new Vector2();
       this._max = new Vector2();
@@ -8579,7 +8679,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       let dx=this.p[0]-p[0];
       let dy=this.p[1]-p[1];
       let dis=dx*dx+dy*dy;
-      dis = dis!=0.0 ? Math.sqrt(dis) : 0.0;
+      dis = dis!==0.0 ? Math.sqrt(dis) : 0.0;
       return Math.abs(dis-this.r);
     }
      update_aabb() {
@@ -8589,18 +8689,18 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       this._max[1] = this.parent.co[1]+this.p[1]+Math.sqrt(2)*this.r;
     }
      update() {
-      var p=this._redraw_pad;
-      $min_1xA4_update[0] = this._min[0]-p;
-      $min_1xA4_update[1] = this._min[1]-p;
-      $max_6Qcc_update[0] = this._max[0]+p;
-      $max_6Qcc_update[1] = this._max[1]+p;
-      window.redraw_viewport($min_1xA4_update, $max_6Qcc_update);
+      let p=this._redraw_pad;
+      $min_KVTG_update[0] = this._min[0]-p;
+      $min_KVTG_update[1] = this._min[1]-p;
+      $max_WMi4_update[0] = this._max[0]+p;
+      $max_WMi4_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_KVTG_update, $max_WMi4_update);
       this.update_aabb();
-      $min_1xA4_update[0] = this._min[0]-p;
-      $min_1xA4_update[1] = this._min[1]-p;
-      $max_6Qcc_update[0] = this._max[0]+p;
-      $max_6Qcc_update[1] = this._max[1]+p;
-      window.redraw_viewport($min_1xA4_update, $max_6Qcc_update);
+      $min_KVTG_update[0] = this._min[0]-p;
+      $min_KVTG_update[1] = this._min[1]-p;
+      $max_WMi4_update[0] = this._max[0]+p;
+      $max_WMi4_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_KVTG_update, $max_WMi4_update);
     }
      [Symbol.keystr]() {
       return "MC"+this._hid.toString;
@@ -8622,8 +8722,8 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       g.stroke();
     }
   }
-  var $min_1xA4_update=new Vector2();
-  var $max_6Qcc_update=new Vector2();
+  var $min_KVTG_update=new Vector2();
+  var $max_WMi4_update=new Vector2();
   _ESClass.register(ManipCircle);
   _es6_module.add_class(ManipCircle);
   ManipCircle = _es6_module.add_export('ManipCircle', ManipCircle);
@@ -8634,26 +8734,60 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
     
     
     
-     constructor(handles) {
+    
+     constructor(handles, ctx) {
       this._hid = _mh_idgen_2++;
       this.handles = handles.slice(0, handles.length);
       this.recalc = 1;
       this.parent = undefined;
       this.user_data = undefined;
-      for (var h of this.handles) {
+      this.dead = false;
+      this.ctx = ctx;
+      for (let h of this.handles) {
           h.parent = this;
       }
       this.handle_size = 65;
       this.co = new Vector3();
       this.hidden = false;
     }
+    static  nodedef() {
+      return {name: "manipulator", 
+     uiName: "Manipulator", 
+     inputs: {depend: undefined}, 
+     outputs: {depend: undefined}}
+    }
+     dag_exec(ctx, inputs, outputs, graph) {
+      if (this.dead||this.hidden) {
+          the_global_dag.remove(this);
+          window.redraw_viewport();
+          return ;
+      }
+      this.on_tick(ctx);
+    }
+     checkDagLink(ctx) {
+      if (!window.the_global_dag.has(this)) {
+          console.warn("MAKING DAG CONNECTION", this);
+          this._node = window.the_global_dag.direct_node(ctx, this, true);
+          window.the_global_dag.link(ctx.view2d, "onDrawPre", this, "depend");
+          window.redraw_viewport();
+      }
+    }
      hide() {
+      if (!this.hidden) {
+          window.redraw_viewport();
+      }
+      console.warn("hide!");
+      the_global_dag.remove(this);
       if (!this.hidden) {
           this.update();
       }
       this.hidden = true;
     }
      unhide() {
+      if (this.hidden) {
+          window.redraw_viewport();
+      }
+      this.checkDagLink(this.ctx);
       if (this.hidden) {
           this.hidden = false;
           this.update();
@@ -8665,27 +8799,28 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
      update() {
       if (this.hidden)
         return ;
-      for (var h of this.handles) {
+      for (let h of this.handles) {
           h.update();
       }
     }
      on_tick(ctx) {
-
+      this.checkDagLink(ctx);
     }
      [Symbol.keystr]() {
       return "MP"+this._hid.toString;
     }
      end() {
+      this.dead = true;
       this.parent.remove(this);
     }
      get_render_rects(ctx, canvas, g) {
-      var rects=[];
+      let rects=[];
       if (this.hidden) {
           return rects;
       }
-      for (var h of this.handles) {
-          var rs=h.get_render_rects(ctx, canvas, g);
-          for (var i=0; i<rs.length; i++) {
+      for (let h of this.handles) {
+          let rs=h.get_render_rects(ctx, canvas, g);
+          for (let i=0; i<rs.length; i++) {
               rs[i] = rs[i].slice(0, rs[i].length);
               rs[i][0]+=this.co[0];
               rs[i][1]+=this.co[1];
@@ -8698,8 +8833,8 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       if (this.hidden) {
           return ;
       }
-      for (var h of this.handles) {
-          var x=this.co[0], y=this.co[1];
+      for (let h of this.handles) {
+          let x=this.co[0], y=this.co[1];
           g.translate(x, y);
           h.render(canvas, g);
           g.translate(-x, -y);
@@ -8708,7 +8843,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
      outline(min, max, id, clr=[0, 0, 0, 1.0]) {
       min = new Vector2(min);
       max = new Vector2(max);
-      var h=new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
+      let h=new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
       h.transparent = true;
       h.parent = this;
       this.handles.push(h);
@@ -8717,7 +8852,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
      arrow(v1, v2, id, clr=[0, 0, 0, 1.0]) {
       v1 = new Vector2(v1);
       v2 = new Vector2(v2);
-      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      let h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
       h.parent = this;
       this.handles.push(h);
       return h;
@@ -8758,19 +8893,20 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       return false;
     }
      on_click(event, view2d) {
-      return this.active!=undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
+      return this.active!==undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
     }
   }
   _ESClass.register(Manipulator);
   _es6_module.add_class(Manipulator);
   Manipulator = _es6_module.add_export('Manipulator', Manipulator);
-  var $nil_Xt6R_get_render_rects;
+  var $nil_vs4y_get_render_rects;
   class ManipulatorManager  {
     
     
     
-     constructor(view2d) {
+     constructor(view2d, ctx) {
       this.view2d = view2d;
+      this.ctx = ctx;
       this.stack = [];
       this.active = undefined;
     }
@@ -8780,36 +8916,40 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       }
     }
      get_render_rects(ctx, canvas, g) {
-      if (this.active!=undefined) {
+      if (this.active!==undefined) {
           return this.active.get_render_rects(ctx, canvas, g);
       }
       else {
-        return $nil_Xt6R_get_render_rects;
+        return $nil_vs4y_get_render_rects;
       }
     }
      remove(mn) {
-      if (mn==this.active) {
+      mn.dead = true;
+      if (mn===this.active) {
           this.pop();
       }
       else {
         this.stack.remove(mn);
       }
+      window.redraw_viewport();
     }
      push(mn) {
+      mn.dead = false;
       mn.parent = this;
+      mn.ctx = this.ctx;
       this.stack.push(this.active);
       this.active = mn;
     }
      ensure_not_toolop(ctx, cls) {
-      if (this.active!=undefined&&this.active.toolop_class===cls) {
+      if (this.active!==undefined&&this.active.toolop_class===cls) {
           this.remove(this.active);
       }
     }
      ensure_toolop(ctx, cls) {
-      if (this.active!=undefined&&this.active.toolop_class===cls) {
+      if (this.active!==undefined&&this.active.toolop_class===cls) {
           return this.active;
       }
-      if (this.active!=undefined) {
+      if (this.active!==undefined) {
           this.remove(this.active);
       }
       this.active = cls.create_widgets(this, ctx);
@@ -8818,22 +8958,25 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       }
     }
      pop() {
-      var ret=this.active;
+      let ret=this.active;
       this.active = this.stack.pop(-1);
     }
      on_mousemove(event, view2d) {
-      return this.active!=undefined ? this.active.on_mousemove(event, view2d) : undefined;
+      return this.active!==undefined ? this.active.on_mousemove(event, view2d) : undefined;
     }
      on_click(event, view2d) {
-      return this.active!=undefined ? this.active.on_click(event, view2d) : undefined;
+      if (event.button===1||event.button===2) {
+          return ;
+      }
+      return this.active!==undefined ? this.active.on_click(event, view2d) : undefined;
     }
      active_toolop() {
-      if (this.active==undefined)
+      if (this.active===undefined)
         return undefined;
       return this.active.toolop_class;
     }
-     create(cls, do_push=true) {
-      var mn=new Manipulator([]);
+     create(cls, do_push=true, ctx=this.ctx) {
+      let mn=new Manipulator([], ctx);
       mn.parent = this;
       mn.toolop_class = cls;
       if (do_push)
@@ -8841,37 +8984,37 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
       return mn;
     }
      on_tick(ctx) {
-      if (this.active!=undefined&&this.active.on_tick!=undefined)
+      if (this.active!==undefined&&this.active.on_tick!==undefined)
         this.active.on_tick(ctx);
     }
-     circle(p, r, clr, do_push=true) {
+     circle(p, r, clr, do_push=true, ctx=this.ctx) {
       let h=new ManipCircle(p, r, id, this.view3d, clr);
-      let mn=new Manipulator([h]);
+      let mn=new Manipulator([h], ctx);
       mn.parent = this;
       if (do_push) {
           this.push(mn);
       }
       return mn;
     }
-     arrow(v1, v2, id, clr, do_push=true) {
+     arrow(v1, v2, id, clr, do_push=true, ctx=this.ctx) {
       v1 = new Vector2(v1);
       v2 = new Vector2(v2);
-      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
-      var mn=new Manipulator([h]);
+      let h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      let mn=new Manipulator([h], ctx);
       mn.parent = this;
       if (do_push)
         this.push(mn);
       return mn;
     }
   }
-  var $nil_Xt6R_get_render_rects=[];
+  var $nil_vs4y_get_render_rects=[];
   _ESClass.register(ManipulatorManager);
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
 
 
-es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmodes/pentool.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/core/ui.js", "../../core/context.js", "./selectmode.js", "./manipulator.js", "../../path.ux/scripts/screen/ScreenArea.js", "./view2d_editor.js", "../events.js", "../../core/imageblock.js", "./toolmodes/all.js", "./view2d_spline_ops.js", "../../core/toolops_api.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/struct.js", "../../path.ux/scripts/core/ui_base.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", "../editor_base.js", "../../core/imageblock.js", "./toolmodes/all.js", "../../core/eventdag.js", "../../core/struct.js", "../../path.ux/scripts/pathux.js", "./manipulator.js", "./view2d_ops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/screen/ScreenArea.js", "./selectmode.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/core/ui.js", "./view2d_spline_ops.js", "./toolmodes/pentool.js", "../../core/context.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var SessionFlags=es6_import_item(_es6_module, './view2d_editor.js', 'SessionFlags');
@@ -8879,13 +9022,6 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
   var patchMouseEvent=es6_import_item(_es6_module, '../../core/toolops_api.js', 'patchMouseEvent');
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, '../events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, '../events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, '../events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, '../events.js', 'EventHandler');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var createMenu=es6_import_item(_es6_module, '../../path.ux/scripts/widgets/ui_menu.js', 'createMenu');
@@ -8903,6 +9039,8 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
   var HandleShapes=es6_import_item(_es6_module, './manipulator.js', 'HandleShapes');
   var ManipFlags=es6_import_item(_es6_module, './manipulator.js', 'ManipFlags');
   var ManipHandle=es6_import_item(_es6_module, './manipulator.js', 'ManipHandle');
+  var KeyMap=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'KeyMap');
+  var HotKey=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'HotKey');
   var EditModes=es6_import_item(_es6_module, './view2d_editor.js', 'EditModes');
   let _ex_EditModes=es6_import_item(_es6_module, './view2d_editor.js', 'EditModes');
   _es6_module.add_export('EditModes', _ex_EditModes, true);
@@ -8920,13 +9058,14 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
     }, 20);
   }
   var PanOp=es6_import_item(_es6_module, './view2d_ops.js', 'PanOp');
+  var UIOnlyNode=es6_import_item(_es6_module, '../../core/eventdag.js', 'UIOnlyNode');
   class drawline  {
     
     
     
      constructor(co1, co2, group, color, width) {
-      this.v1 = new Vector3(co1);
-      this.v2 = new Vector3(co2);
+      this.v1 = new Vector2(co1);
+      this.v2 = new Vector2(co2);
       this.group = group;
       this.width = width;
       this.onremove = null;
@@ -8987,6 +9126,7 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       super();
       this.glPos = new Vector2();
       this.glSize = new Vector2([512, 512]);
+      this._graphNode = undefined;
       this.propradius = 35;
       this._last_toolmode = undefined;
       this._last_mpos = new Vector2();
@@ -9001,7 +9141,7 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       this.half_pix_size = false;
       this.toolmode = ToolModes.SELECT;
       this._last_dpi = undefined;
-      this.widgets = new ManipulatorManager(this);
+      this.widgets = undefined;
       this.draw_faces = true;
       this.need_data_link = false;
       this._can_select = 1;
@@ -9031,10 +9171,24 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       if (!this.ctx||!this.ctx.toolmode) {
           return ;
       }
-      this.keymap = new KeyMap("view2d");
+      this.keymap = new KeyMap();
       this.define_keymap();
       for (let map of this.ctx.toolmode.getKeyMaps()) {
-          this.keymap.concat(map);
+          for (let item in map) {
+              this.keymap.add(item);
+          }
+      }
+    }
+    static  nodedef() {
+      return {name: "view2d", 
+     uiName: "view2d", 
+     inputs: {}, 
+     outputs: {onDrawPre: undefined}}
+    }
+     dag_exec(ctx, inputs, outputs, graph) {
+      if (!this.isConnected) {
+          window.the_global_dag.remove(this);
+          return ;
       }
     }
      getKeyMaps() {
@@ -9060,7 +9214,7 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
      define_keymap() {
       var k=this.keymap;
       var this2=this;
-      k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function (ctx) {
+      k.add(new HotKey("T", [], function (ctx) {
         var s=ctx.view2d.selectmode, s2;
         let hf=s&SelMask.HANDLE;
         s2&=~SelMask.HANDLE;
@@ -9078,43 +9232,43 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
         console.log("toggle select mode", s, s2, SelMask.SEGMENT, SelMask.FACE);
         console.log(s===SelMask.VERTEX, s===(SelMask.VERTEX|SelMask.HANDLE), (s===SelMask.SEGMENT));
         ctx.view2d.set_selectmode(s2);
-      }));
-      k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function (ctx) {
+      }, "Cycle Select Mode"));
+      k.add(new HotKey("O", [], function (ctx) {
         console.log("toggling proportional transform");
         ctx.view2d.session_flag^=SessionFlags.PROP_TRANSFORM;
-      }));
-      k.add(new HotKey("K", [], ""), new FuncKeyHandler(function (ctx) {
+      }, "Toggle Proportional Transform"));
+      k.add(new HotKey("K", [], function (ctx) {
         g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
       }));
-      k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function (ctx) {
+      k.add(new HotKey("Right", [], "", function (ctx) {
         console.log("Frame Change!", ctx.scene.time+1);
         ctx.scene.change_time(ctx, ctx.scene.time+1);
         window.redraw_viewport();
       }));
-      k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function (ctx) {
+      k.add(new HotKey("Left", [], "", function (ctx) {
         console.log("Frame Change!", ctx.scene.time-1);
         ctx.scene.change_time(ctx, ctx.scene.time-1);
         window.redraw_viewport();
       }));
-      k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function (ctx) {
+      k.add(new HotKey("Up", [], function (ctx) {
         window.debug_int_1++;
         ctx.scene.change_time(ctx, ctx.scene.time+10);
         window.force_viewport_redraw();
         window.redraw_viewport();
         console.log("debug_int_1: ", debug_int_1);
-      }));
-      k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function (ctx) {
-        
-        debug_int_1--;
-        debug_int_1 = Math.max(0, debug_int_1);
+      }, "Frame Ahead 10"));
+      k.add(new HotKey("Down", [], function (ctx) {
+        window.debug_int_1--;
+        window.debug_int_1 = Math.max(0, debug_int_1);
         ctx.scene.change_time(ctx, ctx.scene.time-10);
         window.force_viewport_redraw();
         window.redraw_viewport();
         console.log("debug_int_1: ", debug_int_1);
-      }));
+      }, "Frame Back 10"));
     }
      init() {
       super.init();
+      this.widgets = new ManipulatorManager(this, this.ctx);
       this.makeToolbars();
       this.setCSS();
       this.on_mousedown = Editor.wrapContextEvent(this.on_mousedown.bind(this));
@@ -9251,6 +9405,10 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       if (this._draw_promise) {
           return ;
       }
+      this.checkInit();
+      this._graphNode = the_global_dag.get_node(this, true);
+      this._graphNode.dag_update("onDrawPre");
+      window.updateEventDag(true);
       let buffer=window._wait_for_draw;
       var canvas=this.get_fg_canvas();
       var bgcanvas=this.get_bg_canvas();
@@ -9656,12 +9814,16 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       return event2;
     }
      on_mousedown(event) {
+      this.checkInit();
       this.editor.view2d = this;
       if (this.ctx.screen.pickElement(event.x, event.y)!==this) {
           return ;
       }
       event = this._mouse(event);
-      if (this.widgets.on_click(this._widget_mouseevent(event), this)) {
+      if (event.altKey&&!event.shiftKey&&!event.ctrlKey&&event.button===0) {
+          event.button = 2;
+      }
+      if (event.button!==1&&event.button!==2&&this.widgets.on_click(this._widget_mouseevent(event), this)) {
           return ;
       }
       console.log(event.touches);
@@ -9675,20 +9837,20 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
           var tottouch=event.touches ? event.touches.length : 0;
           if (tottouch>=2) {
               var tool=new PanOp();
-              g_app_state.toolstack.exec_tool(tool);
+              this.ctx.api.execTool(this.ctx, tool);
           }
           else 
             if (is_middle&&this.shift) {
               console.log("Panning");
           }
           else 
-            if (event.button==0) {
+            if (event.button===0) {
               this._mstart = new Vector2(this.mpos);
           }
       }
       if (event.button===2&&!g_app_state.screen.shift&&!g_app_state.screen.ctrl&&!g_app_state.screen.alt) {
           var tool=new PanOp();
-          g_app_state.toolstack.exec_tool(tool);
+          this.ctx.api.execTool(this.ctx, tool);
       }
     }
      on_mouseup(event) {
@@ -9698,6 +9860,7 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
         return ;
     }
      on_mousemove(event) {
+      this.checkInit();
       this._last_mpos[0] = event.x;
       this._last_mpos[1] = event.y;
       if (!event.touches) {
@@ -9812,6 +9975,10 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
       this._last_toolmode = scene.toolmode;
     }
      update() {
+      if (!this.ctx||!this.ctx.screen) {
+          return ;
+      }
+      this._graphNode = the_global_dag.get_node(this, true);
       this.updateToolMode();
       this.updateVelPan();
       let key=""+this.half_pix_size+":"+this.enable_blur+":"+this.only_render+":"+this.draw_faces+":"+this.edit_all_layers+":"+this.draw_normals+":"+this.draw_small_verts;
@@ -9874,561 +10041,4 @@ es6_module_define('view2d', ["../editor_base.js", "./view2d_ops.js", "./toolmode
 `;
   Editor.register(View2DHandler);
 }, '/dev/fairmotion/src/editors/viewport/view2d.js');
-
-
-es6_module_define('view2d_ops', ["../../core/toolprops.js", "../../curve/spline.js", "../../vectordraw/vectordraw_canvas2d_simple.js", "../../curve/spline_draw_new.js", "../../scene/scene.js", "../../curve/spline_draw.js", "../events.js", "../../core/ajax.js", "../../scene/sceneobject.js", "../../core/struct.js", "../../core/toolops_api.js", "../../core/fileapi/fileapi.js", "../../core/frameset.js"], function _view2d_ops_module(_es6_module) {
-  "use strict";
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var unpack_ctx=es6_import_item(_es6_module, '../../core/ajax.js', 'unpack_ctx');
-  var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, '../events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, '../events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, '../events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, '../events.js', 'EventHandler');
-  var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
-  var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
-  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
-  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
-  var TPropFlags=es6_import_item(_es6_module, '../../core/toolprops.js', 'TPropFlags');
-  var SceneObject=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'SceneObject');
-  var ObjectFlags=es6_import_item(_es6_module, '../../scene/sceneobject.js', 'ObjectFlags');
-  class PanOp extends ToolOp {
-    
-    
-    
-    
-    
-     constructor(start_mpos) {
-      super();
-      this.is_modal = true;
-      this.undoflag|=UndoFlags.NO_UNDO;
-      if (start_mpos!==undefined) {
-          this.start_mpos = new Vector3(start_mpos);
-          this.start_mpos[2] = 0.0;
-          this.first = false;
-      }
-      else {
-        this.start_mpos = new Vector3();
-        this.first = true;
-      }
-      this.start_cameramat = undefined;
-      this.cameramat = new Matrix4();
-    }
-    static  tooldef() {
-      return {uiname: "Pan", 
-     toolpath: "view2d.pan", 
-     undoflag: UndoFlags.NO_UNDO, 
-     inputs: {}, 
-     outputs: {}, 
-     is_modal: true}
-    }
-     start_modal(ctx) {
-      this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
-    }
-     on_mousemove(event) {
-      var mpos=new Vector3([event.x, event.y, 0]);
-      if (this.first) {
-          this.first = false;
-          this.start_mpos.load(mpos);
-          return ;
-      }
-      var ctx=this.modal_ctx;
-      mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
-      this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
-      ctx.view2d.set_cameramat(this.cameramat);
-      if (!event.touches) {
-          ctx.view2d.resetVelPan();
-      }
-      window.force_viewport_redraw();
-      window.redraw_viewport();
-    }
-     on_mouseup(event) {
-      this.end_modal();
-    }
-  }
-  _ESClass.register(PanOp);
-  _es6_module.add_class(PanOp);
-  PanOp = _es6_module.add_export('PanOp', PanOp);
-  var $v1_Shro_exec_pan;
-  var $v2_fwqE_exec_pan;
-  class ViewRotateZoomPanOp extends ToolOp {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.undoflag = UndoFlags.NO_UNDO;
-      this.transdata = null;
-      this.is_modal = true;
-      this.inputs = {};
-      this.outputs = {};
-      this.first_call = false;
-      this.start_mat = undefined;
-      this.startcos = [undefined, undefined, undefined];
-      this.startids = [undefined, undefined, undefined];
-      this.start_zoom = 0;
-      this.mv1 = new Vector3();
-      this.mv2 = new Vector3();
-      this.mv3 = new Vector3();
-      this.mv4 = new Vector3();
-      this.mv5 = new Vector3();
-      this.mv6 = new Vector3();
-    }
-    static  tooldef() {
-      return {toolpath: "view2d.viewrotatezoom", 
-     uiname: "View Rotate Zoom", 
-     is_modal: true, 
-     undoflag: UndoFlags.NO_UNDO, 
-     inputs: {}, 
-     outputs: {}}
-    }
-     can_call(ctx) {
-      return true;
-    }
-     start_modal(ctx) {
-      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
-      this.first_call = true;
-      this.start_zoom = ctx.view2d.zoomwheel;
-    }
-     proj(out, mpos) {
-      var size=this.modal_ctx.view2d.size;
-      out.loadxy(mpos);
-      out[0] = out[0]/(size[0]*0.5)-1.0;
-      out[1] = out[1]/(size[1]*0.5)-1.0;
-    }
-     on_mousemove(event) {
-      var ctx=this.modal_ctx;
-      var view2d=ctx.view2d;
-      var screen=g_app_state.screen;
-      if (screen.tottouch==0) {
-          this.end_modal();
-      }
-      if (this.first_call==true) {
-          var touches=[];
-          for (var k in screen.touchstate) {
-              touches.push(k);
-          }
-          this.first_call = false;
-          var v1=new Vector3();
-          var v2=new Vector3();
-          this.proj(v1, screen.touchstate[touches[0]]);
-          this.proj(v2, screen.touchstate[touches[1]]);
-          this.startids = [touches[0], touches[1], undefined];
-          this.startcos = [v1, v2, undefined];
-          this.mv1.load(v1);
-          this.mv2.load(v1);
-          this.mv3.load(v2);
-          this.mv4.load(v2);
-          this.exec(this.modal_tctx);
-      }
-      if (screen.tottouch==2&&this.startids[2]!=undefined)
-        this.transition("rotate");
-      if (this.startids[2]==undefined) {
-          for (var k in screen.touchstate) {
-              if (k!=this.startids[0]&&k!=this.startids[1]) {
-                  this.startids[2] = k;
-                  this.startcos[2] = new Vector3();
-                  this.proj(this.startcos[2], screen.touchstate[k]);
-                  this.mv5.load(this.startcos[2]);
-                  this.transition("pan");
-                  break;
-              }
-          }
-      }
-      if (this.startids[0] in screen.touchstate) {
-          this.proj(this.mv2, screen.touchstate[this.startids[0]]);
-      }
-      if (this.startids[1] in screen.touchstate) {
-          this.proj(this.mv4, screen.touchstate[this.startids[1]]);
-      }
-      if (this.startids[2]!=undefined&&this.startids[2] in screen.touchstate) {
-          this.proj(this.mv6, screen.touchstate[this.startids[2]]);
-      }
-      this.exec(this.modal_tctx);
-    }
-     exec(ctx) {
-      ctx = this.modal_ctx;
-      var v1=new Vector3(this.mv1);
-      var v2=new Vector3(this.mv2);
-      var newmat;
-      if (this.startids[2]==undefined) {
-          if (v1.vectorDistance(v2)<0.01)
-            return ;
-          var vec=new Vector3(v2);
-          vec.sub(v1);
-          var perp=new Vector3([-vec[1], vec[0], 0.0]);
-          var q=new Quat();
-          q.axisAngleToQuat(perp, vec.vectorLength()*2);
-          var mat=q.toMatrix();
-          newmat = new Matrix4(mat);
-          newmat.multiply(this.start_mat);
-      }
-      else {
-        newmat = ctx.view2d.drawmats.cameramat;
-      }
-      var v3=this.mv3, v4=this.mv4;
-      var startdis=v3.vectorDistance(v1);
-      var zoom;
-      if (startdis>0.01) {
-          zoom = v4.vectorDistance(v2)/startdis;
-      }
-      else {
-        zoom = v4.vectorDistance(v2);
-      }
-      var view2d=ctx.view2d;
-      var range=(view2d.zoom_wheelrange[1]-view2d.zoom_wheelrange[0]);
-      var zoom2=(this.start_zoom-view2d.zoom_wheelrange[0])/range;
-      zoom2+=0.025*(zoom-1.0);
-      zoom2 = zoom2*range+view2d.zoom_wheelrange[0];
-      view2d.drawmats.cameramat = newmat;
-      if (this.startids[2]!=undefined)
-        this.exec_pan(ctx);
-    }
-     exec_pan(ctx) {
-      var view2d=ctx.view2d;
-      $v1_Shro_exec_pan.load(this.mv5);
-      $v2_fwqE_exec_pan.load(this.mv6);
-      $v1_Shro_exec_pan[2] = 0.9;
-      $v2_fwqE_exec_pan[2] = 0.9;
-      var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
-      iprojmat.invert();
-      var scenter=new Vector3(this.center);
-      scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
-      if (isNaN(scenter[2]))
-        scenter[2] = 0.0;
-      $v1_Shro_exec_pan[2] = scenter[2];
-      $v2_fwqE_exec_pan[2] = scenter[2];
-      $v1_Shro_exec_pan.multVecMatrix(iprojmat);
-      $v2_fwqE_exec_pan.multVecMatrix(iprojmat);
-      var vec=new Vector3($v2_fwqE_exec_pan);
-      vec.sub($v1_Shro_exec_pan);
-      let newmat=new Matrix4(this.start_mat);
-      if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
-        return ;
-      newmat.translate(vec);
-      view2d.drawmats.cameramat = newmat;
-    }
-     transition(mode) {
-      this.start_mat = new Matrix4(this.modal_ctx.view2d.drawmats.cameramat);
-      if (mode=="rotate") {
-          this.startids[2] = undefined;
-          this.startcos[0].load(this.mv2);
-          this.mv1.load(this.mv2);
-      }
-    }
-     on_mouseup(event) {
-      if (DEBUG.modal)
-        console.log("modal end");
-      for (var k in event.touches) {
-          if (this.startids[2]==k) {
-              this.transition("rotate");
-          }
-      }
-      if (g_app_state.screen.tottouch==0)
-        this.end_modal();
-    }
-  }
-  var $v1_Shro_exec_pan=new Vector3();
-  var $v2_fwqE_exec_pan=new Vector3();
-  _ESClass.register(ViewRotateZoomPanOp);
-  _es6_module.add_class(ViewRotateZoomPanOp);
-  class ViewRotateOp extends ToolOp {
-     constructor() {
-      super();
-      this.transdata = null;
-    }
-    static  tooldef() {
-      return {toolpath: "view2d.orbit", 
-     uiname: "Orbit", 
-     is_modal: true, 
-     undoflag: UndoFlags.NO_UNDO, 
-     inputs: {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
-      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}, 
-     outputs: {}}
-    }
-     can_call(ctx) {
-      return true;
-    }
-     start_modal(ctx) {
-      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
-      this.first_call = true;
-    }
-     on_mousemove(event) {
-      if (this.first_call==true) {
-          this.first_call = false;
-          this.start_mpos = new Vector3([event.x, event.y, 0]);
-          this.start_mpos[0] = this.start_mpos[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
-          this.start_mpos[1] = this.start_mpos[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
-      }
-      var mstart=new Vector3(this.start_mpos);
-      var mend=new Vector3([event.x, event.y, 0.0]);
-      mend[0] = mend[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
-      mend[1] = mend[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
-      var vec=new Vector3(mend);
-      vec.sub(mstart);
-      this.inputs.MV1.data = mstart;
-      this.inputs.MV2.data = mend;
-      this.exec(this.modal_ctx);
-    }
-     exec(ctx) {
-      ctx = this.modal_ctx;
-      var v1=new Vector3(this.inputs.MV1.data);
-      var v2=new Vector3(this.inputs.MV2.data);
-      if (v1.vectorDistance(v2)<0.01)
-        return ;
-      var vec=new Vector3(v2);
-      vec.sub(v1);
-      let perp=new Vector3([-vec[1], vec[0], 0.0]);
-      var q=new Quat();
-      q.axisAngleToQuat(perp, vec.vectorLength()*2);
-      let mat=q.toMatrix();
-      let newmat=new Matrix4(mat);
-      newmat.multiply(this.start_mat);
-      ctx.view2d.drawmats.cameramat = newmat;
-      ctx.view2d.on_view_change();
-    }
-     on_mouseup(event) {
-      if (DEBUG.modal)
-        console.log("modal end");
-      this.end_modal();
-    }
-  }
-  _ESClass.register(ViewRotateOp);
-  _es6_module.add_class(ViewRotateOp);
-  class ViewPanOp extends ToolOp {
-    
-    
-    
-    static  tooldef() {
-      return {toolpath: "view2d.pan", 
-     inputs: {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
-      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}, 
-     outputs: {}, 
-     is_modal: true, 
-     undoflag: UndoFlags.NO_UNDO}
-    }
-     constructor() {
-      super("view2d_pan", "Pan");
-      this.transdata = null;
-      this.outputs = {};
-    }
-     can_call(ctx) {
-      return true;
-    }
-     start_modal(ctx) {
-      this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
-      this.first_call = true;
-      this.center = new Vector3();
-      var i=0;
-      for (var v of ctx.mesh.verts) {
-          if (isNaN(v.co[0])||isNaN(v.co[1])||isNaN(v.co[2]))
-            continue;
-          this.center.add(v.co);
-          i+=1;
-          if (i>200)
-            break;
-      }
-      if (i>0)
-        this.center.mulScalar(1.0/i);
-    }
-     on_mousemove(event) {
-      if (this.first_call==true) {
-          this.first_call = false;
-          this.start_mpos = new Vector3([event.x, event.y, 0]);
-          this.start_mpos[0] = this.start_mpos[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
-          this.start_mpos[1] = this.start_mpos[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
-      }
-      let mstart=new Vector3(this.start_mpos);
-      var mend=new Vector3([event.x, event.y, 0.0]);
-      mend[0] = mend[0]/(this.modal_ctx.view2d.size[0]/2)-1.0;
-      mend[1] = mend[1]/(this.modal_ctx.view2d.size[1]/2)-1.0;
-      this.inputs.MV1.data = mstart;
-      this.inputs.MV2.data = mend;
-      this.exec(this.modal_ctx);
-    }
-     exec(ctx) {
-      ctx = this.modal_ctx;
-      var v1=new Vector3(this.inputs.MV1.data);
-      var v2=new Vector3(this.inputs.MV2.data);
-      if (v1.vectorDistance(v2)<0.01)
-        return ;
-      v1[2] = 0.9;
-      v2[2] = 0.9;
-      var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
-      iprojmat.invert();
-      var scenter=new Vector3(this.center);
-      scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
-      if (isNaN(scenter[2]))
-        scenter[2] = 0.0;
-      v1[2] = scenter[2];
-      v2[2] = scenter[2];
-      v1.multVecMatrix(iprojmat);
-      v2.multVecMatrix(iprojmat);
-      var vec=new Vector3(v2);
-      vec.sub(v1);
-      let newmat=new Matrix4(this.start_mat);
-      if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
-        return ;
-      newmat.translate(vec);
-      ctx.view2d.drawmats.cameramat = newmat;
-      ctx.view2d.on_view_change();
-    }
-     on_mouseup(event) {
-      if (DEBUG.modal)
-        console.log("modal end");
-      this.end_modal();
-    }
-  }
-  _ESClass.register(ViewPanOp);
-  _es6_module.add_class(ViewPanOp);
-  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
-  class BasicFileDataOp extends ToolOp {
-    
-    
-     constructor(data) {
-      super();
-      this.is_modal = false;
-      this.undoflag = UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER;
-      if (data)
-        this.inputs.data.setValue(data);
-      this.saved_context = new SavedContext();
-    }
-    static  tooldef() {
-      return {uiname: "internal file load op", 
-     toolpath: "app.basic_file_with_data", 
-     undoflag: UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER, 
-     inputs: {data: new StringProperty("", "filedata", "file data in base64", TPropFlags.PRIVATE)}}
-    }
-     exec(ctx) {
-      var data=new DataView(b64decode(this.inputs.data.data).buffer);
-      console.log(this.inputs.data.data.length, data.byteLength);
-      g_app_state.load_scene_file(data);
-    }
-  }
-  _ESClass.register(BasicFileDataOp);
-  _es6_module.add_class(BasicFileDataOp);
-  BasicFileDataOp = _es6_module.add_export('BasicFileDataOp', BasicFileDataOp);
-  var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
-  var SplineFrameSet=es6_import_item(_es6_module, '../../core/frameset.js', 'SplineFrameSet');
-  var Scene=es6_import_item(_es6_module, '../../scene/scene.js', 'Scene');
-  class BasicFileOp extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {toolpath: "app.basic_file", 
-     uiname: "Make Basic File (internal)", 
-     undoflag: UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER, 
-     description: "Internal tool op; makes basic file"}
-    }
-     exec(ctx) {
-      var datalib=ctx.datalib;
-      var splineset=new SplineFrameSet();
-      splineset.set_fake_user();
-      datalib.add(splineset);
-      var scene=new Scene();
-      datalib.add(scene);
-      scene._initCollection(datalib);
-      scene.set_fake_user();
-      let ob=scene.addFrameset(datalib, splineset);
-      scene.setActiveObject(ob);
-    }
-  }
-  _ESClass.register(BasicFileOp);
-  _es6_module.add_class(BasicFileOp);
-  BasicFileOp = _es6_module.add_export('BasicFileOp', BasicFileOp);
-  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
-  class FrameChangeOp extends ToolOp {
-     constructor(frame) {
-      super();
-      this._undo = undefined;
-      if (frame!=undefined)
-        this.inputs.frame.setValue(frame);
-    }
-    static  tooldef() {
-      return {toolpath: "scene.change_frame", 
-     uiname: "Change Frame", 
-     inputs: {frame: new FloatProperty(0, "frame", "frame", "frame")}}
-    }
-     undo_pre(ctx) {
-      this._undo = ctx.scene.time;
-    }
-     undo(ctx) {
-      ctx.scene.change_time(ctx, this._undo);
-    }
-     exec(ctx) {
-      ctx.scene.change_time(ctx, this.inputs.frame.data);
-    }
-  }
-  _ESClass.register(FrameChangeOp);
-  _es6_module.add_class(FrameChangeOp);
-  FrameChangeOp = _es6_module.add_export('FrameChangeOp', FrameChangeOp);
-  var SimpleCanvasDraw2D=es6_import_item(_es6_module, '../../vectordraw/vectordraw_canvas2d_simple.js', 'SimpleCanvasDraw2D');
-  var draw_spline=es6_import_item(_es6_module, '../../curve/spline_draw.js', 'draw_spline');
-  var save_file=es6_import_item(_es6_module, '../../core/fileapi/fileapi.js', 'save_file');
-  var SplineDrawer=es6_import_item(_es6_module, '../../curve/spline_draw_new.js', 'SplineDrawer');
-  class ExportCanvasImage extends ToolOp {
-    static  tooldef() {
-      return {toolpath: "view2d.export_image", 
-     uiname: "Save Canvas Image", 
-     description: "Export visible canvas", 
-     undoflag: UndoFlags.NO_UNDO}
-    }
-     exec(ctx) {
-      var view2d=g_app_state.active_view2d;
-      var spline=ctx.frameset.spline;
-      var canvas=document.createElement("canvas");
-      canvas.width = view2d.size[0];
-      canvas.height = view2d.size[1];
-      var g=canvas.getContext("2d");
-      var vecdrawer=new SimpleCanvasDraw2D();
-      vecdrawer.canvas = canvas;
-      vecdrawer.g = g;
-      var drawer=new SplineDrawer(spline, vecdrawer);
-      var old=spline.drawer;
-      spline.drawer = drawer;
-      console.log("saving image. . .");
-      drawer.recalc_all = true;
-      drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(), [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
-      try {
-        draw_spline(spline, [], g, view2d, view2d.genMatrix(), view2d.selectmode, view2d.only_render, view2d.draw_normals, 1.0, true, ctx.frameset.time);
-      }
-      catch (error) {
-          print_stack(error);
-          console.trace("Draw error");
-          g_app_state.notes.label("Error drawing canvas");
-          return ;
-      }
-      spline.drawer = old;
-      var url=canvas.toDataURL();
-      url = atob(url.slice(url.search("base64,")+7, url.length));
-      var data=new Uint8Array(url.length);
-      for (var i=0; i<data.length; i++) {
-          data[i] = url.charCodeAt(i);
-      }
-      save_file(data, true, false, "PNG", ["png"], function () {
-        console.trace("ERROR ERROR!!\n");
-        g_app_state.notes.label("Error drawing canvas");
-        return ;
-      });
-    }
-  }
-  _ESClass.register(ExportCanvasImage);
-  _es6_module.add_class(ExportCanvasImage);
-  ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
-  
-}, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
 

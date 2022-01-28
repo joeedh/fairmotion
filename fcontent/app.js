@@ -1080,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local.js", "../path.ux/scripts/config/const.js", "./config_local"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local", "./config_local.js", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1088,7 +1088,7 @@ es6_module_define('config', ["./config_local.js", "../path.ux/scripts/config/con
    useAreaTabSwitcher: false, 
    addHelpPickers: true, 
    showPathsInToolTips: true, 
-   DEBUG: {}}
+   DEBUG: {modalEvents: true}}
   PathUXConstants = _es6_module.add_export('PathUXConstants', PathUXConstants);
   var ORIGIN=location.origin;
   ORIGIN = _es6_module.add_export('ORIGIN', ORIGIN);
@@ -1213,7 +1213,8 @@ es6_module_define('config_local', [], function _config_local_module(_es6_module)
   HAVE_EVAL = _es6_module.add_export('HAVE_EVAL', HAVE_EVAL);
   let NO_RENDER_WORKERS=false;
   NO_RENDER_WORKERS = _es6_module.add_export('NO_RENDER_WORKERS', NO_RENDER_WORKERS);
-  let DEBUG={fastDrawMode: false}
+  let DEBUG={fastDrawMode: false, 
+   modalEvents: true}
   DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');
 

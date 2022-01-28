@@ -10,6 +10,7 @@ export let PathUXConstants = {
   addHelpPickers : true,
   showPathsInToolTips : true,
   DEBUG : {
+    modalEvents : true
   }
 };
 

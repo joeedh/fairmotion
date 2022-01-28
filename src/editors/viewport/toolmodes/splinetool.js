@@ -7,23 +7,26 @@ import {ExtrudeVertOp} from '../spline_createops.js';
 import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
 import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../../events.js';
+import {KeyMap, HotKey} from '../../../path.ux/scripts/pathux.js';
 
 import {SelectLinkedOp, SelectOneOp, SelOpModes} from '../spline_selectops.js';
 import {TranslateOp} from '../transform.js';
 
 import {SelMask, ToolModes} from '../selectmode.js';
-import {SplineTypes, SplineFlags, SplineVertex,
-  SplineSegment, SplineFace} from '../../../curve/spline_types.js';
+import {
+  SplineTypes, SplineFlags, SplineVertex,
+  SplineSegment, SplineFace
+} from '../../../curve/spline_types.js';
 
 import {View2DEditor, SessionFlags} from '../view2d_editor.js';
 import {redraw_element} from '../../../curve/spline_draw.js';
 import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../../core/toolops_api.js';
 
-import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
+import {
+  DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
   ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-  DisconnectHandlesOp, SplitEdgePickOp} from '../spline_editops.js';
+  DisconnectHandlesOp, SplitEdgePickOp
+} from '../spline_editops.js';
 
 import * as util from "../../../path.ux/scripts/util/util.js";
 
@@ -37,11 +40,11 @@ import {PanOp} from '../view2d_ops.js';
 window.anim_to_playback = [];
 
 export class SplineToolMode extends ToolMode {
-  mpos : Vector2
-  last_mpos : Vector2
-  start_mpos : Vector2
-  _cancel_on_touch : boolean
-  mdown : boolean;
+  mpos: Vector2
+  last_mpos: Vector2
+  start_mpos: Vector2
+  _cancel_on_touch: boolean
+  mdown: boolean;
 
   constructor() {
     super();
@@ -109,117 +112,17 @@ export class SplineToolMode extends ToolMode {
 
   static toolDefine() {
     return {
-      name: "spline",
-      uiName: "Spline",
-      flag: 0,
-      icon: -1,
-      nodeInputs: {},
+      name       : "spline",
+      uiName     : "Spline",
+      flag       : 0,
+      icon       : -1,
+      nodeInputs : {},
       nodeOutputs: {},
-      nodeFlag: 0
+      nodeFlag   : 0
     }
   }
 
   defineKeyMap() {
-    let k = this.keymap = new KeyMap("view2d:splinetool");
-
-
-    k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
-      "spline.change_face_z(offset=1, selmode='selectmode')");
-    k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
-      "spline.change_face_z(offset=-1, selmode='selectmode')");
-
-    k.add_tool(new HotKey("G", [], "Translate"),
-      "spline.translate(datamode='selectmode')");
-    k.add_tool(new HotKey("S", [], "Scale"),
-      "spline.scale(datamode='selectmode')");
-    k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"),
-      "spline.shift_time()");
-
-    k.add_tool(new HotKey("R", [], "Rotate"),
-      "spline.rotate(datamode='selectmode')");
-
-    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all(mode='SELECT')");
-    k.add_tool(new HotKey("A", ["ALT"], "Deselect All"), "spline.toggle_select_all(mode='DESELECT')");
-    /*
-    k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
-      var view2d = ctx.view2d;
-      var selectmode = view2d.selectmode;
-
-      if (selectmode == SelMask.MULTIRES) {
-        var tool = new mr_selectops.ToggleSelectAll();
-        g_app_state.toolstack.exec_tool(tool);
-      } else if (selectmode & SelMask.MULTIRES) {
-        var tool = new mr_selectops.ToggleSelectAll();
-        g_app_state.toolstack.exec_tool(tool);
-
-        var tool = new spline_selectops.ToggleSelectAllOp();
-        g_app_state.toolstack.exec_tool(tool);
-      } else {
-        var tool = new spline_selectops.ToggleSelectAllOp();
-        g_app_state.toolstack.exec_tool(tool);
-      }
-    }));*/
-
-    k.add_tool(new HotKey("H", [], "Hide Selection"),
-      "spline.hide(selmode=selectmode)");
-    k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"),
-      "spline.unhide(selmode=selectmode)");
-
-    k.add_tool(new HotKey("G", ["CTRL"], "Ghost Selection"),
-      "spline.hide(selmode=selectmode, ghost=1)");
-    k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"),
-      "spline.unhide(selmode=selectmode, ghost=1)");
-
-    /*k.add_tool(new HotKey("C", [], "Connect Handles"),
-               "spline.connect_handles()");
-    k.add_tool(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
-               "spline.disconnect_handles()");
-    */
-
-    /*
-    k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function (ctx : FullContext) {
-      var mpos = ctx.keymap_mpos;
-      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
-
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
-
-      console.log("select linked", mpos, ret);
-
-      if (ret !== undefined) {
-        var tool = SelectLinkedOp.invoke(ctx, {mode : 'SELECT', vertex_eid : ret[0].eid});
-        //tool.inputs.vertex_eid.setValue(ret[0].eid);
-        //tool.inputs.mode.setValue(SelOpModes.SELECT);
-
-        ctx.appstate.toolstack.exec_tool(tool);
-      }
-    }));
-
-    k.add(new HotKey("L", ["SHIFT"], "Deselect Linked"), new FuncKeyHandler(function (ctx) {
-      var mpos = ctx.keymap_mpos;
-      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
-
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
-
-      console.log("deselect linked", ret);
-
-      if (ret !== undefined) {
-        var tool = SelectLinkedOp.invoke(ctx, {mode : 'DESELECT', vertex_eid : ret[0].eid});
-        //tool.inputs.vertex_eid.setValue(ret[0].eid);
-        //tool.inputs.mode.setValue(SelOpModes.SELECT);
-
-        ctx.appstate.toolstack.exec_tool(tool);
-      }
-    }));//*/
-    k.add_tool(new HotKey("L", [], "Select Linked"),
-      "spline.select_linked_pick(mode=SELECT)");
-    k.add_tool(new HotKey("L", ["SHIFT"], "Deselect Linked"),
-      "spline.select_linked_pick(mode=DESELECT)");
-
-    k.add_tool(new HotKey("B", [], "Toggle Break-Tangents"),
-      "spline.toggle_break_tangents()");
-    k.add_tool(new HotKey("B", ["SHIFT"], "Toggle Break-Curvature"),
-      "spline.toggle_break_curvature()");
-
     var this2 = this;
 
     function del_tool(ctx) {
@@ -228,46 +131,70 @@ export class SplineToolMode extends ToolMode {
       if (this2.selectmode & SelMask.SEGMENT) {
         console.log("kill segments");
 
-        var op = new DeleteSegmentOp();
+        let op = new DeleteSegmentOp();
         g_app_state.toolstack.exec_tool(op);
       } else if (this2.selectmode & SelMask.FACE) {
         console.log("kill faces");
 
-        var op = new DeleteFaceOp();
+        let op = new DeleteFaceOp();
         g_app_state.toolstack.exec_tool(op);
       } else {
         console.log("kill verts");
 
-        var op = new DeleteVertOp();
+        let op = new DeleteVertOp();
         g_app_state.toolstack.exec_tool(op);
       }
     }
 
-    k.add(new HotKey("X", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new HotKey("Delete", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new HotKey("Backspace", [], "Delete"), new FuncKeyHandler(del_tool));
+    this.keymap = new KeyMap([
+      new HotKey("PageUp", [], "spline.change_face_z(offset=1, selmode='selectmode')|Move Up"),
+      new HotKey("PageDown", [], "spline.change_face_z(offset=-1, selmode='selectmode')|Move Down"),
+      new HotKey("G", [], "spline.translate(datamode='selectmode')"),
+      new HotKey("S", [], "spline.scale(datamode='selectmode')"),
+      new HotKey("R", [], "spline.rotate(datamode='selectmode')"),
+      new HotKey("S", ["SHIFT"], "spline.shift_time()"),
+      new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"),
+      new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"),
+      new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"),
+      new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"),
+      new HotKey("G", [], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"),
+      new HotKey("G", [], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"),
+      new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"),
+      new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"),
+      new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"),
+      new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"),
+      new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"),
+      new HotKey("X", [], del_tool, "Delete"),
+      new HotKey("Delete", [], del_tool, "Delete"),
+      new HotKey("Backspace", [], del_tool, "Delete"),
+      new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"),
+      new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"),
+      new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"),
+      new HotKey("E", [], "spline.split_edges()|Split Segments"),
+      new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"),
+      new HotKey("C", [], "view2d.circle_select()|Circle Select"),
+      new HotKey("Z", [], function (ctx) {
+        console.warn("ZKEY", arguments, this);
 
-    k.add_tool(new HotKey("D", [], "Dissolve Vertices"), "spline.dissolve_verts()");
-    k.add_tool(new HotKey("D", ["SHIFT"], "Duplicate"), "spline.duplicate_transform()");
-    k.add_tool(new HotKey("F", [], "Create Face/Edge"), "spline.make_edge_face()");
-    k.add_tool(new HotKey("E", [], "Split Segments"), "spline.split_edges()");
+        ctx.view2d.only_render ^= 1;
+        window.redraw_viewport();
+      }, "Toggle Only Render"),
+      new HotKey("W", [], function (ctx) {
+        var mpos = ctx.keymap_mpos;
+        mpos = ctx.screen.mpos;
+        ctx.view2d.tools_menu(ctx, mpos);
+      }, "Tools Menu")
+    ]);
+    return;
+    let k = this.keymap = new KeyMap("view2d:splinetool");
 
-    k.add_tool(new HotKey("M", [], "Mirror Verts"), "spline.mirror_verts()");
 
-    k.add_tool(new HotKey("C", [], "Circle Select"), "view2d.circle_select()");
+    /*k.add_tool(new HotKey("C", [], "Connect Handles"),
+               "spline.connect_handles()");
+    k.add_tool(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
+               "spline.disconnect_handles()");
+    */
 
-    k.add(new HotKey("Z", [], "Toggle Only Render"), new FuncKeyHandler(function (ctx) {
-      console.warn("ZKEY");
-
-      ctx.view2d.only_render ^= 1;
-      window.redraw_viewport();
-    }));
-
-    k.add(new HotKey("W", [], "Tools Menu"), new FuncKeyHandler(function (ctx) {
-      var mpos = ctx.keymap_mpos;
-      mpos = ctx.screen.mpos;
-      ctx.view2d.tools_menu(ctx, mpos);
-    }));
   }
 
   tools_menu(ctx, mpos, view2d) {
@@ -292,7 +219,7 @@ export class SplineToolMode extends ToolMode {
     return this.ctx.spline;
   }
 
-  on_mousedown(event : Object, localX, localY) {
+  on_mousedown(event: Object, localX, localY) {
     if (this._do_touch_undo(event)) {
       return true;
     }
@@ -402,7 +329,7 @@ export class SplineToolMode extends ToolMode {
   }
 
   //returns [spline, element, mindis]
-  findnearest(mpos : Array, selectmask : number, limit : number, ignore_layers) {
+  findnearest(mpos: Array, selectmask: number, limit: number, ignore_layers) {
     var frameset = this.ctx.frameset;
     var editor = this.ctx.view2d;
 
@@ -532,7 +459,7 @@ export class SplineToolMode extends ToolMode {
 
   _do_touch_undo(event) {
     console.log(event.touches && event.touches.length > 1, this._cancel_on_touch, "<---");
-    
+
     if (event.touches && event.touches.length > 1 && this._cancel_on_touch) {
       console.log("touch undo!");
 
@@ -545,7 +472,7 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  on_mousemove(event : Object) {
+  on_mousemove(event: Object) {
     if (this.ctx === undefined) return;
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
     var selectmode = this.selectmode;
@@ -598,7 +525,7 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  on_mouseup(event : Object) {
+  on_mouseup(event: Object) {
     this._cancel_on_touch = false;
     this.start_mpos[0] = event.x;
     this.start_mpos[1] = event.y;
@@ -659,11 +586,11 @@ export class SplineToolMode extends ToolMode {
   }
 
 
-  dataLink(scene : Scene, getblock : function, getblock_us : function) {
+  dataLink(scene: Scene, getblock: function, getblock_us: function) {
     this.ctx = g_app_state.ctx;
   }
 
-  loadSTRUCT(reader : function) {
+  loadSTRUCT(reader: function) {
     reader(this);
   }
 }

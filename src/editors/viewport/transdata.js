@@ -83,10 +83,11 @@ export class TransData {
     this.doprop = top.inputs.proportional.data;
     this.propradius = top.inputs.propradius.data;
 
-    this.center = new Vector3();
-    this.start_center = new Vector3();
+    this.center = new Vector2();
+    this.scenter = new Vector2(); //screen center
+    this.start_center = new Vector2();
 
-    this.minmax = new MinMax(3);
+    this.minmax = new MinMax(2);
 
     for (var t of this.types) {
       if (datamode & t.selectmode) {

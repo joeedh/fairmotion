@@ -129,6 +129,7 @@ export function gen_screen(unused, w, h) {
   //make material editor
 
   app.appendChild(screen);
+  screen.listen();
 }
 
 import './startup/startup_file_example.js';
@@ -704,6 +705,10 @@ export class AppState {
     this.screen = screen;
     this.eventhandler = screen;
     this.active_view2d = view2d;
+
+    if (!screen.listening) {
+      screen.listen();
+    }
 
     this.toolstack = toolstack;
     this.screen.ctx = this.ctx = new FullContext();
@@ -1386,6 +1391,10 @@ export class AppState {
       this2.screen = screen;
       resetAreaStacks();
 
+      if (!screen.listening) {
+        screen.listen();
+      }
+
       this2.size = size;
 
       //stupid. . .
@@ -1763,7 +1772,6 @@ class SavedContext {
     this._props = {};
 
     ctx = ctx.toLocked();
-
 
     for (let k in ctx.props) {
       let v = ctx.props[k].data;

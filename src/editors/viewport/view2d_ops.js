@@ -11,6 +11,22 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
 import {SceneObject, ObjectFlags} from '../../scene/sceneobject.js';
 
+export class View2dOp extends ToolOp {
+  constructor() {
+    super();
+
+    this.tempLines = [];
+  }
+
+  makeTempLine(v1, v2, color) {
+    return this.new_drawline(v1, v2, color);
+  }
+
+  resetTempGeom() {
+    return super.reset_drawlines();
+  }
+}
+
 export class PanOp extends ToolOp {
   is_modal : boolean
   cameramat : Matrix4;

@@ -1,6 +1,5 @@
 "use strict";
 
-import * as eventmanager from '../core/eventmanager.js';
 import {MESSAGES} from './vectordraw_jobs_base.js';
 let MS = MESSAGES;
 
@@ -262,7 +261,6 @@ export class ThreadManager {
           }
         });
       }//*/
-      //eventmanager.manager.freeze();
     }
   }
   
@@ -274,7 +272,6 @@ export class ThreadManager {
       window._block_drawing = false;
 
       //console.warn("Implement me! freeze_while_drawing");
-      //eventmanager.manager.unfreeze();
 
       /*
       if (this._modalstate) {

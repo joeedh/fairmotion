@@ -292,4 +292,4 @@ export class EventManager {
   }
 }
 
-export var manager = new EventManager();
+//export var manager = new EventManager();

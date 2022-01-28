@@ -2,7 +2,7 @@ import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/contro
 import {SavedToolDefaults} from '../path.ux/scripts/pathux.js';
 
 export class BaseContextOverlay extends ContextOverlay {
-  constructor(state=g_app_state) {
+  constructor(state = g_app_state) {
     super(state);
   }
 
@@ -30,11 +30,11 @@ export class BaseContextOverlay extends ContextOverlay {
     g_app_state.switch_active_spline(newpath);
   }
 
-  get splinepath() : String {
+  get splinepath(): String {
     return g_app_state.active_splinepath === undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
   }
 
-  get filepath() : String {
+  get filepath(): String {
     return g_app_state.filepath;
   }
 
@@ -44,7 +44,7 @@ export class BaseContextOverlay extends ContextOverlay {
     return scene !== undefined ? scene.edit_all_layers : false;
   }
 
-  get spline() : FrameSet {
+  get spline(): FrameSet {
     var ret = this.api.getValue(this, g_app_state.active_splinepath);
 
     if (ret === undefined) {
@@ -60,11 +60,10 @@ export class BaseContextOverlay extends ContextOverlay {
     return ret;
   }
 
-  get frameset() : SplineFrameSet {
+  get frameset(): SplineFrameSet {
     return this.scene.objects.active.data;
     //return g_app_state.datalib.framesets.active;
   }
-
 
 
   get scene() {
@@ -82,6 +81,7 @@ export class BaseContextOverlay extends ContextOverlay {
 
     return this.datalib.get_active(DataTypes.SCENE);
   }
+
   get datalib() {
     return g_app_state.datalib;
   }
@@ -106,7 +106,7 @@ export class BaseContextOverlay extends ContextOverlay {
 }
 
 export class ViewContextOverlay extends ContextOverlay {
-  _keymap_mpos : Array<number>;
+  _keymap_mpos: Array<number>;
 
   constructor(state = g_app_state) {
     super(state);
@@ -132,22 +132,23 @@ export class ViewContextOverlay extends ContextOverlay {
     return data;
   }
 
-  get dopesheet() : DopeSheetEditor {
+  get dopesheet(): DopeSheetEditor {
     return Editor.context_area(DopeSheetEditor);
   }
 
-  get editcurve() : CurveEditor {
+  get editcurve(): CurveEditor {
     return Editor.context_area(CurveEditor);
   }
 
   /*need to figure out a better way to pass active editor types
     around API*/
-  get settings_editor() : SettingsEditor {
+  get settings_editor(): SettingsEditor {
     return Editor.context_area(SettingsEditor);
   }
+
   /*need to figure out a better way to pass active editor types
     around API*/
-  get opseditor() : OpStackEditor {
+  get opseditor(): OpStackEditor {
     return Editor.context_area(OpStackEditor);
   }
 
@@ -156,7 +157,7 @@ export class ViewContextOverlay extends ContextOverlay {
   }
 
   get console() {
-    return  Editor.context_area(ConsoleEditor);
+    return Editor.context_area(ConsoleEditor);
   }
 
   get view2d() {
@@ -174,7 +175,13 @@ export class ViewContextOverlay extends ContextOverlay {
 }
 
 export class BaseContext extends Context {
-  constructor(state=g_app_state) {
+  frameset: SplineFrameSet
+  spline: Spline
+  scene: Scene
+  api: DataAPI
+  selectmode: int;
+
+  constructor(state = g_app_state) {
     super(state);
 
     this.reset(state);
@@ -188,7 +195,7 @@ export class BaseContext extends Context {
     g_app_state.notes.label(msg);
   }
 
-  reset(state=this.state) {
+  reset(state = this.state) {
     this.pushOverlay(new BaseContextOverlay(state));
   }
 
@@ -197,17 +204,17 @@ export class BaseContext extends Context {
 
     function passthru(v) {
       return {
-        type  : "passthru",
-        key   : key,
-        value : v
+        type : "passthru",
+        key  : key,
+        value: v
       };
     }
 
     function lookup(v) {
       return {
-        type  : "lookup",
-        key   : key,
-        value : v
+        type : "lookup",
+        key  : key,
+        value: v
       };
     }
 
@@ -219,15 +226,15 @@ export class BaseContext extends Context {
 
     if (key === "spline") {
       return {
-        type  : "path",
-        key   : key,
-        value : this.splinepath
+        type : "path",
+        key  : key,
+        value: this.splinepath
       }
     } else if (v instanceof DataBlock) {
       return {
-        type   : "block",
-        key    : key,
-        value  : new DataRef(v)
+        type : "block",
+        key  : key,
+        value: new DataRef(v)
       }
     }
 
@@ -248,19 +255,16 @@ export class BaseContext extends Context {
 }
 
 export class FullContext extends BaseContext {
-  frameset : SplineFrameSet
-  spline   : Spline
-  view2d   : View2DHandler
-  scene    : Scene
-  api      : DataAPI;
+  view2d: View2DHandler
+  screen: FairmotionScreen;
 
-  constructor(state=g_app_state) {
+  constructor(state = g_app_state) {
     super(state);
 
     this.reset(state);
   }
 
-  reset(state=this.state) {
+  reset(state = this.state) {
     super.reset(state);
     this.pushOverlay(new ViewContextOverlay(state));
   }

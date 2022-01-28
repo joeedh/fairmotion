@@ -3,9 +3,9 @@ import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';
 import * as util from '../path.ux/scripts/util/util.js';
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from './events.js';
 import {ModalStates} from '../core/toolops_api.js';
+import {HotKey, KeyMap} from '../path.ux/scripts/pathux.js';
+import {haveModal} from '../path.ux/scripts/pathux.js';
 
 export var _area_active_stacks = {}; //last active stacks for each area type
 export var _area_active_lasts = {};
@@ -41,7 +41,7 @@ export function resetAreaStacks() {
 primary app screen subclass
 */
 export class FairmotionScreen extends Screen {
-  ctx : FullContext;
+  ctx: FullContext;
 
   constructor() {
     super();
@@ -58,7 +58,42 @@ export class FairmotionScreen extends Screen {
 
   define_keymap() {
     this.keymap = new KeyMap("screen");
-    var k = this.keymap;
+
+    class FuncKeyHandler {
+      constructor(f) {
+        this.f = f;
+      }
+    }
+
+    let k = {
+      add_tool: (hotkey, tool) => {
+        tool = typeof tool === "object" && tool instanceof FuncKeyHandler ? tool.f : tool;
+
+        hotkey.uiname = ""+hotkey.action;
+        hotkey.action = tool;
+
+        this.keymap.add(hotkey);
+      },
+
+      add: (hotkey, action) => {
+        action = typeof action === "object" && action instanceof FuncKeyHandler ? action.f : action;
+
+        hotkey.uiname = ""+hotkey.action;
+        hotkey.action = action;
+
+        this.keymap.add(hotkey);
+      },
+
+      add_func: (hotkey, action) => {
+        action = typeof action === "object" && action instanceof FuncKeyHandler ? action.f : action;
+
+        hotkey.uiname = ""+hotkey.action;
+        hotkey.action = action;
+
+        this.keymap.add(hotkey);
+      },
+    };
+
 
     k.add_tool(new HotKey("O", ["CTRL"], "Open File"),
       "appstate.open()");
@@ -68,13 +103,13 @@ export class FairmotionScreen extends Screen {
       "appstate.save_as()");
     k.add_tool(new HotKey("S", ["CTRL"], "Save File"),
       "appstate.save()");
-    k.add_func(new HotKey("U", ["CTRL", "SHIFT"]), function() {
-       ("saving new startup file.");
+    k.add_func(new HotKey("U", ["CTRL", "SHIFT"]), function () {
+      ("saving new startup file.");
       g_app_state.set_startup_file();
     });
 
     k.add_tool(new HotKey("Left", ["CTRL"], "Previous Keyframe"),
-               "anim.nextprev(dir=-1)");
+      "anim.nextprev(dir=-1)");
     k.add_tool(new HotKey("Right", ["CTRL"], "Next Keyframe"),
       "anim.nextprev(dir=1)");
 
@@ -85,15 +120,15 @@ export class FairmotionScreen extends Screen {
       this.ctx.screen.stopPlayback();
     }));
 
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function (ctx: FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function (ctx: FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx : FullContext) {
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function (ctx: FullContext) {
       console.log("Undo");
       ctx.toolstack.undo();
     }));
@@ -118,41 +153,6 @@ export class FairmotionScreen extends Screen {
 
       yield km;
     }
-  }
-
-  on_keyup(e) {
-    if (g_app_state.eventhandler !== this)
-      return g_app_state.eventhandler.on_keyup(e);
-  }
-
-  on_keydown(e : Object) {
-    window._handle_key_exclude(e);
-    
-    if (g_app_state.eventhandler !== this)
-      return g_app_state.eventhandler.on_keydown(e);
-
-    if (this.keymap.process_event(this.ctx, e)) {
-      return;
-    }
-
-    let area = this.pickElement(this.mpos[0], this.mpos[1], undefined, undefined, Area);
-
-    if (area === undefined) {
-      return;
-    }
-
-    area.push_ctx_active();
-    var ret = false;
-
-    try {
-      ret = area.keymap.process_event(this.ctx, e);
-    } catch (error) {
-      print_stack(error);
-      console.log("Error executing hotkey");
-    }
-
-    area.pop_ctx_active();
-    return ret;
   }
 
   stopPlayback() {
@@ -194,8 +194,8 @@ export class FairmotionScreen extends Screen {
       let dt = util.time_ms() - this._lastFrameTime;
       let fps = scene.fps;
 
-      if (dt > 1000.0 / fps) {
-        scene.change_time(this.ctx, scene.time+1);
+      if (dt > 1000.0/fps) {
+        scene.change_time(this.ctx, scene.time + 1);
         this._lastFrameTime = util.time_ms();
       }
     }
@@ -207,9 +207,11 @@ export class FairmotionScreen extends Screen {
     the_global_dag.exec();
   }
 
-  static define() {return {
-    tagname : "fairmotion-screen-x"
-  };}
+  static define() {
+    return {
+      tagname: "fairmotion-screen-x"
+    };
+  }
 }
 
 FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
@@ -233,7 +235,7 @@ export class KeymapSet extends Array {
 }
 
 export class Editor extends Area {
-  canvases : Object;
+  canvases: Object;
 
   constructor() {
     super();
@@ -241,7 +243,7 @@ export class Editor extends Area {
     this.canvases = {};
   }
 
-  makeHeader(container : Container) {
+  makeHeader(container: Container) {
     return super.makeHeader(container);
   }
 
@@ -272,7 +274,7 @@ export class Editor extends Area {
     this.setCSS();
   }
 
-  getCanvas(id : string, zindex : number, patch_canvas2d_matrix=true, dpi_scale=1.0) {
+  getCanvas(id: string, zindex: number, patch_canvas2d_matrix = true, dpi_scale = 1.0) {
     let canvas;
     let dpi = ui_base.UIBase.getDPI();
 
@@ -296,14 +298,14 @@ export class Editor extends Area {
     }
 
     if (this.size !== undefined) {
-      let w = ~~(this.size[0] * dpi*dpi_scale);
-      let h = ~~(this.size[1] * dpi*dpi_scale);
+      let w = ~~(this.size[0]*dpi*dpi_scale);
+      let h = ~~(this.size[1]*dpi*dpi_scale);
 
       let sw = (w/dpi/dpi_scale) + "px";
       let sh = (h/dpi/dpi_scale) + "px";
 
       if (canvas.style["left"] !== "0px") {
-        canvas.style["left"] =  "0px";
+        canvas.style["left"] = "0px";
         canvas.style["top"] = "0px";
       }
 
@@ -333,7 +335,7 @@ export class Editor extends Area {
 
   }
 
-  data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
+  data_link(block: DataBlock, getblock: Function, getblock_us: Function) {
 
   }
 
@@ -346,18 +348,22 @@ export class Editor extends Area {
   }
 
   static active_area() {
-    let ret = _area_main_stack[_area_main_stack.length-1];
+    let ret = _area_main_stack[_area_main_stack.length - 1];
     if (ret === undefined) {
       ret = _last_area;
     }
 
     if (ret === undefined) {
-      return {getKeyMaps() { return []}};
+      return {
+        getKeyMaps() {
+          return []
+        }
+      };
     }
 
     return ret;
   }
-  
+
   static context_area(cls) {
     var stack = _get_area_stack(cls.name);
 
@@ -369,14 +375,18 @@ export class Editor extends Area {
 
   //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active
   static wrapContextEvent(f) {
-    return function(e) {
+    return function (e) {
+      if (haveModal()) {
+        return;
+      }
+
       this.push_ctx_active();
 
       try {
         f(e);
       } catch (error) {
         print_stack(error);
-        console.warn("Error executing area", e.type,"callback");
+        console.warn("Error executing area", e.type, "callback");
       }
 
       this.pop_ctx_active();

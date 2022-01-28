@@ -139,13 +139,14 @@ export class WidgetResizeOp extends TransformOp {
     widget.co = new Vector2(cent);
     
     widget.on_tick = function(ctx) {
-      /*if (g_app_state.modalstate == ModalStates.TRANSFORMING) {
+      /*if (g_app_state.modalstate === ModalStates.TRANSFORMING) {
         this.hide();
         return;
       } else {
         this.unhide();
       }*/
-  
+      this.checkDagLink(ctx);
+
       let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
       
       let update = false;
@@ -164,8 +165,8 @@ export class WidgetResizeOp extends TransformOp {
       let w2 = (minmax.max[0] - minmax.min[0])*0.5;
       let h2 = (minmax.max[1] - minmax.min[1])*0.5;
       
-      update = update || cx != this.co[0] || cy != this.co[1];
-      update = update || w2 != w || h2 != h;
+      update = update || cx !== this.co[0] || cy !== this.co[1];
+      update = update || w2 !== w || h2 !== h;
       
       if (update) {
         w = w2, h = h2;
@@ -328,7 +329,7 @@ export class WidgetRotateOp extends TransformOp {
     let h = (minmax.max[1] - minmax.min[1])*0.5;
     let len = 9;
     
-    if (w == 0  & h == 0) {
+    if (w === 0  & h === 0) {
       return;
     }
     
@@ -338,7 +339,7 @@ export class WidgetRotateOp extends TransformOp {
     widget.co = new Vector2(cent);
     
     widget.on_tick = function(ctx) {
-      /*if (g_app_state.modalstate == ModalStates.TRANSFORMING) {
+      /*if (g_app_state.modalstate === ModalStates.TRANSFORMING) {
         this.hide();
         return;
       } else {
@@ -363,8 +364,8 @@ export class WidgetRotateOp extends TransformOp {
       let w2 = (minmax.max[0] - minmax.min[0])*0.5;
       let h2 = (minmax.max[1] - minmax.min[1])*0.5;
       
-      update = update || cx != this.co[0] || cy != this.co[1];
-      update = update || w2 != w || h2 != h;
+      update = update || cx !== this.co[0] || cy !== this.co[1];
+      update = update || w2 !== w || h2 !== h;
       
       if (update) {
         this.co[0] = cx;
@@ -420,7 +421,7 @@ export class WidgetRotateOp extends TransformOp {
       let co = new Vector3(widget.co);
       
       if (!e.shiftKey) {
-        co[1] += id == 'b' ? h : -h;
+        co[1] += id === 'b' ? h : -h;
       }
       
       toolop.inputs.use_pivot.setValue(true);

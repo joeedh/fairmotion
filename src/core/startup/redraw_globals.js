@@ -1,8 +1,6 @@
 "not_a_module";
 
 window.init_redraw_globals_2 = function init_redraw_globals() {
-  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
-  let eman = eventmanager.manager;
 
   /*
   eman.addEventListener("draw", (e) => {
@@ -12,9 +10,7 @@ window.init_redraw_globals_2 = function init_redraw_globals() {
 };
 
 window.init_redraw_globals = function init_redraw_globals() {
-  //let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
-  //let eman = eventmanager.manager;
-  
+
   //let _req_idgen = 1;
 
   function myrequestAnimationFrame(func1) {

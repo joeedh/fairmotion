@@ -221,7 +221,33 @@ export class DataLib {
     this.idgen = new EIDGen();
     this._destroyed = undefined;
     this.lib_anim_idgen = new EIDGen();
+
+    for (let cls of BlockClasses) {
+      let def = cls.blockDefine();
+      let name = this.constructor.getAccessorKey(cls);
+
+      let typeId = def.typeIndex;
+
+      for (let k in BlockTypeMap) {
+        if (BlockTypeMap[k] === cls) {
+          typeId = k;
+        }
+      }
+
+      Object.defineProperty(this, name, {
+        get() {
+          return this.get_datalist(typeId);
+        }
+      });
+    }
   }
+
+  static getAccessorKey(cls) {
+    let def = cls.blockDefine();
+
+    return def.accessorName || def.typeName.toLowerCase();
+  }
+
 
   clear() {
     this.on_destroy();
@@ -280,18 +306,6 @@ export class DataLib {
     }
 
     return dl;
-  }
-
-  get images(): DataList<Scene> {
-    return this.get_datalist(DataTypes.IMAGE);
-  }
-
-  get scenes(): DataList<Scene> {
-    return this.get_datalist(DataTypes.SCENE);
-  }
-
-  get framesets(): DataList<SplineFrameSet> {
-    return this.get_datalist(DataTypes.FRAMESET);
   }
 
   //tries to completely kill a datablock,
@@ -498,13 +512,14 @@ export class DataBlock {
 
   static blockDefine() {
     return {
-      typeName   : "", //entries in DataTypes are upper-case versions of typeName
-      defaultName: "",
-      uiName     : "",
-      flag       : 0,
-      icon       : -1,
-      linkOrder  : undefined, //priority in file load linking, defaults to 10000
-      typeIndex  : -1, //for compatiblity with old api, must be defined
+      typeName    : "", //entries in DataTypes are upper-case versions of typeName
+      defaultName : "",
+      uiName      : "",
+      accessorName: undefined, //accessor name in DataLib, defaults to typeName.toLowerCase()
+      flag        : 0,
+      icon        : -1,
+      linkOrder   : undefined, //priority in file load linking, defaults to 10000
+      typeIndex   : -1, //for compatiblity with old api, must be defined
     }
   }
 

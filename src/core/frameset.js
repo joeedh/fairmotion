@@ -402,7 +402,8 @@ export class SplineFrameSet extends DataBlock {
     defaultName : "Frameset",
     uiName : "Frameset",
     typeIndex : 7,
-    linkOrder : 4
+    linkOrder : 4,
+    accessorName : "framesets",
   }}
 
   constructor() {

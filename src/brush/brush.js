@@ -11,12 +11,15 @@ export class Brush extends DataBlock {
 
   }
 
-  static blockDefine() {return {
-    typeName : "brush",
-    uiName : "Brush",
-    defaultName : "Brush",
-    typeIndex : 10
-  }}
+  static blockDefine() {
+    return {
+      typeName    : "brush",
+      uiName      : "Brush",
+      defaultName : "Brush",
+      typeIndex   : 10,
+      accessorName: "brushes",
+    }
+  }
 
   copyTo(b: Brush): void {
     b.flag = this.flag;

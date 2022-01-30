@@ -8,36 +8,39 @@ import * as strutils from '../util/strutils.js';
 import '../path.ux/scripts/util/vectormath.js';
 
 export var ImageFlags = {
-  SELECT : 1,
-  VALID  : 2
+  SELECT: 1,
+  VALID : 2
 };
 
 export class Image extends DataBlock {
-  path : string;
+  path: string;
 
-  constructor(name="Image") {
+  constructor(name = "Image") {
     super(DataTypes.IMAGE, name);
-    
+
     this.path = "";
     this.data = undefined;
     this.size = [-1, -1];
-    
+
     this._dom = undefined;
   }
 
-  static blockDefine() {return {
-    typeName : "image",
-    defaultName : "Image",
-    uiName : "Image",
-    typeIndex : 8,
-    linkOrder : 0
-  }}
+  static blockDefine() {
+    return {
+      typeName    : "image",
+      defaultName : "Image",
+      uiName      : "Image",
+      accessorName: "images",
+      typeIndex   : 8,
+      linkOrder   : 0
+    }
+  }
 
   get_dom_image() {
     if (this._dom == undefined) {
       var img = document.createElement("img");
       var mimetype = "image/png";
-      
+
       if (this.path != undefined) {
         var p = this.path.toLowerCase();
         if (p.endsWith(".jpg"))
@@ -49,14 +52,14 @@ export class Image extends DataBlock {
         else if (p.endsWith(".tif"))
           mimetype = "image/tiff";
       }
-      
+
       if (this.data != undefined) {
         img.src = strutils.encode_dataurl(mimetype, this.data);
       }
-      
+
       this._dom = img;
     }
-    
+
     return this._dom;
   }
 
@@ -89,9 +92,9 @@ Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
 DataBlock.register(Image);
 
 export class ImageUser {
-  off : Vector2
-  scale : Vector2
-  flag : number;
+  off: Vector2
+  scale: Vector2
+  flag: number;
 
   constructor() {
     this.off = new Vector2([0, 0]);
@@ -99,16 +102,16 @@ export class ImageUser {
     this.image = undefined;
     this.flag = 0;
   }
-  
-  data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
+
+  data_link(block: DataBlock, getblock: Function, getblock_us: Function) {
     this.image = getblock(this.image); //XXX should use getblock_us?
   }
-  
+
   static fromSTRUCT(reader) {
     var ret = new ImageUser();
-    
+
     reader(ret);
-    
+
     return ret;
   }
 }

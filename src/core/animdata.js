@@ -129,7 +129,7 @@ export class AnimKey extends DataPathWrapperNode {
       path = owner.dag_get_datapath();
     } else {
       var name = DataNames[owner.lib_type].toLowerCase();
-      path = "datalib." + name + ".items[" + owner.lib_id + "]";
+      path = "datalib.items[" + owner.lib_id + "]";
     }
     
     path += ".animkeys[" + this.id + "]";

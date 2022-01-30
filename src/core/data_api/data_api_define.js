@@ -1,6 +1,6 @@
 "use strict";
 import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
-import {DataTypes} from '../lib_api.js';
+import {BlockClasses, DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
@@ -1260,14 +1260,42 @@ export function makeAPI(api = new DataAPI()) {
   var DataLibStruct = api.mapStruct(DataLib, true);
 
   function api_define_DataLib(api) {
-    /*WARNING: failed to resolve a class: ctx.datalib.datalists.items[6] spline datalists.items[6] */
-    DataLibStruct.struct("datalists.items[6]", "spline", "undefined", undefined);
-    DataLibStruct.struct("datalists.items[7]", "frameset", "undefined", api.mapStruct(DataList, true));
-    DataLibStruct.struct("datalists.items[9]", "object", "undefined", api.mapStruct(DataList, true));
-    DataLibStruct.struct("datalists.items[13]", "collection", "undefined", api.mapStruct(DataList, true));
-    DataLibStruct.struct("datalists.items[5]", "scene", "undefined", api.mapStruct(DataList, true));
-    /*WARNING: failed to resolve a class: ctx.datalib.datalists.items[8] image datalists.items[8] */
-    DataLibStruct.struct("datalists.items[8]", "image", "undefined", undefined);
+    for (let cls of BlockClasses) {
+      DataLibStruct.struct(DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), api.mapStruct(DataList, true));
+    }
+
+    DataLibStruct.list("", "items", [
+      function getIter(api, datalib) {
+
+        return (function* () {
+          for (let list of datalib.datalists.values()) {
+            for (let dblock of list) {
+              yield dblock;
+            }
+          }
+        })();
+      },
+      function get(api, datalib, key) {
+        key = parseInt(key);
+        return datalib.idmap[key];
+      },
+      function getKey(api, datalib, obj) {
+        return obj.lib_id;
+      },
+      function getStruct(api, datalib, key) {
+        key = parseInt(key);
+        return api.mapStruct(datalib.idmap[key].constructor, false);
+      },
+      function getLength(api, datalib) {
+        let tot = 0;
+
+        for (let list of datalib.datalists.values()) {
+          tot += list.length;
+        }
+
+        return tot;
+      }
+    ]);
   }
 
   var DataListStruct = api.mapStruct(DataList, true);

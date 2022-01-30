@@ -104,10 +104,11 @@ export class Collection extends DataBlock {
 
   static blockDefine() {
     return {
-      typeName   : "collection",
-      uiName     : "collection",
-      defaultName: "collection",
-      typeIndex  : 13
+      typeName    : "collection",
+      uiName      : "collection",
+      defaultName : "collection",
+      typeIndex   : 13,
+      accessorName: "collections",
     }
   }
 }

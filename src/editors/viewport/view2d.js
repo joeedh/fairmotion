@@ -279,21 +279,21 @@ export class View2DHandler extends Editor {
       g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
     }));
 
-    k.add(new HotKey("Right", [], "", function (ctx: FullContext) {
+    k.add(new HotKey("Right", [], function (ctx: FullContext) {
       console.log("Frame Change!", ctx.scene.time + 1);
       ctx.scene.change_time(ctx, ctx.scene.time + 1);
 
       window.redraw_viewport();
       //var tool = new FrameChangeOp(ctx.scene.time+1);
-    }));
+    }, "Next Frame"));
 
-    k.add(new HotKey("Left", [], "", function (ctx: FullContext) {
+    k.add(new HotKey("Left", [], function (ctx: FullContext) {
       console.log("Frame Change!", ctx.scene.time - 1);
       ctx.scene.change_time(ctx, ctx.scene.time - 1);
 
       window.redraw_viewport();
       //var tool = new FrameChangeOp(ctx.scene.time-1);
-    }));
+    }, "Previous Frame"));
 
     /*k.add(new HotKey("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
       console.log("Toggling frame debug")

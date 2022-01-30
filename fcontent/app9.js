@@ -1604,7 +1604,7 @@ es6_module_define('spline_createops', ["../../curve/spline_types.js", "../../pat
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
 
 
-es6_module_define('spline_editops', ["../../core/toolprops.js", "../../path.ux/scripts/util/struct.js", "../../curve/spline_types.js", "../../curve/spline_draw.js", "../../core/context.js", "../../core/toolops_api.js", "./transform.js", "../../core/animdata.js", "../../curve/spline.js", "../../core/frameset.js", "../../curve/spline_base.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/animdata.js", "../../core/toolops_api.js", "../../curve/spline_base.js", "../../core/toolprops.js", "./transform.js", "../../path.ux/scripts/util/struct.js", "../../curve/spline.js", "../../core/context.js", "../../curve/spline_draw.js", "../../curve/spline_types.js", "../../core/frameset.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -2083,9 +2083,9 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../path.ux/s
   class ChangeFaceZ extends SplineLocalToolOp {
      constructor(offset, selmode) {
       super(undefined);
-      if (offset!=undefined)
+      if (offset!==undefined)
         this.inputs.offset.setValue(offset);
-      if (selmode!=undefined)
+      if (selmode!==undefined)
         this.inputs.selmode.setValue(selmode);
     }
     static  tooldef() {
@@ -2103,8 +2103,8 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../path.ux/s
     }
      exec(ctx) {
       var spline=ctx.spline;
-      var off=this.inputs.offset.data;
-      var selmode=this.inputs.selmode.data;
+      var off=this.inputs.offset.getValue();
+      var selmode=this.inputs.selmode.getValue();
       if (isNaN(off))
         off = 0.0;
       console.log("change face z! selmode:", selmode, "off", off);
@@ -3014,7 +3014,7 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../path.ux/s
 }, '/dev/fairmotion/src/editors/viewport/spline_editops.js');
 
 
-es6_module_define('spline_layerops', ["../../curve/spline.js", "../../core/toolprops.js", "./spline_editops.js", "../../core/toolops_api.js", "../../curve/spline_types.js"], function _spline_layerops_module(_es6_module) {
+es6_module_define('spline_layerops', ["./spline_editops.js", "../../curve/spline.js", "../../core/toolops_api.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
@@ -3034,7 +3034,7 @@ es6_module_define('spline_layerops', ["../../curve/spline.js", "../../core/toolp
       return {inputs: ToolOp.inherit({spline_path: new StringProperty("frameset.drawspline")})}
     }
      get_spline(ctx) {
-      return ctx.api.getValue(this.inputs.spline_path.data);
+      return ctx.api.getValue(ctx, this.inputs.spline_path.data);
     }
   }
   _ESClass.register(SplineLayerOp);
@@ -3090,7 +3090,7 @@ es6_module_define('spline_layerops', ["../../curve/spline.js", "../../core/toolp
       var spline=this.get_spline(ctx);
       var actives=[];
       for (var list of spline.elists) {
-          actives.push(list.active!=undefined ? list.active.eid : -1);
+          actives.push(list.active!==undefined ? list.active.eid : -1);
       }
       this._undo = {id: this.get_spline(ctx).layerset.active.id, 
      actives: actives};
@@ -4593,7 +4593,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "./selectmode.js", "
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
 
 
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/widgets/ui_table.js", "../../core/toolprops.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../editor_base.js", "../viewport/spline_layerops.js", "../viewport/spline_editops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js", "../../core/struct.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../../path.ux/scripts/screen/ScreenArea.js", "../viewport/spline_editops.js", "../../path.ux/scripts/widgets/ui_table.js", "../../core/toolprops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_layerops.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -4939,7 +4939,7 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js
      strokePanel(tabs) {
       let panel=tabs.tab("Stroke");
       var ctx=this.ctx;
-      let set_prefix=`spline.segments[{$.editable}]`;
+      let set_prefix=`spline.editable_segments[{$.flag & 1}]`;
       let panel2=panel.panel("Stroke Color");
       panel2.prop("spline.active_segment.mat.strokecolor", undefined, set_prefix+".mat.strokecolor");
       panel.prop("spline.active_segment.mat.linewidth", undefined, set_prefix+".mat.linewidth");
@@ -4967,7 +4967,7 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js
      vertexPanel(tabs) {
       let ctx=this.ctx;
       let tab=tabs.tab("Control Point");
-      let set_prefix="spline.verts[{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}]";
+      let set_prefix="spline.editable_verts[{$.flag & 1}]";
       let panel=tab.panel("Vertex");
       panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix+".flag[BREAK_TANGENTS]");
       panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix+".flag[BREAK_CURVATURES]");
@@ -8129,8 +8129,9 @@ es6_module_define('app_ops', ["../util/strutils.js", "../../platforms/platform.j
 }, '/dev/fairmotion/src/editors/app_ops.js');
 
 
-es6_module_define('editor_base', ["../core/toolops_api.js", "../core/context.js", "../path.ux/scripts/screen/ScreenArea.js", "../core/struct.js", "../path.ux/scripts/pathux.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/util/util.js"], function _editor_base_module(_es6_module) {
+es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../core/context.js", "../path.ux/scripts/util/util.js", "../core/struct.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/pathux.js", "../core/toolops_api.js"], function _editor_base_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
+  var contextWrangler=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'contextWrangler');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -8140,29 +8141,8 @@ es6_module_define('editor_base', ["../core/toolops_api.js", "../core/context.js"
   var HotKey=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'HotKey');
   var KeyMap=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'KeyMap');
   var haveModal=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'haveModal');
-  var _area_active_stacks={}
-  _area_active_stacks = _es6_module.add_export('_area_active_stacks', _area_active_stacks);
-  var _area_active_lasts={}
-  _area_active_lasts = _es6_module.add_export('_area_active_lasts', _area_active_lasts);
-  var _area_main_stack=[];
-  _area_main_stack = _es6_module.add_export('_area_main_stack', _area_main_stack);
-  var _last_area=undefined;
-  function _get_area_stack(cls) {
-    var h=cls.name;
-    if (!(h in _area_active_stacks)) {
-        _area_active_stacks[h] = new Array();
-    }
-    return _area_active_stacks[h];
-  }
   function resetAreaStacks() {
-    _area_main_stack.length = 0;
-    for (let k in _area_active_lasts) {
-        _area_active_lasts[k].length = 0;
-    }
-    for (let k in _area_active_stacks) {
-        _area_active_stacks[k].length = 0;
-    }
-    _last_area = undefined;
+    contextWrangler.reset();
   }
   resetAreaStacks = _es6_module.add_export('resetAreaStacks', resetAreaStacks);
   class FairmotionScreen extends Screen {
@@ -8392,23 +8372,10 @@ es6_module_define('editor_base', ["../core/toolops_api.js", "../core/context.js"
       return this.active_area();
     }
     static  active_area() {
-      let ret=_area_main_stack[_area_main_stack.length-1];
-      if (ret===undefined) {
-          ret = _last_area;
-      }
-      if (ret===undefined) {
-          return {getKeyMaps: function getKeyMaps() {
-              return [];
-            }}
-      }
-      return ret;
+      return contextWrangler.getLastArea(this);
     }
     static  context_area(cls) {
-      var stack=_get_area_stack(cls.name);
-      if (stack.length===0)
-        return _area_active_lasts[cls.name];
-      else 
-        return stack[stack.length-1];
+      return contextWrangler.getLastArea(cls);
     }
     static  wrapContextEvent(f) {
       return function (e) {
@@ -8426,29 +8393,11 @@ es6_module_define('editor_base', ["../core/toolops_api.js", "../core/context.js"
         this.pop_ctx_active();
       }
     }
-     push_ctx_active(ctx) {
-      var stack=_get_area_stack(this.constructor);
-      stack.push(this);
-      _area_active_lasts[this.constructor.name] = this;
-      _area_main_stack.push(_last_area);
-      _last_area = this;
+     push_ctx_active(dontSetLastRef=false) {
+      super.push_ctx_active(dontSetLastRef);
     }
-     pop_ctx_active(ctx) {
-      let cls=this.constructor;
-      var stack=_get_area_stack(cls);
-      if (stack.length===0||stack[stack.length-1]!==this) {
-          console.trace();
-          console.log("Warning: invalid Area.pop_active() call");
-          return ;
-      }
-      stack.pop();
-      if (stack.length>0) {
-          _area_active_lasts[cls.name] = stack[stack.length-1];
-      }
-      let area=_area_main_stack.pop();
-      if (area!==undefined) {
-          _last_area = area;
-      }
+     pop_ctx_active(dontSetLastRef=false) {
+      super.pop_ctx_active(dontSetLastRef);
     }
   }
   _ESClass.register(Editor);
@@ -9014,7 +8963,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
 
 
-es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", "../editor_base.js", "../../core/imageblock.js", "./toolmodes/all.js", "../../core/eventdag.js", "../../core/struct.js", "../../path.ux/scripts/pathux.js", "./manipulator.js", "./view2d_ops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/screen/ScreenArea.js", "./selectmode.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/core/ui.js", "./view2d_spline_ops.js", "./toolmodes/pentool.js", "../../core/context.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["./toolmodes/pentool.js", "../../path.ux/scripts/util/util.js", "../../core/eventdag.js", "./view2d_ops.js", "../../path.ux/scripts/pathux.js", "./view2d_editor.js", "../../core/imageblock.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "./toolmodes/all.js", "./manipulator.js", "../../path.ux/scripts/core/ui.js", "../../core/toolops_api.js", "./selectmode.js", "../../core/struct.js", "./view2d_spline_ops.js", "../../core/context.js", "../../path.ux/scripts/widgets/ui_menu.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var SessionFlags=es6_import_item(_es6_module, './view2d_editor.js', 'SessionFlags');
@@ -9129,6 +9078,7 @@ es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", 
       this._graphNode = undefined;
       this.propradius = 35;
       this._last_toolmode = undefined;
+      this.draw_stroke_debug = false;
       this._last_mpos = new Vector2();
       this.dpi_scale = 1.0;
       this._last_rendermat = new Matrix4();
@@ -9648,6 +9598,7 @@ es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", 
       strip.prop("spline.verts.active.flag[BREAK_TANGENTS]", undefined, mass_set_path+".flag[BREAK_TANGENTS]");
       strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path+".flag[BREAK_CURVATURES]");
       strip.prop("view2d.half_pix_size");
+      strip.prop("view2d.draw_stroke_debug");
       strip = row.strip();
       strip.tool("spline.split_pick_edge()");
       strip.tool("spline.stroke()");
@@ -10017,9 +9968,9 @@ es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", 
   irendermat      : mat4;
   half_pix_size   : bool;
   cameramat       : mat4;
-  only_render     : int;
-  draw_anim_paths : int;
-  draw_normals    : int;
+  only_render     : bool;
+  draw_anim_paths : bool;
+  draw_normals    : bool;
   editors         : array(abstract(View2DEditor));
   editor          : int | obj.editors.indexOf(obj.editor);
   zoom            : float;
@@ -10028,15 +9979,16 @@ es6_module_define('view2d', ["../../core/toolops_api.js", "./view2d_editor.js", 
   default_stroke    : vec4;
   default_fill      : vec4;
   extrude_mode      : int;
-  enable_blur       : int;
-  draw_faces        : int;
-  draw_video        : int;
+  enable_blur       : bool;
+  draw_faces        : bool;
+  draw_video        : bool;
   pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
   background_image  : ImageUser;
   background_color  : vec3;
   draw_bg_image     : int;
   toolmode          : int;
-  draw_small_verts  : int;
+  draw_small_verts  : bool;
+  draw_stroke_debug : bool;
 }
 `;
   Editor.register(View2DHandler);

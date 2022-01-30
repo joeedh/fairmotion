@@ -577,7 +577,7 @@ es6_module_define('view2d_ops', ["../../core/toolprops.js", "../../core/frameset
 }, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
 
 
-es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_editor.js", "./transform.js", "../../core/toolops_api.js", "../../core/animdata.js", "./spline_editops.js", "./selectmode.js", "../../curve/spline_draw.js", "../../path.ux/scripts/screen/ScreenArea.js", "./spline_selectops.js", "../../curve/spline_types.js", "../../core/struct.js", "../../curve/spline.js", "./view2d_base.js", "./spline_createops.js", "./transform_ops.js", "../events.js"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["../events.js", "./transform_ops.js", "../../curve/spline_types.js", "../../path.ux/scripts/screen/ScreenArea.js", "./transform.js", "./view2d_editor.js", "./spline_selectops.js", "./spline_editops.js", "../../core/animdata.js", "../../core/toolops_api.js", "./selectmode.js", "./view2d_base.js", "../../core/lib_api.js", "../../core/struct.js", "./spline_createops.js", "../../curve/spline_draw.js", "../../curve/spline.js"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, './spline_createops.js', 'ExtrudeVertOp');
   var DeleteVertOp=es6_import_item(_es6_module, './spline_editops.js', 'DeleteVertOp');
@@ -812,7 +812,7 @@ es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_edito
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
   var EditorTypes=es6_import_item(_es6_module, './view2d_base.js', 'EditorTypes');
-  var $ops_fCqh_tools_menu;
+  var $ops_vP9R_tools_menu;
   class SplineEditor extends View2DEditor {
     
     
@@ -904,8 +904,8 @@ es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_edito
     }
      define_keymap() {
       var k=this.keymap;
-      k.add_tool(new HotKey("PageUp", [], "Send Face Up"), "spline.change_face_z(offset=1, selmode='selectmode')");
-      k.add_tool(new HotKey("PageDown", [], "Send Face Down"), "spline.change_face_z(offset=-1, selmode='selectmode')");
+      k.add_tool(new HotKey("PageUp", [], "Send Face Up"), "spline.change_face_z(offset=1 selmode='selectmode')");
+      k.add_tool(new HotKey("PageDown", [], "Send Face Down"), "spline.change_face_z(offset=-1 selmode='selectmode')");
       k.add_tool(new HotKey("G", [], "Translate"), "spline.translate(datamode='selectmode')");
       k.add_tool(new HotKey("S", [], "Scale"), "spline.scale(datamode='selectmode')");
       k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"), "spline.shift_time()");
@@ -984,7 +984,7 @@ es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_edito
       return false;
     }
      tools_menu(ctx, mpos, view2d) {
-      var menu=view2d.toolop_menu(ctx, "Tools", $ops_fCqh_tools_menu);
+      var menu=view2d.toolop_menu(ctx, "Tools", $ops_vP9R_tools_menu);
       view2d.call_menu(menu, view2d, mpos);
     }
      on_inactive(view2d) {
@@ -1196,7 +1196,7 @@ es6_module_define('view2d_spline_ops', ["../../core/lib_api.js", "./view2d_edito
       view2d.call_menu(menu, view2d, [event.x, event.y]);
     }
   }
-  var $ops_fCqh_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $ops_vP9R_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
   _ESClass.register(SplineEditor);
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
@@ -4399,7 +4399,7 @@ import {DataLib, DataBlock, DataList} from "../lib_api.js";
 }, '/dev/fairmotion/src/core/data_api/data_api_define.js');
 
 
-es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveEditor.js", "../../editors/ops/ops_editor.js", "../toolops_api.js", "../../curve/spline.js", "../../scene/sceneobject.js", "../lib_api.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../../editors/settings/SettingsEditor.js", "../UserSettings.js", "../../editors/viewport/selectmode.js", "../units.js", "../../editors/dopesheet/DopeSheetEditor.js", "../toolprops.js", "../../editors/viewport/view2d_base.js", "../../scene/scene.js", "../frameset.js", "../imageblock.js", "../../curve/spline_base.js", "../../curve/spline_element_array.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_types.js", "../../editors/viewport/toolmodes/splinetool.js", "./data_api.js", "../context.js", "../../editors/viewport/toolmodes/toolmode.js"], function _data_api_new_module(_es6_module) {
+es6_module_define('data_api_new', ["../context.js", "../../editors/viewport/selectmode.js", "../../editors/settings/SettingsEditor.js", "../../scene/scene.js", "../toolprops.js", "../../editors/curve/CurveEditor.js", "../../curve/spline_base.js", "../../path.ux/scripts/pathux.js", "../toolops_api.js", "./data_api.js", "../../editors/ops/ops_editor.js", "../frameset.js", "../UserSettings.js", "../animdata.js", "../../editors/viewport/view2d.js", "../../curve/spline.js", "../lib_api.js", "../../scene/sceneobject.js", "../../editors/dopesheet/DopeSheetEditor.js", "../imageblock.js", "../../curve/spline_types.js", "../../editors/viewport/spline_createops.js", "../../curve/spline_element_array.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/view2d_base.js", "../units.js", "../../editors/viewport/toolmodes/splinetool.js"], function _data_api_new_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -4527,7 +4527,10 @@ es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveE
      ROTATE: Icons.ROTATE, 
      PEN: Icons.PEN_TOOL});
       View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points").icon(Icons.DRAW_SMALL_VERTS);
-      View2DHandlerStruct.enum("selectmode", "selectmode", SelMask, "Selection Mode").uiNames({VERTEX: "Vertex", 
+      View2DHandlerStruct.enum("selectmode", "selectmode", {VERTEX: SelMask.VERTEX, 
+     SEGMENT: SelMask.SEGMENT, 
+     FACE: SelMask.FACE, 
+     OBJECT: SelMask.OBJECT}, "Selection Mode").uiNames({VERTEX: "Vertex", 
      SEGMENT: "Segment", 
      FACE: "Face", 
      OBJECT: "Object"}).descriptions({VERTEX: "Vertex", 
@@ -4537,10 +4540,17 @@ es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveE
      SEGMENT: Icons.EDGE_MODE, 
      FACE: Icons.FACE_MODE, 
      OBJECT: Icons.OBJECT_MODE, 
-     HANDLE: Icons.SHOW_HANDLES}).customSet(function (prop, val) {
-        console.log("selmask_enum.userSetData", this, prop, val);
-        this.selectmode = val|(this.selectmode&SelMask.HANDLE);
-        return this.selectmode;
+     HANDLE: Icons.SHOW_HANDLES}).customGetSet(function () {
+        return this.ctx.scene.selectmode;
+      }, function (val) {
+        let scene=this.ctx.scene;
+        console.log("selmask_enum.userSetData", scene, val);
+        scene.selectmode = val|(scene.selectmode&SelMask.HANDLE);
+      });
+      View2DHandlerStruct.bool("draw_stroke_debug", "draw_stroke_debug", "Stroke Debug").on('change', function () {
+        this.ctx.spline.regen_sort();
+        this.ctx.spline.regen_render();
+        window.redraw_viewport();
       });
       View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames({VERTEX: "Vertex", 
      HANDLE: "Handle", 
@@ -4986,38 +4996,19 @@ es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveE
         }
         return ok;
       });
-      SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (segment) {
-          g_app_state.ctx.spline.regen_sort();
-          segment.mat.update();
-          segment.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
-      });
-      SplineSegmentStruct.float("w2", "w2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (segment) {
-          g_app_state.ctx.spline.regen_sort();
-          segment.mat.update();
-          segment.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
-      });
-      SplineSegmentStruct.float("shift1", "shift1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (segment) {
-          g_app_state.ctx.spline.regen_sort();
-          segment.mat.update();
-          segment.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
-      });
-      SplineSegmentStruct.float("shift2", "shift2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        return (function (segment) {
-          g_app_state.ctx.spline.regen_sort();
-          segment.mat.update();
-          segment.flag|=SplineFlags.REDRAW;
-          window.redraw_viewport();
-        }).call(this.dataref, old);
-      });
+      let segment_update=function () {
+        let segment=this.dataref;
+        segment.mat.update();
+        segment.flag|=SplineFlags.REDRAW;
+        segment.v1.flag|=SplineFlags.REDRAW;
+        segment.v2.flag|=SplineFlags.REDRAW;
+        g_app_state.ctx.spline.regen_sort();
+        window.redraw_viewport();
+      }
+      SplineSegmentStruct.float("w1", "w1", "w1").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4).on("change", segment_update);
+      SplineSegmentStruct.float("w2", "w2", "w2").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4).on("change", segment_update);
+      SplineSegmentStruct.float("shift1", "shift1", "shift1").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4).on("change", segment_update);
+      SplineSegmentStruct.float("shift2", "shift2", "shift2").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4).on("change", segment_update);
       SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
       SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({SELECT: "Select", 
      BREAK_TANGENTS: "Break Tangents", 
@@ -5059,12 +5050,10 @@ es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveE
      32: Icons.EXTRUDE_MODE_G1, 
      BREAK_TANGENTS: Icons.EXTRUDE_MODE_G0, 
      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1}).on("change", function (old) {
-        return (function (segment) {
-          new Context().spline.regen_sort();
-          segment.flag|=SplineFlags.REDRAW;
-          console.log(segment);
-          window.redraw_viewport();
-        }).call(this.dataref, old);
+        let segment=this.dataref;
+        segment.flag|=SplineFlags.REDRAW;
+        this.ctx.spline.regen_sort();
+        window.redraw_viewport();
       });
       SplineSegmentStruct.bool("renderable", "renderable", "renderable");
       SplineSegmentStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
@@ -5125,7 +5114,7 @@ es6_module_define('data_api_new', ["../animdata.js", "../../editors/curve/CurveE
         this.dataref.flag|=SplineFlags.REDRAW;
         window.redraw_viewport();
       });
-      SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      SplineVertexStruct.float("shift", "shift", "shift").range(-5, 5).noUnits().step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
         this.dataref.flag|=SplineFlags.REDRAW;
         window.redraw_viewport();
       });

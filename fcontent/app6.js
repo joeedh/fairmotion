@@ -3113,7 +3113,7 @@ es6_module_define('pentool', ["../transform_ops.js", "../../../core/context.js",
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
 
 
-es6_module_define('splinetool', ["../../../curve/spline_types.js", "../spline_editops.js", "../spline_createops.js", "../spline_selectops.js", "../transform_ops.js", "../selectmode.js", "../../../curve/spline_draw.js", "../../../core/toolops_api.js", "../transform.js", "../../../path.ux/scripts/util/util.js", "../view2d_ops.js", "../view2d_editor.js", "./toolmode.js", "../../../path.ux/scripts/pathux.js", "../../../path.ux/scripts/core/ui_base.js", "../../../core/context.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../core/toolops_api.js", "../view2d_editor.js", "../transform.js", "../selectmode.js", "./toolmode.js", "../../../core/context.js", "../../../path.ux/scripts/util/util.js", "../../../path.ux/scripts/pathux.js", "../../../path.ux/scripts/core/ui_base.js", "../transform_ops.js", "../spline_createops.js", "../../../curve/spline_types.js", "../spline_editops.js", "../spline_selectops.js", "../../../curve/spline_draw.js", "../view2d_ops.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -3244,7 +3244,7 @@ es6_module_define('splinetool', ["../../../curve/spline_types.js", "../spline_ed
           g_app_state.toolstack.exec_tool(op);
         }
       }
-      this.keymap = new KeyMap([new HotKey("PageUp", [], "spline.change_face_z(offset=1, selmode='selectmode')|Move Up"), new HotKey("PageDown", [], "spline.change_face_z(offset=-1, selmode='selectmode')|Move Down"), new HotKey("G", [], "spline.translate(datamode='selectmode')"), new HotKey("S", [], "spline.scale(datamode='selectmode')"), new HotKey("R", [], "spline.rotate(datamode='selectmode')"), new HotKey("S", ["SHIFT"], "spline.shift_time()"), new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"), new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"), new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"), new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"), new HotKey("G", [], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"), new HotKey("G", [], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"), new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"), new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"), new HotKey("X", [], del_tool, "Delete"), new HotKey("Delete", [], del_tool, "Delete"), new HotKey("Backspace", [], del_tool, "Delete"), new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"), new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"), new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"), new HotKey("E", [], "spline.split_edges()|Split Segments"), new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"), new HotKey("C", [], "view2d.circle_select()|Circle Select"), new HotKey("Z", [], function (ctx) {
+      this.keymap = new KeyMap([new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Move Up"), new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Move Down"), new HotKey("G", [], "spline.translate(datamode='selectmode')"), new HotKey("S", [], "spline.scale(datamode='selectmode')"), new HotKey("R", [], "spline.rotate(datamode='selectmode')"), new HotKey("S", ["SHIFT"], "spline.shift_time()"), new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"), new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"), new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"), new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"), new HotKey("G", [], "spline.hide(selmode='selectmode' ghost=1)|Ghost Selection"), new HotKey("G", [], "spline.unhide(selmode='selectmode' ghost=1)|Unghost Selection"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"), new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"), new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"), new HotKey("X", [], del_tool, "Delete"), new HotKey("Delete", [], del_tool, "Delete"), new HotKey("Backspace", [], del_tool, "Delete"), new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"), new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"), new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"), new HotKey("E", [], "spline.split_edges()|Split Segments"), new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"), new HotKey("C", [], "view2d.circle_select()|Circle Select"), new HotKey("Z", [], function (ctx) {
         console.warn("ZKEY", arguments, this);
         ctx.view2d.only_render^=1;
         window.redraw_viewport();
@@ -7622,7 +7622,7 @@ SplineElement {
 }, '/dev/fairmotion/src/curve/spline_base.js');
 
 
-es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pathux.js", "./spline_base", "../core/eventdag.js", "../core/toolprops_iter.js", "../util/bezier.js", "../wasm/native_api.js", "../core/struct.js", "../core/toolprops.js", "./spline_math.js", "./spline_multires.js", "../config/config.js", "./spline_base.js", "../editors/viewport/selectmode.js", "./bspline.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../path.ux/scripts/pathux.js", "./spline_math.js", "../core/toolprops_iter.js", "../core/eventdag.js", "../config/config.js", "../wasm/native_api.js", "../core/struct.js", "./spline_base.js", "../editors/viewport/selectmode.js", "../util/bezier.js", "../util/mathlib.js", "./spline_multires.js", "./spline_base", "../core/toolprops.js", "./bspline.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -8035,6 +8035,9 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
   let __angle_temp=cachering.fromConstructor(Vector2, 64);
   let bstmp1=new Array(32);
   let bstmp2=new Array(32);
+  let bstmp3=new Array(32);
+  let bstmpb=[0, 0];
+  let shiftout=[0];
   class SplineSegment extends SplineElement {
     
     
@@ -8106,6 +8109,8 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       return 0.0;
     }
      shift(s) {
+      this.width(s, shiftout);
+      return shiftout[0];
       s = s*s*(3.0-2.0*s);
       let ret=this.shift1+(this.shift2-this.shift1)*s;
       return ret;
@@ -8141,8 +8146,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
      widthFunction(s) {
       return s;
     }
-     width2(s) {
-      let this2=this;
+     width(s, outShift) {
       let seg=this;
       let v;
       let len;
@@ -8154,7 +8158,9 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
         }
         len = seg.length;
         len = Math.max(len, 0.0001);
-        return (v===seg.v1 ? seg.w1 : seg.w2)*seg.mat.linewidth;
+        bstmpb[0] = (v===seg.v1 ? seg.w1 : seg.w2)*seg.mat.linewidth;
+        bstmpb[1] = v===seg.v1 ? seg.shift1 : seg.shift2;
+        return bstmpb;
       }
       v = this.v1;
       seg = this;
@@ -8162,28 +8168,31 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       l3 = Math.max(seg.length, 0.0001);
       l4 = l3;
       let w3=this.w1*this.mat.linewidth;
-      let w2=walk();
+      let s3=this.shift1;
+      let $_t0aibs=walk(), w2=$_t0aibs[0], s2=$_t0aibs[1];
       l2 = len;
-      let w1=walk();
+      let $_t1gatq=walk(), w1=$_t1gatq[0], s1=$_t1gatq[1];
       l1 = len;
-      let w0=walk();
+      let $_t2smlg=walk(), w0=$_t2smlg[0], s0=$_t2smlg[1];
       l0 = len;
-      let w0b=walk();
+      let $_t3ldkn=walk(), w0b=$_t3ldkn[0], s0b=$_t3ldkn[1];
       l0b = len;
       seg = this;
       v = this.v2;
       let w4=this.w2*this.mat.linewidth;
-      let w5=walk();
+      let s4=this.shift2;
+      let $_t4egsg=walk(), w5=$_t4egsg[0], s5=$_t4egsg[1];
       l5 = len;
-      let w6=walk();
+      let $_t5uelh=walk(), w6=$_t5uelh[0], s6=$_t5uelh[1];
       l6 = len;
-      let w7=walk();
+      let $_t6nrbd=walk(), w7=$_t6nrbd[0], s7=$_t6nrbd[1];
       l7 = len;
-      let w8=walk();
+      let $_t7biut=walk(), w8=$_t7biut[0], s8=$_t7biut[1];
       l8 = len;
       seg = this;
       let ks=bstmp1;
       let ws=bstmp2;
+      let ss=bstmp3;
       bstmp1.length = 5;
       bstmp2.length = 5;
       ks[0] = -l0-l1-l2;
@@ -8201,46 +8210,23 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       ws[4] = w6;
       ws[5] = w7;
       ws[6] = w8;
+      ss[0] = s2;
+      ss[1] = s3;
+      ss[2] = s4;
+      ss[3] = s5;
+      ss[4] = s6;
+      ss[5] = s7;
+      ss[6] = s8;
       if (l4===0.0) {
           return 0.0;
       }
       s*=l4;
-      let sum=0.0;
-      sum = bspline.deBoor(3, s, ks, ws, 3);
-      for (let i=0; i<0; i++) {
-          let w=bspline.basis(s, i, 3, ks, true);
-          if (isNaN(w)) {
-              console.warn(ks, ws);
-              throw new Error("NaN");
-          }
-          sum+=w*ws[i];
+      if (outShift) {
+          outShift[0] = bspline.deBoor(3, s, ks, ss, 3);
       }
-      return sum;
-      return w3+(w4-w3)*s;
-      return (w2*k2+w3*k3+w4*k4+w5*k5)/(k2+k3+k4+k5);
-      let d1=(w4-w2)/l2/(l2+l3)*0.5;
-      let d2=(w5-w3)/l5/(l4+l5)*0.5;
-      d1/=3.0;
-      d2/=3.0;
-      return bez4(w3, w3+d1, w4-d2, w4, s);
-    }
-     width(s) {
-      return this.width2(s);
-      s = this.widthFunction(s);
-      let wid1=this.mat.linewidth;
-      let wid2=this.mat.linewidth;
-      if (this.v1.segments.length===2) {
-          wid1+=(this.v1.other_segment(this).mat.linewidth*0.5+wid1*0.5-wid1)*(1.0-s);
-      }
-      if (this.v2.segments.length===2) {
-          wid2+=(this.v2.other_segment(this).mat.linewidth*0.5+wid2*0.5-wid2)*s;
-      }
-      wid1*=this.w1;
-      wid2*=this.w2;
-      return wid1+(wid2-wid1)*s;
+      return bspline.deBoor(3, s, ks, ws, 3);
     }
      _material_update() {
-      console.warn("segment material update!");
       this.flag|=SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
       this.v1.flag|=SplineFlags.UPDATE;
       this.v2.flag|=SplineFlags.UPDATE;
@@ -8642,7 +8628,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       }
       eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
       var k=spiralcurvature(s, this.ks, order);
-      return k/(1e-05+this.ks[KSCALE]);
+      return k/(1e-07+this.ks[KSCALE]);
     }
      curvature_dv(s, order, override_scale) {
       if (order===undefined)
@@ -8712,6 +8698,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       return k;
     }
      evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
+      s = Math.min(Math.max(s, 0.02), 0.98);
       if (this.flag&SplineFlags.COINCIDENT) {
           if (dv_out) {
               dv_out[0] = dv_out[1] = 0.0;
@@ -8724,7 +8711,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
           }
           return evaluateSide_rets.next().load(this.v1);
       }
-      side = -(side*2.0-1.0);
+      side = side ? 1.0 : -1.0;
       let co=evaluateSide_rets.next().load(this.evaluate(s));
       let dv=this.derivative(s);
       let shift=this.shift(s)*side;
@@ -8934,7 +8921,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_J985_update_winding;
+  var $cent_7os7_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -8950,14 +8937,14 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_J985_update_winding.zero();
+      $cent_7os7_update_winding.zero();
       for (var l of this) {
-          $cent_J985_update_winding.add(l.v);
+          $cent_7os7_update_winding.add(l.v);
       }
-      $cent_J985_update_winding.mulScalar(1.0/this.totvert);
+      $cent_7os7_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_J985_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_7os7_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -8988,7 +8975,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       return ret;
     }
   }
-  var $cent_J985_update_winding=new Vector3();
+  var $cent_7os7_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -8999,7 +8986,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
     winding : int;
   }
 `;
-  var $minmax_CmSx_update_aabb;
+  var $minmax_cmWW_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -9022,17 +9009,17 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_CmSx_update_aabb.reset();
+      $minmax_cmWW_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_CmSx_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_CmSx_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_CmSx_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_CmSx_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_cmWW_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_cmWW_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_cmWW_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_cmWW_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_CmSx_update_aabb.min);
-      this._aabb[1].load($minmax_CmSx_update_aabb.max);
+      this._aabb[0].load($minmax_cmWW_update_aabb.min);
+      this._aabb[1].load($minmax_cmWW_update_aabb.max);
     }
     get  aabb() {
       if (this.flag&SplineFlags.UPDATE_AABB)
@@ -9049,7 +9036,7 @@ es6_module_define('spline_types', ["../util/mathlib.js", "../path.ux/scripts/pat
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_CmSx_update_aabb=new MinMax(3);
+  var $minmax_cmWW_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
@@ -9424,7 +9411,7 @@ es6_module_define('spline_query', ["../path.ux/scripts/util/math.js", "../editor
 }, '/dev/fairmotion/src/curve/spline_query.js');
 
 
-es6_module_define('spline_draw', ["../core/animdata.js", "./spline_draw_sort", "./spline_types.js", "./spline_math.js", "../config/config.js", "../editors/viewport/view2d_editor.js", "../util/vectormath.js", "../editors/viewport/selectmode.js", "./spline_element_array.js", "../util/mathlib.js", "./spline_draw_new.js", "./spline_draw_sort.js"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["./spline_draw_new.js", "./spline_types.js", "../util/vectormath.js", "../core/animdata.js", "./spline_draw_sort.js", "./spline_element_array.js", "./spline_draw_sort", "./spline_math.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "../editors/viewport/view2d_editor.js", "../config/config.js"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -9578,7 +9565,7 @@ es6_module_define('spline_draw', ["../core/animdata.js", "./spline_draw_sort", "
     if (isNaN(zoom)) {
         zoom = 1.0;
     }
-    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
+    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers, editor.draw_stroke_debug);
     let promise=spline.drawer.draw(editor.drawg);
     let actlayer=spline.layerset.active;
     if (!only_render&&draw_normals)

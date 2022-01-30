@@ -3283,8 +3283,13 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
 }, '/dev/fairmotion/src/curve/solver_new.js');
 
 
-es6_module_define('vectordraw_base', [], function _vectordraw_base_module(_es6_module) {
+es6_module_define('vectordraw_base', ["../path.ux/scripts/pathux.js"], function _vectordraw_base_module(_es6_module) {
   "use strict";
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
   var VectorFlags={UPDATE: 2, 
    TAG: 4}
   VectorFlags = _es6_module.add_export('VectorFlags', VectorFlags);
@@ -3306,7 +3311,8 @@ VectorVertex {
   _vec : vec2;
 }
 `;
-  class QuadBezPath  {
+  class PathBase  {
+    
     
     
     
@@ -3416,17 +3422,17 @@ VectorVertex {
      reset(draw) {
       this.pan.zero();
     }
-     draw(draw, offx=0, offy=0) {
-
+     draw() {
+      throw new Error("implement me!");
     }
      pushStroke(color, linewidth) {
-
+      throw new Error("implement me!");
     }
      pushFill() {
-
+      throw new Error("implement me!");
     }
      noAutoFill() {
-
+      throw new Error("implement me!");
     }
      update() {
       throw new Error("implement me!");
@@ -3435,9 +3441,9 @@ VectorVertex {
       return this.id;
     }
   }
-  _ESClass.register(QuadBezPath);
-  _es6_module.add_class(QuadBezPath);
-  QuadBezPath = _es6_module.add_export('QuadBezPath', QuadBezPath);
+  _ESClass.register(PathBase);
+  _es6_module.add_class(PathBase);
+  PathBase = _es6_module.add_export('PathBase', PathBase);
   var pop_transform_rets=new cachering(function () {
     return new Matrix4();
   }, 32);
@@ -3489,7 +3495,7 @@ VectorVertex {
      destroy() {
       throw new Error("implement me");
     }
-     draw() {
+     draw(g) {
       throw new Error("implement me");
     }
      push_transform(mat, multiply_instead_of_load=true) {
@@ -3530,7 +3536,7 @@ VectorVertex {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
 
 
-es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_jobs.js", "../config/config.js", "../util/mathlib.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs_base.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "../util/mathlib.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -3538,7 +3544,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
   var math=es6_import(_es6_module, '../path.ux/scripts/util/math.js');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
   var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
-  var QuadBezPath=es6_import_item(_es6_module, './vectordraw_base.js', 'QuadBezPath');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   var OPCODES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'OPCODES');
   var vectordraw_jobs=es6_import(_es6_module, './vectordraw_jobs.js');
@@ -3842,7 +3848,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
   Batch = _es6_module.add_export('Batch', Batch);
   let canvaspath_temp_vs=util.cachering.fromConstructor(Vector2, 512);
   let canvaspath_temp_mats=util.cachering.fromConstructor(Matrix4, 128);
-  class CanvasPath extends QuadBezPath {
+  class CanvasPath extends PathBase {
     
     
     
@@ -4405,13 +4411,359 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d.js');
 
 
-es6_module_define('vectordraw_stub', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_stub_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_path2d_module(_es6_module) {
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
+  var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
+  let MOVETO=0, LINETO=1, CUBICTO=2, QUADTO=3, RECT=4, SETLINEWIDTH=5, STROKE=6, FILL=7, CLIP=8;
+  const goodCommands=new Set([MOVETO, LINETO, CUBICTO, QUADTO]);
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
+  let ptmp=new Vector3();
+  let mtmp=new Matrix4();
+  class PathCommand  {
+     constructor(cmd, r, g, b, a, lineWidth) {
+      this.cmd = cmd;
+      this.r = r;
+      this.g = g;
+      this.b = b;
+      this.a = a;
+      this.lineWidth = lineWidth;
+      this.path = undefined;
+    }
+  }
+  _ESClass.register(PathCommand);
+  _es6_module.add_class(PathCommand);
+  PathCommand = _es6_module.add_export('PathCommand', PathCommand);
+  class Path2DPath extends PathBase {
+    
+    
+    
+    
+    
+    
+     constructor(matrix, g, id, z) {
+      super();
+      this.matrix = matrix;
+      this.g = g;
+      this.z = z;
+      this.id = id;
+      this.need_aabb = true;
+      this.actpath = undefined;
+      this.paths = [];
+      this.commands = [];
+      this.autoFill = true;
+      this._pushPath();
+    }
+     pushCmd(cmd) {
+      this.commands.push(cmd);
+      this.commands.push(arguments.length-1);
+      for (let i=1; i<arguments.length; i++) {
+          this.commands.push(arguments[i]);
+      }
+      return this;
+    }
+     noAutoFill() {
+      this.autoFill = false;
+      return this;
+    }
+     _pushPath() {
+      this.need_aabb = true;
+      let path=new Path2D();
+      let cmd=new PathCommand();
+      cmd.path = path;
+      this.paths.push(cmd);
+      this.actpath = path;
+      return this;
+    }
+     beginPath() {
+      this.pushCmd(BEGINPATH);
+      this._pushPath();
+      this.actpath.beginPath();
+      return this;
+    }
+     cubicTo(x2, y2, x3, y3, x4, y4, subdiv=1) {
+      this.pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+      this.actpath.bezierCurveTo(x2, y2, x3, y3, x4, y4);
+      return this;
+    }
+     bezierTo(x2, y2, x3, y3) {
+      this.pushCmd(QUADTO, x2, y2, x3, y3);
+      this.actpath.quadraticCurveTo(x2, y2, x3, y3);
+      return this;
+    }
+     moveTo(x, y) {
+      this.pushCmd(MOVETO, x, y);
+      this.actpath.moveTo(x, y);
+      return this;
+    }
+     lineTo(x, y) {
+      this.pushCmd(LINETO, x, y);
+      this.actpath.lineTo(x, y);
+      return this;
+    }
+     pushStroke(color, width) {
+      let cmd=new PathCommand(STROKE);
+      if (color&&width!==undefined) {
+          cmd.r = color[0];
+          cmd.g = color[1];
+          cmd.b = color[2];
+          cmd.a = color[3];
+          cmd.lineWidth = width;
+          this.pushCmd(STROKE, color[0], color[1], color[2], color[3], width);
+      }
+      else 
+        if (color) {
+          cmd.r = color[0];
+          cmd.g = color[1];
+          cmd.b = color[2];
+          cmd.a = color[3];
+          this.pushCmd(STROKE, color[0], color[1], color[2], color[3]);
+      }
+      else 
+        if (width!==undefined) {
+          cmd.lineWidth = width;
+          this.pushCmd(STROKE, width);
+      }
+      this._pushPath();
+      return this;
+    }
+     pushFill() {
+      this.paths.push(new PathCommand(FILL));
+      this._pushPath();
+      this.pushCmd(FILL);
+      return this;
+    }
+     pushClip() {
+      this.paths.push(new PathCommand(CLIP));
+      this._pushPath();
+      this.pushCmd(CLIP);
+      return this;
+    }
+     update_aabb(draw, fast_mode=false) {
+      let cs=this.commands;
+      let i=0;
+      this.need_aabb = false;
+      this.matrix = draw ? draw.matrix||this.matrix : this.matrix;
+      let matrix=this.matrix;
+      let $_t0kvvj=this.aabb, min=$_t0kvvj[0], max=$_t0kvvj[1];
+      min.zero().addScalar(1e+17);
+      max.zero().addScalar(-1e+17);
+      let ok=false;
+      while (i<cs.length) {
+        let cmd=cs[i], totarg=cs[i+1];
+        if (goodCommands.has(cmd)) {
+            let totpoint=totarg>>1;
+            for (let j=0; j<totpoint; j++) {
+                let x=cs[i+1+j*2];
+                let y=cs[i+1+j*2+1];
+                ptmp[0] = x;
+                ptmp[1] = y;
+                ptmp[2] = 0.0;
+                ptmp.multVecMatrix(matrix);
+                x = ptmp[0];
+                y = ptmp[1];
+                min[0] = Math.min(min[0], x);
+                min[1] = Math.min(min[1], y);
+                max[0] = Math.max(max[0], x);
+                max[1] = Math.max(max[1], y);
+                ok = true;
+            }
+        }
+        i+=totarg;
+      }
+      if (!ok) {
+          min.zero();
+          max.zero();
+      }
+    }
+     draw(matrix, clipMode=false) {
+      let g=this.g;
+      this.matrix = matrix;
+      if (this.need_aabb) {
+          this.update_aabb();
+      }
+      let needRestore=false;
+      if (!clipMode&&this.clip_paths.length>0) {
+          needRestore = true;
+          g.save();
+          for (let path of this.clip_paths) {
+              path.draw(matrix, true);
+          }
+      }
+      let mat=matrix.$matrix;
+      let $_t1tnqm=this.off, offx=$_t1tnqm[0], offy=$_t1tnqm[1];
+      g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41+offx, mat.m42+offy);
+      let curi=0;
+      let paths=this.paths;
+      let do_blur=this.blur>1&&!clipMode;
+      let zoom=mat.m11;
+      if (do_blur) {
+          g.filter = "blur("+(this.blur*0.25*zoom)+"px)";
+      }
+      else {
+        g.filter = "none";
+      }
+      for (let i=0; i<paths.length; i++) {
+          let cmd=paths[i];
+          if (!cmd.path) {
+              for (; curi<i; curi++) {
+                  let path1=paths[curi].path;
+                  if (!path1) {
+                      continue;
+                  }
+                  let path=new Path2D();
+                  path.addPath(path1, matrix);
+                  switch (cmd) {
+                    case FILL:
+                      console.log("FILL!", path);
+                      if (clipMode) {
+                          g.clip();
+                      }
+                      else {
+                        g.fill(path);
+                      }
+                      break;
+                    case CLIP:
+                      g.clip(path);
+                      break;
+                    case STROKE:
+                      if (clipMode) {
+                          continue;
+                      }
+                      if (cmd.r!==undefined) {
+                          let cr=~~(cmd.r*255);
+                          let cg=~~(cmd.g*255);
+                          let cb=~~(cmd.b*255);
+                          let ca=cmd.a;
+                          g.strokeStyle = `rgba(${cr},${cg},${cb},${ca})`;
+                      }
+                      if (cmd.lineWidth!==undefined) {
+                          g.lineWidth = cmd.lineWidth*matrix.m11;
+                      }
+                      g.stroke(path);
+                      break;
+                  }
+              }
+          }
+      }
+      if (clipMode) {
+          g.clip();
+      }
+      else 
+        if (this.autoFill) {
+          let r=~~(this.color[0]*255), g1=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
+          let fstyle="rgba("+r+","+g1+","+b+","+a+")";
+          g.fillStyle = fstyle;
+          for (; curi<paths.length; curi++) {
+              let path1=paths[curi].path;
+              let path=new Path2D();
+              path.addPath(path1, matrix);
+              if (path) {
+                  g.fill(path);
+              }
+          }
+      }
+      if (needRestore) {
+          g.restore();
+      }
+    }
+     reset() {
+      this.autoFill = true;
+      this.need_aabb = true;
+      this.commands.length = 0;
+      this.paths.length = 0;
+      this.actpath = undefined;
+      this._pushPath();
+      return this;
+    }
+     update() {
+
+    }
+  }
+  _ESClass.register(Path2DPath);
+  _es6_module.add_class(Path2DPath);
+  Path2DPath = _es6_module.add_export('Path2DPath', Path2DPath);
+  class CanvasPath2D extends VectorDraw {
+     constructor() {
+      super();
+      this.matrix.$matrix = new DOMMatrix();
+      this.paths = [];
+      this.path_idmap = {};
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.resort = true;
+      this.zoom = 1.0;
+    }
+     set_matrix(matrix) {
+      super.set_matrix(matrix);
+      for (let p of this.paths) {
+          p.matrix = this.matrix;
+      }
+      this.zoom = matrix.$matrix.m11;
+    }
+     draw(finalg) {
+      this.zoom = this.matrix.$matrix.m11;
+      if (this.resort) {
+          this.resort = false;
+          this.paths.sort((a, b) =>            {
+            return a.z-b.z;
+          });
+      }
+      let canvas=this.canvas;
+      let g=this.g;
+      let finalcanvas=finalg.canvas;
+      canvas.width = finalcanvas.width;
+      canvas.height = finalcanvas.height;
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.save();
+      for (let p of this.paths) {
+          p.draw(this.matrix, false);
+      }
+      g.restore();
+      finalg.drawImage(canvas, 0, 0);
+    }
+     has_path(id, z, check_z=true) {
+      if (!(id in this.path_idmap)) {
+          return false;
+      }
+      let path=this.path_idmap[id];
+      return check_z ? path.z===z : true;
+    }
+     get_path(id, z, check_z=true) {
+      let path;
+      if (id in this.path_idmap) {
+          path = this.path_idmap[id];
+          if (path.z!==z&&check_z) {
+              this.resort = true;
+          }
+      }
+      else {
+        path = new Path2DPath(this, this.g, id, z);
+        this.paths.push(path);
+        this.path_idmap[id] = path;
+        this.resort = true;
+      }
+      return path;
+    }
+     update() {
+      for (let p of this.paths) {
+          p.update();
+      }
+    }
+  }
+  _ESClass.register(CanvasPath2D);
+  _es6_module.add_class(CanvasPath2D);
+  CanvasPath2D = _es6_module.add_export('CanvasPath2D', CanvasPath2D);
+}, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_path2d.js');
+
+
+es6_module_define('vectordraw_stub', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_stub_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
   var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
-  var QuadBezPath=es6_import_item(_es6_module, './vectordraw_base.js', 'QuadBezPath');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   var canvaspath_draw_mat_tmps=new cachering((_) =>    {
     return new Matrix4();
@@ -4438,7 +4790,7 @@ es6_module_define('vectordraw_stub', ["../config/config.js", "./vectordraw_base.
     return ret;
   }
   makeElement = _es6_module.add_export('makeElement', makeElement);
-  class StubCanvasPath extends QuadBezPath {
+  class StubCanvasPath extends PathBase {
     
     
     
@@ -4634,13 +4986,13 @@ es6_module_define('vectordraw_stub', ["../config/config.js", "./vectordraw_base.
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
 
 
-es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
   var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
-  var QuadBezPath=es6_import_item(_es6_module, './vectordraw_base.js', 'QuadBezPath');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   var debug=0;
   window._setDebug = (d) =>    {
@@ -4672,7 +5024,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vecto
   }
   makeElement = _es6_module.add_export('makeElement', makeElement);
   let lasttime=performance.now();
-  class SimpleCanvasPath extends QuadBezPath {
+  class SimpleCanvasPath extends PathBase {
     
     
     
@@ -4842,7 +5194,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vecto
         tmp[2] = 0.0;
         tmp.multVecMatrix(draw.matrix);
         if (isNaN(tmp.dot(tmp))) {
-            throw new Error("NaN");
+            console.error("NaN", off);
         }
       }
       if (!clipMode&&this.clip_paths.length>0) {
@@ -5038,13 +5390,12 @@ es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vecto
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_simple.js');
 
 
-es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/config.js", "./vectordraw_base.js"], function _vectordraw_skia_simple_module(_es6_module) {
+es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_skia_simple_module(_es6_module) {
   "use strict";
-  var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
   var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
-  var QuadBezPath=es6_import_item(_es6_module, './vectordraw_base.js', 'QuadBezPath');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   function loadCanvasKit() {
     let script=document.createElement("script");
@@ -5054,7 +5405,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
       console.log("%cInitializing Skia. . .", "color: blue;");
       CanvasKitInit({locateFile: (file) =>          {
           return 'node_modules/canvaskit-wasm/bin/'+file;
-        }}).ready().then((CanvasKit) =>        {
+        }}).then((CanvasKit) =>        {
         console.log("%c CanvasKit initialized", "color: blue");
         window.CanvasKit = CanvasKit;
       });
@@ -5063,37 +5414,30 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
   }
   loadCanvasKit = _es6_module.add_export('loadCanvasKit', loadCanvasKit);
   window.loadCanvasKit = loadCanvasKit;
-  var debug=0;
+  let debug=0;
   window._setDebug = (d) =>    {
     debug = d;
   }
-  var canvaspath_draw_mat_tmps=new cachering((_) =>    {
-    return new Matrix4();
-  }, 16);
-  var canvaspath_draw_args_tmps=new Array(8);
-  for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
+  let canvaspath_draw_args_tmps=new Array(8);
+  for (let i=1; i<canvaspath_draw_args_tmps.length; i++) {
       canvaspath_draw_args_tmps[i] = new Array(i);
   }
-  var canvaspath_draw_vs=new cachering(function () {
-    return new Vector2();
-  }, 32);
-  var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, LINEWIDTH=5, LINESTYLE=6, STROKE=7;
-  var NS="http://www.w3.org/2000/svg";
-  var XLS="http://www.w3.org/1999/xlink";
+  let MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+  let CUBICTO=4, LINEWIDTH=5, LINESTYLE=6, STROKE=7, FILL=8;
+  let NS="http://www.w3.org/2000/svg";
   function makeElement(type, attrs) {
     if (attrs===undefined) {
         attrs = {};
     }
-    var ret=document.createElementNS(NS, type);
-    for (var k in attrs) {
+    let ret=document.createElementNS(NS, type);
+    for (let k in attrs) {
         ret.setAttributeNS(null, k, attrs[k]);
     }
     return ret;
   }
   makeElement = _es6_module.add_export('makeElement', makeElement);
   let lasttime=performance.now();
-  class SimpleSkiaPath extends QuadBezPath {
+  class SimpleSkiaPath extends PathBase {
     
     
     
@@ -5104,6 +5448,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
     
      constructor() {
       super();
+      this.autoFill = false;
       this.commands = [];
       this.recalc = 1;
       this.lastx = 0;
@@ -5119,24 +5464,24 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
       this._mm = new MinMax(2);
     }
      update_aabb(draw, fast_mode=false) {
-      var tmp=new Vector2();
-      var mm=this._mm;
-      var pad=this.pad = this.blur>0 ? this.blur*draw.zoom+15 : 0;
+      let tmp=new Vector2();
+      let mm=this._mm;
+      let pad=this.pad = this.blur>0 ? this.blur*draw.zoom+15 : 0;
       mm.reset();
       if (fast_mode) {
           console.trace("FAST MODE!");
       }
-      var prev=-1;
-      var cs=this.commands, i=0;
+      let prev=-1;
+      let cs=this.commands, i=0;
       while (i<cs.length) {
-        var cmd=cs[i++];
-        var arglen=cs[i++];
-        if (fast_mode&&prev!=BEGINPATH) {
+        let cmd=cs[i++];
+        let arglen=cs[i++];
+        if (fast_mode&&prev!==BEGINPATH) {
             prev = cmd;
             i+=arglen;
             continue;
         }
-        for (var j=0; j<arglen; j+=2) {
+        for (let j=0; j<arglen; j+=2) {
             tmp[0] = cs[i++], tmp[1] = cs[i++];
             tmp.multVecMatrix(draw.matrix);
             mm.minmax(tmp);
@@ -5149,6 +5494,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
      beginPath() {
       this.path_start_i = this.commands.length;
       this._pushCmd(BEGINPATH);
+      return this;
     }
      pushStroke(color, width) {
       if (color) {
@@ -5159,15 +5505,24 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
           this._pushCmd(LINEWIDTH, width);
       }
       this._pushCmd(STROKE);
+      return this;
+    }
+     pushFill() {
+      this._pushCmd(FILL);
+      return this;
+    }
+     noAutoFill() {
+      this.autoFill = false;
+      return this;
     }
      undo() {
       this.commands.length = this.path_start_i;
     }
      _pushCmd() {
-      var arglen=arguments.length-1;
+      let arglen=arguments.length-1;
       this.commands.push(arguments[0]);
       this.commands.push(arglen);
-      for (var i=0; i<arglen; i++) {
+      for (let i=0; i<arglen; i++) {
           this.commands.push(arguments[i+1]);
       }
       this.recalc = 1;
@@ -5213,15 +5568,15 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
      draw(draw, offx, offy, canvas=draw.canvsa, g=draw.g, clipMode=false) {
       return this.drawCanvas(...arguments);
     }
-     drawCanvas(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g, clipMode=false) {
-      var zoom=draw.matrix.$matrix.m11;
+     drawCanvas(draw, offx=0, offy=0, canvas=draw.canvas, drawg=draw.g, clipMode=false) {
+      let g=draw.g;
+      let zoom=draw.matrix.$matrix.m11;
       offx+=this.off[0], offy+=this.off[1];
       if (isNaN(offx)||isNaN(offy)) {
           throw new Error("nan!");
       }
       this._last_z = this.z;
-      var g=draw.g;
-      var tmp=new Vector3();
+      let tmp=new Vector3();
       let debuglog=function () {
         if (debug>1) {
             let time=performance.now();
@@ -5256,16 +5611,18 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
             throw new Error("NaN");
         }
       }
+      let needRestore=false;
       if (!clipMode&&this.clip_paths.length>0) {
+          needRestore = true;
           g.beginPath();
           g.save();
           for (let path of this.clip_paths) {
               path.draw(draw, offx, offy, canvas, g, true);
           }
-          g.clip();
       }
+      let x1, y1, x2, y2;
       for (i = 0; i<cmds.length; i+=cmds[i+1]+2) {
-          var cmd=cmds[i];
+          let cmd=cmds[i];
           switch (cmd) {
             case BEGINPATH:
               debuglog("BEGINPATH");
@@ -5282,6 +5639,14 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
                   g.strokeStyle = style;
               }
               break;
+            case FILL:
+              if (!clipMode) {
+                  g.fill();
+              }
+              else {
+                g.clip();
+              }
+              break;
             case STROKE:
               g.stroke();
               break;
@@ -5293,16 +5658,16 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
             case BEZIERTO:
               debuglog("BEZIERTO");
               loadtemp(0);
-              var x1=tmp[0], y1=tmp[1];
+              x1 = tmp[0], y1 = tmp[1];
               loadtemp(1);
               g.quadraticCurveTo(x1, y1, tmp[0], tmp[1]);
               break;
             case CUBICTO:
               debuglog("CUBICTO");
               loadtemp(0);
-              var x1=tmp[0], y1=tmp[1];
+              x1 = tmp[0], y1 = tmp[1];
               loadtemp(1);
-              var x2=tmp[0], y2=tmp[1];
+              x2 = tmp[0], y2 = tmp[1];
               loadtemp(2);
               g.bezierCurveTo(x1, y1, x2, y2, tmp[0], tmp[1]);
               break;
@@ -5313,24 +5678,27 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
               break;
           }
       }
-      if (clipMode) {
-          return ;
-      }
-      var r=~~(this.color[0]*255), g1=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
+      let r=~~(this.color[0]*255), g1=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
       let fstyle="rgba("+r+","+g1+","+b+","+a+")";
       g.fillStyle = fstyle;
       debuglog2("g.fillStyle", g.fillStyle);
-      var doff=2500;
-      var do_blur=this.blur>1&&!clipMode;
+      let doff=2500;
+      let do_blur=Math.abs(this.blur)>1&&!clipMode;
       if (do_blur) {
-          g.filter = "blur("+(this.blur*0.25*zoom)+"px)";
+          g.filter = "blur("+(Math.abs(this.blur)*0.25*zoom)+"px)";
       }
       else {
         g.filter = "none";
       }
       debuglog2("fill");
-      g.fill();
-      if (this.clip_paths.length>0) {
+      if (clipMode) {
+          g.clip();
+      }
+      else 
+        if (!this.autoFill) {
+          g.fill();
+      }
+      if (needRestore) {
           g.restore();
       }
     }
@@ -5353,20 +5721,20 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
       this.dosort = true;
       this.matstack = new Array(256);
       this.matrix = new Matrix4();
-      for (var i=0; i<this.matstack.length; i++) {
+      for (let i=0; i<this.matstack.length; i++) {
           this.matstack[i] = new Matrix4();
       }
       this.matstack.cur = 0;
     }
     static  get_canvas(id, width, height, zindex) {
-      var ret=document.getElementById(id);
+      let ret=document.getElementById(id);
       if (ret===undefined) {
           ret = document.createElement("canvas");
           ret.id = id;
       }
       ret.width = width;
       ret.height = height;
-      if (ret.style!=undefined) {
+      if (ret.style!==undefined) {
           ret.style["z-index"] = zindex;
       }
       return ret;
@@ -5378,8 +5746,8 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
       if (!(id in this.path_idmap)) {
           return false;
       }
-      var path=this.path_idmap[id];
-      return check_z ? path.z==z : true;
+      let path=this.path_idmap[id];
+      return check_z ? path.z===z : true;
     }
      get_path(id, z, check_z=true) {
       if (z===undefined) {
@@ -5392,8 +5760,8 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
           this.dosort = 1;
           this.paths.push(this.path_idmap[id]);
       }
-      var ret=this.path_idmap[id];
-      if (check_z&&ret.z!=z) {
+      let ret=this.path_idmap[id];
+      if (check_z&&ret.z!==z) {
           this.dosort = 1;
           ret.z = z;
       }
@@ -5411,56 +5779,100 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
      destroy() {
 
     }
-     draw(g) {
-      var canvas=g.canvas;
-      this.canvas = canvas;
-      this.g = g;
-      let canvas0, g0;
+     draw(finalg) {
+      let canvas, g;
+      let finalcanvas=finalg.canvas;
       if (0) {
           this.canvas = canvas = window.skcanvas;
           this.g = g = window.skg;
       }
       else 
         if (window.CanvasKit!==undefined) {
-          canvas0 = canvas;
-          g0 = g;
-          canvas = CanvasKit.MakeCanvas(canvas.width, canvas.height);
-          canvas.width = canvas0.width;
-          canvas.height = canvas0.height;
-          let mat=g0.getTransform();
+          canvas = CanvasKit.MakeCanvas(finalcanvas.width, finalcanvas.height);
           let g2=canvas.getContext("2d");
-          g2.globalAlpha = 1.0;
-          g2.globalCompositeOperation = "source-over";
+          g2.imageSmoothingEnabled = false;
+          g2.lineWidth = 2;
+          if (!g2.getTransform) {
+              let matrixKey=undefined;
+              for (let k in g2) {
+                  let v=g2[k];
+                  let ok=typeof v==="object"&&Array.isArray(v);
+                  ok = ok&&(v.length===9||v.length===16);
+                  if (ok) {
+                      for (let item of v) {
+                          if (typeof item!=="number") {
+                              ok = false;
+                              break;
+                          }
+                      }
+                  }
+                  if (ok) {
+                      matrixKey = k;
+                      break;
+                  }
+              }
+              if (matrixKey) {
+                  let d=new DOMMatrix();
+                  g2.getTransform = function () {
+                    let t=this[matrixKey];
+                    d.m11 = t[0];
+                    d.m12 = t[1];
+                    d.m13 = t[2];
+                    d.m21 = t[3];
+                    d.m22 = t[4];
+                    d.m23 = t[5];
+                    d.m31 = t[6];
+                    d.m32 = t[7];
+                    d.m33 = t[8];
+                    return d;
+                  };
+              }
+              console.error("MATRIX_KEY", matrixKey);
+          }
           this.canvas = canvas;
           this.g = g2;
           g = g2;
       }
+      else {
+        console.error("No Skia loaded!");
+        g = this.g = finalg;
+        canvas = this.canvas = finalcanvas;
+      }
+      g.resetTransform();
+      g.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      g.fillStyle = "#EEE";
+      g.beginPath();
+      g.rect(0, 0, this.canvas.width, this.canvas.height);
+      g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      g.fill();
       g.save();
       g.resetTransform();
-      for (var p of this.paths) {
+      for (let p of this.paths) {
           p.draw(this, undefined, undefined, this.canvas, this.g);
       }
       g.restore();
-      if (canvas0) {
-          this.g.beginPath();
-          this.g.rect(0, 0, 500, 500);
-          this.g.fillStyle = "rgb(255, 200, 200)";
-          this.g.fill();
-          this.canvas.Il.flush();
-          let image=this.g.getImageData(0, 0, canvas0.width, canvas0.height);
-          let image2=new ImageData(canvas0.width, canvas0.height);
-          image2.data.set(image.data);
-          console.log(image2);
+      if (g!==finalg) {
+          window.CC = this.canvas;
+          window.GG = this.g;
+          this.canvas.cf.flush();
+          let image=g.getImageData(0, 0, finalcanvas.width, finalcanvas.height);
+          let image2=new ImageData(finalcanvas.width, finalcanvas.height);
           for (let i=0; i<image2.data.length; i+=4) {
               image2.data[i] = image.data[i];
               image2.data[i+1] = image.data[i+1];
               image2.data[i+2] = image.data[i+2];
               image2.data[i+3] = 255;
           }
-          g0.putImageData(image2, 0, 0);
+          console.log(image, image2.data);
+          let img=document.createElement("img");
+          img.src = this.canvas.toDataURL();
+          img.onload = () =>            {
+            finalg.drawImage(img, 0, 0);
+          };
+          console.log(img.src);
+          finalg.putImageData(image2, 0, 0);
           window.skcanvas = this.canvas;
           window.skg = this.g;
-          canvas.dispose();
       }
       return new Promise((accept, reject) =>        {
         accept();
@@ -5477,13 +5889,13 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "../config/co
 }, '/dev/fairmotion/src/vectordraw/vectordraw_skia_simple.js');
 
 
-es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["../config/config.js", "../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
   var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
-  var QuadBezPath=es6_import_item(_es6_module, './vectordraw_base.js', 'QuadBezPath');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   var canvaspath_draw_mat_tmps=new cachering((_) =>    {
     return new Matrix4();
@@ -5510,7 +5922,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
     return ret;
   }
   makeElement = _es6_module.add_export('makeElement', makeElement);
-  class SVGPath extends QuadBezPath {
+  class SVGPath extends PathBase {
     
     
     
@@ -5711,7 +6123,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
          y: fy, 
          width: fwidth, 
          height: fheight});
-              var blur=makeElement("feGaussianBlur", {stdDeviation: ~~(this.blur*draw.zoom*0.25), 
+              var blur=makeElement("feGaussianBlur", {stdDeviation: ~~(Math.abs(this.blur*draw.zoom*0.25)), 
          "in": "SourceGraphic"});
               filter.appendChild(blur);
               defs.appendChild(filter);
@@ -6411,7 +6823,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
 
 
-es6_module_define('vectordraw', ["./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_stub.js", "./vectordraw_base.js", "./vectordraw_canvas2d.js", "./vectordraw_canvas2d_simple.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_base.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_stub.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -6423,6 +6835,8 @@ es6_module_define('vectordraw', ["./vectordraw_svg.js", "./vectordraw_skia_simpl
   _es6_module.add_export('VectorFlags', _ex_VectorFlags, true);
   var SimpleCanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d_simple.js', 'SimpleCanvasPath');
   var SimpleCanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d_simple.js', 'SimpleCanvasDraw2D');
+  var Path2DPath=es6_import_item(_es6_module, './vectordraw_canvas2d_path2d.js', 'Path2DPath');
+  var CanvasPath2D=es6_import_item(_es6_module, './vectordraw_canvas2d_path2d.js', 'CanvasPath2D');
   var SimpleSkiaDraw2D=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'SimpleSkiaDraw2D');
   var SimpleSkiaPath=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'SimpleSkiaPath');
   var loadCanvasKit=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'loadCanvasKit');

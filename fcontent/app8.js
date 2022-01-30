@@ -37,7 +37,7 @@ export function loadShapes() {
 }, '/dev/fairmotion/src/webgl/simplemesh_shapes.js');
 
 
-es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "./spline_element_array.js", "./spline_types.js", "../config/config.js", "./spline_base.js", "../vectordraw/vectordraw.js", "../core/evillog.js", "../util/bezier.js", "../vectordraw/vectordraw_jobs.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../path.ux/scripts/pathux.js", "./spline_math.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["./spline_base.js", "../editors/viewport/view2d_editor.js", "../core/evillog.js", "./spline_element_array.js", "../util/mathlib.js", "../vectordraw/vectordraw_jobs.js", "../core/animdata.js", "../config/config.js", "../util/bezier.js", "./spline_multires.js", "./spline_strokegroup.js", "../path.ux/scripts/pathux.js", "../editors/viewport/selectmode.js", "./spline_types.js", "../vectordraw/vectordraw.js", "./spline_math.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -324,7 +324,9 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
     
     
     
+    
      constructor(spline, drawer=new Canvas()) {
+      this.strokeDebug = false;
       this.spline = spline;
       this.used_paths = {};
       this.recalc_all = false;
@@ -543,7 +545,8 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
           }
       }
     }
-     update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers) {
+     update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers, draw_stroke_debug) {
+      this.strokeDebug = draw_stroke_debug;
       if (!spline.segments.cdata.has_layer("drawdata")) {
           spline.segments.cdata.add_layer(SplineDrawData);
       }
@@ -726,30 +729,18 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
       return this.drawer.has_path(id, z, check_z);
     }
      update_stroke_group(g, drawparams, redraw) {
-      let id2=g.id|(1<<19);
-      let spline=drawparams.spline;
+      let id2=g.id|(1<<20);
       let z=drawparams.z;
-      if (this.has_path(id2, z+1)&&this.has_path(g.id, z)&&!redraw) {
-          return ;
-      }
-      let path=this.get_path(g.id, z);
-      path.reset();
-      let path2=this.get_path(g.id|(1<<19), z+1);
-      path2.reset();
-      path2.noAutoFill();
       let dpath, dpath2, dpath3, dpoint, dline;
-      const debug=0;
+      const debug=this.strokeDebug;
       if (debug) {
           let eid=g.id;
-          dpath = this.get_path(eid|8192, z+10000);
-          dpath2 = this.get_path(eid|16384, z+10001);
-          dpath3 = this.get_path(eid|8192|16384, z+10002);
-          dpath.color = [1, 0.25, 0.125, 0.5];
-          dpath2.color = [0.25, 0.65, 1.0, 0.5];
-          dpath3.color = [0.5, 1.0, 0.5, 0.5];
-          dpath.reset();
-          dpath2.reset();
-          dpath3.reset();
+          dpath = this.get_path((eid<<1)|8192, z+50000);
+          dpath2 = this.get_path((eid<<1)|16384, z+50001);
+          dpath3 = this.get_path((eid<<1)|8192|16384, z+60002);
+          dpath.color = [1, 0.5, 0.5, 0.9];
+          dpath2.color = [0.25, 0.65, 1.0, 0.9];
+          dpath3.color = [0.5, 1.0, 0.5, 0.9];
           dpoint = (x, y, w, dp) =>            {
             if (w===undefined) {
                 w = 4;
@@ -783,6 +774,19 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
             dp.lineTo(x1-dx, y1-dy);
           };
       }
+      if (this.has_path(id2, z+1)&&this.has_path(g.id, z)&&!redraw) {
+          return ;
+      }
+      let path=this.get_path(g.id, z);
+      path.reset();
+      if (debug) {
+          dpath.reset();
+          dpath2.reset();
+          dpath3.reset();
+      }
+      let path2=this.get_path(id2, z+1);
+      path2.reset();
+      path2.noAutoFill();
       if (g.segments.length===0) {
           if (this.has_path(g.id, z)) {
               this.get_path(g.id, z).reset();
@@ -808,6 +812,8 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
       let dv2=new Vector2();
       let lw_dlw=[0, 0, 0];
       let dv=new Vector2();
+      let dvs=new Vector2();
+      let lastdvs=new Vector2();
       let no=new Vector2();
       let lastp=new Vector2();
       let lastdv=new Vector2();
@@ -825,12 +831,12 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
               let seglen=seg.length;
               let steps=seglen>0.0 ? ~~(seglen/55+0.5) : 0;
               let ddata=seg.cdata.get_layer(SplineDrawData);
-              steps = Math.min(Math.max(steps, 2), 8);
+              let lastseg=si>0 ? segments[totseg-si-2] : undefined;
+              let flip=lastseg&&(seg.v1===lastseg.v1||seg.v2===lastseg.v2);
+              steps = Math.min(Math.max(steps, 7), 16);
               let dsign=v===seg.v1 ? 1.0 : -1.0;
               if (lastsign!==dsign) {
-                  lastdv.negate();
               }
-              lastsign = dsign;
               let side=(dsign<0.0);
               let start=ddata.start(side), end=ddata.end(side);
               let ds=dsign*((end-start)/steps);
@@ -849,6 +855,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
                   let p;
                   if (hasp) {
                       p = ddata.getp(seg, v, 1);
+                      dv.load(seg.derivative(s));
                   }
                   else {
                     let s=ddata.gets(seg, v, side);
@@ -876,7 +883,6 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
                     path.lineTo(p[0], p[1]);
                     path2.lineTo(p[0], p[1]);
                   }
-                  let w1=seg.width(s);
                   if (v.segments.length===2&&!hasp) {
                       let seg2=v.other_segment(seg);
                       let ddata2=seg2.cdata.get_layer(SplineDrawData);
@@ -903,7 +909,17 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
                       }
                   }
                   let p=seg.evaluateSide(s, side, dv, no, lw_dlw);
-                  dv.mulScalar(ds/3.0);
+                  dv.mulScalar(dsign);
+                  let dfac=ds/3.0;
+                  if (side) {
+                      dfac*=-1;
+                  }
+                  dvs.load(dv).mulScalar(dfac);
+                  lastdvs.load(lastdv).mulScalar(dfac);
+                  if (debug) {
+                      dline(p[0], p[1], p[0]+dvs[0], p[1]+dvs[1]);
+                      dpoint(p[0]+dvs[0], p[1]+dvs[1]);
+                  }
                   if (first) {
                       first = false;
                       if (!step) {
@@ -921,10 +937,16 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
                       dobreak = false;
                       path.lineTo(p[0], p[1]);
                       path2.lineTo(p[0], p[1]);
+                      lastdvs.zero();
+                      lastno.zero();
                   }
                   else {
-                    path.cubicTo(lastp[0]+lastdv[0], lastp[1]+lastdv[1], p[0]-dv[0], p[1]-dv[1], p[0], p[1]);
-                    path2.cubicTo(lastp[0]+lastdv[0], lastp[1]+lastdv[1], p[0]-dv[0], p[1]-dv[1], p[0], p[1]);
+                    if (debug) {
+                        dline(lastp[0]+lastdvs[0], lastp[1]+lastdvs[1], p[0]-dvs[0], p[1]-dvs[1], undefined, dpath3);
+                        dpoint(lastp[0]+lastdvs[0], lastp[1]+lastdvs[1], undefined, dpath3);
+                    }
+                    path.cubicTo(lastp[0]+lastdvs[0], lastp[1]+lastdvs[1], p[0]-dvs[0], p[1]-dvs[1], p[0], p[1]);
+                    path2.cubicTo(lastp[0]+lastdvs[0], lastp[1]+lastdvs[1], p[0]-dvs[0], p[1]-dvs[1], p[0], p[1]);
                   }
                   lastdv.load(dv);
                   lastno.load(no);
@@ -939,6 +961,11 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
       let mat=g.segments[0].mat;
       if (mat.linewidth2>0) {
           path2.pushStroke(mat.strokecolor2, mat.linewidth2);
+      }
+      if (debug) {
+          dpath.pushStroke(undefined, 2.0);
+          dpath2.pushStroke(undefined, 2.0);
+          dpath3.pushStroke(undefined, 2.0);
       }
       this.addClipPathsToStrokeGroup(g, drawparams, path);
     }
@@ -1139,9 +1166,11 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
           return ;
       }
       let startv=v;
-      let debug=0;
+      let debug=this.strokeDebug;
       let dpath, dpath2, dpath3, dpoint, dline;
       if (debug) {
+          let eid=v.eid;
+          let z=1000.0;
           dpath = this.get_path(eid|8192, z+10000);
           dpath2 = this.get_path(eid|16384, z+10001);
           dpath3 = this.get_path(eid|8192|16384, z+10002);
@@ -1249,7 +1278,6 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../util/mathlib.js
               let ret=seg1.intersect(seg2, 0, 1);
               let s=!ret ? (v===seg1.v1 ? 0.0 : 1.0) : ret.sourceS;
               if (ret) {
-                  console.warn("RETRET!", ret);
               }
               let data=seg1.cdata.get_layer(SplineDrawData);
               data.sets(seg1, v, 0, s);
@@ -6442,18 +6470,6 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     'border-color': 'black', 
     'border-radius': 5, 
     'border-width': 1, 
-    'margin-bottom': 2, 
-    'margin-left': 2, 
-    'margin-right': 2, 
-    'margin-top': 1, 
-    highlight: {'background-color': 'rgba(163,204,234,0.65)', 
-     'border-color': 'black', 
-     'border-radius': 5, 
-     'border-width': 1, 
-     'margin-bottom': 2, 
-     'margin-left': 2, 
-     'margin-right': 2, 
-     'margin-top': 1}, 
     depressed: {'background-color': 'rgba(58,58,58,0.44)', 
      'border-color': 'black', 
      'border-radius': 5, 
@@ -6462,14 +6478,27 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      'margin-left': 2, 
      'margin-right': 2, 
      'margin-top': 1}, 
-    width: 32, 
+    drawCheck: true, 
     height: 32, 
-    drawCheck: true}, 
+    highlight: {'background-color': 'rgba(163,204,234,0.65)', 
+     'border-color': 'black', 
+     'border-radius': 5, 
+     'border-width': 1, 
+     'margin-bottom': 2, 
+     'margin-left': 2, 
+     'margin-right': 2, 
+     'margin-top': 1}, 
+    'margin-bottom': 2, 
+    'margin-left': 2, 
+    'margin-right': 2, 
+    'margin-top': 1, 
+    padding: 2, 
+    width: 32}, 
    iconcheck: {'background-color': 'rgba(76,76,76, 0.4461202687230603)', 
     'border-color': 'rgba(0,0,0, 1)', 
     'border-radius': 5, 
     'border-width': 1, 
-    depressed: {'background-color': 'rgba(48,48,48, 1)', 
+    depressed: {'background-color': 'rgba(26,26,26, 1)', 
      'border-color': 'rgb(0,0,0)', 
      'border-radius': 8, 
      'border-style': 'solid', 
@@ -8737,7 +8766,7 @@ es6_module_define('toolops_api', ["../path.ux/scripts/pathux.js"], function _too
       }
       for (let k in args) {
           let v=args[k];
-          if (k==='selectmode') {
+          if (v==='selectmode') {
               args[k] = ctx.selectmode;
           }
           if (v==='active_vertex'&&ctx.spline) {
@@ -8753,6 +8782,7 @@ es6_module_define('toolops_api', ["../path.ux/scripts/pathux.js"], function _too
               args[k] = geteid(ctx.spline.faces.active);
           }
       }
+      console.error("INVOKE", args);
       return super.invoke(ctx, args);
     }
     static  inherit_inputs(arg) {

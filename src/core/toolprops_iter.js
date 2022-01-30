@@ -43,7 +43,7 @@ export class TPropIterable {
   }
   
   static isTPropIterable(obj) {
-    return obj != undefined && "_is_tprop_iterable" in obj;
+    return obj !== undefined && "_is_tprop_iterable" in obj;
   }
 }
 window.TPropIterable = TPropIterable;
@@ -60,10 +60,10 @@ window.TCanSafeIter = TCanSafeIter;
 export class ToolIter extends TPropIterable {
   ret : Object;
 
-  constructor(Array<Function> itemtypes=[]) {
+  constructor(itemtypes : Array<Function>) {
     super();
      
-    this.itemtypes = itemtypes;
+    this.itemtypes = itemtypes || [];
     this.ctx = undefined; //is set by IterProperty, which gets it from calling code
     this.ret = {done : true, value : undefined}; //might try cached_iret() later. . .
   }
@@ -80,13 +80,13 @@ export class ToolIter extends TPropIterable {
   
   //a utility function for child classes
   _get_block(ref) {
-    if (this.ctx != undefined) {
+    if (this.ctx !== undefined) {
       //a very paranoid test, for edge cases
       //where ctx.object is not the same as
       //ctx.datalib.get(new DataRef(ctx.object))
       //
       //I might get rid of it later.
-      if (ref.lib_id == this.ctx.object.lib_id)
+      if (ref.lib_id === this.ctx.object.lib_id)
         return this.ctx.object;
       else
         return this.ctx.datalib.get(ref);
@@ -107,170 +107,4 @@ export class ToolIter extends TPropIterable {
 ToolIter.STRUCT = `
   ToolIter {
   }
-`;
-
-class MSelectIter extends ToolIter {
-  meshref : DataRef
-  init : boolean;
-
-  constructor(int typemask, Mesh mesh) {
-    super();
-    
-    //inherits .ctx, .parent (IterProperty), and .ret ({done, val} objet)
-    this.meshref = new DataRef(mesh);
-    
-    this.mask = typemask;
-    this.mesh = undefined;
-    this.init = true;
-    this.iter = undefined;
-  }
-  
-  [Symbol.iterator]() {
-    if (this.init) {
-      return this;
-    } else { //detect nested iterator cases
-      return new MSelectIter(this.mask, this.meshref);
-    }
-  }
-    
-  reset() {
-    this.init = true;
-    this.mesh = undefined;
-    this.iter = undefined;
-  }
-  
-  next() {
-    if (this.init) {
-      //init state
-      this.mesh = this._get_block(this.meshref);
-      this.init = false;
-      this.iter = new selectiter(this.mesh, this.mask);
-    }
-    
-    var ret = this.iter.next();
-    
-    if (ret.done) {
-      this.reset();
-    }
-    
-    return ret;
-  }
-  
-  static fromSTRUCT(reader) {
-    var ob = {};
-    
-    reader(ob);
-    var ret = new MSelectIter(ob.mask, ob.meshref);
-    
-    return ret;
-  }
-}
-
-MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter) + `
-  meshref  : DataRef;
-  mask     : int;
-}
-`;
-
-class element_iter_convert extends ToolIter {
-  vset : set;
-
-  constructor(iter, type) {
-    super();
-    
-    if (!(iter instanceof TPropIterable)) {
-      throw new Error("element_iter_convert requires a 'safe' TPropIterable-derived iterator");
-    }
-    
-    this.vset = new set();
-    this.iter = iter[Symbol.iterator]();
-    this.subiter = undefined;
-    
-    if (type == MeshTypes.VERT)
-      this.type = Vertex;
-    else if (type == MeshTypes.EDGE)
-      this.type = Edge;
-    else if (type == MeshTypes.LOOP)
-      this.type = Loop;
-    else if (type == MeshTypes.FACE)
-      this.type = Face;
-  }
-  
-  reset() {
-    if (this.iter.reset != undefined)
-      this.iter.reset();
-      
-    this.vset = new set();
-    this.iter.ctx = this.ctx;
-  }
-  
-  [Symbol.iterator]() {
-    return this;
-  }
-  
-  next() {
-    if (this.mesh != undefined)
-      this.iter.mesh = this.mesh;
-      
-    var v = this._next();
-	
-    if (v.done) return v;
-	
-    var vset = this.vset;
-    while ((!v.done) && (v.value == undefined || vset.has(v.value))) {
-      v = this._next();
-    }
-    
-    if (!v.done)
-      vset.add(v.value);
-    
-    return v;
-  }
-  
-  _next() {
-    if (this.subiter == undefined) {
-      var next = this.iter.next();
-      
-      if (next.done) {
-        this.reset();
-        return next;
-      }
-  
-      if (next.value.constructor.name == this.type.name)
-        return next;
-      
-      this.subiter = next.value.verts[Symbol.iterator]();
-    }
-    
-    var vset = this.vset;
-	  var v = this.subiter.next();
-	  if (v.done) {
-        this.subiter = undefined;
-        return this._next();
-	  }
-	  
-	  return v;
-  }
-  
-  static fromSTRUCT(reader) {
-    static map = {
-      Vertex : 1,
-      Edge   : 2,
-      Loop   : 4,
-      Face   : 8
-    };
-    
-    var ob = {};
-    
-    reader(ob);
-    
-    var type = map[ob.type];
-    var ret = new element_iter_convert(ob._iter, type);
-  }
-}
-
-element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter) + `
-  type  : string | this.type != undefined ? this.type.constructor.name : "";
-  _iter : abstract(ToolIter) | obj.iter;
-}
 `;

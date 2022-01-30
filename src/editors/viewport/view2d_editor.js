@@ -1,8 +1,8 @@
 "use strict";
 
 import {STRUCT} from '../../core/struct.js';
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../events.js';
+import {KeyMap, HotKey} from '../../core/keymap.js';
+
 //import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";
 import {ToolModes} from "./selectmode.js";
 

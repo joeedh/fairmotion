@@ -30,26 +30,6 @@ if (window.mobilecheck === undefined) {
 }
 //*/
 
-// Copyright (c) 2013 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-// This function is called by common.js when the NaCl module is
-// loaded.
-window.moduleDidLoad = function moduleDidLoad() {
-  console.log("-------Loaded NACL module!----------");
-  common.hideModule();
-  //common.naclModule.postMessage('hello');
-}
-// This function is called by common.js when a message is received from the
-// NaCl module.  it's overriden by src/nacl/nacl_api.js, which is an es6 module(
-window.handleMessage = function handleMessage(message) {
-  //var logEl = document.getElementById('log');
-  //logEl.textContent += message.data;
-
-  console.log("NACL message!", message, message.data);
-}
-
 //localstorage variant
 class MyLocalStorage_LS {
   set(key: string, val: string) {

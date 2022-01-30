@@ -7,7 +7,7 @@ import {ExtrudeVertOp} from '../spline_createops.js';
 import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
 import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
 
-import {KeyMap, HotKey} from '../../../path.ux/scripts/pathux.js';
+import {KeyMap, HotKey} from '../../../core/keymap.js';
 
 import {SelectLinkedOp, SelectOneOp, SelOpModes} from '../spline_selectops.js';
 import {TranslateOp} from '../transform.js';
@@ -146,7 +146,7 @@ export class SplineToolMode extends ToolMode {
       }
     }
 
-    this.keymap = new KeyMap([
+    this.keymap = new KeyMap("view2d:spline", [
       new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Move Up"),
       new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Move Down"),
       new HotKey("G", [], "spline.translate(datamode='selectmode')"),

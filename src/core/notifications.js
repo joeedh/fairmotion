@@ -1,9 +1,5 @@
 import {sendNote} from '../path.ux/scripts/widgets/ui_noteframe.js';
 
-export class Notification {
-
-}
-
 export class NotificationManager {
   label(label : string, description : string) {
     console.warn(label);

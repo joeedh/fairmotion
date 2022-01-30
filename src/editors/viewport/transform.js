@@ -9,17 +9,11 @@ import {
   CollectionProperty, TPropFlags, EnumProperty
 } from '../../core/toolprops.js';
 
-import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
 import {ToolOp, ToolDef, ModalStates} from '../../core/toolops_api.js';
 
 import {TransDataItem, TransDataType, TransData} from './transdata.js';
 import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
 import {SessionFlags} from './view2d_base.js';
-
-import {
-  KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler
-} from '../events.js';
 
 import {
   clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,

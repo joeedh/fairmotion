@@ -68,6 +68,30 @@ export class FileOpenOp extends ToolOp {
 //  }
 }
 
+
+export class OpenRecentOp extends ToolOp {
+  constructor(do_progress=true) {
+    super();
+  }
+
+  static tooldef() { return {
+    toolpath  : "appstate.open_recent",
+    uiname   : "Open Recent",
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    undoflag : UndoFlags.NO_UNDO,
+    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+  }}
+
+  exec(ctx) {
+    console.error("Implement me!");
+    ctx.error("Implement me!");
+  }
+}
+
+
 export class FileSaveAsOp extends ToolOp {
   do_progress : boolean;
 

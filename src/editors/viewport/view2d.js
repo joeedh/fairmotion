@@ -19,7 +19,7 @@ import {
   ManipulatorManager, Manipulator,
   HandleShapes, ManipFlags, ManipHandle
 } from './manipulator.js';
-import {KeyMap, HotKey} from '../../path.ux/scripts/pathux.js';
+import {KeyMap, HotKey} from '../../core/keymap.js';
 
 import {EditModes} from './view2d_editor.js';
 
@@ -186,11 +186,11 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("view2d");
     this.define_keymap();
 
     for (let map of this.ctx.toolmode.getKeyMaps()) {
-      for (let item in map) {
+      for (let item of map) {
         this.keymap.add(item);
       }
     }
@@ -217,7 +217,8 @@ export class View2DHandler extends Editor {
   }
 
   getKeyMaps(): Array<KeyMap> {
-    let ret = super.getKeyMaps() || [];
+    let ret = super.getKeyMaps();
+
     if (this.ctx.toolmode) {
       ret = ret.concat(this.ctx.toolmode.getKeyMaps());
     }

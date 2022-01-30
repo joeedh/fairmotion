@@ -1,12 +1,14 @@
 "use strict";
 
+/* this file appears to be unused */
+
 #define POOL_SIZE 128
 #define POOL_THRESHOLD  4096
 
 //pool allocators interface with the world in bytes, not
 //logical array indices
 class TA_PoolAlloc {
-  constructor(int cellsize, int type_size=4, int max_bytes = -1, Function cls = Float32Array) {
+  constructor(cellsize : int, type_size : int=4, max_bytes:int = -1,  cls:Float32ArrayConstructor = Float32Array) {
     this.pools = [];
     this.freelist = [];
     this.max_bytes = max_bytes;

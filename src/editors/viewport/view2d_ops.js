@@ -2,17 +2,8 @@
 
 //multitouch
 import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
-import {STRUCT} from '../../core/struct.js';
-import {unpack_ctx} from '../../core/ajax.js';
-
-import {
-  KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler
-} from '../events.js';
 
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
-import {SceneObject, ObjectFlags} from '../../scene/sceneobject.js';
-
 import {Vector2, Vector3, Matrix4, Vector4, Quat} from '../../path.ux/scripts/pathux.js';
 
 export class View2dOp extends ToolOp {

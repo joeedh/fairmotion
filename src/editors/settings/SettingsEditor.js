@@ -1,11 +1,9 @@
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase, theme} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
-import {Container} from '../../path.ux/scripts/core/ui.js';
-import {color2css, css2color, CSSFont} from '../../path.ux/scripts/core/ui_theme.js';
-import {ToolKeyHandler, FuncKeyHandler} from '../events.js';
-import {pushModalLight, popModalLight, exportTheme} from '../../path.ux/scripts/pathux.js';
+import {
+  keymap, reverse_keymap, saveUIData, loadUIData, pushModalLight, popModalLight, exportTheme
+} from '../../path.ux/scripts/pathux.js';
 
 let basic_colors = {
   'white' : [1, 1, 1],
@@ -40,7 +38,7 @@ export class SettingsEditor extends Editor {
     tab = tabs.tab("General");
     let panel = tab.panel("Units");
 
-    panel.prop("settings.unit_scheme");
+    panel.prop("settings.unit_system");
     panel.prop("settings.default_unit");
 
     tab = tabs.tab("Theme");
@@ -100,6 +98,10 @@ export class SettingsEditor extends Editor {
       return;
     }
 
+    console.error("KEYMAP EDITOR REBUILD");
+
+    let uidata = saveUIData(tab, "hotkeys");
+
     tab.clear();
 
     let row = tab.row();
@@ -110,47 +112,63 @@ export class SettingsEditor extends Editor {
     let build = (tab, label, keymaps) => {
       let panel = tab.panel(label);
 
-      function changePre(hk, handler, keymap) {
-        keymap.remove(hk);
+      let changePre = (hk, handler, keymap) => {
+        keymap.ensureWrite();
       }
 
-      function changePost(hk, handler, keymap) {
-        keymap.set(hk, handler);
+      let changePost = (hk, handler, keymap) => {
+        this.ctx.state.settings.updateKeyDeltas(keymap.typeName, keymap);
       }
 
-      function makeKeyPanel(panel2, hk, handler, keymap) {
-        panel2.clear();
-        let row = panel2.row();
+      let getHotKeyLabel = (hk) => {
+        let key = hk.buildString(); //hk[Symbol.keystr]();
+        let name = hk.uiname ?? hk.action;
 
-        let key = hk[Symbol.keystr]();
+        if (!hk.uiname && typeof hk.action === "string") {
+          let cls = this.ctx.api.parseToolPath(hk.action);
 
-        let name = hk.uiName;
-
-        if (!name && handler instanceof ToolKeyHandler) {
-          name = "" + handler.tool;
-        } else if (!name) {
+          if (cls) {
+            name = cls.tooldef().uiname;
+          }
+        } else {
           name = "(error)";
         }
 
-        panel2.title = key + " " + name;
+        return name + ": " + key;
+      }
+
+      let makeKeyPanel = (panel2, hk, handler, keymap) => {
+        let row = panel2.row();
+
+        panel2.title = getHotKeyLabel(hk);
+        panel2.headerLabel = getHotKeyLabel(hk);
 
         function setPanel2Title() {
-          key = hk[Symbol.keystr]();
-          panel2.title = key + " " + name;
+          console.warn("LABEL UPDATE", getHotKeyLabel(hk));
+
+          panel2.title = getHotKeyLabel(hk);
+          panel2.headerLabel = getHotKeyLabel(hk);
         }
 
         function makeModifier(mod) {
           row.button(mod, () => {
+            keymap.ensureWrite();
+
             changePre(hk, handler, keymap);
 
-            hk[mod] ^= true;
-            console.log(mod, "change", hk, hk[Symbol.keystr]());
+            mod = mod.toUpperCase();
+
+            if (hk.mods.indexOf(mod) >= 0) {
+              hk.mods.remove(mod);
+            } else {
+              hk.mods.push(mod);
+            }
+
+            console.warn(hk.buildString());
 
             changePost(hk, handler, keymap);
 
             setPanel2Title();
-
-            console.log("PANEL LABEL:", panel2.label);
           });
         }
 
@@ -158,7 +176,7 @@ export class SettingsEditor extends Editor {
         makeModifier("shift");
         makeModifier("alt");
 
-        let keyButton = row.button(hk.keyAscii, () => {
+        let keyButton = row.button(hk.key, () => {
           let modaldata;
           let start_time;
 
@@ -184,7 +202,7 @@ export class SettingsEditor extends Editor {
 
               changePre(hk, handler, keymap);
               hk.key = e.keyCode;
-              keyButton.setAttribute("name", hk.keyAscii);
+              keyButton.setAttribute("name", "" + reverse_keymap[hk.key]);
               changePost(hk, handler, keymap);
 
               setPanel2Title();
@@ -202,15 +220,11 @@ export class SettingsEditor extends Editor {
       }
 
       for (let keymap of keymaps) {
-        //console.log("KEYMAP", keymap);
-        //continue;
-
         for (let key of keymap) {
-          let panel2 = panel.panel(key);
-          let handler = keymap.get(key);
-          let hk = keymap.getKey(key);
+          let panel2 = panel.panel(getHotKeyLabel(key));
+          let handler = key.action;
 
-          makeKeyPanel(panel2, hk, handler, keymap);
+          makeKeyPanel(panel2, key, handler, keymap);
           panel2.closed = true;
         }
       }
@@ -222,7 +236,13 @@ export class SettingsEditor extends Editor {
     for (let kmset of this.ctx.screen.getKeySets()) {
       build(tab, kmset.name, kmset);
     }
-    //build(tab, "General", [this.ctx.screen.keymap]);
+
+    loadUIData(tab, uidata);
+
+    for (let i = 0; i < 3; i++) {
+      tab.flushUpdate();
+      tab.flushSetCSS();
+    }
   }
 
   static define() {

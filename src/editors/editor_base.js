@@ -1,10 +1,10 @@
-import {Area, contextWrangler, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {Area, areaclasses, contextWrangler, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';
 import * as util from '../path.ux/scripts/util/util.js';
 import {ModalStates} from '../core/toolops_api.js';
-import {HotKey, KeyMap} from '../path.ux/scripts/pathux.js';
+import {HotKey, KeyMap} from '../core/keymap.js';
 import {haveModal} from '../path.ux/scripts/pathux.js';
 
 export function resetAreaStacks() {
@@ -20,6 +20,8 @@ export class FairmotionScreen extends Screen {
   constructor() {
     super();
 
+    this._last_keymap_gen = -1;
+
     //used by playback
     this.startFrame = 1;
     this._lastFrameTime = util.time_ms();
@@ -31,8 +33,9 @@ export class FairmotionScreen extends Screen {
   }
 
   define_keymap() {
-    this.keymap = new KeyMap("screen");
+    let k = this.keymap = new KeyMap("screen");
 
+    /*
     class FuncKeyHandler {
       constructor(f) {
         this.f = f;
@@ -67,45 +70,40 @@ export class FairmotionScreen extends Screen {
         this.keymap.add(hotkey);
       },
     };
+    */
 
-
-    k.add_tool(new HotKey("O", ["CTRL"], "Open File"),
-      "appstate.open()");
-    k.add_tool(new HotKey("O", ["CTRL", "SHIFT"], "Open Recent"),
-      "appstate.open_recent()");
-    k.add_tool(new HotKey("S", ["CTRL", "ALT"], "Save File"),
-      "appstate.save_as()");
-    k.add_tool(new HotKey("S", ["CTRL"], "Save File"),
-      "appstate.save()");
-    k.add_func(new HotKey("U", ["CTRL", "SHIFT"]), function () {
-      ("saving new startup file.");
+    k.add(new HotKey("O", ["CTRL"], "appstate.open()"));
+    k.add(new HotKey("O", ["CTRL", "SHIFT"], "appstate.open_recent()"));
+    k.add(new HotKey("S", ["CTRL", "ALT"], "appstate.save_as()"));
+    k.add(new HotKey("S", ["CTRL"], "appstate.save()"));
+    k.add(new HotKey("U", ["CTRL", "SHIFT"], function () {
       g_app_state.set_startup_file();
-    });
+    }, "Save Startup File"));
 
-    k.add_tool(new HotKey("Left", ["CTRL"], "Previous Keyframe"),
-      "anim.nextprev(dir=-1)");
-    k.add_tool(new HotKey("Right", ["CTRL"], "Next Keyframe"),
-      "anim.nextprev(dir=1)");
+    k.add(new HotKey("Left", ["CTRL"], "anim.nextprev(dir=-1)|Previous Keyframe"));
+    k.add(new HotKey("Right", ["CTRL"], "anim.nextprev(dir=1)|Next Keyframe"));
 
-    k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() => {
+    k.add(new HotKey("Space", [], () => {
       this.ctx.screen.togglePlayback();
-    }));
-    k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() => {
+    }, "Animation Playback"));
+    k.add(new HotKey("Escape", [], () => {
       this.ctx.screen.stopPlayback();
-    }));
+    }, "Animation Playback"));
 
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function (ctx: FullContext) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], function (ctx: FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
-    }));
-    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function (ctx: FullContext) {
+    }, "Redo"));
+    k.add(new HotKey("Y", ["CTRL"], function (ctx: FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
-    }));
-    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function (ctx: FullContext) {
+    }, "Redo"));
+    k.add(new HotKey("Z", ["CTRL"], function (ctx: FullContext) {
       console.log("Undo");
       ctx.toolstack.undo();
-    }));
+    }, "Undo"));
+
+    k.loadDeltaSet();
   }
 
   * getKeySets() {
@@ -113,6 +111,43 @@ export class FairmotionScreen extends Screen {
 
     yield new KeymapSet("General", "screen", [this2.keymap]);
 
+    for (let key in areaclasses) {
+      let cls = areaclasses[key];
+
+      if (cls.name === "SettingsEditor") {
+        continue;
+      }
+
+      let area = new cls(); //document.createElement(cls.define().tagname);
+      area.ctx = this.ctx;
+      area.size = [512, 512];
+      area.pos = [0, 0];
+      area.updateSize = function() {};
+
+      try {
+        area._init();
+      } catch (error) {
+        console.error(error.stack);
+        console.error(error.message);
+      }
+
+      let uiname = area.constructor.define().uiname || area.constructor.name;
+      let path = area.constructor.name;
+
+      let km = area.getKeyMaps();
+
+      if (!(km instanceof KeymapSet)) {
+        km = new KeymapSet(uiname, path, km);
+      }
+
+      for (let keymap of km) {
+        //keymap.loadDeltaSet();
+      }
+
+      yield km;
+    }
+
+    return;
     for (let sarea of this2.sareas) {
       if (!sarea.area) continue;
 
@@ -121,8 +156,13 @@ export class FairmotionScreen extends Screen {
       let path = area.constructor.name;
 
       let km = sarea.area.getKeyMaps();
+
       if (!(km instanceof KeymapSet)) {
         km = new KeymapSet(uiname, path, km);
+      }
+
+      for (let keymap of km) {
+        keymap.loadDeltaSet();
       }
 
       yield km;
@@ -161,6 +201,11 @@ export class FairmotionScreen extends Screen {
 
   update() {
     super.update();
+
+    if (this.ctx && this._last_keymap_gen !== this.ctx.state.settings.keyDeltaGen) {
+      this._last_keymap_gen = this.ctx.state.settings.keyDeltaGen;
+      this.keymap.loadDeltaSet();
+    }
 
     if (g_app_state.modalstate === ModalStates.PLAYING) {
       let scene = this.ctx.scene;
@@ -214,6 +259,7 @@ export class Editor extends Area {
   constructor() {
     super();
 
+    this._last_keymap_delta_gen = 0;
     this.canvases = {};
   }
 
@@ -222,7 +268,27 @@ export class Editor extends Area {
   }
 
   getKeyMaps() {
+    if (this.keymap) {
+      return [this.keymap];
+    }
+
     return [];
+  }
+
+  update() {
+    super.update();
+
+    if (!this.ctx || !this.ctx.state) {
+      return;
+    }
+
+    if (this._last_keymap_delta_gen !== this.ctx.state.keyDeltaGen) {
+      this._last_keymap_delta_gen = this.ctx.state.keyDeltaGen;
+
+      for (let k of this.getKeyMaps()) {
+        k.loadDeltaSet();
+      }
+    }
   }
 
   init() {
@@ -246,6 +312,14 @@ export class Editor extends Area {
 
     this.style["overflow"] = "hidden";
     this.setCSS();
+
+    this.doOnce(() => {
+      this.keymap.loadDeltaSet();
+
+      for (let keymap of this.getKeyMaps()) {
+        keymap.loadDeltaSet();
+      }
+    });
   }
 
   getCanvas(id: string, zindex: number, patch_canvas2d_matrix = true, dpi_scale = 1.0) {

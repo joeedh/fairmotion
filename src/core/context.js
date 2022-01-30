@@ -178,6 +178,7 @@ export class BaseContext extends Context {
   frameset: SplineFrameSet
   spline: Spline
   scene: Scene
+  toolstack: ToolStack;
   api: DataAPI
   selectmode: int;
 
@@ -291,3 +292,4 @@ import {Editor} from "../editors/editor_base.js";
 import {View2DHandler} from '../editors/viewport/view2d.js';
 import {Scene} from "../scene/scene.js";
 import {Spline} from "../curve/spline.js";
+import {ToolStack} from './toolstack.js';

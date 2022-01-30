@@ -1,5 +1,5 @@
 import {NodeBase} from "../../../core/eventdag.js";
-import {KeyMap} from "../../events.js";
+import {KeyMap} from '../../../core/keymap.js';
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 
 export const ToolModeFlags = {

@@ -3,12 +3,12 @@ import * as config from '../config/config.js';
 import {reload_default_theme} from '../datafiles/theme.js';
 import {b64encode, b64decode} from '../util/strutils.js';
 //#XXX import {download_file} from 'dialogs';
-import {STRUCT} from './struct.js';
 import {exportTheme, CSSFont} from '../path.ux/scripts/core/ui_theme.js';
 import {setTheme} from '../path.ux/scripts/core/ui_base.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';
 import {theme} from '../editors/theme.js';
 import * as util from '../path.ux/scripts/util/util.js';
+import {KeyMapDeltaSet, KeyMapDelta, KeyMap} from './keymap.js';
 
 let defaultTheme = exportTheme(theme);
 
@@ -112,8 +112,33 @@ export class AppSettings {
     this.reload_defaults(false);
     this.recent_paths = [];
     this.tool_settings = [];
+    this.keyMaps = [];
 
     this.version = SETTINGS_VERSION;
+    this.keyDeltaGen = 0; //used to signal that key mappings have changed
+  }
+
+  updateKeyDeltas(typeName, keymap : KeyMap) {
+    for (let kd of this.keyMaps) {
+      if (kd.typeName === typeName) {
+        this.keyMaps.remove(kd);
+      }
+    }
+
+    this.keyMaps.push(keymap.asDeltaSet());
+    this.keyDeltaGen++;
+  }
+
+  getKeyMapDeltaSet(typeName) {
+    for (let kd of this.keyMaps) {
+      if (kd.typeName === typeName) {
+        return kd;
+      }
+    }
+
+    let kd = new KeyMapDeltaSet(typeName);
+    this.keyMaps.push(kd);
+    return kd;
   }
 
   _getToolOpS(toolcls) {
@@ -295,6 +320,7 @@ AppSettings {
   theme         : string;
   recent_paths  : array(RecentPath);
   version       : int;
+  keyMaps       : array(KeyMapDeltaSet);
 }
 `;
 

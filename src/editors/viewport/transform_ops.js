@@ -5,7 +5,6 @@ import {
 import {TransformOp, ScaleOp, NonUniformScaleOp} from './transform.js';
 
 import {SelMask} from './selectmode.js';
-import {MResTransData} from './multires/multires_transdata.js';
 
 import {BoolProperty, FloatProperty, IntProperty,
         CollectionProperty, TPropFlags} from '../../core/toolprops.js';
@@ -15,12 +14,6 @@ import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 
 import {TransDataItem, TransDataType} from './transdata.js';
 import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
-
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events.js';
-
-import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
-        JobTypes} from '../../wasm/native_api.js';
 
 import {Vec2Property, FloatProperty} from '../../core/toolprops.js';
 

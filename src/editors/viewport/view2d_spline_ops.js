@@ -3,41 +3,27 @@
 /*** THIS FILE IS OUTDATED AND NO LONGER USED, see ./toolmodes/splinetool.js****/
 
 import {ExtrudeVertOp} from './spline_createops.js';
-//$XXX import {toolop_menu} from 'UIMenu';
-import {DeleteVertOp, DeleteSegmentOp} from './spline_editops.js';
 import * as spline_selectops from './spline_selectops.js';
 import {WidgetResizeOp, WidgetRotateOp} from './transform_ops.js';
 
-var ScreenArea, Area;
-
-//$XXX import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
-
-//$XXX import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from '../../core/lib_api.js';
-import {STRUCT} from '../../core/struct.js';
 import {EditModes} from './view2d_editor.js';
 let EditModes2 = EditModes;
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events.js';
+import {KeyMap, HotKey} from '../../core/keymap.js';
+
+import {charmap} from '../events.js';
 
 import {SelectLinkedOp, SelectOneOp} from './spline_selectops.js';
 import {TranslateOp} from './transform.js';
 
 import {SelMask, ToolModes} from './selectmode.js';
-import {SplineTypes, SplineFlags, SplineVertex,
-        SplineSegment, SplineFace} from '../../curve/spline_types.js';
-import {Spline} from '../../curve/spline.js';
+import {SplineTypes, SplineFlags} from '../../curve/spline_types.js';
 
-//$XXX import {UIFrame} from 'UIFrame';
-//$XXX import {ColumnFrame, RowFrame} from 'UIPack';
-//$XXX import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
-//$XXX import {UIMenu} from 'UIMenu';
 import {View2DEditor, SessionFlags} from './view2d_editor.js';
 import {DataBlock, DataTypes} from '../../core/lib_api.js';
 import {redraw_element} from '../../curve/spline_draw.js';
 import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../core/toolops_api.js';
-//$XXX import {PackFlags, UIFlags} from 'UIElement';
 
 import {get_vtime} from '../../core/animdata.js';
 
@@ -53,12 +39,12 @@ export class DuplicateTransformMacro extends ToolMacro {
   }
 
   static invoke(ctx, args) {
-    var tool = new DuplicateOp();
+    let tool = new DuplicateOp();
     let macro = new DuplicateTransformMacro();
     
     macro.add(tool);
 
-    var transop = new TranslateOp(ctx.view2d.mpos, 1|2);
+    let transop = new TranslateOp(ctx.view2d.mpos, 1|2);
     macro.add(transop);
 
     return macro;
@@ -101,13 +87,13 @@ export class RenderAnimOp extends ToolOp {
     
     window.anim_to_playback.viewport = this.viewport;
     
-    var this2 = this;
-    var pathspline = ctx.frameset.pathspline;
+    let this2 = this;
+    let pathspline = ctx.frameset.pathspline;
     
-    var min_time = 1e17, max_time = 0;
+    let min_time = 1e17, max_time = 0;
     
-    for (var v of pathspline.verts) {
-      var time = get_vtime(v);
+    for (let v of pathspline.verts) {
+      let time = get_vtime(v);
       min_time = Math.min(min_time, time);
       max_time = Math.max(max_time, time);
     }
@@ -127,15 +113,15 @@ export class RenderAnimOp extends ToolOp {
   }
   
   render_frame() {
-    var ctx = this.modal_ctx;
-    if (ctx == undefined || !this.modalRunning) {
+    let ctx = this.modal_ctx;
+    if (ctx === undefined || !this.modalRunning) {
       console.log("Timer end")
       window.clearInterval(this.timer);
       this.end();
       return;
     }
     
-    var scene = ctx.scene;
+    let scene = ctx.scene;
     if (scene.time >= this.max_time+25) {
         this.end(ctx);
         return;
@@ -143,19 +129,19 @@ export class RenderAnimOp extends ToolOp {
     
     console.log("rendering frame", scene.time);
     
-    var vd = this.viewport;
-    var canvas = document.createElement("canvas");
+    let vd = this.viewport;
+    let canvas = document.createElement("canvas");
     canvas.width = vd.size[0], canvas.height = vd.size[1];
     
-    var g1 = ctx.view2d.draw_canvas_ctx;
-    var idata = g1.getImageData(vd.pos[0], vd.pos[1], vd.size[0], vd.size[1]);
+    let g1 = ctx.view2d.draw_canvas_ctx;
+    let idata = g1.getImageData(vd.pos[0], vd.pos[1], vd.size[0], vd.size[1]);
     
-    var g2 = canvas.getContext("2d");
+    let g2 = canvas.getContext("2d");
     g2.putImageData(idata, 0, 0);
     
-    var image = canvas.toDataURL();
+    let image = canvas.toDataURL();
     
-    var frame = {
+    let frame = {
       time : scene.time,
       data : idata
     }
@@ -168,7 +154,7 @@ export class RenderAnimOp extends ToolOp {
   }
   
   end(ctx) {
-    if (this.timer != undefined)
+    if (this.timer !== undefined)
       window.clearInterval(this.timer);
     this.end_modal()
   }
@@ -205,8 +191,8 @@ export class PlayAnimOp extends ToolOp {
       size : [ctx.view2d.size[0], ctx.view2d.size[1]]
     }
     
-    var this2 = this;
-    var pathspline = ctx.frameset.pathspline;
+    let this2 = this;
+    let pathspline = ctx.frameset.pathspline;
     
     this.start_time = time_ms();
     
@@ -218,26 +204,26 @@ export class PlayAnimOp extends ToolOp {
   }
   
   render_frame() {
-    var ctx = this.modal_ctx;
-    if (ctx == undefined || !this.modalRunning) {
+    let ctx = this.modal_ctx;
+    if (ctx === undefined || !this.modalRunning) {
       console.log("Timer end")
       window.clearInterval(this.timer);
       this.end();
       return;
     }
     
-    var vd = window.anim_to_playback.viewport;
-    var g1 = ctx.view2d.draw_canvas_ctx;
+    let vd = window.anim_to_playback.viewport;
+    let g1 = ctx.view2d.draw_canvas_ctx;
     
-    var time = time_ms() - this.start_time;
+    let time = time_ms() - this.start_time;
     
     time = (time / 1000.0)*24.0;
-    var fi = Math.floor(time);
+    let fi = Math.floor(time);
     
-    var vd = window.anim_to_playback.viewport;
+    vd = window.anim_to_playback.viewport;
     
-    var pos = ctx.view2d.pos;
-    var this2 = this;
+    let pos = ctx.view2d.pos;
+    let this2 = this;
     
     if (fi >= window.anim_to_playback.length) {
       console.log("end");
@@ -247,10 +233,10 @@ export class PlayAnimOp extends ToolOp {
       return;
     }
     
-    var frame = window.anim_to_playback[fi];
+    let frame = window.anim_to_playback[fi];
     
     this.doing_draw = true;
-    var draw = function draw() {
+    let draw = function draw() {
       this2.doing_draw = false;
       
       //g1.beginPath();
@@ -259,8 +245,8 @@ export class PlayAnimOp extends ToolOp {
       //g1.fill();
       //g1.stroke();
       
-      if (frame != undefined) {
-        if (g1._putImageData != undefined)
+      if (frame !== undefined) {
+        if (g1._putImageData !== undefined)
           g1._putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
         else
           g1.putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
@@ -271,7 +257,7 @@ export class PlayAnimOp extends ToolOp {
   }
   
   end(ctx) {
-    if (this.timer != undefined)
+    if (this.timer !== undefined)
       window.clearInterval(this.timer);
     this.end_modal()
   }
@@ -291,7 +277,7 @@ export class SplineEditor extends View2DEditor {
   start_mpos : Vector3;
 
   constructor(view2d) {
-    var keymap = new KeyMap("view2d:splinetool2");
+    let keymap = new KeyMap("view2d:splinetool2");
     super("Geometry", EditorTypes.SPLINE, EditModes2.GEOMETRY, DataTypes.FRAMESET, keymap);
     
     this.mpos = new Vector3();
@@ -307,7 +293,7 @@ export class SplineEditor extends View2DEditor {
   }
 
   editor_duplicate(view2d) {
-    var m = new SplineEditor(view2d);
+    let m = new SplineEditor(view2d);
     
     m.selectmode = this.selectmode;
     m.keymap = this.keymap;
@@ -321,7 +307,7 @@ export class SplineEditor extends View2DEditor {
   }
 
   static fromSTRUCT(reader) {
-    var m = new SplineEditor(undefined);
+    let m = new SplineEditor(undefined);
     reader(m);
     
     return m;
@@ -331,13 +317,13 @@ export class SplineEditor extends View2DEditor {
     this.ctx = new Context();
   }
   
-  add_menu(View2DHandler view2d, Array<float> mpos, Boolean add_title=true) {
+  add_menu( view2d : View2DHandler,  mpos : Array<float>,  add_title : Boolean=true) {
     this.ctx = new Context();
     
     console.log("Add menu")
     
-    var oplist = [] //XXX "mesh.add_cube()", "mesh.add_circle()"]
-    var menu = toolop_menu(view2d.ctx, add_title ? "Add" : "", oplist);
+    let oplist = [] //XXX "mesh.add_cube()", "mesh.add_circle()"]
+    let menu = toolop_menu(view2d.ctx, add_title ? "Add" : "", oplist);
     
     return menu;
   }
@@ -345,9 +331,9 @@ export class SplineEditor extends View2DEditor {
   on_tick(ctx) {
     let widgets = [WidgetResizeOp, WidgetRotateOp];
     
-    if (ctx.view2d.toolmode == ToolModes.RESIZE) {
+    if (ctx.view2d.toolmode === ToolModes.RESIZE) {
       ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
-    } else if (ctx.view2d.toolmode == ToolModes.ROTATE) {
+    } else if (ctx.view2d.toolmode === ToolModes.ROTATE) {
       ctx.view2d.widgets.ensure_toolop(ctx, WidgetRotateOp);
     } else {
       for (let cls of widgets) {
@@ -359,7 +345,7 @@ export class SplineEditor extends View2DEditor {
   build_sidebar1(view2d : View2DHandler, col : RowFrame) {
     console.trace("build_sidebar1");
     
-    var ctx = new Context();
+    let ctx = new Context();
   
     col.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT|PackFlags.INHERIT_WIDTH;
     col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
@@ -392,7 +378,7 @@ export class SplineEditor extends View2DEditor {
   }
   
   build_bottombar(view2d, col) {
-    var ctx = new Context();
+    let ctx = new Context();
   
     col.packflag |= PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH | PackFlags.INHERIT_HEIGHT;
     col.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
@@ -405,7 +391,7 @@ export class SplineEditor extends View2DEditor {
     //col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
     
     col.add(gen_editor_switcher(this.ctx, view2d));
-    var prop = col.prop("view2d.selectmode",
+    let prop = col.prop("view2d.selectmode",
                         PackFlags.USE_SMALL_ICON|PackFlags.ENUM_STRIP);
                         
     prop.packflag |= PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
@@ -419,156 +405,143 @@ export class SplineEditor extends View2DEditor {
   }
 
   define_keymap() {
-    var k = this.keymap;
+    let k = this.keymap;
     
-    k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
-               "spline.change_face_z(offset=1 selmode='selectmode')");
-    k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
-               "spline.change_face_z(offset=-1 selmode='selectmode')");
+    k.add(new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Send Face Up"));
+    k.add(new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Send Face Down"));
 
-    k.add_tool(new HotKey("G", [], "Translate"),
-               "spline.translate(datamode='selectmode')");
-    k.add_tool(new HotKey("S", [], "Scale"),
-               "spline.scale(datamode='selectmode')");
-    k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"),
-               "spline.shift_time()");
+    k.add(new HotKey("G", [], "spline.translate(datamode='selectmode')|Translate"));
+    k.add(new HotKey("S", [], "spline.scale(datamode='selectmode')|Scale"));
+    k.add(new HotKey("S", ["SHIFT"], "spline.shift_time()|Scale Time"));
                
-    k.add_tool(new HotKey("R", [], "Rotate"),
-               "spline.rotate(datamode='selectmode')");
+    k.add(new HotKey("R", [], "spline.rotate(datamode='selectmode')|Rotate"));
     
-    k.add_tool(new HotKey("A", [], "Select Linked"), "spline.toggle_select_all()");
+    k.add(new HotKey("A", [], "spline.toggle_select_all()|Select Linked"));
     /*
     k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
-      var view2d = ctx.view2d;
-      var selectmode = view2d.selectmode;
+      let view2d = ctx.view2d;
+      let selectmode = view2d.selectmode;
       
-      if (selectmode == SelMask.MULTIRES) {
-        var tool = new mr_selectops.ToggleSelectAll();
+      if (selectmode === SelMask.MULTIRES) {
+        let tool = new mr_selectops.ToggleSelectAll();
         g_app_state.toolstack.exec_tool(tool);
       } else if (selectmode & SelMask.MULTIRES) {
-        var tool = new mr_selectops.ToggleSelectAll();
+        let tool = new mr_selectops.ToggleSelectAll();
         g_app_state.toolstack.exec_tool(tool);
 
-        var tool = new spline_selectops.ToggleSelectAllOp();
+        let tool = new spline_selectops.ToggleSelectAllOp();
         g_app_state.toolstack.exec_tool(tool);
       } else {
-        var tool = new spline_selectops.ToggleSelectAllOp();
+        let tool = new spline_selectops.ToggleSelectAllOp();
         g_app_state.toolstack.exec_tool(tool);
       }
     }));*/
 
-    k.add_tool(new HotKey("A", ["ALT"], "Animation Playback"),
-               "editor.playback()");
+    k.add(new HotKey("A", ["ALT"], "editor.playback()|Animation Playback"));
 
-    k.add_tool(new HotKey("H", [], "Hide Selection"),
-               "spline.hide(selmode='selectmode')");
-    k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"),
-               "spline.unhide(selmode='selectmode')");
+    k.add(new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"));
+    k.add(new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"));
 
-    k.add_tool(new HotKey("G", ["CTRL"], "Ghost Selection"),
-               "spline.hide(selmode='selectmode', ghost=1)");
-    k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"),
-               "spline.unhide(selmode='selectmode', ghost=1)");
+    k.add(new HotKey("G", ["CTRL"], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"));
+    k.add(new HotKey("G", ["ALT"], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"));
     
-    /*k.add_tool(new HotKey("C", [], "Connect Handles"),
+    /*k.add(new HotKey("C", [], "Connect Handles"),
                "spline.connect_handles()");
-    k.add_tool(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
+    k.add(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
                "spline.disconnect_handles()");
     */
 
     
-    k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function(ctx) {
-      var mpos = ctx.keymap_mpos;
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
+    k.add(new HotKey("L", [], function(ctx) {
+      let mpos = ctx.keymap_mpos;
+      let ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
       console.log("select linked", ret);
 
       if (ret !== undefined) {
-        var tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
+        let tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
         tool.inputs.vertex_eid.setValue(ret[0].eid);
         tool.inputs.mode.setValue("SELECT");
         
         ctx.appstate.toolstack.exec_tool(tool);
       }
-    }));
+    }, "Select Linked"));
     
-    k.add(new HotKey("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function(ctx) {
-      var mpos = ctx.keymap_mpos;
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
+    k.add(new HotKey("L", ["SHIFT"], function(ctx) {
+      let mpos = ctx.keymap_mpos;
+      let ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
-      if (ret != undefined) {
-        var tool = new SelectLinkedOp(true);
+      if (ret !== undefined) {
+        let tool = new SelectLinkedOp(true);
         tool.inputs.vertex_eid.setValue(ret[0].eid);
         tool.inputs.mode.setValue("deselect");
         
         ctx.appstate.toolstack.exec_tool(tool);
       }
-    }));
+    }, "Select Linked"));
     
-    k.add_tool(new HotKey("B", [], "Toggle Break-Tangents"),
-              "spline.toggle_break_tangents()");
-    k.add_tool(new HotKey("B", ["SHIFT"], "Toggle Break-Curvature"),
-              "spline.toggle_break_curvature()");
+    k.add(new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"));
+    k.add(new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"));
     
-    var this2 = this;
+    let this2 = this;
     function del_tool(ctx) {
       console.log("delete");
       
       if (this2.selectmode & SelMask.SEGMENT) {
         console.log("kill segments");
         
-        var op = new DeleteSegmentOp();
+        let op = new DeleteSegmentOp();
         g_app_state.toolstack.exec_tool(op);
       } else if (this2.selectmode & SelMask.FACE) {
         console.log("kill faces");
         
-        var op = new DeleteFaceOp();
+        let op = new DeleteFaceOp();
         g_app_state.toolstack.exec_tool(op);
       } else {
         console.log("kill verts");
         
-        var op = new DeleteVertOp();
+        let op = new DeleteVertOp();
         g_app_state.toolstack.exec_tool(op);
       }
     }
     
-    k.add(new HotKey("X", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new HotKey("Delete", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new HotKey("Backspace", [], "Delete"), new FuncKeyHandler(del_tool));
+    k.add(new HotKey("X", [], del_tool, "Delete"));
+    k.add(new HotKey("Delete", [], del_tool, "Delete"));
+    k.add(new HotKey("Backspace", [], del_tool, "Delete"));
 
-    k.add_tool(new HotKey("D", [], "Dissolve Vertices"), "spline.dissolve_verts()");
-    k.add_tool(new HotKey("D", ["SHIFT"], "Duplicate"), "spline.duplicate_transform()");
-    k.add_tool(new HotKey("F", [], "Create Face/Edge"), "spline.make_edge_face()");
-    k.add_tool(new HotKey("E", [], "Split Segments"), "spline.split_edges()");
+    k.add(new HotKey("D", [], "spline.dissolve_verts()"));
+    k.add(new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"));
+    k.add(new HotKey("F", [], "spline.make_edge_face()"));
+    k.add(new HotKey("E", [], "spline.split_edges()"));
 
-    k.add_tool(new HotKey("M", [], "Mirror Verts"), "spline.mirror_verts()");
+    k.add(new HotKey("M", [], "spline.mirror_verts()"));
 
-    k.add_tool(new HotKey("C", [], "Circle Select"), "view2d.circle_select()");
+    k.add(new HotKey("C", [], "view2d.circle_select()"));
 
-    k.add(new HotKey("Z", [], "Toggle Only Render"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", [], function(ctx) {
       ctx.view2d.only_render ^= 1;
       window.redraw_viewport();
-    }));
+    }, "Toggle Only Render"));
     
-    k.add(new HotKey("W", [], "Tools Menu"), new FuncKeyHandler(function(ctx) {
-      var mpos = ctx.keymap_mpos;
+    k.add(new HotKey("W", [], function(ctx) {
+      let mpos = ctx.keymap_mpos;
       ctx.view2d.tools_menu(ctx, mpos);
-    }));
+    }, "Tools Menu"));
   }
 
-  set_selectmode(int mode) {
+  set_selectmode(mode : int) {
     this.selectmode = mode;
   }
 
   //returns number of selected items
-  do_select(event, mpos, view2d, do_multiple=false) {
+  do_select(event, mpos : Array<number>, view2d : View2DHandler, do_multiple=false) {
     //console.log("XXX do_select!", mpos);
     
     return false;
   }
 
-  tools_menu(ctx, mpos, view2d) {
-    static ops = [
+  tools_menu(ctx, mpos, view2d : View2DHandler) {
+    const ops = [
       "spline.key_edges()",
       "spline.key_current_frame()",
       "spline.connect_handles()",
@@ -579,7 +552,7 @@ export class SplineEditor extends View2DEditor {
       "editor.copy_pose()"
     ];
     
-    var menu = view2d.toolop_menu(ctx, "Tools", ops);
+    let menu = view2d.toolop_menu(ctx, "Tools", ops);
     
     view2d.call_menu(menu, view2d, mpos);
   }
@@ -598,15 +571,15 @@ export class SplineEditor extends View2DEditor {
   }
   
   on_mousedown(event) {
-    var spline = this.ctx.spline;
-    var toolmode = this.ctx.view2d.toolmode;
+    let spline = this.ctx.spline;
+    let toolmode = this.ctx.view2d.toolmode;
     
     if (this.highlight_spline !== undefined) {
       //console.log(this.highlight_spline, this.highlight_spline._debug_id, spline._debug_id);
     }
     
     if (this.highlight_spline !== undefined && this.highlight_spline !== spline) {
-      var newpath;
+      let newpath;
       
       console.log("spline switch!");
       
@@ -627,7 +600,7 @@ export class SplineEditor extends View2DEditor {
     
     //console.log("spline", spline._debug_id, this.ctx.frameset.spline._debug_id);
     
-    if ("size" in spline && spline[0] != window.innerWidth && spline[1] != window.innerHeight) {
+    if ("size" in spline && spline[0] !== window.innerWidth && spline[1] !== window.innerHeight) {
       spline.size[0] = window.innerWidth
       spline.size[1] = window.innerHeight;
       //redraw_viewport();
@@ -635,20 +608,20 @@ export class SplineEditor extends View2DEditor {
     
     //console.log("DDD", spline.verts.highlight, G.active_splinepath);
     
-    if (event.button == 0) {
-      var can_append = toolmode == ToolModes.APPEND;
+    if (event.button === 0) {
+      let can_append = toolmode === ToolModes.APPEND;
       
       can_append = can_append && (this.selectmode & (SelMask.VERTEX|SelMask.HANDLE));
       can_append = can_append && spline.verts.highlight === undefined && spline.handles.highlight === undefined;
       
       if (can_append) {
-        var co = new Vector3([event.x, event.y, 0]);
+        let co = new Vector3([event.x, event.y, 0]);
         //co = this.view2d.getLocalMouse(co[0], co[1]);
 
         this.view2d.unproject(co);
         console.log(co);
 
-        var op = new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
+        let op = new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
         op.inputs.location.setValue(co);
         op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
         op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
@@ -656,15 +629,15 @@ export class SplineEditor extends View2DEditor {
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
       }  else {
-        for (var i=0; i<spline.elists.length; i++) {
-          var list = spline.elists[i];
+        for (let i=0; i<spline.elists.length; i++) {
+          let list = spline.elists[i];
 
           if (!(this.selectmode & list.type))
               continue;;
-          if (list.highlight == undefined)
+          if (list.highlight === undefined)
             continue;
 
-          var op = new SelectOneOp(list.highlight, !event.shiftKey,
+          let op = new SelectOneOp(list.highlight, !event.shiftKey,
                                   !(list.highlight.flag & SplineFlags.SELECT),
                                   this.selectmode, true);
           //console.log("exec selectoneop op");
@@ -679,9 +652,9 @@ export class SplineEditor extends View2DEditor {
   }
 
   ensure_paths_off() {
-    if (g_app_state.active_splinepath != "frameset.drawspline") {
+    if (g_app_state.active_splinepath !== "frameset.drawspline") {
       this.highlight_spline = undefined;
-      var spline = this.ctx.spline;
+      let spline = this.ctx.spline;
       
       g_app_state.switch_active_spline("frameset.drawspline");
       
@@ -697,13 +670,13 @@ export class SplineEditor extends View2DEditor {
   
   //returns [spline, element, mindis]
   findnearest(mpos, selectmask, limit, ignore_layers) {
-    var frameset = this.ctx.frameset;
-    var editor = this.ctx.view2d;
+    let frameset = this.ctx.frameset;
+    let editor = this.ctx.view2d;
     
-    var closest = [0, 0, 0];
-    var mindis = 1e17;
+    let closest = [0, 0, 0];
+    let mindis = 1e17;
     
-    var found = false;
+    let found = false;
     
     //note that limit parameter (maximum distance from mpos) is enforced
     //by spline.q.findnearest (see spline_query.js)
@@ -712,8 +685,8 @@ export class SplineEditor extends View2DEditor {
       this.ensure_paths_off();
       
       //XXXXX FIXME: spline.q.findnearest modifies mpos!!
-      var ret = this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-      if (ret != undefined) {
+      let ret = this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+      if (ret !== undefined) {
         return [this.ctx.spline, ret[0], ret[1]];
       } else {
         return undefined;
@@ -722,13 +695,13 @@ export class SplineEditor extends View2DEditor {
     
     //console.log("\n");
     
-    var actspline = this.ctx.spline;
+    let actspline = this.ctx.spline;
     
-    var pathspline = this.ctx.frameset.pathspline;
-    var drawspline = this.ctx.frameset.spline;
+    let pathspline = this.ctx.frameset.pathspline;
+    let drawspline = this.ctx.frameset.spline;
     
-    var ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-    if (ret != undefined && ret[1] < limit) {
+    let ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+    if (ret !== undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
       
@@ -737,9 +710,9 @@ export class SplineEditor extends View2DEditor {
       closest[2] = mindis;
     }
     
-    //for (var spline in frameset._selected_splines) {
-    var ret = frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
-    if (ret != undefined) {
+    //for (let spline in frameset._selected_splines) {
+    ret = frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
+    if (ret !== undefined) {
       ret[1] -= pathspline === actspline ? 2 : 0;
       
       if (ret[1] < limit && ret[1] < mindis) {
@@ -759,21 +732,21 @@ export class SplineEditor extends View2DEditor {
   }
   
   on_mousemove(event) {
-    if (this.ctx == undefined) return;
+    if (this.ctx === undefined) return;
 
-    var toolmode = this.ctx.view2d.toolmode;
+    let toolmode = this.ctx.view2d.toolmode;
     
-    var selectmode = this.selectmode;
-    var limit = selectmode & SelMask.SEGMENT ? 55 : 12;
+    let selectmode = this.selectmode;
+    let limit = selectmode & SelMask.SEGMENT ? 55 : 12;
 
-    if (toolmode == ToolModes.SELECT) limit *= 3;
+    if (toolmode === ToolModes.SELECT) limit *= 3;
     
-    var spline = this.ctx.spline;
+    let spline = this.ctx.spline;
     spline.size = [window.innerWidth, window.innerHeight];
     
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
     
-    var selectmode = this.selectmode;
+    selectmode = this.selectmode;
 
     if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
       this.mdown = false;
@@ -782,14 +755,14 @@ export class SplineEditor extends View2DEditor {
       mpos.load(this.start_mpos);
       //this.ctx.view2d.project(mpos);
 
-      var op = new TranslateOp(mpos);
+      let op = new TranslateOp(mpos);
 
       console.log("start_mpos:", mpos);
 
       op.inputs.datamode.setValue(this.ctx.view2d.selectmode);
       op.inputs.edit_all_layers.setValue(this.ctx.view2d.edit_all_layers);
 
-      var ctx = new Context();
+      let ctx = new Context();
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
         op.inputs.proportional.setValue(true);
@@ -803,30 +776,30 @@ export class SplineEditor extends View2DEditor {
     if (this.mdown)
       return;
     
-    var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
+    let ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
 
     //console.log(ret, this.ctx.view2d.selectmode);
     
     
-    if (ret != undefined && typeof(ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {
+    if (ret !== undefined && typeof(ret[1]) !== "number" && ret[2] !== SelMask.MULTIRES) {
       //console.log(ret[1].type);
       
-      if (this.highlight_spline != undefined) {
-        for (var list of this.highlight_spline.elists) {
-          if (list.highlight != undefined) {
+      if (this.highlight_spline !== undefined) {
+        for (let list of this.highlight_spline.elists) {
+          if (list.highlight !== undefined) {
             redraw_element(list.highlight, this.view2d);
           }
         }
       }
       
-      if (ret[0] !== this.highlight_spline && this.highlight_spline != undefined) {
+      if (ret[0] !== this.highlight_spline && this.highlight_spline !== undefined) {
         this.highlight_spline.clear_highlight();
       }
       
       this.highlight_spline = ret[0];
       this.highlight_spline.clear_highlight();
       
-      var list = this.highlight_spline.get_elist(ret[1].type);
+      let list = this.highlight_spline.get_elist(ret[1].type);
       /*
       if (!list._has_d) {
         Object.defineProperty(list, "highlight", {
@@ -836,10 +809,10 @@ export class SplineEditor extends View2DEditor {
           },
           
           set : function(val) {
-            if (val == undefined && this._highlight != undefined) {
+            if (val === undefined && this._highlight !== undefined) {
               console.log("  off");
             }
-            if (val != undefined && this._highlight == undefined) {
+            if (val !== undefined && this._highlight === undefined) {
               console.log("  on");
             }
             this._highlight = val;
@@ -857,10 +830,10 @@ export class SplineEditor extends View2DEditor {
       //redraw_viewport();
       //console.log(list === ret[0].verts);
     } else {
-      if (this.highlight_spline != undefined) {
-        for (var i=0; i<this.highlight_spline.elists.length; i++) {
-          var list = this.highlight_spline.elists[i];
-          if (list.highlight != undefined) {
+      if (this.highlight_spline !== undefined) {
+        for (let i=0; i<this.highlight_spline.elists.length; i++) {
+          let list = this.highlight_spline.elists[i];
+          if (list.highlight !== undefined) {
             redraw_element(list.highlight, this.view2d);
           }
         }
@@ -871,7 +844,7 @@ export class SplineEditor extends View2DEditor {
   }
 
   on_mouseup(event) {
-    var spline = this._get_spline();
+    let spline = this._get_spline();
     spline.size = [window.innerWidth, window.innerHeight];
     
     this.mdown = false;
@@ -881,10 +854,10 @@ export class SplineEditor extends View2DEditor {
   }
 
   gen_edit_menu(Boolean add_title=false) {
-    var view2d = this.view2d;
-    var ctx = new Context();
+    let view2d = this.view2d;
+    let ctx = new Context();
     
-    var ops = [
+    let ops = [
       "spline.select_linked(vertex_eid=active_vertex())",
       "view2d.circle_select()",
       "spline.toggle_select_all()",
@@ -905,15 +878,15 @@ export class SplineEditor extends View2DEditor {
     ];
     ops.reverse();
     
-    var menu = view2d.toolop_menu(ctx, add_title ? "Edit" : "", ops);
+    let menu = view2d.toolop_menu(ctx, add_title ? "Edit" : "", ops);
     return menu;
   }
   
   delete_menu(event) {
-    var view2d = this.view2d;
-    var ctx = new Context();
+    let view2d = this.view2d;
+    let ctx = new Context();
     
-    var menu = this.gen_delete_menu(true);
+    let menu = this.gen_delete_menu(true);
     
     menu.close_on_right = true
     menu.swap_mouse_button = 2;
@@ -927,5 +900,3 @@ SplineEditor.STRUCT = `
     selectmode : int;
   }
 `
-
-import {ScreenArea, Area} from '../../path.ux/scripts/screen/ScreenArea.js';

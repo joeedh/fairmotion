@@ -11,8 +11,7 @@ import {aabb_isect_2d} from '../../util/mathlib.js';
 //import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {nstructjs} from '../../path.ux/scripts/pathux.js';
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../events.js';
+import {KeyMap, HotKey} from '../../core/keymap.js';
 
 import {STRUCT} from '../../core/struct.js';
 
@@ -23,16 +22,17 @@ import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../core/toolops_api.
 import {Spline, RestrictFlags} from '../../curve/spline.js';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
 
-import {TimeDataLayer, get_vtime, set_vtime,
+import {
+  TimeDataLayer, get_vtime, set_vtime,
   AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes, AnimKeyTypes
 } from '../../core/animdata.js';
 
 let projrets = cachering.fromConstructor(Vector2, 128);
 
 const RecalcFlags = {
-  CHANNELS : 1,
-  REDRAW_KEYS : 2,
-  ALL : 1|2
+  CHANNELS   : 1,
+  REDRAW_KEYS: 2,
+  ALL        : 1 | 2
 };
 
 let treeDebug = 0;
@@ -42,16 +42,16 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/core/ui.js';
 import {SelectKeysToSide, ShiftTimeOp3} from "./dopesheet_ops.js";
 
-var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
+let tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
                    |PackFlags.IGNORE_LIMIT;*/
 
-var CHGT = 25;
+let CHGT = 25;
 
 export class TreeItem extends ColumnFrame {
-  namemap : Object
-  name : string
-  collapsed : boolean;
+  namemap: Object
+  name: string
+  collapsed: boolean;
 
   constructor() {
     super();
@@ -105,7 +105,7 @@ export class TreeItem extends ColumnFrame {
       this.dispatchEvent(e);
 
       if (this.onchange) {
-      //  this.onchange(e);
+        //  this.onchange(e);
       }
 
       this.setCSS();
@@ -134,13 +134,13 @@ export class TreeItem extends ColumnFrame {
         i++;
       }
 
-      this.icon.hidden = i == 0;
+      this.icon.hidden = i === 0;
     }
   }
 
   build_path() {
-    var path = this.path;
-    var p = this;
+    let path = this.path;
+    let p = this;
 
     while (p !== undefined && !(p.parent instanceof TreePanel)) {
       p = p.parent;
@@ -189,7 +189,7 @@ export class TreeItem extends ColumnFrame {
   }
 
   get_filedata() {
-    return {collapsed : this.collapsed};
+    return {collapsed: this.collapsed};
   }
 
   load_filedata(data) {
@@ -213,17 +213,19 @@ export class TreeItem extends ColumnFrame {
 
   }
 
-  static define() {return {
-    tagname : "dopesheet-treeitem-x",
-    style : "dopesheet"
-  }}
+  static define() {
+    return {
+      tagname: "dopesheet-treeitem-x",
+      style  : "dopesheet"
+    }
+  }
 }
 
 UIBase.register(TreeItem);
 
 export class TreePanel extends ColumnFrame {
-  totpath : number
-  pathmap : Object;
+  totpath: number
+  pathmap: Object;
 
   constructor() {
     super();
@@ -258,7 +260,7 @@ export class TreePanel extends ColumnFrame {
 
   }
 
-  countPaths(visible_only=false) {
+  countPaths(visible_only = false) {
     let i = 0;
 
     for (let path in this.pathmap) {
@@ -272,13 +274,13 @@ export class TreePanel extends ColumnFrame {
     return i;
   }
 
-  saveTreeData(existing_merge=[]) {
-    let map  = {};
+  saveTreeData(existing_merge = []) {
+    let map = {};
 
     let version = existing_merge[0];
-    for (let i=1; i<existing_merge.length; i += 2) {
+    for (let i = 1; i < existing_merge.length; i += 2) {
       let pathid = existing_merge[i];
-      let state = existing_merge[i+1];
+      let state = existing_merge[i + 1];
 
       //map[parseInt(pathid)] = state;
     }
@@ -322,9 +324,9 @@ export class TreePanel extends ColumnFrame {
     this.treeData = {};
     if (treeDebug) console.log(map, this.pathmap);
 
-    for (let i=1; i<obj.length; i += 2) {
+    for (let i = 1; i < obj.length; i += 2) {
       let pathid = obj[i];
-      let state = obj[i+1];
+      let state = obj[i + 1];
 
       if (treeDebug) console.log("  pathid", pathid, "state", state);
 
@@ -377,7 +379,7 @@ export class TreePanel extends ColumnFrame {
 
     //dom event system fires this for us?
     //if (this.onchange) {
-      //this.onchange(e2);
+    //this.onchange(e2);
     //}
   }
 
@@ -408,9 +410,9 @@ export class TreePanel extends ColumnFrame {
       throw new Error("id cannot be undefined or non-number");
     }
 
-    var paths = path.split(".")
-    var tree = this.tree;
-    var lasttree = undefined;
+    let paths = path.split(".")
+    let tree = this.tree;
+    let lasttree = undefined;
     let idgen = ~~(id*32);
 
     if (paths[0].trim() === "root")
@@ -418,9 +420,9 @@ export class TreePanel extends ColumnFrame {
 
     //console.log("PATH", path);
 
-    var path2 = "";
-    for (var i=0; i<paths.length; i++) {
-      var key = paths[i].trim();
+    let path2 = "";
+    for (let i = 0; i < paths.length; i++) {
+      let key = paths[i].trim();
 
       if (i === 0)
         path2 = key;
@@ -473,7 +475,7 @@ export class TreePanel extends ColumnFrame {
     }
 
     if (path) {
-      path.style["top"] = (y / UIBase.getDPI()) + "px";
+      path.style["top"] = (y/UIBase.getDPI()) + "px";
     }
   }
 
@@ -491,7 +493,7 @@ export class TreePanel extends ColumnFrame {
     let dpi = UIBase.getDPI();
 
     if (a !== undefined && b !== undefined) {
-      return (b.top - a.top) * dpi;
+      return (b.top - a.top)*dpi;
     } else {
       return undefined;
     }
@@ -511,10 +513,11 @@ export class TreePanel extends ColumnFrame {
   static define() {
     return {
       tagname: "dopesheet-treepanel-x",
-      style: "dopesheet"
+      style  : "dopesheet"
     }
   }
 }
+
 UIBase.register(TreePanel);
 
 export class ChannelState {
@@ -524,6 +527,7 @@ export class ChannelState {
     this.eid = eid;
   }
 }
+
 ChannelState.STRUCT = `
 ChannelState {
   type     :  int;
@@ -534,12 +538,12 @@ ChannelState {
 nstructjs.register(ChannelState);
 
 export class PanOp extends ToolOp {
-  is_modal : boolean
-  start_pan : Vector2
-  first_draw : boolean
-  start_mpos : Vector2
-  first : boolean
-  cameramat : Matrix4;
+  is_modal: boolean
+  start_pan: Vector2
+  first_draw: boolean
+  start_mpos: Vector2
+  first: boolean
+  cameramat: Matrix4;
 
   constructor(dopesheet) {
     super();
@@ -560,21 +564,23 @@ export class PanOp extends ToolOp {
     this.cameramat = new Matrix4();
   }
 
-  static tooldef() {return {
-    is_modal : true,
-    toolpath : "dopesheet.pan",
-    undoflag : UndoFlags.NO_UNDO,
-    inputs   : {},
-    outputs  : {},
-    icon     : -1
-  }}
+  static tooldef() {
+    return {
+      is_modal: true,
+      toolpath: "dopesheet.pan",
+      undoflag: UndoFlags.NO_UNDO,
+      inputs  : {},
+      outputs : {},
+      icon    : -1
+    }
+  }
 
   modalStart(ctx) {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
   }
 
   on_mousemove(event) {
-    var mpos = new Vector3([event.x, event.y, 0]);
+    let mpos = new Vector3([event.x, event.y, 0]);
 
     console.log(event.x, event.y);
     //console.log("mousemove!");
@@ -586,7 +592,7 @@ export class PanOp extends ToolOp {
       return;
     }
 
-    var ctx = this.modal_ctx;
+    let ctx = this.modal_ctx;
 
     this.ds.pan[0] = this.start_pan[0] + (mpos[0] - this.start_mpos[0]);
     this.ds.pan[1] = this.start_pan[1] + (mpos[1] - this.start_mpos[1]);
@@ -604,7 +610,7 @@ export class PanOp extends ToolOp {
   }
 }
 
-const KX=0, KY=1, KW=2, KH=3, KEID=5, KTYPE=6, KFLAG=7, KTIME=9, KEID2=10, KTOT=11;
+const KX = 0, KY = 1, KW = 2, KH = 3, KEID = 5, KTYPE = 6, KFLAG = 7, KTIME = 9, KEID2 = 10, KTOT = 11;
 
 export class KeyBox {
   constructor() {
@@ -622,12 +628,12 @@ let keybox_temps = util.cachering.fromConstructor(KeyBox, 512);
 let proj_temps = util.cachering.fromConstructor(Vector2, 512);
 
 export class DopeSheetEditor extends Editor {
-  posRegen      : number
-  gridGen       : number
-  activeBoxes   : Array<number>
-  treeData      : Array<number>
-  nodes         : Array<DagNode>;
-  mdown         : boolean;
+  posRegen: number
+  gridGen: number
+  activeBoxes: Array<number>
+  treeData: Array<number>
+  nodes: Array<DagNode>;
+  mdown: boolean;
 
   constructor() {
     super()
@@ -671,10 +677,10 @@ export class DopeSheetEditor extends Editor {
 
     this.channels.onchange = (e) => {
       //this.doOnce(() => {
-        console.warn("channels flagged onchange", this.channels.saveTreeData(), this.channels.saveTreeData());
+      console.warn("channels flagged onchange", this.channels.saveTreeData(), this.channels.saveTreeData());
 
-        this.rebuild();
-        this.redraw();
+      this.rebuild();
+      this.redraw();
       //});
     }
 
@@ -686,7 +692,7 @@ export class DopeSheetEditor extends Editor {
 
     let k = this.keymap;
 
-    k.add(new HotKey("A", [], "Toggle Select All"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("A", [], function (ctx) {
       console.log("Dopesheet toggle select all!");
 
       let tool = new ToggleSelectAll();
@@ -694,13 +700,13 @@ export class DopeSheetEditor extends Editor {
 
       window.force_viewport_redraw();
       window.redraw_viewport();
-    }));
+    }, "Toggle Select All"));
 
     //DeleteKeysOp
-    k.add_tool(new HotKey("X", [], "Delete"), "anim.delete_keys()");
-    k.add_tool(new HotKey("Delete", [], "Delete"), "anim.delete_keys()");
+    k.add(new HotKey("X", [], "anim.delete_keys()"));
+    k.add(new HotKey("Delete", [], "anim.delete_keys()"));
 
-    k.add(new HotKey("G", [], "Move Keyframes"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("G", [], function (ctx) {
       console.log("Dopesheet toggle select all!");
 
       let tool = new MoveKeyFramesOp();
@@ -708,43 +714,43 @@ export class DopeSheetEditor extends Editor {
 
       window.force_viewport_redraw();
       window.redraw_viewport();
-    }));
+    }, "Move Keyframes"));
 
-    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL"], function (ctx) {
       g_app_state.toolstack.undo();
-    }));
+    }, "Undo"));
 
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], function (ctx) {
       g_app_state.toolstack.redo();
-    }));
+    }, "Redo"));
 
-    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
-      ctx.scene.change_time(ctx, ctx.scene.time+10);
+    k.add(new HotKey("Up", [], function (ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time + 10);
       window.force_viewport_redraw();
       window.redraw_viewport();
-    }));
+    }, "Frame Ahead 10"));
 
-    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
-      ctx.scene.change_time(ctx, ctx.scene.time-10);
+    k.add(new HotKey("Down", [], function (ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time - 10);
       window.force_viewport_redraw();
       window.redraw_viewport();
-    }));
+    }, "Frame Back 10"));
 
-    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
-      console.log("Frame Change!", ctx.scene.time+1);
-      ctx.scene.change_time(ctx, ctx.scene.time+1);
-
-      window.redraw_viewport();
-      //var tool = new FrameChangeOp(ctx.scene.time+1);
-    }));
-
-    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
-      console.log("Frame Change!", ctx.scene.time-1);
-      ctx.scene.change_time(ctx, ctx.scene.time-1);
+    k.add(new HotKey("Right", [], function (ctx) {
+      console.log("Frame Change!", ctx.scene.time + 1);
+      ctx.scene.change_time(ctx, ctx.scene.time + 1);
 
       window.redraw_viewport();
-      //var tool = new FrameChangeOp(ctx.scene.time-1);
-    }));
+      //let tool = new FrameChangeOp(ctx.scene.time+1);
+    }, "Next Frame"));
+
+    k.add(new HotKey("Left", [], function (ctx) {
+      console.log("Frame Change!", ctx.scene.time - 1);
+      ctx.scene.change_time(ctx, ctx.scene.time - 1);
+
+      window.redraw_viewport();
+      //let tool = new FrameChangeOp(ctx.scene.time-1);
+    }, "Previous Frame"));
   }
 
   get_keymaps() {
@@ -807,7 +813,7 @@ export class DopeSheetEditor extends Editor {
   }
 
   dag_unlink_all() {
-    for (var node of this.nodes) {
+    for (let node of this.nodes) {
       node.dag_unlink();
     }
 
@@ -819,8 +825,8 @@ export class DopeSheetEditor extends Editor {
     let add = 0;
 
     function dohash(h) {
-      h = ((h + add)*((1<<19)-1)) & ((1<<19)-1);
-      add = (add + (1<<25)) & ((1<<19)-1);
+      h = ((h + add)*((1<<19) - 1)) & ((1<<19) - 1);
+      add = (add + (1<<25)) & ((1<<19) - 1);
 
       hash = hash ^ h;
     }
@@ -928,8 +934,8 @@ export class DopeSheetEditor extends Editor {
     //p[0] = p[0]*this.zoom*this.timescale + this.pan[0];
     //p[1] = p[1]*this.zoom*this.timescale + this.pan[1];
 
-    p[0] = (p[0] + this.pan[0]) * this.zoom;
-    p[1] = (p[1] + this.pan[1]) * this.zoom;
+    p[0] = (p[0] + this.pan[0])*this.zoom;
+    p[1] = (p[1] + this.pan[1])*this.zoom;
   }
 
   unproject(p) {
@@ -983,18 +989,18 @@ export class DopeSheetEditor extends Editor {
       let ki1 = this.activeBoxes.highlight;
       let list = [];
 
-      let x1 = ks[ki1+KX], y1 = ks[ki1+KY], t1 = ks[ki1+KTIME];
-      let count=0;
+      let x1 = ks[ki1 + KX], y1 = ks[ki1 + KY], t1 = ks[ki1 + KTIME];
+      let count = 0;
 
-      for (let ki2=0; ki2<ks.length; ki2 += KTOT) {
-        let x2 = ks[ki2+KX], y2 = ks[ki2+KY], t2 = ks[ki2+KTIME];
-        let eid2 = ks[ki2+KEID2];
+      for (let ki2 = 0; ki2 < ks.length; ki2 += KTOT) {
+        let x2 = ks[ki2 + KX], y2 = ks[ki2 + KY], t2 = ks[ki2 + KTIME];
+        let eid2 = ks[ki2 + KEID2];
 
-        if (Math.abs(t2-t1) < 1 && Math.abs(y2-y1) < 1) {
+        if (Math.abs(t2 - t1) < 1 && Math.abs(y2 - y1) < 1) {
           list.push(AnimKeyTypes.SPLINE);
           list.push(eid2);
 
-          let flag = ks[ki2+KFLAG];
+          let flag = ks[ki2 + KFLAG];
           if (flag & AnimKeyFlags.SELECT) {
             count++;
           }
@@ -1022,7 +1028,7 @@ export class DopeSheetEditor extends Editor {
     } else if (e.button === 0 && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.commandKey) {
       let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
       this.unproject(p1);
-      let time1 = ~~(p1[0]/this.timescale/this.boxSize+0.5);
+      let time1 = ~~(p1[0]/this.timescale/this.boxSize + 0.5);
 
       this.ctx.scene.change_time(this.ctx, time1);
       console.log("time", time1);
@@ -1061,7 +1067,7 @@ export class DopeSheetEditor extends Editor {
     let mindis = 1e17, minret;
 
     for (let ki of this.activeBoxes) {
-      let x = ks[ki+KX], y = ks[ki+KY];
+      let x = ks[ki + KX], y = ks[ki + KY];
 
       p[0] = x;
       p[1] = y;
@@ -1108,7 +1114,7 @@ export class DopeSheetEditor extends Editor {
     } else {
       let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
       this.unproject(p1);
-      let time1 = ~~(p1[0]/this.timescale/this.boxSize+0.5);
+      let time1 = ~~(p1[0]/this.timescale/this.boxSize + 0.5);
 
       if (time1 !== this.ctx.scene.time) {
         this.ctx.scene.change_time(this.ctx, time1);
@@ -1153,7 +1159,7 @@ export class DopeSheetEditor extends Editor {
     grid.height = gh;
     grid.ratio = 4.0;
 
-    for (let i=0; i<grid.length; i++) {
+    for (let i = 0; i < grid.length; i++) {
       grid[i] = -1;
     }
 
@@ -1211,7 +1217,7 @@ export class DopeSheetEditor extends Editor {
         let path = paths[v.eid];
         if (!path) continue;
         if (path.isVisible) {
-          y = this.channels.get_y(path) / this.zoom;
+          y = this.channels.get_y(path)/this.zoom;
           //y += lineh;
           //this.channels.set_y(path, y / this.zoom);
 
@@ -1235,28 +1241,28 @@ export class DopeSheetEditor extends Editor {
 
           this.keybox_eidmap[v2.eid] = ki;
 
-          for (let i=0; i<KTOT; i++) {
+          for (let i = 0; i < KTOT; i++) {
             keys.push(0.0);
           }
 
-          keys[ki+KTIME] = get_vtime(v2);
-          keys[ki+KEID] = v.eid;
-          keys[ki+KEID2] = v2.eid;
-          keys[ki+KFLAG] = v2.flag & SplineFlags.UI_SELECT ? AnimKeyFlags.SELECT : 0;
+          keys[ki + KTIME] = get_vtime(v2);
+          keys[ki + KEID] = v.eid;
+          keys[ki + KEID2] = v2.eid;
+          keys[ki + KFLAG] = v2.flag & SplineFlags.UI_SELECT ? AnimKeyFlags.SELECT : 0;
 
           let time = get_vtime(v2);
 
-          co1[0] = this.timescale * time * boxsize;
+          co1[0] = this.timescale*time*boxsize;
           co1[1] = y;
 
-          keys[ki+KX] = co1[0];
-          keys[ki+KY] = co1[1];
-          keys[ki+KW] = boxsize;
-          keys[ki+KH] = boxsize;
+          keys[ki + KX] = co1[0];
+          keys[ki + KY] = co1[1];
+          keys[ki + KW] = boxsize;
+          keys[ki + KH] = boxsize;
 
           this.project(co1);
-          let ix = ~~((co1[0]+boxsize*0.5)/grid.ratio);
-          let iy = ~~((co1[1]+boxsize*0.5)/grid.ratio);
+          let ix = ~~((co1[0] + boxsize*0.5)/grid.ratio);
+          let iy = ~~((co1[1] + boxsize*0.5)/grid.ratio);
 
           if (ix >= 0 && iy >= 0 && ix <= grid.width && iy <= grid.height) {
             let gi = iy*grid.width + ix;
@@ -1283,8 +1289,8 @@ export class DopeSheetEditor extends Editor {
     let pathspline = this.ctx.frameset.pathspline;
     let boxsize = this.boxSize;
 
-    for (let ki=0; ki<ks.length; ki += KTOT) {
-      let type = ks[ki+KTYPE], eid = ks[ki+KEID], eid2=ks[ki+KEID2]
+    for (let ki = 0; ki < ks.length; ki += KTOT) {
+      let type = ks[ki + KTYPE], eid = ks[ki + KEID], eid2 = ks[ki + KEID2]
 
       if (type === AnimKeyTypes.SPLINE) {
         let v = pathspline.eidmap[eid2];
@@ -1296,18 +1302,18 @@ export class DopeSheetEditor extends Editor {
         }
 
         let time = get_vtime(v);
-        let x = this.timescale * time * boxsize;
+        let x = this.timescale*time*boxsize;
         let flag = 0;
 
         if (v.flag & SplineFlags.UI_SELECT) {
           flag |= AnimKeyFlags.SELECT;
         }
 
-        ks[ki+KW] = boxsize;
-        ks[ki+KH] = boxsize;
-        ks[ki+KX] = x;
-        ks[ki+KFLAG] = flag;
-        ks[ki+KTIME] = get_vtime(v);
+        ks[ki + KW] = boxsize;
+        ks[ki + KH] = boxsize;
+        ks[ki + KX] = x;
+        ks[ki + KFLAG] = flag;
+        ks[ki + KTIME] = get_vtime(v);
       } else {
         throw new Error("implement me! '" + type + "'");
       }
@@ -1349,7 +1355,7 @@ export class DopeSheetEditor extends Editor {
     grid.gen = this.gridGen;
 
     let gw = grid.width, gh = grid.height;
-    for (let i=0; i<grid.length; i++) {
+    for (let i = 0; i < grid.length; i++) {
       grid[i] = -1;
     }
 
@@ -1357,8 +1363,8 @@ export class DopeSheetEditor extends Editor {
     let p = new Vector2();
 
     let ks = this.keyboxes;
-    for (let ki=0; ki<ks.length; ki += KTOT) {
-      let x = ks[ki+KX], y = ks[ki+KY], w = ks[ki+KW], h = ks[ki+KH];
+    for (let ki = 0; ki < ks.length; ki += KTOT) {
+      let x = ks[ki + KX], y = ks[ki + KY], w = ks[ki + KW], h = ks[ki + KH];
 
       p[0] = x + w*0.5;
       p[1] = y + h*0.5;
@@ -1383,17 +1389,17 @@ export class DopeSheetEditor extends Editor {
   getKeyBox(ki) {
     let kd = this.keyboxes;
     let ret = keybox_temps.next();
-    
-    ret.x = kd[ki+KX];
-    ret.y = kd[ki+KY];
-    ret.w = kd[ki+KH];
-    ret.h = kd[ki+KW];
-    ret.flag = kd[ki+KFLAG];
-    ret.eid = kd[ki+KEID];
+
+    ret.x = kd[ki + KX];
+    ret.y = kd[ki + KY];
+    ret.w = kd[ki + KH];
+    ret.h = kd[ki + KW];
+    ret.flag = kd[ki + KFLAG];
+    ret.eid = kd[ki + KEID];
 
     return ret;
   }
-  
+
   redraw() {
     if (!this.isConnected && this.nodes.length > 0) {
       console.warn("Dopesheet editor failed to clean up properly; fixing. . .");
@@ -1436,10 +1442,10 @@ export class DopeSheetEditor extends Editor {
     g.fill();
 
     let bwid = ~~(boxsize*zoom*timescale);
-    let time = ~~(-pan[0] / bwid);
+    let time = ~~(-pan[0]/bwid);
 
-    let off = this.pan[0] % bwid;
-    let tot = ~~(canvas.width / bwid) + 1;
+    let off = this.pan[0]%bwid;
+    let tot = ~~(canvas.width/bwid) + 1;
 
     let major = this.getDefault("lineMajor");
     let minor = this.getDefault("lineMinor");
@@ -1447,12 +1453,12 @@ export class DopeSheetEditor extends Editor {
 
     g.lineWidth = this.getDefault("lineWidth");
 
-    for (let i=0; i<tot; i++) {
+    for (let i = 0; i < tot; i++) {
       let x = i*bwid + off;
 
       let t = ~~(time + i);
 
-      if (t % 8 === 0) {
+      if (t%8 === 0) {
         g.strokeStyle = major;
       } else {
         g.strokeStyle = minor;
@@ -1469,8 +1475,8 @@ export class DopeSheetEditor extends Editor {
     let ks = this.keyboxes;
     g.beginPath();
 
-    for (let ki=0; ki<ks.length; ki += KTOT) {
-      let x = ks[ki], y = ks[ki+KY], w = ks[ki+KW], h = ks[ki+KH];
+    for (let ki = 0; ki < ks.length; ki += KTOT) {
+      let x = ks[ki], y = ks[ki + KY], w = ks[ki + KW], h = ks[ki + KH];
 
       x = (x*zoom) + pan[0];
       y = (y*zoom) + pan[1];
@@ -1491,8 +1497,8 @@ export class DopeSheetEditor extends Editor {
     let height = canvas.height;
 
     let colors = {
-      0  : this.getDefault("keyColor"),
-      [AnimKeyFlags.SELECT]  : this.getDefault("keySelect")
+      0                    : this.getDefault("keyColor"),
+      [AnimKeyFlags.SELECT]: this.getDefault("keySelect")
     };
 
     let highColor = this.getDefault("keyHighlight");
@@ -1504,12 +1510,12 @@ export class DopeSheetEditor extends Editor {
     border = css2color(border)[3] < 0.01 ? undefined : border;
 
     for (let ki of this.activeBoxes) {
-      let x = ks[ki], y = ks[ki+KY], w = ks[ki+KW], h = ks[ki+KH];
+      let x = ks[ki], y = ks[ki + KY], w = ks[ki + KW], h = ks[ki + KH];
 
       x = (x*zoom) + pan[0];
       y = (y*zoom) + pan[1];
 
-      let flag = ks[ki+KFLAG] & AnimKeyFlags.SELECT;
+      let flag = ks[ki + KFLAG] & AnimKeyFlags.SELECT;
       let color = colors[flag];
 
       g.fillStyle = color;
@@ -1521,7 +1527,7 @@ export class DopeSheetEditor extends Editor {
         g.stroke();
       }
 
-      if (x < -bs || y < -bs || x >= width+bs || y >= height+bs) {
+      if (x < -bs || y < -bs || x >= width + bs || y >= height + bs) {
         continue;
       }
 
@@ -1566,23 +1572,23 @@ export class DopeSheetEditor extends Editor {
     g.lineWidth = this.getDefault("textShadowSize");
     g.strokeStyle = this.getDefault("textShadowColor");
 
-    let spacing = Math.floor((ts*4) / bwid);
+    let spacing = Math.floor((ts*4)/bwid);
 
-    for (let i=0; i<tot; i++) {
+    for (let i = 0; i < tot; i++) {
       let x = i*bwid + off;
       let t = time + i;
 
       g.shadowBlur = 3.5;
       g.shadowColor = "black";
-      g.shadowOffsetX=2;
-      g.shadowOffsetY=2;
+      g.shadowOffsetX = 2;
+      g.shadowOffsetY = 2;
 
-      if (spacing && ((~~t) % spacing) !== 0) {
+      if (spacing && ((~~t)%spacing) !== 0) {
         continue;
       }
 
-      g.strokeText(""+t, x, canvas.height-ts*1.15);
-      g.fillText(""+t, x, canvas.height-ts*1.15);
+      g.strokeText("" + t, x, canvas.height - ts*1.15);
+      g.fillText("" + t, x, canvas.height - ts*1.15);
 
       g.shadowColor = "";
     }
@@ -1590,13 +1596,15 @@ export class DopeSheetEditor extends Editor {
     g.lineWidth = lw;
   }
 
-  static define() { return {
-    tagname : "dopesheet-editor-x",
-    areaname : "dopesheet_editor",
-    uiname : "Animation Keys",
-    icon : Icons.DOPESHEET_EDITOR,
-    style : "dopesheet"
-  }}
+  static define() {
+    return {
+      tagname : "dopesheet-editor-x",
+      areaname: "dopesheet_editor",
+      uiname  : "Animation Keys",
+      icon    : Icons.DOPESHEET_EDITOR,
+      style   : "dopesheet"
+    }
+  }
 
   on_area_inactive() {
     this.dag_unlink_all();
@@ -1608,7 +1616,7 @@ export class DopeSheetEditor extends Editor {
   }
 
   linkEventDag() {
-    var ctx = this.ctx;
+    let ctx = this.ctx;
 
     if (ctx === undefined) {
       console.log("No ctx for dopesheet editor linkEventDag")
@@ -1694,7 +1702,7 @@ DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Editor) + `
     zoom            : float;
     timescale       : float;
     selected_only   : int;
-    pinned_ids      : array(int) | this.pinned_ids != undefined ? this.pinned_ids : [];
+    pinned_ids      : array(int) | this.pinned_ids !== undefined ? this.pinned_ids : [];
     treeData        : array(int) | this.channels.saveTreeData();
 }
 `;

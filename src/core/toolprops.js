@@ -10,7 +10,9 @@ export {
   ListProperty, PropClasses, ToolProperty
 } from '../path.ux/scripts/path-controller/toolsys/toolprop.js';
 
-export var PropTypes = {
+import {DataBlock} from './lib_api.js';
+
+export let PropTypes = {
   INT         : 1,
   STRING      : 2,
   BOOL        : 4,
@@ -38,7 +40,7 @@ export var PropTypes = {
 
 setPropTypes(PropTypes);
 
-export var TPropFlags = {
+export let TPropFlags = {
   PRIVATE             : 2,
   LABEL               : 4,
   COLL_LOOSE_TYPE     : 8,
@@ -54,7 +56,6 @@ export var TPropFlags = {
 export const PropSubTypes = {
   COLOR : 1
 };
-
 
 ToolProperty.prototype.set_data = function(d : number) {
   console.warn("deprectaed ToolProperty.prototype.set_data called!");
@@ -114,7 +115,7 @@ ToolProperty.prototype.load_ui_data = function(prop) {
 };
 
 ToolProperty.prototype._exec_listeners = function(data_api_owner) {
-  for (var l of this.callbacks) {
+  for (let l of this.callbacks) {
     if (RELEASE) {
       try {
         l[1](l[0], this, data_api_owner);
@@ -143,7 +144,7 @@ ToolProperty.prototype.add_listener = function add_listener(owner, callback) {
 
   this.on('change', cb);
   cb.owner = owner;
-};
+}
 
 ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
   for (let cb of this.callbacks['change']) {
@@ -151,7 +152,7 @@ ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
       this.off('change', cb);
     }
   }
-};
+}
 
 FlagProperty.prototype.addIcons = function(iconmap : Object) {
   this.iconmap = {};
@@ -167,7 +168,7 @@ FlagProperty.prototype.addIcons = function(iconmap : Object) {
 
 ToolProperty.prototype.add_icons = function(iconmap : Object) {
   return this.addIcons(iconmap);
-};
+}
 
 
 /**
@@ -284,7 +285,7 @@ export class ArrayBufferProperty extends ToolProperty {
   copyTo(dst : ArrayBufferProperty) {
     super.copyTo(dst, false);
 
-    if (this.data != undefined)
+    if (this.data !== undefined)
       dst.setValue(this.data);
 
     return dst;
@@ -386,7 +387,7 @@ export class DataRefProperty extends ToolProperty {
   constructor(value: DataBlock, allowed_types: set<int>, apiname : string, uiname : string, description, flag) {
     super(PropTypes.DATAREF, apiname, uiname, description, flag);
 
-    if (allowed_types == undefined)
+    if (allowed_types === undefined)
       allowed_types = new set();
 
     if (!(allowed_types instanceof set)) {
@@ -398,21 +399,21 @@ export class DataRefProperty extends ToolProperty {
 
     this.types = new set();
 
-//ensure this.types stores integer type ids, not type classes
-    for (var val of allowed_types) {
-      if (typeof val == "object") {
+    /* ensure this.types stores integer type ids, not type classes */
+    for (let val of allowed_types) {
+      if (typeof val === "object") {
         val = new val().lib_type;
       }
 
       this.types.add(val);
     }
 
-    if (value != undefined)
+    if (value !== undefined)
       this.setValue(value);
   }
 
   get_block(ctx) {
-    if (this.data == undefined)
+    if (this.data === undefined)
       return undefined;
     else
       return ctx.datalib.get(this.data);
@@ -421,14 +422,14 @@ export class DataRefProperty extends ToolProperty {
   copyTo(dst: DataRefProperty) {
     super.copyTo(dst, false);
 
-    var data = this.data;
+    let data = this.data;
 
-    if (data != undefined)
+    if (data !== undefined)
       data = data.copy();
 
     dst.types = new set(this.types);
 
-    if (data != undefined)
+    if (data !== undefined)
       dst.setValue(data);
 
     return dst;
@@ -439,7 +440,7 @@ export class DataRefProperty extends ToolProperty {
   }
 
   set_data(value: DataBlock, owner: Object, changed, set_data) {
-    if (value == undefined) {
+    if (value === undefined) {
       ToolProperty.prototype.setValue.call(this, undefined, owner, changed, set_data);
     } else if (!(value instanceof DataRef)) {
       if (!this.types.has(value.lib_type)) {
@@ -467,7 +468,7 @@ export class DataRefProperty extends ToolProperty {
 }
 
 DataRefProperty.STRUCT = nstructjs.inherit(DataRefProperty, ToolProperty) + `
-  data  : DataRef | this.data == undefined ? new DataRef(-1) : this.data;
+  data  : DataRef | this.data === undefined ? new DataRef(-1) : this.data;
   types : iter(int);
 }`;;
 
@@ -499,7 +500,7 @@ export class RefListProperty extends ToolProperty {
     ToolProperty.prototype.copyTo.call(this, dst, false);
 
     dst.types = new set(this.types);
-    if (this.data != undefined)
+    if (this.data !== undefined)
       dst.setValue(this.data);
 
     return dst;
@@ -510,19 +511,19 @@ export class RefListProperty extends ToolProperty {
   }
 
   set_data(value: DataBlock, owner: Object, changed, set_data) {
-    if (value != undefined && value.constructor.name == "Array")
+    if (value !== undefined && value.constructor.name === "Array")
       value = new GArray(value);
 
-    if (value == undefined) {
+    if (value === undefined) {
       ToolProperty.prototype.setValue.call(this, undefined, owner, changed, set_data);
     } else {
-      var lst = new DataRefList();
-      for (var i = 0; i < value.length; i++) {
-        var block = value[i];
+      let lst = new DataRefList();
+      for (let i = 0; i < value.length; i++) {
+        let block = value[i];
 
-        if (block == undefined || !this.types.has(block.lib_type)) {
+        if (block === undefined || !this.types.has(block.lib_type)) {
           console.trace();
-          if (block == undefined)
+          if (block === undefined)
             console.log("Undefined datablock in list passed to RefListProperty.setValue");
           else
             console.log("Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()");
@@ -637,10 +638,10 @@ export class type_filter_iter extends ToolIter {
   }
 
   next() {
-    var ret = this.iter.next();
-    var types = this.types;
-    var tlen = this.types.length;
-    var this2 = this;
+    let ret = this.iter.next();
+    let types = this.types;
+    let tlen = this.types.length;
+    let this2 = this;
 
     function has_type(obj) {
       for (let i=0; i<tlen; i++) {
@@ -691,7 +692,7 @@ export class CollectionProperty extends ToolProperty {
   }
 
   copy(): CollectionProperty {
-    var ret = this.copyTo(new CollectionProperty());
+    let ret = this.copyTo(new CollectionProperty());
     ret.types = this.types;
     ret._ctx = this._ctx;
 
@@ -726,7 +727,7 @@ export class CollectionProperty extends ToolProperty {
       return;
     }
 
-    if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
+    if ("__tooliter__" in data && typeof  data.__tooliter__ === "function") {
       this.setValue(data.__tooliter__(), owner, changed);
       return;
     } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
@@ -760,7 +761,7 @@ export class CollectionProperty extends ToolProperty {
   }
 
   [Symbol.iterator]() {
-    if (this._data == undefined) //return empty iterator if no data
+    if (this._data === undefined) //return empty iterator if no data
       return {
         next: function () {
           return {done: true, value: undefined};
@@ -769,14 +770,14 @@ export class CollectionProperty extends ToolProperty {
 
     this._data.ctx = this._ctx;
 
-    if (this.types != undefined && this.types.length > 0)
+    if (this.types !== undefined && this.types.length > 0)
       return new type_filter_iter(this.data[Symbol.iterator](), this.types, this._ctx);
     else
       return this.data[Symbol.iterator]();
   }
 
   static fromSTRUCT(reader) {
-    var ret = new CollectionProperty();
+    let ret = new CollectionProperty();
 
     reader(ret);
 
@@ -790,7 +791,7 @@ export class CollectionProperty extends ToolProperty {
 }
 
 CollectionProperty.STRUCT = nstructjs.inherit(CollectionProperty, ToolProperty) + `
-  data : abstract(Object) | obj.data == undefined ? new BlankArray() : obj.data;
+  data : abstract(Object) | obj.data === undefined ? new BlankArray() : obj.data;
 }`;
 nstructjs.register(CollectionProperty);
 ToolProperty.register(CollectionProperty);

@@ -142,7 +142,7 @@ import {BasicFileOp} from '../editors/viewport/view2d_ops.js';
 import {AppSettings} from './UserSettings.js';
 import {JobManager} from './jobs.js';
 import {RasterState} from './raster.js';
-import {NotificationManager, Notification} from './notifications.js';
+import {NotificationManager} from './notifications.js';
 import {STRUCT} from './struct.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {ScreenArea, Area} from '../path.ux/scripts/screen/ScreenArea.js';

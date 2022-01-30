@@ -254,6 +254,7 @@ sources = [
   "src/editors/settings/SettingsEditor.js",
   "src/core/data_api/data_api_define.js",
   "src/core/data_api/data_api.js",
+  "src/core/keymap.js",
 
   "src/graph/graph.js",
 #  "src/graph/graph_class.js",

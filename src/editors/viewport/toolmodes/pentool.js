@@ -1,39 +1,19 @@
 "use strict";
 
-import {UIBase} from "../../../path.ux/scripts/core/ui_base.js";
-
 import {FullContext} from "../../../core/context.js";
-import {ExtrudeVertOp} from '../spline_createops.js';
-import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
-import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../../events.js';
-
-import {SelectLinkedOp, SelectOneOp} from '../spline_selectops.js';
-import {TranslateOp} from '../transform.js';
-
-import {SelMask, ToolModes} from '../selectmode.js';
 import {SplineTypes, SplineFlags, SplineVertex,
   SplineSegment, SplineFace} from '../../../curve/spline_types.js';
 
-import {View2DEditor, SessionFlags} from '../view2d_editor.js';
-import {redraw_element} from '../../../curve/spline_draw.js';
-import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../../core/toolops_api.js';
-
-import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
-  ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-  DisconnectHandlesOp, SplitEdgePickOp} from '../spline_editops.js';
+import {ToolOp, ToolMacro} from '../../../core/toolops_api.js';
+import {KeyMap, HotKey} from '../../../core/keymap.js';
 
 import * as util from "../../../path.ux/scripts/util/util.js";
 
 //import {KeyMap} from "../../../path.ux/scripts/util/simple_events.js";
 import {ToolMode} from "./toolmode.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
-import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
-import {ToolModes} from "../selectmode.js";
 
-import {PanOp} from '../view2d_ops.js';
 import {ListProperty, Vec3Property, Vec4Property, BoolProperty,
         IntProperty, FloatProperty, StringProperty} from "../../../path.ux/scripts/pathux.js";
 
@@ -339,7 +319,7 @@ export class PenToolMode extends ToolMode {
   }
 
   ensure_paths_off() {
-    if (g_app_state.active_splinepath != "frameset.drawspline") {
+    if (g_app_state.active_splinepath !== "frameset.drawspline") {
       this.highlight_spline = undefined;
       var spline = this.ctx.spline;
 

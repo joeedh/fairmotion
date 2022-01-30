@@ -7,7 +7,7 @@ import {
 } from '../util/mathlib.js';
 
 import {
-  VectorFlags, VectorVertex, QuadBezPath,
+  VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
 
@@ -36,7 +36,7 @@ export function makeElement(type, attrs={}) {
   return ret;
 }
 
-export class StubCanvasPath extends QuadBezPath {
+export class StubCanvasPath extends PathBase {
 recalc : number
 lastx : number
 lasty : number

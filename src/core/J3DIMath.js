@@ -194,7 +194,7 @@ class Matrix3 {
 }
 
 class Matrix4 {
-  constructor(Array<float> m) {
+  constructor(mArray<float> m) {
       if (HasCSSMatrix)
           this.$matrix = new WebKitCSSMatrix;
       else

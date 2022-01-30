@@ -3,7 +3,7 @@
   "version": "0.0.3",
   "main": "main.js",
   "dependencies": {
-    "canvaskit-wasm": "^0.15.0",
+    "canvaskit-wasm": "^0.32.0",
     "pngjs": "^5.0.0",
     "pngjs-nozlib": "^1.0.0"
   },

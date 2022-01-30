@@ -7,7 +7,7 @@ import {
 } from '../util/mathlib.js';
 
 import {
-  VectorFlags, VectorVertex, QuadBezPath,
+  VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
 
@@ -43,7 +43,7 @@ export function makeElement(type, attrs={}) {
 //use by debug reporting    
 let lasttime = performance.now();
 
-export class SimpleCanvasPath extends QuadBezPath {
+export class SimpleCanvasPath extends PathBase {
   recalc : number
   lastx : number
   lasty : number

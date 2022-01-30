@@ -125,6 +125,7 @@ sources = [
   "src/curve/solver_new.js",
   "src/vectordraw/vectordraw_base.js",
   "src/vectordraw/vectordraw_canvas2d.js",
+  "src/vectordraw/vectordraw_canvas2d_path2d.js",
   "src/vectordraw/vectordraw_stub.js",
   "src/vectordraw/vectordraw_canvas2d_simple.js",
   "src/vectordraw/vectordraw_skia_simple.js",

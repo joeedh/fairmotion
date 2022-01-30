@@ -9,7 +9,7 @@ import {
 import * as math from '../path.ux/scripts/util/math.js'
 
 import {
-  VectorFlags, VectorVertex, QuadBezPath,
+  VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
 
@@ -475,7 +475,7 @@ export class Batch {
 let canvaspath_temp_vs = util.cachering.fromConstructor(Vector2, 512);
 let canvaspath_temp_mats = util.cachering.fromConstructor(Matrix4, 128);
 
-export class CanvasPath extends QuadBezPath {
+export class CanvasPath extends PathBase {
   dead : boolean
   recalc : number
   _image_off : Array<number>

@@ -7,7 +7,7 @@ import {
 } from '../util/mathlib.js';
 
 import {
-  VectorFlags, VectorVertex, QuadBezPath,
+  VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
 
@@ -38,7 +38,7 @@ export function makeElement(type, attrs={}) {
   return ret;
 }
 
-export class SVGPath extends QuadBezPath {
+export class SVGPath extends PathBase {
   recalc : number
   lastx : number
   lasty : number
@@ -317,7 +317,7 @@ export class SVGPath extends QuadBezPath {
         });
         
         var blur = makeElement("feGaussianBlur", {
-          stdDeviation : ~~(this.blur*draw.zoom*0.25),
+          stdDeviation : ~~(Math.abs(this.blur*draw.zoom*0.25)),
           "in" : "SourceGraphic"
         });
         

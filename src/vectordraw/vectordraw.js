@@ -20,12 +20,19 @@ import {
   SimpleCanvasPath, SimpleCanvasDraw2D
 } from './vectordraw_canvas2d_simple.js';
 
+import {Path2DPath, CanvasPath2D} from './vectordraw_canvas2d_path2d.js';
+
 import {SimpleSkiaDraw2D, SimpleSkiaPath, loadCanvasKit} from "./vectordraw_skia_simple.js";
 
 /*
 export let Canvas = SimpleSkiaDraw2D;
 export let Path = SimpleSkiaPath;
 loadCanvasKit();
+//*/
+
+/*
+export let Canvas = CanvasPath2D;
+export let Path = Path2DPath;
 //*/
 
 /*

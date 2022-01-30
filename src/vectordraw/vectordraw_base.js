@@ -1,5 +1,7 @@
 "use strict";
 
+import {Vector2, Vector3, Vector4, Quat, Matrix4} from '../path.ux/scripts/pathux.js';
+
 export var VectorFlags = {
   //SELECT : 1,
   UPDATE : 2,
@@ -49,12 +51,13 @@ f2 := y1 + dy1*t1 - y4 - dy2*t2;
 f := solve({f1, f2}, {t1, t2});
 
 */
-export class QuadBezPath {
+export class PathBase {
   off : Vector2
   blur : number
   color : Vector4
   clip_paths : set
   clip_users : set;
+  matrix : Matrix4;
 
   constructor() {
     this.off = new Vector2();
@@ -192,20 +195,23 @@ export class QuadBezPath {
   reset(draw) {
     this.pan.zero();
   }
-  
-  draw(draw, offx=0, offy=0) {
+
+  //called only by VectorDraw implementing class
+  //args can be whatever you want
+  draw() {
+    throw new Error("implement me!");
   }
 
   pushStroke(color, linewidth) {
-
+    throw new Error("implement me!");
   }
 
   pushFill() {
-
+    throw new Error("implement me!");
   }
 
   noAutoFill() {
-
+    throw new Error("implement me!");
   }
 
   update() {
@@ -286,7 +292,7 @@ export class VectorDraw {
     throw new Error("implement me");
   }
   
-  draw() : Promise {
+  draw(g) : Promise {
     //should return a promise
     throw new Error("implement me");
   }

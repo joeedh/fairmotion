@@ -18,7 +18,7 @@ import * as html5_fileapi from './fileapi/fileapi.js';
 
 import {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 
-import {makeAPI} from './data_api/data_api_new.js';
+import {makeAPI} from './data_api/data_api_define.js';
 
 export {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 import {BlockTypeMap} from './lib_api.js';

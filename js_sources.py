@@ -252,8 +252,8 @@ sources = [
   "src/core/frameset.js",
   "src/editors/ops/ops_editor.js",
   "src/editors/settings/SettingsEditor.js",
-  "src/core/data_api/data_api_new.js",
-  "src/core/data_api/data_api_pathux.js",
+  "src/core/data_api/data_api_define.js",
+  "src/core/data_api/data_api.js",
 
   "src/graph/graph.js",
 #  "src/graph/graph_class.js",

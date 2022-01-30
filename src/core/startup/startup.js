@@ -197,9 +197,9 @@ window.startup_intern = function startup() {
   //it was added for allshape, which had to deal
   //with webgl context loss/regain cycles.
   if (window.g_app_state === undefined) {
-    console.log(_es6_get_module(_rootpath_src + "src/core/data_api/data_api_pathux.js").exports);
+    console.log(_es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports);
 
-    let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api_pathux.js").exports;
+    let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports;
     register_toolops();
 
     //initialize struct pack system

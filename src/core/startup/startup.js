@@ -211,8 +211,6 @@ window.startup_intern = function startup() {
 
     startup_report("initializing data api...");
 
-    init_data_api();
-
     let body = document.body;
 
     window.g_app_state = new AppState(undefined, undefined, undefined);

@@ -457,8 +457,6 @@ export class Scene extends DataBlock {
     if (this.dagnodes.length === 0) {
       this.linkDag(ctx);
     }
-
-    updateActiveToolApi(ctx);
   }
 
   static nodedef() {return {

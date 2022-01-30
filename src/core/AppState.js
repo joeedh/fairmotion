@@ -68,7 +68,6 @@ import {setAreaTypes} from "../path.ux/scripts/screen/ScreenArea.js";
 setAreaTypes(AreaTypes);
 
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
-import {PathUXInterface} from './data_api/data_api_pathux.js';
 
 
 export function get_app_div() {
@@ -136,10 +135,6 @@ import './startup/startup_file_example.js';
 import {startup_file} from './startup/startup_file.js';
 
 //$XXX import {gen_screen} from 'FrameManager';
-import {
-  DataPath, DataStruct, DataPathTypes, DataFlags,
-  DataAPI, DataStructArray
-} from './data_api/data_api.js';
 import {wrap_getblock, wrap_getblock_us} from './lib_utils.js';
 //$XXX import {UICanvas} from 'UICanvas';
 import {urlencode, b64decode, b64encode} from '../util/strutils.js';
@@ -477,15 +472,8 @@ export class AppState {
     this.toolstack = new ToolStack(this);
     this.active_view2d = undefined;
 
-    if (USE_PATHUX_API) {
-      this.api = makeAPI();
-      this.pathcontroller = this.api;
-    } else {
-      this.api = new DataAPI(this);
-
-      this.pathcontroller = new PathUXInterface(this.api);
-      this.pathcontroller.setContext(new FullContext(this));
-    }
+    this.api = makeAPI();
+    this.pathcontroller = this.api;
 
     this.filepath = ""
     this.version = g_app_version;
@@ -1939,7 +1927,7 @@ class SavedContextOld {
   }
 
   get api(): DataAPI {
-    return g_app_state.pathcontroller;
+    return g_app_state.api;
   }
 
   static fromSTRUCT(reader): SavedContext {
@@ -1997,7 +1985,7 @@ export class _ToolContext {
     this.scene = scene;
     this.edit_all_layers = ctx.edit_all_layers;
 
-    this.api = g_app_state.pathcontroller;
+    this.api = g_app_state.api;
   }
 }
 

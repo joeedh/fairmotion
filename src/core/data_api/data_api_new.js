@@ -27,7 +27,6 @@ import {SelMask, ToolModes} from '../../editors/viewport/selectmode.js';
 import {Unit} from '../units.js';
 
 import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
-import {DataFlags, DataPathTypes} from './data_api.js';
 import {OpStackEditor} from '../../editors/ops/ops_editor.js';
 
 import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
@@ -68,13 +67,13 @@ export function makeAPI(api = new DataAPI()) {
         return g_app_state.toolstack.undostack[key];
       },
       function getStruct(api, list, key) {
-        OpStackArray.flag |= DataFlags.RECALC_CACHE;
+        //OpStackArray.flag |= DataFlags.RECALC_CACHE;
         if (tool.apistruct != undefined) {
-          tool.apistruct.flag |= DataFlags.RECALC_CACHE;
+          //tool.apistruct.flag |= DataFlags.RECALC_CACHE;
           return tool.apistruct;
         }
         tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
-        tool.apistruct.flag |= DataFlags.RECALC_CACHE;
+        //tool.apistruct.flag |= DataFlags.RECALC_CACHE;
         return tool.apistruct;
       },
       function getLength(api, list) {

@@ -1,7 +1,6 @@
 import {NodeBase} from "../../../core/eventdag.js";
 import {KeyMap} from "../../events.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
-import {DataStruct} from "../../../core/data_api/data_api_types.js";
 
 export const ToolModeFlags = {
 

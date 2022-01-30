@@ -1,6 +1,5 @@
 import {BaseContext, FullContext} from "./context.js";
 import {ToolFlags, ToolMacro, ToolOp, UndoFlags} from "./toolops_api.js";
-import {DataFlags, DataPath, DataStruct, DataStructArray} from "./data_api/data_api.js";
 import {CollectionProperty, StringProperty, TPropFlags} from "./toolprops.js";
 import * as pathux from '../path.ux/scripts/pathux.js';
 
@@ -281,25 +280,7 @@ export class ToolStack extends pathux.ToolStack {
   }
 
   rebuild_last_tool(tool) {
-    return;
-    if (USE_PATHUX_API) {
-      return;
-    }
-
-    let s
-
-    if (tool !== undefined)
-      s = this.gen_tool_datastruct(tool);
-    else
-      s = new DataStruct([]);
-
-    s.flag |= DataFlags.RECALC_CACHE;
-    s.name = "last_tool"
-
-    s = new DataPath(s, "last_tool", "", false, false)
-    s.flag |= DataFlags.RECALC_CACHE;
-
-    ContextStruct.addOrReplace(s, s);
+   console.warn("toolstack.rebuild_last_tool called!");
   }
 
   set_tool_coll_flag(tool: ToolOp) {

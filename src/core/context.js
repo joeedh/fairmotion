@@ -1,5 +1,5 @@
 import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
-import {SavedToolDefaults} from '../path.ux/scripts/pathux.js';
+import {SavedToolDefaults, DataAPI} from '../path.ux/scripts/pathux.js';
 
 export class BaseContextOverlay extends ContextOverlay {
   constructor(state = g_app_state) {
@@ -291,4 +291,3 @@ import {Editor} from "../editors/editor_base.js";
 import {View2DHandler} from '../editors/viewport/view2d.js';
 import {Scene} from "../scene/scene.js";
 import {Spline} from "../curve/spline.js";
-import {DataAPI} from "./data_api/data_api.js";

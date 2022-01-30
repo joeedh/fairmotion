@@ -1,7 +1,5 @@
 "use strict";
 
-import * as config from '../config/config.js';
-
 import {
   MinMax
 } from '../util/mathlib.js';
@@ -31,29 +29,24 @@ export function loadCanvasKit() {
 
 window.loadCanvasKit = loadCanvasKit;
 
-var debug = 0;
-window._setDebug = (d) => {debug = d;};
+let debug = 0;
+window._setDebug = (d) => {
+  debug = d;
+};
 
-var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
-
-var canvaspath_draw_args_tmps = new Array(8);
-for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
+let canvaspath_draw_args_tmps = new Array(8);
+for (let i = 1; i < canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
-var canvaspath_draw_vs = new cachering(function() {
-  return new Vector2();
-}, 32);
 
-var CCMD=0, CARGLEN=1;
+let MOVETO = 0, BEZIERTO = 1, LINETO = 2, BEGINPATH = 3, CUBICTO = 4, LINEWIDTH = 5, LINESTYLE = 6, STROKE = 7;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, LINEWIDTH=5, LINESTYLE=6, STROKE=7;
+let NS = "http://www.w3.org/2000/svg";
+//let XLS = "http://www.w3.org/1999/xlink"
 
-var NS = "http://www.w3.org/2000/svg";
-var XLS = "http://www.w3.org/1999/xlink"
-
-export function makeElement(type, attrs={}) {
-  var ret = document.createElementNS(NS, type);
-  for (var k in attrs) {
+export function makeElement(type, attrs = {}) {
+  let ret = document.createElementNS(NS, type);
+  for (let k in attrs) {
     ret.setAttributeNS(null, k, attrs[k]);
   }
 
@@ -64,14 +57,14 @@ export function makeElement(type, attrs={}) {
 let lasttime = performance.now();
 
 export class SimpleSkiaPath extends QuadBezPath {
-  recalc : number
-  lastx : number
-  lasty : number
-  _last_off : Vector2
-  clip_users : set
-  path_start_i : number
-  first : boolean
-  _mm : MinMax;
+  recalc: number
+  lastx: number
+  lasty: number
+  _last_off: Vector2
+  clip_users: set
+  path_start_i: number
+  first: boolean
+  _mm: MinMax;
 
   constructor() {
     super();
@@ -96,10 +89,10 @@ export class SimpleSkiaPath extends QuadBezPath {
     this._mm = new MinMax(2);
   }
 
-  update_aabb(draw, fast_mode=false) {
-    var tmp = new Vector2();
-    var mm = this._mm;
-    var pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
+  update_aabb(draw, fast_mode = false) {
+    let tmp = new Vector2();
+    let mm = this._mm;
+    let pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
 
     mm.reset();
 
@@ -107,19 +100,19 @@ export class SimpleSkiaPath extends QuadBezPath {
       console.trace("FAST MODE!");
     }
 
-    var prev = -1;
-    var cs = this.commands, i = 0;
+    let prev = -1;
+    let cs = this.commands, i = 0;
     while (i < cs.length) {
-      var cmd = cs[i++];
-      var arglen = cs[i++];
+      let cmd = cs[i++];
+      let arglen = cs[i++];
 
-      if (fast_mode && prev != BEGINPATH) {
+      if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
         continue;
       }
 
-      for (var j=0; j<arglen; j += 2) {
+      for (let j = 0; j < arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
 
@@ -156,12 +149,12 @@ export class SimpleSkiaPath extends QuadBezPath {
   }
 
   _pushCmd() {
-    var arglen = arguments.length - 1;
+    let arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
     this.commands.push(arglen);
 
-    for (var i=0; i<arglen; i++) {
+    for (let i = 0; i < arglen; i++) {
       this.commands.push(arguments[i + 1]);
     }
 
@@ -201,7 +194,7 @@ export class SimpleSkiaPath extends QuadBezPath {
   destroy(draw) {
   }
 
-  gen(draw, _check_tag=0) {
+  gen(draw, _check_tag = 0) {
   }
 
   reset(draw) {
@@ -213,12 +206,12 @@ export class SimpleSkiaPath extends QuadBezPath {
     this.first = true;
   }
 
-  draw(draw, offx, offy, canvas=draw.canvsa, g=draw.g, clipMode=false) {
+  draw(draw, offx, offy, canvas = draw.canvsa, g = draw.g, clipMode = false) {
     return this.drawCanvas(...arguments);
   }
 
-  drawCanvas(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g, clipMode=false) {
-    var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
+  drawCanvas(draw, offx = 0, offy = 0, canvas = draw.canvas, g = draw.g, clipMode = false) {
+    let zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
 
     offx += this.off[0], offy += this.off[1];
 
@@ -227,10 +220,10 @@ export class SimpleSkiaPath extends QuadBezPath {
     }
 
     this._last_z = this.z;
-    var g = draw.g;
-    var tmp = new Vector3();
+    g = draw.g;
+    let tmp = new Vector3();
 
-    let debuglog = function() {
+    let debuglog = function () {
       if (debug > 1) {
         let time = performance.now();
 
@@ -241,7 +234,7 @@ export class SimpleSkiaPath extends QuadBezPath {
       }
     }
 
-    let debuglog2 = function() {
+    let debuglog2 = function () {
       if (debug > 0) {
         let time = performance.now();
 
@@ -264,8 +257,8 @@ export class SimpleSkiaPath extends QuadBezPath {
     mat2.invert();
 
     function loadtemp(off) {
-      tmp[0] = cmds[i+2 + off*2];
-      tmp[1] = cmds[i+3 + off*2];
+      tmp[0] = cmds[i + 2 + off*2];
+      tmp[1] = cmds[i + 3 + off*2];
       tmp[2] = 0.0;
 
       tmp.multVecMatrix(draw.matrix);
@@ -287,8 +280,10 @@ export class SimpleSkiaPath extends QuadBezPath {
       g.clip();
     }
 
-    for (i=0; i<cmds.length; i += cmds[i+1] + 2) {
-      var cmd = cmds[i];
+    let x1, y1, x2, y2;
+
+    for (i = 0; i < cmds.length; i += cmds[i + 1] + 2) {
+      let cmd = cmds[i];
 
       switch (cmd) {
         case BEGINPATH:
@@ -297,11 +292,11 @@ export class SimpleSkiaPath extends QuadBezPath {
           break;
         case LINEWIDTH:
           let mat = g.getTransform();
-          g.lineWidth = cmd[i+2]*mat.m11;
+          g.lineWidth = cmd[i + 2]*mat.m11;
           break;
         case LINESTYLE:
-          let r = cmd[i+2], g1 = cmd[i+3], b = cmd[i+4], a = cmd[i+5];
-          let style = "rgba("+r+","+g1+","+b+","+a+")";
+          let r = cmd[i + 2], g1 = cmd[i + 3], b = cmd[i + 4], a = cmd[i + 5];
+          let style = "rgba(" + r + "," + g1 + "," + b + "," + a + ")";
 
           if (cmd === LINESTYLE) {
             g.strokeStyle = style;
@@ -316,35 +311,37 @@ export class SimpleSkiaPath extends QuadBezPath {
 
           g.lineTo(tmp[0], tmp[1]);
           break;
-        case BEZIERTO:
+        case BEZIERTO: {
           debuglog("BEZIERTO");
           loadtemp(0);
 
-          var x1 = tmp[0], y1 = tmp[1];
-
+          x1 = tmp[0], y1 = tmp[1];
           loadtemp(1);
 
           g.quadraticCurveTo(x1, y1, tmp[0], tmp[1]);
           break;
-        case CUBICTO:
+        }
+        case CUBICTO: {
           debuglog("CUBICTO");
 
           loadtemp(0);
-          var x1 = tmp[0], y1 = tmp[1];
+          x1 = tmp[0], y1 = tmp[1];
 
           loadtemp(1);
-          var x2 = tmp[0], y2 = tmp[1];
+          x2 = tmp[0], y2 = tmp[1];
 
           loadtemp(2);
 
           g.bezierCurveTo(x1, y1, x2, y2, tmp[0], tmp[1]);
           break;
-        case MOVETO:
+        }
+        case MOVETO: {
           debuglog("MOVETO");
           loadtemp(0);
 
           g.moveTo(tmp[0], tmp[1]);
           break;
+        }
       }
     }
 
@@ -352,18 +349,18 @@ export class SimpleSkiaPath extends QuadBezPath {
       return;
     }
 
-    var r = ~~(this.color[0]*255),
-      g1= ~~(this.color[1]*255),
-      b = ~~(this.color[2]*255),
-      a =    this.color[3];
+    let r  = ~~(this.color[0]*255),
+        g1 = ~~(this.color[1]*255),
+        b  = ~~(this.color[2]*255),
+        a  = this.color[3];
 
-    let fstyle = "rgba("+r+","+g1+","+b+","+a+")";
+    let fstyle = "rgba(" + r + "," + g1 + "," + b + "," + a + ")";
     g.fillStyle = fstyle;
 
     debuglog2("g.fillStyle", g.fillStyle);
 
-    var doff = 2500;
-    var do_blur = this.blur > 1 && !clipMode;
+    let doff = 2500;
+    let do_blur = this.blur > 1 && !clipMode;
 
     if (do_blur) {
       g.filter = "blur(" + (this.blur*0.25*zoom) + "px)";
@@ -386,10 +383,10 @@ export class SimpleSkiaPath extends QuadBezPath {
 }
 
 export class SimpleSkiaDraw2D extends VectorDraw {
-  path_idmap : Object
-  dosort : boolean
-  matstack : Array
-  matrix : Matrix4;
+  path_idmap: Object
+  dosort: boolean
+  matstack: Array
+  matrix: Matrix4;
 
   constructor() {
     super();
@@ -401,14 +398,14 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
 
-    for (var i=0; i<this.matstack.length; i++) {
+    for (let i = 0; i < this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
     this.matstack.cur = 0;
   }
 
   static get_canvas(id, width, height, zindex) {
-    var ret = document.getElementById(id);
+    let ret = document.getElementById(id);
 
     if (ret === undefined) {
       ret = document.createElement("canvas");
@@ -418,14 +415,14 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     ret.width = width;
     ret.height = height;
 
-    if (ret.style != undefined) {
+    if (ret.style !== undefined) {
       ret.style["z-index"] = zindex;
     }
 
     return ret;
   }
 
-  has_path(id, z, check_z=true) {
+  has_path(id, z, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -434,12 +431,12 @@ export class SimpleSkiaDraw2D extends VectorDraw {
       return false;
     }
 
-    var path = this.path_idmap[id];
-    return check_z ? path.z == z : true;
+    let path = this.path_idmap[id];
+    return check_z ? path.z === z : true;
   }
 
   //creates new path if necessary.  z is required
-  get_path(id, z, check_z=true) {
+  get_path(id, z, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -453,9 +450,9 @@ export class SimpleSkiaDraw2D extends VectorDraw {
       this.paths.push(this.path_idmap[id]);
     }
 
-    var ret = this.path_idmap[id];
+    let ret = this.path_idmap[id];
 
-    if (check_z && ret.z != z) {
+    if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
@@ -478,7 +475,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
   }
 
   draw(g) {
-    var canvas = g.canvas;
+    let canvas = g.canvas;
 
 
     //canvas.style["background"] = "rgba(0,0,0,0)";
@@ -502,6 +499,37 @@ export class SimpleSkiaDraw2D extends VectorDraw {
       let mat = g0.getTransform();
 
       let g2 = canvas.getContext("2d");
+
+      if (!g2.getTransform) {
+        let matrixKey = undefined;
+
+        for (let k in g2) {
+          let v = g2[k];
+          let ok = typeof v === "object" && Array.isArray(v);
+          ok = ok && (v.length === 9 || v.length === 16);
+
+          if (ok) {
+            for (let item of v) {
+              if (typeof item !== "number") {
+                ok = false;
+                break;
+              }
+            }
+          }
+
+          if (ok) {
+            matrixKey = k;
+            break;
+          }
+        }
+
+        if (matrixKey) {
+          g2.getTransform = function () {
+            return this[matrixKey];
+          }
+        }
+        console.error("MATRIX_KEY", matrixKey);
+      }
       g2.globalAlpha = 1.0;
       g2.globalCompositeOperation = "source-over";
 
@@ -522,7 +550,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     g.save();
     g.resetTransform();
 
-    for (var p of this.paths) {
+    for (let p of this.paths) {
       p.draw(this, undefined, undefined, this.canvas, this.g);
     }
 
@@ -541,11 +569,11 @@ export class SimpleSkiaDraw2D extends VectorDraw {
       image2.data.set(image.data);
 
       console.log(image2);
-      for (let i=0; i<image2.data.length; i += 4) {
+      for (let i = 0; i < image2.data.length; i += 4) {
         image2.data[i] = image.data[i];
-        image2.data[i+1] = image.data[i+1];
-        image2.data[i+2] = image.data[i+2];
-        image2.data[i+3] = 255;
+        image2.data[i + 1] = image.data[i + 1];
+        image2.data[i + 2] = image.data[i + 2];
+        image2.data[i + 3] = 255;
       }
 
       g0.putImageData(image2, 0, 0);

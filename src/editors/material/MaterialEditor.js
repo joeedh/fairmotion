@@ -472,9 +472,7 @@ export class MaterialEditor extends Editor {
     //panel.packflag |= PackFlags.NO_AUTO_SPACING;
     //panel.packflag |= PackFlags.IGNORE_LIMIT;
 
-    //let ctxcode = "(ctx.edit_all_layers || ctx.spline.layerset.active.id in $.layers)"
-    //var set_prefix = `spline.segments[{${ctxcode} && ($.flag & 1) && !$.hidden}]`;
-    let set_prefix = `spline.segments[{$.editable}]`;
+    let set_prefix = `spline.editable_segments[{$.flag & 1}]`;
 
     //panel.label("Stroke Color");
     let panel2 = panel.panel("Stroke Color");
@@ -525,7 +523,7 @@ export class MaterialEditor extends Editor {
     let ctx = this.ctx;
     let tab = tabs.tab("Control Point");
 
-    let set_prefix = "spline.verts[{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}]";
+    let set_prefix = "spline.editable_verts[{$.flag & 1}]";
 
     let panel = tab.panel("Vertex");
     panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix + ".flag[BREAK_TANGENTS]");

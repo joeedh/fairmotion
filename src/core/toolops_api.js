@@ -92,7 +92,7 @@ export class ToolOp extends pathux.ToolOp {
     for (let k in args) {
       let v = args[k];
 
-      if (k === 'selectmode') {
+      if (v === 'selectmode') {
         args[k] = ctx.selectmode;
       }
 
@@ -112,6 +112,8 @@ export class ToolOp extends pathux.ToolOp {
         args[k] = geteid(ctx.spline.faces.active);
       }
     }
+
+    console.error("INVOKE", args);
 
     return super.invoke(ctx, args);
   }

@@ -147,8 +147,8 @@ export class SplineToolMode extends ToolMode {
     }
 
     this.keymap = new KeyMap([
-      new HotKey("PageUp", [], "spline.change_face_z(offset=1, selmode='selectmode')|Move Up"),
-      new HotKey("PageDown", [], "spline.change_face_z(offset=-1, selmode='selectmode')|Move Down"),
+      new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Move Up"),
+      new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Move Down"),
       new HotKey("G", [], "spline.translate(datamode='selectmode')"),
       new HotKey("S", [], "spline.scale(datamode='selectmode')"),
       new HotKey("R", [], "spline.rotate(datamode='selectmode')"),
@@ -157,8 +157,8 @@ export class SplineToolMode extends ToolMode {
       new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"),
       new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"),
       new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"),
-      new HotKey("G", [], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"),
-      new HotKey("G", [], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"),
+      new HotKey("G", [], "spline.hide(selmode='selectmode' ghost=1)|Ghost Selection"),
+      new HotKey("G", [], "spline.unhide(selmode='selectmode' ghost=1)|Unghost Selection"),
       new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"),
       new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"),
       new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"),

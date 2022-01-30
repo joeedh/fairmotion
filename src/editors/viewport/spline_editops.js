@@ -699,9 +699,9 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   constructor(offset, selmode) {
     super(undefined);
     
-    if (offset != undefined)
+    if (offset !== undefined)
       this.inputs.offset.setValue(offset); 
-    if (selmode != undefined)
+    if (selmode !== undefined)
       this.inputs.selmode.setValue(selmode);
   }
   
@@ -728,8 +728,8 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   exec(ctx) {
     var spline = ctx.spline;
     
-    var off = this.inputs.offset.data;
-    var selmode = this.inputs.selmode.data;
+    var off = this.inputs.offset.getValue();
+    var selmode = this.inputs.selmode.getValue();
     
     if (isNaN(off)) off = 0.0;
   

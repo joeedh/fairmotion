@@ -13,7 +13,7 @@ export class SplineLayerOp extends SplineLocalToolOp {
   }}
 
   get_spline(ctx) {
-    return ctx.api.getValue(this.inputs.spline_path.data);
+    return ctx.api.getValue(ctx, this.inputs.spline_path.data);
   }
 }
 
@@ -105,7 +105,7 @@ export class ChangeLayerOp extends SplineLayerOp {
     
     var actives = [];
     for (var list of spline.elists) {
-      actives.push(list.active != undefined ? list.active.eid : -1);
+      actives.push(list.active !== undefined ? list.active.eid : -1);
     }
     
     this._undo = {

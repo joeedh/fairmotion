@@ -1,4 +1,4 @@
-import {Area, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {Area, contextWrangler, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';
@@ -7,34 +7,8 @@ import {ModalStates} from '../core/toolops_api.js';
 import {HotKey, KeyMap} from '../path.ux/scripts/pathux.js';
 import {haveModal} from '../path.ux/scripts/pathux.js';
 
-export var _area_active_stacks = {}; //last active stacks for each area type
-export var _area_active_lasts = {};
-export var _area_main_stack = []; //combined stack of all area types
-
-var _last_area = undefined;
-
-function _get_area_stack(cls) {
-  var h = cls.name;
-
-  if (!(h in _area_active_stacks)) {
-    _area_active_stacks[h] = new Array();
-  }
-
-  return _area_active_stacks[h];
-};
-
 export function resetAreaStacks() {
-  _area_main_stack.length = 0;
-
-  for (let k in _area_active_lasts) {
-    _area_active_lasts[k].length = 0;
-  }
-
-  for (let k in _area_active_stacks) {
-    _area_active_stacks[k].length = 0;
-  }
-
-  _last_area = undefined;
+  contextWrangler.reset();
 }
 
 /*
@@ -348,29 +322,11 @@ export class Editor extends Area {
   }
 
   static active_area() {
-    let ret = _area_main_stack[_area_main_stack.length - 1];
-    if (ret === undefined) {
-      ret = _last_area;
-    }
-
-    if (ret === undefined) {
-      return {
-        getKeyMaps() {
-          return []
-        }
-      };
-    }
-
-    return ret;
+    return contextWrangler.getLastArea(this);
   }
 
   static context_area(cls) {
-    var stack = _get_area_stack(cls.name);
-
-    if (stack.length === 0)
-      return _area_active_lasts[cls.name];
-    else
-      return stack[stack.length - 1];
+    return contextWrangler.getLastArea(cls);
   }
 
   //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active
@@ -393,36 +349,12 @@ export class Editor extends Area {
     }
   }
 
-  push_ctx_active(ctx) {
-    var stack = _get_area_stack(this.constructor);
-    stack.push(this);
-    _area_active_lasts[this.constructor.name] = this;
-
-    _area_main_stack.push(_last_area);
-    _last_area = this;
+  push_ctx_active(dontSetLastRef = false) {
+    super.push_ctx_active(dontSetLastRef);
   }
 
-  pop_ctx_active(ctx) {
-    let cls = this.constructor;
-
-    var stack = _get_area_stack(cls);
-
-    if (stack.length === 0 || stack[stack.length - 1] !== this) {
-      console.trace();
-      console.log("Warning: invalid Area.pop_active() call");
-      return;
-    }
-
-    stack.pop();
-
-    if (stack.length > 0) {
-      _area_active_lasts[cls.name] = stack[stack.length - 1];
-    }
-
-    let area = _area_main_stack.pop();
-    if (area !== undefined) {
-      _last_area = area;
-    }
+  pop_ctx_active(dontSetLastRef = false) {
+    super.pop_ctx_active(dontSetLastRef);
   }
 }
 

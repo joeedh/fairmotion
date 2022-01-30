@@ -422,9 +422,9 @@ export class SplineEditor extends View2DEditor {
     var k = this.keymap;
     
     k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
-               "spline.change_face_z(offset=1, selmode='selectmode')");
+               "spline.change_face_z(offset=1 selmode='selectmode')");
     k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
-               "spline.change_face_z(offset=-1, selmode='selectmode')");
+               "spline.change_face_z(offset=-1 selmode='selectmode')");
 
     k.add_tool(new HotKey("G", [], "Translate"),
                "spline.translate(datamode='selectmode')");

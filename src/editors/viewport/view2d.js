@@ -125,7 +125,7 @@ export class View2DHandler extends Editor {
     this.propradius = 35;
 
     this._last_toolmode = undefined;
-
+    this.draw_stroke_debug = false;
     this._last_mpos = new Vector2();
 
     this.dpi_scale = 1.0;
@@ -894,6 +894,7 @@ export class View2DHandler extends Editor {
     strip.prop("spline.verts.active.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
     strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
     strip.prop("view2d.half_pix_size");
+    strip.prop("view2d.draw_stroke_debug");
 
     strip = row.strip();
     strip.tool("spline.split_pick_edge()");
@@ -1511,9 +1512,9 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   irendermat      : mat4;
   half_pix_size   : bool;
   cameramat       : mat4;
-  only_render     : int;
-  draw_anim_paths : int;
-  draw_normals    : int;
+  only_render     : bool;
+  draw_anim_paths : bool;
+  draw_normals    : bool;
   editors         : array(abstract(View2DEditor));
   editor          : int | obj.editors.indexOf(obj.editor);
   zoom            : float;
@@ -1522,15 +1523,16 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   default_stroke    : vec4;
   default_fill      : vec4;
   extrude_mode      : int;
-  enable_blur       : int;
-  draw_faces        : int;
-  draw_video        : int;
+  enable_blur       : bool;
+  draw_faces        : bool;
+  draw_video        : bool;
   pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
   background_image  : ImageUser;
   background_color  : vec3;
   draw_bg_image     : int;
   toolmode          : int;
-  draw_small_verts  : int;
+  draw_small_verts  : bool;
+  draw_stroke_debug : bool;
 }
 `;
 

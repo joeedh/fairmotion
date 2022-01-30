@@ -137,27 +137,48 @@ export function makeAPI(api = new DataAPI()) {
     });
     View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points")
       .icon(Icons.DRAW_SMALL_VERTS);
-    View2DHandlerStruct.enum("selectmode", "selectmode", SelMask, "Selection Mode").uiNames({
-      VERTEX : "Vertex",
-      SEGMENT: "Segment",
-      FACE   : "Face",
-      OBJECT : "Object"
-    }).descriptions({
-      VERTEX : "Vertex",
-      SEGMENT: "Segment",
-      FACE   : "Face",
-      OBJECT : "Object"
-    }).icons({
-      VERTEX : Icons.VERT_MODE,
-      SEGMENT: Icons.EDGE_MODE,
-      FACE   : Icons.FACE_MODE,
-      OBJECT : Icons.OBJECT_MODE,
-      HANDLE : Icons.SHOW_HANDLES,
-    }).customSet(function (prop, val) {
-      console.log("selmask_enum.userSetData", this, prop, val);
-      this.selectmode = val | (this.selectmode & SelMask.HANDLE);
-      return this.selectmode;
-    });
+    View2DHandlerStruct.enum("selectmode", "selectmode", {
+      VERTEX : SelMask.VERTEX,
+      SEGMENT: SelMask.SEGMENT,
+      FACE   : SelMask.FACE,
+      OBJECT : SelMask.OBJECT
+    }, "Selection Mode")
+      .uiNames({
+        VERTEX : "Vertex",
+        SEGMENT: "Segment",
+        FACE   : "Face",
+        OBJECT : "Object"
+      })
+      .descriptions({
+        VERTEX : "Vertex",
+        SEGMENT: "Segment",
+        FACE   : "Face",
+        OBJECT : "Object"
+      })
+      .icons({
+        VERTEX : Icons.VERT_MODE,
+        SEGMENT: Icons.EDGE_MODE,
+        FACE   : Icons.FACE_MODE,
+        OBJECT : Icons.OBJECT_MODE,
+        HANDLE : Icons.SHOW_HANDLES,
+      })
+      .customGetSet(function () {
+        return this.ctx.scene.selectmode;
+      }, function (val) {
+        let scene = this.ctx.scene;
+
+        console.log("selmask_enum.userSetData", scene, val);
+        scene.selectmode = val | (scene.selectmode & SelMask.HANDLE);
+      });
+
+    View2DHandlerStruct.bool("draw_stroke_debug", "draw_stroke_debug", "Stroke Debug")
+      .on('change', function () {
+        this.ctx.spline.regen_sort();
+        this.ctx.spline.regen_render();
+
+        window.redraw_viewport();
+      });
+
     View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames({
       VERTEX  : "Vertex",
       HANDLE  : "Handle",
@@ -924,38 +945,26 @@ export function makeAPI(api = new DataAPI()) {
       return ok;
     });
 
-    SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (segment) {
-        g_app_state.ctx.spline.regen_sort();
-        segment.mat.update();
-        segment.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    SplineSegmentStruct.float("w2", "w2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (segment) {
-        g_app_state.ctx.spline.regen_sort();
-        segment.mat.update();
-        segment.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    SplineSegmentStruct.float("shift1", "shift1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (segment) {
-        g_app_state.ctx.spline.regen_sort();
-        segment.mat.update();
-        segment.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
-    SplineSegmentStruct.float("shift2", "shift2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (segment) {
-        g_app_state.ctx.spline.regen_sort();
-        segment.mat.update();
-        segment.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+    let segment_update = function () {
+      let segment = this.dataref;
+      segment.mat.update();
+
+      segment.flag |= SplineFlags.REDRAW;
+      segment.v1.flag |= SplineFlags.REDRAW;
+      segment.v2.flag |= SplineFlags.REDRAW;
+
+      g_app_state.ctx.spline.regen_sort();
+      window.redraw_viewport();
+    }
+
+    SplineSegmentStruct.float("w1", "w1", "w1").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", segment_update);
+    SplineSegmentStruct.float("w2", "w2", "w2").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", segment_update);
+    SplineSegmentStruct.float("shift1", "shift1", "shift1").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", segment_update);
+    SplineSegmentStruct.float("shift2", "shift2", "shift2").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", segment_update);
     SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
       SELECT            : "Select",
@@ -1003,12 +1012,12 @@ export function makeAPI(api = new DataAPI()) {
       BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
       BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
     }).on("change", function (old) {
-      return (function (segment) {
-        new Context().spline.regen_sort();
-        segment.flag |= SplineFlags.REDRAW;
-        console.log(segment);
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+      let segment = this.dataref;
+
+      segment.flag |= SplineFlags.REDRAW;
+
+      this.ctx.spline.regen_sort();
+      window.redraw_viewport();
     });
     SplineSegmentStruct.bool("renderable", "renderable", "renderable");
     SplineSegmentStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
@@ -1080,10 +1089,11 @@ export function makeAPI(api = new DataAPI()) {
       this.dataref.flag |= SplineFlags.REDRAW;
       window.redraw_viewport();
     });
-    SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      this.dataref.flag |= SplineFlags.REDRAW;
-      window.redraw_viewport();
-    });
+    SplineVertexStruct.float("shift", "shift", "shift").range(-5, 5).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", function (old) {
+        this.dataref.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      });
   }
 
   var SplineLayerStruct = api.mapStruct(SplineLayer, true);

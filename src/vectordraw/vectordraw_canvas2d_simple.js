@@ -267,7 +267,8 @@ export class SimpleCanvasPath extends QuadBezPath {
       //tmp[1] += draw.pan[1];
 
       if (isNaN(tmp.dot(tmp))) {
-        throw new Error("NaN");
+        //throw new Error("NaN");
+        console.error("NaN", off);
       }
     }
 

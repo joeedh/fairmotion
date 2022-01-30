@@ -1,5 +1,6 @@
 "use strict";
 
+/* advanced batch based system with caching */
 import {
   CanvasDraw2D, CanvasPath
 } from './vectordraw_canvas2d.js';

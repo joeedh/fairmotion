@@ -1,5 +1,7 @@
 "use strict";
 
+/* advanced batch based system with caching */
+
 import * as config from '../config/config.js';
 import * as util from '../path.ux/scripts/util/util.js';
 

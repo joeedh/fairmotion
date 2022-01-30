@@ -39,9 +39,7 @@ Fairmotion is very much a work in progress, and should be considered pre-alpha.
 
 Fairmotion was originally coded in my own type-annotated language based on ES6,
 and is currently being converted to typescript.  As part of this process I added
-typescript syntax to my existing transpiler.  I'm excepted to finally ditch the 
-pain of maintaining my own ES transpiler and type annotation system.
-This is a work in progress.
+typescript syntax to my existing transpiler.
 
 ### Build
 To build, open a command prompt where you downloaded fairmotion

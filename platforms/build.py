@@ -18,7 +18,7 @@ try:
     if hasattr(platforms.build_local, "build_platforms"):
         build_platforms = platforms.build_local.build_platforms
 except ImportError:
-    print(util.termColor("warning: failed to import platforms/build_local.py"), "yellow")
+    print(util.termColor("warning: failed to import platforms/build_local.py", "yellow"))
 
 def build():
   util.doprint("building platform packages. . .")

@@ -141,7 +141,7 @@ colormap = {
   "lightblue" : 268
 }
 
-def termColor(s, c):
+def termColor(s, c="yellow"):
   if c in colormap:
     c = colormap[c]
 

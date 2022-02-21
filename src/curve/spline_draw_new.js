@@ -21,7 +21,7 @@ var spline_draw_cache_vs = cachering.fromConstructor(Vector2, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector2, 32);
 
 var PI = Math.PI;
-var pow                                                                        = Math.pow, cos = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,
+var pow                                                                        = Math.pow, cos                                                        = Math.cos, sin = Math.sin, abs                        = Math.abs, floor      = Math.floor,
     ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
 
 import {
@@ -320,6 +320,27 @@ export class SplineDrawer {
     this.last_stroke_eid = undefined;
     this.last_layer_id = undefined;
     this.last_stroke_stringid = undefined;
+  }
+
+  setDrawer(drawer) {
+    this.used_paths = {}
+
+    for (var k in this.drawer.path_idmap) {
+      var path = this.drawer.path_idmap[k];
+
+      this.drawer.remove(path);
+    }
+
+    this.recalc_all = true;
+
+    this.last_zoom = undefined;
+    this.last_3_mat = undefined;
+    this.last_stroke_z = undefined;
+    this.last_stroke_eid = undefined;
+    this.last_layer_id = undefined;
+    this.last_stroke_stringid = undefined;
+
+    this.drawer = drawer;
   }
 
   update_vertex_join(seg, v, drawparams) {
@@ -1128,7 +1149,7 @@ export class SplineDrawer {
           let p = seg.evaluateSide(s, side, dv, no, lw_dlw);
           dv.mulScalar(dsign);
 
-          let dfac = ds / 3.0;
+          let dfac = ds/3.0;
           if (side) {
             dfac *= -1;
             //dv.negate();

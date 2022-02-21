@@ -25,6 +25,28 @@ import {open_file, save_file, save_with_dialog, can_access_path} from '../core/f
 
 //import {Icons} from 'icon_enum';
 
+export class AppQuitOp extends ToolOp {
+  constructor() {
+    super();
+
+    this.undoflag = UndoFlags.NO_UNDO;
+    this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
+
+  }
+
+  static tooldef() { return {
+    toolpath : "appstate.quit",
+    uiname   : "Exit",
+    is_modal : false,
+    undoflag : UndoFlags.NO_UNDO,
+  }}
+
+  exec(ctx : LockedContext) {
+    let {ipcRenderer} = require('electron');
+    ipcRenderer.invoke('quit-fairmotion');
+  }
+}
+
 export class FileOpenOp extends ToolOp {
   constructor() {
     super();

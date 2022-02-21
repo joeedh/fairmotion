@@ -106,8 +106,14 @@ export function makeAPI(api = new DataAPI()) {
         redraw_viewport();
       }).call(this.dataref, old)
     });
-    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "half_pix_size")
+    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "Half Resolution")
       .icon(Icons.HALF_PIXEL_SIZE);
+
+    View2DHandlerStruct.bool("draw_tiled", "draw_tiled", "Draw Tiles")
+      .on('change', function() {
+        redraw_viewport();
+      });
+
     View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function (old) {
       return (function () {
         window.redraw_viewport();

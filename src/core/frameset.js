@@ -8,7 +8,10 @@ import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
         AnimInterpModes, AnimKeyFlags} from './animdata.js';
 import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
 
+import {Canvas, Path, VectorFlags, SimpleCanvasDraw2D, SimpleCanvasPath} from '../vectordraw/vectordraw.js';
+
 import * as animspline from './animspline.js';
+import {SplineDrawer} from '../curve/spline_draw_new.js';
 
 export * from './animspline';
 
@@ -1259,6 +1262,17 @@ export class SplineFrameSet extends DataBlock {
     g.lineWidth = 1.0;
     g.stroke();
     //*/
+
+    let tiled = !!editor.draw_tiled;
+    let cls = tiled ? SimpleCanvasDraw2D : Canvas;
+
+    console.warn(this.spline.drawer);
+
+    if (this.spline.drawer === undefined) {
+      this.spline.drawer = new SplineDrawer(this.spline, new cls());
+    } else if (this.spline.drawer.drawer.constructor !== cls) {
+      this.spline.drawer.setDrawer(new cls());
+    }
 
     let promise = this.spline.draw(redraw_rects, g, editor, matrix, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
                      undefined, undefined, ignore_layers);

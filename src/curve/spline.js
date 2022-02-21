@@ -154,6 +154,7 @@ export class Spline extends DataBlock {
   elist_map: Object
   selectmode: number
   layerset: SplineLayerSet
+  drawer : SplineDrawer
   selected: ElementArraySet
   draw_verts: boolean
   verts: ElementArray<SplineVertex>

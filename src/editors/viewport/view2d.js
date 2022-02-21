@@ -112,10 +112,13 @@ export class View2DHandler extends Editor {
   _last_toolmode: any
   glPos: Vector2
   glSize: Vector2
+  draw_tiled : boolean
   ctx: FullContext;
 
   constructor() {
     super();
+
+    this.draw_tiled = false;
 
     this.glPos = new Vector2();
     this.glSize = new Vector2([512, 512]);
@@ -646,7 +649,46 @@ export class View2DHandler extends Editor {
       g.drawImage(img, off[0], off[1], img.width*scale[0], img.height*scale[1]);
     }
 
-    let promise = this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
+    let promise;
+
+    if (this.draw_tiled) { //bad tiling method!
+      promise = new Promise((accept, reject) => {
+        let tot = 0;
+
+        let tileoff = 500.0;
+        let queue = [];
+
+        let n = 1;
+        for (let ix = -n; ix <= n; ix++) {
+          for (let iy = -n; iy <= n; iy++) {
+            let matrix2 = new Matrix4(matrix);
+            tot++;
+
+            matrix2.translate(tileoff*ix, tileoff*iy, 0.0);
+
+            queue.push(matrix2);
+          }
+        }
+
+
+        let next = () => {
+          this.flip_canvases();
+
+          if (queue.length === 0) {
+            accept();
+          } else {
+            let matrix2 = queue.pop();
+
+            this.ctx.frameset.draw(this.ctx, g, this, matrix2, redraw_rects, this.edit_all_layers)
+              .then(next);
+          }
+        }
+
+        next();
+      });
+    } else {
+      promise = this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
+    }
 
     if (buffer) {
       promise.then(() => {
@@ -896,6 +938,7 @@ export class View2DHandler extends Editor {
     strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
     strip.prop("view2d.half_pix_size");
     strip.prop("view2d.draw_stroke_debug");
+    strip.prop("view2d.draw_tiled");
 
     strip = row.strip();
     strip.tool("spline.split_pick_edge()");
@@ -1505,20 +1548,20 @@ export class View2DHandler extends Editor {
 }
 
 View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
-  _id             : int;
-  _selectmode     : int;
-  propradius      : float;
-  session_flag    : int;
-  rendermat       : mat4;
-  irendermat      : mat4;
-  half_pix_size   : bool;
-  cameramat       : mat4;
-  only_render     : bool;
-  draw_anim_paths : bool;
-  draw_normals    : bool;
-  editors         : array(abstract(View2DEditor));
-  editor          : int | obj.editors.indexOf(obj.editor);
-  zoom            : float;
+  _id               : int;
+  _selectmode       : int;
+  propradius        : float;
+  session_flag      : int;
+  rendermat         : mat4;
+  irendermat        : mat4;
+  half_pix_size     : bool;
+  cameramat         : mat4;
+  only_render       : bool;
+  draw_anim_paths   : bool;
+  draw_normals      : bool;
+  editors           : array(abstract(View2DEditor));
+  editor            : int | obj.editors.indexOf(obj.editor);
+  zoom              : float;
   tweak_mode        : int;
   default_linewidth : float;
   default_stroke    : vec4;
@@ -1534,6 +1577,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   toolmode          : int;
   draw_small_verts  : bool;
   draw_stroke_debug : bool;
+  draw_tiled        : bool;
 }
 `;
 

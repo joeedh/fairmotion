@@ -107,6 +107,10 @@ ipcMain.handle('show-save-dialog', async (event, args, then, catchf) => {
   })).catch(makeInvoker(event, catchf));
 });
 
+ipcMain.handle('quit-fairmotion', async(event) => {
+  app.quit();
+});
+
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("enable-unsafe-webgpu");
 

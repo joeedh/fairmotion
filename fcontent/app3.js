@@ -1,3007 +1,23 @@
 
-es6_module_define('ui_base', ["./units.js", "./ui_theme.js", "./theme.js", "./anim.js", "../icon_enum.js", "../path-controller/util/simple_events.js", "../config/const.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/cssutils.js", "../path-controller/controller/controller.js", "./aspect.js", "../path-controller/util/util.js", "../path-controller/util/math.js", "../util/colorutils.js"], function _ui_base_module(_es6_module) {
-  let _ui_base=undefined;
-  var cssutils=es6_import(_es6_module, '../path-controller/util/cssutils.js');
-  var Animator=es6_import_item(_es6_module, './anim.js', 'Animator');
-  es6_import(_es6_module, './units.js');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var math=es6_import(_es6_module, '../path-controller/util/math.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  var controller=es6_import(_es6_module, '../path-controller/controller/controller.js');
-  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var copyEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'copyEvent');
-  var pathDebugEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pathDebugEvent');
-  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
-  var getDataPathToolOp=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'getDataPathToolOp');
-  var units=es6_import(_es6_module, './units.js');
-  var rgb_to_hsv=es6_import_item(_es6_module, '../util/colorutils.js', 'rgb_to_hsv');
-  var hsv_to_rgb=es6_import_item(_es6_module, '../util/colorutils.js', 'hsv_to_rgb');
-  var ___ui_theme_js=es6_import(_es6_module, './ui_theme.js');
-  for (let k in ___ui_theme_js) {
-      _es6_module.add_export(k, ___ui_theme_js[k], true);
-  }
-  var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
-  var theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
-  var parsepx=es6_import_item(_es6_module, './ui_theme.js', 'parsepx');
-  var compatMap=es6_import_item(_es6_module, './ui_theme.js', 'compatMap');
-  var DefaultTheme=es6_import_item(_es6_module, './theme.js', 'DefaultTheme');
-  let _ex_theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
-  _es6_module.add_export('theme', _ex_theme, true);
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  window.__cconst = cconst;
-  let Vector4=vectormath.Vector4;
-  let _ex_Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
-  _es6_module.add_export('Icons', _ex_Icons, true);
-  var Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
-  let _ex_setIconMap=es6_import_item(_es6_module, '../icon_enum.js', 'setIconMap');
-  _es6_module.add_export('setIconMap', _ex_setIconMap, true);
-  var setIconMap=es6_import_item(_es6_module, '../icon_enum.js', 'setIconMap');
-  var AfterAspect=es6_import_item(_es6_module, './aspect.js', 'AfterAspect');
-  var initAspectClass=es6_import_item(_es6_module, './aspect.js', 'initAspectClass');
-  var aspect=es6_import(_es6_module, './aspect.js');
-  const EnumProperty=toolprop.EnumProperty;
-  let Area;
-  let _setAreaClass=(cls) =>    {
-    Area = cls;
-  }
-  _setAreaClass = _es6_module.add_export('_setAreaClass', _setAreaClass);
-  const ErrorColors={WARNING: "yellow", 
-   ERROR: "red", 
-   OK: "green"}
-  _es6_module.add_export('ErrorColors', ErrorColors);
-  window.__theme = theme;
-  let registered_has_happened=false;
-  let tagPrefix="";
-  function setTagPrefix(prefix) {
-    if (registered_has_happened) {
-        throw new Error("have to call ui_base.setTagPrefix before loading any other path.ux modules");
-    }
-    tagPrefix = ""+prefix;
-  }
-  setTagPrefix = _es6_module.add_export('setTagPrefix', setTagPrefix);
-  function getTagPrefix(prefix) {
-    return tagPrefix;
-  }
-  getTagPrefix = _es6_module.add_export('getTagPrefix', getTagPrefix);
-  let prefix=document.getElementById("pathux-tag-prefix");
-  if (prefix) {
-      console.log("Found pathux-tag-prefix element");
-      prefix = prefix.innerText.trim();
-      setTagPrefix(prefix);
-  }
-  function setTheme(theme2) {
-    for (let k in theme2) {
-        let v=theme2[k];
-        if (typeof v!=="object") {
-            theme[k] = v;
-            continue;
-        }
-        let v0=theme[k];
-        if (!(k in theme)) {
-            theme[k] = {};
-        }
-        for (let k2 in v) {
-            if (k2 in compatMap) {
-                let k3=compatMap[k2];
-                if (v[k3]===undefined) {
-                    v[k3] = v[k2];
-                }
-                delete v[k2];
-                k2 = k3;
-            }
-            theme[k][k2] = v[k2];
-        }
-    }
-  }
-  setTheme = _es6_module.add_export('setTheme', setTheme);
-  setTheme(DefaultTheme);
-  let _last_report=util.time_ms();
-  function report() {
-    if (util.time_ms()-_last_report>350) {
-        console.warn(...arguments);
-        _last_report = util.time_ms();
-    }
-  }
-  report = _es6_module.add_export('report', report);
-  function getDefault(key, elem) {
-    console.warn("Deprecated call to ui_base.js:getDefault");
-    if (key in theme.base) {
-        return theme.base[key];
-    }
-    else {
-      throw new Error("Unknown default "+key);
-    }
-  }
-  getDefault = _es6_module.add_export('getDefault', getDefault);
-  function IsMobile() {
-    console.warn("ui_base.IsMobile is deprecated; use util.isMobile instead");
-    return util.isMobile();
-  }
-  IsMobile = _es6_module.add_export('IsMobile', IsMobile);
-  
-  let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
-  keys = keys.concat(["padding-block-start", "padding-block-end"]);
-  keys = keys.concat(["margin-left", "margin-top", "margin-bottom", "margin-right"]);
-  keys = keys.concat(["padding-left", "padding-top", "padding-bottom", "padding-right"]);
-  const marginPaddingCSSKeys=keys;
-  _es6_module.add_export('marginPaddingCSSKeys', marginPaddingCSSKeys);
-  class _IconManager  {
-     constructor(image, tilesize, number_of_horizontal_tiles, drawsize) {
-      this.tilex = number_of_horizontal_tiles;
-      this.tilesize = tilesize;
-      this.drawsize = drawsize;
-      this.image = image;
-    }
-     canvasDraw(elem, canvas, g, icon, x=0, y=0) {
-      let tx=icon%this.tilex;
-      let ty=~~(icon/this.tilex);
-      let dpi=elem.getDPI();
-      let ts=this.tilesize;
-      let ds=this.drawsize;
-      if (!this.image) {
-          return ;
-      }
-      try {
-        g.drawImage(this.image, tx*ts, ty*ts, ts, ts, x, y, ds*dpi, ds*dpi);
-      }
-      catch (error) {
-          console.log("failed to draw an icon");
-      }
-    }
-     setCSS(icon, dom, fitsize=undefined) {
-      if (!fitsize) {
-          fitsize = this.drawsize;
-      }
-      if (typeof fitsize==="object") {
-          fitsize = Math.max(fitsize[0], fitsize[1]);
-      }
-      dom.style["background"] = this.getCSS(icon, fitsize);
-      dom.style["background-size"] = (fitsize*this.tilex)+"px";
-      dom.style["background-clip"] = "content-box";
-      if (!dom.style["width"]) {
-          dom.style["width"] = this.drawsize+"px";
-      }
-      if (!dom.style["height"]) {
-          dom.style["height"] = this.drawsize+"px";
-      }
-    }
-     getCSS(icon, fitsize=this.drawsize) {
-      if (icon===-1) {
-          return '';
-      }
-      if (typeof fitsize==="object") {
-          fitsize = Math.max(fitsize[0], fitsize[1]);
-      }
-      let ratio=fitsize/this.tilesize;
-      let x=(-(icon%this.tilex)*this.tilesize)*ratio;
-      let y=(-(~~(icon/this.tilex))*this.tilesize)*ratio;
-      let ts=this.tilesize;
-      return `url("${this.image.src}") ${x}px ${y}px`;
-    }
-  }
-  _ESClass.register(_IconManager);
-  _es6_module.add_class(_IconManager);
-  class IconManager  {
-     constructor(images, sizes, horizontal_tile_count) {
-      this.iconsheets = [];
-      this.tilex = horizontal_tile_count;
-      for (let i=0; i<images.length; i++) {
-          let size, drawsize;
-          if (typeof sizes[i]=="object") {
-              size = sizes[i][0], drawsize = sizes[i][1];
-          }
-          else {
-            size = drawsize = sizes[i];
-          }
-          if (util.isMobile()) {
-              drawsize = ~~(drawsize*theme.base.mobileSizeMultiplier);
-          }
-          this.iconsheets.push(new _IconManager(images[i], size, horizontal_tile_count, drawsize));
-      }
-    }
-     load(manager2) {
-      this.iconsheets = manager2.iconsheets;
-      this.tilex = manager2.tilex;
-      return this;
-    }
-     reset(horizontal_tile_count) {
-      this.iconsheets.length = 0;
-      this.tilex = horizontal_tile_count;
-    }
-     add(image, size, drawsize=size) {
-      this.iconsheets.push(new _IconManager(image, size, this.tilex, drawsize));
-      return this;
-    }
-     canvasDraw(elem, canvas, g, icon, x=0, y=0, sheet=0) {
-      let base=this.iconsheets[sheet];
-      sheet = this.findSheet(sheet);
-      let ds=sheet.drawsize;
-      sheet.drawsize = base.drawsize;
-      sheet.canvasDraw(elem, canvas, g, icon, x, y);
-      sheet.drawsize = ds;
-    }
-     findClosestSheet(size) {
-      let sheets=this.iconsheets.concat([]);
-      sheets.sort((a, b) =>        {
-        return a.drawsize-b.drawsize;
-      });
-      let sheet;
-      for (let i=0; i<sheets.length; i++) {
-          if (sheets[i].drawsize<=size) {
-              sheet = sheets[i];
-              break;
-          }
-      }
-      if (!sheet)
-        sheet = sheets[sheets.length-1];
-      return this.iconsheets.indexOf(sheet);
-    }
-     findSheet(sheet) {
-      if (sheet===undefined) {
-          console.warn("sheet was undefined");
-          sheet = 0;
-      }
-      let base=this.iconsheets[sheet];
-      let dpi=UIBase.getDPI();
-      let minsheet=undefined;
-      let goal=dpi*base.drawsize;
-      for (let sheet of this.iconsheets) {
-          minsheet = sheet;
-          if (sheet.drawsize>=goal) {
-              break;
-          }
-      }
-      return minsheet===undefined ? base : minsheet;
-    }
-     getTileSize(sheet=0) {
-      return this.iconsheets[sheet].drawsize;
-      return this.findSheet(sheet).drawsize;
-    }
-     getRealSize(sheet=0) {
-      return this.iconsheets[sheet].tilesize;
-      return this.findSheet(sheet).tilesize;
-    }
-     getCSS(icon, sheet=0) {
-      let base=this.iconsheets[sheet];
-      sheet = this.findSheet(sheet);
-      let ds=sheet.drawsize;
-      sheet.drawsize = base.drawsize;
-      let ret=sheet.getCSS(icon);
-      sheet.drawsize = ds;
-      return ret;
-    }
-     setCSS(icon, dom, sheet=0, fitsize=undefined) {
-      let base=this.iconsheets[sheet];
-      sheet = this.findSheet(sheet);
-      let ds=sheet.drawsize;
-      sheet.drawsize = base.drawsize;
-      let ret=sheet.setCSS(icon, dom, fitsize);
-      sheet.drawsize = ds;
-      return ret;
-    }
-  }
-  _ESClass.register(IconManager);
-  _es6_module.add_class(IconManager);
-  IconManager = _es6_module.add_export('IconManager', IconManager);
-  let iconmanager=new IconManager([document.getElementById("iconsheet16"), document.getElementById("iconsheet32"), document.getElementById("iconsheet48")], [16, 32, 64], 16);
-  iconmanager = _es6_module.add_export('iconmanager', iconmanager);
-  window._iconmanager = iconmanager;
-  let IconSheets={SMALL: 0, 
-   LARGE: 1, 
-   XLARGE: 2}
-  IconSheets = _es6_module.add_export('IconSheets', IconSheets);
-  function iconSheetFromPackFlag(flag) {
-    if (flag&PackFlags.CUSTOM_ICON_SHEET) {
-        console.log("Custom Icon Sheet:", flag>>PackFlags.CUSTOM_ICON_SHEET_START);
-        return flag>>PackFlags.CUSTOM_ICON_SHEET_START;
-    }
-    if ((flag&PackFlags.SMALL_ICON)&&!(PackFlags.LARGE_ICON)) {
-        return 0;
-    }
-    else {
-      return 1;
-    }
-  }
-  iconSheetFromPackFlag = _es6_module.add_export('iconSheetFromPackFlag', iconSheetFromPackFlag);
-  function getIconManager() {
-    return iconmanager;
-  }
-  getIconManager = _es6_module.add_export('getIconManager', getIconManager);
-  function setIconManager(manager, IconSheetsOverride) {
-    iconmanager.load(manager);
-    if (IconSheetsOverride!==undefined) {
-        for (let k in IconSheetsOverride) {
-            IconSheets[k] = IconSheetsOverride[k];
-        }
-    }
-  }
-  setIconManager = _es6_module.add_export('setIconManager', setIconManager);
-  function makeIconDiv(icon, sheet) {
-    if (sheet===undefined) {
-        sheet = 0;
-    }
-    let size=iconmanager.getRealSize(sheet);
-    let drawsize=iconmanager.getTileSize(sheet);
-    let icontest=document.createElement("div");
-    icontest.style["width"] = icontest.style["min-width"] = drawsize+"px";
-    icontest.style["height"] = icontest.style["min-height"] = drawsize+"px";
-    icontest.style["background-color"] = "orange";
-    icontest.style["margin"] = "0px";
-    icontest.style["padding"] = "0px";
-    iconmanager.setCSS(icon, icontest, sheet);
-    return icontest;
-  }
-  makeIconDiv = _es6_module.add_export('makeIconDiv', makeIconDiv);
-  let Vector2=vectormath.Vector2;
-  let Matrix4=vectormath.Matrix4;
-  let dpistack=[];
-  dpistack = _es6_module.add_export('dpistack', dpistack);
-  const UIFlags={}
-  _es6_module.add_export('UIFlags', UIFlags);
-  const internalElementNames={}
-  const externalElementNames={}
-  const PackFlags={INHERIT_WIDTH: 1, 
-   INHERIT_HEIGHT: 2, 
-   VERTICAL: 4, 
-   USE_ICONS: 8, 
-   SMALL_ICON: 16, 
-   LARGE_ICON: 32, 
-   FORCE_PROP_LABELS: 64, 
-   PUT_FLAG_CHECKS_IN_COLUMNS: 128, 
-   WRAP_CHECKBOXES: 256, 
-   STRIP_HORIZ: 512, 
-   STRIP_VERT: 1024, 
-   STRIP: 512|1024, 
-   SIMPLE_NUMSLIDERS: 2048, 
-   FORCE_ROLLER_SLIDER: 4096, 
-   HIDE_CHECK_MARKS: (1<<13), 
-   NO_NUMSLIDER_TEXTBOX: (1<<14), 
-   CUSTOM_ICON_SHEET: 1<<15, 
-   CUSTOM_ICON_SHEET_START: 20, 
-   NO_UPDATE: 1<<16}
-  _es6_module.add_export('PackFlags', PackFlags);
-  let first=(iter) =>    {
-    if (iter===undefined) {
-        return undefined;
-    }
-    if (!(Symbol.iterator in iter)) {
-        for (let item in iter) {
-            return item;
-        }
-        return undefined;
-    }
-    for (let item of iter) {
-        return item;
-    }
-  }
-  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
-  let _mobile_theme_patterns=[/.*width.*/, /.*height.*/, /.*size.*/, /.*margin.*/, /.*pad/, /.*radius.*/];
-  let _idgen=0;
-  window._testSetScrollbars = function (color, contrast, width, border) {
-    if (color===undefined) {
-        color = "grey";
-    }
-    if (contrast===undefined) {
-        contrast = 0.5;
-    }
-    if (width===undefined) {
-        width = 15;
-    }
-    if (border===undefined) {
-        border = "solid";
-    }
-    let buf=styleScrollBars(color, undefined, contrast, width, border, "*");
-    CTX.screen.mergeGlobalCSS(buf);
-    return buf;
-  }
-  function styleScrollBars(color, color2, contrast, width, border, selector) {
-    if (color===undefined) {
-        color = "grey";
-    }
-    if (color2===undefined) {
-        color2 = undefined;
-    }
-    if (contrast===undefined) {
-        contrast = 0.5;
-    }
-    if (width===undefined) {
-        width = 15;
-    }
-    if (border===undefined) {
-        border = "1px groove black";
-    }
-    if (selector===undefined) {
-        selector = "*";
-    }
-    if (!color2) {
-        let c=css2color(color);
-        let a=c.length>3 ? c[3] : 1.0;
-        c = rgb_to_hsv(c[0], c[1], c[2]);
-        let inv=c.slice(0, c.length);
-        inv[2] = 1.0-inv[2];
-        inv[2]+=(c[2]-inv[2])*(1.0-contrast);
-        inv = hsv_to_rgb(inv[0], inv[1], inv[2]);
-        inv.length = 4;
-        inv[3] = a;
-        inv = color2css(inv);
-        color2 = inv;
-    }
-    let buf=`
-
-${selector} {
-  scrollbar-width : ${width <= 16 ? 'thin' : 'auto'};
-  scrollbar-color : ${color2} ${color};
-}
-
-${selector}::-webkit-scrollbar {
-  width : ${width}px;
-  background-color : ${color};
-}
-
-${selector}::-webkit-scrollbar-track {
-  background-color : ${color};
-  border : ${border};
-}
-
-${selector}::-webkit-scrollbar-thumb {
-  background-color : ${color2};
-  border : ${border};
-}
-    `;
-    return buf;
-  }
-  styleScrollBars = _es6_module.add_export('styleScrollBars', styleScrollBars);
-  window.styleScrollBars = styleScrollBars;
-  let _digest=new util.HashDigest();
-  function calcThemeKey(digest) {
-    if (digest===undefined) {
-        digest = _digest.reset();
-    }
-    for (let k in theme) {
-        let obj=theme[k];
-        if (typeof obj!=="object") {
-            continue;
-        }
-        for (let k2 in obj) {
-            let v2=obj[k2];
-            if (typeof v2==="number"||typeof v2==="boolean"||typeof v2==="string") {
-                digest.add(v2);
-            }
-            else 
-              if (typeof v2==="object"&&__instance_of(v2, CSSFont)) {
-                v2.calcHashUpdate(digest);
-            }
-        }
-    }
-    return digest.get();
-  }
-  calcThemeKey = _es6_module.add_export('calcThemeKey', calcThemeKey);
-  var _themeUpdateKey=calcThemeKey();
-  _themeUpdateKey = _es6_module.add_export('_themeUpdateKey', _themeUpdateKey);
-  function flagThemeUpdate() {
-    _themeUpdateKey = calcThemeKey();
-  }
-  flagThemeUpdate = _es6_module.add_export('flagThemeUpdate', flagThemeUpdate);
-  class UIBase extends HTMLElement {
-     constructor() {
-      super();
-      this._textBoxEvents = false;
-      this._themeOverride = undefined;
-      this._checkTheme = true;
-      this._last_theme_update_key = _themeUpdateKey;
-      this._client_disabled_set = undefined;
-      this._useNativeToolTips = cconst.useNativeToolTips;
-      this._useNativeToolTips_set = false;
-      this._has_own_tooltips = undefined;
-      this._tooltip_timer = util.time_ms();
-      this.pathUndoGen = 0;
-      this._lastPathUndoGen = 0;
-      this._useDataPathUndo = undefined;
-      this._active_animations = [];
-      this._screenStyleTag = document.createElement("style");
-      this._screenStyleUpdateHash = 0;
-      initAspectClass(this, new Set(["appendChild", "animate", "shadow", "removeNode", "prepend", "add", "init"]));
-      this.shadow = this.attachShadow({mode: 'open'});
-      if (cconst.DEBUG.paranoidEvents) {
-          this.__cbs = [];
-      }
-      this.shadow.appendChild(this._screenStyleTag);
-      this.shadow._appendChild = this.shadow.appendChild;
-      let appendChild=this.shadow.appendChild;
-      this.shadow.appendChild = (child) =>        {
-        if (child&&typeof child==="object"&&__instance_of(child, UIBase)) {
-            child.parentWidget = this;
-        }
-        return this.shadow._appendChild(child);
-      };
-      this._wasAddedToNodeAtSomeTime = false;
-      this.visibleToPick = true;
-      this._override_class = undefined;
-      this.parentWidget = undefined;
-      let tagname=this.constructor.define().tagname;
-      this._id = tagname.replace(/\-/g, "_")+(_idgen++);
-      this.default_overrides = {};
-      this.my_default_overrides = {};
-      this.class_default_overrides = {};
-      this._last_description = undefined;
-      this._description_final = undefined;
-      this._modaldata = undefined;
-      this.packflag = this.getDefault("BasePackFlag");
-      this._internalDisabled = false;
-      this.__disabledState = false;
-      this._disdata = undefined;
-      this._ctx = undefined;
-      this._description = undefined;
-      let style=document.createElement("style");
-      style.textContent = `
-    .DefaultText {
-      font: `+_getFont(this)+`;
-    }
-    `;
-      this.shadow.appendChild(style);
-      this._init_done = false;
-      let do_touch=(e, type, button) =>        {
-        button = button===undefined ? 0 : button;
-        let e2=copyEvent(e);
-        if (e.touches.length===0) {
-        }
-        else {
-          let t=e.touches[0];
-          e2.pageX = t.pageX;
-          e2.pageY = t.pageY;
-          e2.screenX = t.screenX;
-          e2.screenY = t.screenY;
-          e2.clientX = t.clientX;
-          e2.clientY = t.clientY;
-          e2.x = t.x;
-          e2.y = t.y;
-        }
-        e2.button = button;
-        e2 = new MouseEvent(type, e2);
-        e2.was_touch = true;
-        e2.stopPropagation = e.stopPropagation.bind(e);
-        e2.preventDefault = e.preventDefault.bind(e);
-        e2.touches = e.touches;
-        this.dispatchEvent(e2);
-      };
-      this.addEventListener("touchstart", (e) =>        {
-        do_touch(e, "mousedown", 0);
-      }, {passive: false});
-      this.addEventListener("touchmove", (e) =>        {
-        do_touch(e, "mousemove");
-      }, {passive: true});
-      this.addEventListener("touchcancel", (e) =>        {
-        do_touch(e, "mouseup", 2);
-      }, {passive: false});
-      this.addEventListener("touchend", (e) =>        {
-        do_touch(e, "mouseup", 0);
-      }, {passive: false});
-    }
-    get  useNativeToolTips() {
-      return this._useNativeToolTips;
-    }
-    set  useNativeToolTips(val) {
-      this._useNativeToolTips = val;
-      this._useNativeToolTips_set = true;
-    }
-    get  parentWidget() {
-      return this._parentWidget;
-    }
-    set  parentWidget(val) {
-      if (val) {
-          this._wasAddedToNodeAtSomeTime = true;
-      }
-      this._parentWidget = val;
-    }
-    get  useDataPathUndo() {
-      let p=this;
-      while (p) {
-        if (p._useDataPathUndo!==undefined) {
-            return p._useDataPathUndo;
-        }
-        p = p.parentWidget;
-      }
-      return false;
-    }
-    set  useDataPathUndo(val) {
-      this._useDataPathUndo = val;
-    }
-    get  description() {
-      return this._description;
-    }
-    set  description(val) {
-      if (val===null) {
-          this._description = undefined;
-          return ;
-      }
-      this._description = val;
-      if (val===undefined||val===null) {
-          return ;
-      }
-      if (cconst.showPathsInToolTips&&this.hasAttribute("datapath")) {
-          let s=""+this._description;
-          let path=this.getAttribute("datapath");
-          s+="\n    path: "+path;
-          if (this.hasAttribute("mass_set_path")) {
-              let m=this.getAttribute("mass_set_path");
-              s+="\n    massSetPath: "+m;
-          }
-          this._description_final = s;
-      }
-      if (cconst.useNativeToolTips) {
-          this.title = ""+this._description_final;
-      }
-    }
-    get  background() {
-      return this.__background;
-    }
-    set  background(bg) {
-      this.__background = bg;
-      this.overrideDefault("background-color", bg, true);
-      this.style["background-color"] = bg;
-    }
-    get  disabled() {
-      if (this.parentWidget&&this.parentWidget.disabled) {
-          return true;
-      }
-      return !!this._client_disabled_set||!!this._internalDisabled;
-    }
-    set  disabled(v) {
-      this._client_disabled_set = v;
-      this.__updateDisable(this.disabled);
-    }
-    get  internalDisabled() {
-      return this._internalDisabled;
-    }
-    set  internalDisabled(val) {
-      this._internalDisabled = !!val;
-      this.__updateDisable(this.disabled);
-    }
-    get  ctx() {
-      return this._ctx;
-    }
-    set  ctx(c) {
-      this._ctx = c;
-      this._forEachChildWidget((n) =>        {
-        n.ctx = c;
-      });
-    }
-    get  _reportCtxName() {
-      return ""+this._id;
-    }
-    static  getIconEnum() {
-      return Icons;
-    }
-    static  setDefault(element) {
-      return element;
-    }
-    static  getDPI() {
-      return window.devicePixelRatio;
-      return window.devicePixelRatio;
-    }
-    static  prefix(name) {
-      return tagPrefix+name;
-    }
-    static  internalRegister(cls) {
-      registered_has_happened = true;
-      internalElementNames[cls.define().tagname] = this.prefix(cls.define().tagname);
-      customElements.define(this.prefix(cls.define().tagname), cls);
-    }
-    static  createElement(name, internal=false) {
-      if (!internal&&name in externalElementNames) {
-          return document.createElement(name);
-      }
-      else 
-        if (name in internalElementNames) {
-          return document.createElement(internalElementNames[name]);
-      }
-      else {
-        return document.createElement(name);
-      }
-    }
-    static  register(cls) {
-      registered_has_happened = true;
-      externalElementNames[cls.define().tagname] = cls.define().tagname;
-      customElements.define(cls.define().tagname, cls);
-    }
-    static  define() {
-      throw new Error("Missing define() for ux element");
-    }
-     setUndo(val) {
-      this.useDataPathUndo = val;
-      return this;
-    }
-     hide(sethide=true) {
-      this.hidden = sethide;
-      for (let n of this.shadow.childNodes) {
-          n.hidden = sethide;
-      }
-      this._forEachChildWidget((n) =>        {
-        n.hide(sethide);
-      });
-    }
-     getElementById(id) {
-      let ret;
-      let rec=(n) =>        {
-        if (ret) {
-            return ;
-        }
-        if (n.getAttribute("id")===id||n.id===id) {
-            ret = n;
-        }
-        if (n.constructor.name==="PanelFrame") {
-            rec(n.contents);
-        }
-        else 
-          if (n.constructor.name==="TabContainer") {
-            for (let k in n.tabs) {
-                let tab=n.tabs[k];
-                if (tab) {
-                    rec(tab);
-                }
-            }
-        }
-        for (let n2 of n.childNodes) {
-            if (__instance_of(n2, HTMLElement)) {
-                rec(n2);
-                if (ret) {
-                    break;
-                }
-            }
-        }
-        if (n.shadow) {
-            for (let n2 of n.shadow.childNodes) {
-                if (__instance_of(n2, HTMLElement)) {
-                    rec(n2);
-                    if (ret) {
-                        break;
-                    }
-                }
-            }
-        }
-      };
-      rec(this);
-      return ret;
-    }
-     unhide() {
-      this.hide(false);
-    }
-     findArea() {
-      let p=this;
-      while (p) {
-        if (__instance_of(p, Area)) {
-            return p;
-        }
-        p = p.parentWidget;
-      }
-    }
-     addEventListener(type, cb, options) {
-      if (cconst.DEBUG.domEventAddRemove) {
-          console.log("addEventListener", type, this._id, options);
-      }
-      let cb2=(e) =>        {
-        if (cconst.DEBUG.paranoidEvents) {
-            if (this.isDead()) {
-                this.removeEventListener(type, cb, options);
-                return ;
-            }
-        }
-        if (cconst.DEBUG.domEvents) {
-            pathDebugEvent(e);
-        }
-        let area=this.findArea();
-        if (area) {
-            area.push_ctx_active();
-            try {
-              let ret=cb(e);
-              area.pop_ctx_active();
-              return ret;
-            }
-            catch (error) {
-                area.pop_ctx_active();
-                throw error;
-            }
-        }
-        else {
-          if (cconst.DEBUG.areaContextPushes) {
-              console.warn("Element is not part of an area?", element);
-          }
-          return cb(e);
-        }
-      };
-      cb._cb = cb2;
-      if (cconst.DEBUG.paranoidEvents) {
-          this.__cbs.push([type, cb2, options]);
-      }
-      return super.addEventListener(type, cb, options);
-    }
-     removeEventListener(type, cb, options) {
-      if (cconst.DEBUG.paranoidEvents) {
-          for (let item of this.__cbs) {
-              if (item[0]==type&&item[1]===cb._cb2&&(""+item[2])===(""+options)) {
-                  this.__cbs.remove(item);
-                  break;
-              }
-          }
-      }
-      if (cconst.DEBUG.domEventAddRemove) {
-          console.log("removeEventListener", type, this._id, options);
-      }
-      if (!cb._cb) {
-          return super.removeEventListener(type, cb, options);
-      }
-      else {
-        return super.removeEventListener(type, cb._cb, options);
-      }
-    }
-     connectedCallback() {
-
-    }
-     noMarginsOrPadding() {
-      let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
-      keys = keys.concat(["padding-block-start", "padding-block-end"]);
-      keys = keys.concat(["margin-left", "margin-top", "margin-bottom", "margin-right"]);
-      keys = keys.concat(["padding-left", "padding-top", "padding-bottom", "padding-right"]);
-      for (let k of keys) {
-          this.style[k] = "0px";
-      }
-      return this;
-    }
-     regenTabOrder() {
-      let screen=this.getScreen();
-      if (screen!==undefined) {
-          screen.needsTabRecalc = true;
-      }
-      return this;
-    }
-     noMargins() {
-      this.style["margin"] = this.style["margin-left"] = this.style["margin-right"] = "0px";
-      this.style["margin-top"] = this.style["margin-bottom"] = "0px";
-      return this;
-    }
-     noPadding() {
-      this.style["padding"] = this.style["padding-left"] = this.style["padding-right"] = "0px";
-      this.style["padding-top"] = this.style["padding-bottom"] = "0px";
-      return this;
-    }
-     getTotalRect() {
-      let found=false;
-      let min=new Vector2([1e+17, 1e+17]);
-      let max=new Vector2([-1e+17, -1e+17]);
-      let doaabb=(n) =>        {
-        let rs=n.getClientRects();
-        for (let r of rs) {
-            min[0] = Math.min(min[0], r.x);
-            min[1] = Math.min(min[1], r.y);
-            max[0] = Math.max(max[0], r.x+r.width);
-            max[1] = Math.max(max[1], r.y+r.height);
-            found = true;
-        }
-      };
-      doaabb(this);
-      this._forEachChildWidget((n) =>        {
-        doaabb(n);
-      });
-      if (found) {
-          return {width: max[0]-min[0], 
-       height: max[1]-min[1], 
-       x: min[0], 
-       y: min[1], 
-       left: min[0], 
-       top: min[1], 
-       right: max[0], 
-       bottom: max[1]}
-      }
-      else {
-        return undefined;
-      }
-    }
-     parseNumber(value, args={}) {
-      value = (""+value).trim().toLowerCase();
-      let baseUnit=args.baseUnit||this.baseUnit;
-      let isInt=args.isInt||this.isInt;
-      let sign=1.0;
-      if (value.startsWith("-")) {
-          value = value.slice(1, value.length).trim();
-          sign = -1;
-      }
-      let hexre=/-?[0-9a-f]+h$/;
-      if (value.startsWith("0b")) {
-          value = value.slice(2, value.length).trim();
-          value = parseInt(value, 2);
-      }
-      else 
-        if (value.startsWith("0x")) {
-          value = value.slice(2, value.length).trim();
-          value = parseInt(value, 16);
-      }
-      else 
-        if (value.search(hexre)===0) {
-          value = value.slice(0, value.length-1).trim();
-          value = parseInt(value, 16);
-      }
-      else {
-        value = units.parseValue(value, baseUnit);
-      }
-      if (isInt) {
-          value = ~~value;
-      }
-      return value*sign;
-    }
-     formatNumber(value, args={}) {
-      let baseUnit=args.baseUnit||this.baseUnit;
-      let displayUnit=args.displayUnit||this.displayUnit;
-      let isInt=args.isInt||this.isInt;
-      let radix=args.radix||this.radix||10;
-      let decimalPlaces=args.decimalPlaces||this.decimalPlaces;
-      if (isInt&&radix!==10) {
-          let ret=Math.floor(value).toString(radix);
-          if (radix===2)
-            return "0b"+ret;
-          else 
-            if (radix===16)
-            return ret+"h";
-      }
-      return units.buildString(value, baseUnit, decimalPlaces, displayUnit);
-    }
-     setBoxCSS(subkey) {
-      let boxcode='';
-      let keys=["left", "right", "top", "bottom"];
-      let sub;
-      if (subkey) {
-          sub = this.getAttribute(subkey)||{};
-      }
-      let def=(key) =>        {
-        if (sub) {
-            return this.getSubDefault(subkey, key);
-        }
-        return this.getDefault(key);
-      };
-      for (let i=0; i<2; i++) {
-          let key=i ? "padding" : "margin";
-          this.style[key] = "unset";
-          let val=def(key);
-          if (val!==undefined) {
-              for (let j=0; j<4; j++) {
-                  this.style[key+"-"+keys[j]] = val+"px";
-              }
-          }
-          for (let j=0; j<4; j++) {
-              let key2=`${key}-${keys[j]}`;
-              let val2=def(key2);
-              if (val2!==undefined) {
-                  this.style[key2] = val2+"px";
-              }
-          }
-      }
-      this.style["border-radius"] = def("border-radius")+"px";
-      this.style["border"] = `${def("border-width")}px ${def("border-style")} ${def("border-color")}`;
-    }
-     genBoxCSS(subkey) {
-      let boxcode='';
-      let keys=["left", "right", "top", "bottom"];
-      let sub;
-      if (subkey) {
-          sub = this.getAttribute(subkey)||{};
-      }
-      let def=(key) =>        {
-        if (sub) {
-            return this.getSubDefault(subkey, key);
-        }
-        return this.getDefault(key);
-      };
-      for (let i=0; i<2; i++) {
-          let key=i ? "padding" : "margin";
-          let val=def(key);
-          if (val!==undefined) {
-              boxcode+=`${key}: ${val} px;\n`;
-          }
-          for (let j=0; j<4; j++) {
-              let key2=`${key}-${keys[j]}`;
-              let val2=def(key2);
-              if (val2!==undefined) {
-                  boxcode+=`${key2}: ${val}px;\n`;
-              }
-          }
-      }
-      boxcode+=`border-radius: ${def("border-radius")}px;\n`;
-      boxcode+=`border: ${def("border-width")}px ${def("border-style")} ${def("border-color")};\n`;
-      return boxcode;
-    }
-     setCSS(setBG=true) {
-      if (setBG) {
-          let bg=this.getDefault("background-color");
-          if (bg) {
-              this.style["background-color"] = bg;
-          }
-      }
-      let zoom=this.getZoom();
-      if (zoom===1.0) {
-          return ;
-      }
-      let transform=""+this.style["transform"];
-      transform = transform.replace(/[ \t\n\r]+/g, ' ');
-      transform = transform.replace(/, /g, ',');
-      let transform2=transform.replace(/scale\([^)]+\)/, '').trim();
-      this.style["transform"] = transform2+` scale(${zoom},${zoom})`;
-    }
-     flushSetCSS() {
-      this._init();
-      this.setCSS();
-      this._forEachChildWidget((c) =>        {
-        if (!(c.packflag&PackFlags.NO_UPDATE)) {
-            c.flushSetCSS();
-        }
-      });
-    }
-     traverse(type_or_set) {
-      let this2=this;
-      let classes=type_or_set;
-      let is_set=__instance_of(type_or_set, Set);
-      is_set = is_set||__instance_of(type_or_set, util.set);
-      is_set = is_set||Array.isArray(type_or_set);
-      if (!is_set) {
-          classes = [type_or_set];
-      }
-      let visit=new Set();
-      return (function* () {
-        let stack=[this2];
-        while (stack.length>0) {
-          let n=stack.pop();
-          visit.add(n);
-          if (!n||!n.childNodes) {
-              continue;
-          }
-          for (let cls of classes) {
-              if (__instance_of(n, cls)) {
-                  yield n;
-              }
-          }
-          for (let c of n.childNodes) {
-              if (!visit.has(c)) {
-                  stack.push(c);
-              }
-          }
-          if (n.shadow) {
-              for (let c of n.shadow.childNodes) {
-                  if (!visit.has(c)) {
-                      stack.push(c);
-                  }
-              }
-          }
-        }
-      })();
-    }
-     appendChild(child) {
-      if (__instance_of(child, UIBase)) {
-          child.ctx = this.ctx;
-          child.parentWidget = this;
-          child.useDataPathUndo = this.useDataPathUndo;
-      }
-      return super.appendChild(child);
-    }
-     init() {
-      this._init_done = true;
-      if (!this.hasAttribute("id")&&this._id) {
-          this.setAttribute("id", this._id);
-      }
-    }
-     _ondestroy() {
-      if (this.tabIndex>=0) {
-          this.regenTabOrder();
-      }
-      if (cconst.DEBUG.paranoidEvents) {
-          for (let item of this.__cbs) {
-              this.removeEventListener(item[0], item[1], item[2]);
-          }
-          this.__cbs = [];
-      }
-      if (this.ondestroy!==undefined) {
-          this.ondestroy();
-      }
-    }
-     remove(trigger_on_destroy=true) {
-      if (this.tabIndex>=0) {
-          this.regenTabOrder();
-      }
-      super.remove();
-      if (trigger_on_destroy) {
-          this._ondestroy();
-      }
-      if (this.on_remove) {
-          this.on_remove();
-      }
-      this.parentWidget = undefined;
-    }
-     on_remove() {
-
-    }
-     removeChild(child, trigger_on_destroy=true) {
-      super.removeChild(child);
-      if (trigger_on_destroy) {
-          child._ondestroy();
-      }
-    }
-     flushUpdate() {
-      this._init();
-      this.update();
-      this._forEachChildWidget((c) =>        {
-        if (!(c.packflag&PackFlags.NO_UPDATE)) {
-            c.flushUpdate();
-        }
-      });
-    }
-     _forEachChildWidget(cb, thisvar) {
-      let rec=(n) =>        {
-        if (__instance_of(n, UIBase)) {
-            if (thisvar!==undefined) {
-                cb.call(thisvar, n);
-            }
-            else {
-              cb(n);
-            }
-        }
-        else {
-          for (let n2 of n.childNodes) {
-              rec(n2);
-          }
-          if (n.shadow!==undefined) {
-              for (let n2 of n.shadow.childNodes) {
-                  rec(n2);
-              }
-          }
-        }
-      };
-      for (let n of this.childNodes) {
-          rec(n);
-      }
-      if (this.shadow) {
-          for (let n of this.shadow.childNodes) {
-              rec(n);
-          }
-      }
-    }
-     checkInit() {
-      return this._init();
-    }
-     _init() {
-      if (this._init_done) {
-          return false;
-      }
-      this._init_done = true;
-      this.init();
-      return true;
-    }
-     getWinWidth() {
-      return window.innerWidth;
-    }
-     getWinHeight() {
-      return window.innerHeight;
-    }
-     calcZ() {
-      let p=this;
-      let n=this;
-      while (n) {
-        if (n.style&&n.style["z-index"]) {
-            let z=parseFloat(n.style["z-index"]);
-            return z;
-        }
-        n = n.parentNode;
-        if (!n) {
-            n = p = p.parentWidget;
-        }
-      }
-      return 0;
-    }
-     pickElement(x, y, args={}, marginy=0, nodeclass=UIBase, excluded_classes=undefined) {
-      let marginx;
-      let clip;
-      let mouseEvent;
-      let isMouseMove, isMouseDown;
-      if (typeof args==="object") {
-          marginx = args.sx||0;
-          marginy = args.sy||0;
-          nodeclass = args.nodeclass||UIBase;
-          excluded_classes = args.excluded_classes;
-          clip = args.clip;
-          mouseEvent = args.mouseEvent;
-      }
-      else {
-        marginx = args;
-        args = {marginx: marginx||0, 
-      marginy: marginy||0, 
-      nodeclass: nodeclass||UIBase, 
-      excluded_classes: excluded_classes, 
-      clip: clip};
-      }
-      if (mouseEvent) {
-          isMouseMove = mouseEvent.type==="mousemove"||mouseEvent.type==="touchmove"||mouseEvent.type==="pointermove";
-          isMouseDown = mouseEvent.buttons||(mouseEvent.touches&&mouseEvent.touches.length>0);
-      }
-      if (!clip) {
-          clip = {pos: new Vector2([-10000, -10000]), 
-       size: new Vector2([20000, 20000])};
-      }
-      let ret=undefined;
-      let retzindex=undefined;
-      let testwidget=(n) =>        {
-        if (__instance_of(n, nodeclass)) {
-            let ok=true;
-            ok = n.visibleToPick;
-            ok = ok&&!n.hidden;
-            ok = ok&&!(excluded_classes!==undefined&&excluded_classes.indexOf(n.constructor)>=0);
-            return ok;
-        }
-      };
-      let rec=(n, widget, widget_zindex, zindex, clip, depth) =>        {
-        if (depth===undefined) {
-            depth = 0;
-        }
-        if (n.style["z-index"]) {
-            if (!(__instance_of(n, UIBase))||n.visibleToPick) {
-                zindex = parseInt(n.style["z-index"]);
-            }
-        }
-        let rect=n.getBoundingClientRect();
-        if (rect) {
-            if (n.style&&n.style["overflow"]==="hidden"||n.style["overflow"]==="scroll") {
-                clip = math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
-                if (!clip) {
-                    return ;
-                }
-            }
-            if (testwidget(n)) {
-                widget = n;
-                widget_zindex = zindex;
-            }
-            let ok=true;
-            if (__instance_of(n, UIBase)) {
-                ok = ok&&n.visibleToPick;
-            }
-            if (!ok) {
-                return ;
-            }
-            if (!isMouseMove||!isMouseDown) {
-                let rects=n.getClientRects()||[];
-                for (let rect of rects) {
-                    ok = true;
-                    let clip2=math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
-                    if (!clip2) {
-                        ok = false;
-                        continue;
-                    }
-                    ok = ok&&!n.hidden;
-                    ok = ok&&(retzindex===undefined||widget_zindex>=retzindex);
-                    ok = ok&&(retzindex===undefined||zindex>=retzindex);
-                    ok = ok&&x>=clip2.pos[0]-marginx&&x<=clip2.pos[0]+clip2.size[0]+marginy;
-                    ok = ok&&y>=clip2.pos[1]-marginy&&y<=clip2.pos[1]+clip2.size[1]+marginx;
-                    if (n.visibleToPick!==undefined) {
-                        ok = ok&&n.visibleToPick;
-                    }
-                    if (ok) {
-                        ret = widget;
-                        retzindex = zindex;
-                    }
-                }
-            }
-        }
-        let isleaf=n.childNodes.length===0;
-        if (n.shadow!==undefined) {
-            isleaf = isleaf&&(n.shadow.childNodes.length===0);
-        }
-        if (typeof n==="object"&&__instance_of(n, UIBase)&&!n.visibleToPick) {
-            return ;
-        }
-        if (!isleaf) {
-            if (n.shadow!==undefined) {
-                for (let i=0; i<n.shadow.childNodes.length; i++) {
-                    let i2=i;
-                    let n2=n.shadow.childNodes[i2];
-                    if (__instance_of(n2, HTMLElement)) {
-                        rec(n2, widget, widget_zindex, zindex, clip, depth+1);
-                    }
-                }
-            }
-            for (let i=0; i<n.childNodes.length; i++) {
-                let i2=i;
-                let n2=n.childNodes[i2];
-                if (__instance_of(n2, HTMLElement)) {
-                    rec(n2, widget, widget_zindex, zindex, clip, depth+1);
-                }
-            }
-        }
-      };
-      let p=this;
-      while (p&&(p.style["z-index"]===null||p.style["z-index"]===undefined||p.style["z-index"]==="initial"||p.style["z-index"]==='')) {
-        p = p.parentWidget;
-      }
-      let zindex=p!==undefined ? parseInt(p.style["z-index"]) : 0;
-      rec(this, testwidget(this) ? this : undefined, zindex, zindex, clip, 0);
-      return ret;
-    }
-     __updateDisable(val) {
-      if (!!val===!!this.__disabledState) {
-          return ;
-      }
-      this.__disabledState = !!val;
-      if (val&&!this._disdata) {
-          let style=this.getDefault("internalDisabled")||{"background-color": this.getDefault("DisabledBG")};
-          this._disdata = {style: {}, 
-       defaults: {}};
-          for (let k in style) {
-              this._disdata.style[k] = this.style[k];
-              this._disdata.defaults[k] = this.default_overrides[k];
-              let v=style[k];
-              if (typeof v==="object"&&__instance_of(v, CSSFont)) {
-                  this.style[k] = style[k].genCSS();
-              }
-              else {
-                this.style[k] = style[k];
-              }
-              this.default_overrides[k] = style[k];
-          }
-          this.__disabledState = !!val;
-          this.on_disabled();
-      }
-      else 
-        if (!val&&this._disdata) {
-          for (let k in this._disdata.style) {
-              this.style[k] = this._disdata.style[k];
-          }
-          for (let k in this._disdata.defaults) {
-              let v=this._disdata.defaults[k];
-              if (v===undefined) {
-                  delete this.default_overrides[k];
-              }
-              else {
-                this.default_overrides[k] = v;
-              }
-          }
-          this._disdata = undefined;
-          this.__disabledState = !!val;
-          this.on_enabled();
-      }
-      this.__disabledState = !!val;
-      let visit=(n) =>        {
-        if (__instance_of(n, UIBase)) {
-            let changed=!!n.__disabledState;
-            n.__updateDisable(n.disabled);
-            changed = changed!==!!n.__disabledState;
-            if (changed) {
-                n.update();
-                n.setCSS();
-            }
-        }
-      };
-      this._forEachChildWidget(visit);
-    }
-     on_disabled() {
-
-    }
-     on_enabled() {
-
-    }
-     pushModal(handlers=this, autoStopPropagation=true) {
-      if (this._modaldata!==undefined) {
-          console.warn("UIBase.prototype.pushModal called when already in modal mode");
-          popModalLight(this._modaldata);
-          this._modaldata = undefined;
-      }
-      this._modaldata = pushModalLight(handlers, autoStopPropagation);
-      return this._modaldata;
-    }
-     popModal() {
-      if (this._modaldata===undefined) {
-          console.warn("Invalid call to UIBase.prototype.popModal");
-          return ;
-      }
-      popModalLight(this._modaldata);
-      this._modaldata = undefined;
-    }
-     _flash_focus() {
-      this.focus();
-    }
-     flash(color, rect_element=this, timems=355, autoFocus=true) {
-      if (typeof color!="object") {
-          color = css2color(color);
-      }
-      color = new Vector4(color);
-      let csscolor=color2css(color);
-      if (this._flashtimer!==undefined&&this._flashcolor!==csscolor) {
-          window.setTimeout(() =>            {
-            this.flash(color, rect_element, timems, autoFocus);
-          }, 100);
-          return ;
-      }
-      else 
-        if (this._flashtimer!==undefined) {
-          return ;
-      }
-      let rect=rect_element.getBoundingClientRect();
-      if (rect===undefined) {
-          return ;
-      }
-      let timer;
-      let tick=0;
-      let max=~~(timems/20);
-      let x=rect.x, y=rect.y;
-      let cb=(e) =>        {
-        if (timer===undefined) {
-            return ;
-        }
-        let a=1.0-tick/max;
-        div.style["background-color"] = color2css(color, a*a*0.5);
-        if (tick>max) {
-            window.clearInterval(timer);
-            this._flashtimer = undefined;
-            this._flashcolor = undefined;
-            timer = undefined;
-            div.remove();
-            if (autoFocus) {
-                this._flash_focus();
-            }
-        }
-        tick++;
-      };
-      setTimeout(cb, 5);
-      this._flashtimer = timer = window.setInterval(cb, 20);
-      let div=document.createElement("div");
-      div.style["pointer-events"] = "none";
-      div.tabIndex = undefined;
-      div.style["z-index"] = "900";
-      div.style["display"] = "float";
-      div.style["position"] = "absolute";
-      div.style["margin"] = "0px";
-      div.style["left"] = x+"px";
-      div.style["top"] = y+"px";
-      div.style["background-color"] = color2css(color, 0.5);
-      div.style["width"] = rect.width+"px";
-      div.style["height"] = rect.height+"px";
-      div.setAttribute("class", "UIBaseFlash");
-      let screen=this.getScreen();
-      if (screen!==undefined) {
-          screen._enterPopupSafe();
-      }
-      document.body.appendChild(div);
-      if (autoFocus) {
-          this._flash_focus();
-      }
-      this._flashcolor = csscolor;
-      if (screen!==undefined) {
-          screen._exitPopupSafe();
-      }
-    }
-     destory() {
-
-    }
-     on_resize(newsize) {
-
-    }
-     toJSON() {
-      let ret={};
-      if (this.hasAttribute("datapath")) {
-          ret.datapath = this.getAttribute("datapath");
-      }
-      return ret;
-    }
-     loadJSON(obj) {
-      if (!this._init_done) {
-          this._init();
-      }
-    }
-     getPathValue(ctx, path) {
-      try {
-        return ctx.api.getValue(ctx, path);
-      }
-      catch (error) {
-          return undefined;
-      }
-    }
-     undoBreakPoint() {
-      this.pathUndoGen++;
-    }
-     setPathValueUndo(ctx, path, val) {
-      let mass_set_path=this.getAttribute("mass_set_path");
-      let rdef=ctx.api.resolvePath(ctx, path);
-      let prop=rdef.prop;
-      if (ctx.api.getValue(ctx, path)===val) {
-          return ;
-      }
-      let toolstack=this.ctx.toolstack;
-      let head=toolstack.head;
-      let bad=head===undefined||!(__instance_of(head, getDataPathToolOp()));
-      bad = bad||head.hashThis()!==head.hash(mass_set_path, path, prop.type, this._id);
-      bad = bad||this.pathUndoGen!==this._lastPathUndoGen;
-      if (!bad) {
-          toolstack.undo();
-          head.setValue(ctx, val, rdef.obj);
-          toolstack.redo();
-      }
-      else {
-        this._lastPathUndoGen = this.pathUndoGen;
-        let toolop=getDataPathToolOp().create(ctx, path, val, this._id, mass_set_path);
-        ctx.toolstack.execTool(this.ctx, toolop);
-        head = toolstack.head;
-      }
-      if (!head||head.hadError===true) {
-          throw new Error("toolpath error");
-      }
-    }
-     pushReportContext(key) {
-      if (this.ctx.api.pushReportContext) {
-          this.ctx.api.pushReportContext(key);
-      }
-    }
-     popReportContext() {
-      if (this.ctx.api.popReportContext)
-        this.ctx.api.popReportContext();
-    }
-     setPathValue(ctx, path, val) {
-      if (this.useDataPathUndo) {
-          this.pushReportContext(this._reportCtxName);
-          try {
-            this.setPathValueUndo(ctx, path, val);
-          }
-          catch (error) {
-              this.popReportContext();
-              if (!(__instance_of(error, DataPathError))) {
-                  throw error;
-              }
-              else {
-                return ;
-              }
-          }
-          this.popReportContext();
-          return ;
-      }
-      this.pushReportContext(this._reportCtxName);
-      try {
-        if (this.hasAttribute("mass_set_path")) {
-            ctx.api.massSetProp(ctx, this.getAttribute("mass_set_path"), val);
-            ctx.api.setValue(ctx, path, val);
-        }
-        else {
-          ctx.api.setValue(ctx, path, val);
-        }
-      }
-      catch (error) {
-          this.popReportContext();
-          if (!(__instance_of(error, DataPathError))) {
-              throw error;
-          }
-          return ;
-      }
-      this.popReportContext();
-    }
-     getPathMeta(ctx, path) {
-      this.pushReportContext(this._reportCtxName);
-      let ret=ctx.api.resolvePath(ctx, path);
-      this.popReportContext();
-      return ret!==undefined ? ret.prop : undefined;
-    }
-     getPathDescription(ctx, path) {
-      let ret;
-      this.pushReportContext(this._reportCtxName);
-      try {
-        ret = ctx.api.getDescription(ctx, path);
-      }
-      catch (error) {
-          this.popReportContext();
-          if (__instance_of(error, DataPathError)) {
-              return undefined;
-          }
-          else {
-            throw error;
-          }
-      }
-      this.popReportContext();
-      return ret;
-    }
-     getScreen() {
-      if (this.ctx!==undefined)
-        return this.ctx.screen;
-    }
-     isDead() {
-      return !this.isConnected;
-      let p=this, lastp=this;
-      function find(c, n) {
-        for (let n2 of c) {
-            if (n2===n) {
-                return true;
-            }
-        }
-      }
-      while (p) {
-        lastp = p;
-        let parent=p.parentWidget;
-        if (!parent) {
-            parent = p.parentElement ? p.parentElement : p.parentNode;
-        }
-        if (parent&&p&&!find(parent.childNodes, p)) {
-            if (parent.shadow!==undefined&&!find(parent.shadow.childNodes)) {
-                return true;
-            }
-        }
-        p = parent;
-        if (p===document.body) {
-            return false;
-        }
-      }
-      return true;
-    }
-     doOnce(func, timeout=undefined) {
-      if (func._doOnce===undefined) {
-          func._doOnce_reqs = new Set();
-          func._doOnce = function (thisvar, trace) {
-            if (func._doOnce_reqs.has(thisvar._id)) {
-                return ;
-            }
-            func._doOnce_reqs.add(thisvar._id);
-            function f() {
-              if (thisvar.isDead()) {
-                  func._doOnce_reqs.delete(thisvar._id);
-                  if (func===thisvar._init||!cconst.DEBUG.doOnce) {
-                      return ;
-                  }
-                  console.warn("Ignoring doOnce call for dead element", thisvar._id, func, trace);
-                  return ;
-              }
-              if (!thisvar.ctx) {
-                  if (cconst.DEBUG.doOnce) {
-                      console.warn("doOnce call is waiting for context...", thisvar._id, func);
-                  }
-                  window.setTimeout(f, 0);
-                  return ;
-              }
-              func._doOnce_reqs.delete(thisvar._id);
-              func.call(thisvar);
-            }
-            window.setTimeout(f, timeout);
-          };
-      }
-      let trace=new Error().stack;
-      func._doOnce(this, trace);
-    }
-     float(x=0, y=0, zindex=undefined) {
-      this.style.position = "absolute";
-      this.style.left = x+"px";
-      this.style.top = y+"px";
-      if (zindex!==undefined) {
-          this.style["z-index"] = zindex;
-      }
-      return this;
-    }
-     _ensureChildrenCtx() {
-      let ctx=this.ctx;
-      if (ctx===undefined) {
-          return ;
-      }
-      this._forEachChildWidget((n) =>        {
-        n.parentWidget = this;
-        if (n.ctx===undefined) {
-            n.ctx = ctx;
-        }
-        n._ensureChildrenCtx(ctx);
-      });
-    }
-     checkThemeUpdate() {
-      if (!cconst.enableThemeAutoUpdate) {
-          return false;
-      }
-      if (_themeUpdateKey!==this._last_theme_update_key) {
-          this._last_theme_update_key = _themeUpdateKey;
-          return true;
-      }
-      return false;
-    }
-     updateToolTipHandlers() {
-      if (!this._useNativeToolTips_set&&!cconst.useNativeToolTips!==!this._useNativeToolTips) {
-          this._useNativeToolTips = cconst.useNativeToolTips;
-      }
-      if (!!this.useNativeToolTips===!this._has_own_tooltips) {
-          return ;
-      }
-      if (!this.useNativeToolTips) {
-          let state=this._has_own_tooltips = {start_timer: (e) =>              {
-              this._tooltip_timer = util.time_ms();
-            }, 
-       stop_timer: (e) =>              {
-              this._tooltip_timer = undefined;
-            }, 
-       reset_timer: (e) =>              {
-              if (this._tooltip_timer!==undefined) {
-                  this._tooltip_timer = util.time_ms();
-              }
-            }, 
-       start_events: ["mouseover"], 
-       reset_events: ["mousemove", "mousedown", "mouseup", "touchstart", "touchend", "keydown", "focus"], 
-       stop_events: ["mouseleave", "blur", "mouseout"], 
-       handlers: {}};
-          let bind_handler=(type, etype) =>            {
-            let handler=(e) =>              {
-              state[type](e);
-            }
-            if (etype in state.handlers) {
-                console.error(type, "is in handlers already");
-                return ;
-            }
-            state.handlers[etype] = handler;
-            return handler;
-          };
-          let i=0;
-          let lists=[state.start_events, state.stop_events, state.reset_events];
-          for (let type of ["start_timer", "stop_timer", "reset_timer"]) {
-              for (let etype of lists[i]) {
-                  this.addEventListener(etype, bind_handler(type, etype));
-              }
-              i++;
-          }
-      }
-      else {
-        console.warn(this.id, "removing tooltip handlers");
-        let state=this._has_own_tooltips;
-        for (let k in this.state.handlers) {
-            let handler=this.state.handlers[k];
-            this.removeEventListener(k, handler);
-        }
-        this._has_own_tooltips = undefined;
-        this._tooltip_timer = undefined;
-      }
-    }
-     updateToolTips() {
-      if (this._description_final===undefined||this._description_final===null||this._description_final.trim().length===0) {
-          return ;
-      }
-      if (!this.ctx||!this.ctx.screen) {
-          return ;
-      }
-      this.updateToolTipHandlers();
-      if (this.useNativeToolTips||this._tooltip_timer===undefined) {
-          return ;
-      }
-      let screen=this.ctx.screen;
-      const timelimit=500;
-      let ok=util.time_ms()-this._tooltip_timer>timelimit;
-      let x=screen.mpos[0], y=screen.mpos[1];
-      let r=this.getClientRects();
-      r = r ? r[0] : r;
-      if (!r) {
-          ok = false;
-      }
-      else {
-        ok = ok&&x>=r.x&&x<r.x+r.width;
-        ok = ok&&y>=r.y&&y<r.y+r.height;
-      }
-      if (r) {
-      }
-      ok = ok&&!haveModal();
-      ok = ok&&screen.pickElement(x, y)===this;
-      ok = ok&&this._description_final;
-      if (ok) {
-          _ToolTip.show(this._description_final, this.ctx.screen, x, y);
-      }
-      if (util.time_ms()-this._tooltip_timer>timelimit) {
-          this._tooltip_timer = undefined;
-      }
-    }
-     update() {
-      this.updateToolTips();
-      if (this.ctx&&this._description===undefined&&this.getAttribute("datapath")) {
-          let d=this.getPathDescription(this.ctx, this.getAttribute("datapath"));
-          this.description = d;
-      }
-      if (!this._init_done) {
-          this._init();
-      }
-      if (this._init_done&&!this.constructor.define().subclassChecksTheme) {
-          if (this.checkThemeUpdate()) {
-              console.log("theme update!");
-              this.setCSS();
-          }
-      }
-    }
-     onadd() {
-      if (!this._init_done) {
-          this.doOnce(this._init);
-      }
-      if (this.tabIndex>=0) {
-          this.regenTabOrder();
-      }
-    }
-     getZoom() {
-      if (this.parentWidget!==undefined) {
-          return this.parentWidget.getZoom();
-      }
-      return 1.0;
-    }
-     getDPI() {
-      if (this.parentWidget!==undefined) {
-          return this.parentWidget.getDPI();
-      }
-      return UIBase.getDPI();
-    }
-     saveData() {
-      return {}
-    }
-     loadData(obj) {
-      return this;
-    }
-     overrideDefault(key, val, localOnly=false) {
-      this.my_default_overrides[key] = val;
-      if (!localOnly) {
-          this.default_overrides[key] = val;
-      }
-      return this;
-    }
-     overrideClass(style) {
-      this._override_class = style;
-    }
-     overrideClassDefault(style, key, val) {
-      if (!(style in this.class_default_overrides)) {
-          this.class_default_overrides[style] = {};
-      }
-      this.class_default_overrides[style][key] = val;
-    }
-     _doMobileDefault(key, val) {
-      if (!util.isMobile())
-        return val;
-      key = key.toLowerCase();
-      let ok=false;
-      for (let re of _mobile_theme_patterns) {
-          if (key.search(re)>=0) {
-              ok = true;
-              break;
-          }
-      }
-      if (ok) {
-          val*=theme.base.mobileSizeMultiplier;
-      }
-      return val;
-    }
-     hasDefault(key) {
-      let p=this;
-      while (p) {
-        if (key in p.default_overrides) {
-            return true;
-        }
-        p = p.parentWidget;
-      }
-      return this.hasClassDefault(key);
-    }
-     getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined) {
-      if (!key) {
-          return this.getDefault(subkey, undefined, defaultval);
-      }
-      let style=this.getDefault(key);
-      if (!style||typeof style!=="object"||!(subkey in style)) {
-          if (defaultval!==undefined) {
-              return defaultval;
-          }
-          else 
-            if (backupkey!==undefined) {
-              return this.getDefault(backupkey);
-          }
-      }
-      else {
-        return style[subkey];
-      }
-    }
-     getDefault(key, checkForMobile=true, defaultval=undefined) {
-      let ret=this.getDefault_intern(key, checkForMobile, defaultval);
-      if (typeof ret==="string"&&ret.trim().toLowerCase().endsWith("px")) {
-          let s=ret.trim().toLowerCase();
-          s = s.slice(0, s.length-2).trim();
-          let f=parseFloat(s);
-          if (!isNaN(f)&&isFinite(f)) {
-              return f;
-          }
-      }
-      return ret;
-    }
-     getDefault_intern(key, checkForMobile=true, defaultval=undefined) {
-      if (this.my_default_overrides[key]!==undefined) {
-          let v=this.my_default_overrides[key];
-          return checkForMobile ? this._doMobileDefault(key, v) : v;
-      }
-      let p=this;
-      while (p) {
-        if (p.default_overrides[key]!==undefined) {
-            let v=p.default_overrides[key];
-            checkForMobile ? this._doMobileDefault(key, v) : v;
-        }
-        p = p.parentWidget;
-      }
-      return this.getClassDefault(key, checkForMobile, defaultval);
-    }
-     getStyleClass() {
-      if (this._override_class!==undefined) {
-          return this._override_class;
-      }
-      let p=this.constructor, lastp=undefined;
-      while (p&&p!==lastp&&p!==UIBase&&p!==Object) {
-        let def=p.define();
-        if (def.style) {
-            return def.style;
-        }
-        if (!p.prototype||!p.prototype.__proto__)
-          break;
-        p = p.prototype.__proto__.constructor;
-      }
-      return "base";
-    }
-     hasClassDefault(key) {
-      let style=this.getStyleClass();
-      let p=this;
-      while (p) {
-        let def=p.class_default_overrides[style];
-        if (def&&(key in def)) {
-            return true;
-        }
-        p = p.parentWidget;
-      }
-      let th=this._themeOverride;
-      if (th&&style in th&&key in th[style]) {
-          return true;
-      }
-      if (style in theme&&key in theme[style]) {
-          return true;
-      }
-      return key in theme.base;
-    }
-     getClassDefault(key, checkForMobile=true, defaultval=undefined) {
-      let style=this.getStyleClass();
-      if (style==="none") {
-          return undefined;
-      }
-      let val=undefined;
-      let p=this;
-      while (p) {
-        let def=p.class_default_overrides[style];
-        if (def&&(key in def)) {
-            val = def[key];
-            break;
-        }
-        p = p.parentWidget;
-      }
-      if (val===undefined&&style in theme&&!(key in theme[style])&&!(key in theme.base)) {
-          if (window.DEBUG.theme) {
-              report("Missing theme key ", key, "for", style);
-          }
-      }
-      for (let i=0; i<2; i++) {
-          let th=!i ? this._themeOverride : theme;
-          if (!th) {
-              continue;
-          }
-          if (val===undefined&&style in th&&key in th[style]) {
-              val = th[style][key];
-          }
-          else 
-            if (defaultval!==undefined) {
-              val = defaultval;
-          }
-          else 
-            if (val===undefined) {
-              let def=this.constructor.define();
-              if (def.parentStyle&&key in th[def.parentStyle]) {
-                  val = th[def.parentStyle][key];
-              }
-              else {
-                val = th.base[key];
-              }
-          }
-      }
-      return checkForMobile ? this._doMobileDefault(key, val) : val;
-    }
-     overrideTheme(theme) {
-      this._themeOverride = theme;
-      this._forEachChildWidget((child) =>        {
-        child.overrideTheme(theme);
-      });
-      if (this.ctx) {
-          this.flushSetCSS();
-          this.flushUpdate();
-      }
-      return this;
-    }
-     getStyle() {
-      console.warn("deprecated call to UIBase.getStyle");
-      return this.getStyleClass();
-    }
-     animate(_extra_handlers={}) {
-      let transform=new DOMMatrix(this.style["transform"]);
-      let update_trans=() =>        {
-        let t=transform;
-        let css="matrix("+t.a+","+t.b+","+t.c+","+t.d+","+t.e+","+t.f+")";
-        this.style["transform"] = css;
-      };
-      let handlers={background_get: function background_get() {
-          return css2color(this.background);
-        }, 
-     background_set: function background_set(c) {
-          if (typeof c!=="string") {
-              c = color2css(c);
-          }
-          this.background = c;
-        }, 
-     dx_get: function dx_get() {
-          return transform.m41;
-        }, 
-     dx_set: function dx_set(x) {
-          transform.m41 = x;
-          update_trans();
-        }, 
-     dy_get: function dy_get() {
-          return transform.m42;
-        }, 
-     dy_set: function dy_set(x) {
-          transform.m42 = x;
-          update_trans();
-        }};
-      handlers = Object.assign(handlers, _extra_handlers);
-      let handler={get: (target, key, receiver) =>          {
-          if ((key+"_get") in handlers) {
-              return handlers[key+"_get"].call(target);
-          }
-          else {
-            return target[key];
-          }
-        }, 
-     set: (target, key, val, receiver) =>          {
-          if ((key+"_set") in handlers) {
-              handlers[key+"_set"].call(target, val);
-          }
-          else {
-            target[key] = val;
-          }
-          return true;
-        }};
-      let proxy=new Proxy(this, handler);
-      let anim=new Animator(proxy);
-      anim.onend = () =>        {
-        this._active_animations.remove(anim);
-      };
-      this._active_animations.push(anim);
-      return anim;
-    }
-     abortAnimations() {
-      for (let anim of util.list(this._active_animations)) {
-          anim.end();
-      }
-      this._active_animations = [];
-    }
-  }
-  _ESClass.register(UIBase);
-  _es6_module.add_class(UIBase);
-  UIBase = _es6_module.add_export('UIBase', UIBase);
-  function drawRoundBox2(elem, options) {
-    if (options===undefined) {
-        options = {};
-    }
-    drawRoundBox(elem, options.canvas, options.g, options.width, options.height, options.r, options.op, options.color, options.margin, options.no_clear);
-  }
-  drawRoundBox2 = _es6_module.add_export('drawRoundBox2', drawRoundBox2);
-  function drawRoundBox(elem, canvas, g, width, height, r, op, color, margin, no_clear) {
-    if (r===undefined) {
-        r = undefined;
-    }
-    if (op===undefined) {
-        op = "fill";
-    }
-    if (color===undefined) {
-        color = undefined;
-    }
-    if (margin===undefined) {
-        margin = undefined;
-    }
-    if (no_clear===undefined) {
-        no_clear = false;
-    }
-    width = width===undefined ? canvas.width : width;
-    height = height===undefined ? canvas.height : height;
-    g.save();
-    let dpi=elem.getDPI();
-    r = r===undefined ? elem.getDefault("border-radius") : r;
-    if (margin===undefined) {
-        margin = 1;
-    }
-    r*=dpi;
-    let r1=r, r2=r;
-    if (r>(height-margin*2)*0.5) {
-        r1 = (height-margin*2)*0.5;
-    }
-    if (r>(width-margin*2)*0.5) {
-        r2 = (width-margin*2)*0.5;
-    }
-    let bg=color;
-    if (bg===undefined&&canvas._background!==undefined) {
-        bg = canvas._background;
-    }
-    else 
-      if (bg===undefined) {
-        bg = elem.getDefault("background-color");
-    }
-    if (op==="fill"&&!no_clear) {
-        g.clearRect(0, 0, width, height);
-    }
-    g.fillStyle = bg;
-    g.strokeStyle = color===undefined ? elem.getDefault("border-color") : color;
-    let w=width, h=height;
-    let th=Math.PI/4;
-    let th2=Math.PI*0.75;
-    g.beginPath();
-    g.moveTo(margin, margin+r1);
-    g.lineTo(margin, h-r1-margin);
-    g.quadraticCurveTo(margin, h-margin, margin+r2, h-margin);
-    g.lineTo(w-margin-r2, h-margin);
-    g.quadraticCurveTo(w-margin, h-margin, w-margin, h-margin-r1);
-    g.lineTo(w-margin, margin+r1);
-    g.quadraticCurveTo(w-margin, margin, w-margin-r2, margin);
-    g.lineTo(margin+r2, margin);
-    g.quadraticCurveTo(margin, margin, margin, margin+r1);
-    g.closePath();
-    if (op==="clip") {
-        g.clip();
-    }
-    else 
-      if (op==="fill") {
-        g.fill();
-    }
-    else {
-      g.stroke();
-    }
-    g.restore();
-  }
-  drawRoundBox = _es6_module.add_export('drawRoundBox', drawRoundBox);
-  
-  function _getFont_new(elem, size, font, do_dpi) {
-    if (font===undefined) {
-        font = "DefaultText";
-    }
-    if (do_dpi===undefined) {
-        do_dpi = true;
-    }
-    font = elem.getDefault(font);
-    return font.genCSS(size);
-  }
-  _getFont_new = _es6_module.add_export('_getFont_new', _getFont_new);
-  function getFont(elem, size, font, do_dpi) {
-    if (font===undefined) {
-        font = "DefaultText";
-    }
-    if (do_dpi===undefined) {
-        do_dpi = true;
-    }
-    return _getFont_new(elem, size, font = "DefaultText", do_dpi = true);
-  }
-  getFont = _es6_module.add_export('getFont', getFont);
-  function _getFont(elem, size, font, do_dpi) {
-    if (font===undefined) {
-        font = "DefaultText";
-    }
-    if (do_dpi===undefined) {
-        do_dpi = true;
-    }
-    let dpi=elem.getDPI();
-    let font2=elem.getDefault(font);
-    if (font2!==undefined) {
-        return _getFont_new(elem, size, font, do_dpi);
-    }
-    throw new Error("unknown font "+font);
-  }
-  _getFont = _es6_module.add_export('_getFont', _getFont);
-  function _ensureFont(elem, canvas, g, size) {
-    if (canvas.font) {
-        g.font = canvas.font;
-    }
-    else {
-      let font=elem.getDefault("DefaultText");
-      g.font = font.genCSS(size);
-    }
-  }
-  _ensureFont = _es6_module.add_export('_ensureFont', _ensureFont);
-  let _mc;
-  function get_measure_canvas() {
-    if (_mc!==undefined) {
-        return _mc;
-    }
-    _mc = document.createElement("canvas");
-    _mc.width = 256;
-    _mc.height = 256;
-    _mc.g = _mc.getContext("2d");
-    return _mc;
-  }
-  function measureTextBlock(elem, text, canvas, g, size, font) {
-    if (canvas===undefined) {
-        canvas = undefined;
-    }
-    if (g===undefined) {
-        g = undefined;
-    }
-    if (size===undefined) {
-        size = undefined;
-    }
-    if (font===undefined) {
-        font = undefined;
-    }
-    let lines=text.split("\n");
-    let ret={width: 0, 
-    height: 0}
-    if (size===undefined) {
-        if (font!==undefined&&typeof font==="object") {
-            size = font.size;
-        }
-        if (size===undefined) {
-            size = elem.getDefault("DefaultText").size;
-        }
-    }
-    for (let line of lines) {
-        let m=measureText(elem, line, canvas, g, size, font);
-        ret.width = Math.max(ret.width, m.width);
-        let h=m.height!==undefined ? m.height : size*1.25;
-        ret.height+=h;
-    }
-    return ret;
-  }
-  measureTextBlock = _es6_module.add_export('measureTextBlock', measureTextBlock);
-  function measureText(elem, text, canvas, g, size, font) {
-    if (canvas===undefined) {
-        canvas = undefined;
-    }
-    if (g===undefined) {
-        g = undefined;
-    }
-    if (size===undefined) {
-        size = undefined;
-    }
-    if (font===undefined) {
-        font = undefined;
-    }
-    if (typeof canvas==="object"&&canvas!==null&&!(__instance_of(canvas, HTMLCanvasElement))&&canvas.tagName!=="CANVAS") {
-        let args=canvas;
-        canvas = args.canvas;
-        g = args.g;
-        size = args.size;
-        font = args.font;
-    }
-    if (g===undefined) {
-        canvas = get_measure_canvas();
-        g = canvas.g;
-    }
-    if (font!==undefined) {
-        if (typeof font==="object"&&__instance_of(font, CSSFont)) {
-            font = font.genCSS(size);
-        }
-        g.font = font;
-    }
-    else {
-      _ensureFont(elem, canvas, g, size);
-    }
-    let ret=g.measureText(text);
-    if (ret&&util.isMobile()) {
-        let ret2={};
-        let dpi=UIBase.getDPI();
-        for (let k in ret) {
-            let v=ret[k];
-            if (typeof v==="number") {
-                v*=dpi;
-            }
-            ret2[k] = v;
-        }
-        ret = ret2;
-    }
-    if (size!==undefined) {
-        g.font = undefined;
-    }
-    return ret;
-  }
-  measureText = _es6_module.add_export('measureText', measureText);
-  function drawText(elem, x, y, text, args) {
-    if (args===undefined) {
-        args = {};
-    }
-    let canvas=args.canvas, g=args.g, color=args.color, font=args.font;
-    let size=args.size;
-    if (size===undefined) {
-        if (font!==undefined&&__instance_of(font, CSSFont)) {
-            size = font.size;
-        }
-        else {
-          size = elem.getDefault("DefaultText").size;
-        }
-    }
-    size*=UIBase.getDPI();
-    if (color===undefined) {
-        if (font&&font.color) {
-            color = font.color;
-        }
-        else {
-          color = elem.getDefault("DefaultText").color;
-        }
-    }
-    if (font===undefined) {
-        _ensureFont(elem, canvas, g, size);
-    }
-    else 
-      if (typeof font==="object"&&__instance_of(font, CSSFont)) {
-        g.font = font = font.genCSS(size);
-    }
-    else 
-      if (font) {
-        g.font = font;
-    }
-    if (typeof color==="object") {
-        color = color2css(color);
-    }
-    g.fillStyle = color;
-    g.fillText(text, x+0.5, y+0.5);
-    if (size!==undefined) {
-        g.font = undefined;
-    }
-  }
-  drawText = _es6_module.add_export('drawText', drawText);
-  let PIDX=0, PSHADOW=1, PTOT=2;
-  function saveUIData(node, key) {
-    if (key===undefined) {
-        throw new Error("ui_base.saveUIData(): key cannot be undefined");
-    }
-    let paths=[];
-    let rec=(n, path, ni, is_shadow) =>      {
-      path = path.slice(0, path.length);
-      let pi=path.length;
-      for (let i=0; i<PTOT; i++) {
-          path.push(undefined);
-      }
-      path[pi] = ni;
-      path[pi+1] = is_shadow ? 1 : 0;
-      if (__instance_of(n, UIBase)) {
-          let path2=path.slice(0, path.length);
-          let data=n.saveData();
-          let bad=!data;
-          bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
-          if (!bad) {
-              path2.push(data);
-              if (path2[pi+2]) {
-                  paths.push(path2);
-              }
-          }
-      }
-      for (let i=0; i<n.childNodes.length; i++) {
-          let n2=n.childNodes[i];
-          rec(n2, path, i, false);
-      }
-      let shadow=n.shadow;
-      if (!shadow)
-        return ;
-      for (let i=0; i<shadow.childNodes.length; i++) {
-          let n2=shadow.childNodes[i];
-          rec(n2, path, i, true);
-      }
-    }
-    rec(node, [], 0, false);
-    return JSON.stringify({key: key, 
-    paths: paths, 
-    _ui_version: 1});
-  }
-  saveUIData = _es6_module.add_export('saveUIData', saveUIData);
-  window._saveUIData = saveUIData;
-  function loadUIData(node, buf) {
-    if (buf===undefined||buf===null) {
-        return ;
-    }
-    let obj=JSON.parse(buf);
-    let key=buf.key;
-    for (let path of obj.paths) {
-        let n=node;
-        let data=path[path.length-1];
-        path = path.slice(2, path.length-1);
-        for (let pi=0; pi<path.length; pi+=PTOT) {
-            let ni=path[pi], shadow=path[pi+1];
-            let list;
-            if (shadow) {
-                list = n.shadow;
-                if (list) {
-                    list = list.childNodes;
-                }
-            }
-            else {
-              list = n.childNodes;
-            }
-            if (list===undefined||list[ni]===undefined) {
-                n = undefined;
-                break;
-            }
-            n = list[ni];
-        }
-        if (n!==undefined&&__instance_of(n, UIBase)) {
-            n._init();
-            n.loadData(data);
-        }
-    }
-  }
-  loadUIData = _es6_module.add_export('loadUIData', loadUIData);
-  window._loadUIData = loadUIData;
-  aspect._setUIBase(UIBase);
-}, '/dev/fairmotion/src/path.ux/scripts/core/ui_base.js');
-
-
-es6_module_define('ui_save', ["../util/util.js", "../util/vectormath.js", "../path-controller/util/parseutil.js"], function _ui_save_module(_es6_module) {
-  var util=es6_import(_es6_module, '../util/util.js');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
-  const UI_SAVE_VERSION=2;
-  _es6_module.add_export('UI_SAVE_VERSION', UI_SAVE_VERSION);
-  function debuglog() {
-    if (window.DEBUG&&window.DEBUG.uipaths) {
-        console.warn.apply(...arguments);
-    }
-  }
-  let UIBase;
-  function setUIBase(cls) {
-    UIBase = cls;
-  }
-  setUIBase = _es6_module.add_export('setUIBase', setUIBase);
-  function saveUIData(node, key) {
-    if (key===undefined) {
-        throw new Error("ui_base.saveUIData(): key cannot be undefined");
-    }
-    let paths=new Map();
-    let rec=(path, n) =>      {
-      if (!(__instance_of(n, HTMLElement))) {
-          return ;
-      }
-      if (__instance_of(n, UIBase)) {
-          let path2=n.constructor.define().tagname+"|"+path;
-          paths.set(path2, n.saveData());
-      }
-      let ni=0;
-      for (let n2 of n.childNodes) {
-          let path2=path+`[${ni}]`;
-          rec(path2, n2);
-          ni++;
-      }
-      if (n.shadow) {
-          let ni=0;
-          for (let n2 of n.shadow.childNodes) {
-              let path2=path+`{${ni}}`;
-              rec(path2, n2);
-              ni++;
-          }
-      }
-    }
-    rec("", node, undefined, 0, false);
-    let paths2={}
-    for (let /*unprocessed ExpandNode*/[path, data] of paths) {
-        let bad=!data;
-        bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
-        if (!bad) {
-            paths2[path] = data;
-        }
-    }
-    paths = paths2;
-    return JSON.stringify({version: UI_SAVE_VERSION, 
-    key: key, 
-    paths: paths});
-  }
-  saveUIData = _es6_module.add_export('saveUIData', saveUIData);
-  var tokdef=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'tokdef');
-  var parser=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'parser');
-  var lexer=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'lexer');
-  var PUTLParseError=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'PUTLParseError');
-  function makeParser() {
-    const tk=(name, re, func) =>      {
-      return new tokdef(name, re, func);
-    }
-    let p;
-    const tokens=[tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACE", /\{/), tk("RBRACE", /\}/), tk("NUM", /[0-9]+/, (t) =>      {
-      return t.setValue(parseInt(t.value));
-    }), tk("WS", /[ \t]/, (token) =>      {
-      return undefined;
-    })];
-    function p_error(t) {
-      console.warn(t);
-      p.userdata = undefined;
-      throw new PUTLParseError("Parse error");
-    }
-    const l=new lexer(tokens);
-    p = new parser(l, p_error);
-    function consumeAll() {
-      while (!p.at_end()) {
-        p.next();
-      }
-    }
-    function p_Start() {
-      let node=p.userdata;
-      while (!p.at_end()) {
-        let t=p.peeknext();
-        if (t.type==="LSBRACKET") {
-            p.next();
-            let idx=p.expect("NUM");
-            if (idx>=node.childNodes.length||!(__instance_of(node.childNodes[idx], HTMLElement))) {
-                let li=p.lexer.lexpos;
-                let path=p.lexer.lexdata;
-                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node.childNodes);
-                consumeAll();
-                return undefined;
-            }
-            node = node.childNodes[idx];
-            p.expect('RSBRACKET');
-        }
-        else 
-          if (t.type==="LBRACE") {
-            p.next();
-            let idx=p.expect("NUM");
-            if (!node.shadow||idx>=node.shadow.childNodes.length||!(__instance_of(node.shadow.childNodes[idx], HTMLElement))) {
-                let li=p.lexer.lexpos;
-                let path=p.lexer.lexdata;
-                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node, node.shadow ? node.shadow.childNodes : undefined);
-                consumeAll();
-                return undefined;
-            }
-            node = node.shadow.childNodes[idx];
-            p.expect("RBRACE");
-        }
-        else {
-          p.expect("LBRACE");
-        }
-      }
-      return node;
-    }
-    p.start = p_Start;
-    return p;
-  }
-  makeParser = _es6_module.add_export('makeParser', makeParser);
-  const pathParser=makeParser();
-  function loadPath(node, key, json) {
-    console.log(key);
-    key = key.split("|");
-    let tagname=key[0].trim();
-    let path=(key[1]||"").trim();
-    if (path==="") {
-        if (tagname===node.constructor.define().tagname) {
-            node.loadData(json);
-        }
-        else {
-          debuglog("Failed to load ui save path", key);
-        }
-        return ;
-    }
-    pathParser.userdata = node;
-    let child;
-    try {
-      child = pathParser.parse(path);
-    }
-    catch (error) {
-        if (__instance_of(error, PUTLParseError)) {
-            console.error("Parse error parsing ui save path "+path);
-        }
-        else {
-          throw error;
-        }
-    }
-    if (child&&child.constructor.define().tagname!==tagname) {
-        debuglog("Failed to load ui save path", key);
-        child = undefined;
-    }
-    else 
-      if (!child) {
-        debuglog("Failed to load ui save path", key);
-    }
-    pathParser.userdata = undefined;
-    if (child) {
-        child.loadData(json);
-    }
-  }
-  loadPath = _es6_module.add_export('loadPath', loadPath);
-  function loadUIData(node, json) {
-    if (typeof json==='string') {
-        json = JSON.parse(json);
-    }
-    for (let k in json.paths) {
-        let v=json.paths[k];
-        if (v===undefined) {
-            continue;
-        }
-        loadPath(node, k, v);
-    }
-  }
-  loadUIData = _es6_module.add_export('loadUIData', loadUIData);
-}, '/dev/fairmotion/src/path.ux/scripts/core/ui_save.js');
-
-
-es6_module_define('ui_theme', ["../path-controller/util/util.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _ui_theme_module(_es6_module) {
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  let compatMap={BoxMargin: "padding", 
-   BoxBG: "background", 
-   BoxRadius: "border-radius", 
-   background: "background-color", 
-   defaultWidth: "width", 
-   defaultHeight: "height", 
-   DefaultWidth: "width", 
-   DefaultHeight: "height", 
-   BoxBorder: "border-color", 
-   BoxLineWidth: "border-width", 
-   BoxSubBG: "background-color", 
-   BoxSub2BG: "background-color", 
-   DefaultPanelBG: "background-color", 
-   InnerPanelBG: "background-color", 
-   Background: "background-color", 
-   numslider_width: "width", 
-   numslider_height: "height"}
-  compatMap = _es6_module.add_export('compatMap', compatMap);
-  let ColorSchemeTypes={LIGHT: "light", 
-   DARK: "dark"}
-  ColorSchemeTypes = _es6_module.add_export('ColorSchemeTypes', ColorSchemeTypes);
-  function parsepx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  parsepx = _es6_module.add_export('parsepx', parsepx);
-  function color2css(c, alpha_override) {
-    let r=~~(c[0]*255);
-    let g=~~(c[1]*255);
-    let b=~~(c[2]*255);
-    let a=c.length<4 ? 1.0 : c[3];
-    a = alpha_override!==undefined ? alpha_override : a;
-    if (c.length===3&&alpha_override===undefined) {
-        return `rgb(${r},${g},${b})`;
-    }
-    else {
-      return `rgba(${r},${g},${b}, ${a})`;
-    }
-  }
-  color2css = _es6_module.add_export('color2css', color2css);
-  window.color2css = color2css;
-  let css2color_rets=util.cachering.fromConstructor(Vector4, 64);
-  let basic_colors={'white': [1, 1, 1], 
-   'grey': [0.5, 0.5, 0.5], 
-   'gray': [0.5, 0.5, 0.5], 
-   'black': [0, 0, 0], 
-   'red': [1, 0, 0], 
-   'yellow': [1, 1, 0], 
-   'green': [0, 1, 0], 
-   'teal': [0, 1, 1], 
-   'cyan': [0, 1, 1], 
-   'blue': [0, 0, 1], 
-   'orange': [1, 0.5, 0.25], 
-   'brown': [0.5, 0.4, 0.3], 
-   'purple': [1, 0, 1], 
-   'pink': [1, 0.5, 0.5]}
-  function color2web(color) {
-    function tostr(n) {
-      n = ~~(n*255);
-      let s=n.toString(16);
-      if (s.length>2) {
-          s = s.slice(0, 2);
-      }
-      while (s.length<2) {
-        s = "0"+s;
-      }
-      return s;
-    }
-    if (color.length===3||color[3]===1.0) {
-        let r=tostr(color[0]);
-        let g=tostr(color[1]);
-        let b=tostr(color[2]);
-        return "#"+r+g+b;
-    }
-    else {
-      let r=tostr(color[0]);
-      let g=tostr(color[1]);
-      let b=tostr(color[2]);
-      let a=tostr(color[3]);
-      return "#"+r+g+b+a;
-    }
-  }
-  color2web = _es6_module.add_export('color2web', color2web);
-  window.color2web = color2web;
-  function css2color(color) {
-    if (!color) {
-        return new Vector4([0, 0, 0, 1]);
-    }
-    color = (""+color).trim();
-    let ret=css2color_rets.next();
-    if (color[0]==="#") {
-        color = color.slice(1, color.length);
-        let parts=[];
-        for (let i=0; i<color.length>>1; i++) {
-            let part="0x"+color.slice(i*2, i*2+2);
-            parts.push(parseInt(part));
-        }
-        ret.zero();
-        let i;
-        for (i = 0; i<Math.min(parts.length, ret.length); i++) {
-            ret[i] = parts[i]/255.0;
-        }
-        if (i<4) {
-            ret[3] = 1.0;
-        }
-        return ret;
-    }
-    if (color in basic_colors) {
-        return ret.load(basic_colors[color]);
-    }
-    color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
-    for (let i=0; i<color.length; i++) {
-        ret[i] = parseFloat(color[i]);
-        if (i<3) {
-            ret[i]/=255;
-        }
-    }
-    if (color.length===3) {
-        color.push(1.0);
-    }
-    return ret;
-  }
-  css2color = _es6_module.add_export('css2color', css2color);
-  window.css2color = css2color;
-  function web2color(str) {
-    if (typeof str==="string"&&str.trim()[0]!=="#") {
-        str = "#"+str.trim();
-    }
-    return css2color(str);
-  }
-  web2color = _es6_module.add_export('web2color', web2color);
-  window.web2color = web2color;
-  let validate_pat=/\#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
-  function validateWebColor(str) {
-    if (typeof str!=="string"&&!(__instance_of(str, String)))
-      return false;
-    return str.trim().search(validate_pat)===0;
-  }
-  validateWebColor = _es6_module.add_export('validateWebColor', validateWebColor);
-  let num="(([0-9]+\.[0-9]+)|[0-9a-f]+)";
-  let validate_rgba=new RegExp(`rgba\\(${num},${num},${num},${num}\\)$`);
-  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num}\\)$`);
-  function validateCSSColor(color) {
-    if (color.toLowerCase() in basic_colors) {
-        return true;
-    }
-    let rgba=color.toLowerCase().replace(/[ \t]/g, "");
-    rgba = rgba.trim();
-    if (validate_rgba.test(rgba)||validate_rgb.exec(rgba)) {
-        return true;
-    }
-    return validateWebColor(color);
-  }
-  validateCSSColor = _es6_module.add_export('validateCSSColor', validateCSSColor);
-  window.validateCSSColor = validateCSSColor;
-  let theme={}
-  theme = _es6_module.add_export('theme', theme);
-  function invertTheme() {
-    cconst.colorSchemeType = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? ColorSchemeTypes.DARK : ColorSchemeTypes.LIGHT;
-    function inverted(color) {
-      if (Array.isArray(color)) {
-          for (let i=0; i<3; i++) {
-              color[i] = 1.0-color[i];
-          }
-          return color;
-      }
-      color = css2color(color);
-      return color2css(inverted(color));
-    }
-    let bg=document.body.style["background-color"];
-    bg = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? "rgb(200,200,200)" : "rgb(55, 55, 55)";
-    document.body.style["background-color"] = bg;
-    for (let style in theme) {
-        style = theme[style];
-        for (let k in style) {
-            let v=style[k];
-            if (__instance_of(v, CSSFont)) {
-                v.color = inverted(v.color);
-            }
-            else 
-              if (typeof v==="string") {
-                v = v.trim().toLowerCase();
-                let iscolor=v.search("rgb")>=0;
-                iscolor = iscolor||v in basic_colors;
-                iscolor = iscolor||validateWebColor(v);
-                if (iscolor) {
-                    style[k] = inverted(v);
-                }
-            }
-        }
-    }
-  }
-  invertTheme = _es6_module.add_export('invertTheme', invertTheme);
-  window.invertTheme = invertTheme;
-  function setColorSchemeType(mode) {
-    if (!!mode!==cconst.colorSchemeType) {
-        invertTheme();
-        cconst.colorSchemeType = mode;
-    }
-  }
-  setColorSchemeType = _es6_module.add_export('setColorSchemeType', setColorSchemeType);
-  window.validateWebColor = validateWebColor;
-  let _digest=new util.HashDigest();
-  class CSSFont  {
-     constructor(args={}) {
-      this._size = args.size ? args.size : 12;
-      this.font = args.font;
-      this.style = args.style!==undefined ? args.style : "normal";
-      this.weight = args.weight!==undefined ? args.weight : "normal";
-      this.variant = args.variant!==undefined ? args.variant : "normal";
-      this.color = args.color;
-    }
-     calcHashUpdate(digest=_digest.reset()) {
-      digest.add(this._size||0);
-      digest.add(this.font);
-      digest.add(this.style);
-      digest.add(this.weight);
-      digest.add(this.variant);
-      digest.add(this.color);
-      return digest.get();
-    }
-    set  size(val) {
-      this._size = val;
-    }
-    get  size() {
-      if (util.isMobile()) {
-          let mul=theme.base.mobileTextSizeMultiplier/visualViewport.scale;
-          if (mul) {
-              return this._size*mul;
-              
-          }
-      }
-      return this._size;
-    }
-     copyTo(b) {
-      b._size = this._size;
-      b.font = this.font;
-      b.style = this.style;
-      b.color = this.color;
-      b.variant = this.variant;
-      b.weight = this.weight;
-    }
-     copy() {
-      let ret=new CSSFont();
-      this.copyTo(ret);
-      return ret;
-    }
-     genCSS(size=this.size) {
-      return `${this.style} ${this.variant} ${this.weight} ${size}px ${this.font}`;
-    }
-     hash() {
-      return this.genKey();
-    }
-     genKey() {
-      let color=this.color;
-      if (typeof this.color==="object"||typeof this.color==="function") {
-          color = JSON.stringify(color);
-      }
-      return this.genCSS()+":"+this.size+":"+color;
-    }
-  }
-  _ESClass.register(CSSFont);
-  _es6_module.add_class(CSSFont);
-  CSSFont = _es6_module.add_export('CSSFont', CSSFont);
-  CSSFont.STRUCT = `
-CSSFont {
-  size     : float | obj._size;
-  font     : string | obj.font || "";
-  style    : string | obj.font || "";
-  color    : string | ""+obj.color;
-  variant  : string | obj.variant || "";
-  weight   : string | ""+obj.weight;
-}
-`;
-  nstructjs.register(CSSFont);
-  function exportTheme(theme1) {
-    if (theme1===undefined) {
-        theme1 = theme;
-    }
-    let sortkeys=(obj) =>      {
-      let keys=[];
-      for (let k in obj) {
-          keys.push(k);
-      }
-      keys.sort();
-      return keys;
-    }
-    let s="var theme = {\n";
-    function writekey(v, indent) {
-      if (indent===undefined) {
-          indent = "";
-      }
-      if (typeof v==="string") {
-          if (v.search("\n")>=0) {
-              v = "`"+v+"`";
-          }
-          else {
-            v = "'"+v+"'";
-          }
-          return v;
-      }
-      else 
-        if (typeof v==="object") {
-          if (__instance_of(v, CSSFont)) {
-              return `new CSSFont({
-${indent}  font    : ${writekey(v.font)},
-${indent}  weight  : ${writekey(v.weight)},
-${indent}  variant : ${writekey(v.variant)},
-${indent}  style   : ${writekey(v.style)},
-${indent}  size    : ${writekey(v._size)},
-${indent}  color   : ${writekey(v.color)}
-${indent}})`;
-          }
-          else {
-            let s="{\n";
-            for (let k of sortkeys(v)) {
-                let v2=v[k];
-                if (k.search(" ")>=0||k.search("-")>=0) {
-                    k = "'"+k+"'";
-                }
-                s+=indent+"  "+k+" : "+writekey(v2, indent+"  ")+",\n";
-            }
-            s+=indent+"}";
-            return s;
-          }
-      }
-      else {
-        return ""+v;
-      }
-      return "error";
-    }
-    for (let k of sortkeys(theme1)) {
-        let k2=k;
-        if (k.search("-")>=0||k.search(" ")>=0) {
-            k2 = "'"+k+"'";
-        }
-        s+="  "+k2+": ";
-        let v=theme1[k];
-        if (typeof v!=="object"||__instance_of(v, CSSFont)) {
-            s+=writekey(v, "  ")+",\n";
-        }
-        else {
-          s+=" {\n";
-          let s2="";
-          let maxwid=0;
-          for (let k2 of sortkeys(v)) {
-              if (k2.search("-")>=0||k2.search(" ")>=0) {
-                  k2 = "'"+k2+"'";
-              }
-              maxwid = Math.max(maxwid, k2.length);
-          }
-          for (let k2 of sortkeys(v)) {
-              let v2=v[k2];
-              if (k2.search("-")>=0||k2.search(" ")>=0) {
-                  k2 = "'"+k2+"'";
-              }
-              let pad="";
-              for (let i=0; i<maxwid-k2.length; i++) {
-                  pad+=" ";
-              }
-              s2+="    "+k2+pad+": "+writekey(v2, "    ")+",\n";
-          }
-          s+=s2;
-          s+="  },\n\n";
-        }
-    }
-    s+="};\n";
-    return s;
-  }
-  exportTheme = _es6_module.add_export('exportTheme', exportTheme);
-  window._exportTheme = exportTheme;
-}, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
-
-
-es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _units_module(_es6_module) {
+es6_module_define('units', ["../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _units_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
   var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
   var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
   var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
+  const FLT_EPSILONE=1.192092895507812e-07;
+  function myfloor(f) {
+    return Math.floor(f+FLT_EPSILONE*2.0);
+  }
   function normString(s) {
     s = s.replace(/ /g, "").replace(/\t/g, "");
     return s.toLowerCase();
   }
   function myToFixed(f, decimals) {
+    if (typeof f!=="number") {
+        return "(error)";
+    }
     f = f.toFixed(decimals);
     while (f.endsWith("0")&&f.search(/\./)>=0) {
       f = f.slice(0, f.length-1);
@@ -3017,6 +33,9 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
   _es6_module.add_export('Units', Units);
   class Unit  {
     static  getUnit(name) {
+      if (name==="none"||name===undefined) {
+          return undefined;
+      }
       for (let cls of Units) {
           if (cls.unitDefine().name===name) {
               return cls;
@@ -3153,8 +172,8 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
       return value/0.3048;
     }
     static  buildString(value, decimals=2) {
-      let vft=~~(value);
-      let vin=(value*12)%12;
+      let vft=myfloor(value);
+      let vin=((value+FLT_EPSILONE*2)*12)%12;
       if (vft===0.0) {
           return myToFixed(vin, decimals)+" in";
       }
@@ -3183,8 +202,8 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
       return super.parse(string);
     }
     static  buildString(value, decimals=2) {
-      let vft=~~(value);
-      let vin=(value*12)%12;
+      let vft=myfloor(value);
+      let vin=((value+FLT_EPSILONE*2)*12)%12;
       if (vft===0.0) {
           return myToFixed(vin, decimals)+" in\u00b2";
       }
@@ -3232,7 +251,7 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
      uiname: "Degrees", 
      type: "angle", 
      icon: -1, 
-     pattern: /-?\d+(\.\d+)?(\u00B0|degree|deg|d|degree|degrees)?$/}
+     pattern: /-?\d+(\.\d+)?(\u00B0|degree|deg|d|degree|degrees)$/}
     }
     static  parse(string) {
       string = normString(string);
@@ -3303,21 +322,60 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
   setMetric = _es6_module.add_export('setMetric', setMetric);
   Unit.isMetric = true;
   Unit.baseUnit = "meter";
-  let numre=/[+\-]?[0-9]+(\.[0-9]*)?$/;
+  let numre1=/[+\-]?[0-9]+(\.[0-9]*)?$/;
+  let numre2=/[+\-]?[0-9]?(\.[0-9]*)+$/;
   let hexre1=/[+\-]?[0-9a-fA-F]+h$/;
   let hexre2=/[+\-]?0x[0-9a-fA-F]+$/;
   let binre=/[+\-]?0b[01]+$/;
   let expre=/[+\-]?[0-9]+(\.[0-9]*)?[eE]\-?[0-9]+$/;
+  let intre=/[+\-]?[0-9]+$/;
   function isnumber(s) {
     s = (""+s).trim();
-    if (s.startsWith(".")) {
-        s = "0"+s;
-    }
     function test(re) {
-      return s.search(re)==0;
+      return s.search(re)===0;
     }
-    return test(numre)||test(hexre1)||test(hexre2)||test(binre)||test(expre);
+    return test(intre)||test(numre1)||test(numre2)||test(hexre1)||test(hexre2)||test(binre)||test(expre);
   }
+  function parseValueIntern(string, baseUnit) {
+    if (baseUnit===undefined) {
+        baseUnit = undefined;
+    }
+    string = string.trim();
+    if (string[0]===".") {
+        string = "0"+string;
+    }
+    if (typeof baseUnit==="string") {
+        let base=Unit.getUnit(baseUnit);
+        if (base===undefined&&baseUnit!=="none") {
+            console.warn("Unknown unit "+baseUnit);
+            return NaN;
+        }
+        baseUnit = base;
+    }
+    if (isnumber(string)) {
+        let f=parseFloat(string);
+        return f;
+    }
+    if (baseUnit===undefined) {
+        console.warn("No base unit in units.js:parseValueIntern");
+    }
+    for (let unit of Units) {
+        let def=unit.unitDefine();
+        if (unit.validate(string)) {
+            console.log(unit);
+            let value=unit.parse(string);
+            if (baseUnit) {
+                value = unit.toInternal(value);
+                return baseUnit.fromInternal(value);
+            }
+            else {
+              return value;
+            }
+        }
+    }
+    return NaN;
+  }
+  parseValueIntern = _es6_module.add_export('parseValueIntern', parseValueIntern);
   function parseValue(string, baseUnit, displayUnit) {
     if (baseUnit===undefined) {
         baseUnit = undefined;
@@ -3325,17 +383,14 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
     if (displayUnit===undefined) {
         displayUnit = undefined;
     }
-    let f=parseValueIntern(string, baseUnit);
-    let display, base;
-    if (displayUnit&&displayUnit!=="none") {
-        display = Unit.getUnit(displayUnit);
-    }
-    if (baseUnit&&baseUnit!=="none") {
-        base = Unit.getUnit(baseUnit);
-    }
-    if (display&&base) {
-        f = display.toInternal(f);
-        f = base.fromInternal(f);
+    displayUnit = Unit.getUnit(displayUnit);
+    baseUnit = Unit.getUnit(baseUnit);
+    let f=parseValueIntern(string, displayUnit||baseUnit);
+    if (baseUnit) {
+        if (displayUnit) {
+            f = displayUnit.toInternal(f);
+        }
+        f = baseUnit.fromInternal(f);
     }
     return f;
   }
@@ -3353,41 +408,6 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
     return false;
   }
   isNumber = _es6_module.add_export('isNumber', isNumber);
-  function parseValueIntern(string, baseUnit) {
-    if (baseUnit===undefined) {
-        baseUnit = undefined;
-    }
-    let base;
-    string = string.trim();
-    if (string[0]===".") {
-        string = "0"+string;
-    }
-    if (isnumber(string)) {
-        let f=parseFloat(string);
-        return f;
-    }
-    if (baseUnit&&baseUnit!=="none") {
-        base = Unit.getUnit(baseUnit);
-        if (base===undefined) {
-            console.warn("Unknown unit "+baseUnit);
-            return NaN;
-        }
-    }
-    else {
-      base = Unit.getUnit(Unit.baseUnit);
-    }
-    for (let unit of Units) {
-        let def=unit.unitDefine();
-        if (unit.validate(string)) {
-            console.log(unit);
-            let value=unit.parse(string);
-            value = unit.toInternal(value);
-            return base.fromInternal(value);
-        }
-    }
-    return NaN;
-  }
-  parseValueIntern = _es6_module.add_export('parseValueIntern', parseValueIntern);
   class PixelUnit extends Unit {
     static  unitDefine() {
       return {name: "pixel", 
@@ -3457,7 +477,7 @@ es6_module_define('units', ["../path-controller/util/vectormath.js", "../path-co
 }, '/dev/fairmotion/src/path.ux/scripts/core/units.js');
 
 
-es6_module_define('docbrowser', ["../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "../util/util.js", "../platforms/platform.js", "../config/const.js", "../util/vectormath.js", "../core/ui_base.js"], function _docbrowser_module(_es6_module) {
+es6_module_define('docbrowser', ["../config/const.js", "../platforms/platform.js", "../core/ui_base.js", "../util/util.js", "../util/vectormath.js", "../path-controller/util/struct.js", "../path-controller/util/simple_events.js"], function _docbrowser_module(_es6_module) {
   var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
   var cconst=es6_import(_es6_module, '../config/const.js');
@@ -4628,6 +1648,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    ZOOM_OUT: a++, 
    ZOOM_IN: a++}
   Icons = _es6_module.add_export('Icons', Icons);
+  Icons.ENUM_CHECKED = Icons.CHECKED;
+  Icons.ENUM_UNCHECKED = Icons.UNCHECKED;
 }, '/dev/fairmotion/src/path.ux/scripts/icon_enum.js');
 
 
@@ -4658,84 +1680,93 @@ es6_module_define('context', ["../util/util.js", "../config/config.js"], functio
   const _ret_tmp=[undefined];
   const OverlayClasses=[];
   _es6_module.add_export('OverlayClasses', OverlayClasses);
-  class ContextOverlay  {
-     constructor(appstate) {
-      this.ctx = undefined;
-      this._state = appstate;
-    }
-    get  state() {
-      return this._state;
-    }
-    get  last_tool() {
-      return this.state._last_tool;
-    }
-     onRemove(have_new_file=false) {
+  function makeDerivedOverlay(parent) {
+    return class ContextOverlay extends parent {
+       constructor(appstate) {
+        super(appstate);
+        this.ctx = undefined;
+        this._state = appstate;
+      }
+      get  state() {
+        return this._state;
+      }
+      set  state(state) {
+        this._state = state;
+      }
+      get  last_tool() {
+        return this.state._last_tool;
+      }
+       onRemove(have_new_file=false) {
 
+      }
+       copy() {
+        return new this.constructor(this._state);
+      }
+       validate() {
+        throw new Error("Implement me!");
+      }
+      static  contextDefine() {
+        throw new Error("implement me!");
+        return {name: "", 
+      flag: 0}
+      }
+      static  resolveDef() {
+        if (this.hasOwnProperty(Symbol.CachedDef)) {
+            return this[Symbol.CachedDef];
+        }
+        let def2=Symbol.CachedDef = {};
+        let def=this.contextDefine();
+        if (def===undefined) {
+            def = {};
+        }
+        for (let k in def) {
+            def2[k] = def[k];
+        }
+        if (!("flag") in def) {
+            def2.flag = Context.inherit(0);
+        }
+        let parents=[];
+        let p=util.getClassParent(this);
+        while (p&&p!==ContextOverlay) {
+          parents.push(p);
+          p = util.getClassParent(p);
+        }
+        if (__instance_of(def2.flag, InheritFlag)) {
+            let flag=def2.flag.data;
+            for (let p of parents) {
+                let def=p.contextDefine();
+                if (!def.flag) {
+                    continue;
+                }
+                else 
+                  if (__instance_of(def.flag, InheritFlag)) {
+                    flag|=def.flag.data;
+                }
+                else {
+                  flag|=def.flag;
+                  break;
+                }
+            }
+            def2.flag = flag;
+        }
+        return def2;
+      }
     }
-     copy() {
-      return new this.constructor(this._state);
-    }
-     validate() {
-      throw new Error("Implement me!");
-    }
-    static  contextDefine() {
-      throw new Error("implement me!");
-      return {name: "", 
-     flag: 0}
-    }
-    static  resolveDef() {
-      if (this.hasOwnProperty(Symbol.CachedDef)) {
-          return this[Symbol.CachedDef];
-      }
-      let def2=Symbol.CachedDef = {};
-      let def=this.contextDefine();
-      if (def===undefined) {
-          def = {};
-      }
-      for (let k in def) {
-          def2[k] = def[k];
-      }
-      if (!("flag") in def) {
-          def2.flag = Context.inherit(0);
-      }
-      let parents=[];
-      let p=util.getClassParent(this);
-      while (p&&p!==ContextOverlay) {
-        parents.push(p);
-        p = util.getClassParent(p);
-      }
-      if (__instance_of(def2.flag, InheritFlag)) {
-          let flag=def2.flag.data;
-          for (let p of parents) {
-              let def=p.contextDefine();
-              if (!def.flag) {
-                  continue;
-              }
-              else 
-                if (__instance_of(def.flag, InheritFlag)) {
-                  flag|=def.flag.data;
-              }
-              else {
-                flag|=def.flag;
-                break;
-              }
-          }
-          def2.flag = flag;
-      }
-      return def2;
-    }
+    _ESClass.register(ContextOverlay);
+    _es6_module.add_class(ContextOverlay);
   }
-  _ESClass.register(ContextOverlay);
-  _es6_module.add_class(ContextOverlay);
-  ContextOverlay = _es6_module.add_export('ContextOverlay', ContextOverlay);
+  makeDerivedOverlay = _es6_module.add_export('makeDerivedOverlay', makeDerivedOverlay);
+  const ContextOverlay=makeDerivedOverlay(Object);
+  _es6_module.add_export('ContextOverlay', ContextOverlay);
   const excludedKeys=new Set(["onRemove", "reset", "toString", "_fix", "valueOf", "copy", "next", "save", "load", "clear", "hasOwnProperty", "toLocaleString", "constructor", "propertyIsEnumerable", "isPrototypeOf", "state", "saveProperty", "loadProperty", "getOwningOverlay", "_props"]);
   _es6_module.add_export('excludedKeys', excludedKeys);
   class LockedContext  {
-     constructor(ctx) {
+     constructor(ctx, noWarnings) {
       this.props = {};
       this.state = ctx.state;
       this.api = ctx.api;
       this.toolstack = ctx.toolstack;
+      this.noWarnings = noWarnings;
       this.load(ctx);
     }
      toLocked() {
@@ -5092,7 +2123,7 @@ es6_module_define('context', ["../util/util.js", "../config/config.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
 
 
-es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "./controller_base.js", "../toolsys/toolsys.js", "./controller_abstract.js", "../util/parseutil.js", "../toolsys/toolprop.js", "./controller_ops.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/toolsys.js", "../util/util.js", "../toolsys/toolprop.js", "./controller_abstract.js", "./controller_base.js", "./controller_ops.js", "../toolsys/toolpath.js", "../util/parseutil.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -5111,6 +2142,7 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
   var DataTypes=es6_import_item(_es6_module, './controller_base.js', 'DataTypes');
   var DataPathError=es6_import_item(_es6_module, './controller_base.js', 'DataPathError');
   var StructFlags=es6_import_item(_es6_module, './controller_base.js', 'StructFlags');
+  var getTempProp=es6_import_item(_es6_module, './controller_base.js', 'getTempProp');
   var ___controller_base_js=es6_import(_es6_module, './controller_base.js');
   for (let k in ___controller_base_js) {
       _es6_module.add_export(k, ___controller_base_js[k], true);
@@ -5121,6 +2153,9 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
   }
   let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z_$0-9]*/), tk("NUM", /-?[0-9]+/, (t) =>    {
     t.value = parseInt(t.value);
+    return t;
+  }), tk('NUMBER', /-?[0-9]+\.[0-9]*/, (t) =>    {
+    t.value = parseFloat(t.value);
     return t;
   }), tk("STRLIT", /'.*?'/, (t) =>    {
     t.value = t.value.slice(1, t.value.length-1);
@@ -5142,7 +2177,6 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       parserStack[i] = pathParser.copy();
   }
   parserStack.cur = 0;
-  var ToolOpIface=es6_import_item(_es6_module, './controller_base.js', 'ToolOpIface');
   var setImplementationClass=es6_import_item(_es6_module, './controller_base.js', 'setImplementationClass');
   var isVecProperty=es6_import_item(_es6_module, './controller_base.js', 'isVecProperty');
   var ListIface=es6_import_item(_es6_module, './controller_base.js', 'ListIface');
@@ -5187,13 +2221,6 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
   }
   popReportName = _es6_module.add_export('popReportName', popReportName);
   class DataList extends ListIface {
-     copy() {
-      let ret=new DataList([this.cb.get]);
-      for (let k in this.cb) {
-          ret.cb[k] = this.cb[k];
-      }
-      return ret;
-    }
      constructor(callbacks) {
       super();
       if (callbacks===undefined) {
@@ -5215,6 +2242,13 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
             throw new DataPathError(`Missing ${key} callback in DataList`);
         }
       };
+    }
+     copy() {
+      let ret=new DataList([this.cb.get]);
+      for (let k in this.cb) {
+          ret.cb[k] = this.cb[k];
+      }
+      return ret;
     }
      get(api, list, key) {
       return this.cb.get(api, list, key);
@@ -5275,10 +2309,16 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       this.name = name;
       this.pathmap = {};
       this.flag = 0;
+      this.dpath = undefined;
       this.inheritFlag = 0;
       for (let m of members) {
           this.add(m);
       }
+    }
+     clear() {
+      this.pathmap = {};
+      this.members = [];
+      return this;
     }
      copy() {
       let ret=new DataStruct();
@@ -5298,6 +2338,7 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       let ret=default_struct ? default_struct : new DataStruct();
       let dpath=new DataPath(path, apiname, ret, DataTypes.DYNAMIC_STRUCT);
       ret.inheritFlag|=this.inheritFlag;
+      ret.dpath = dpath;
       this.add(dpath);
       return ret;
     }
@@ -5305,8 +2346,17 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       let ret=existing_struct ? existing_struct : new DataStruct();
       let dpath=new DataPath(path, apiname, ret, DataTypes.STRUCT);
       ret.inheritFlag|=this.inheritFlag;
+      ret.dpath = dpath;
       this.add(dpath);
       return ret;
+    }
+     customGet(getter) {
+      this.dpath.customGet(getter);
+      return this;
+    }
+     customGetSet(getter, setter) {
+      this.dpath.customGetSet(getter, setter);
+      return this;
     }
      color3(path, apiname, uiname, description) {
       let ret=this.vec3(path, apiname, uiname, description);
@@ -5339,7 +2389,6 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
             throw new DataPathError("Invalid index "+key);
         }
         list[key] = val;
-        window.redraw_viewport();
       }, function getKey(api, list, obj) {
         return list.indexOf(obj);
       }, function getStruct(api, list, key) {
@@ -5347,7 +2396,13 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       }]);
       return ret;
     }
-     vectorList(size, path, apiname, uiname, description) {
+     color3List(path, apiname, uiname, description) {
+      return this.vectorList(3, path, apiname, uiname, description, toolprop.PropSubTypes.COLOR);
+    }
+     color4List(path, apiname, uiname, description) {
+      return this.vectorList(4, path, apiname, uiname, description, toolprop.PropSubTypes.COLOR);
+    }
+     vectorList(size, path, apiname, uiname, description, subtype) {
       let type;
       switch (size) {
         case 2:
@@ -5378,7 +2433,6 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
             throw new DataPathError("Invalid index "+key);
         }
         list[key] = val;
-        window.redraw_viewport();
       }, function getKey(api, list, obj) {
         return list.indexOf(obj);
       }, function getStruct(api, list, key) {
@@ -5523,18 +2577,26 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
   window._debug__map_structs = _map_structs;
   let _dummypath=new DataPath();
   let DummyIntProperty=new IntProperty();
-  const CLS_API_KEY=Symbol("__dp_map_id");
+  const CLS_API_KEY=Symbol("dp_map_id");
+  const CLS_API_KEY_CUSTOM=Symbol("dp_map_custom");
   class DataAPI extends ModelInterface {
      constructor() {
       super();
       this.rootContextStruct = undefined;
       this.structs = [];
     }
-     getStructs() {
-      return this.structs;
-    }
     get  list() {
       return undefined;
+    }
+    static  toolRegistered(cls) {
+      return ToolOp.isRegistered(cls);
+    }
+    static  registerTool(cls) {
+      console.warn("Outdated function simple_controller.DataAPI.registerTool called");
+      return ToolOp.register(cls);
+    }
+     getStructs() {
+      return this.structs;
     }
      setRoot(sdef) {
       this.rootContextStruct = sdef;
@@ -5565,6 +2627,10 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       cls[CLS_API_KEY] = key;
       this.structs.push(dstruct);
       _map_structs[key] = dstruct;
+    }
+     mapStructCustom(cls, callback) {
+      this.mapStruct(cls, true);
+      cls[CLS_API_KEY_CUSTOM] = callback;
     }
      mapStruct(cls, auto_create=true, name=cls.name) {
       let key;
@@ -5597,6 +2663,9 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       }
     }
      resolveMassSetPaths(ctx, massSetPath) {
+      if (massSetPath.startsWith("/")) {
+          massSetPath = massSetPath.slice(1, massSetPath.length);
+      }
       let start=massSetPath.search("{");
       let end=massSetPath.search("}");
       if (start<0||end<0) {
@@ -5627,7 +2696,16 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
             if (path.startsWith(".")) {
                 path = path.slice(1, filter.length).trim();
             }
-            return api.getValue(obj, path, st);
+            try {
+              return api.getValue(obj, path, st);
+            }
+            catch (error) {
+                if (!(__instance_of(error, DataPathError))) {
+                    util.print_stack(error);
+                    console.error("Error in datapath callback");
+                }
+                return false;
+            }
         }
         else {
           let $=obj;
@@ -5640,6 +2718,16 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
           }
           let key=""+list.getKey(this, rdef.value, obj);
           let path=`${prefix}[${key}]${suffix}`;
+          try {
+            this.getValue(ctx, path);
+          }
+          catch (error) {
+              if (!(__instance_of(error, DataPathError))) {
+                  util.print_stack(error);
+                  console.error(path+": Error in datapath API");
+              }
+              continue;
+          }
           paths.push(path);
       }
       return paths;
@@ -5647,6 +2735,9 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
      resolvePath(ctx, inpath, ignoreExistence=false, dstruct=undefined) {
       let parser=parserStack[parserStack.cur++];
       let ret=undefined;
+      if (inpath[0]==="/") {
+          inpath = inpath.slice(1, inpath.length).trim();
+      }
       try {
         ret = this.resolvePath_intern(ctx, inpath, ignoreExistence, parser, dstruct);
       }
@@ -5661,6 +2752,17 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
           ret = undefined;
       }
       parserStack.cur--;
+      if (ret!==undefined&&ret.prop&&ret.dpath&&(ret.dpath.flag&DataFlags.USE_CUSTOM_PROP_GETTER)) {
+          let prop=ret.prop;
+          prop.ctx = ctx;
+          prop.datapath = inpath;
+          prop.dataref = ret.obj;
+          let newprop=getTempProp(prop.type);
+          prop.copyTo(newprop);
+          ret.dpath.propGetter.call(prop, newprop);
+          ret.prop = newprop;
+          prop.ctx = prop.datapath = prop.dataref = undefined;
+      }
       if (ret!==undefined&&ret.prop&&ret.dpath&&ret.dpath.ui_name_get) {
           let dummy={datactx: ctx, 
        datapath: inpath, 
@@ -5757,7 +2859,12 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
                 }
                 dynstructobj = obj2;
                 if (obj2!==undefined) {
-                    dstruct = this.mapStruct(obj2.constructor, false);
+                    if (CLS_API_KEY_CUSTOM in obj2.constructor) {
+                        dstruct = obj2.constructor[CLS_API_KEY_CUSTOM](obj2);
+                    }
+                    else {
+                      dstruct = this.mapStruct(obj2.constructor, false);
+                    }
                 }
                 else {
                   dstruct = dpath.data;
@@ -5950,6 +3057,9 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
             }
             obj = prop.get(this, lastobj, lastkey);
             dstruct = prop.getStruct(this, lastobj, lastkey);
+            if (!dstruct) {
+                throw new DataPathError(inpath+": list has no entry "+lastkey);
+            }
             if (p.peeknext()!==undefined&&p.peeknext().type==="DOT") {
                 p.next();
             }
@@ -6281,21 +3391,10 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
       }
       return tool;
     }
-    static  toolRegistered(cls) {
-      return ToolOp.isRegistered(cls);
-    }
-    static  registerTool(cls) {
-      console.warn("Outdated function simple_controller.DataAPI.registerTool called");
-      return ToolOp.register(cls);
-    }
   }
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
-  function registerTool(cls) {
-    return DataAPI.registerTool(cls);
-  }
-  registerTool = _es6_module.add_export('registerTool', registerTool);
   function initSimpleController() {
     initToolPaths();
   }
@@ -6318,7 +3417,7 @@ es6_module_define('controller', ["../toolsys/toolpath.js", "../toolsys/toolprop_
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller.js');
 
 
-es6_module_define('controller_abstract', ["../toolsys/toolsys.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
+es6_module_define('controller_abstract', ["../util/util.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolsys.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
@@ -6472,7 +3571,18 @@ es6_module_define('controller_abstract', ["../toolsys/toolsys.js", "./controller
       }
       else 
         if (res.subkey!==undefined&&isVecProperty(res.prop)) {
-          res.obj[res.key][res.subkey] = val;
+          if (res.key!=="") {
+              res.obj[res.key][res.subkey] = val;
+          }
+          else {
+            res.obj[res.subkey] = val;
+          }
+      }
+      else 
+        if (res.key===""&&isVecProperty(res.prop)) {
+          for (let i=0; i<res.obj.length; i++) {
+              res.obj[i] = val[i];
+          }
       }
       else 
         if (!(prop!==undefined&&__instance_of(prop, ListIface))) {
@@ -6590,7 +3700,7 @@ es6_module_define('controller_abstract', ["../toolsys/toolsys.js", "./controller
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_abstract.js');
 
 
-es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js"], function _controller_base_module(_es6_module) {
+es6_module_define('controller_base', ["../util/vectormath.js", "../util/util.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolprop.js"], function _controller_base_module(_es6_module) {
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
@@ -6600,15 +3710,25 @@ es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js"
   var toolprop_abstract=es6_import(_es6_module, '../toolsys/toolprop_abstract.js');
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
+  var cachering=es6_import_item(_es6_module, '../util/util.js', 'cachering');
   const DataFlags={READ_ONLY: 1, 
    USE_CUSTOM_GETSET: 2, 
-   USE_FULL_UNDO: 4}
+   USE_FULL_UNDO: 4, 
+   USE_CUSTOM_PROP_GETTER: 8}
   _es6_module.add_export('DataFlags', DataFlags);
   const DataTypes={STRUCT: 0, 
    DYNAMIC_STRUCT: 1, 
    PROP: 2, 
    ARRAY: 3}
   _es6_module.add_export('DataTypes', DataTypes);
+  let propCacheRings={}
+  function getTempProp(type) {
+    if (!(type in propCacheRings)) {
+        propCacheRings[type] = cachering.fromConstructor(ToolProperty.getClass(type), 32);
+    }
+    return propCacheRings[type].next();
+  }
+  getTempProp = _es6_module.add_export('getTempProp', getTempProp);
   class DataPathError extends Error {
   }
   _ESClass.register(DataPathError);
@@ -6683,6 +3803,12 @@ es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js"
      read_only() {
       console.warn("DataPath.read_only is deprecated; use readOnly");
       return this.readOnly();
+    }
+     customPropCallback(callback) {
+      this.flag|=DataFlags.USE_CUSTOM_PROP_GETTER;
+      this.data.flag|=PropFlags.USE_CUSTOM_PROP_GETTER;
+      this.propGetter = callback;
+      return this;
     }
      customGetSet(get, set) {
       this.flag|=DataFlags.USE_CUSTOM_GETSET;
@@ -6774,6 +3900,10 @@ es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js"
     }
      expRate(exp) {
       this.data.setExpRate(exp);
+      return this;
+    }
+     slideSpeed(speed) {
+      this.data.setSlideSpeed(speed);
       return this;
     }
      uniformSlider(state=true) {
@@ -6893,7 +4023,7 @@ es6_module_define('controller_base', ["../util/util.js", "../util/vectormath.js"
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
 
 
-es6_module_define('controller_ops', ["../toolsys/toolsys.js", "./controller_base.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../toolsys/toolsys.js", "../toolsys/toolprop.js", "./controller_base.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -7150,7 +4280,7 @@ es6_module_define('controller_ops', ["../toolsys/toolsys.js", "./controller_base
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_ops.js');
 
 
-es6_module_define('controller', ["./toolsys/toolprop.js", "./toolsys/toolpath.js", "./controller/controller_abstract.js", "./util/html5_fileapi.js", "./util/graphpack.js", "./util/math.js", "./toolsys/toolsys.js", "./util/simple_events.js", "./util/vectormath.js", "./util/solver.js", "./curve/curve1d.js", "./util/parseutil.js", "./config/config.js", "./controller/controller_ops.js", "./toolsys/toolprop_abstract.js", "./controller/context.js", "./util/struct.js", "./controller/controller_base.js", "./curve/curve1d_base.js", "./util/util.js", "./util/colorutils.js", "./controller/controller.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["./controller/controller_abstract.js", "./controller/controller_base.js", "./util/vectormath.js", "./util/simple_events.js", "./util/graphpack.js", "./curve/curve1d.js", "./curve/curve1d_base.js", "./util/struct.js", "./controller/controller.js", "./toolsys/toolsys.js", "./toolsys/toolprop_abstract.js", "./util/math.js", "./util/parseutil.js", "./toolsys/toolprop.js", "./config/config.js", "./curve/curve1d_bspline.js", "./util/solver.js", "./util/util.js", "./util/html5_fileapi.js", "./extern/lz-string/lz-string.js", "./toolsys/toolpath.js", "./controller/controller_ops.js", "./controller/context.js", "./util/colorutils.js"], function _controller_module(_es6_module) {
   var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
   for (let k in ___controller_context_js) {
       _es6_module.add_export(k, ___controller_context_js[k], true);
@@ -7195,33 +4325,26 @@ es6_module_define('controller', ["./toolsys/toolprop.js", "./toolsys/toolpath.js
   for (let k in ___curve_curve1d_js) {
       _es6_module.add_export(k, ___curve_curve1d_js[k], true);
   }
-  var solver1=es6_import(_es6_module, './util/solver.js');
-  const solver=solver1;
-  _es6_module.add_export('solver', solver);
-  var util1=es6_import(_es6_module, './util/util.js');
-  const util=util1;
-  _es6_module.add_export('util', util);
-  var vectormath1=es6_import(_es6_module, './util/vectormath.js');
-  const vectormath=vectormath1;
-  _es6_module.add_export('vectormath', vectormath);
-  var math1=es6_import(_es6_module, './util/math.js');
-  const math=math1;
-  _es6_module.add_export('math', math);
-  var toolprop_abstract1=es6_import(_es6_module, './toolsys/toolprop_abstract.js');
-  const toolprop_abstract=toolprop_abstract1;
-  _es6_module.add_export('toolprop_abstract', toolprop_abstract);
-  var html5_fileapi1=es6_import(_es6_module, './util/html5_fileapi.js');
-  const html5_fileapi=html5_fileapi1;
-  _es6_module.add_export('html5_fileapi', html5_fileapi);
-  var parseutil1=es6_import(_es6_module, './util/parseutil.js');
-  const parseutil=parseutil1;
-  _es6_module.add_export('parseutil', parseutil);
-  var config1=es6_import(_es6_module, './config/config.js');
-  const config=config1;
-  _es6_module.add_export('config', config);
-  var nstructjs1=es6_import_item(_es6_module, './util/struct.js', 'default');
-  const nstructjs=nstructjs1;
-  _es6_module.add_export('nstructjs', nstructjs);
+  var solver=es6_import(_es6_module, './util/solver.js');
+  solver = _es6_module.add_export('solver', solver);
+  var util=es6_import(_es6_module, './util/util.js');
+  util = _es6_module.add_export('util', util);
+  var vectormath=es6_import(_es6_module, './util/vectormath.js');
+  vectormath = _es6_module.add_export('vectormath', vectormath);
+  var math=es6_import(_es6_module, './util/math.js');
+  math = _es6_module.add_export('math', math);
+  var toolprop_abstract=es6_import(_es6_module, './toolsys/toolprop_abstract.js');
+  toolprop_abstract = _es6_module.add_export('toolprop_abstract', toolprop_abstract);
+  var html5_fileapi=es6_import(_es6_module, './util/html5_fileapi.js');
+  html5_fileapi = _es6_module.add_export('html5_fileapi', html5_fileapi);
+  var parseutil=es6_import(_es6_module, './util/parseutil.js');
+  parseutil = _es6_module.add_export('parseutil', parseutil);
+  var config=es6_import(_es6_module, './config/config.js');
+  config = _es6_module.add_export('config', config);
+  var nstructjs=es6_import_item(_es6_module, './util/struct.js', 'default');
+  nstructjs = _es6_module.add_export('nstructjs', nstructjs);
+  var lzstring=es6_import_item(_es6_module, './extern/lz-string/lz-string.js', 'default');
+  lzstring = _es6_module.add_export('lzstring', lzstring);
   var ___util_vectormath_js=es6_import(_es6_module, './util/vectormath.js');
   for (let k in ___util_vectormath_js) {
       _es6_module.add_export(k, ___util_vectormath_js[k], true);
@@ -7246,12 +4369,14 @@ es6_module_define('controller', ["./toolsys/toolprop.js", "./toolsys/toolpath.js
   for (let k in ___util_simple_events_js) {
       _es6_module.add_export(k, ___util_simple_events_js[k], true);
   }
+  let _ex_binomial=es6_import_item(_es6_module, './curve/curve1d_bspline.js', 'binomial');
+  _es6_module.add_export('binomial', _ex_binomial, true);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller.js');
 
 
-es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../util/util.js", "../util/events.js", "./curve1d_base.js", "../util/vectormath.js", "./curve1d_anim.js", "../util/struct.js"], function _curve1d_module(_es6_module) {
+es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../util/struct.js", "./curve1d_base.js", "../util/vectormath.js", "../util/util.js", "../util/events.js", "./curve1d_anim.js"], function _curve1d_module(_es6_module) {
   "use strict";
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
   var EventDispatcher=es6_import_item(_es6_module, '../util/events.js', 'EventDispatcher');
@@ -7309,6 +4434,18 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
       }
       this.setGenerator("bspline");
     }
+    get  generatorType() {
+      return this.generators.active ? this.generators.active.type : undefined;
+    }
+    get  fastmode() {
+      return this._fastmode;
+    }
+    set  fastmode(val) {
+      this._fastmode = val;
+      for (let gen of this.generators) {
+          gen.fastmode = val;
+      }
+    }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
       for (let g of this.generators) {
@@ -7323,9 +4460,6 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
           return false;
       }
       return gen1.equals(gen2);
-    }
-    get  generatorType() {
-      return this.generators.active ? this.generators.active.type : undefined;
     }
      load(b) {
       if (b===undefined) {
@@ -7354,7 +4488,7 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
     }
      setGenerator(type) {
       for (let gen of this.generators) {
-          if (gen.constructor.define().name===type||gen.type===type||gen.constructor.name===type||gen.constructor===type) {
+          if (gen.constructor.define().name===type||gen.type===type||gen.constructor.define().typeName===type||gen.constructor===type) {
               if (this.generators.active) {
                   this.generators.active.onInactive();
               }
@@ -7364,15 +4498,6 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
           }
       }
       throw new Error("unknown curve type "+type);
-    }
-    get  fastmode() {
-      return this._fastmode;
-    }
-    set  fastmode(val) {
-      this._fastmode = val;
-      for (let gen of this.generators) {
-          gen.fastmode = val;
-      }
     }
      toJSON() {
       let ret={generators: [], 
@@ -7394,7 +4519,7 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
           }
       }
       for (let cls of CurveConstructors) {
-          if (cls.name===type) {
+          if (cls.define().typeName===type) {
               let gen=new cls();
               gen.type = type;
               this.generators.push(gen);
@@ -7465,8 +4590,7 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
       return this.generators.active.update();
     }
      draw(canvas, g, draw_transform) {
-      var w=canvas.width, h=canvas.height;
-      console.warn("draw");
+      let w=canvas.width, h=canvas.height;
       g.save();
       let sz=draw_transform[0], pan=draw_transform[1];
       g.beginPath();
@@ -7479,23 +4603,23 @@ es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../
       g.lineTo(0, 1);
       g.strokeStyle = "green";
       g.stroke();
-      var f=0, steps=64;
-      var df=1/(steps-1);
-      var w=6.0/sz;
+      let f=0, steps=64;
+      let df=1/(steps-1);
+      w = 6.0/sz;
       let curve=this.generators.active;
       g.beginPath();
-      for (var i=0; i<steps; i++, f+=df) {
-          var val=curve.evaluate(f);
-          (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
+      for (let i=0; i<steps; i++, f+=df) {
+          let val=curve.evaluate(f);
+          (i===0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
       }
       g.strokeStyle = "grey";
       g.stroke();
       if (this.overlay_curvefunc!==undefined) {
           g.beginPath();
           f = 0.0;
-          for (var i=0; i<steps; i++, f+=df) {
-              var val=this.overlay_curvefunc(f);
-              (i==0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
+          for (let i=0; i<steps; i++, f+=df) {
+              let val=this.overlay_curvefunc(f);
+              (i===0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
           }
           g.strokeStyle = "green";
           g.stroke();
@@ -7542,8 +4666,8 @@ Curve1D {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d.js');
 
 
-es6_module_define('curve1d_anim', ["../util/struct.js", "../util/util.js", "./curve1d_base.js", "./ease.js"], function _curve1d_anim_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+es6_module_define('curve1d_anim', ["../util/struct.js", "./curve1d_base.js", "./ease.js", "../util/util.js"], function _curve1d_anim_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
   var Ease=es6_import_item(_es6_module, './ease.js', 'default');
@@ -7587,6 +4711,9 @@ ParamKey {
           this.params[k] = params[k][1];
       }
     }
+    get  hasGUI() {
+      return true;
+    }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
       super.calcHashKey(d);
@@ -7610,9 +4737,6 @@ ParamKey {
      redraw() {
       if (this.parent)
         this.parent.redraw();
-    }
-    get  hasGUI() {
-      return true;
     }
      makeGUI(container) {
       let def=this.constructor.define();
@@ -7720,6 +4844,16 @@ ParamKey {
 `;
   nstructjs.register(SimpleCurveBase);
   class BounceCurve extends SimpleCurveBase {
+    static  define() {
+      return {params: {decay: ["Decay", 1.0, 0.1, 5.0], 
+      scale: ["Scale", 1.0, 0.01, 10.0], 
+      freq: ["Freq", 1.0, 0.01, 50.0], 
+      phase: ["Phase", 0.0, -Math.PI*2.0, Math.PI*2.0], 
+      offset: ["Offset", 0.0, -2.0, 2.0]}, 
+     name: "bounce", 
+     uiname: "Bounce", 
+     typeName: "BounceCurve"}
+    }
      _evaluate(t) {
       let params=this.params;
       let decay=params.decay+1.0;
@@ -7738,15 +4872,6 @@ ParamKey {
       let e=this._evaluate(1.0);
       return (this._evaluate(t)-s)/(e-s)+this.params.offset;
     }
-    static  define() {
-      return {params: {decay: ["Decay", 1.0, 0.1, 5.0], 
-      scale: ["Scale", 1.0, 0.01, 10.0], 
-      freq: ["Freq", 1.0, 0.01, 50.0], 
-      phase: ["Phase", 0.0, -Math.PI*2.0, Math.PI*2.0], 
-      offset: ["Offset", 0.0, -2.0, 2.0]}, 
-     name: "bounce", 
-     uiname: "Bounce"}
-    }
   }
   _ESClass.register(BounceCurve);
   _es6_module.add_class(BounceCurve);
@@ -7761,6 +4886,14 @@ ParamKey {
       this._func = undefined;
       this._last_hash = undefined;
     }
+    static  define() {
+      return {params: {mode: ["Out Mode", false, BOOL_FLAG, BOOL_FLAG], 
+      amplitude: ["Amplitude", 1.0, 0.01, 10.0], 
+      period: ["Period", 1.0, 0.01, 5.0]}, 
+     name: "elastic", 
+     uiname: "Elastic", 
+     typeName: "ElasticCurve"}
+    }
      evaluate(t) {
       let hash=~~(this.params.mode*127+this.params.amplitude*256+this.params.period*512);
       if (hash!==this._last_hash||!this._func) {
@@ -7774,13 +4907,6 @@ ParamKey {
       }
       return this._func(t);
     }
-    static  define() {
-      return {params: {mode: ["Out Mode", false, BOOL_FLAG, BOOL_FLAG], 
-      amplitude: ["Amplitude", 1.0, 0.01, 10.0], 
-      period: ["Period", 1.0, 0.01, 5.0]}, 
-     name: "elastic", 
-     uiname: "Elastic"}
-    }
   }
   _ESClass.register(ElasticCurve);
   _es6_module.add_class(ElasticCurve);
@@ -7793,18 +4919,19 @@ ParamKey {
      constructor() {
       super();
     }
-     evaluate(t) {
-      let amp=this.params.amplitude;
-      let a1=this.params.mode_in ? 1.0-amp : 1.0/3.0;
-      let a2=this.params.mode_out ? amp : 2.0/3.0;
-      return bez4(0.0, a1, a2, 1.0, t);
-    }
     static  define() {
       return {params: {mode_in: ["in", true, BOOL_FLAG, BOOL_FLAG], 
       mode_out: ["out", true, BOOL_FLAG, BOOL_FLAG], 
       amplitude: ["Amplitude", 1.0, 0.01, 4.0]}, 
      name: "ease", 
-     uiname: "Ease"}
+     uiname: "Ease", 
+     typeName: "EaseCurve"}
+    }
+     evaluate(t) {
+      let amp=this.params.amplitude;
+      let a1=this.params.mode_in ? 1.0-amp : 1.0/3.0;
+      let a2=this.params.mode_out ? amp : 2.0/3.0;
+      return bez4(0.0, a1, a2, 1.0, t);
     }
   }
   _ESClass.register(EaseCurve);
@@ -7820,12 +4947,20 @@ ParamKey {
       this.random = new util.MersenneRandom();
       this.seed = 0;
     }
+    get  seed() {
+      return this._seed;
+    }
     set  seed(v) {
       this.random.seed(v);
       this._seed = v;
     }
-    get  seed() {
-      return this._seed;
+    static  define() {
+      return {params: {amplitude: ["Amplitude", 1.0, 0.01, 4.0], 
+      decay: ["Decay", 1.0, 0.0, 5.0], 
+      in_mode: ["In", true, BOOL_FLAG, BOOL_FLAG]}, 
+     name: "random", 
+     uiname: "Random", 
+     typeName: "RandCurve"}
     }
      evaluate(t) {
       let r=this.random.random();
@@ -7848,13 +4983,6 @@ ParamKey {
       }
       return t;
     }
-    static  define() {
-      return {params: {amplitude: ["Amplitude", 1.0, 0.01, 4.0], 
-      decay: ["Decay", 1.0, 0.0, 5.0], 
-      in_mode: ["In", true, BOOL_FLAG, BOOL_FLAG]}, 
-     name: "random", 
-     uiname: "Random"}
-    }
   }
   _ESClass.register(RandCurve);
   _es6_module.add_class(RandCurve);
@@ -7867,7 +4995,7 @@ ParamKey {
 
 
 es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], function _curve1d_base_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
   const CurveConstructors=[];
   _es6_module.add_export('CurveConstructors', CurveConstructors);
@@ -7900,7 +5028,10 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
   let _udigest=new util.HashDigest();
   class CurveTypeData  {
      constructor() {
-      this.type = this.constructor.name;
+      this.type = this.constructor.define().typeName;
+    }
+    get  hasGUI() {
+      throw new Error("get hasGUI(): implement me!");
     }
     static  register(cls) {
       if (cls.define===CurveTypeData.define) {
@@ -7910,7 +5041,15 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
       if (!def.name) {
           throw new Error(cls.name+".define() result is missing 'name' field");
       }
+      if (!def.typeName) {
+          throw new Error(cls.name+".define() is missing .typeName, which should equal class name; needed for minificaiton");
+      }
       CurveConstructors.push(cls);
+    }
+    static  define() {
+      return {uiname: "Some Curve", 
+     name: "somecurve", 
+     typeName: CurveTypeData}
     }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
@@ -7930,9 +5069,6 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
      redraw() {
       if (this.parent)
         this.parent.redraw();
-    }
-    get  hasGUI() {
-      throw new Error("get hasGUI(): implement me!");
     }
      makeGUI(container) {
 
@@ -8002,10 +5138,6 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
           }
       }
       return ret===undefined ? 0.0 : ret;
-    }
-    static  define() {
-      return {uiname: "Some Curve", 
-     name: "somecurve"}
     }
      onActive(parent, draw_transform) {
 
@@ -8077,8 +5209,8 @@ CurveTypeData {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_base.js');
 
 
-es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../util/vectormath.js", "./curve1d_base.js"], function _curve1d_basic_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+es6_module_define('curve1d_basic', ["./curve1d_base.js", "../util/vectormath.js", "../util/util.js", "../util/struct.js"], function _curve1d_basic_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
   var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
@@ -8101,15 +5233,19 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       this._last_equation = "";
       this.hermite = undefined;
     }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+    static  define() {
+      return {uiname: "Equation", 
+     name: "equation", 
+     typeName: "EquationCurve"}
+    }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
       super.calcHashKey(d);
       d.add(this.equation);
       return d.get();
-    }
-    static  define() {
-      return {uiname: "Equation", 
-     name: "equation"}
     }
      equals(b) {
       return super.equals(b)&&this.equation===b.equation;
@@ -8125,20 +5261,19 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       }
       return this;
     }
-    get  hasGUI() {
-      return this.uidata!==undefined;
-    }
      makeGUI(container, canvas, drawTransform) {
       this.uidata = {canvas: canvas, 
      g: canvas.g, 
      draw_trans: drawTransform};
-      let text=this.uidata.textbox = container.textbox(undefined, this.equation);
+      let row=container.row();
+      let text=this.uidata.textbox = row.textbox(undefined, ""+this.equation);
       text.onchange = (val) =>        {
         console.log(val);
         this.equation = val;
         this.update();
         this.redraw();
       };
+      container.label("Equation");
     }
      killGUI(dom, gui, canvas, g, draw_transform) {
       if (this.uidata!==undefined) {
@@ -8281,6 +5416,14 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       this.offset = 1.0;
       this.deviation = 0.3;
     }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+    static  define() {
+      return {uiname: "Guassian", 
+     name: "guassian", 
+     typeName: "GuassianCurve"}
+    }
      calcHashKey(digest=_udigest.reset()) {
       super.calcHashKey(digest);
       let d=digest;
@@ -8296,10 +5439,6 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       r = r&&feq(this.deviation, b.deviation);
       return r;
     }
-    static  define() {
-      return {uiname: "Guassian", 
-     name: "guassian"}
-    }
      toJSON() {
       let ret=super.toJSON();
       return Object.assign(ret, {height: this.height, 
@@ -8312,9 +5451,6 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       this.offset = obj.offset;
       this.deviation = obj.deviation;
       return this;
-    }
-    get  hasGUI() {
-      return this.uidata!==undefined;
     }
      makeGUI(container, canvas, drawTransform) {
       this.uidata = {canvas: canvas, 
@@ -8418,9 +5554,9 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_basic.js');
 
 
-es6_module_define('curve1d_bspline', ["../config/config.js", "../util/vectormath.js", "./curve1d_base.js", "../util/struct.js", "../util/util.js"], function _curve1d_bspline_module(_es6_module) {
+es6_module_define('curve1d_bspline', ["../util/vectormath.js", "./curve1d_base.js", "../util/util.js", "../util/struct.js", "../config/config.js"], function _curve1d_bspline_module(_es6_module) {
   "use strict";
-  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'nstructjs');
+  var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var config=es6_import_item(_es6_module, '../config/config.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -8519,6 +5655,14 @@ es6_module_define('curve1d_bspline', ["../config/config.js", "../util/vectormath
     set  deg(v) {
       console.warn("old file data detected");
     }
+    static  fromJSON(obj) {
+      let ret=new Curve1DPoint(obj);
+      ret.eid = obj.eid;
+      ret.flag = obj.flag;
+      ret.tangent = obj.tangent;
+      ret.rco.load(obj.rco);
+      return ret;
+    }
      copy() {
       let ret=new Curve1DPoint(this);
       ret.tangent = this.tangent;
@@ -8536,14 +5680,6 @@ es6_module_define('curve1d_bspline', ["../config/config.js", "../util/vectormath
      flag: this.flag, 
      tangent: this.tangent, 
      rco: this.rco}
-    }
-    static  fromJSON(obj) {
-      let ret=new Curve1DPoint(obj);
-      ret.eid = obj.eid;
-      ret.flag = obj.flag;
-      ret.tangent = obj.tangent;
-      ret.rco.load(obj.rco);
-      return ret;
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -8657,6 +5793,14 @@ Curve1DPoint {
       this.on_touchend = this.on_touchend.bind(this);
       this.on_touchcancel = this.on_touchcancel.bind(this);
     }
+    get  hasGUI() {
+      return this.uidata!==undefined;
+    }
+    static  define() {
+      return {uiname: "B-Spline", 
+     name: "bspline", 
+     typeName: "BSplineCurve"}
+    }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
       super.calcHashKey(d);
@@ -8712,10 +5856,6 @@ Curve1DPoint {
           }
       }
       return true;
-    }
-    static  define() {
-      return {uiname: "B-Spline", 
-     name: "bspline"}
     }
      remove(p) {
       let ret=this.points.remove(p);
@@ -9080,9 +6220,6 @@ Curve1DPoint {
       ret[0] = sumx;
       ret[1] = sumy;
       return ret;
-    }
-    get  hasGUI() {
-      return this.uidata!==undefined;
     }
      _wrapTouchEvent(e) {
       return {x: e.touches.length ? e.touches[0].pageX : this.mpos[0], 
@@ -9466,11 +6603,11 @@ Curve1DPoint {
         let g=canvas.getContext("2d");
         let steps=64;
         curve.update();
-        let scale=0.75;
-        g.strokeStyle = "orange";
-        g.lineWidth = 4.0*dpi/(size*scale);
+        let scale=0.5;
+        g.translate(-0.5, -0.5);
         g.scale(size*scale, size*scale);
-        let m=0.05;
+        g.translate(0.5, 0.5);
+        let m=0.0;
         let tent=(f) =>          {
           return 1.0-Math.abs(Math.fract(f)-0.5)*2.0;
         };
@@ -9486,6 +6623,13 @@ Curve1DPoint {
               g.lineTo(s, f);
             }
         }
+        const ls=7.0;
+        g.lineCap = "round";
+        g.strokeStyle = "black";
+        g.lineWidth = ls*3*dpi/(size*scale);
+        g.stroke();
+        g.strokeStyle = "white";
+        g.lineWidth = ls*dpi/(size*scale);
         g.stroke();
         let url=canvas.toDataURL();
         let img=document.createElement("img");
@@ -9494,7 +6638,12 @@ Curve1DPoint {
         SplineTemplateIcons[SplineTemplates[k]] = img;
     }
   }
+  let splineTemplatesLoaded=false;
   function initSplineTemplates() {
+    if (splineTemplatesLoaded) {
+        return ;
+    }
+    splineTemplatesLoaded = true;
     for (let k in SplineTemplates) {
         let curve=new BSplineCurve();
         curve.loadTemplate(SplineTemplates[k]);
@@ -9512,7 +6661,7 @@ Curve1DPoint {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_bspline.js');
 
 
-es6_module_define('curve1d_utils', ["./curve1d_base.js", "../toolsys/toolprop.js"], function _curve1d_utils_module(_es6_module) {
+es6_module_define('curve1d_utils', ["../toolsys/toolprop.js", "./curve1d_base.js"], function _curve1d_utils_module(_es6_module) {
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
   function makeGenEnum() {
@@ -9538,7 +6687,7 @@ es6_module_define('ease', [], function _ease_module(_es6_module) {
     throw "Ease cannot be instantiated.";
   }
   Ease;
-  Ease = _es6_module.set_default_export('Ease', Ease);
+  _es6_module.set_default_export('Ease', Ease);
   
   Ease.linear = function (t) {
     return t;
@@ -9689,7 +6838,507 @@ es6_module_define('ease', [], function _ease_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/ease.js');
 
 
-es6_module_define('toolpath', ["../util/util.js", "../controller/controller_base.js", "../util/parseutil.js", "./toolsys.js"], function _toolpath_module(_es6_module) {
+es6_module_define('lz-string', [], function _lz_string_module(_es6_module) {
+  let f=String.fromCharCode;
+  let keyStrBase64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+  let keyStrUriSafe="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+  let baseReverseDic={}
+  function getBaseValue(alphabet, character) {
+    if (!baseReverseDic[alphabet]) {
+        baseReverseDic[alphabet] = {};
+        for (let i=0; i<alphabet.length; i++) {
+            baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+        }
+    }
+    return baseReverseDic[alphabet][character];
+  }
+  function getInput(input) {
+    if (input===null) {
+        return '';
+    }
+    else 
+      if (input==='') {
+        return null;
+    }
+    if (typeof input==="string") {
+        return input;
+    }
+    if (__instance_of(input, ArrayBuffer)) {
+        input = new Uint8Array(input);
+    }
+    let s='';
+    for (let i=0; i<input.length; i++) {
+        s+=String.fromCharCode(input[i]);
+    }
+    return s;
+  }
+  _es6_module.set_default_export(undefined, {compressToBase64: function (input) {
+      input = getInput(input);
+      if (!input)
+        return "";
+      let res=this._compress(input, 6, function (a) {
+        return keyStrBase64.charAt(a);
+      });
+      switch (res.length%4) {
+        default:
+        case 0:
+          return res;
+        case 1:
+          return res+"===";
+        case 2:
+          return res+"==";
+        case 3:
+          return res+"=";
+      }
+    }, 
+   decompressFromBase64: function (input) {
+      if (input===null)
+        return "";
+      if (input==="")
+        return null;
+      input = getInput(input);
+      return this._decompress(input.length, 32, function (index) {
+        return getBaseValue(keyStrBase64, input.charAt(index));
+      });
+    }, 
+   compressToUTF16: function (input) {
+      if (input===null)
+        return "";
+      input = getInput(input);
+      return this._compress(input, 15, function (a) {
+        return f(a+32);
+      })+" ";
+    }, 
+   decompressFromUTF16: function (compressed) {
+      if (compressed===null)
+        return "";
+      if (compressed==="")
+        return null;
+      compressed = getInput(compressed);
+      return this._decompress(compressed.length, 16384, function (index) {
+        return compressed.charCodeAt(index)-32;
+      });
+    }, 
+   compressToUint8Array: function (uncompressed) {
+      uncompressed = getInput(uncompressed);
+      let compressed=this.compress(uncompressed);
+      let buf=new Uint8Array(compressed.length*2);
+      for (let i=0, TotalLen = compressed.length; i<TotalLen; i++) {
+          let current_value=compressed.charCodeAt(i);
+          buf[i*2] = current_value>>>8;
+          buf[i*2+1] = current_value%256;
+      }
+      return buf;
+    }, 
+   decompressFromUint8Array: function (compressed) {
+      if (compressed===null||compressed===undefined) {
+          return this.decompress(compressed);
+      }
+      else {
+        compressed = getInput(compressed);
+        let buf=new Array(compressed.length/2);
+        for (let i=0, TotalLen = buf.length; i<TotalLen; i++) {
+            buf[i] = compressed[i*2]*256+compressed[i*2+1];
+        }
+        let result=[];
+        buf.forEach(function (c) {
+          result.push(f(c));
+        });
+        return this.decompress(result.join(''));
+      }
+    }, 
+   compressToEncodedURIComponent: function (input) {
+      if (input===null)
+        return "";
+      return this._compress(input, 6, function (a) {
+        return keyStrUriSafe.charAt(a);
+      });
+    }, 
+   decompressFromEncodedURIComponent: function (input) {
+      if (input===null)
+        return "";
+      if (input==="")
+        return null;
+      input = input.replace(/ /g, "+");
+      return this._decompress(input.length, 32, function (index) {
+        return getBaseValue(keyStrUriSafe, input.charAt(index));
+      });
+    }, 
+   compress: function (uncompressed) {
+      return this._compress(uncompressed, 16, function (a) {
+        return f(a);
+      });
+    }, 
+   _compress: function (uncompressed, bitsPerChar, getCharFromInt) {
+      uncompressed = getInput(uncompressed);
+      if (uncompressed===null)
+        return "";
+      let i, value, context_dictionary={}, context_dictionaryToCreate={}, context_c="", context_wc="", context_w="", context_enlargeIn=2, context_dictSize=3, context_numBits=2, context_data=[], context_data_val=0, context_data_position=0, ii;
+      for (ii = 0; ii<uncompressed.length; ii+=1) {
+          context_c = uncompressed.charAt(ii);
+          if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+              context_dictionary[context_c] = context_dictSize++;
+              context_dictionaryToCreate[context_c] = true;
+          }
+          context_wc = context_w+context_c;
+          if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+              context_w = context_wc;
+          }
+          else {
+            if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                if (context_w.charCodeAt(0)<256) {
+                    for (i = 0; i<context_numBits; i++) {
+                        context_data_val = (context_data_val<<1);
+                        if (context_data_position===bitsPerChar-1) {
+                            context_data_position = 0;
+                            context_data.push(getCharFromInt(context_data_val));
+                            context_data_val = 0;
+                        }
+                        else {
+                          context_data_position++;
+                        }
+                    }
+                    value = context_w.charCodeAt(0);
+                    for (i = 0; i<8; i++) {
+                        context_data_val = (context_data_val<<1)|(value&1);
+                        if (context_data_position===bitsPerChar-1) {
+                            context_data_position = 0;
+                            context_data.push(getCharFromInt(context_data_val));
+                            context_data_val = 0;
+                        }
+                        else {
+                          context_data_position++;
+                        }
+                        value = value>>1;
+                    }
+                }
+                else {
+                  value = 1;
+                  for (i = 0; i<context_numBits; i++) {
+                      context_data_val = (context_data_val<<1)|value;
+                      if (context_data_position==bitsPerChar-1) {
+                          context_data_position = 0;
+                          context_data.push(getCharFromInt(context_data_val));
+                          context_data_val = 0;
+                      }
+                      else {
+                        context_data_position++;
+                      }
+                      value = 0;
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i<16; i++) {
+                      context_data_val = (context_data_val<<1)|(value&1);
+                      if (context_data_position===bitsPerChar-1) {
+                          context_data_position = 0;
+                          context_data.push(getCharFromInt(context_data_val));
+                          context_data_val = 0;
+                      }
+                      else {
+                        context_data_position++;
+                      }
+                      value = value>>1;
+                  }
+                }
+                context_enlargeIn--;
+                if (context_enlargeIn===0) {
+                    context_enlargeIn = Math.pow(2, context_numBits);
+                    context_numBits++;
+                }
+                delete context_dictionaryToCreate[context_w];
+            }
+            else {
+              value = context_dictionary[context_w];
+              for (i = 0; i<context_numBits; i++) {
+                  context_data_val = (context_data_val<<1)|(value&1);
+                  if (context_data_position===bitsPerChar-1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                  }
+                  else {
+                    context_data_position++;
+                  }
+                  value = value>>1;
+              }
+            }
+            context_enlargeIn--;
+            if (context_enlargeIn===0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+            }
+            context_dictionary[context_wc] = context_dictSize++;
+            context_w = String(context_c);
+          }
+      }
+      if (context_w!=="") {
+          if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+              if (context_w.charCodeAt(0)<256) {
+                  for (i = 0; i<context_numBits; i++) {
+                      context_data_val = (context_data_val<<1);
+                      if (context_data_position===bitsPerChar-1) {
+                          context_data_position = 0;
+                          context_data.push(getCharFromInt(context_data_val));
+                          context_data_val = 0;
+                      }
+                      else {
+                        context_data_position++;
+                      }
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i<8; i++) {
+                      context_data_val = (context_data_val<<1)|(value&1);
+                      if (context_data_position===bitsPerChar-1) {
+                          context_data_position = 0;
+                          context_data.push(getCharFromInt(context_data_val));
+                          context_data_val = 0;
+                      }
+                      else {
+                        context_data_position++;
+                      }
+                      value = value>>1;
+                  }
+              }
+              else {
+                value = 1;
+                for (i = 0; i<context_numBits; i++) {
+                    context_data_val = (context_data_val<<1)|value;
+                    if (context_data_position===bitsPerChar-1) {
+                        context_data_position = 0;
+                        context_data.push(getCharFromInt(context_data_val));
+                        context_data_val = 0;
+                    }
+                    else {
+                      context_data_position++;
+                    }
+                    value = 0;
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i<16; i++) {
+                    context_data_val = (context_data_val<<1)|(value&1);
+                    if (context_data_position===bitsPerChar-1) {
+                        context_data_position = 0;
+                        context_data.push(getCharFromInt(context_data_val));
+                        context_data_val = 0;
+                    }
+                    else {
+                      context_data_position++;
+                    }
+                    value = value>>1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn===0) {
+                  context_enlargeIn = Math.pow(2, context_numBits);
+                  context_numBits++;
+              }
+              delete context_dictionaryToCreate[context_w];
+          }
+          else {
+            value = context_dictionary[context_w];
+            for (i = 0; i<context_numBits; i++) {
+                context_data_val = (context_data_val<<1)|(value&1);
+                if (context_data_position===bitsPerChar-1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                }
+                else {
+                  context_data_position++;
+                }
+                value = value>>1;
+            }
+          }
+          context_enlargeIn--;
+          if (context_enlargeIn===0) {
+              context_enlargeIn = Math.pow(2, context_numBits);
+              context_numBits++;
+          }
+      }
+      value = 2;
+      for (i = 0; i<context_numBits; i++) {
+          context_data_val = (context_data_val<<1)|(value&1);
+          if (context_data_position===bitsPerChar-1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+          }
+          else {
+            context_data_position++;
+          }
+          value = value>>1;
+      }
+      while (true) {
+        context_data_val = (context_data_val<<1);
+        if (context_data_position===bitsPerChar-1) {
+            context_data.push(getCharFromInt(context_data_val));
+            break;
+        }
+        else 
+          context_data_position++;
+      }
+      return context_data.join('');
+    }, 
+   decompress: function (compressed) {
+      if (compressed===null)
+        return "";
+      if (compressed==="")
+        return null;
+      compressed = getInput(compressed);
+      return this._decompress(compressed.length, 32768, function (index) {
+        return compressed.charCodeAt(index);
+      });
+    }, 
+   _decompress: function (length, resetValue, getNextValue) {
+      let dictionary=[], next, enlargeIn=4, dictSize=4, numBits=3, entry="", result=[], i, w, bits, resb, maxpower, power, c, data={val: getNextValue(0), 
+     position: resetValue, 
+     index: 1}
+      for (i = 0; i<3; i+=1) {
+          dictionary[i] = i;
+      }
+      bits = 0;
+      maxpower = Math.pow(2, 2);
+      power = 1;
+      while (power!==maxpower) {
+        resb = data.val&data.position;
+        data.position>>=1;
+        if (data.position===0) {
+            data.position = resetValue;
+            data.val = getNextValue(data.index++);
+        }
+        bits|=(resb>0 ? 1 : 0)*power;
+        power<<=1;
+      }
+      switch (next = bits) {
+        case 0:
+          bits = 0;
+          maxpower = Math.pow(2, 8);
+          power = 1;
+          while (power!==maxpower) {
+            resb = data.val&data.position;
+            data.position>>=1;
+            if (data.position===0) {
+                data.position = resetValue;
+                data.val = getNextValue(data.index++);
+            }
+            bits|=(resb>0 ? 1 : 0)*power;
+            power<<=1;
+          }
+          c = f(bits);
+          break;
+        case 1:
+          bits = 0;
+          maxpower = Math.pow(2, 16);
+          power = 1;
+          while (power!==maxpower) {
+            resb = data.val&data.position;
+            data.position>>=1;
+            if (data.position===0) {
+                data.position = resetValue;
+                data.val = getNextValue(data.index++);
+            }
+            bits|=(resb>0 ? 1 : 0)*power;
+            power<<=1;
+          }
+          c = f(bits);
+          break;
+        case 2:
+          return "";
+      }
+      dictionary[3] = c;
+      w = c;
+      result.push(c);
+      while (true) {
+        if (data.index>length) {
+            return "";
+        }
+        bits = 0;
+        maxpower = Math.pow(2, numBits);
+        power = 1;
+        while (power!==maxpower) {
+          resb = data.val&data.position;
+          data.position>>=1;
+          if (data.position===0) {
+              data.position = resetValue;
+              data.val = getNextValue(data.index++);
+          }
+          bits|=(resb>0 ? 1 : 0)*power;
+          power<<=1;
+        }
+        switch (c = bits) {
+          case 0:
+            bits = 0;
+            maxpower = Math.pow(2, 8);
+            power = 1;
+            while (power!==maxpower) {
+              resb = data.val&data.position;
+              data.position>>=1;
+              if (data.position===0) {
+                  data.position = resetValue;
+                  data.val = getNextValue(data.index++);
+              }
+              bits|=(resb>0 ? 1 : 0)*power;
+              power<<=1;
+            }
+            dictionary[dictSize++] = f(bits);
+            c = dictSize-1;
+            enlargeIn--;
+            break;
+          case 1:
+            bits = 0;
+            maxpower = Math.pow(2, 16);
+            power = 1;
+            while (power!==maxpower) {
+              resb = data.val&data.position;
+              data.position>>=1;
+              if (data.position===0) {
+                  data.position = resetValue;
+                  data.val = getNextValue(data.index++);
+              }
+              bits|=(resb>0 ? 1 : 0)*power;
+              power<<=1;
+            }
+            dictionary[dictSize++] = f(bits);
+            c = dictSize-1;
+            enlargeIn--;
+            break;
+          case 2:
+            return result.join('');
+        }
+        if (enlargeIn===0) {
+            enlargeIn = Math.pow(2, numBits);
+            numBits++;
+        }
+        if (dictionary[c]) {
+            entry = dictionary[c];
+        }
+        else {
+          if (c===dictSize) {
+              entry = w+w.charAt(0);
+          }
+          else {
+            return null;
+          }
+        }
+        result.push(entry);
+        dictionary[dictSize++] = w+entry.charAt(0);
+        enlargeIn--;
+        w = entry;
+        if (enlargeIn===0) {
+            enlargeIn = Math.pow(2, numBits);
+            numBits++;
+        }
+      }
+    }});
+  
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/extern/lz-string/lz-string.js');
+
+
+es6_module_define('test', [], function _test_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/extern/lz-string/test.js');
+
+
+es6_module_define('toolpath', ["./toolsys.js", "../util/util.js", "../util/parseutil.js", "../controller/controller_base.js"], function _toolpath_module(_es6_module) {
   var ToolClasses=es6_import_item(_es6_module, './toolsys.js', 'ToolClasses');
   var ToolOp=es6_import_item(_es6_module, './toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, './toolsys.js', 'ToolFlags');
@@ -9723,7 +7372,7 @@ es6_module_define('toolpath', ["../util/util.js", "../controller/controller_base
     }), t('NUMBER', /-?[0-9]+/, (t) =>      {
       t.value = parseInt(t.value);
       return t;
-    }), t('NUMBER', /[0-9]+\.[0-9]*/, (t) =>      {
+    }), t('NUMBER', /-?[0-9]+\.[0-9]*/, (t) =>      {
       t.value = parseFloat(t.value);
       return t;
     }), t('WS', /[ \n\r\t]/, (t) =>      {
@@ -9808,7 +7457,7 @@ es6_module_define('toolpath', ["../util/util.js", "../controller/controller_base
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolpath.js');
 
 
-es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../util/vectormath.js", "../util/util.js", "./toolprop_abstract.js"], function _toolprop_module(_es6_module) {
+es6_module_define('toolprop', ["../util/struct.js", "../../core/units.js", "../curve/curve1d.js", "../util/util.js", "../util/vectormath.js", "./toolprop_abstract.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -9823,6 +7472,16 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
   _es6_module.add_export('PropTypes', _ex_PropTypes, true);
   let _ex_PropFlags=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropFlags');
   _es6_module.add_export('PropFlags', _ex_PropFlags, true);
+  const NumberConstraintsBase=new Set(['range', 'expRate', 'step', 'uiRange', 'baseUnit', 'displayUnit', 'stepIsRelative', 'slideSpeed']);
+  _es6_module.add_export('NumberConstraintsBase', NumberConstraintsBase);
+  const IntegerConstraints=new Set(['radix'].concat(util.list(NumberConstraintsBase)));
+  _es6_module.add_export('IntegerConstraints', IntegerConstraints);
+  const FloatConstrinats=new Set(['decimalPlaces'].concat(util.list(NumberConstraintsBase)));
+  _es6_module.add_export('FloatConstrinats', FloatConstrinats);
+  const NumberConstraints=new Set(util.list(IntegerConstraints).concat(util.list(FloatConstrinats)));
+  _es6_module.add_export('NumberConstraints', NumberConstraints);
+  const PropSubTypes={COLOR: 1}
+  _es6_module.add_export('PropSubTypes', PropSubTypes);
   let first=(iter) =>    {
     if (iter===undefined) {
         return undefined;
@@ -9843,15 +7502,10 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
     }
   }
   setPropTypes = _es6_module.add_export('setPropTypes', setPropTypes);
-  const PropSubTypes={COLOR: 1}
-  _es6_module.add_export('PropSubTypes', PropSubTypes);
   let customPropertyTypes=[];
   customPropertyTypes = _es6_module.add_export('customPropertyTypes', customPropertyTypes);
   let PropClasses={}
   PropClasses = _es6_module.add_export('PropClasses', PropClasses);
-  function _addClass(cls) {
-    PropClasses[new cls().type] = cls;
-  }
   let customPropTypeBase=17;
   let wordmap={sel: "select", 
    unsel: "deselect", 
@@ -9870,7 +7524,7 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
   _ESClass.register(OnceTag);
   _es6_module.add_class(OnceTag);
   class ToolProperty extends ToolPropertyIF {
-     constructor(type, subtype, apiname, uiname, description, flag, icon) {
+     constructor(type, subtype, apiname, uiname="", description="", flag=0, icon=-1) {
       super();
       this.data = undefined;
       if (type===undefined) {
@@ -9890,32 +7544,17 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
       this.step = 0.05;
       this.callbacks = {};
     }
+    static  internalRegister(cls) {
+      PropClasses[new cls().type] = cls;
+    }
+    static  getClass(type) {
+      return PropClasses[type];
+    }
     static  setDefaultRadix(n) {
       defaultRadix = n;
     }
     static  setDefaultDecimalPlaces(n) {
       defaultDecimalPlaces = n;
-    }
-     setDescription(s) {
-      this.description = s;
-      return this;
-    }
-     setUIName(s) {
-      this.uiname = s;
-      return this;
-    }
-     calcMemSize() {
-      function strlen(s) {
-        return s!==undefined ? s.length+8 : 8;
-      }
-      let tot=0;
-      tot+=strlen(this.apiname)+strlen(this.uiname);
-      tot+=strlen(this.description);
-      tot+=11*8;
-      for (let k in this.callbacks) {
-          tot+=24;
-      }
-      return tot;
     }
     static  makeUIName(name) {
       let parts=[""];
@@ -9961,9 +7600,6 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
       }).join(" ").trim();
       return parts;
     }
-     equals(b) {
-      throw new Error("implement me");
-    }
     static  register(cls) {
       cls.PROP_TYPE_ID = (1<<customPropTypeBase);
       PropTypes[cls.name] = cls.PROP_TYPE_ID;
@@ -9971,6 +7607,36 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
       customPropertyTypes.push(cls);
       PropClasses[new cls().type] = cls;
       return cls.PROP_TYPE_ID;
+    }
+    static  calcRelativeStep(step, value, logBase=1.5) {
+      value = Math.log(Math.abs(value)+1.0)/Math.log(logBase);
+      value = Math.max(value, step);
+      this.report(util.termColor("STEP", "red"), value);
+      return value;
+    }
+     setDescription(s) {
+      this.description = s;
+      return this;
+    }
+     setUIName(s) {
+      this.uiname = s;
+      return this;
+    }
+     calcMemSize() {
+      function strlen(s) {
+        return s!==undefined ? s.length+8 : 8;
+      }
+      let tot=0;
+      tot+=strlen(this.apiname)+strlen(this.uiname);
+      tot+=strlen(this.description);
+      tot+=11*8;
+      for (let k in this.callbacks) {
+          tot+=24;
+      }
+      return tot;
+    }
+     equals(b) {
+      throw new Error("implement me");
     }
      private() {
       this.flag|=PropFlags.PRIVATE;
@@ -10093,12 +7759,6 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
       this.step = step;
       return this;
     }
-    static  calcRelativeStep(step, value, logBase=1.5) {
-      value = Math.log(Math.abs(value)+1.0)/Math.log(logBase);
-      value = Math.max(value, step);
-      this.report(util.termColor("STEP", "red"), value);
-      return value;
-    }
      getStep(value=1.0) {
       if (this.stepIsRelative) {
           return ToolProperty.calcRelativeStep(this.step, value);
@@ -10151,6 +7811,15 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
     }
      loadSTRUCT(reader) {
       reader(this);
+      if (this.uiRange[0]===-1e+17&&this.uiRange[1]===1e+17) {
+          this.uiRange = undefined;
+      }
+      if (this.baseUnit==="undefined") {
+          this.baseUnit = undefined;
+      }
+      if (this.displayUnit==="undefined") {
+          this.displayUnit = undefined;
+      }
     }
   }
   _ESClass.register(ToolProperty);
@@ -10158,6 +7827,7 @@ es6_module_define('toolprop', ["../util/struct.js", "../curve/curve1d.js", "../u
   ToolProperty = _es6_module.add_export('ToolProperty', ToolProperty);
   ToolProperty.STRUCT = `
 ToolProperty { 
+  apiname        : string | ""+this.apiname;
   type           : int;
   flag           : int;
   subtype        : int;
@@ -10166,13 +7836,14 @@ ToolProperty {
   baseUnit       : string | ""+this.baseUnit;
   displayUnit    : string | ""+this.displayUnit;
   range          : array(float) | this.range ? this.range : [-1e17, 1e17];
-  uiRange        : array(float) | this.range ? this.range : [-1e17, 1e17];
+  uiRange        : array(float) | this.uiRange ? this.uiRange : [-1e17, 1e17];
   description    : string;
   stepIsRelative : bool;
   step           : float;
   expRate        : float;
   radix          : float;
   decimalPlaces  : int;
+  uiname         : string | this.uiname || this.apiname || "";
 }
 `;
   nstructjs.register(ToolProperty);
@@ -10264,29 +7935,9 @@ ToolProperty {
 }
 `;
   nstructjs.register(StringProperty);
-  _addClass(StringProperty);
-  let num_res=[/([0-9]+)/, /((0x)?[0-9a-fA-F]+(h?))/, /([0-9]+\.[0-9]*)/, /([0-9]*\.[0-9]+)/, /(\.[0-9]+)/];
-  function isNumber(f) {
-    if (f==="NaN"||(typeof f=="number"&&isNaN(f))) {
-        return false;
-    }
-    f = (""+f).trim();
-    let ok=false;
-    for (let re of num_res) {
-        let ret=f.match(re);
-        if (!ret) {
-            ok = false;
-            continue;
-        }
-        ok = ret[0].length===f.length;
-        if (ok) {
-            break;
-        }
-    }
-    return ok;
-  }
-  isNumber = _es6_module.add_export('isNumber', isNumber);
-  window.isNumber = isNumber;
+  ToolProperty.internalRegister(StringProperty);
+  let _ex_isNumber=es6_import_item(_es6_module, '../../core/units.js', 'isNumber');
+  _es6_module.add_export('isNumber', _ex_isNumber, true);
   class NumProperty extends ToolProperty {
      constructor(type, value, apiname, uiname, description, flag, icon) {
       super(type, undefined, apiname, uiname, description, flag, icon);
@@ -10312,10 +7963,12 @@ ToolProperty {
 `;
   class _NumberPropertyBase extends ToolProperty {
      constructor(type, value, apiname, uiname, description, flag, icon) {
-      super(type, undefined, apiname, uiname, description, flag, icon);
+      super(type, null, apiname, uiname, description, flag, icon);
       this.data = 0.0;
+      this.slideSpeed = 1.0;
       this.expRate = 1.33;
       this.step = 0.1;
+      this.stepIsRelative = false;
       this.range = [-1e+17, 1e+17];
       this.uiRange = undefined;
       if (value!==undefined&&value!==null) {
@@ -10323,15 +7976,19 @@ ToolProperty {
           this.wasSet = false;
       }
     }
+    get  ui_range() {
+      this.report("NumberProperty.ui_range is deprecated");
+      return this.uiRange;
+    }
+    set  ui_range(val) {
+      this.report("NumberProperty.ui_range is deprecated");
+      this.uiRange = val;
+    }
      calcMemSize() {
       return super.calcMemSize()+8*8;
     }
      equals(b) {
       return this.data===b.data;
-    }
-    get  ui_range() {
-      this.report("NumberProperty.ui_range is deprecated");
-      return this.uiRange;
     }
      toJSON() {
       let json=super.toJSON();
@@ -10345,19 +8002,20 @@ ToolProperty {
       this.expRate = obj.expRate||this.expRate;
       return this;
     }
-    set  ui_range(val) {
-      this.report("NumberProperty.ui_range is deprecated");
-      this.uiRange = val;
-    }
      copyTo(b) {
       super.copyTo(b);
       b.displayUnit = this.displayUnit;
       b.baseUnit = this.baseUnit;
       b.expRate = this.expRate;
       b.step = this.step;
-      b.range = this.range;
-      b.uiRange = this.uiRange;
+      b.range = this.range ? [this.range[0], this.range[1]] : undefined;
+      b.uiRange = this.uiRange ? [this.uiRange[0], this.uiRange[1]] : undefined;
+      b.slideSpeed = this.slideSpeed;
       b.data = this.data;
+    }
+     setSlideSpeed(f) {
+      this.slideSpeed = f;
+      return this;
     }
      setExpRate(exp) {
       this.expRate = exp;
@@ -10392,10 +8050,11 @@ ToolProperty {
   _NumberPropertyBase = _es6_module.add_export('_NumberPropertyBase', _NumberPropertyBase);
   
   _NumberPropertyBase.STRUCT = nstructjs.inherit(_NumberPropertyBase, ToolProperty)+`
-  range    : array(float);
-  expRate  : float;
-  data     : float;
-  step     : float;
+  range      : array(float);
+  expRate    : float;
+  data       : float;
+  step       : float;
+  slideSpeed : float;
 }
 `;
   nstructjs.register(_NumberPropertyBase);
@@ -10435,7 +8094,7 @@ ToolProperty {
   data : int;
 }`;
   nstructjs.register(IntProperty);
-  _addClass(IntProperty);
+  ToolProperty.internalRegister(IntProperty);
   class ReportProperty extends StringProperty {
      constructor(value, apiname, uiname, description, flag, icon) {
       super(value, apiname, uiname, description, flag, icon);
@@ -10449,7 +8108,7 @@ ToolProperty {
 }
 `;
   nstructjs.register(ReportProperty);
-  _addClass(ReportProperty);
+  ToolProperty.internalRegister(ReportProperty);
   class BoolProperty extends ToolProperty {
      constructor(value, apiname, uiname, description, flag, icon) {
       super(PropTypes.BOOL, undefined, apiname, uiname, description, flag, icon);
@@ -10483,7 +8142,7 @@ ToolProperty {
   _ESClass.register(BoolProperty);
   _es6_module.add_class(BoolProperty);
   BoolProperty = _es6_module.add_export('BoolProperty', BoolProperty);
-  _addClass(BoolProperty);
+  ToolProperty.internalRegister(BoolProperty);
   BoolProperty.STRUCT = nstructjs.inherit(BoolProperty, ToolProperty)+`
   data : bool;
 }
@@ -10528,7 +8187,7 @@ ToolProperty {
   _ESClass.register(FloatProperty);
   _es6_module.add_class(FloatProperty);
   FloatProperty = _es6_module.add_export('FloatProperty', FloatProperty);
-  _addClass(FloatProperty);
+  ToolProperty.internalRegister(FloatProperty);
   FloatProperty.STRUCT = nstructjs.inherit(FloatProperty, _NumberPropertyBase)+`
   decimalPlaces : int;
   data          : float;
@@ -10777,7 +8436,7 @@ EnumKeyPair {
   _ESClass.register(EnumProperty);
   _es6_module.add_class(EnumProperty);
   EnumProperty = _es6_module.add_export('EnumProperty', EnumProperty);
-  _addClass(EnumProperty);
+  ToolProperty.internalRegister(EnumProperty);
   EnumProperty.STRUCT = nstructjs.inherit(EnumProperty, ToolProperty)+`
   data            : string             | ""+this.data;
   data_is_int     : bool               | this._is_data_int();
@@ -10805,7 +8464,7 @@ EnumKeyPair {
   _ESClass.register(FlagProperty);
   _es6_module.add_class(FlagProperty);
   FlagProperty = _es6_module.add_export('FlagProperty', FlagProperty);
-  _addClass(FlagProperty);
+  ToolProperty.internalRegister(FlagProperty);
   FlagProperty.STRUCT = nstructjs.inherit(FlagProperty, EnumProperty)+`
 }
 `;
@@ -10834,7 +8493,7 @@ EnumKeyPair {
   _es6_module.add_class(VecPropertyBase);
   VecPropertyBase = _es6_module.add_export('VecPropertyBase', VecPropertyBase);
   VecPropertyBase.STRUCT = nstructjs.inherit(VecPropertyBase, FloatProperty)+`
-  hasUniformSlider : bool;
+  hasUniformSlider : bool | this.hasUniformSlider || false;
 }
 `;
   class Vec2Property extends FloatProperty {
@@ -10866,12 +8525,16 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(Vec2Property);
-  _addClass(Vec2Property);
+  ToolProperty.internalRegister(Vec2Property);
   class Vec3Property extends VecPropertyBase {
      constructor(data, apiname, uiname, description) {
       super(undefined, apiname, uiname, description);
       this.type = PropTypes.VEC3;
       this.data = new Vector3(data);
+    }
+     isColor() {
+      this.subtype = PropSubTypes.COLOR;
+      return this;
     }
      setValue(v) {
       this.data.load(v);
@@ -10896,7 +8559,7 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(Vec3Property);
-  _addClass(Vec3Property);
+  ToolProperty.internalRegister(Vec3Property);
   class Vec4Property extends FloatProperty {
      constructor(data, apiname, uiname, description) {
       super(undefined, apiname, uiname, description);
@@ -10912,6 +8575,10 @@ EnumKeyPair {
       if (v.length<4) {
           this.data[3] = w;
       }
+      return this;
+    }
+     isColor() {
+      this.subtype = PropSubTypes.COLOR;
       return this;
     }
      getValue() {
@@ -10932,7 +8599,7 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(Vec4Property);
-  _addClass(Vec4Property);
+  ToolProperty.internalRegister(Vec4Property);
   class QuatProperty extends ToolProperty {
      constructor(data, apiname, uiname, description) {
       super(PropTypes.QUAT, undefined, apiname, uiname, description);
@@ -10964,7 +8631,7 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(QuatProperty);
-  _addClass(QuatProperty);
+  ToolProperty.internalRegister(QuatProperty);
   class Mat4Property extends ToolProperty {
      constructor(data, apiname, uiname, description) {
       super(PropTypes.MATRIX4, undefined, apiname, uiname, description);
@@ -11013,7 +8680,7 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(Mat4Property);
-  _addClass(Mat4Property);
+  ToolProperty.internalRegister(Mat4Property);
   class ListProperty extends ToolProperty {
      constructor(prop, list=[], uiname="") {
       super(PropTypes.PROPLIST);
@@ -11041,6 +8708,12 @@ EnumKeyPair {
           }
       }
       this.wasSet = false;
+    }
+    get  length() {
+      return this.value.length;
+    }
+    set  length(val) {
+      this.value.length = val;
     }
      calcMemSize() {
       let tot=super.calcMemSize();
@@ -11131,12 +8804,6 @@ EnumKeyPair {
         }
       })();
     }
-    get  length() {
-      return this.value.length;
-    }
-    set  length(val) {
-      this.value.length = val;
-    }
   }
   _ESClass.register(ListProperty);
   _es6_module.add_class(ListProperty);
@@ -11146,7 +8813,7 @@ EnumKeyPair {
   value : array(abstract(ToolProperty));
 }`;
   nstructjs.register(ListProperty);
-  _addClass(ListProperty);
+  ToolProperty.internalRegister(ListProperty);
   class StringSetProperty extends ToolProperty {
      constructor(value=undefined, definition=[]) {
       super(PropTypes.STRSET);
@@ -11332,7 +8999,7 @@ EnumKeyPair {
   values : iterkeys(string);  
 }`;
   nstructjs.register(StringSetProperty);
-  _addClass(StringSetProperty);
+  ToolProperty.internalRegister(StringSetProperty);
   var Curve1D=es6_import_item(_es6_module, '../curve/curve1d.js', 'Curve1D');
   class Curve1DProperty extends ToolProperty {
      constructor(curve, apiname, uiname, description, flag, icon) {
@@ -11375,7 +9042,7 @@ EnumKeyPair {
 }
 `;
   nstructjs.register(Curve1DProperty);
-  _addClass(Curve1DProperty);
+  ToolProperty.internalRegister(Curve1DProperty);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop.js');
 
 
@@ -11412,7 +9079,9 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
    FORCE_ROLLER_SLIDER: 1<<11, 
    USE_BASE_UNDO: 1<<12, 
    EDIT_AS_BASE_UNIT: 1<<13, 
-   NO_UNDO: 1<<14}
+   NO_UNDO: 1<<14, 
+   USE_CUSTOM_PROP_GETTER: 1<<15, 
+   FORCE_ENUM_CHECKBOXES: 1<<16}
   _es6_module.add_export('PropFlags', PropFlags);
   class ToolPropertyIF  {
      constructor(type, subtype, apiname, uiname, description, flag, icon) {
@@ -11659,7 +9328,7 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
 
 
-es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./toolprop.js", "../controller/controller_base.js", "../util/struct.js", "../util/events.js"], function _toolsys_module(_es6_module) {
+es6_module_define('toolsys', ["../util/simple_events.js", "../util/events.js", "../controller/controller_base.js", "./toolprop.js", "../util/util.js", "../util/struct.js"], function _toolsys_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var events=es6_import(_es6_module, '../util/events.js');
@@ -11712,6 +9381,9 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
       this.userSetMap = new Set();
       this.api = undefined;
       this.dstruct = undefined;
+    }
+    static  getPropKey(cls, key, prop) {
+      return prop.apiname&&prop.apiname.length>0 ? prop.apiname : key;
     }
      _buildAccessors(cls, key, prop, dstruct, api) {
       let tdef=cls._getFinalToolDef();
@@ -11768,9 +9440,6 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
       let toolpath=cls.tooldef().toolpath.trim();
       return this.pathmap.get(toolpath);
     }
-    static  getPropKey(cls, key, prop) {
-      return prop.apiname&&prop.apiname.length>0 ? prop.apiname : key;
-    }
      useDefault(cls, key, prop) {
       key = this.userSetMap.has(cls.tooldef().trim()+"."+this.constructor.getPropKey(key));
       key = key.trim();
@@ -11820,63 +9489,99 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
   const SavedToolDefaults=new ToolPropertyCache();
   _es6_module.add_export('SavedToolDefaults', SavedToolDefaults);
   class ToolOp extends events.EventHandler {
+     constructor() {
+      super();
+      this._overdraw = undefined;
+      this.__memsize = undefined;
+      var def=this.constructor.tooldef();
+      if (def.undoflag!==undefined) {
+          this.undoflag = def.undoflag;
+      }
+      if (def.flag!==undefined) {
+          this.flag = def.flag;
+      }
+      this._accept = this._reject = undefined;
+      this._promise = undefined;
+      for (var k in def) {
+          this[k] = def[k];
+      }
+      let getSlots=(slots, key) =>        {
+        if (slots===undefined)
+          return {}
+        if (!(__instance_of(slots, InheritFlag))) {
+            return slots;
+        }
+        slots = {}
+        let p=this.constructor;
+        let lastp=undefined;
+        while (p!==undefined&&p!==Object&&p!==ToolOp&&p!==lastp) {
+          if (p.tooldef) {
+              let def=p.tooldef();
+              if (def[key]!==undefined) {
+                  let slots2=def[key];
+                  let stop=!(__instance_of(slots2, InheritFlag));
+                  if (__instance_of(slots2, InheritFlag)) {
+                      slots2 = slots2.slots;
+                  }
+                  for (let k in slots2) {
+                      if (!(k in slots)) {
+                          slots[k] = slots2[k];
+                      }
+                  }
+                  if (stop) {
+                      break;
+                  }
+              }
+          }
+          lastp = p;
+          p = p.prototype.__proto__.constructor;
+        }
+        return slots;
+      };
+      let dinputs=getSlots(def.inputs, "inputs");
+      let doutputs=getSlots(def.outputs, "outputs");
+      this.inputs = {};
+      this.outputs = {};
+      if (dinputs) {
+          for (let k in dinputs) {
+              let prop=dinputs[k].copy();
+              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
+              if (!this.hasDefault(prop, k)) {
+                  this.inputs[k] = prop;
+                  continue;
+              }
+              try {
+                prop.setValue(this.getDefault(prop, k));
+              }
+              catch (error) {
+                  console.log(error.stack);
+                  console.log(error.message);
+              }
+              prop.wasSet = false;
+              this.inputs[k] = prop;
+          }
+      }
+      if (doutputs) {
+          for (let k in doutputs) {
+              let prop=doutputs[k].copy();
+              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
+              this.outputs[k] = prop;
+          }
+      }
+      this.drawlines = [];
+    }
     static  tooldef() {
       if (this===ToolOp) {
           throw new Error("Tools must implemented static tooldef() methods!");
       }
       return {}
     }
-     calcMemSize(ctx) {
-      if (this.__memsize!==undefined) {
-          return this.__memsize;
-      }
-      let tot=0;
-      for (let step=0; step<2; step++) {
-          let props=step ? this.outputs : this.inputs;
-          for (let k in props) {
-              let prop=props[k];
-              let size=prop.calcMemSize();
-              if (isNaN(size)||!isFinite(size)) {
-                  console.warn("Got NaN when calculating mem size for property", prop);
-                  continue;
-              }
-              tot+=size;
-          }
-      }
-      let size=this.calcUndoMem(ctx);
-      if (isNaN(size)||!isFinite(size)) {
-          console.warn("Got NaN in calcMemSize", this);
-      }
-      else {
-        tot+=size;
-      }
-      this.__memsize = tot;
-      return tot;
-    }
-     loadDefaults(force=true) {
+     getInputs() {
+      let ret={};
       for (let k in this.inputs) {
-          let prop=this.inputs[k];
-          if (!force&&prop.wasSet) {
-              continue;
-          }
-          if (this.hasDefault(prop, k)) {
-              prop.setValue(this.getDefault(prop, k));
-              prop.wasSet = false;
-          }
+          ret[k] = this.inputs[k].getValue();
       }
-      return this;
-    }
-     hasDefault(toolprop, key=toolprop.apiname) {
-      return SavedToolDefaults.has(this.constructor, key, toolprop);
-    }
-     getDefault(toolprop, key=toolprop.apiname) {
-      let cls=this.constructor;
-      if (SavedToolDefaults.has(cls, key, toolprop)) {
-          return SavedToolDefaults.get(cls, key, toolprop);
-      }
-      else {
-        return toolprop.getValue();
-      }
+      return ret;
     }
     static  Equals(a, b) {
       if (!a||!b)
@@ -11893,15 +9598,6 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
           }
       }
       return !bad;
-    }
-     saveDefaultInputs() {
-      for (let k in this.inputs) {
-          let prop=this.inputs[k];
-          if (prop.flag&PropFlags.SAVE_LAST_VALUE) {
-              SavedToolDefaults.set(this.constructor, k, prop);
-          }
-      }
-      return this;
     }
     static  inherit(slots={}) {
       return new InheritFlag(slots);
@@ -11927,27 +9623,6 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
           tool.inputs[k].setValue(val);
       }
       return tool;
-    }
-     genToolString() {
-      let def=this.constructor.tooldef();
-      let path=def.toolpath+"(";
-      for (let k in this.inputs) {
-          let prop=this.inputs[k];
-          path+=k+"=";
-          if (prop.type===PropTypes.STRING)
-            path+="'";
-          if (prop.type===PropTypes.FLOAT) {
-              path+=prop.getValue().toFixed(3);
-          }
-          else {
-            path+=prop.getValue();
-          }
-          if (prop.type===PropTypes.STRING)
-            path+="'";
-          path+=" ";
-      }
-      path+=")";
-      return path;
     }
     static  register(cls) {
       if (ToolClasses.indexOf(cls)>=0) {
@@ -12016,89 +9691,104 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
       def.outputs = doutputs;
       return def;
     }
-     constructor() {
-      super();
-      this._overdraw = undefined;
-      this.__memsize = undefined;
-      var def=this.constructor.tooldef();
-      if (def.undoflag!==undefined) {
-          this.undoflag = def.undoflag;
-      }
-      if (def.flag!==undefined) {
-          this.flag = def.flag;
-      }
-      this._accept = this._reject = undefined;
-      this._promise = undefined;
-      for (var k in def) {
-          this[k] = def[k];
-      }
-      let getSlots=(slots, key) =>        {
-        if (slots===undefined)
-          return {}
-        if (!(__instance_of(slots, InheritFlag))) {
-            return slots;
-        }
-        slots = {}
-        let p=this.constructor;
-        while (p!==undefined&&p!==Object&&p!==ToolOp) {
-          if (p.tooldef) {
-              let def=p.tooldef();
-              if (def[key]!==undefined) {
-                  let slots2=def[key];
-                  let stop=!(__instance_of(slots2, InheritFlag));
-                  if (__instance_of(slots2, InheritFlag)) {
-                      slots2 = slots2.slots;
-                  }
-                  for (let k in slots2) {
-                      if (!(k in slots)) {
-                          slots[k] = slots2[k];
-                      }
-                  }
-                  if (stop) {
-                      break;
-                  }
-              }
-          }
-          p = p.prototype.__proto__.constructor;
-        }
-        return slots;
-      };
-      let dinputs=getSlots(def.inputs, "inputs");
-      let doutputs=getSlots(def.outputs, "outputs");
-      this.inputs = {};
-      this.outputs = {};
-      if (dinputs) {
-          for (let k in dinputs) {
-              let prop=dinputs[k].copy();
-              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
-              if (!this.hasDefault(prop, k)) {
-                  this.inputs[k] = prop;
-                  continue;
-              }
-              try {
-                prop.setValue(this.getDefault(prop, k));
-              }
-              catch (error) {
-                  console.log(error.stack);
-                  console.log(error.message);
-              }
-              prop.wasSet = false;
-              this.inputs[k] = prop;
-          }
-      }
-      if (doutputs) {
-          for (let k in doutputs) {
-              let prop=doutputs[k].copy();
-              prop.apiname = prop.apiname&&prop.apiname.length>0 ? prop.apiname : k;
-              this.outputs[k] = prop;
-          }
-      }
-      this.drawlines = [];
-    }
     static  onTick() {
       for (let toolop of modalstack) {
           toolop.on_tick();
       }
+    }
+    static  searchBoxOk(ctx) {
+      let flag=this.tooldef().flag;
+      let ret=!(flag&&(flag&ToolFlags.PRIVATE));
+      ret = ret&&this.canRun(ctx);
+      return ret;
+    }
+    static  canRun(ctx, toolop=undefined) {
+      return true;
+    }
+     onUndoDestroy() {
+
+    }
+     calcMemSize(ctx) {
+      if (this.__memsize!==undefined) {
+          return this.__memsize;
+      }
+      let tot=0;
+      for (let step=0; step<2; step++) {
+          let props=step ? this.outputs : this.inputs;
+          for (let k in props) {
+              let prop=props[k];
+              let size=prop.calcMemSize();
+              if (isNaN(size)||!isFinite(size)) {
+                  console.warn("Got NaN when calculating mem size for property", prop);
+                  continue;
+              }
+              tot+=size;
+          }
+      }
+      let size=this.calcUndoMem(ctx);
+      if (isNaN(size)||!isFinite(size)) {
+          console.warn("Got NaN in calcMemSize", this);
+      }
+      else {
+        tot+=size;
+      }
+      this.__memsize = tot;
+      return tot;
+    }
+     loadDefaults(force=true) {
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          if (!force&&prop.wasSet) {
+              continue;
+          }
+          if (this.hasDefault(prop, k)) {
+              prop.setValue(this.getDefault(prop, k));
+              prop.wasSet = false;
+          }
+      }
+      return this;
+    }
+     hasDefault(toolprop, key=toolprop.apiname) {
+      return SavedToolDefaults.has(this.constructor, key, toolprop);
+    }
+     getDefault(toolprop, key=toolprop.apiname) {
+      let cls=this.constructor;
+      if (SavedToolDefaults.has(cls, key, toolprop)) {
+          return SavedToolDefaults.get(cls, key, toolprop);
+      }
+      else {
+        return toolprop.getValue();
+      }
+    }
+     saveDefaultInputs() {
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          if (prop.flag&PropFlags.SAVE_LAST_VALUE) {
+              SavedToolDefaults.set(this.constructor, k, prop);
+          }
+      }
+      return this;
+    }
+     genToolString() {
+      let def=this.constructor.tooldef();
+      let path=def.toolpath+"(";
+      for (let k in this.inputs) {
+          let prop=this.inputs[k];
+          path+=k+"=";
+          if (prop.type===PropTypes.STRING)
+            path+="'";
+          if (prop.type===PropTypes.FLOAT) {
+              path+=prop.getValue().toFixed(3);
+          }
+          else {
+            path+=prop.getValue();
+          }
+          if (prop.type===PropTypes.STRING)
+            path+="'";
+          path+=" ";
+      }
+      path+=")";
+      return path;
     }
      on_tick() {
 
@@ -12113,15 +9803,6 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
           this.modalEnd(true);
           break;
       }
-    }
-    static  searchBoxOk(ctx) {
-      let flag=this.tooldef().flag;
-      let ret=!(flag&&(flag&ToolFlags.PRIVATE));
-      ret = ret&&this.canRun(ctx);
-      return ret;
-    }
-    static  canRun(ctx, toolop=undefined) {
-      return true;
     }
      calcUndoMem(ctx) {
       console.warn("ToolOp.prototype.calcUndoMem: implement me!");
@@ -12211,6 +9892,7 @@ es6_module_define('toolsys', ["../util/util.js", "../util/simple_events.js", "./
               this._accept(this.modal_ctx, true);
           }
           this._on_cancel(this);
+          this._on_cancel = undefined;
       }
       this.resetTempGeom();
       var ctx=this.modal_ctx;
@@ -12307,9 +9989,6 @@ toolsys.MacroLink {
   window._MacroClasses = MacroClasses;
   let macroidgen=0;
   class ToolMacro extends ToolOp {
-    static  tooldef() {
-      return {uiname: "Tool Macro"}
-    }
      constructor() {
       super();
       this.tools = [];
@@ -12317,17 +9996,44 @@ toolsys.MacroLink {
       this.has_modal = false;
       this.connects = [];
       this.connectLinks = [];
+      this._macro_class = undefined;
+    }
+    static  tooldef() {
+      return {uiname: "Tool Macro"}
+    }
+    static  canRun(ctx, toolop=undefined) {
+      return true;
     }
      _getTypeClass() {
+      if (this._macro_class&&this._macro_class.ready) {
+          return this._macro_class;
+      }
+      if (!this._macro_class) {
+          this._macro_class = class MacroTypeClass extends ToolOp {
+            static  tooldef() {
+              return this.__tooldef;
+            }
+          };
+          _ESClass.register(this._macro_class);
+          this._macro_class.__tooldef = {toolpath: this.constructor.tooldef().toolpath||''};
+          this._macro_class.ready = false;
+      }
+      if (!this.tools||this.tools.length===0) {
+          return this._macro_class;
+      }
       let key="";
       for (let tool of this.tools) {
           key = tool.constructor.name+":";
+      }
+      if (this.constructor!==ToolMacro) {
+          key+=":"+this.constructor.tooldef().toolpath;
       }
       for (let k in this.inputs) {
           key+=k+":";
       }
       if (key in MacroClasses) {
-          return MacroClasses[key];
+          this._macro_class = MacroClasses[key];
+          return this._macro_class;
       }
       let name="Macro(";
       let i=0;
@@ -12362,13 +10068,10 @@ toolsys.MacroLink {
      inputs: inputs, 
      outputs: {}, 
      is_modal: is_modal};
-      let cls=class MacroTypeClass extends ToolOp {
-        static  tooldef() {
-          return tdef;
-        }
-      };
-      _ESClass.register(cls);
+      let cls=this._macro_class;
+      cls.__tooldef = tdef;
       cls._macroTypeId = macroidgen++;
+      cls.ready = true;
       MacroClasses[key] = cls;
       return cls;
     }
@@ -12453,9 +10156,6 @@ toolsys.MacroLink {
           }
       }
     }
-    static  canRun(ctx, toolop=undefined) {
-      return true;
-    }
      modalStart(ctx) {
       this.loadDefaults(false);
       this._promise = new Promise((function (accept, reject) {
@@ -12510,12 +10210,6 @@ toolsys.MacroLink {
           this.tools[i].exec(ctx);
           this.tools[i].execPost(ctx);
           this._do_connections(this.tools[i]);
-      }
-    }
-     redo(ctx) {
-      for (let tool of this.tools) {
-          let ctx2=tool.execCtx ? tool.execCtx : ctx;
-          tool.redo(ctx2);
       }
     }
      calcUndoMem(ctx) {
@@ -12575,6 +10269,9 @@ toolsys.MacroLink {
       }
       if (start===0) {
           return size;
+      }
+      for (let i=0; i<start; i++) {
+          this[i].onUndoDestroy();
       }
       this.cur-=start;
       for (let i=0; i<this.length-start; i++) {
@@ -12653,6 +10350,7 @@ toolsys.MacroLink {
           this.modal_running = true;
           toolop._on_cancel = (function (toolop) {
             if (!(toolop.undoflag&UndoFlags.NO_UNDO)) {
+                this[this.cur].undo(ctx);
                 this.pop_i(this.cur);
                 this.cur--;
             }
@@ -12862,27 +10560,28 @@ toolsys.ToolStack {
 es6_module_define('colorutils', ["../util/util.js", "../util/vectormath.js"], function _colorutils_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
   let rgb_to_hsv_rets=new util.cachering(() =>    {
     return [0, 0, 0];
   }, 64);
   function rgb_to_hsv(r, g, b) {
-    var computedH=0;
-    var computedS=0;
-    var computedV=0;
+    let computedH=0;
+    let computedS=0;
+    let computedV=0;
     if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
         throw new Error(`Please enter numeric RGB values! r: ${r} g: ${g} b: ${b}`);
-        return ;
     }
-    var minRGB=Math.min(r, Math.min(g, b));
-    var maxRGB=Math.max(r, Math.max(g, b));
-    if (minRGB==maxRGB) {
+    let minRGB=Math.min(r, Math.min(g, b));
+    let maxRGB=Math.max(r, Math.max(g, b));
+    if (minRGB===maxRGB) {
         computedV = minRGB;
         let ret=rgb_to_hsv_rets.next();
         ret[0] = 0, ret[1] = 0, ret[2] = computedV;
         return ret;
     }
-    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
-    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
+    let d=(r===minRGB) ? g-b : ((b===minRGB) ? r-g : b-r);
+    let h=(r===minRGB) ? 3 : ((b===minRGB) ? 1 : 5);
     computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
     computedS = (maxRGB-minRGB)/maxRGB;
     computedV = maxRGB;
@@ -12938,6 +10637,53 @@ es6_module_define('colorutils', ["../util/util.js", "../util/vectormath.js"], fu
     return color;
   }
   hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
+  let rgb_to_cmyk_rets=util.cachering.fromConstructor(Vector4, 512);
+  let cmyk_to_rgb_rets=util.cachering.fromConstructor(Vector3, 512);
+  function cmyk_to_rgb(c, m, y, k) {
+    let ret=cmyk_to_rgb_rets.next();
+    if (k===1.0) {
+        ret.zero();
+        return ret;
+    }
+    c = c-c*k+k;
+    m = m-m*k+k;
+    y = y-y*k+k;
+    ret[0] = 1.0-c;
+    ret[1] = 1.0-m;
+    ret[2] = 1.0-y;
+    return ret;
+  }
+  cmyk_to_rgb = _es6_module.add_export('cmyk_to_rgb', cmyk_to_rgb);
+  function rgb_to_cmyk(r, g, b) {
+    let ret=rgb_to_cmyk_rets.next();
+    let C=1.0-r;
+    let M=1.0-g;
+    let Y=1.0-b;
+    let var_K=1;
+    if (C<var_K)
+      var_K = C;
+    if (M<var_K)
+      var_K = M;
+    if (Y<var_K)
+      var_K = Y;
+    if (var_K===1) {
+        C = 0;
+        M = 0;
+        Y = 0;
+    }
+    else {
+      C = (C-var_K)/(1-var_K);
+      M = (M-var_K)/(1-var_K);
+      Y = (Y-var_K)/(1-var_K);
+    }
+    let K=var_K;
+    ret[0] = C;
+    ret[1] = M;
+    ret[2] = Y;
+    ret[3] = K;
+    return ret;
+  }
+  rgb_to_cmyk = _es6_module.add_export('rgb_to_cmyk', rgb_to_cmyk);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/colorutils.js');
 
 
@@ -13070,13 +10816,23 @@ es6_module_define('events', ["./util.js", "./simple_events.js"], function _event
   let modalStack=[];
   modalStack = _es6_module.add_export('modalStack', modalStack);
   function isModalHead(owner) {
-    return modalStack.length==0||modalStack[modalStack.length-1]===owner;
+    return modalStack.length===0||modalStack[modalStack.length-1]===owner;
   }
   isModalHead = _es6_module.add_export('isModalHead', isModalHead);
   class EventHandler  {
+     pushPointerModal(dom, pointerId) {
+      if (this._modalstate) {
+          console.warn("pushPointerModal called twiced!");
+          return ;
+      }
+      this._modalstate = simple_events.pushPointerModal(this, dom, pointerId);
+    }
      pushModal(dom, _is_root) {
+      if (this._modalstate) {
+          console.warn("pushModal called twiced!");
+          return ;
+      }
       this._modalstate = simple_events.pushModalLight(this);
-      return ;
     }
      popModal() {
       if (this._modalstate!==undefined) {
@@ -13105,7 +10861,7 @@ es6_module_define('events', ["./util.js", "./simple_events.js"], function _event
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
 
 
-es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_module(_es6_module) {
+es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
   var vectormath=es6_import(_es6_module, './vectormath.js');
   var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
   var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
@@ -13404,7 +11160,7 @@ es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/expr.js');
 
 
-es6_module_define('graphpack', ["./util.js", "./solver.js", "./vectormath.js", "./math.js"], function _graphpack_module(_es6_module) {
+es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "./math.js"], function _graphpack_module(_es6_module) {
   "use strict";
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
@@ -13569,7 +11325,7 @@ es6_module_define('graphpack', ["./util.js", "./solver.js", "./vectormath.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0aire=params, v1=$_t0aire[0], v2=$_t0aire[1], restlen=$_t0aire[2];
+      let $_t0fcvn=params, v1=$_t0fcvn[0], v2=$_t0fcvn[1], restlen=$_t0fcvn[2];
       if (disableEdges)
         return 0;
       return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
@@ -13593,7 +11349,7 @@ es6_module_define('graphpack', ["./util.js", "./solver.js", "./vectormath.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1gpwm=params, n1=$_t1gpwm[0], n2=$_t1gpwm[1];
+      let $_t1hqpm=params, n1=$_t1hqpm[0], n2=$_t1hqpm[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);

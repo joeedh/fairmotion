@@ -1,11 +1,3805 @@
 
-es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./FrameManager_mesh.js", "../path-controller/util/simple_events.js", "../widgets/ui_widgets.js", "../widgets/ui_widgets2.js", "../widgets/dragbox.js", "./ScreenArea.js", "../widgets/ui_colorpicker2.js", "../widgets/ui_table.js", "../widgets/ui_treeview.js", "../util/ScreenOverdraw.js", "./AreaDocker.js", "../widgets/ui_menu.js", "../widgets/ui_textbox.js", "../widgets/ui_tabs.js", "../path-controller/controller.js", "../config/const.js", "../widgets/ui_panel.js", "../widgets/ui_dialog.js", "../widgets/ui_listbox.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/math.js", "../path-controller/util/struct.js", "./FrameManager_ops.js", "../widgets/ui_noteframe.js", "../widgets/ui_curvewidget.js"], function _FrameManager_module(_es6_module) {
+es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
+  var util=es6_import(_es6_module, './util.js');
+  var nstructjs=es6_import_item(_es6_module, './struct.js', 'default');
+  const EulerOrders={XYZ: 0, 
+   XZY: 1, 
+   YXZ: 2, 
+   YZX: 3, 
+   ZXY: 4, 
+   ZYX: 5}
+  _es6_module.add_export('EulerOrders', EulerOrders);
+  window.makeCompiledVectormathCode = function (mode) {
+    if (mode===undefined) {
+        mode = "es";
+    }
+    let s="";
+    let es6exports=mode==="es";
+    function doExports(name) {
+      if (es6exports) {
+          return "export";
+      }
+      else {
+        return `var ${name} = exports.${name} =`;
+      }
+    }
+    let classes=[Vector2, Vector3, Vector4, a];
+    let lens={Vector2: 2, 
+    Vector3: 3, 
+    Vector4: 4, 
+    Quat: 4}
+    let modecode="";
+    let nstructjscode=`
+  let g = typeof window !== "undefined" ? window : "undefined";
+  
+  g = g || (typeof global !== "undefined" ? global : "undefined");
+  g = g || (typeof self !== "undefined" ? self : "undefined");
+  g = g || (typeof globals !== "undefined" ? globals : "undefined");
+
+  if (typeof nstructjs === "undefined") {
+    //add nstructjs stub
+    g.nstructjs = {
+      register : function() {}
+    }
+  }
+  `;
+    if (mode!=="rjs") {
+        if (mode==="commonjs") {
+            modecode = `if (typeof module !== "undefined" && typeof exports === "undefined") {
+      if (module.exports === undefined) {
+        module.exports = {};
+      }
+      
+      g.exports = module.exports;
+    } else if (typeof module === "undefined") {
+      g.exports = g.vectormath = {};
+    }\n`;
+        }
+        s+=`{
+      ${nstructjscode}
+    ${modecode}
+  }`;
+    }
+    s+=`
+class cachering extends Array {
+  constructor(func, size) {
+    super()
+
+    this.cur = 0;
+
+    for (var i=0; i<size; i++) {
+      this.push(func());
+    }
+  }
+
+  static fromConstructor(cls, size) {
+    var func = function() {
+      return new cls();
+    }
+
+    return new cachering(func, size);
+  }
+
+  next() {
+    var ret = this[this.cur];
+    this.cur = (this.cur+1)%this.length;
+
+    return ret;
+  }
+}
+`;
+    s+=`
+
+var M_SQRT2 = Math.sqrt(2.0);
+var FLT_EPSILON = 2.22e-16;  
+var sin=Math.sin, cos=Math.cos, abs=Math.abs, log=Math.log,
+    asin=Math.asin, exp=Math.exp, acos=Math.acos, fract=Math.fract,
+    sign=Math.sign, tent=Math.tent, atan2=Math.atan2, atan=Math.atan,
+    pow=Math.pow, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil,
+    min=Math.min, max=Math.max, PI=Math.PI, E=2.718281828459045;
+
+var DOT_NORM_SNAP_LIMIT = 0.00000000001;
+
+${doExports("BaseVector")} class BaseVector extends Array {
+  constructor() {
+    super();
+    
+    this.vec = undefined; //for compatibility with old files
+  }
+
+  copy() {
+    return new this.constructor(this);
+  }
+
+  load(data) {
+    throw new Error("Implement me!");
+  }
+  
+  vectorLength() {
+    return sqrt(this.dot(this));
+  }
+  
+  normalize() {
+    var l = this.vectorLength();
+    if (l > 0.00000001) {
+      this.mulScalar(1.0/l);
+    }
+    
+    return this;
+  }
+}
+  
+`;
+    function indent(s, pad) {
+      if (pad===undefined) {
+          pad = "  ";
+      }
+      let l=s.split("\n");
+      let s2="";
+      for (let l2 of l) {
+          s2+=pad+l2+"\n";
+      }
+      return s2;
+    }
+    let i=0;
+    for (let cls of classes) {
+        s+=doExports(cls.name)+" class "+cls.name+" extends BaseVector {\n";
+        let keys=Reflect.ownKeys(cls.prototype);
+        for (let k of keys) {
+            let v=cls.prototype[k];
+            if (typeof v!=="function") {
+                continue;
+            }
+            if (typeof k==="symbol") {
+                k = "  ["+k.toString()+"]";
+            }
+            v = (""+v).trim();
+            if (v.startsWith("function(")||v.startsWith("function (")) {
+                v = k+v.slice(8, v.length).trim();
+            }
+            else 
+              if (v.startsWith("function")) {
+                v = v.slice(8, v.length).trim();
+            }
+            if (v.endsWith(";}")) {
+                v = v.slice(0, v.length-1)+"\n  }\n";
+            }
+            let zero="";
+            let l=lens[cls.name];
+            for (let j=0; j<l; j++) {
+                if (j>0) {
+                    zero+=" = ";
+                }
+                zero+=`this[${j}]`;
+            }
+            zero+=" = 0.0";
+            if (k==="constructor") {
+                s+=`  constructor(data) {
+    super(${l});
+        
+    this.vec = undefined; //for compatibility with old files
+    
+    if (arguments.length > 1) {
+      throw new Error("unexpected argument");
+    }
+
+    //this.length = ${l};
+    ${zero};
+
+    if (data !== undefined) {
+      this.load(data);
+    }
+  }
+`;
+            }
+            else {
+              s+=indent(v);
+            }
+            s+="\n";
+            i++;
+        }
+        s+="}\n\n";
+        s+=`${cls.name}.STRUCT = \`${cls.STRUCT}\`;\n`;
+        s+=`nstructjs.register(${cls.name});\n\n`;
+    }
+    s+="\n\n"+(""+internal_matrix).trim()+"\n";
+    s+="\n"+doExports("Matrix4")+Matrix4;
+    s+=`\n  Matrix4.STRUCT = \`${Matrix4.STRUCT}\`;\n`;
+    s+="nstructjs.register(Matrix4)\n";
+    s+=`
+  var _quat_vs3_temps = cachering.fromConstructor(Vector3, 64);
+  var _v3nd4_n1_normalizedDot4 = new Vector3();
+  var _v3nd4_n2_normalizedDot4 = new Vector3();
+  var _v3nd_n1_normalizedDot = new Vector3();
+  var _v3nd_n2_normalizedDot = new Vector3();
+
+  var $_v3nd4_n1_normalizedDot4 = new Vector3();
+  var $_v3nd4_n2_normalizedDot4 = new Vector3();
+  var $_v3nd_n1_normalizedDot = new Vector3();
+  var $_v3nd_n2_normalizedDot = new Vector3();
+
+  var lookat_cache_vs3 = cachering.fromConstructor(Vector3, 64);
+  var lookat_cache_vs4 = cachering.fromConstructor(Vector4, 64);
+
+  var makenormalcache = cachering.fromConstructor(Vector3, 64);
+`;
+    if (mode==="rjs") {
+        s = `define([], function() {
+  "use strict";
+
+  let exports = {};
+
+  {
+    ${nstructjscode}
+  }
+  ${indent(s)}
+
+  return exports;
+});
+`;
+    }
+    return s;
+  }
+  var sin=Math.sin, cos=Math.cos, abs=Math.abs, log=Math.log, asin=Math.asin, exp=Math.exp, acos=Math.acos, fract=Math.fract, sign=Math.sign, tent=Math.tent, atan2=Math.atan2, atan=Math.atan, pow=Math.pow, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, min=Math.min, max=Math.max, PI=Math.PI, E=2.718281828459045;
+  var DOT_NORM_SNAP_LIMIT=1e-11;
+  var M_SQRT2=Math.sqrt(2.0);
+  var FLT_EPSILON=2.22e-16;
+  var basic_funcs={equals: [["b"], "this[X] === b[X]", "&&"], 
+   zero: [[], "0.0;"], 
+   negate: [[], "-this[X];"], 
+   combine: [["b", "u", "v"], "this[X]*u + this[X]*v;"], 
+   interp: [["b", "t"], "this[X] + (b[X] - this[X])*t;"], 
+   add: [["b"], "this[X] + b[X];"], 
+   addFac: [["b", "F"], "this[X] + b[X]*F;"], 
+   fract: [[], "Math.fract(this[X]);"], 
+   sub: [["b"], "this[X] - b[X];"], 
+   mul: [["b"], "this[X] * b[X];"], 
+   div: [["b"], "this[X] / b[X];"], 
+   mulScalar: [["b"], "this[X] * b;"], 
+   divScalar: [["b"], "this[X] / b;"], 
+   addScalar: [["b"], "this[X] + b;"], 
+   subScalar: [["b"], "this[X] - b;"], 
+   minScalar: [["b"], "Math.min(this[X], b);"], 
+   maxScalar: [["b"], "Math.max(this[X], b);"], 
+   ceil: [[], "Math.ceil(this[X])"], 
+   floor: [[], "Math.floor(this[X])"], 
+   abs: [[], "Math.abs(this[X])"], 
+   min: [["b"], "Math.min(this[X], b[X])"], 
+   max: [["b"], "Math.max(this[X], b[X])"], 
+   clamp: [["MIN", "MAX"], "min(max(this[X], MAX), MIN)"]}
+  function bounded_acos(fac) {
+    if (fac<=-1.0)
+      return Math.pi;
+    else 
+      if (fac>=1.0)
+      return 0.0;
+    else 
+      return Math.acos(fac);
+  }
+  function make_norm_safe_dot(cls) {
+    var _dot=cls.prototype.dot;
+    cls.prototype._dot = _dot;
+    cls.prototype.dot = function (b) {
+      var ret=_dot.call(this, b);
+      if (ret>=1.0-DOT_NORM_SNAP_LIMIT&&ret<=1.0+DOT_NORM_SNAP_LIMIT)
+        return 1.0;
+      if (ret>=-1.0-DOT_NORM_SNAP_LIMIT&&ret<=-1.0+DOT_NORM_SNAP_LIMIT)
+        return -1.0;
+      return ret;
+    }
+  }
+  function getBaseVector(parent) {
+    return class BaseVector extends parent {
+       constructor() {
+        super(...arguments);
+        this.vec = undefined;
+      }
+      static  inherit(cls, vectorsize) {
+        make_norm_safe_dot(cls);
+        var f;
+        var vectorDotDistance="f = function vectorDotDistance(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDotDistance+="  let d"+i+" = this["+i+"]-b["+i+"];\n\n  ";
+        }
+        vectorDotDistance+="  return ";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDotDistance+=" + ";
+            vectorDotDistance+="d"+i+"*d"+i;
+        }
+        vectorDotDistance+=";\n";
+        vectorDotDistance+="};";
+        cls.prototype.vectorDotDistance = eval(vectorDotDistance);
+        var f;
+        var vectorDistance="f = function vectorDistance(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDistance+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
+        }
+        vectorDistance+="  return Math.sqrt(";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDistance+=" + ";
+            vectorDistance+="d"+i+"*d"+i;
+        }
+        vectorDistance+=");\n";
+        vectorDistance+="};";
+        cls.prototype.vectorDistance = eval(vectorDistance);
+        var vectorDistanceSqr="f = function vectorDistanceSqr(b) {\n";
+        for (var i=0; i<vectorsize; i++) {
+            vectorDistanceSqr+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
+        }
+        vectorDistanceSqr+="  return (";
+        for (var i=0; i<vectorsize; i++) {
+            if (i>0)
+              vectorDistanceSqr+=" + ";
+            vectorDistanceSqr+="d"+i+"*d"+i;
+        }
+        vectorDistanceSqr+=");\n";
+        vectorDistanceSqr+="};";
+        cls.prototype.vectorDistanceSqr = eval(vectorDistanceSqr);
+        for (var k in basic_funcs) {
+            var func=basic_funcs[k];
+            var args=func[0];
+            var line=func[1];
+            var f;
+            var code="f = function "+k+"(";
+            for (var i=0; i<args.length; i++) {
+                if (i>0)
+                  code+=", ";
+                line = line.replace(args[i], args[i].toLowerCase());
+                code+=args[i].toLowerCase();
+            }
+            code+=") {\n";
+            if (func.length>2) {
+                code+="  return ";
+                for (var i=0; i<vectorsize; i++) {
+                    if (i>0)
+                      code+=func[2];
+                    code+="("+line.replace(/X/g, ""+i)+")";
+                }
+                code+=";\n";
+            }
+            else {
+              for (var i=0; i<vectorsize; i++) {
+                  var line2=line.replace(/X/g, ""+i);
+                  code+="  this["+i+"] = "+line2+";\n";
+              }
+              code+="  return this;\n";
+            }
+            code+="}\n";
+            var f=eval(code);
+            cls.prototype[k] = f;
+        }
+      }
+       copy() {
+        return new this.constructor(this);
+      }
+       load(data) {
+        throw new Error("Implement me!");
+      }
+       init_swizzle(size) {
+        var ret={};
+        var cls=size===4 ? Vector4 : (size===3 ? Vector3 : Vector2);
+        for (var k in cls.prototype) {
+            var v=cls.prototype[k];
+            if (typeof v!=="function"&&!(__instance_of(v, Function)))
+              continue;
+            ret[k] = v.bind(this);
+        }
+        return ret;
+      }
+       vectorLength() {
+        return sqrt(this.dot(this));
+      }
+       swapAxes(axis1, axis2) {
+        let t=this[axis1];
+        this[axis1] = this[axis2];
+        this[axis2] = t;
+        return this;
+      }
+       normalize() {
+        let l=this.vectorLength();
+        if (l>1e-08) {
+            this.mulScalar(1.0/l);
+        }
+        return this;
+      }
+    }
+    _ESClass.register(BaseVector);
+    _es6_module.add_class(BaseVector);
+  }
+  const BaseVector=getBaseVector(Array);
+  _es6_module.add_export('BaseVector', BaseVector);
+  const F64BaseVector=getBaseVector(Float64Array);
+  _es6_module.add_export('F64BaseVector', F64BaseVector);
+  const F32BaseVector=getBaseVector(Float32Array);
+  _es6_module.add_export('F32BaseVector', F32BaseVector);
+  function myclamp(f, a, b) {
+    return Math.min(Math.max(f, a), b);
+  }
+  class Vector4 extends BaseVector {
+     constructor(data) {
+      super(4);
+      if (arguments.length>1) {
+          throw new Error("unexpected argument");
+      }
+      this[0] = this[1] = this[2] = this[3] = 0.0;
+      if (data!==undefined) {
+          this.load(data);
+      }
+    }
+     toCSS() {
+      let r=~~(this[0]*255);
+      let g=~~(this[1]*255);
+      let b=~~(this[2]*255);
+      let a=this[3];
+      return `rgba(${r},${g},${b},${a})`;
+    }
+     loadXYZW(x, y, z, w) {
+      this[0] = x;
+      this[1] = y;
+      this[2] = z;
+      this[3] = w;
+      return this;
+    }
+     loadXYZ(x, y, z) {
+      this[0] = x;
+      this[1] = y;
+      this[2] = z;
+      return this;
+    }
+     load(data) {
+      if (data===undefined)
+        return this;
+      this[0] = data[0];
+      this[1] = data[1];
+      this[2] = data[2];
+      this[3] = data[3];
+      return this;
+    }
+     dot(b) {
+      return this[0]*b[0]+this[1]*b[1]+this[2]*b[2]+this[3]*b[3];
+    }
+     mulVecQuat(q) {
+      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
+      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
+      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
+      this[0] = t1;
+      this[1] = t2;
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
+      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
+      this[0] = t1;
+      this[1] = t2;
+      return this;
+    }
+     multVecMatrix(matrix) {
+      var x=this[0];
+      var y=this[1];
+      var z=this[2];
+      var w=this[3];
+      this[0] = w*matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21+z*matrix.$matrix.m31;
+      this[1] = w*matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22+z*matrix.$matrix.m32;
+      this[2] = w*matrix.$matrix.m43+x*matrix.$matrix.m13+y*matrix.$matrix.m23+z*matrix.$matrix.m33;
+      this[3] = w*matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24+z*matrix.$matrix.m34;
+      return this[3];
+    }
+     cross(v) {
+      var x=this[1]*v[2]-this[2]*v[1];
+      var y=this[2]*v[0]-this[0]*v[2];
+      var z=this[0]*v[1]-this[1]*v[0];
+      this[0] = x;
+      this[1] = y;
+      this[2] = z;
+      return this;
+    }
+     preNormalizedAngle(v2) {
+      let th=this.dot(v2)*0.99999;
+      return Math.acos(th);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      if (typeof this.vec!=="undefined") {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
+    }
+  }
+  _ESClass.register(Vector4);
+  _es6_module.add_class(Vector4);
+  Vector4 = _es6_module.add_export('Vector4', Vector4);
+  
+  Vector4.STRUCT = `
+vec4 {
+  0 : float;
+  1 : float;
+  2 : float;
+  3 : float;
+}
+`;
+  nstructjs.manager.add_class(Vector4);
+  var _v3nd_n1_normalizedDot, _v3nd_n2_normalizedDot;
+  var _v3nd4_n1_normalizedDot4, _v3nd4_n2_normalizedDot4;
+  class Vector3 extends F64BaseVector {
+     constructor(data) {
+      super(3);
+      if (arguments.length>1) {
+          throw new Error("unexpected argument");
+      }
+      this[0] = this[1] = this[2] = 0.0;
+      if (data!==undefined) {
+          this.load(data);
+      }
+      if (this.constructor===Vector3) {
+          Object.preventExtensions(this);
+      }
+    }
+    static  normalizedDot4(v1, v2, v3, v4) {
+      $_v3nd4_n1_normalizedDot4.load(v2).sub(v1).normalize();
+      $_v3nd4_n2_normalizedDot4.load(v4).sub(v3).normalize();
+      return $_v3nd4_n1_normalizedDot4.dot($_v3nd4_n2_normalizedDot4);
+    }
+    static  normalizedDot3(v1, center, v2) {
+      $_v3nd4_n1_normalizedDot3.load(v1).sub(center).normalize();
+      $_v3nd4_n2_normalizedDot3.load(v2).sub(center).normalize();
+      return $_v3nd4_n1_normalizedDot3.dot($_v3nd4_n2_normalizedDot3);
+    }
+     toCSS() {
+      let r=~~(this[0]*255);
+      let g=~~(this[1]*255);
+      let b=~~(this[2]*255);
+      return `rgb(${r},${g},${b})`;
+    }
+     loadXYZ(x, y, z) {
+      this[0] = x;
+      this[1] = y;
+      this[2] = z;
+      return this;
+    }
+     loadXY(x, y) {
+      this[0] = x;
+      this[1] = y;
+      return this;
+    }
+     toJSON() {
+      return [this[0], this[1], this[2]];
+    }
+     loadJSON(obj) {
+      return this.load(obj);
+    }
+     initVector3() {
+      this.length = 3;
+      this[0] = this[1] = this[2] = 0;
+      return this;
+    }
+     load(data) {
+      if (data===undefined)
+        return this;
+      this[0] = data[0];
+      this[1] = data[1];
+      this[2] = data[2];
+      return this;
+    }
+     dot(b) {
+      return this[0]*b[0]+this[1]*b[1]+this[2]*b[2];
+    }
+     normalizedDot(v) {
+      $_v3nd_n1_normalizedDot.load(this);
+      $_v3nd_n2_normalizedDot.load(v);
+      $_v3nd_n1_normalizedDot.normalize();
+      $_v3nd_n2_normalizedDot.normalize();
+      return $_v3nd_n1_normalizedDot.dot($_v3nd_n2_normalizedDot);
+    }
+     mulVecQuat(q) {
+      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
+      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
+      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
+      this[0] = t1;
+      this[1] = t2;
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
+      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
+      this[0] = t1;
+      this[1] = t2;
+      return this;
+    }
+     multVecMatrix(matrix, ignore_w) {
+      if (ignore_w===undefined) {
+          ignore_w = false;
+      }
+      var x=this[0];
+      var y=this[1];
+      var z=this[2];
+      this[0] = matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21+z*matrix.$matrix.m31;
+      this[1] = matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22+z*matrix.$matrix.m32;
+      this[2] = matrix.$matrix.m43+x*matrix.$matrix.m13+y*matrix.$matrix.m23+z*matrix.$matrix.m33;
+      var w=matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24+z*matrix.$matrix.m34;
+      if (!ignore_w&&w!==1&&w!==0&&matrix.isPersp) {
+          this[0]/=w;
+          this[1]/=w;
+          this[2]/=w;
+      }
+      return w;
+    }
+     cross(v) {
+      var x=this[1]*v[2]-this[2]*v[1];
+      var y=this[2]*v[0]-this[0]*v[2];
+      var z=this[0]*v[1]-this[1]*v[0];
+      this[0] = x;
+      this[1] = y;
+      this[2] = z;
+      return this;
+    }
+     rot2d(A, axis) {
+      var x=this[0];
+      var y=this[1];
+      if (axis===1) {
+          this[0] = x*cos(A)+y*sin(A);
+          this[1] = y*cos(A)-x*sin(A);
+      }
+      else {
+        this[0] = x*cos(A)-y*sin(A);
+        this[1] = y*cos(A)+x*sin(A);
+      }
+      return this;
+    }
+     preNormalizedAngle(v2) {
+      let th=this.dot(v2)*0.99999;
+      return Math.acos(th);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      if (typeof this.vec!=="undefined") {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
+    }
+  }
+  _ESClass.register(Vector3);
+  _es6_module.add_class(Vector3);
+  Vector3 = _es6_module.add_export('Vector3', Vector3);
+  Vector3.STRUCT = `
+vec3 {
+  0 : float;
+  1 : float;
+  2 : float;
+}
+`;
+  nstructjs.manager.add_class(Vector3);
+  class Vector2 extends BaseVector {
+     constructor(data) {
+      super(2);
+      if (arguments.length>1) {
+          throw new Error("unexpected argument");
+      }
+      this[0] = this[1] = 0.0;
+      if (data!==undefined) {
+          this.load(data);
+      }
+    }
+     initVector2(co) {
+      this.length = 2;
+      if (co!==undefined) {
+          this[0] = co[0];
+          this[1] = co[1];
+      }
+      else {
+        this[0] = this[1] = 0.0;
+      }
+      return this;
+    }
+     loadXY(x, y) {
+      this[0] = x;
+      this[1] = y;
+      return this;
+    }
+     toJSON() {
+      return [this[0], this[1]];
+    }
+     loadJSON(obj) {
+      return this.load(obj);
+    }
+     loadXY(x, y) {
+      this[0] = x;
+      this[1] = y;
+      return this;
+    }
+     load(data) {
+      if (data===undefined)
+        return this;
+      this[0] = data[0];
+      this[1] = data[1];
+      return this;
+    }
+     rot2d(A, axis) {
+      var x=this[0];
+      var y=this[1];
+      if (axis===1) {
+          this[0] = x*cos(A)+y*sin(A);
+          this[1] = y*cos(A)-x*sin(A);
+      }
+      else {
+        this[0] = x*cos(A)-y*sin(A);
+        this[1] = y*cos(A)+x*sin(A);
+      }
+      return this;
+    }
+     dot(b) {
+      return this[0]*b[0]+this[1]*b[1];
+    }
+     multVecMatrix(matrix) {
+      var x=this[0];
+      var y=this[1];
+      var w=1.0;
+      this[0] = w*matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21;
+      this[1] = w*matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22;
+      if (matrix.isPersp) {
+          let w2=w*matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24;
+          if (w2!==0.0) {
+              this[0]/=w2;
+              this[1]/=w2;
+          }
+      }
+      return this;
+    }
+     mulVecQuat(q) {
+      let t0=-q[1]*this[0]-q[2]*this[1];
+      let t1=q[0]*this[0]-q[3]*this[1];
+      let t2=q[0]*this[1]+q[3]*this[0];
+      let z=q[1]*this[1]-q[2]*this[0];
+      this[0] = t1;
+      this[1] = t2;
+      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+z*q[2];
+      t2 = t0*-q[2]+this[1]*q[0]-z*q[1]+this[0]*q[3];
+      this[0] = t1;
+      this[1] = t2;
+      return this;
+    }
+     vectorLengthSqr() {
+      return this.dot(this);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      if (typeof this.vec!==undefined) {
+          this.load(this.vec);
+          this.vec = undefined;
+      }
+    }
+  }
+  _ESClass.register(Vector2);
+  _es6_module.add_class(Vector2);
+  Vector2 = _es6_module.add_export('Vector2', Vector2);
+  
+  Vector2.STRUCT = `
+vec2 {
+  0 : float;
+  1 : float;
+}
+`;
+  nstructjs.manager.add_class(Vector2);
+  let _quat_vs3_temps=util.cachering.fromConstructor(Vector3, 64);
+  class Quat extends Vector4 {
+     makeUnitQuat() {
+      this[0] = 1.0;
+      this[1] = this[2] = this[3] = 0.0;
+    }
+     isZero() {
+      return (this[0]===0&&this[1]===0&&this[2]===0&&this[3]===0);
+    }
+     mulQuat(qt) {
+      var a=this[0]*qt[0]-this[1]*qt[1]-this[2]*qt[2]-this[3]*qt[3];
+      var b=this[0]*qt[1]+this[1]*qt[0]+this[2]*qt[3]-this[3]*qt[2];
+      var c=this[0]*qt[2]+this[2]*qt[0]+this[3]*qt[1]-this[1]*qt[3];
+      this[3] = this[0]*qt[3]+this[3]*qt[0]+this[1]*qt[2]-this[2]*qt[1];
+      this[0] = a;
+      this[1] = b;
+      this[2] = c;
+    }
+     conjugate() {
+      this[1] = -this[1];
+      this[2] = -this[2];
+      this[3] = -this[3];
+    }
+     dotWithQuat(q2) {
+      return this[0]*q2[0]+this[1]*q2[1]+this[2]*q2[2]+this[3]*q2[3];
+    }
+     invert() {
+      var f=this.dot(this);
+      if (f===0.0)
+        return ;
+      conjugate_qt(q);
+      this.mulscalar(1.0/f);
+    }
+     sub(q2) {
+      var nq2=new Quat();
+      nq2[0] = -q2[0];
+      nq2[1] = q2[1];
+      nq2[2] = q2[2];
+      nq2[3] = q2[3];
+      this.mul(nq2);
+    }
+     mulScalarWithFactor(fac) {
+      var angle=fac*bounded_acos(this[0]);
+      var co=Math.cos(angle);
+      var si=Math.sin(angle);
+      this[0] = co;
+      var last3=Vector3([this[1], this[2], this[3]]);
+      last3.normalize();
+      last3.mulScalar(si);
+      this[1] = last3[0];
+      this[2] = last3[1];
+      this[3] = last3[2];
+      return this;
+    }
+     toMatrix(m) {
+      if (m===undefined) {
+          m = new Matrix4();
+      }
+      var q0=M_SQRT2*this[0];
+      var q1=M_SQRT2*this[1];
+      var q2=M_SQRT2*this[2];
+      var q3=M_SQRT2*this[3];
+      var qda=q0*q1;
+      var qdb=q0*q2;
+      var qdc=q0*q3;
+      var qaa=q1*q1;
+      var qab=q1*q2;
+      var qac=q1*q3;
+      var qbb=q2*q2;
+      var qbc=q2*q3;
+      var qcc=q3*q3;
+      m.$matrix.m11 = (1.0-qbb-qcc);
+      m.$matrix.m12 = (qdc+qab);
+      m.$matrix.m13 = (-qdb+qac);
+      m.$matrix.m14 = 0.0;
+      m.$matrix.m21 = (-qdc+qab);
+      m.$matrix.m22 = (1.0-qaa-qcc);
+      m.$matrix.m23 = (qda+qbc);
+      m.$matrix.m24 = 0.0;
+      m.$matrix.m31 = (qdb+qac);
+      m.$matrix.m32 = (-qda+qbc);
+      m.$matrix.m33 = (1.0-qaa-qbb);
+      m.$matrix.m34 = 0.0;
+      m.$matrix.m41 = m.$matrix.m42 = m.$matrix.m43 = 0.0;
+      m.$matrix.m44 = 1.0;
+      return m;
+    }
+     matrixToQuat(wmat) {
+      var mat=temp_mats.next();
+      mat.load(wmat);
+      mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
+      mat.$matrix.m44 = 1.0;
+      var r1=new Vector3([mat.$matrix.m11, mat.$matrix.m12, mat.$matrix.m13]);
+      var r2=new Vector3([mat.$matrix.m21, mat.$matrix.m22, mat.$matrix.m23]);
+      var r3=new Vector3([mat.$matrix.m31, mat.$matrix.m32, mat.$matrix.m33]);
+      r1.normalize();
+      r2.normalize();
+      r3.normalize();
+      mat.$matrix.m11 = r1[0];
+      mat.$matrix.m12 = r1[1];
+      mat.$matrix.m13 = r1[2];
+      mat.$matrix.m21 = r2[0];
+      mat.$matrix.m22 = r2[1];
+      mat.$matrix.m23 = r2[2];
+      mat.$matrix.m31 = r3[0];
+      mat.$matrix.m32 = r3[1];
+      mat.$matrix.m33 = r3[2];
+      var tr=0.25*(1.0+mat.$matrix.m11+mat.$matrix.m22+mat.$matrix.m33);
+      var s=0;
+      if (tr>FLT_EPSILON) {
+          s = Math.sqrt(tr);
+          this[0] = s;
+          s = 1.0/(4.0*s);
+          this[1] = ((mat.$matrix.m23-mat.$matrix.m32)*s);
+          this[2] = ((mat.$matrix.m31-mat.$matrix.m13)*s);
+          this[3] = ((mat.$matrix.m12-mat.$matrix.m21)*s);
+      }
+      else {
+        if (mat.$matrix.m11>mat.$matrix.m22&&mat.$matrix.m11>mat.$matrix.m33) {
+            s = 2.0*Math.sqrt(1.0+mat.$matrix.m11-mat.$matrix.m22-mat.$matrix.m33);
+            this[1] = (0.25*s);
+            s = 1.0/s;
+            this[0] = ((mat.$matrix.m32-mat.$matrix.m23)*s);
+            this[2] = ((mat.$matrix.m21+mat.$matrix.m12)*s);
+            this[3] = ((mat.$matrix.m31+mat.$matrix.m13)*s);
+        }
+        else 
+          if (mat.$matrix.m22>mat.$matrix.m33) {
+            s = 2.0*Math.sqrt(1.0+mat.$matrix.m22-mat.$matrix.m11-mat.$matrix.m33);
+            this[2] = (0.25*s);
+            s = 1.0/s;
+            this[0] = ((mat.$matrix.m31-mat.$matrix.m13)*s);
+            this[1] = ((mat.$matrix.m21+mat.$matrix.m12)*s);
+            this[3] = ((mat.$matrix.m32+mat.$matrix.m23)*s);
+        }
+        else {
+          s = 2.0*Math.sqrt(1.0+mat.$matrix.m33-mat.$matrix.m11-mat.$matrix.m22);
+          this[3] = (0.25*s);
+          s = 1.0/s;
+          this[0] = ((mat.$matrix.m21-mat.$matrix.m12)*s);
+          this[1] = ((mat.$matrix.m31+mat.$matrix.m13)*s);
+          this[2] = ((mat.$matrix.m32+mat.$matrix.m23)*s);
+        }
+      }
+      this.normalize();
+    }
+     normalize() {
+      var len=Math.sqrt(this.dot(this));
+      if (len!==0.0) {
+          this.mulScalar(1.0/len);
+      }
+      else {
+        this[1] = 1.0;
+        this[0] = this[2] = this[3] = 0.0;
+      }
+      return this;
+    }
+     axisAngleToQuat(axis, angle) {
+      let nor=_quat_vs3_temps.next().load(axis);
+      nor.normalize();
+      if (nor.dot(nor)!==0.0) {
+          var phi=angle/2.0;
+          var si=Math.sin(phi);
+          this[0] = Math.cos(phi);
+          this[1] = nor[0]*si;
+          this[2] = nor[1]*si;
+          this[3] = nor[2]*si;
+      }
+      else {
+        this.makeUnitQuat();
+      }
+      return this;
+    }
+     rotationBetweenVecs(v1, v2, fac=1.0) {
+      v1 = new Vector3(v1);
+      v2 = new Vector3(v2);
+      v1.normalize();
+      v2.normalize();
+      if (Math.abs(v1.dot(v2))>0.9999) {
+          this.makeUnitQuat();
+          return this;
+      }
+      let axis=new Vector3(v1);
+      axis.cross(v2);
+      let angle=v1.preNormalizedAngle(v2)*fac;
+      this.axisAngleToQuat(axis, angle);
+      return this;
+    }
+     quatInterp(quat2, t) {
+      let quat=new Quat();
+      let cosom=this[0]*quat2[0]+this[1]*quat2[1]+this[2]*quat2[2]+this[3]*quat2[3];
+      if (cosom<0.0) {
+          cosom = -cosom;
+          quat[0] = -this[0];
+          quat[1] = -this[1];
+          quat[2] = -this[2];
+          quat[3] = -this[3];
+      }
+      else {
+        quat[0] = this[0];
+        quat[1] = this[1];
+        quat[2] = this[2];
+        quat[3] = this[3];
+      }
+      let omega, sinom, sc1, sc2;
+      if ((1.0-cosom)>0.0001) {
+          omega = Math.acos(cosom);
+          sinom = Math.sin(omega);
+          sc1 = Math.sin((1.0-t)*omega)/sinom;
+          sc2 = Math.sin(t*omega)/sinom;
+      }
+      else {
+        sc1 = 1.0-t;
+        sc2 = t;
+      }
+      this[0] = sc1*quat[0]+sc2*quat2[0];
+      this[1] = sc1*quat[1]+sc2*quat2[1];
+      this[2] = sc1*quat[2]+sc2*quat2[2];
+      this[3] = sc1*quat[3]+sc2*quat2[3];
+      return this;
+    }
+  }
+  _ESClass.register(Quat);
+  _es6_module.add_class(Quat);
+  Quat = _es6_module.add_export('Quat', Quat);
+  
+  Quat.STRUCT = nstructjs.inherit(Quat, Vector4, 'quat')+`
+}
+`;
+  nstructjs.register(Quat);
+  _v3nd4_n1_normalizedDot4 = new Vector3();
+  _v3nd4_n2_normalizedDot4 = new Vector3();
+  _v3nd_n1_normalizedDot = new Vector3();
+  _v3nd_n2_normalizedDot = new Vector3();
+  BaseVector.inherit(Vector4, 4);
+  F64BaseVector.inherit(Vector3, 3);
+  BaseVector.inherit(Vector2, 2);
+  lookat_cache_vs3 = util.cachering.fromConstructor(Vector3, 64);
+  lookat_cache_vs4 = util.cachering.fromConstructor(Vector4, 64);
+  makenormalcache = util.cachering.fromConstructor(Vector3, 64);
+  var $_v3nd_n1_normalizedDot=new Vector3();
+  var $_v3nd_n2_normalizedDot=new Vector3();
+  var $_v3nd4_n1_normalizedDot4=new Vector3();
+  var $_v3nd4_n2_normalizedDot4=new Vector3();
+  var $_v3nd4_n1_normalizedDot3=new Vector3();
+  var $_v3nd4_n2_normalizedDot3=new Vector3();
+  var M_SQRT2=Math.sqrt(2.0);
+  var FLT_EPSILON=2.22e-16;
+  class internal_matrix  {
+     constructor() {
+      this.m11 = 1.0;
+      this.m12 = 0.0;
+      this.m13 = 0.0;
+      this.m14 = 0.0;
+      this.m21 = 0.0;
+      this.m22 = 1.0;
+      this.m23 = 0.0;
+      this.m24 = 0.0;
+      this.m31 = 0.0;
+      this.m32 = 0.0;
+      this.m33 = 1.0;
+      this.m34 = 0.0;
+      this.m41 = 0.0;
+      this.m42 = 0.0;
+      this.m43 = 0.0;
+      this.m44 = 1.0;
+    }
+  }
+  _ESClass.register(internal_matrix);
+  _es6_module.add_class(internal_matrix);
+  var lookat_cache_vs3;
+  var lookat_cache_vs4;
+  var lookat_cache_ms;
+  var euler_rotate_mats;
+  var makenormalcache;
+  var temp_mats;
+  let preMultTemp;
+  class Matrix4  {
+     constructor(m) {
+      this.$matrix = new internal_matrix();
+      this.isPersp = false;
+      if (typeof m==='object') {
+          if ("length" in m&&m.length>=16) {
+              this.load(m);
+          }
+          else 
+            if (__instance_of(m, Matrix4)) {
+              this.load(m);
+          }
+      }
+    }
+    static  fromJSON() {
+      var mat=new Matrix4();
+      mat.load(json.items);
+      mat.isPersp = json.isPersp;
+      return mat;
+    }
+     copy() {
+      return this.clone();
+    }
+     clone() {
+      return new Matrix4(this);
+    }
+     addToHashDigest(hash) {
+      let m=this.$matrix;
+      hash.add(m.m11);
+      hash.add(m.m12);
+      hash.add(m.m13);
+      hash.add(m.m14);
+      hash.add(m.m21);
+      hash.add(m.m22);
+      hash.add(m.m23);
+      hash.add(m.m24);
+      hash.add(m.m31);
+      hash.add(m.m32);
+      hash.add(m.m33);
+      hash.add(m.m34);
+      hash.add(m.m41);
+      hash.add(m.m42);
+      hash.add(m.m43);
+      hash.add(m.m44);
+      return this;
+    }
+     equals(m) {
+      let m1=this.$matrix;
+      let m2=m.$matrix;
+      let ok=1;
+      ok = ok&&m1.m11===m2.m11;
+      ok = ok&&m1.m12===m2.m12;
+      ok = ok&&m1.m13===m2.m13;
+      ok = ok&&m1.m14===m2.m14;
+      ok = ok&&m1.m21===m2.m21;
+      ok = ok&&m1.m22===m2.m22;
+      ok = ok&&m1.m23===m2.m23;
+      ok = ok&&m1.m24===m2.m24;
+      ok = ok&&m1.m31===m2.m31;
+      ok = ok&&m1.m32===m2.m32;
+      ok = ok&&m1.m33===m2.m33;
+      ok = ok&&m1.m34===m2.m34;
+      ok = ok&&m1.m41===m2.m41;
+      ok = ok&&m1.m42===m2.m42;
+      ok = ok&&m1.m43===m2.m43;
+      ok = ok&&m1.m44===m2.m44;
+      return ok;
+    }
+     loadColumn(i, vec) {
+      let m=this.$matrix;
+      let have4=vec.length>3;
+      switch (i) {
+        case 0:
+          m.m11 = vec[0];
+          m.m21 = vec[1];
+          m.m31 = vec[2];
+          if (have4) {
+              m.m41 = vec[3];
+          }
+          break;
+        case 1:
+          m.m12 = vec[0];
+          m.m22 = vec[1];
+          m.m32 = vec[2];
+          if (have4) {
+              m.m42 = vec[3];
+          }
+          break;
+        case 2:
+          m.m13 = vec[0];
+          m.m23 = vec[1];
+          m.m33 = vec[2];
+          if (have4) {
+              m.m43 = vec[3];
+          }
+          break;
+        case 3:
+          m.m14 = vec[0];
+          m.m24 = vec[1];
+          m.m34 = vec[2];
+          if (have4) {
+              m.m44 = vec[3];
+          }
+          break;
+      }
+      return this;
+    }
+     copyColumnTo(i, vec) {
+      let m=this.$matrix;
+      let have4=vec.length>3;
+      switch (i) {
+        case 0:
+          vec[0] = m.m11;
+          vec[1] = m.m21;
+          vec[2] = m.m31;
+          if (have4) {
+              vec[3] = m.m41;
+          }
+          break;
+        case 1:
+          vec[0] = m.m12;
+          vec[1] = m.m22;
+          vec[2] = m.m32;
+          if (have4) {
+              vec[3] = m.m42;
+          }
+          break;
+        case 2:
+          vec[0] = m.m13;
+          vec[1] = m.m23;
+          vec[2] = m.m33;
+          if (have4) {
+              vec[3] = m.m43;
+          }
+          break;
+        case 3:
+          vec[0] = m.m14;
+          vec[1] = m.m24;
+          vec[2] = m.m34;
+          if (have4) {
+              vec[3] = m.m44;
+          }
+          break;
+      }
+      return vec;
+    }
+     copyColumn(i) {
+      return this.copyColumnTo(i, new Vector3());
+    }
+     load() {
+      if (arguments.length===1&&typeof arguments[0]==='object') {
+          var matrix;
+          if (__instance_of(arguments[0], Matrix4)) {
+              matrix = arguments[0].$matrix;
+              this.isPersp = arguments[0].isPersp;
+              this.$matrix.m11 = matrix.m11;
+              this.$matrix.m12 = matrix.m12;
+              this.$matrix.m13 = matrix.m13;
+              this.$matrix.m14 = matrix.m14;
+              this.$matrix.m21 = matrix.m21;
+              this.$matrix.m22 = matrix.m22;
+              this.$matrix.m23 = matrix.m23;
+              this.$matrix.m24 = matrix.m24;
+              this.$matrix.m31 = matrix.m31;
+              this.$matrix.m32 = matrix.m32;
+              this.$matrix.m33 = matrix.m33;
+              this.$matrix.m34 = matrix.m34;
+              this.$matrix.m41 = matrix.m41;
+              this.$matrix.m42 = matrix.m42;
+              this.$matrix.m43 = matrix.m43;
+              this.$matrix.m44 = matrix.m44;
+              return this;
+          }
+          else 
+            matrix = arguments[0];
+          if ("length" in matrix&&matrix.length>=16) {
+              this.$matrix.m11 = matrix[0];
+              this.$matrix.m12 = matrix[1];
+              this.$matrix.m13 = matrix[2];
+              this.$matrix.m14 = matrix[3];
+              this.$matrix.m21 = matrix[4];
+              this.$matrix.m22 = matrix[5];
+              this.$matrix.m23 = matrix[6];
+              this.$matrix.m24 = matrix[7];
+              this.$matrix.m31 = matrix[8];
+              this.$matrix.m32 = matrix[9];
+              this.$matrix.m33 = matrix[10];
+              this.$matrix.m34 = matrix[11];
+              this.$matrix.m41 = matrix[12];
+              this.$matrix.m42 = matrix[13];
+              this.$matrix.m43 = matrix[14];
+              this.$matrix.m44 = matrix[15];
+              return this;
+          }
+      }
+      this.makeIdentity();
+      return this;
+    }
+     toJSON() {
+      return {isPersp: this.isPersp, 
+     items: this.getAsArray()}
+    }
+     getAsArray() {
+      return [this.$matrix.m11, this.$matrix.m12, this.$matrix.m13, this.$matrix.m14, this.$matrix.m21, this.$matrix.m22, this.$matrix.m23, this.$matrix.m24, this.$matrix.m31, this.$matrix.m32, this.$matrix.m33, this.$matrix.m34, this.$matrix.m41, this.$matrix.m42, this.$matrix.m43, this.$matrix.m44];
+    }
+     getAsFloat32Array() {
+      return new Float32Array(this.getAsArray());
+    }
+     setUniform(ctx, loc, transpose) {
+      if (Matrix4.setUniformArray===undefined) {
+          Matrix4.setUniformWebGLArray = new Float32Array(16);
+          Matrix4.setUniformArray = new Array(16);
+      }
+      Matrix4.setUniformArray[0] = this.$matrix.m11;
+      Matrix4.setUniformArray[1] = this.$matrix.m12;
+      Matrix4.setUniformArray[2] = this.$matrix.m13;
+      Matrix4.setUniformArray[3] = this.$matrix.m14;
+      Matrix4.setUniformArray[4] = this.$matrix.m21;
+      Matrix4.setUniformArray[5] = this.$matrix.m22;
+      Matrix4.setUniformArray[6] = this.$matrix.m23;
+      Matrix4.setUniformArray[7] = this.$matrix.m24;
+      Matrix4.setUniformArray[8] = this.$matrix.m31;
+      Matrix4.setUniformArray[9] = this.$matrix.m32;
+      Matrix4.setUniformArray[10] = this.$matrix.m33;
+      Matrix4.setUniformArray[11] = this.$matrix.m34;
+      Matrix4.setUniformArray[12] = this.$matrix.m41;
+      Matrix4.setUniformArray[13] = this.$matrix.m42;
+      Matrix4.setUniformArray[14] = this.$matrix.m43;
+      Matrix4.setUniformArray[15] = this.$matrix.m44;
+      Matrix4.setUniformWebGLArray.set(Matrix4.setUniformArray);
+      ctx.uniformMatrix4fv(loc, transpose, Matrix4.setUniformWebGLArray);
+      return this;
+    }
+     makeIdentity() {
+      this.$matrix.m11 = 1;
+      this.$matrix.m12 = 0;
+      this.$matrix.m13 = 0;
+      this.$matrix.m14 = 0;
+      this.$matrix.m21 = 0;
+      this.$matrix.m22 = 1;
+      this.$matrix.m23 = 0;
+      this.$matrix.m24 = 0;
+      this.$matrix.m31 = 0;
+      this.$matrix.m32 = 0;
+      this.$matrix.m33 = 1;
+      this.$matrix.m34 = 0;
+      this.$matrix.m41 = 0;
+      this.$matrix.m42 = 0;
+      this.$matrix.m43 = 0;
+      this.$matrix.m44 = 1;
+      this.isPersp = false;
+      return this;
+    }
+     transpose() {
+      var tmp=this.$matrix.m12;
+      this.$matrix.m12 = this.$matrix.m21;
+      this.$matrix.m21 = tmp;
+      tmp = this.$matrix.m13;
+      this.$matrix.m13 = this.$matrix.m31;
+      this.$matrix.m31 = tmp;
+      tmp = this.$matrix.m14;
+      this.$matrix.m14 = this.$matrix.m41;
+      this.$matrix.m41 = tmp;
+      tmp = this.$matrix.m23;
+      this.$matrix.m23 = this.$matrix.m32;
+      this.$matrix.m32 = tmp;
+      tmp = this.$matrix.m24;
+      this.$matrix.m24 = this.$matrix.m42;
+      this.$matrix.m42 = tmp;
+      tmp = this.$matrix.m34;
+      this.$matrix.m34 = this.$matrix.m43;
+      this.$matrix.m43 = tmp;
+      return this;
+    }
+     determinant() {
+      return this._determinant4x4();
+    }
+     invert() {
+      var det=this._determinant4x4();
+      if (Math.abs(det)<1e-08)
+        return null;
+      this._makeAdjoint();
+      this.$matrix.m11/=det;
+      this.$matrix.m12/=det;
+      this.$matrix.m13/=det;
+      this.$matrix.m14/=det;
+      this.$matrix.m21/=det;
+      this.$matrix.m22/=det;
+      this.$matrix.m23/=det;
+      this.$matrix.m24/=det;
+      this.$matrix.m31/=det;
+      this.$matrix.m32/=det;
+      this.$matrix.m33/=det;
+      this.$matrix.m34/=det;
+      this.$matrix.m41/=det;
+      this.$matrix.m42/=det;
+      this.$matrix.m43/=det;
+      this.$matrix.m44/=det;
+      return this;
+    }
+     translate(x, y, z) {
+      if (typeof x==='object'&&"length" in x) {
+          var t=x;
+          x = t[0];
+          y = t[1];
+          z = t[2];
+      }
+      x = x===undefined ? 0 : x;
+      y = y===undefined ? 0 : y;
+      z = z===undefined ? 0 : z;
+      var matrix=temp_mats.next().makeIdentity();
+      matrix.$matrix.m41 = x;
+      matrix.$matrix.m42 = y;
+      matrix.$matrix.m43 = z;
+      this.multiply(matrix);
+      return this;
+    }
+     preTranslate(x, y, z) {
+      if (typeof x==='object'&&"length" in x) {
+          var t=x;
+          x = t[0];
+          y = t[1];
+          z = t[2];
+      }
+      x = x===undefined ? 0 : x;
+      y = y===undefined ? 0 : y;
+      z = z===undefined ? 0 : z;
+      var matrix=temp_mats.next().makeIdentity();
+      matrix.$matrix.m41 = x;
+      matrix.$matrix.m42 = y;
+      matrix.$matrix.m43 = z;
+      this.preMultiply(matrix);
+      return this;
+    }
+     scale(x, y, z, w=1.0) {
+      if (typeof x==='object'&&"length" in x) {
+          var t=x;
+          x = t[0];
+          y = t[1];
+          z = t[2];
+      }
+      else {
+        if (x===undefined)
+          x = 1;
+        if (z===undefined) {
+            if (y===undefined) {
+                y = x;
+                z = x;
+            }
+            else {
+              z = x;
+            }
+        }
+        else 
+          if (y===undefined) {
+            y = x;
+        }
+      }
+      var matrix=temp_mats.next().makeIdentity();
+      matrix.$matrix.m11 = x;
+      matrix.$matrix.m22 = y;
+      matrix.$matrix.m33 = z;
+      matrix.$matrix.m44 = w;
+      this.multiply(matrix);
+      return this;
+    }
+     preScale(x, y, z, w=1.0) {
+      let mat=temp_mats.next().makeIdentity();
+      mat.scale(x, y, z, w);
+      this.preMultiply(mat);
+      return this;
+    }
+     euler_rotate_order(x, y, z, order=EulerOrders.XYZ) {
+      if (y===undefined) {
+          y = 0.0;
+      }
+      if (z===undefined) {
+          z = 0.0;
+      }
+      x = -x;
+      y = -y;
+      z = -z;
+      let xmat=euler_rotate_mats.next().makeIdentity();
+      let m=xmat.$matrix;
+      let c=Math.cos(x), s=Math.sin(x);
+      m.m22 = c;
+      m.m23 = s;
+      m.m32 = -s;
+      m.m33 = c;
+      let ymat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(y);
+      s = Math.sin(y);
+      m = ymat.$matrix;
+      m.m11 = c;
+      m.m13 = -s;
+      m.m31 = s;
+      m.m33 = c;
+      let zmat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(z);
+      s = Math.sin(z);
+      m = zmat.$matrix;
+      m.m11 = c;
+      m.m12 = s;
+      m.m21 = -s;
+      m.m22 = c;
+      let a, b;
+      switch (order) {
+        case EulerOrders.XYZ:
+          a = xmat;
+          b = ymat;
+          c = zmat;
+          break;
+        case EulerOrders.XZY:
+          a = xmat;
+          b = zmat;
+          c = ymat;
+          break;
+        case EulerOrders.YXZ:
+          a = ymat;
+          b = xmat;
+          c = zmat;
+          break;
+        case EulerOrders.YZX:
+          a = ymat;
+          b = zmat;
+          c = xmat;
+          break;
+        case EulerOrders.ZXY:
+          a = zmat;
+          b = xmat;
+          c = ymat;
+          break;
+        case EulerOrders.ZYX:
+          a = zmat;
+          b = ymat;
+          c = xmat;
+          break;
+      }
+      b.preMultiply(c);
+      b.multiply(a);
+      this.preMultiply(b);
+      return this;
+    }
+     euler_rotate(x, y, z) {
+      if (y===undefined) {
+          y = 0.0;
+      }
+      if (z===undefined) {
+          z = 0.0;
+      }
+      window.Matrix4 = Matrix4;
+      var xmat=euler_rotate_mats.next().makeIdentity();
+      var m=xmat.$matrix;
+      var c=Math.cos(x), s=Math.sin(x);
+      m.m22 = c;
+      m.m23 = s;
+      m.m32 = -s;
+      m.m33 = c;
+      var ymat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(y);
+      s = Math.sin(y);
+      var m=ymat.$matrix;
+      m.m11 = c;
+      m.m13 = -s;
+      m.m31 = s;
+      m.m33 = c;
+      ymat.multiply(xmat);
+      var zmat=euler_rotate_mats.next().makeIdentity();
+      c = Math.cos(z);
+      s = Math.sin(z);
+      var m=zmat.$matrix;
+      m.m11 = c;
+      m.m12 = s;
+      m.m21 = -s;
+      m.m22 = c;
+      zmat.multiply(ymat);
+      this.preMultiply(zmat);
+      return this;
+    }
+     toString() {
+      var s="";
+      var m=this.$matrix;
+      function dec(d) {
+        var ret=d.toFixed(3);
+        if (ret[0]!=="-")
+          ret = " "+ret;
+        return ret;
+      }
+      s = dec(m.m11)+", "+dec(m.m12)+", "+dec(m.m13)+", "+dec(m.m14)+"\n";
+      s+=dec(m.m21)+", "+dec(m.m22)+", "+dec(m.m23)+", "+dec(m.m24)+"\n";
+      s+=dec(m.m31)+", "+dec(m.m32)+", "+dec(m.m33)+", "+dec(m.m34)+"\n";
+      s+=dec(m.m41)+", "+dec(m.m42)+", "+dec(m.m43)+", "+dec(m.m44)+"\n";
+      return s;
+    }
+     rotate(angle, x, y, z) {
+      if (typeof x==='object'&&"length" in x) {
+          var t=x;
+          x = t[0];
+          y = t[1];
+          z = t[2];
+      }
+      else {
+        if (arguments.length===1) {
+            x = y = 0;
+            z = 1;
+        }
+        else 
+          if (arguments.length===3) {
+            this.rotate(angle, 1, 0, 0);
+            this.rotate(x, 0, 1, 0);
+            this.rotate(y, 0, 0, 1);
+            return ;
+        }
+      }
+      angle/=2;
+      var sinA=Math.sin(angle);
+      var cosA=Math.cos(angle);
+      var sinA2=sinA*sinA;
+      var len=Math.sqrt(x*x+y*y+z*z);
+      if (len===0) {
+          x = 0;
+          y = 0;
+          z = 1;
+      }
+      else 
+        if (len!==1) {
+          x/=len;
+          y/=len;
+          z/=len;
+      }
+      var mat=temp_mats.next().makeIdentity();
+      if (x===1&&y===0&&z===0) {
+          mat.$matrix.m11 = 1;
+          mat.$matrix.m12 = 0;
+          mat.$matrix.m13 = 0;
+          mat.$matrix.m21 = 0;
+          mat.$matrix.m22 = 1-2*sinA2;
+          mat.$matrix.m23 = 2*sinA*cosA;
+          mat.$matrix.m31 = 0;
+          mat.$matrix.m32 = -2*sinA*cosA;
+          mat.$matrix.m33 = 1-2*sinA2;
+          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
+          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
+          mat.$matrix.m44 = 1;
+      }
+      else 
+        if (x===0&&y===1&&z===0) {
+          mat.$matrix.m11 = 1-2*sinA2;
+          mat.$matrix.m12 = 0;
+          mat.$matrix.m13 = -2*sinA*cosA;
+          mat.$matrix.m21 = 0;
+          mat.$matrix.m22 = 1;
+          mat.$matrix.m23 = 0;
+          mat.$matrix.m31 = 2*sinA*cosA;
+          mat.$matrix.m32 = 0;
+          mat.$matrix.m33 = 1-2*sinA2;
+          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
+          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
+          mat.$matrix.m44 = 1;
+      }
+      else 
+        if (x===0&&y===0&&z===1) {
+          mat.$matrix.m11 = 1-2*sinA2;
+          mat.$matrix.m12 = 2*sinA*cosA;
+          mat.$matrix.m13 = 0;
+          mat.$matrix.m21 = -2*sinA*cosA;
+          mat.$matrix.m22 = 1-2*sinA2;
+          mat.$matrix.m23 = 0;
+          mat.$matrix.m31 = 0;
+          mat.$matrix.m32 = 0;
+          mat.$matrix.m33 = 1;
+          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
+          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
+          mat.$matrix.m44 = 1;
+      }
+      else {
+        var x2=x*x;
+        var y2=y*y;
+        var z2=z*z;
+        mat.$matrix.m11 = 1-2*(y2+z2)*sinA2;
+        mat.$matrix.m12 = 2*(x*y*sinA2+z*sinA*cosA);
+        mat.$matrix.m13 = 2*(x*z*sinA2-y*sinA*cosA);
+        mat.$matrix.m21 = 2*(y*x*sinA2-z*sinA*cosA);
+        mat.$matrix.m22 = 1-2*(z2+x2)*sinA2;
+        mat.$matrix.m23 = 2*(y*z*sinA2+x*sinA*cosA);
+        mat.$matrix.m31 = 2*(z*x*sinA2+y*sinA*cosA);
+        mat.$matrix.m32 = 2*(z*y*sinA2-x*sinA*cosA);
+        mat.$matrix.m33 = 1-2*(x2+y2)*sinA2;
+        mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
+        mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
+        mat.$matrix.m44 = 1;
+      }
+      this.multiply(mat);
+      return this;
+    }
+     normalize() {
+      let m=this.$matrix;
+      let v1=new Vector4([m.m11, m.m12, m.m13, m.m14]);
+      let v2=new Vector4([m.m21, m.m22, m.m23, m.m24]);
+      let v3=new Vector4([m.m31, m.m32, m.m33, m.m34]);
+      let v4=new Vector4([m.m41, m.m42, m.m43, m.m44]);
+      v1.normalize();
+      v2.normalize();
+      v3.normalize();
+      let flat=new Array().concat(v1).concat(v2).concat(v3).concat(v4);
+      this.load(flat);
+      return this;
+    }
+     clearTranslation(set_w_to_one=false) {
+      let m=this.$matrix;
+      m.m41 = m.m42 = m.m43 = 0.0;
+      if (set_w_to_one) {
+          m.m44 = 1.0;
+      }
+      return this;
+    }
+     setTranslation(x, y, z, resetW=true) {
+      if (typeof x==="object") {
+          y = x[1];
+          z = x[2];
+          x = x[0];
+      }
+      let m=this.$matrix;
+      m.m41 = x;
+      m.m42 = y;
+      m.m43 = z;
+      if (resetW) {
+          m.m44 = 1.0;
+      }
+      return this;
+    }
+     makeNormalMatrix(normal, up=undefined) {
+      if (normal===undefined) {
+          throw new Error("normal cannot be undefined");
+      }
+      let n=makenormalcache.next().load(normal).normalize();
+      if (up===undefined) {
+          up = makenormalcache.next().zero();
+          if (Math.abs(n[2])>0.95) {
+              up[1] = 1.0;
+          }
+          else {
+            up[2] = 1.0;
+          }
+      }
+      up = makenormalcache.next().load(up);
+      up.normalize();
+      if (up.dot(normal)>0.99) {
+          this.makeIdentity();
+          return this;
+      }
+      else 
+        if (up.dot(normal)<-0.99) {
+          this.makeIdentity();
+          this.scale(1.0, 1.0, -1.0);
+          return this;
+      }
+      let x=makenormalcache.next();
+      let y=makenormalcache.next();
+      x.load(n).cross(up).normalize();
+      y.load(x).cross(n).normalize();
+      this.makeIdentity();
+      let m=this.$matrix;
+      m.m11 = x[0];
+      m.m12 = x[1];
+      m.m13 = x[2];
+      m.m21 = y[0];
+      m.m22 = y[1];
+      m.m23 = y[2];
+      m.m31 = n[0];
+      m.m32 = n[1];
+      m.m33 = n[2];
+      m.m44 = 1.0;
+      return this;
+    }
+     preMultiply(mat) {
+      preMultTemp.load(mat);
+      preMultTemp.multiply(this);
+      this.load(preMultTemp);
+      return this;
+    }
+     multiply(mat) {
+      let mm=this.$matrix;
+      let mm2=mat.$matrix;
+      let m11=(mm2.m11*mm.m11+mm2.m12*mm.m21+mm2.m13*mm.m31+mm2.m14*mm.m41);
+      let m12=(mm2.m11*mm.m12+mm2.m12*mm.m22+mm2.m13*mm.m32+mm2.m14*mm.m42);
+      let m13=(mm2.m11*mm.m13+mm2.m12*mm.m23+mm2.m13*mm.m33+mm2.m14*mm.m43);
+      let m14=(mm2.m11*mm.m14+mm2.m12*mm.m24+mm2.m13*mm.m34+mm2.m14*mm.m44);
+      let m21=(mm2.m21*mm.m11+mm2.m22*mm.m21+mm2.m23*mm.m31+mm2.m24*mm.m41);
+      let m22=(mm2.m21*mm.m12+mm2.m22*mm.m22+mm2.m23*mm.m32+mm2.m24*mm.m42);
+      let m23=(mm2.m21*mm.m13+mm2.m22*mm.m23+mm2.m23*mm.m33+mm2.m24*mm.m43);
+      let m24=(mm2.m21*mm.m14+mm2.m22*mm.m24+mm2.m23*mm.m34+mm2.m24*mm.m44);
+      let m31=(mm2.m31*mm.m11+mm2.m32*mm.m21+mm2.m33*mm.m31+mm2.m34*mm.m41);
+      let m32=(mm2.m31*mm.m12+mm2.m32*mm.m22+mm2.m33*mm.m32+mm2.m34*mm.m42);
+      let m33=(mm2.m31*mm.m13+mm2.m32*mm.m23+mm2.m33*mm.m33+mm2.m34*mm.m43);
+      let m34=(mm2.m31*mm.m14+mm2.m32*mm.m24+mm2.m33*mm.m34+mm2.m34*mm.m44);
+      let m41=(mm2.m41*mm.m11+mm2.m42*mm.m21+mm2.m43*mm.m31+mm2.m44*mm.m41);
+      let m42=(mm2.m41*mm.m12+mm2.m42*mm.m22+mm2.m43*mm.m32+mm2.m44*mm.m42);
+      let m43=(mm2.m41*mm.m13+mm2.m42*mm.m23+mm2.m43*mm.m33+mm2.m44*mm.m43);
+      let m44=(mm2.m41*mm.m14+mm2.m42*mm.m24+mm2.m43*mm.m34+mm2.m44*mm.m44);
+      mm.m11 = m11;
+      mm.m12 = m12;
+      mm.m13 = m13;
+      mm.m14 = m14;
+      mm.m21 = m21;
+      mm.m22 = m22;
+      mm.m23 = m23;
+      mm.m24 = m24;
+      mm.m31 = m31;
+      mm.m32 = m32;
+      mm.m33 = m33;
+      mm.m34 = m34;
+      mm.m41 = m41;
+      mm.m42 = m42;
+      mm.m43 = m43;
+      mm.m44 = m44;
+      return this;
+    }
+     divide(divisor) {
+      this.$matrix.m11/=divisor;
+      this.$matrix.m12/=divisor;
+      this.$matrix.m13/=divisor;
+      this.$matrix.m14/=divisor;
+      this.$matrix.m21/=divisor;
+      this.$matrix.m22/=divisor;
+      this.$matrix.m23/=divisor;
+      this.$matrix.m24/=divisor;
+      this.$matrix.m31/=divisor;
+      this.$matrix.m32/=divisor;
+      this.$matrix.m33/=divisor;
+      this.$matrix.m34/=divisor;
+      this.$matrix.m41/=divisor;
+      this.$matrix.m42/=divisor;
+      this.$matrix.m43/=divisor;
+      this.$matrix.m44/=divisor;
+      return this;
+    }
+     ortho(left, right, bottom, top, near, far) {
+      console.warn("Matrix4.ortho() is deprecated, use .orthographic() instead");
+      var tx=(left+right)/(left-right);
+      var ty=(top+bottom)/(top-bottom);
+      var tz=(far+near)/(far-near);
+      var matrix=temp_mats.next().makeIdentity();
+      matrix.$matrix.m11 = 2/(left-right);
+      matrix.$matrix.m12 = 0;
+      matrix.$matrix.m13 = 0;
+      matrix.$matrix.m14 = 0;
+      matrix.$matrix.m21 = 0;
+      matrix.$matrix.m22 = 2/(top-bottom);
+      matrix.$matrix.m23 = 0;
+      matrix.$matrix.m24 = 0;
+      matrix.$matrix.m31 = 0;
+      matrix.$matrix.m32 = 0;
+      matrix.$matrix.m33 = -2/(far-near);
+      matrix.$matrix.m34 = 0;
+      matrix.$matrix.m41 = tx;
+      matrix.$matrix.m42 = ty;
+      matrix.$matrix.m43 = tz;
+      matrix.$matrix.m44 = 1;
+      this.multiply(matrix);
+      return this;
+    }
+     frustum(left, right, bottom, top, near, far) {
+      var matrix=temp_mats.next().makeIdentity();
+      var A=(right+left)/(right-left);
+      var B=(top+bottom)/(top-bottom);
+      var C=-(far+near)/(far-near);
+      var D=-(2*far*near)/(far-near);
+      matrix.$matrix.m11 = (2*near)/(right-left);
+      matrix.$matrix.m12 = 0;
+      matrix.$matrix.m13 = 0;
+      matrix.$matrix.m14 = 0;
+      matrix.$matrix.m21 = 0;
+      matrix.$matrix.m22 = 2*near/(top-bottom);
+      matrix.$matrix.m23 = 0;
+      matrix.$matrix.m24 = 0;
+      matrix.$matrix.m31 = A;
+      matrix.$matrix.m32 = B;
+      matrix.$matrix.m33 = C;
+      matrix.$matrix.m34 = -1;
+      matrix.$matrix.m41 = 0;
+      matrix.$matrix.m42 = 0;
+      matrix.$matrix.m43 = D;
+      matrix.$matrix.m44 = 0;
+      this.isPersp = true;
+      this.multiply(matrix);
+      return this;
+    }
+     orthographic(scale, aspect, near, far) {
+      let mat=temp_mats.next().makeIdentity();
+      let zscale=far-near;
+      mat.scale(2.0/aspect, 2.0, -1.0/scale/zscale, 1.0/scale);
+      mat.translate(0.0, 0.0, 0.5*zscale-near);
+      this.isPersp = true;
+      this.multiply(mat);
+      return mat;
+    }
+     perspective(fovy, aspect, zNear, zFar) {
+      var top=Math.tan(fovy*Math.PI/360)*zNear;
+      var bottom=-top;
+      var left=aspect*bottom;
+      var right=aspect*top;
+      this.frustum(left, right, bottom, top, zNear, zFar);
+      return this;
+    }
+     lookat(pos, target, up) {
+      var matrix=lookat_cache_ms.next();
+      matrix.makeIdentity();
+      var vec=lookat_cache_vs3.next().load(pos).sub(target);
+      var len=vec.vectorLength();
+      vec.normalize();
+      var zvec=vec;
+      var yvec=lookat_cache_vs3.next().load(up).normalize();
+      var xvec=lookat_cache_vs3.next().load(yvec).cross(zvec).normalize();
+      let mm=matrix.$matrix;
+      mm.m11 = xvec[0];
+      mm.m12 = yvec[0];
+      mm.m13 = zvec[0];
+      mm.m14 = 0;
+      mm.m21 = xvec[1];
+      mm.m22 = yvec[1];
+      mm.m23 = zvec[1];
+      mm.m24 = 0;
+      mm.m31 = xvec[2];
+      mm.m32 = yvec[2];
+      mm.m33 = zvec[2];
+      mm.m11 = xvec[0];
+      mm.m12 = xvec[1];
+      mm.m13 = xvec[2];
+      mm.m14 = 0;
+      mm.m21 = yvec[0];
+      mm.m22 = yvec[1];
+      mm.m23 = yvec[2];
+      mm.m24 = 0;
+      mm.m31 = zvec[0];
+      mm.m32 = zvec[1];
+      mm.m33 = zvec[2];
+      mm.m34 = 0;
+      mm.m41 = pos[0];
+      mm.m42 = pos[1];
+      mm.m43 = pos[2];
+      mm.m44 = 1;
+      this.multiply(matrix);
+      return this;
+    }
+     makeRotationOnly() {
+      var m=this.$matrix;
+      m.m41 = m.m42 = m.m43 = 0.0;
+      m.m44 = 1.0;
+      let l1=Math.sqrt(m.m11*m.m11+m.m12*m.m12+m.m13*m.m13);
+      let l2=Math.sqrt(m.m21*m.m21+m.m22*m.m22+m.m23*m.m23);
+      let l3=Math.sqrt(m.m31*m.m31+m.m32*m.m32+m.m33*m.m33);
+      if (l1) {
+          m.m11/=l1;
+          m.m12/=l1;
+          m.m13/=l1;
+      }
+      if (l2) {
+          m.m21/=l2;
+          m.m22/=l2;
+          m.m23/=l2;
+      }
+      if (l3) {
+          m.m31/=l3;
+          m.m32/=l3;
+          m.m33/=l3;
+      }
+      return this;
+    }
+     alignAxis(axis, vec) {
+      vec = new Vector3(vec);
+      vec.normalize();
+      let mat=this.inputs.transformMatrix.getValue();
+      let m=mat.$matrix;
+      let mat2=new Matrix4(mat);
+      let loc=new Vector3(), scale=new Vector3(), rot=new Vector3();
+      mat2.decompose(loc, rot, scale);
+      mat2.makeRotationOnly();
+      let axes=mat2.getAsVecs();
+      let axis2=(axis+1)%3;
+      let axis3=(axis+2)%3;
+      axes[axis].load(vec);
+      axes[axis2].cross(axes[axis]).cross(axes[axis]);
+      axes[axis3].load(axes[axis]).cross(axes[axis2]);
+      axes[0][3] = 1.0;
+      axes[1][3] = 1.0;
+      axes[2][3] = 1.0;
+      axes[0].normalize();
+      axes[1].normalize();
+      axes[2].normalize();
+      this.loadFromVecs(axes);
+      this.scale(scale[0], scale[1], scale[2]);
+      m.m41 = loc[0];
+      m.m42 = loc[1];
+      m.m43 = loc[2];
+      return this;
+    }
+     decompose(_translate, _rotate, _scale, _skew, _perspective, order=EulerOrders.XYZ) {
+      if (this.$matrix.m44===0)
+        return false;
+      let mat=temp_mats.next().load(this);
+      let m=mat.$matrix;
+      let t=_translate, r=_rotate, s=_scale;
+      if (t) {
+          t[0] = m.m41;
+          t[1] = m.m42;
+          t[2] = m.m43;
+      }
+      let l1=Math.sqrt(m.m11*m.m11+m.m12*m.m12+m.m13*m.m13);
+      let l2=Math.sqrt(m.m21*m.m21+m.m22*m.m22+m.m23*m.m23);
+      let l3=Math.sqrt(m.m31*m.m31+m.m32*m.m32+m.m33*m.m33);
+      if (l1) {
+          m.m11/=l1;
+          m.m12/=l1;
+          m.m13/=l1;
+      }
+      if (l2) {
+          m.m21/=l2;
+          m.m22/=l2;
+          m.m23/=l2;
+      }
+      if (l3) {
+          m.m31/=l3;
+          m.m32/=l3;
+          m.m33/=l3;
+      }
+      if (s) {
+          s[0] = l1;
+          s[1] = l2;
+          s[2] = l3;
+      }
+      if (r) {
+          let clamp=myclamp;
+          let rmat=temp_mats.next().load(this);
+          rmat.normalize();
+          m = rmat.$matrix;
+          let m11=m.m11, m12=m.m12, m13=m.m13, m14=m.m14;
+          let m21=m.m21, m22=m.m22, m23=m.m23, m24=m.m24;
+          let m31=m.m31, m32=m.m32, m33=m.m33, m34=m.m34;
+          if (order===EulerOrders.XYZ) {
+              r[1] = Math.asin(clamp(m13, -1, 1));
+              if (Math.abs(m13)<0.9999999) {
+                  r[0] = Math.atan2(-m23, m33);
+                  r[2] = Math.atan2(-m12, m11);
+              }
+              else {
+                r[0] = Math.atan2(m32, m22);
+                r[2] = 0;
+              }
+          }
+          else 
+            if (order===EulerOrders.YXZ) {
+              r[0] = Math.asin(-clamp(m23, -1, 1));
+              if (Math.abs(m23)<0.9999999) {
+                  r[1] = Math.atan2(m13, m33);
+                  r[2] = Math.atan2(m21, m22);
+              }
+              else {
+                r[1] = Math.atan2(-m31, m11);
+                r[2] = 0;
+              }
+          }
+          else 
+            if (order===EulerOrders.ZXY) {
+              r[0] = Math.asin(clamp(m32, -1, 1));
+              if (Math.abs(m32)<0.9999999) {
+                  r[1] = Math.atan2(-m31, m33);
+                  r[2] = Math.atan2(-m12, m22);
+              }
+              else {
+                r[1] = 0;
+                r[2] = Math.atan2(m21, m11);
+              }
+          }
+          else 
+            if (order===EulerOrders.ZYX) {
+              r[1] = Math.asin(-clamp(m31, -1, 1));
+              if (Math.abs(m31)<0.9999999) {
+                  r[0] = Math.atan2(m32, m33);
+                  r[2] = Math.atan2(m21, m11);
+              }
+              else {
+                r[0] = 0;
+                r[2] = Math.atan2(-m12, m22);
+              }
+          }
+          else 
+            if (order===EulerOrders.YZX) {
+              r[2] = Math.asin(clamp(m21, -1, 1));
+              if (Math.abs(m21)<0.9999999) {
+                  r[0] = Math.atan2(-m23, m22);
+                  r[1] = Math.atan2(-m31, m11);
+              }
+              else {
+                r[0] = 0;
+                r[1] = Math.atan2(m13, m33);
+              }
+          }
+          else 
+            if (order===EulerOrders.XZY) {
+              r[2] = Math.asin(-clamp(m12, -1, 1));
+              if (Math.abs(m12)<0.9999999) {
+                  r[0] = Math.atan2(m32, m22);
+                  r[1] = Math.atan2(m13, m11);
+              }
+              else {
+                r[0] = Math.atan2(-m23, m33);
+                r[1] = 0;
+              }
+          }
+          else {
+            console.warn('unsupported euler order:', order);
+          }
+      }
+    }
+     _determinant2x2(a, b, c, d) {
+      return a*d-b*c;
+    }
+     _determinant3x3(a1, a2, a3, b1, b2, b3, c1, c2, c3) {
+      return a1*this._determinant2x2(b2, b3, c2, c3)-b1*this._determinant2x2(a2, a3, c2, c3)+c1*this._determinant2x2(a2, a3, b2, b3);
+    }
+     determinant() {
+      return this._determinant4x4();
+    }
+     _determinant4x4() {
+      var a1=this.$matrix.m11;
+      var b1=this.$matrix.m12;
+      var c1=this.$matrix.m13;
+      var d1=this.$matrix.m14;
+      var a2=this.$matrix.m21;
+      var b2=this.$matrix.m22;
+      var c2=this.$matrix.m23;
+      var d2=this.$matrix.m24;
+      var a3=this.$matrix.m31;
+      var b3=this.$matrix.m32;
+      var c3=this.$matrix.m33;
+      var d3=this.$matrix.m34;
+      var a4=this.$matrix.m41;
+      var b4=this.$matrix.m42;
+      var c4=this.$matrix.m43;
+      var d4=this.$matrix.m44;
+      return a1*this._determinant3x3(b2, b3, b4, c2, c3, c4, d2, d3, d4)-b1*this._determinant3x3(a2, a3, a4, c2, c3, c4, d2, d3, d4)+c1*this._determinant3x3(a2, a3, a4, b2, b3, b4, d2, d3, d4)-d1*this._determinant3x3(a2, a3, a4, b2, b3, b4, c2, c3, c4);
+    }
+     _makeAdjoint() {
+      var a1=this.$matrix.m11;
+      var b1=this.$matrix.m12;
+      var c1=this.$matrix.m13;
+      var d1=this.$matrix.m14;
+      var a2=this.$matrix.m21;
+      var b2=this.$matrix.m22;
+      var c2=this.$matrix.m23;
+      var d2=this.$matrix.m24;
+      var a3=this.$matrix.m31;
+      var b3=this.$matrix.m32;
+      var c3=this.$matrix.m33;
+      var d3=this.$matrix.m34;
+      var a4=this.$matrix.m41;
+      var b4=this.$matrix.m42;
+      var c4=this.$matrix.m43;
+      var d4=this.$matrix.m44;
+      this.$matrix.m11 = this._determinant3x3(b2, b3, b4, c2, c3, c4, d2, d3, d4);
+      this.$matrix.m21 = -this._determinant3x3(a2, a3, a4, c2, c3, c4, d2, d3, d4);
+      this.$matrix.m31 = this._determinant3x3(a2, a3, a4, b2, b3, b4, d2, d3, d4);
+      this.$matrix.m41 = -this._determinant3x3(a2, a3, a4, b2, b3, b4, c2, c3, c4);
+      this.$matrix.m12 = -this._determinant3x3(b1, b3, b4, c1, c3, c4, d1, d3, d4);
+      this.$matrix.m22 = this._determinant3x3(a1, a3, a4, c1, c3, c4, d1, d3, d4);
+      this.$matrix.m32 = -this._determinant3x3(a1, a3, a4, b1, b3, b4, d1, d3, d4);
+      this.$matrix.m42 = this._determinant3x3(a1, a3, a4, b1, b3, b4, c1, c3, c4);
+      this.$matrix.m13 = this._determinant3x3(b1, b2, b4, c1, c2, c4, d1, d2, d4);
+      this.$matrix.m23 = -this._determinant3x3(a1, a2, a4, c1, c2, c4, d1, d2, d4);
+      this.$matrix.m33 = this._determinant3x3(a1, a2, a4, b1, b2, b4, d1, d2, d4);
+      this.$matrix.m43 = -this._determinant3x3(a1, a2, a4, b1, b2, b4, c1, c2, c4);
+      this.$matrix.m14 = -this._determinant3x3(b1, b2, b3, c1, c2, c3, d1, d2, d3);
+      this.$matrix.m24 = this._determinant3x3(a1, a2, a3, c1, c2, c3, d1, d2, d3);
+      this.$matrix.m34 = -this._determinant3x3(a1, a2, a3, b1, b2, b3, d1, d2, d3);
+      this.$matrix.m44 = this._determinant3x3(a1, a2, a3, b1, b2, b3, c1, c2, c3);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      this.load(this.mat);
+      this.__mat = this.mat;
+    }
+  }
+  _ESClass.register(Matrix4);
+  _es6_module.add_class(Matrix4);
+  Matrix4 = _es6_module.add_export('Matrix4', Matrix4);
+  Matrix4.STRUCT = `
+mat4 {
+  mat      : array(float) | this.getAsArray();
+  isPersp  : int          | this.isPersp;
+}
+`;
+  nstructjs.register(Matrix4);
+  preMultTemp = new Matrix4();
+  window.testmat = (x, y, z) =>    {
+    if (x===undefined) {
+        x = 0;
+    }
+    if (y===undefined) {
+        y = 0;
+    }
+    if (z===undefined) {
+        z = Math.PI*0.5;
+    }
+    let m1=new Matrix4();
+    m1.euler_rotate(x, y, z);
+    let t=[0, 0, 0], r=[0, 0, 0], s=[0, 0, 0];
+    m1.decompose(t, r, s);
+    window.console.log("\n");
+    window.console.log(t);
+    window.console.log(r);
+    window.console.log(s);
+    let mat=m1.clone();
+    mat.transpose();
+    mat.multiply(m1);
+    console.log(mat.toString());
+    return r;
+  }
+  lookat_cache_ms = util.cachering.fromConstructor(Matrix4, 64);
+  euler_rotate_mats = util.cachering.fromConstructor(Matrix4, 64);
+  temp_mats = util.cachering.fromConstructor(Matrix4, 64);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/vectormath.js');
+
+
+es6_module_define('pathux', ["./core/ui.js", "./screen/FrameManager.js", "./widgets/ui_curvewidget.js", "./widgets/ui_button.js", "./widgets/ui_numsliders.js", "./path-controller/controller.js", "./config/const.js", "./widgets/ui_textbox.js", "./xmlpage/xmlpage.js", "./widgets/ui_listbox.js", "./path-controller/util/polyfill.js", "./screen/ScreenArea.js", "./widgets/ui_richedit.js", "./widgets/ui_lasttool.js", "./widgets/theme_editor.js", "./widgets/ui_tabs.js", "./widgets/ui_noteframe.js", "./widgets/ui_panel.js", "./platforms/platform.js", "./util/ScreenOverdraw.js", "./widgets/ui_widgets.js", "./core/ui_theme.js", "./platforms/electron/electron_api.js", "./path-controller/util/html5_fileapi.js", "./widgets/ui_widgets2.js", "./simple/simple.js", "./core/ui_base.js", "./widgets/ui_treeview.js", "./widgets/ui_colorpicker2.js", "./widgets/ui_table.js", "./core/units.js", "./path-controller/util/graphpack.js", "./widgets/ui_menu.js", "./widgets/ui_progress.js"], function _pathux_module(_es6_module) {
+  es6_import(_es6_module, './path-controller/util/polyfill.js');
+  var ___xmlpage_xmlpage_js=es6_import(_es6_module, './xmlpage/xmlpage.js');
+  for (let k in ___xmlpage_xmlpage_js) {
+      _es6_module.add_export(k, ___xmlpage_xmlpage_js[k], true);
+  }
+  var ___core_ui_base_js=es6_import(_es6_module, './core/ui_base.js');
+  for (let k in ___core_ui_base_js) {
+      _es6_module.add_export(k, ___core_ui_base_js[k], true);
+  }
+  var ___core_ui_js=es6_import(_es6_module, './core/ui.js');
+  for (let k in ___core_ui_js) {
+      _es6_module.add_export(k, ___core_ui_js[k], true);
+  }
+  var ___widgets_ui_widgets_js=es6_import(_es6_module, './widgets/ui_widgets.js');
+  for (let k in ___widgets_ui_widgets_js) {
+      _es6_module.add_export(k, ___widgets_ui_widgets_js[k], true);
+  }
+  var ___widgets_ui_widgets2_js=es6_import(_es6_module, './widgets/ui_widgets2.js');
+  for (let k in ___widgets_ui_widgets2_js) {
+      _es6_module.add_export(k, ___widgets_ui_widgets2_js[k], true);
+  }
+  var ___core_ui_theme_js=es6_import(_es6_module, './core/ui_theme.js');
+  for (let k in ___core_ui_theme_js) {
+      _es6_module.add_export(k, ___core_ui_theme_js[k], true);
+  }
+  var ___core_units_js=es6_import(_es6_module, './core/units.js');
+  for (let k in ___core_units_js) {
+      _es6_module.add_export(k, ___core_units_js[k], true);
+  }
+  var ___widgets_ui_button_js=es6_import(_es6_module, './widgets/ui_button.js');
+  for (let k in ___widgets_ui_button_js) {
+      _es6_module.add_export(k, ___widgets_ui_button_js[k], true);
+  }
+  var ___widgets_ui_richedit_js=es6_import(_es6_module, './widgets/ui_richedit.js');
+  for (let k in ___widgets_ui_richedit_js) {
+      _es6_module.add_export(k, ___widgets_ui_richedit_js[k], true);
+  }
+  var ___widgets_ui_curvewidget_js=es6_import(_es6_module, './widgets/ui_curvewidget.js');
+  for (let k in ___widgets_ui_curvewidget_js) {
+      _es6_module.add_export(k, ___widgets_ui_curvewidget_js[k], true);
+  }
+  var ___widgets_ui_panel_js=es6_import(_es6_module, './widgets/ui_panel.js');
+  for (let k in ___widgets_ui_panel_js) {
+      _es6_module.add_export(k, ___widgets_ui_panel_js[k], true);
+  }
+  var ___widgets_ui_colorpicker2_js=es6_import(_es6_module, './widgets/ui_colorpicker2.js');
+  for (let k in ___widgets_ui_colorpicker2_js) {
+      _es6_module.add_export(k, ___widgets_ui_colorpicker2_js[k], true);
+  }
+  var ___widgets_ui_tabs_js=es6_import(_es6_module, './widgets/ui_tabs.js');
+  for (let k in ___widgets_ui_tabs_js) {
+      _es6_module.add_export(k, ___widgets_ui_tabs_js[k], true);
+  }
+  var ___widgets_ui_listbox_js=es6_import(_es6_module, './widgets/ui_listbox.js');
+  for (let k in ___widgets_ui_listbox_js) {
+      _es6_module.add_export(k, ___widgets_ui_listbox_js[k], true);
+  }
+  var ___widgets_ui_menu_js=es6_import(_es6_module, './widgets/ui_menu.js');
+  for (let k in ___widgets_ui_menu_js) {
+      _es6_module.add_export(k, ___widgets_ui_menu_js[k], true);
+  }
+  var ___widgets_ui_progress_js=es6_import(_es6_module, './widgets/ui_progress.js');
+  for (let k in ___widgets_ui_progress_js) {
+      _es6_module.add_export(k, ___widgets_ui_progress_js[k], true);
+  }
+  var ___widgets_ui_table_js=es6_import(_es6_module, './widgets/ui_table.js');
+  for (let k in ___widgets_ui_table_js) {
+      _es6_module.add_export(k, ___widgets_ui_table_js[k], true);
+  }
+  var ___widgets_ui_noteframe_js=es6_import(_es6_module, './widgets/ui_noteframe.js');
+  for (let k in ___widgets_ui_noteframe_js) {
+      _es6_module.add_export(k, ___widgets_ui_noteframe_js[k], true);
+  }
+  var ___widgets_ui_numsliders_js=es6_import(_es6_module, './widgets/ui_numsliders.js');
+  for (let k in ___widgets_ui_numsliders_js) {
+      _es6_module.add_export(k, ___widgets_ui_numsliders_js[k], true);
+  }
+  var ___widgets_ui_lasttool_js=es6_import(_es6_module, './widgets/ui_lasttool.js');
+  for (let k in ___widgets_ui_lasttool_js) {
+      _es6_module.add_export(k, ___widgets_ui_lasttool_js[k], true);
+  }
+  var ___widgets_ui_textbox_js=es6_import(_es6_module, './widgets/ui_textbox.js');
+  for (let k in ___widgets_ui_textbox_js) {
+      _es6_module.add_export(k, ___widgets_ui_textbox_js[k], true);
+  }
+  var ___path_controller_util_graphpack_js=es6_import(_es6_module, './path-controller/util/graphpack.js');
+  for (let k in ___path_controller_util_graphpack_js) {
+      _es6_module.add_export(k, ___path_controller_util_graphpack_js[k], true);
+  }
+  var ___path_controller_util_html5_fileapi_js=es6_import(_es6_module, './path-controller/util/html5_fileapi.js');
+  for (let k in ___path_controller_util_html5_fileapi_js) {
+      _es6_module.add_export(k, ___path_controller_util_html5_fileapi_js[k], true);
+  }
+  var ___path_controller_controller_js=es6_import(_es6_module, './path-controller/controller.js');
+  for (let k in ___path_controller_controller_js) {
+      _es6_module.add_export(k, ___path_controller_controller_js[k], true);
+  }
+  var controller1=es6_import(_es6_module, './path-controller/controller.js');
+  const controller=controller1;
+  _es6_module.add_export('controller', controller);
+  var ui_noteframe=es6_import(_es6_module, './widgets/ui_noteframe.js');
+  controller1.setNotifier(ui_noteframe);
+  var platform1=es6_import(_es6_module, './platforms/platform.js');
+  const platform=platform1;
+  _es6_module.add_export('platform', platform);
+  var electron_api1=es6_import(_es6_module, './platforms/electron/electron_api.js');
+  const electron_api=electron_api1;
+  _es6_module.add_export('electron_api', electron_api);
+  var ___platforms_platform_js=es6_import(_es6_module, './platforms/platform.js');
+  for (let k in ___platforms_platform_js) {
+      _es6_module.add_export(k, ___platforms_platform_js[k], true);
+  }
+  var ___widgets_theme_editor_js=es6_import(_es6_module, './widgets/theme_editor.js');
+  for (let k in ___widgets_theme_editor_js) {
+      _es6_module.add_export(k, ___widgets_theme_editor_js[k], true);
+  }
+  var ___widgets_ui_treeview_js=es6_import(_es6_module, './widgets/ui_treeview.js');
+  for (let k in ___widgets_ui_treeview_js) {
+      _es6_module.add_export(k, ___widgets_ui_treeview_js[k], true);
+  }
+  var ___screen_FrameManager_js=es6_import(_es6_module, './screen/FrameManager.js');
+  for (let k in ___screen_FrameManager_js) {
+      _es6_module.add_export(k, ___screen_FrameManager_js[k], true);
+  }
+  var ___screen_ScreenArea_js=es6_import(_es6_module, './screen/ScreenArea.js');
+  for (let k in ___screen_ScreenArea_js) {
+      _es6_module.add_export(k, ___screen_ScreenArea_js[k], true);
+  }
+  var ___util_ScreenOverdraw_js=es6_import(_es6_module, './util/ScreenOverdraw.js');
+  for (let k in ___util_ScreenOverdraw_js) {
+      _es6_module.add_export(k, ___util_ScreenOverdraw_js[k], true);
+  }
+  var cconst1=es6_import_item(_es6_module, './config/const.js', 'default');
+  const cconst=cconst1;
+  _es6_module.add_export('cconst', cconst);
+  var simple1=es6_import(_es6_module, './simple/simple.js');
+  const simple=simple1;
+  _es6_module.add_export('simple', simple);
+}, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
+
+
+es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_menu.js", "../../core/ui_base.js", "../platform_base.js", "../../util/util.js"], function _electron_api_module(_es6_module) {
+  "use strict";
+  function getElectronVersion() {
+    let key=navigator.userAgent;
+    let i=key.search("Electron");
+    key = key.slice(i+9, key.length);
+    i = key.search(/[ \t]/);
+    if (i>=0) {
+        key = key.slice(0, i);
+    }
+    key = key.trim();
+    key = key.split(".").map((f) =>      {
+      return parseInt(f);
+    });
+    return key;
+  }
+  function getElectron() {
+    return require('electron');
+  }
+  function myRequire(mod) {
+    return globalThis.require(mod);
+  }
+  var Menu=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'Menu');
+  var DropBox=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'DropBox');
+  var getIconManager=es6_import_item(_es6_module, '../../core/ui_base.js', 'getIconManager');
+  var cconst=es6_import_item(_es6_module, '../../config/const.js', 'default');
+  var util=es6_import(_es6_module, '../../util/util.js');
+  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
+  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
+  function getFilename(path) {
+    let filename=path.replace(/\\/g, "/");
+    let i=filename.length-1;
+    while (i>=0&&filename[i]!=="/") {
+      i--;
+    }
+    if (i>0) {
+        filename = filename.slice(i, filename.length).trim();
+    }
+    return filename;
+  }
+  let _menu_init=false;
+  let _init=false;
+  let mimemap={"js": "application/javascript", 
+   "json": "text/json", 
+   "png": "image/png", 
+   "svg": "image/svg+xml", 
+   "jpg": "image/jpeg", 
+   "txt": "text/plain", 
+   "html": "text/html", 
+   "css": "text/css", 
+   "ts": "application/typescript", 
+   "py": "application/python", 
+   "c": "application/c", 
+   "cpp": "application/cpp", 
+   "cc": "application/cpp", 
+   "h": "application/c", 
+   "hh": "application/cpp", 
+   "hpp": "application/cpp", 
+   "xml": "text/xml", 
+   "sh": "application/bash", 
+   "mjs": "application/javascript", 
+   "cjs": "application/javascript", 
+   "gif": "image/gif"}
+  let electron_menu_idgen=1;
+  let ipcRenderer;
+  class ElectronMenu extends Array {
+     constructor(args={}) {
+      super();
+      this._ipcId = electron_menu_idgen++;
+      for (let k in args) {
+          this[k] = args[k];
+      }
+    }
+     insert(i, item) {
+      this.length++;
+      let j=this.length-1;
+      while (j>i) {
+        this[j] = this[j-1];
+        j--;
+      }
+      this[i] = item;
+      return this;
+    }
+    static  setApplicationMenu(menu) {
+      initElectronIpc();
+      ipcRenderer.invoke("set-menu-bar", menu);
+    }
+     closePopup() {
+      ipcRenderer.invoke("close-menu", this._ipcId);
+    }
+     append(item) {
+      this.push(item);
+    }
+     popup(args) {
+      let $_t0ekeg=args, x=$_t0ekeg.x, y=$_t0ekeg.y, callback=$_t0ekeg.callback;
+      callback = wrapRemoteCallback("popup_menu_click", callback);
+      const $_t1lcjf=require('electron'), ipcRenderer=$_t1lcjf.ipcRenderer;
+      ipcRenderer.invoke("popup-menu", this, x, y, callback);
+    }
+  }
+  _ESClass.register(ElectronMenu);
+  _es6_module.add_class(ElectronMenu);
+  ElectronMenu = _es6_module.add_export('ElectronMenu', ElectronMenu);
+  let callbacks={}
+  let keybase=1;
+  function wrapRemoteCallback(key, callback) {
+    key = "remote_"+key+(keybase++);
+    callbacks[key] = callback;
+    return key;
+  }
+  wrapRemoteCallback = _es6_module.add_export('wrapRemoteCallback', wrapRemoteCallback);
+  let ipcInit=false;
+  function initElectronIpc() {
+    if (ipcInit) {
+        return ;
+    }
+    ipcInit = true;
+    ipcRenderer = require('electron').ipcRenderer;
+    ipcRenderer.on('invoke-menu-callback', (event, key, args) =>      {
+      callbacks[key].apply(undefined, args);
+    });
+  }
+  class ElectronMenuItem  {
+     constructor(args) {
+      for (let k in args) {
+          this[k] = args[k];
+      }
+      if (this.click) {
+          this.click = wrapRemoteCallback("menu_click", this.click);
+      }
+    }
+  }
+  _ESClass.register(ElectronMenuItem);
+  _es6_module.add_class(ElectronMenuItem);
+  ElectronMenuItem = _es6_module.add_export('ElectronMenuItem', ElectronMenuItem);
+  function patchDropBox() {
+    initElectronIpc();
+    DropBox.prototype._onpress = function _onpress(e) {
+      if (this._menu!==undefined) {
+          this._menu.close();
+          this._menu = undefined;
+          this._pressed = false;
+          this._redraw();
+          return ;
+      }
+      this._build_menu();
+      let emenu=buildElectronMenu(this._menu);
+      this._menu.close = () =>        {
+        emenu.closePopup();
+      }
+      if (this._menu===undefined) {
+          return ;
+      }
+      this._menu._dropbox = this;
+      this.dom._background = this.getDefault("BoxDepressed");
+      this._background = this.getDefault("BoxDepressed");
+      this._redraw();
+      this._pressed = true;
+      this.setCSS();
+      let onclose=this._menu.onclose;
+      this._menu.onclose = () =>        {
+        this._pressed = false;
+        this._redraw();
+        let menu=this._menu;
+        if (menu) {
+            this._menu = undefined;
+            menu._dropbox = undefined;
+        }
+        if (onclose) {
+            onclose.call(menu);
+        }
+      }
+      let menu=this._menu;
+      let screen=this.getScreen();
+      let dpi=this.getDPI();
+      let x=e.x, y=e.y;
+      let rects=this.dom.getClientRects();
+      x = rects[0].x;
+      y = rects[0].y+Math.ceil(rects[0].height);
+      x = ~~x;
+      y = ~~y;
+      emenu.popup({x: x, 
+     y: y, 
+     callback: () =>          {
+          if (this._menu) {
+              this._menu.onclose();
+          }
+        }});
+    }
+  }
+  let on_tick=() =>    {
+    let nativeTheme=getElectron().remote.nativeTheme;
+    let mode=nativeTheme.shouldUseDarkColors ? "dark" : "light";
+    if (mode!==cconst.colorSchemeType) {
+        nativeTheme.themeSource = cconst.colorSchemeType;
+    }
+  }
+  function checkInit() {
+    if (window.haveElectron&&!_init) {
+        _init = true;
+        patchDropBox();
+        setInterval(on_tick, 350);
+    }
+  }
+  checkInit = _es6_module.add_export('checkInit', checkInit);
+  let iconcache={}
+  iconcache = _es6_module.add_export('iconcache', iconcache);
+  function makeIconKey(icon, iconsheet, invertColors) {
+    return ""+icon+":"+iconsheet+":"+invertColors;
+  }
+  function getNativeIcon(icon, iconsheet, invertColors, size) {
+    if (iconsheet===undefined) {
+        iconsheet = 0;
+    }
+    if (invertColors===undefined) {
+        invertColors = false;
+    }
+    if (size===undefined) {
+        size = 16;
+    }
+    let icongen;
+    try {
+      icongen = myRequire("./icogen.js");
+    }
+    catch (error) {
+        icongen = myRequire("./icogen.cjs");
+    }
+    window.icongen = icongen;
+    let nativeImage=getElectron().nativeImage;
+    let manager=getIconManager();
+    let sheet=manager.findSheet(iconsheet);
+    let images=[];
+    let sizes=icongen.GetRequiredICOImageSizes();
+    if (1) {
+        let iconsheet=manager.findClosestSheet(size);
+        let tilesize=manager.getTileSize(iconsheet);
+        let canvas=document.createElement("canvas");
+        let g=canvas.getContext("2d");
+        canvas.width = canvas.height = size;
+        if (invertColors) {
+            g.filter = "invert(100%)";
+        }
+        let scale=size/tilesize;
+        g.scale(scale, scale);
+        manager.canvasDraw({getDPI: () =>            {
+            return 1.0;
+          }}, canvas, g, icon, 0, 0, iconsheet);
+        let header="data:image/png;base64,";
+        let data=canvas.toDataURL();
+        data = data.slice(header.length, data.length);
+        data = Buffer.from(data, "base64");
+        myRequire("fs").writeFileSync("./myicon2.png", data);
+        images.push(data);
+    }
+    return "myicon2.png";
+    return icon;
+    return undefined;
+    window._icon = icon;
+    return icon;
+  }
+  getNativeIcon = _es6_module.add_export('getNativeIcon', getNativeIcon);
+  let map={CTRL: "Control", 
+   ALT: "Alt", 
+   SHIFT: "Shift", 
+   COMMAND: "Command"}
+  function buildElectronHotkey(hk) {
+    hk = hk.trim().replace(/[ \t-]+/g, "+");
+    for (let k in map) {
+        hk = hk.replace(k, map[k]);
+    }
+    return hk;
+  }
+  buildElectronHotkey = _es6_module.add_export('buildElectronHotkey', buildElectronHotkey);
+  function buildElectronMenu(menu) {
+    let electron=getElectron().remote;
+    initElectronIpc();
+    let emenu=new ElectronMenu();
+    let buildItem=(item) =>      {
+      if (item._isMenu) {
+          let menu2=item._menu;
+          return new ElectronMenuItem({submenu: buildElectronMenu(item._menu), 
+       label: menu2.getAttribute("title")});
+      }
+      let hotkey=item.hotkey;
+      let icon=item.icon;
+      let label=""+item.label;
+      if (hotkey&&typeof hotkey!=="string") {
+          hotkey = buildElectronHotkey(hotkey);
+      }
+      else {
+        hotkey = ""+hotkey;
+      }
+      if (icon<0) {
+          icon = undefined;
+      }
+      let args={id: ""+item._id, 
+     label: label, 
+     accelerator: hotkey, 
+     icon: icon ? getNativeIcon(icon) : undefined, 
+     click: function () {
+          menu.onselect(item._id);
+        }, 
+     registerAccelerator: false}
+      return new ElectronMenuItem(args);
+    }
+    for (let item of menu.items) {
+        emenu.append(buildItem(item));
+    }
+    return emenu;
+  }
+  buildElectronMenu = _es6_module.add_export('buildElectronMenu', buildElectronMenu);
+  function initMenuBar(menuEditor, override) {
+    if (override===undefined) {
+        override = false;
+    }
+    checkInit();
+    if (!window.haveElectron) {
+        return ;
+    }
+    if (_menu_init&&!override) {
+        return ;
+    }
+    _menu_init = true;
+    let electron=getElectron().remote;
+    let menu=new ElectronMenu();
+    let _roles=new Set(["undo", "redo", "cut", "copy", "paste", "delete", "about", "quit", "open", "save", "load", "paste", "cut", "zoom"]);
+    let roles={}
+    for (let k of _roles) {
+        roles[k] = k;
+    }
+    roles = Object.assign(roles, {"select all": "selectAll", 
+    "file": "fileMenu", 
+    "edit": "editMenu", 
+    "view": "viewMenu", 
+    "app": "appMenu", 
+    "help": "help", 
+    "zoom in": "zoomIn", 
+    "zoom out": "zoomOut"});
+    let header=menuEditor.header;
+    for (let dbox of header.traverse(DropBox)) {
+        dbox._build_menu();
+        dbox.update();
+        dbox._build_menu();
+        let menu2=dbox._menu;
+        menu2.ctx = dbox.ctx;
+        menu2._init();
+        menu2.update();
+        let title=dbox._genLabel();
+        let args={label: title, 
+      tooltip: dbox.description, 
+      submenu: buildElectronMenu(menu2)};
+        menu.insert(0, new ElectronMenuItem(args));
+    }
+    ElectronMenu.setApplicationMenu(menu);
+  }
+  initMenuBar = _es6_module.add_export('initMenuBar', initMenuBar);
+  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
+  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
+  class platform extends PlatformAPI {
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      const $_t2hafh=require('electron').remote, dialog=$_t2hafh.dialog;
+      console.log(args.filters);
+      let eargs={defaultPath: args.defaultPath, 
+     filters: this._sanitizeFilters(args.filters??[]), 
+     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
+      if (args.multi) {
+          eargs.properties.push("multiSelections");
+      }
+      if (!args.addToRecentList) {
+          eargs.properties.push("dontAddToRecent");
+      }
+      initElectronIpc();
+      return new Promise((accept, reject) =>        {
+        ipcRenderer.invoke('show-open-dialog', eargs, wrapRemoteCallback("open-dialog", (ret) =>          {
+          if (ret.canceled||ret.cancelled) {
+              reject("cancel");
+          }
+          else {
+            accept(ret.filePaths.map((f) =>              {
+              return new FilePath(f, getFilename(f));
+            }));
+          }
+        }), wrapRemoteCallback("show-open-dialog", (error) =>          {
+          reject(error);
+        }));
+      });
+    }
+    static  _sanitizeFilters(filters) {
+      let filters2=[];
+      for (let filter of filters) {
+          if (Array.isArray(filter)) {
+              let ext=filter[0];
+              filter = {extensions: filter};
+              ext = ext.replace(/\./g, "").trim().toLowerCase();
+              if (ext in mimemap) {
+                  filter.mime = mimemap[ext];
+              }
+              filter.name = ext;
+          }
+          console.log(filter.extensions);
+          filter.extensions = filter.extensions.map((f) =>            {
+            return f.startsWith(".") ? f.slice(1, f.length) : f;
+          });
+          filters2.push(filter);
+      }
+      return filters2;
+    }
+    static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
+      const $_t3ilpq=require('electron').remote, dialog=$_t3ilpq.dialog;
+      console.log(args.filters);
+      let eargs={defaultPath: args.defaultPath, 
+     filters: this._sanitizeFilters(args.filters??[]), 
+     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
+      if (args.multi) {
+          eargs.properties.push("multiSelections");
+      }
+      if (!args.addToRecentList) {
+          eargs.properties.push("dontAddToRecent");
+      }
+      return new Promise((accept, reject) =>        {
+        initElectronIpc();
+        let onthen=(ret) =>          {
+          if (ret.canceled) {
+              reject("cancel");
+          }
+          else {
+            let path=ret.filePath;
+            let filedata=filedata_cb();
+            if (__instance_of(filedata, ArrayBuffer)) {
+                filedata = new Uint8Array(filedata);
+            }
+            require('fs').writeFileSync(path, filedata);
+            console.log("saved file", filedata);
+            accept(new FilePath(path, getFilename(path)));
+          }
+        }
+        let oncatch=(error) =>          {
+          reject(error);
+        }
+        ipcRenderer.invoke('show-save-dialog', eargs, wrapRemoteCallback('dialog', onthen), wrapRemoteCallback('dialog', oncatch));
+      });
+    }
+    static  readFile(path, mime) {
+      return new Promise((accept, reject) =>        {
+        let fs=require('fs');
+        if (isMimeText(mime)) {
+            accept(fs.readFileSync(path.data, "utf8"));
+        }
+        else {
+          accept(fs.readFileSync(path.data).buffer);
+        }
+      });
+    }
+    static  writeFile(data, handle, mime) {
+      return new Promise((accept, reject) =>        {
+        let fs=require('fs');
+        fs.writeFileSync(handle.data, data);
+        accept(handle);
+      });
+    }
+  }
+  _ESClass.register(platform);
+  _es6_module.add_class(platform);
+  platform = _es6_module.add_export('platform', platform);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/electron_api.js');
+
+
+es6_module_define('icogen', [], function _icogen_module(_es6_module) {
+  "use strict";
+  if (window.haveElectron) {
+      let fs=require("fs");
+      let path=require("path");
+      let pngjsNozlib=require("pngjs-nozlib");
+      let png=require("pngjs");
+      const REQUIRED_IMAGE_SIZES=[16, 24, 32, 48, 64, 128, 256];
+      const DEFAULT_FILE_NAME='app';
+      const FILE_EXTENSION='.ico';
+      const HEADER_SIZE=6;
+      const DIRECTORY_SIZE=16;
+      const BITMAPINFOHEADER_SIZE=40;
+      const BI_RGB=0;
+      const convertPNGtoDIB=(src, width, height, bpp) =>        {
+        const cols=width*bpp;
+        const rows=height*cols;
+        const rowEnd=rows-cols;
+        const dest=Buffer.alloc(src.length);
+        for (let row=0; row<rows; row+=cols) {
+            for (let col=0; col<cols; col+=bpp) {
+                let pos=row+col;
+                const r=src.readUInt8(pos);
+                const g=src.readUInt8(pos+1);
+                const b=src.readUInt8(pos+2);
+                const a=src.readUInt8(pos+3);
+                pos = rowEnd-row+col;
+                dest.writeUInt8(b, pos);
+                dest.writeUInt8(g, pos+1);
+                dest.writeUInt8(r, pos+2);
+                dest.writeUInt8(a, pos+3);
+            }
+        }
+        return dest;
+      };
+      const createBitmapInfoHeader=(png, compression) =>        {
+        const b=Buffer.alloc(BITMAPINFOHEADER_SIZE);
+        b.writeUInt32LE(BITMAPINFOHEADER_SIZE, 0);
+        b.writeInt32LE(png.width, 4);
+        b.writeInt32LE(png.height*2, 8);
+        b.writeUInt16LE(1, 12);
+        b.writeUInt16LE(png.bpp*8, 14);
+        b.writeUInt32LE(compression, 16);
+        b.writeUInt32LE(png.data.length, 20);
+        b.writeInt32LE(0, 24);
+        b.writeInt32LE(0, 28);
+        b.writeUInt32LE(0, 32);
+        b.writeUInt32LE(0, 36);
+        return b;
+      };
+      const createDirectory=(png, offset) =>        {
+        const b=Buffer.alloc(DIRECTORY_SIZE);
+        const size=png.data.length+BITMAPINFOHEADER_SIZE;
+        const width=256<=png.width ? 0 : png.width;
+        const height=256<=png.height ? 0 : png.height;
+        const bpp=png.bpp*8;
+        b.writeUInt8(width, 0);
+        b.writeUInt8(height, 1);
+        b.writeUInt8(0, 2);
+        b.writeUInt8(0, 3);
+        b.writeUInt16LE(1, 4);
+        b.writeUInt16LE(bpp, 6);
+        b.writeUInt32LE(size, 8);
+        b.writeUInt32LE(offset, 12);
+        return b;
+      };
+      const createFileHeader=(count) =>        {
+        const b=Buffer.alloc(HEADER_SIZE);
+        b.writeUInt16LE(0, 0);
+        b.writeUInt16LE(1, 2);
+        b.writeUInt16LE(count, 4);
+        return b;
+      };
+      const checkOptions=(options) =>        {
+        if (options) {
+            return {name: typeof options.name==='string'&&options.name!=='' ? options.name : DEFAULT_FILE_NAME, 
+        sizes: Array.isArray(options.sizes) ? options.sizes : REQUIRED_IMAGE_SIZES}
+        }
+        else {
+          return {name: DEFAULT_FILE_NAME, 
+       sizes: REQUIRED_IMAGE_SIZES}
+        }
+      };
+      const GetRequiredICOImageSizes=() =>        {
+        return REQUIRED_IMAGE_SIZES;
+      };
+      let stream=require("stream");
+      class WriteStream extends stream.Writable {
+         constructor() {
+          super();
+          this.data = [];
+        }
+         _write(chunk, encoding, cb) {
+          let buf=chunk;
+          if (!(__instance_of(buf, Buffer))) {
+              Buffer.from(chunk, encoding);
+          }
+          for (let i=0; i<buf.length; i++) {
+              this.data.push(buf[i]);
+          }
+          cb(null);
+        }
+         end() {
+          this.data = Buffer.from(this.data);
+          super.end();
+        }
+      }
+      _ESClass.register(WriteStream);
+      _es6_module.add_class(WriteStream);
+      exports.GetRequiredICOImageSizes = GetRequiredICOImageSizes;
+      const GenerateICO=(images, logger) =>        {
+        if (logger===undefined) {
+            logger = console;
+        }
+        logger.log('ICO:');
+        const stream=new WriteStream();
+        stream.write(createFileHeader(images.length), 'binary');
+        let pngs=[];
+        for (let image of images) {
+            pngs.push(pngjsNozlib.PNG.sync.read(image));
+        }
+        let offset=HEADER_SIZE+DIRECTORY_SIZE*images.length;
+        pngs.forEach((png) =>          {
+          const directory=createDirectory(png, offset);
+          stream.write(directory, 'binary');
+          offset+=png.data.length+BITMAPINFOHEADER_SIZE;
+        });
+        pngs.forEach((png) =>          {
+          const header=createBitmapInfoHeader(png, BI_RGB);
+          stream.write(header, 'binary');
+          const dib=convertPNGtoDIB(png.data, png.width, png.height, png.bpp);
+          stream.write(dib, 'binary');
+        });
+        stream.end();
+        return stream.data;
+      };
+      exports.GenerateICO = GenerateICO;
+      let _default=GenerateICO;
+      exports.default = _default;
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/icogen.js');
+
+
+es6_module_define('platform', [], function _platform_module(_es6_module) {
+  let promise;
+  if (window.haveElectron) {
+      promise = _es_dynamic_import(_es6_module, './electron/electron_api.js');
+  }
+  else {
+    promise = _es_dynamic_import(_es6_module, './web/web_api.js');
+  }
+  var platform;
+  platform = _es6_module.add_export('platform', platform);
+  promise.then((module) =>    {
+    platform = module.platform;
+    promise = undefined;
+  });
+  function getPlatformAsync() {
+    if (promise) {
+        return promise;
+    }
+    return new Promise((accept, reject) =>      {
+      accept(platform);
+    });
+  }
+  getPlatformAsync = _es6_module.add_export('getPlatformAsync', getPlatformAsync);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform.js');
+
+
+es6_module_define('platform_base', [], function _platform_base_module(_es6_module) {
+  const mimeMap={".js": "application/javascript", 
+   ".json": "text/json", 
+   ".html": "text/html", 
+   ".txt": "text/plain", 
+   ".jpg": "image/jpeg", 
+   ".png": "image/png", 
+   ".tiff": "image/tiff", 
+   ".gif": "image/gif", 
+   ".bmp": "image/bitmap", 
+   ".tga": "image/targa", 
+   ".svg": "image/svg+xml", 
+   ".xml": "text/xml"}
+  _es6_module.add_export('mimeMap', mimeMap);
+  var textMimes=new Set(["application/javascript", "application/x-javscript", "image/svg+xml", "application/xml"]);
+  textMimes = _es6_module.add_export('textMimes', textMimes);
+  function isMimeText(mime) {
+    if (!mime) {
+        return false;
+    }
+    if (mime.startsWith("text")) {
+        return true;
+    }
+    return textMimes.has(mime);
+  }
+  isMimeText = _es6_module.add_export('isMimeText', isMimeText);
+  function getExtension(path) {
+    if (!path) {
+        return "";
+    }
+    let i=path.length;
+    while (i>0&&path[i]!==".") {
+      i--;
+    }
+    return path.slice(i, path.length).trim().toLowerCase();
+  }
+  getExtension = _es6_module.add_export('getExtension', getExtension);
+  function getMime(path) {
+    let ext=getExtension(path);
+    if (ext in mimeMap) {
+        return mimeMap[ext];
+    }
+    return "application/x-octet-stream";
+  }
+  getMime = _es6_module.add_export('getMime', getMime);
+  class PlatformAPI  {
+    static  writeFile(data, handle, mime) {
+      throw new Error("implement me");
+    }
+    static  resolveURL(path, base=location.href) {
+      base = base.trim();
+      if (path.startsWith("./")) {
+          path = path.slice(2, path.length).trim();
+      }
+      while (path.startsWith("/")) {
+        path = path.slice(1, path.length).trim();
+      }
+      while (base.endsWith("/")) {
+        base = base.slice(0, base.length-1).trim();
+      }
+      let exts=["html", "txt", "js", "php", "cgi"];
+      for (let ext of exts) {
+          ext = "."+ext;
+          if (base.endsWith(ext)) {
+              let i=base.length-1;
+              while (i>0&&base[i]!=="/") {
+                i--;
+              }
+              base = base.slice(0, i).trim();
+          }
+      }
+      while (base.endsWith("/")) {
+        base = base.slice(0, base.length-1).trim();
+      }
+      path = (base+"/"+path).split("/");
+      let path2=[];
+      for (let i=0; i<path.length; i++) {
+          if (path[i]==="..") {
+              path2.pop();
+          }
+          else {
+            path2.push(path[i]);
+          }
+      }
+      return path2.join("/");
+    }
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      throw new Error("implement me");
+    }
+    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
+      throw new Error("implement me");
+    }
+    static  readFile(path, mime) {
+      throw new Error("implement me");
+    }
+  }
+  _ESClass.register(PlatformAPI);
+  _es6_module.add_class(PlatformAPI);
+  PlatformAPI = _es6_module.add_export('PlatformAPI', PlatformAPI);
+  class FileDialogArgs  {
+     constructor() {
+      this.multi = false;
+      this.addToRecentList = false;
+      this.filters = [];
+    }
+  }
+  _ESClass.register(FileDialogArgs);
+  _es6_module.add_class(FileDialogArgs);
+  FileDialogArgs = _es6_module.add_export('FileDialogArgs', FileDialogArgs);
+  class FilePath  {
+     constructor(data, filename="unnamed") {
+      this.data = data;
+      this.filename = filename;
+    }
+  }
+  _ESClass.register(FilePath);
+  _es6_module.add_class(FilePath);
+  FilePath = _es6_module.add_export('FilePath', FilePath);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform_base.js');
+
+
+es6_module_define('web_api', ["../platform_base.js", "../../path-controller/util/html5_fileapi.js"], function _web_api_module(_es6_module) {
+  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
+  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
+  var saveFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'saveFile');
+  var loadFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'loadFile');
+  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
+  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
+  var mimeMap=es6_import_item(_es6_module, '../platform_base.js', 'mimeMap');
+  function getWebFilters(filters) {
+    if (filters===undefined) {
+        filters = [];
+    }
+    let types=[];
+    for (let item of filters) {
+        let mime=item.mime;
+        let exts=[];
+        for (let ext of item.extensions) {
+            ext = "."+ext;
+            if (ext.toLowerCase() in mimeMap) {
+                mime = mime!==undefined ? mime : mimeMap[ext.toLowerCase()];
+            }
+            exts.push(ext);
+        }
+        if (!mime) {
+            mime = "application/x-octet-stream";
+        }
+        types.push({description: item.name, 
+      accept: {[mime]: exts}});
+    }
+    return types;
+  }
+  getWebFilters = _es6_module.add_export('getWebFilters', getWebFilters);
+  class platform extends PlatformAPI {
+    static  showOpenDialog(title, args=new FileDialogArgs()) {
+      let types=getWebFilters(args.filters);
+      return new Promise((accept, reject) =>        {
+        try {
+          window.showOpenFilePicker({multiple: args.multi, 
+       types: types}).then((arg) =>            {
+            let paths=[];
+            for (let file of arg) {
+                paths.push(new FilePath(file, file.name));
+            }
+            accept(paths);
+          });
+        }
+        catch (error) {
+            reject(error);
+        }
+      });
+    }
+    static  writeFile(data, handle, mime) {
+      handle = handle.data;
+      return handle.createWritable().then((file) =>        {
+        file.write(data);
+        file.close();
+      });
+    }
+    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
+      if (!window.showSaveFilePicker) {
+          return this.showSaveDialog_old(...arguments);
+      }
+      let types=getWebFilters(args.filters);
+      return new Promise((accept, reject) =>        {
+        let fname;
+        let saveHandle;
+        try {
+          saveHandle = window.showSaveFilePicker({types: types});
+        }
+        catch (error) {
+            reject(error);
+        }
+        let handle;
+        saveHandle.then((handle1) =>          {
+          handle = handle1;
+          fname = handle.name;
+          console.log("saveHandle", handle);
+          return handle.createWritable();
+        }).then((file) =>          {
+          let savedata=savedata_cb();
+          if (__instance_of(savedata, Uint8Array)||__instance_of(savedata, DataView)) {
+              savedata = savedata.buffer;
+          }
+          file.write(savedata);
+          file.close();
+          let path=new FilePath(handle, fname);
+          accept(path);
+        });
+      });
+    }
+    static  showSaveDialog_old(title, savedata, args=new FileDialogArgs()) {
+      let exts=[];
+      for (let list of args.filters) {
+          if (!Array.isArray(list)&&list.filters) {
+              list = list.filters;
+          }
+          for (let ext of list) {
+              exts.push(ext);
+          }
+      }
+      return new Promise((accept, reject) =>        {
+        saveFile(savedata);
+        window.setTimeout(() =>          {
+          accept("undefined");
+        });
+      });
+    }
+    static  readFile(path, mime="") {
+      if (mime==="") {
+          mime = path.filename;
+          let i=mime.length-1;
+          while (i>0&&mime[i]!==".") {
+            i--;
+          }
+          mime = mime.slice(i, mime.length).trim().toLowerCase();
+          if (mime in mimeMap) {
+              mime = mimeMap[mime];
+          }
+      }
+      return new Promise((accept, reject) =>        {
+        path.data.getFile().then((file) =>          {
+          console.log("file!", file);
+          let promise;
+          if (isMimeText(mime)) {
+              promise = file.text();
+          }
+          else {
+            promise = file.arrayBuffer();
+          }
+          promise.then((data) =>            {
+            accept(data);
+          });
+        });
+      });
+      return new Promise((accept, reject) =>        {
+        let data=path.data;
+        if (isMimeText(mime)) {
+            let s='';
+            data = new Uint8Array(data);
+            for (let i=0; i<data.length; i++) {
+                s+=String.fromCharCode(data[i]);
+            }
+            data = s;
+        }
+        accept(data);
+      });
+    }
+  }
+  _ESClass.register(platform);
+  _es6_module.add_class(platform);
+  platform = _es6_module.add_export('platform', platform);
+}, '/dev/fairmotion/src/path.ux/scripts/platforms/web/web_api.js');
+
+
+es6_module_define('AreaDocker', ["../config/const.js", "../core/ui.js", "../widgets/ui_menu.js", "../path-controller/util/util.js", "./ScreenArea.js", "./area_wrangler.js", "../path-controller/util/struct.js", "../core/ui_base.js", "../path-controller/util/vectormath.js"], function _AreaDocker_module(_es6_module) {
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
+  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var Area=es6_import_item(_es6_module, './ScreenArea.js', 'Area');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
+  var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
+  var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
+  var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
+  var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
+  let ignore=0;
+  function dockerdebug() {
+    if (cconst.DEBUG.areadocker) {
+        console.warn(...arguments);
+    }
+  }
+  window.testSnapScreenVerts = function (arg) {
+    let screen=CTX.screen;
+    screen.unlisten();
+    screen.on_resize([screen.size[0]-75, screen.size[1]], screen.size);
+    screen.on_resize = screen.updateSize = () =>      {    }
+    let p=CTX.propsbar;
+    p.pos[0]+=50;
+    p.owning_sarea.loadFromPosSize();
+    screen.regenBorders();
+    screen.size[0] = window.innerWidth-5;
+    screen.snapScreenVerts(arg);
+  }
+  class AreaDocker extends Container {
+     constructor() {
+      super();
+      this._last_update_key = undefined;
+      this.mpos = new Vector2();
+      this.needsRebuild = true;
+      this.ignoreChange = 0;
+    }
+    static  define() {
+      return {tagname: "area-docker-x", 
+     style: "areadocker"}
+    }
+     rebuild() {
+      if (!this.parentWidget) {
+          return ;
+      }
+      let sarea=this.getArea().parentWidget;
+      if (!sarea) {
+          this.needsRebuild = true;
+          return ;
+      }
+      this.needsRebuild = false;
+      this.ignoreChange++;
+      dockerdebug("Rebuild", this.getArea());
+      let uidata=sarea.switcherData = saveUIData(this, "switcherTabs");
+      this.clear();
+      let tabs=this.tbar = this.tabs();
+      tabs.onchange = this.tab_onchange.bind(this);
+      let tab;
+      dockerdebug(sarea._id, sarea.area ? sarea.area._id : "(no active area)", sarea.editors);
+      sarea.switcherData = uidata;
+      for (let editor of sarea.editors) {
+          let def=editor.constructor.define();
+          let name=def.uiname;
+          if (!name) {
+              name = def.areaname||def.tagname.replace(/-x/, '');
+              name = ToolProperty.makeUIName(name);
+          }
+          let tab=tabs.tab(name, editor._id);
+          let start_mpos=new Vector2();
+          let mpos=new Vector2();
+          tab._tab.addEventListener("tabdragstart", (e) =>            {
+            if (e.x!==0&&e.y!==0) {
+                start_mpos.loadXY(e.x, e.y);
+                this.mpos.loadXY(e.x, e.y);
+            }
+            else {
+              start_mpos.load(this.mpos);
+            }
+            dockerdebug("tab drag start!", start_mpos, e);
+          });
+          tab._tab.addEventListener("tabdragmove", (e) =>            {
+            this.mpos.loadXY(e.x, e.y);
+            let rect=this.tbar.tbar.canvas.getBoundingClientRect();
+            let x=e.x, y=e.y;
+            let m=8;
+            if (x<rect.x-m||x>rect.x+rect.width+m||y<rect.y-m||y>=rect.y+rect.height+m) {
+                dockerdebug("tab detach!");
+                e.preventDefault();
+                this.detach(e);
+            }
+          });
+          tab._tab.addEventListener("tabdragend", (e) =>            {
+            this.mpos.loadXY(e.x, e.y);
+            dockerdebug("tab drag end!", e);
+          });
+      }
+      tab = this.tbar.icontab(Icons.SMALL_PLUS, "add", "Add Editor", false).noSwitch();
+      dockerdebug("Add Menu Tab", tab);
+      let icon=this.addicon = tab._tab;
+      icon.ontabclick = (e) =>        {
+        return this.on_addclick(e);
+      };
+      icon.setAttribute("menu-button", "true");
+      icon.setAttribute("simple", "true");
+      this.loadTabData(uidata);
+      this.ignoreChange--;
+    }
+     detach(event) {
+      this.tbar._ensureNoModal();
+      let area=this.getArea();
+      let sarea=this.ctx.screen.floatArea(area);
+      sarea.size.min([300, 300]);
+      sarea.loadFromPosSize();
+      let mpos=event ? new Vector2([event.x, event.y]) : this.mpos;
+      dockerdebug("EVENT", event);
+      if (event&&__instance_of(event, PointerEvent)) {
+          this.ctx.screen.moveAttachTool(sarea, mpos, document.body, event.pointerId);
+      }
+      else {
+        this.ctx.screen.moveAttachTool(sarea, mpos);
+      }
+    }
+     loadTabData(uidata) {
+      this.ignoreChange++;
+      loadUIData(this, uidata);
+      this.ignoreChange--;
+    }
+     on_addclick(e) {
+      let mpos=new Vector2([e.x, e.y]);
+      if (this.addicon.menu&&!this.addicon.menu.closed) {
+          this.addicon.menu.close();
+      }
+      else {
+        this.addTabMenu(e.target, mpos);
+      }
+    }
+     tab_onchange(tab, event) {
+      if (this.ignoreChange) {
+          return ;
+      }
+      dockerdebug("EVENT", event);
+      if (event&&(!(__instance_of(event, PointerEvent))||event.pointerType==="mouse")) {
+      }
+      this.select(tab.id, event);
+    }
+     init() {
+      super.init();
+      this.style["touch-action"] = "none";
+      this.addEventListener("pointermove", (e) =>        {
+        this.mpos.loadXY(e.x, e.y);
+      });
+      this.rebuild();
+    }
+     setCSS() {
+      super.setCSS();
+    }
+     getArea() {
+      let p=this.parentWidget;
+      let lastp=p;
+      let name=UIBase.getInternalName("screenarea-x");
+      while (p&&p.tagName.toLowerCase()!==name) {
+        lastp = p;
+        p = p.parentWidget;
+      }
+      return lastp;
+    }
+     flagUpdate() {
+      this.needsRebuild = true;
+      return this;
+    }
+     update() {
+      super.update();
+      let active=this.tbar.getActive();
+      let area=this.getArea();
+      let key=this.parentWidget._id;
+      for (let area2 of area.parentWidget.editors) {
+          key+=area2._id+":";
+      }
+      if (key!==this._last_update_key) {
+          this._last_update_key = key;
+          this.needsRebuild = true;
+      }
+      if (this.needsRebuild) {
+          this.rebuild();
+          return ;
+      }
+      if (this.addicon) {
+          let tabs=this.tbar.tbar.tabs;
+          let idx=tabs.indexOf(this.addicon);
+          if (idx!==tabs.length-1) {
+              this.tbar.tbar.swapTabs(this.addicon, tabs[tabs.length-1]);
+          }
+      }
+      if (!active||active._id!==area._id) {
+          this.ignoreChange++;
+          try {
+            this.tbar.setActive(area._id);
+          }
+          catch (error) {
+              util.print_stack(error);
+              this.needsRebuild = true;
+          }
+          this.ignoreChange--;
+      }
+      window.tabs = this.tbar;
+      this.ignoreChange = 0;
+    }
+     select(areaId, event) {
+      dockerdebug("Tab Select!", areaId);
+      this.ignoreChange++;
+      let area=this.getArea();
+      let sarea=area.parentWidget;
+      let uidata=saveUIData(this.tbar, "switcherTabs");
+      let newarea;
+      for (let area2 of sarea.editors) {
+          if (area2._id===areaId) {
+              newarea = area2;
+              sarea.switchEditor(area2.constructor);
+              break;
+          }
+      }
+      if (newarea===area||!newarea.switcher) {
+          return ;
+      }
+      sarea.flushSetCSS();
+      sarea.flushUpdate();
+      newarea = sarea.area;
+      let parentw=area.switcher.parentWidget;
+      let newparentw=newarea.switcher.parentWidget;
+      let parent=area.switcher.parentNode;
+      let newparent=newarea.switcher.parentNode;
+      area.switcher = newarea.switcher;
+      newarea.switcher = this;
+      HTMLElement.prototype.remove.call(area.switcher);
+      HTMLElement.prototype.remove.call(newarea.switcher);
+      if (__instance_of(parent, UIBase)) {
+          parent.shadow.appendChild(area.switcher);
+      }
+      else {
+        parent.appendChild(area.switcher);
+      }
+      if (__instance_of(newparent, UIBase)) {
+          newparent.shadow.prepend(newarea.switcher);
+      }
+      else {
+        newparent.prepend(newarea.switcher);
+      }
+      area.switcher.parentWidget = parentw;
+      newarea.switcher.parentWidget = newparentw;
+      area.switcher.tbar._ensureNoModal();
+      newarea.switcher.tbar._ensureNoModal();
+      newarea.switcher.loadTabData(uidata);
+      area.switcher.loadTabData(uidata);
+      newarea.switcher.setCSS();
+      newarea.switcher.update();
+      if (event&&(__instance_of(event, PointerEvent)||__instance_of(event, MouseEvent)||__instance_of(event, TouchEvent))) {
+          event.preventDefault();
+          event.stopPropagation();
+          newarea.switcher.tbar._startMove(undefined, event);
+      }
+      sarea.switcherData = uidata;
+      this.ignoreChange--;
+    }
+     addTabMenu(tab, mpos) {
+      let rect=tab.getClientRects()[0];
+      dockerdebug(tab, tab.getClientRects());
+      if (!mpos) {
+          mpos = this.ctx.screen.mpos;
+      }
+      let menu=UIBase.createElement("menu-x");
+      menu.closeOnMouseUp = false;
+      menu.ctx = this.ctx;
+      menu._init();
+      let prop=Area.makeAreasEnum();
+      let sarea=this.getArea().parentWidget;
+      if (!sarea) {
+          return ;
+      }
+      for (let k in Object.assign({}, prop.values)) {
+          let ok=true;
+          for (let area of sarea.editors) {
+              if (area.constructor.define().uiname===k) {
+                  ok = false;
+              }
+          }
+          if (!ok) {
+              continue;
+          }
+          let icon=prop.iconmap[k];
+          menu.addItemExtra(k, prop.values[k], undefined, icon);
+      }
+      if (!rect) {
+          console.warn("no rect!");
+          return ;
+      }
+      dockerdebug(mpos[0], mpos[1], rect.x, rect.y);
+      menu.onselect = (val) =>        {
+        dockerdebug("menu select", val, this.getArea().parentWidget);
+        this.addicon.menu = undefined;
+        let sarea=this.getArea().parentWidget;
+        if (sarea) {
+            let cls=areaclasses[val];
+            this.ignoreChange++;
+            let area, ud;
+            try {
+              let uidata=saveUIData(this.tbar, "switcherTabs");
+              sarea.switchEditor(cls);
+              dockerdebug("switching", cls);
+              area = sarea.area;
+              area._init();
+              if (area.switcher) {
+                  area.switcher.rebuild();
+                  area.switcher.loadTabData(uidata);
+                  sarea.switcherData = uidata;
+              }
+            }
+            catch (error) {
+                util.print_stack(error);
+                throw error;
+            }
+            finally {
+                this.ignoreChange = Math.max(this.ignoreChange-1, 0);
+              }
+            dockerdebug("AREA", area.switcher, area);
+            if (area.switcher) {
+                this.ignoreChange++;
+                try {
+                  area.parentWidget = sarea;
+                  area.owning_sarea = sarea;
+                  area.switcher.parentWidget = area;
+                  area.switcher.ctx = area.ctx;
+                  area.switcher._init();
+                  area.switcher.update();
+                  dockerdebug("loading data", ud);
+                  area.switcher.loadTabData(ud);
+                  area.switcher.rebuild();
+                  area.flushUpdate();
+                }
+                catch (error) {
+                    throw error;
+                }
+                finally {
+                    this.ignoreChange = Math.max(this.ignoreChange-1, 0);
+                  }
+            }
+        }
+      };
+      this.addicon.menu = menu;
+      startMenu(menu, mpos[0]-35, rect.y+rect.height, false, 0);
+      return menu;
+    }
+  }
+  _ESClass.register(AreaDocker);
+  _es6_module.add_class(AreaDocker);
+  AreaDocker = _es6_module.add_export('AreaDocker', AreaDocker);
+  UIBase.internalRegister(AreaDocker);
+}, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
+
+
+es6_module_define('area_wrangler', ["../path-controller/util/simple_events.js", "../core/ui_consts.js", "../path-controller/util/struct.js", "../path-controller/util/util.js"], function _area_wrangler_module(_es6_module) {
+  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
+  var _setModalAreaClass=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', '_setModalAreaClass');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  es6_import(_es6_module, '../path-controller/util/struct.js');
+  let ScreenClass=undefined;
+  var ClassIdSymbol=es6_import_item(_es6_module, '../core/ui_consts.js', 'ClassIdSymbol');
+  function setScreenClass(cls) {
+    ScreenClass = cls;
+  }
+  setScreenClass = _es6_module.add_export('setScreenClass', setScreenClass);
+  function getAreaIntName(name) {
+    let hash=0;
+    for (let i=0; i<name.length; i++) {
+        let c=name.charCodeAt(i);
+        if (i%2===0) {
+            hash+=c<<8;
+            hash*=13;
+            hash = hash&((1<<15)-1);
+        }
+        else {
+          hash+=c;
+        }
+    }
+    return hash;
+  }
+  getAreaIntName = _es6_module.add_export('getAreaIntName', getAreaIntName);
+  window.getAreaIntName = getAreaIntName;
+  var AreaTypes={TEST_CANVAS_EDITOR: 0}
+  AreaTypes = _es6_module.add_export('AreaTypes', AreaTypes);
+  function setAreaTypes(def) {
+    for (let k in AreaTypes) {
+        delete AreaTypes[k];
+    }
+    for (let k in def) {
+        AreaTypes[k] = def[k];
+    }
+  }
+  setAreaTypes = _es6_module.add_export('setAreaTypes', setAreaTypes);
+  let areaclasses={}
+  areaclasses = _es6_module.add_export('areaclasses', areaclasses);
+  let theWrangler=undefined;
+  class AreaWrangler  {
+     constructor() {
+      this.stacks = new Map();
+      this.lasts = new Map();
+      this.lastArea = undefined;
+      this.stack = [];
+      this.idgen = 0;
+      this.locked = 0;
+      this._last_screen_id = undefined;
+      theWrangler = this;
+    }
+     makeSafeContext(ctx) {
+      let wrangler=this.copy();
+      let this2=this;
+      return new Proxy(ctx, {get: function get(target, key, rec) {
+          wrangler.copyTo(contextWrangler);
+          return target[key];
+        }});
+    }
+     copyTo(ret) {
+      for (let /*unprocessed ExpandNode*/[key, stack1] of this.stacks) {
+          ret.stack.set(key, util.list(stack1));
+      }
+      for (let /*unprocessed ExpandNode*/[key, val] of this.lasts) {
+          ret.lasts.set(key, val);
+      }
+      ret.stack = util.list(this.stack);
+      ret.lastArea = this.lastArea;
+    }
+     copy(b) {
+      let ret=new AreaWrangler();
+      this.copyTo(ret);
+      return ret;
+    }
+     _checkWrangler(ctx) {
+      if (ctx===undefined) {
+          return true;
+      }
+      if (this._last_screen_id===undefined) {
+          this._last_screen_id = ctx.screen._id;
+          return true;
+      }
+      if (ctx.screen._id!==this._last_screen_id) {
+          this.reset();
+          this._last_screen_id = ctx.screen._id;
+          console.warn("contextWrangler detected a new screen; new file?");
+          return false;
+      }
+      return true;
+    }
+     reset() {
+      theWrangler = this;
+      this.stacks = new Map();
+      this.lasts = new Map();
+      this.lastArea = undefined;
+      this.stack = [];
+      this.locked = 0;
+      this._last_screen_id = undefined;
+      return this;
+    }
+    static  findInstance() {
+      return theWrangler;
+    }
+    static  lock() {
+      return this.findInstance().lock();
+    }
+    static  unlock() {
+      return this.findInstance().unlock();
+    }
+     lock() {
+      this.locked++;
+      return this;
+    }
+     unlock() {
+      this.locked = Math.max(this.locked-1, 0);
+      return this;
+    }
+     push(type, area, pushLastRef=true) {
+      theWrangler = this;
+      if (haveModal()||this.locked) {
+          pushLastRef = false;
+      }
+      if (pushLastRef||!this.lasts.has(type[ClassIdSymbol])) {
+          this.lasts.set(type[ClassIdSymbol], area);
+          this.lastArea = area;
+      }
+      let stack=this.stacks.get(type[ClassIdSymbol]);
+      if (stack===undefined) {
+          stack = [];
+          this.stacks.set(type[ClassIdSymbol], stack);
+      }
+      let last=this.lasts.get(type[ClassIdSymbol]);
+      stack.push(last);
+      stack.push(area);
+      this.stack.push(area);
+    }
+     updateLastRef(type, area) {
+      theWrangler = this;
+      if ((this.locked||haveModal())&&this.lasts.has(type[ClassIdSymbol])) {
+          return ;
+      }
+      this.lasts.set(type[ClassIdSymbol], area);
+      this.lastArea = area;
+    }
+     pop(type, area) {
+      let stack=this.stacks.get(type[ClassIdSymbol]);
+      if (stack===undefined) {
+          console.warn("pop_ctx_area called in error");
+          return ;
+      }
+      if (stack.length>0) {
+          stack.pop();
+          let last=stack.pop();
+          if (!this.locked&&last&&last.isConnected) {
+              this.lasts.set(type[ClassIdSymbol], last);
+          }
+      }
+      else {
+        console.error("pop_ctx_area called in error");
+      }
+      if (this.stack.length>0) {
+          this.stack.pop();
+      }
+    }
+     getLastArea(type) {
+      if (type===undefined) {
+          if (this.stack.length>0) {
+              return this.stack[this.stack.length-1];
+          }
+          else {
+            return this.lastArea;
+          }
+      }
+      else {
+        if (this.stacks.has(type[ClassIdSymbol])) {
+            let stack=this.stacks.get(type[ClassIdSymbol]);
+            if (stack.length>0) {
+                return stack[stack.length-1];
+            }
+        }
+        return this.lasts.get(type[ClassIdSymbol]);
+      }
+    }
+  }
+  _ESClass.register(AreaWrangler);
+  _es6_module.add_class(AreaWrangler);
+  AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
+  _setModalAreaClass(AreaWrangler);
+  let contextWrangler=new AreaWrangler();
+  contextWrangler = _es6_module.add_export('contextWrangler', contextWrangler);
+}, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
+
+
+es6_module_define('FrameManager', ["./FrameManager_mesh.js", "../path-controller/controller.js", "./FrameManager_ops.js", "../widgets/ui_tabs.js", "../widgets/ui_table.js", "../widgets/ui_colorpicker2.js", "../util/ScreenOverdraw.js", "../path-controller/util/vectormath.js", "../path-controller/util/math.js", "../path-controller/util/simple_events.js", "../widgets/dragbox.js", "../widgets/ui_menu.js", "../widgets/ui_panel.js", "../config/const.js", "../widgets/ui_dialog.js", "../widgets/ui_treeview.js", "../widgets/ui_widgets.js", "./ScreenArea.js", "../widgets/ui_curvewidget.js", "../widgets/ui_widgets2.js", "../path-controller/util/util.js", "../path-controller/util/struct.js", "../widgets/ui_noteframe.js", "./AreaDocker.js", "../widgets/ui_listbox.js", "../widgets/ui_textbox.js", "../core/ui_base.js"], function _FrameManager_module(_es6_module) {
   var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
   let _FrameManager=undefined;
   es6_import(_es6_module, '../widgets/dragbox.js');
   es6_import(_es6_module, '../widgets/ui_widgets2.js');
   es6_import(_es6_module, '../widgets/ui_panel.js');
   es6_import(_es6_module, '../widgets/ui_treeview.js');
+  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller.js', 'DataPathError');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
   es6_import(_es6_module, '../util/ScreenOverdraw.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -31,6 +3825,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
   var ScreenBorder=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenBorder');
   var ScreenVert=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenVert');
   var ScreenHalfEdge=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenHalfEdge');
+  var SnapLimit=es6_import_item(_es6_module, './FrameManager_mesh.js', 'SnapLimit');
   let _ex_ScreenBorder=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenBorder');
   _es6_module.add_export('ScreenBorder', _ex_ScreenBorder, true);
   let _ex_ScreenVert=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenVert');
@@ -49,6 +3844,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
   es6_import(_es6_module, '../widgets/ui_listbox.js');
   es6_import(_es6_module, '../widgets/ui_table.js');
   var AreaFlags=es6_import_item(_es6_module, './ScreenArea.js', 'AreaFlags');
+  var setScreenClass=es6_import_item(_es6_module, './ScreenArea.js', 'setScreenClass');
   var checkForTextBox=es6_import_item(_es6_module, '../widgets/ui_textbox.js', 'checkForTextBox');
   var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
   function list(iter) {
@@ -77,6 +3873,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
   class Screen extends ui_base.UIBase {
      constructor() {
       super();
+      this.snapLimit = 1;
       this.fullScreen = true;
       this.globalCSS = document.createElement("style");
       this.shadow.prepend(this.globalCSS);
@@ -176,6 +3973,26 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
     }
     static  newSTRUCT() {
       return UIBase.createElement(this.define().tagname);
+    }
+     setPosSize(x, y, w, h) {
+      this.pos[0] = x;
+      this.pos[1] = y;
+      this.size[0] = w;
+      this.size[1] = h;
+      this.setCSS();
+      this._internalRegenAll();
+    }
+     setSize(w, h) {
+      this.size[0] = w;
+      this.size[1] = h;
+      this.setCSS();
+      this._internalRegenAll();
+    }
+     setPos(x, y) {
+      this.pos[0] = x;
+      this.pos[1] = y;
+      this.setCSS();
+      this._internalRegenAll();
     }
      init() {
       super.init();
@@ -341,11 +4158,6 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       nodeclass: nodeclass, 
       excluded_classes: excluded_classes};
       }
-      if (clip===undefined) {
-          clip = args.clip = {pos: new Vector2(this.pos), 
-       size: new Vector2(this.size)};
-      }
-      
       if (!this.ctx) {
           console.warn("no ctx in screen");
           return ;
@@ -376,10 +4188,18 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
     }
      popupMenu(menu, x, y) {
       startMenu(menu, x, y);
+      for (let i=0; i<3; i++) {
+          menu.flushSetCSS();
+          menu.flushUpdate();
+      }
       return menu;
     }
-     popup(owning_node, elem_or_x, y, closeOnMouseOut=true, popupDelay=250) {
+     popup(owning_node, elem_or_x, y, closeOnMouseOut=true, popupDelay=5) {
       let ret=this._popup(...arguments);
+      for (let i=0; i<2; i++) {
+          ret.flushUpdate();
+          ret.flushSetCSS();
+      }
       if (popupDelay===0) {
           return ret;
       }
@@ -407,6 +4227,8 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
             ret.style["left"] = "10px";
         }
         ret.style["z-index"] = z;
+        ret.flushUpdate();
+        ret.flushSetCSS();
       };
       setTimeout(cb, popupDelay);
       return ret;
@@ -423,7 +4245,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
         }
       };
       ret.style["z-index"] = 205;
-      ret.style["position"] = "absolute";
+      ret.style["position"] = UIBase.PositionKey;
       ret.style["left"] = x+"px";
       ret.style["top"] = y+"px";
       document.body.appendChild(ret);
@@ -448,6 +4270,8 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       else {
         x = elem_or_x;
       }
+      x+=window.scrollX;
+      y+=window.scrollY;
       let container=UIBase.createElement("container-x");
       container.ctx = this.ctx;
       container._init();
@@ -465,8 +4289,8 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       container.style["border-style"] = container.getDefault("border-style");
       container.style["border-width"] = container.getDefault("border-width")+"px";
       container.style["box-shadow"] = container.getDefault("box-shadow");
-      container.style["position"] = "absolute";
-      container.style["z-index"] = 205;
+      container.style["position"] = UIBase.PositionKey;
+      container.style["z-index"] = "2205";
       container.style["left"] = x+"px";
       container.style["top"] = y+"px";
       container.style["margin"] = "0px";
@@ -474,6 +4298,9 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       let mm=new math.MinMax(2);
       let p=new Vector2();
       let _update=container.update;
+      container.update.after(() =>        {
+        container.style["z-index"] = "2205";
+      });
       document.body.appendChild(container);
       this.setCSS();
       this._popups.push(container);
@@ -509,11 +4336,15 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
         if (do_timeout===undefined) {
             do_timeout = true;
         }
+        if (!container.isConnected) {
+            end();
+            return ;
+        }
         if (sarea&&sarea.area) {
             sarea.area.push_ctx_active();
             sarea.area.pop_ctx_active();
         }
-        if (util.time_ms()-last_pick_time<250) {
+        if (util.time_ms()-last_pick_time<350) {
             return ;
         }
         last_pick_time = util.time_ms();
@@ -558,15 +4389,14 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
             window.removeEventListener("keydown", keydown);
             return ;
         }
-        console.log(e.keyCode);
         switch (e.keyCode) {
           case keymap["Escape"]:
             end();
             break;
         }
       };
-      this.ctx.screen.addEventListener("mousemove", mousepick, {passive: true});
       this.ctx.screen.addEventListener("mousedown", mousepick, true);
+      this.ctx.screen.addEventListener("mousemove", mousepick, {passive: true});
       this.ctx.screen.addEventListener("mouseup", mousepick, true);
       window.addEventListener("keydown", keydown);
       this.calcTabOrder();
@@ -849,7 +4679,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
               if (keymap===undefined) {
                   continue;
               }
-              if (keymap.handle(this.ctx, e)) {
+              if (keymap.handle(area.ctx, e)) {
                   handled = true;
                   break;
               }
@@ -864,7 +4694,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
               }
               sarea.area.push_ctx_active();
               for (let keymap of sarea.area.getKeyMaps()) {
-                  if (keymap.handle(this.ctx, e)) {
+                  if (keymap.handle(sarea.area.ctx, e)) {
                       handled = true;
                       break;
                   }
@@ -945,9 +4775,10 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
             ret = this._update_gen.next();
           }
           catch (error) {
-              util.print_stack(error);
-              console.log("error in update_intern tasklet");
-              this._update_gen = undefined;
+              if (!(__instance_of(error, DataPathError))) {
+                  util.print_stack(error);
+                  console.log("error in update_intern tasklet");
+              }
               return ;
           }
           if (ret!==undefined&&ret.done) {
@@ -1008,7 +4839,9 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       super.update();
       let this2=this;
       for (let sarea of this.sareas) {
-          sarea.ctx = this.ctx;
+          if (!sarea.ctx) {
+              sarea.ctx = this.ctx;
+          }
       }
       return (function* () {
         let stack=update_stack;
@@ -1054,7 +4887,9 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
               push(AREA_CTX_POP);
           }
           if (!n.hidden&&n!==this2&&__instance_of(n, UIBase)) {
-              n._ctx = ctx;
+              if (!n._ctx) {
+                  n._ctx = ctx;
+              }
               if (n._screenStyleUpdateHash!==cssTextHash) {
                   n._screenStyleTag.textContent = cssText;
                   n._screenStyleUpdateHash = cssTextHash;
@@ -1101,13 +4936,38 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       }
       this.setCSS();
     }
-     collapseArea(sarea) {
+     collapseArea(sarea, border) {
+      let sarea2;
+      if (!border) {
+          for (let b of sarea._borders) {
+              let sarea2=b.getOtherSarea(sarea);
+              if (sarea2&&!b.locked) {
+                  border = b;
+                  break;
+              }
+          }
+      }
+      else 
+        if (border.locked) {
+          console.warn("Cannot remove screen border");
+      }
+      console.warn("SAREA2", border, sarea2, sarea2!==sarea);
+      if (border) {
+          sarea2 = border.getOtherSarea(sarea);
+          if (!sarea2) {
+              console.error("Error merging sarea");
+              return ;
+          }
+          let size1=new Vector2(sarea.pos).add(sarea.size);
+          let size2=new Vector2(sarea2.pos).add(sarea2.size);
+          sarea2.pos.min(sarea.pos);
+          sarea2.size.load(size1).max(size2).sub(sarea2.pos);
+          sarea2.loadFromPosSize();
+      }
+      this.sareas.remove(sarea);
       sarea.remove();
-      this.regenBorders();
-      this.snapScreenVerts(true);
-      this.solveAreaConstraints();
-      this.completeSetCSS();
-      this.completeUpdate();
+      this.regenScreenMesh();
+      this._internalRegenAll();
       return this;
     }
      splitArea(sarea, t=0.5, horiz=true) {
@@ -1152,12 +5012,14 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
           this.style["width"] = this.size[0]+"px";
           this.style["height"] = this.size[1]+"px";
       }
+      this.style["overflow"] = "hidden";
       for (let key in this._edgemap) {
           let b=this._edgemap[key];
           b.setCSS();
       }
     }
-     regenScreenMesh() {
+     regenScreenMesh(snapLimit=SnapLimit) {
+      this.snapLimit = snapLimit;
       this.regenBorders();
     }
      regenBorders_stage2() {
@@ -1211,7 +5073,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
     }
      killScreenVertex(v) {
       this.screenverts.remove(v);
-      delete this._edgemap[ScreenVert.hash(v)];
+      delete this._edgemap[ScreenVert.hash(v, undefined, this.snapLimit)];
       delete this._idmap[v._id];
       return this;
     }
@@ -1339,7 +5201,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
             y = Math.min(Math.max(y, 0.0), this.size[1]-s);
             let ret=UIBase.createElement("div");
             ret.setAttribute("class", "__debug");
-            ret.style["position"] = "absolute";
+            ret.style["position"] = UIBase.PositionKey;
             ret.style["left"] = x+"px";
             ret.style["top"] = y+"px";
             ret.style["height"] = s+"px";
@@ -1354,7 +5216,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
             for (let i=2; i>=0; i--) {
                 ret = UIBase.createElement("div");
                 ret.setAttribute("class", "__debug");
-                ret.style["position"] = "absolute";
+                ret.style["position"] = UIBase.PositionKey;
                 ret.style["left"] = x+"px";
                 ret.style["top"] = y+"px";
                 ret.style["height"] = s+"px";
@@ -1779,9 +5641,9 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
           cb(oldsize);
       }
     }
-     getScreenVert(pos, added_id="") {
-      let key=ScreenVert.hash(pos, added_id);
-      if (!(key in this._vertmap)) {
+     getScreenVert(pos, added_id="", floating=false) {
+      let key=ScreenVert.hash(pos, added_id, this.snapLimit);
+      if (floating||!(key in this._vertmap)) {
           let v=new ScreenVert(pos, this.idgen++, added_id);
           this._vertmap[key] = v;
           this._idmap[v._id] = v;
@@ -1839,6 +5701,7 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       let hash=ScreenBorder.hash(v1, v2);
       if (!(hash in this._edgemap)) {
           let sb=this._edgemap[hash] = UIBase.createElement("screenborder-x");
+          sb._hash = hash;
           sb.screen = this;
           sb.v1 = v1;
           sb.v2 = v2;
@@ -1880,12 +5743,18 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       src.pos[1] = dst.pos[1];
       src.size[0] = dst.size[0];
       src.size[1] = dst.size[1];
-      src.loadFromPosSize();
+      src.floating = dst.floating;
+      src._borders = dst._borders;
+      src._verts = dst._verts;
       if (this.sareas.indexOf(src)<0) {
-          this.appendChild(src);
+          this.sareas.push(src);
+          this.shadow.appendChild(src);
       }
-      src.setCSS();
-      this.removeArea(dst);
+      if (this.sareas.active===dst) {
+          this.sareas.active = src;
+      }
+      this.sareas.remove(dst);
+      dst.remove();
       this.regenScreenMesh();
       this.snapScreenVerts();
       this._updateAll();
@@ -1895,6 +5764,9 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       this._recalcAABB();
       this.calcTabOrder();
       this.setCSS();
+      this.completeUpdate();
+      this.completeSetCSS();
+      this.completeUpdate();
     }
      _updateAll() {
       for (let sarea of this.sareas) {
@@ -1951,8 +5823,15 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
      hintPickerTool() {
       (new FrameManager_ops.ToolTipViewer(this)).start();
     }
+     removeAreaTool(border) {
+      let tool=new FrameManager_ops.RemoveAreaTool(this, border);
+      tool.start();
+    }
+     moveAttachTool(sarea, mpos=this.mpos, elem, pointerId) {
+      let tool=new FrameManager_ops.AreaMoveAttachTool(this, sarea, mpos);
+      tool.start(elem, pointerId);
+    }
      splitTool() {
-      console.log("screen split!");
       let tool=new FrameManager_ops.SplitTool(this);
       tool.start();
     }
@@ -1961,7 +5840,6 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
           console.warn("no active screen area");
           return ;
       }
-      console.log("screen area drag!");
       let mpos=this.mpos;
       let tool=new FrameManager_ops.AreaDragTool(this, this.sareas.active, mpos);
       tool.start();
@@ -1970,6 +5848,88 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
       for (let sarea of this.sareas) {
           sarea.makeBorders(this);
       }
+    }
+     cleanupBorders() {
+      let del=new Set();
+      for (let b of this.screenborders) {
+          if (b.halfedges.length===0) {
+              del.add(b);
+          }
+      }
+      for (let b of del) {
+          delete this._edgemap[b._hash];
+          HTMLElement.prototype.remove.call(b);
+      }
+    }
+     mergeBlankAreas() {
+      for (let b of this.screenborders) {
+          if (b.locked) {
+              continue;
+          }
+          let blank, sarea;
+          for (let he of b.halfedges) {
+              if (!he.sarea.area) {
+                  blank = he.sarea;
+                  sarea = b.getOtherSarea(blank);
+                  let axis=b.horiz^1;
+                  if (blank&&sarea&&blank.size[axis]!==sarea.size[axis]) {
+                      blank = sarea = undefined;
+                  }
+                  if (blank&&sarea) {
+                      break;
+                  }
+                  else {
+                    blank = undefined;
+                    sarea = undefined;
+                  }
+              }
+          }
+          if (blank&&sarea&&blank!==sarea) {
+              this.collapseArea(blank, b);
+          }
+      }
+      this.cleanupBorders();
+    }
+     floatArea(area) {
+      let sarea=area.parentWidget;
+      if (sarea.floating) {
+          return sarea;
+      }
+      sarea.editors.remove(area);
+      delete sarea.editormap[area.constructor.define().areaname];
+      sarea.area = undefined;
+      HTMLElement.prototype.remove.call(area);
+      let sarea2=UIBase.createElement("screenarea-x", true);
+      sarea2.floating = true;
+      sarea2.pos = new Vector2(sarea.pos);
+      sarea2.pos.addScalar(5);
+      sarea2.size = new Vector2(sarea.size);
+      sarea2.editors.push(area);
+      sarea2.editormap[area.constructor.define().areaname] = area;
+      sarea2.shadow.appendChild(area);
+      sarea2.area = area;
+      area.push_ctx_active();
+      area.pop_ctx_active();
+      area.pos = sarea2.pos;
+      area.size = sarea2.size;
+      area.parentWidget = sarea2;
+      area.owning_sarea = sarea2;
+      sarea.flushSetCSS();
+      sarea.flushUpdate();
+      sarea2.flushSetCSS();
+      sarea2.flushUpdate();
+      this.appendChild(sarea2);
+      if (sarea.editors.length>0) {
+          let area2=sarea.editors[0];
+          sarea.switch_editor(area2.constructor);
+          sarea.flushSetCSS();
+          sarea.flushUpdate();
+      }
+      sarea2.loadFromPosSize();
+      sarea2.bringToFront();
+      this.mergeBlankAreas();
+      this.cleanupBorders();
+      return sarea2;
     }
      on_keydown(e) {
       if (checkForTextBox(this, this.mpos[0], this.mpos[1])) {
@@ -2009,7 +5969,6 @@ es6_module_define('FrameManager', ["../path-controller/util/vectormath.js", "./F
      loadSTRUCT(reader) {
       this.clear();
       reader(this);
-      console.log("SAREAS", this.sareas.concat([]));
       this.size = new Vector2(this.size);
       let sareas=this.sareas;
       this.sareas = [];
@@ -2148,14 +6107,28 @@ pathux.Screen {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager.js');
 
 
-es6_module_define('FrameManager_mesh', ["../path-controller/util/struct.js", "../core/ui_base.js", "../config/const.js", "./FrameManager_ops.js", "../path-controller/util/vectormath.js"], function _FrameManager_mesh_module(_es6_module) {
+es6_module_define('FrameManager_mesh', ["../widgets/ui_menu.js", "../path-controller/util/struct.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "../config/const.js", "./FrameManager_ops.js", "../path-controller/util/vectormath.js"], function _FrameManager_mesh_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var FrameManager_ops=es6_import(_es6_module, './FrameManager_ops.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
+  var createMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'createMenu');
+  var Menu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'Menu');
+  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
+  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
+  const AreaFlags={HIDDEN: 1, 
+   FLOATING: 2, 
+   INDEPENDENT: 4, 
+   NO_SWITCHER: 8, 
+   NO_HEADER_CONTEXT_MENU: 16, 
+   NO_COLLAPSE: 32}
+  _es6_module.add_export('AreaFlags', AreaFlags);
   let SnapLimit=1;
   SnapLimit = _es6_module.add_export('SnapLimit', SnapLimit);
+  const BORDER_ZINDEX_BASE=25;
+  _es6_module.add_export('BORDER_ZINDEX_BASE', BORDER_ZINDEX_BASE);
   function snap(c, snap_limit) {
     if (snap_limit===undefined) {
         snap_limit = SnapLimit;
@@ -2194,9 +6167,9 @@ es6_module_define('FrameManager_mesh', ["../path-controller/util/struct.js", "..
       this.borders = [];
       this._id = id;
     }
-    static  hash(pos, added_id) {
-      let x=snap(pos[0]);
-      let y=snap(pos[1]);
+    static  hash(pos, added_id, limit) {
+      let x=snap(pos[0], limit);
+      let y=snap(pos[1], limit);
       return ""+x+":"+y+": + added_id";
     }
      valueOf() {
@@ -2246,6 +6219,7 @@ pathux.ScreenVert {
       this.v1 = undefined;
       this.v2 = undefined;
       this._id = undefined;
+      this._hash = undefined;
       this.outer = undefined;
       this.halfedges = [];
       this.sareas = [];
@@ -2254,9 +6228,13 @@ pathux.ScreenVert {
       this.shadow.appendChild(this._innerstyle);
       this.inner = document.createElement("div");
       this.shadow.appendChild(this.inner);
+      let call_menu=ScreenBorder.bindBorderMenu(this);
       this.addEventListener("mousedown", (e) =>        {
-        console.log(this.sareas.length, this.sareas, "|||||");
         let ok=this.movable;
+        if (e.button===2) {
+            call_menu(e);
+            return ;
+        }
         if (!ok) {
             console.log("border is not movable");
             return ;
@@ -2266,7 +6244,51 @@ pathux.ScreenVert {
         tool.start();
         e.preventDefault();
         e.stopPropagation();
+      }, {capture: true});
+    }
+    static  bindBorderMenu(elem, usePickElement=false) {
+      let on_dblclick=(e) =>        {
+        if (usePickElement&&elem.pickElement(e.x, e.y)!==elem) {
+            return ;
+        }
+        let menu=[["Split Area", () =>          {
+          elem.ctx.screen.splitTool();
+        }], Menu.SEP, ["Collapse Area", () =>          {
+          elem.ctx.screen.removeAreaTool(__instance_of(elem, ScreenBorder) ? elem : undefined);
+        }]];
+        menu = createMenu(elem.ctx, "", menu);
+        menu.ignoreFirstClick = 2;
+        elem.ctx.screen.popupMenu(menu, e.x-15, e.y-15);
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      elem.addEventListener("contextmenu", (e) =>        {
+        return e.preventDefault();
       });
+      elem.addEventListener("dblclick", on_dblclick, {capture: true});
+      return on_dblclick;
+    }
+     getOtherSarea(sarea) {
+      console.log(this.halfedges, this.halfedges.length);
+      for (let he of this.halfedges) {
+          console.log(he);
+          let ok=he.sarea!==sarea;
+          ok = ok&&he.sarea._verts.indexOf(this.v1)>=0;
+          ok = ok&&he.sarea._verts.indexOf(this.v2)>=0;
+          if (ok) {
+              return he.sarea;
+          }
+      }
+    }
+    get  locked() {
+      for (let sarea of this.sareas) {
+          let mask=1<<sarea._borders.indexOf(this);
+          let lock=sarea.borderLock&mask;
+          if (lock||(sarea.flag&AreaFlags.NO_COLLAPSE)) {
+              return true;
+          }
+      }
+      return false;
     }
     get  dead() {
       return !this.parentNode;
@@ -2312,16 +6334,23 @@ pathux.ScreenVert {
       }
       return ret;
     }
+    get  horiz() {
+      let dx=this.v2[0]-this.v1[0];
+      let dy=this.v2[1]-this.v1[1];
+      return Math.abs(dx)>Math.abs(dy);
+    }
+    static  hash(v1, v2) {
+      return Math.min(v1._id, v2._id)+":"+Math.max(v1._id, v2._id);
+    }
+    static  define() {
+      return {tagname: "screenborder-x", 
+     style: "screenborder"}
+    }
      otherVertex(v) {
       if (v===this.v1)
         return this.v2;
       else 
         return this.v1;
-    }
-    get  horiz() {
-      let dx=this.v2[0]-this.v1[0];
-      let dy=this.v2[1]-this.v1[1];
-      return Math.abs(dx)>Math.abs(dy);
     }
      setCSS() {
       this.style["pointer-events"] = this.movable ? "auto" : "none";
@@ -2329,7 +6358,8 @@ pathux.ScreenVert {
           this._style = document.createElement("style");
           this.appendChild(this._style);
       }
-      let pad=this.getDefault("mouse-threshold");
+      let dpi=UIBase.getDPI();
+      let pad=this.getDefault("mouse-threshold")/dpi;
       let wid=this.getDefault("border-width");
       let v1=this.v1, v2=this.v2;
       let vec=new Vector2(v2).sub(v1);
@@ -2410,25 +6440,18 @@ pathux.ScreenVert {
       this._innerstyle.textContent = innerbuf;
       this.setAttribute("class", "screenborder_"+this._id);
       this.inner.setAttribute("class", "screenborder_inner_"+this._id);
-      this.style["position"] = "fixed";
+      this.style["position"] = UIBase.PositionKey;
       this.style["left"] = x+"px";
       this.style["top"] = y+"px";
       this.style["width"] = w+"px";
       this.style["height"] = h+"px";
-      this.style["z-index"] = "25";
-    }
-    static  hash(v1, v2) {
-      return Math.min(v1._id, v2._id)+":"+Math.max(v1._id, v2._id);
+      this.style["z-index"] = ""+BORDER_ZINDEX_BASE;
     }
      valueOf() {
       return ScreenBorder.hash(this.v1, this.v2);
     }
      [Symbol.keystr]() {
       return ScreenBorder.hash(this.v1, this.v2);
-    }
-    static  define() {
-      return {tagname: "screenborder-x", 
-     style: "screenborder"}
     }
   }
   _ESClass.register(ScreenBorder);
@@ -2438,7 +6461,7 @@ pathux.ScreenVert {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_mesh.js');
 
 
-es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../util/simple_events.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolsys.js", "../widgets/ui_widgets2.js", "../core/ui_base.js", "../config/const.js"], function _FrameManager_ops_module(_es6_module) {
+es6_module_define('FrameManager_ops', ["../config/const.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../widgets/ui_widgets2.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../util/simple_events.js"], function _FrameManager_ops_module(_es6_module) {
   "use strict";
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -2457,29 +6480,29 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
   var pushModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../util/simple_events.js', 'popModalLight');
   var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
+  var pushPointerModal=es6_import_item(_es6_module, '../util/simple_events.js', 'pushPointerModal');
   class ToolBase extends simple_toolsys.ToolOp {
      constructor(screen) {
       super();
       this.screen = screen;
       this._finished = false;
     }
-     start() {
-      this.modalStart(undefined);
+     start(elem, pointerId) {
+      this.modalStart(undefined, elem, pointerId);
     }
      cancel() {
       this.finish();
     }
      finish() {
       this._finished = true;
-      this.overdraw.end();
       this.popModal(this.screen);
     }
      popModal() {
-      console.log("popModal called");
+      this.overdraw.end();
       popModalLight(this.modaldata);
       this.modaldata = undefined;
     }
-     modalStart(ctx) {
+     modalStart(ctx, elem, pointerId) {
       this.ctx = ctx;
       if (this.modaldata!==undefined) {
           console.log("Error, modaldata was not undefined");
@@ -2503,7 +6526,17 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
               handlers[k] = this[k].bind(this);
           }
       }
-      this.modaldata = pushModalLight(handlers);
+      if (pointerId!==undefined) {
+          handlers.on_pointerdown = handlers.on_mousedown;
+          handlers.on_pointermove = handlers.on_mousemove;
+          handlers.on_pointerup = handlers.on_mouseup;
+          handlers.on_pointercancel = handlers.on_mouseup;
+          handlers.on_pointerend = handlers.on_mouseup;
+          this.modaldata = pushPointerModal(handlers, elem, pointerId);
+      }
+      else {
+        this.modaldata = pushModalLight(handlers);
+      }
     }
      on_mousemove(e) {
 
@@ -2550,7 +6583,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
      icon: ui_base.Icons.RESIZE, 
      description: "change size of area", 
      is_modal: true, 
-     hotkey: undefined, 
      undoflag: UndoFlags.NO_UNDO, 
      flag: 0, 
      inputs: {}, 
@@ -2674,7 +6706,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
      icon: ui_base.Icons.SMALL_PLUS, 
      description: "split an area in two", 
      is_modal: true, 
-     hotkey: "BLEH-B", 
      undoflag: UndoFlags.NO_UNDO, 
      flag: 0, 
      inputs: {}, 
@@ -2711,7 +6742,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
       let x=e.x, y=e.y;
       let screen=this.screen;
       let sarea=screen.findScreenArea(x, y);
-      console.log(sarea, x, y);
       this.overdraw.clear();
       if (sarea!==undefined) {
           x = (x-sarea.pos[0])/(sarea.size[0]);
@@ -2756,11 +6786,102 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
   _ESClass.register(SplitTool);
   _es6_module.add_class(SplitTool);
   SplitTool = _es6_module.add_export('SplitTool', SplitTool);
+  class RemoveAreaTool extends ToolBase {
+     constructor(screen, border) {
+      if (screen===undefined)
+        screen = _appstate.screen;
+      super(screen);
+      this.border = border;
+      this.done = false;
+      this.screen = screen;
+      this.ctx = screen.ctx;
+      this.sarea = undefined;
+      this.t = undefined;
+      this.started = false;
+    }
+    static  tooldef() {
+      return {uiname: "Remove Area", 
+     toolpath: "screen.area.pick_remove", 
+     icon: ui_base.Icons.SMALL_PLUS, 
+     description: "Collapse a window", 
+     is_modal: true, 
+     undoflag: UndoFlags.NO_UNDO, 
+     flag: 0, 
+     inputs: {}, 
+     outputs: {}}
+    }
+     modalStart(ctx) {
+      if (this.started) {
+          console.trace("double call to modalStart()");
+          return ;
+      }
+      this.overdraw = ui_base.UIBase.createElement("overdraw-x");
+      this.overdraw.start(this.screen);
+      super.modalStart(ctx);
+    }
+     cancel() {
+      return this.finish(true);
+    }
+     finish(canceled=false) {
+      if (this.done) {
+          return ;
+      }
+      this.done = true;
+      this.overdraw.end();
+      this.popModal(this.screen);
+      if (canceled||!this.sarea) {
+          return ;
+      }
+      let sarea=this.sarea, screen=this.screen;
+      let t=this.t;
+      if (sarea) {
+          screen.collapseArea(sarea, this.border);
+          screen._internalRegenAll();
+      }
+    }
+     on_mousemove(e) {
+      let x=e.x, y=e.y;
+      let screen=this.screen;
+      let sarea=screen.findScreenArea(x, y);
+      this.overdraw.clear();
+      if (sarea!==undefined) {
+          this.sarea = sarea;
+          this.overdraw.rect(sarea.pos, sarea.size, "rgba(0,0,0,0.1)");
+      }
+    }
+     on_mousedown(e) {
+
+    }
+     on_mouseup(e) {
+      this.finish();
+      if (e.button) {
+          this.stopPropagation();
+          this.preventDefault();
+      }
+    }
+     on_keydown(e) {
+      console.log("s", e.keyCode);
+      switch (e.keyCode) {
+        case keymap.Escape:
+          this.cancel();
+          break;
+        case keymap.Space:
+        case keymap.Enter:
+          this.finish();
+          break;
+      }
+    }
+  }
+  _ESClass.register(RemoveAreaTool);
+  _es6_module.add_class(RemoveAreaTool);
+  RemoveAreaTool = _es6_module.add_export('RemoveAreaTool', RemoveAreaTool);
   class AreaDragTool extends ToolBase {
      constructor(screen, sarea, mpos) {
       if (screen===undefined)
         screen = _appstate.screen;
       super(screen);
+      this.dropArea = false;
+      this.excludeAreas = new Set();
       this.cursorbox = undefined;
       this.boxes = [];
       this.boxes.active = undefined;
@@ -2774,7 +6895,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
      icon: ui_base.Icons.TRANSLATE, 
      description: "move or duplicate area", 
      is_modal: true, 
-     hotkey: undefined, 
      undoflag: UndoFlags.NO_UNDO, 
      flag: 0, 
      inputs: {}, 
@@ -2786,7 +6906,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
       this.screen.solveAreaConstraints();
       this.screen.snapScreenVerts();
       this.screen._recalcAABB();
-      console.log("tool finish");
     }
      getBoxRect(b) {
       let sa=b.sarea;
@@ -2832,33 +6951,89 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
       screen._internalRegenAll();
     }
      doSplitDrop(b) {
-      if (b.horiz==-1&&b.sarea===this.sarea) {
+      if (b.horiz===-1&&b.sarea===this.sarea) {
           return ;
       }
-      console.log("BBBB", b.horiz, b.sarea===this.sarea, b);
       let can_rip=false;
       let sa=this.sarea;
       let screen=this.screen;
-      can_rip = sa.size[0]==screen.size[0]||sa.size[1]==screen.size[1];
+      can_rip = sa.size[0]===screen.size[0]||sa.size[1]===screen.size[1];
+      can_rip = can_rip||this.sarea.floating;
       can_rip = can_rip&&b.sarea!==sa;
-      can_rip = can_rip&&(b.horiz==-1||!screen.areasBorder(sa, b.sarea));
-      let expand=b.horiz==-1&&b.sarea!==sa&&screen.areasBorder(b.sarea, sa);
+      can_rip = can_rip&&(b.horiz===-1||!screen.areasBorder(sa, b.sarea));
+      let expand=b.horiz===-1&&b.sarea!==sa&&screen.areasBorder(b.sarea, sa);
       can_rip = can_rip||expand;
       console.log("can_rip:", can_rip, expand);
       if (can_rip) {
           screen.removeArea(sa);
           screen.snapScreenVerts();
       }
-      if (b.horiz==-1) {
+      if (b.horiz===-1) {
           let src=this.sarea, dst=b.sarea;
-          if (can_rip) {
+          if (can_rip&&src!==dst) {
               let mm;
               if (expand) {
                   mm = screen.minmaxArea(src);
                   screen.minmaxArea(dst, mm);
               }
               console.log("replacing. . .", expand);
-              screen.replaceArea(dst, src);
+              if (src.floating) {
+                  let old=dst.editors;
+                  dst.editors = [];
+                  dst.editormap = {};
+                  if (dst.area&&!(dst.area.constructor.define().areaname in src.editormap)) {
+                      dst.area.push_ctx_active();
+                      dst.area.on_area_inactive();
+                      dst.area.remove();
+                      dst.area.pop_ctx_active();
+                  }
+                  for (let editor of old) {
+                      let def=editor.constructor.define();
+                      let bad=false;
+                      for (let editor2 of src.editors) {
+                          if (editor.constructor===editor2.constructor) {
+                              bad = true;
+                              break;
+                          }
+                      }
+                      if (!bad) {
+                          dst.editors.push(editor);
+                          dst.editormap[def.areaname] = editor;
+                      }
+                  }
+                  for (let editor of src.editors) {
+                      let def=editor.constructor.define();
+                      dst.editormap[def.areaname] = editor;
+                      dst.editors.push(editor);
+                      if (editor.owning_sarea) {
+                          editor.owning_sarea = dst;
+                      }
+                      if (editor.parentWidget) {
+                          editor.parentWidget = dst;
+                      }
+                  }
+                  if (cconst.useAreaTabSwitcher) {
+                      for (let editor of dst.editors) {
+                          if (editor.switcher) {
+                              editor.switcher.flagUpdate();
+                          }
+                      }
+                  }
+                  dst.area = src.area;
+                  dst.shadow.appendChild(src.area);
+                  src.area = undefined;
+                  src.editors = [];
+                  src.editormap = {};
+                  dst.on_resize(dst.size, dst.size);
+                  dst.flushSetCSS();
+                  dst.flushUpdate();
+                  screen.removeArea(src);
+                  screen.snapScreenVerts();
+                  return ;
+              }
+              else {
+                screen.replaceArea(dst, src);
+              }
               if (expand) {
                   console.log("\nEXPANDING:", src.size[0], src.size[1]);
                   src.pos[0] = mm.min[0];
@@ -2878,6 +7053,9 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
         let src=this.sarea, dst=b.sarea;
         let t=b.t;
         let nsa=screen.splitArea(dst, t, b.horiz);
+        if (b.side==='l'||b.side==='t') {
+            nsa = dst;
+        }
         if (can_rip) {
             screen.replaceArea(nsa, src);
         }
@@ -2910,7 +7088,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
         b.addEventListener("mousemove", this.on_mousemove.bind(this));
         let onclick=b.onclick = (e) =>          {
           let type=e.type.toLowerCase();
-          if ((e.type=="mousedown"||e.type=="mouseup")&&e.button!=0) {
+          if ((e.type==="mousedown"||e.type==="mouseup")&&e.button!==0) {
               return ;
           }
           console.log("split click");
@@ -2925,7 +7103,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
         b.addEventListener("mousedown", onclick);
         b.addEventListener("mouseup", onclick);
         b.addEventListener("mouseenter", (e) =>          {
-          console.log("mouse enter box");
           if (this.curbox!==undefined) {
               if (this.curbox.rect) {
                   this.curbox.rect.remove();
@@ -2938,11 +7115,9 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
           }
           b.rect = this.getBoxRect(b);
           this.curbox = b;
-          console.log("setting hcolor");
           b.setColor(hcolor);
         });
         b.addEventListener("mouseleave", (e) =>          {
-          console.log("mouse leave box");
           if (b.rect) {
               b.rect.remove();
               b.rect = undefined;
@@ -3019,6 +7194,9 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
         this.cursorbox.style["y"] = (e.y-wid*0.5)+"px";
       }
     }
+     on_pointerup(e) {
+      this.on_mouseup(e);
+    }
      on_mouseup(e) {
       console.log("e.button", e.button, e, e.x, e.y, this.getActiveBox(e.x, e.y));
       if (e.button) {
@@ -3034,22 +7212,73 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
       this.finish();
     }
      modalStart(ctx) {
-      super.modalStart(ctx);
+      super.modalStart(...arguments);
       let screen=this.screen;
       this.overdraw.clear();
-      if (this.sarea) {
+      if (this.sarea&&!this.excludeAreas.has(this.sarea)) {
           let sa=this.sarea;
           let box=this.overdraw.rect(sa.pos, sa.size, "rgba(100, 100, 100, 0.5)");
           box.style["pointer-events"] = "none";
       }
       for (let sa of screen.sareas) {
+          if (this.excludeAreas.has(sa)) {
+              continue;
+          }
           this.makeBoxes(sa);
+      }
+    }
+     on_keydown(e) {
+      switch (e.keyCode) {
+        case keymap["Escape"]:
+        case keymap["Enter"]:
+        case keymap["Space"]:
+          this.finish();
+          break;
       }
     }
   }
   _ESClass.register(AreaDragTool);
   _es6_module.add_class(AreaDragTool);
   AreaDragTool = _es6_module.add_export('AreaDragTool', AreaDragTool);
+  class AreaMoveAttachTool extends AreaDragTool {
+     constructor(screen, sarea, mpos) {
+      super(screen, sarea, mpos);
+      this.excludeAreas = new Set([sarea]);
+      this.dropArea = true;
+      this.first = true;
+      this.sarea = sarea;
+      this.mpos = new Vector2(mpos);
+      this.start_mpos2 = new Vector2(mpos);
+      this.start_pos = new Vector2(sarea.pos);
+    }
+     on_mousemove(e) {
+      let dx=e.x-this.start_mpos2[0];
+      let dy=e.y-this.start_mpos2[1];
+      let sarea=this.sarea;
+      if (this.first) {
+          this.start_mpos2 = new Vector2([e.x, e.y]);
+          this.first = false;
+          return ;
+      }
+      sarea.pos[0] = this.start_pos[0]+dx;
+      sarea.pos[1] = this.start_pos[1]+dy;
+      sarea.loadFromPosSize();
+      this.mpos.loadXY(e.x, e.y);
+      super.on_mousemove(e);
+    }
+     on_mouseup(e) {
+      super.on_mouseup(e);
+    }
+     on_mousedown(e) {
+      super.on_mousedown(e);
+    }
+     on_keydown(e) {
+      super.on_keydown(e);
+    }
+  }
+  _ESClass.register(AreaMoveAttachTool);
+  _es6_module.add_class(AreaMoveAttachTool);
+  AreaMoveAttachTool = _es6_module.add_export('AreaMoveAttachTool', AreaMoveAttachTool);
   class ToolTipViewer extends ToolBase {
      constructor(screen) {
       super(screen);
@@ -3062,7 +7291,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
      icon: ui_base.Icons.HELP, 
      description: "view tooltips", 
      is_modal: true, 
-     hotkey: undefined, 
      undoflag: UndoFlags.NO_UNDO, 
      flag: 0, 
      inputs: {}, 
@@ -3114,7 +7342,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/util.js", "../ut
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_ops.js');
 
 
-es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "./FrameManager_mesh.js", "../core/ui_base.js", "../core/ui.js", "../widgets/ui_noteframe.js", "../path-controller/util/struct.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _ScreenArea_module(_es6_module) {
+es6_module_define('ScreenArea', ["../path-controller/util/util.js", "../config/const.js", "./area_wrangler.js", "../widgets/ui_noteframe.js", "../path-controller/util/simple_events.js", "./FrameManager_mesh.js", "../path-controller/util/vectormath.js", "../path-controller/util/struct.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../core/ui.js"], function _ScreenArea_module(_es6_module) {
   let _ScreenArea=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -3128,22 +7356,21 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
   var EnumProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'EnumProperty');
   let Vector2=vectormath.Vector2;
   let Screen=undefined;
+  var AreaFlags=es6_import_item(_es6_module, './FrameManager_mesh.js', 'AreaFlags');
+  var BORDER_ZINDEX_BASE=es6_import_item(_es6_module, './FrameManager_mesh.js', 'BORDER_ZINDEX_BASE');
+  var ScreenBorder=es6_import_item(_es6_module, './FrameManager_mesh.js', 'ScreenBorder');
   var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
   var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
-  const AreaFlags={HIDDEN: 1, 
-   FLOATING: 2, 
-   INDEPENDENT: 4, 
-   NO_SWITCHER: 8}
-  _es6_module.add_export('AreaFlags', AreaFlags);
+  AreaFlags = _es6_module.add_export('AreaFlags', AreaFlags);
   var ___area_wrangler_js=es6_import(_es6_module, './area_wrangler.js');
   for (let k in ___area_wrangler_js) {
       _es6_module.add_export(k, ___area_wrangler_js[k], true);
   }
   var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
   var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
+  var contextWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'contextWrangler');
   var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
   var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
-  let contextWrangler=new AreaWrangler();
   contextWrangler = _es6_module.add_export('contextWrangler', contextWrangler);
   window._contextWrangler = contextWrangler;
   const BorderMask={LEFT: 1, 
@@ -3186,6 +7413,9 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
         }
       };
     }
+    get  floating() {
+      return ~~(this.flag&AreaFlags.FLOATING);
+    }
     set  floating(val) {
       if (val) {
           this.flag|=AreaFlags.FLOATING;
@@ -3194,8 +7424,56 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
         this.flag&=~AreaFlags.FLOATING;
       }
     }
-    get  floating() {
-      return ~~(this.flag&AreaFlags.FLOATING);
+    static  getActiveArea(type) {
+      return contextWrangler.getLastArea(type);
+    }
+    static  unregister(cls) {
+      let def=cls.define();
+      if (!def.areaname) {
+          throw new Error("Missing areaname key in define()");
+      }
+      if (def.areaname in areaclasses) {
+          delete areaclasses[def.areaname];
+      }
+    }
+    static  register(cls) {
+      let def=cls.define();
+      if (!def.areaname) {
+          throw new Error("Missing areaname key in define()");
+      }
+      areaclasses[def.areaname] = cls;
+      ui_base.UIBase.internalRegister(cls);
+    }
+    static  makeAreasEnum() {
+      let areas={};
+      let icons={};
+      let i=0;
+      for (let k in areaclasses) {
+          let cls=areaclasses[k];
+          let def=cls.define();
+          if (def.flag&AreaFlags.HIDDEN)
+            continue;
+          let uiname=def.uiname;
+          if (uiname===undefined) {
+              uiname = k.replace("_", " ").toLowerCase();
+              uiname = uiname[0].toUpperCase()+uiname.slice(1, uiname.length);
+          }
+          areas[uiname] = k;
+          icons[uiname] = def.icon!==undefined ? def.icon : -1;
+      }
+      let prop=new EnumProperty(undefined, areas);
+      prop.addIcons(icons);
+      return prop;
+    }
+    static  define() {
+      return {tagname: "pathux-editor-x", 
+     areaname: undefined, 
+     flag: 0, 
+     uiname: undefined, 
+     icon: undefined}
+    }
+    static  newSTRUCT() {
+      return UIBase.createElement(this.define().tagname);
     }
      init() {
       super.init();
@@ -3276,31 +7554,11 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
      on_area_inactive() {
 
     }
-    static  getActiveArea(type) {
-      return contextWrangler.getLastArea(type);
-    }
      push_ctx_active(dontSetLastRef=false) {
       contextWrangler.push(this.constructor, this, !dontSetLastRef);
     }
      pop_ctx_active(dontSetLastRef=false) {
       contextWrangler.pop(this.constructor, this, !dontSetLastRef);
-    }
-    static  unregister(cls) {
-      let def=cls.define();
-      if (!def.areaname) {
-          throw new Error("Missing areaname key in define()");
-      }
-      if (def.areaname in areaclasses) {
-          delete areaclasses[def.areaname];
-      }
-    }
-    static  register(cls) {
-      let def=cls.define();
-      if (!def.areaname) {
-          throw new Error("Missing areaname key in define()");
-      }
-      areaclasses[def.areaname] = cls;
-      ui_base.UIBase.internalRegister(cls);
     }
      getScreen() {
       throw new Error("replace me in Area.prototype");
@@ -3316,27 +7574,6 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
     }
      getBarHeight() {
       return this.header.getClientRects()[0].height;
-    }
-    static  makeAreasEnum() {
-      let areas={};
-      let icons={};
-      let i=0;
-      for (let k in areaclasses) {
-          let cls=areaclasses[k];
-          let def=cls.define();
-          if (def.flag&AreaFlags.HIDDEN)
-            continue;
-          let uiname=def.uiname;
-          if (uiname===undefined) {
-              uiname = k.replace("_", " ").toLowerCase();
-              uiname = uiname[0].toUpperCase()+uiname.slice(1, uiname.length);
-          }
-          areas[uiname] = k;
-          icons[uiname] = def.icon!==undefined ? def.icon : -1;
-      }
-      let prop=new EnumProperty(undefined, areas);
-      prop.addIcons(icons);
-      return prop;
     }
      makeAreaSwitcher(container) {
       if (cconst.useAreaTabSwitcher) {
@@ -3364,9 +7601,28 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
       return dropbox;
     }
      makeHeader(container, add_note_area=true, make_draggable=true) {
-      let row=this.header = container.row();
-      row.remove();
-      container._prepend(row);
+      let switcherRow;
+      let row;
+      let helpRow;
+      if (!(this.flag&AreaFlags.NO_SWITCHER)&&cconst.useAreaTabSwitcher) {
+          let col=this.header = container.col();
+          switcherRow = helpRow = col.row();
+          row = col.row();
+      }
+      else {
+        row = helpRow = this.header = container.row();
+      }
+      if (!(this.flag&AreaFlags.NO_HEADER_CONTEXT_MENU)) {
+          let callmenu=ScreenBorder.bindBorderMenu(this.header, true);
+          this.addEventListener("mousedown", (e) =>            {
+            if (e.button!==2||this.header.pickElement(e.x, e.y)!==this.header) {
+                return ;
+            }
+            callmenu(e);
+          });
+      }
+      this.header.remove();
+      container._prepend(this.header);
       row.setCSS.after(() =>        {
         return row.background = this.getDefault("AreaHeaderBG");
       });
@@ -3376,35 +7632,68 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
       row.style["width"] = "100%";
       row.style["margin"] = "0px";
       row.style["padding"] = "0px";
+      if (!(this.flag&AreaFlags.NO_SWITCHER)) {
+          if (this.switcher) {
+              switcherRow.add(this.switcher);
+          }
+          else {
+            this.switcher = this.makeAreaSwitcher(cconst.useAreaTabSwitcher ? switcherRow : row);
+          }
+      }
+      if (util.isMobile()||cconst.addHelpPickers) {
+          if (this.helppicker) {
+              this.helppicker.remove();
+          }
+          this.helppicker = helpRow.helppicker();
+          this.helppicker.iconsheet = 0;
+      }
+      if (add_note_area) {
+          let notef=UIBase.createElement("noteframe-x");
+          notef.ctx = this.ctx;
+          row._add(notef);
+      }
+      if (cconst.useAreaTabSwitcher) {
+          return row;
+      }
+      let eventdom=this.header;
       let mdown=false;
       let mpos=new Vector2();
       let mpre=(e, pageX, pageY) =>        {
-        pageX = pageX===undefined ? e.pageX : pageX;
-        pageY = pageY===undefined ? e.pageY : pageY;
+        if (haveModal()) {
+            return ;
+        }
+        pageX = pageX===undefined ? e.x : pageX;
+        pageY = pageY===undefined ? e.y : pageY;
         let node=this.getScreen().pickElement(pageX, pageY);
         if (node!==row) {
             return false;
         }
         return true;
       };
-      row.addEventListener("mouseout", (e) =>        {
+      eventdom.addEventListener("pointerout", (e) =>        {
         mdown = false;
       });
-      row.addEventListener("mouseleave", (e) =>        {
+      eventdom.addEventListener("pointerleave", (e) =>        {
         mdown = false;
       });
-      row.addEventListener("mousedown", (e) =>        {
+      eventdom.addEventListener("pointerdown", (e) =>        {
         if (!mpre(e))
           return ;
         mpos[0] = e.pageX;
         mpos[1] = e.pageY;
         mdown = true;
-      }, false);
+      });
+      let last_time=util.time_ms();
       let do_mousemove=(e, pageX, pageY) =>        {
         if (haveModal()||!make_draggable) {
             return ;
         }
-        let mdown2=e.buttons!=0||(e.touches&&e.touches.length>0);
+        let mdown2=e.buttons!==0||(e.touches&&e.touches.length>0);
+        mdown2 = mdown2&&mdown;
+        if (util.time_ms()-last_time<250) {
+            return ;
+        }
+        last_time = util.time_ms;
         if (!mdown2||!mpre(e, pageX, pageY))
           return ;
         if (e.type==="mousemove"&&e.was_touch) {
@@ -3433,60 +7722,22 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
             screen.areaDragTool(this.owning_sarea);
         }
       };
-      row.addEventListener("mousemove", (e) =>        {
+      eventdom.addEventListener("pointermove", (e) =>        {
         return do_mousemove(e, e.pageX, e.pageY);
       }, false);
-      row.addEventListener("mouseup", (e) =>        {
-        if (!mpre(e))
-          return ;
+      eventdom.addEventListener("pointerup", (e) =>        {
+        console.log("pointerup", e);
         mdown = false;
       }, false);
-      row.addEventListener("touchstart", (e) =>        {
-        console.log("touchstart", e);
-        if (!mpre(e, e.touches[0].pageX, e.touches[0].pageY))
-          return ;
-        if (e.touches.length==0)
-          return ;
-        mpos[0] = e.touches[0].pageX;
-        mpos[1] = e.touches[0].pageY;
-        mdown = true;
-      }, false);
-      row.addEventListener("touchmove", (e) =>        {
-        return do_mousemove(e, e.touches[0].pageX, e.touches[0].pageY);
-      }, false);
-      let touchend=(e) =>        {
-        let node=this.getScreen().pickElement(e.pageX, e.pageY);
-        if (node!==row) {
-            return ;
-        }
-        if (e.touches.length==0)
-          return ;
+      eventdom.addEventListener("pointercancel", (e) =>        {
+        console.log("pointercancel", e);
         mdown = false;
-      };
-      row.addEventListener("touchcancel", (e) =>        {
-        touchend(e);
       }, false);
-      row.addEventListener("touchend", (e) =>        {
-        touchend(e);
-      }, false);
-      if (!(this.flag&AreaFlags.NO_SWITCHER)) {
-          this.switcher = this.makeAreaSwitcher(row);
-      }
-      if (util.isMobile()||cconst.addHelpPickers) {
-          this.helppicker = row.helppicker();
-          this.helppicker.iconsheet = 0;
-      }
-      if (add_note_area) {
-          let notef=UIBase.createElement("noteframe-x");
-          notef.ctx = this.ctx;
-          row._add(notef);
-      }
-      this.header = row;
       return row;
     }
      setCSS() {
       if (this.size!==undefined) {
-          this.style["position"] = "absolute";
+          this.style["position"] = UIBase.PositionKey;
           this.style["width"] = this.size[0]+"px";
           this.style["height"] = this.size[1]+"px";
       }
@@ -3499,13 +7750,6 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
     }
      loadSTRUCT(reader) {
       reader(this);
-    }
-    static  define() {
-      return {tagname: "pathux-editor-x", 
-     areaname: undefined, 
-     flag: 0, 
-     uiname: undefined, 
-     icon: undefined}
     }
      _isDead() {
       if (this.dead) {
@@ -3537,9 +7781,6 @@ es6_module_define('ScreenArea', ["../config/const.js", "./area_wrangler.js", "..
       };
       this.doOnce(f);
     }
-    static  newSTRUCT() {
-      return UIBase.createElement(this.define().tagname);
-    }
      loadSTRUCT(reader) {
       reader(this);
     }
@@ -3556,11 +7797,13 @@ pathux.Area {
   saved_uidata : string | obj._getSavedUIData();
 }
 `;
-  nstructjs.register(Area);
+  nstructjs.register(Area, "pathux.Area");
   ui_base.UIBase.internalRegister(Area);
   class ScreenArea extends ui_base.UIBase {
      constructor() {
       super();
+      this._flag = undefined;
+      this.flag = 0;
       this._borders = [];
       this._verts = [];
       this.dead = false;
@@ -3593,41 +7836,79 @@ pathux.Area {
         if (screen.sareas.active!==this&&screen.sareas.active&&screen.sareas.active.area) {
             screen.sareas.active.area.on_area_blur();
         }
-        if (screen.sareas.active!==this) {
+        if (this.area&&screen.sareas.active!==this) {
             this.area.on_area_focus();
         }
         screen.sareas.active = this;
       });
     }
     get  floating() {
-      return this.area ? this.area.floating : undefined;
+      return this.flag&AreaFlags.FLOATING;
     }
     set  floating(val) {
-      if (this.area) {
-          this.area.floating = val;
+      if (val) {
+          this.flag|=AreaFlags.FLOATING;
+      }
+      else {
+        this.flag&=~AreaFlags.FLOATING;
       }
     }
     get  flag() {
-      return this.area ? this.area.flag : 0;
+      let flag=this._flag&(AreaFlags.FLOATING|AreaFlags.INDEPENDENT);
+      if (this.area) {
+          flag|=this.area.flag;
+      }
+      return flag;
     }
-     _get_v_suffix() {
-      return this.area ? this.area._get_v_suffix() : "";
+    set  flag(v) {
+      this._flag&=~(AreaFlags.FLOATING|AreaFlags.INDEPENDENT);
+      this._flag|=v&(AreaFlags.FLOATING|AreaFlags.INDEPENDENT);
+      if (this.area) {
+          this.area.flag|=v&~(AreaFlags.FLOATING|AreaFlags.INDEPENDENT);
+      }
     }
     get  borderLock() {
       return this.area!==undefined ? this.area.borderLock : 0;
     }
     get  minSize() {
-      return this.area!==undefined ? this.area.minSize : [5, 5];
+      return this.area!==undefined ? this.area.minSize : this.size;
     }
     get  maxSize() {
-      return this.area!==undefined ? this.area.maxSize : [undefined, undefined];
+      return this.area!==undefined ? this.area.maxSize : this.size;
+    }
+    get  pos() {
+      return this._pos;
+    }
+    set  pos(val) {
+      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
+          console.log("ScreenArea set pos", val);
+      }
+      this._pos.load(val);
+    }
+    get  size() {
+      return this._size;
+    }
+    set  size(val) {
+      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
+          console.log("ScreenArea set size", val);
+      }
+      this._size.load(val);
+    }
+    static  newSTRUCT() {
+      return UIBase.createElement("screenarea-x");
+    }
+    static  define() {
+      return {tagname: "screenarea-x"}
+    }
+     _get_v_suffix() {
+      return this.area ? this.area._get_v_suffix() : "";
     }
      bringToFront() {
       let screen=this.getScreen();
-      this.remove(false);
+      HTMLElement.prototype.remove.call(this);
       screen.sareas.remove(this);
       screen.appendChild(this);
-      let zindex=0;
+      let zindex=BORDER_ZINDEX_BASE+1;
       if (screen.style["z-index"]) {
           zindex = parseInt(screen.style["z-index"])+1;
       }
@@ -3651,7 +7932,7 @@ pathux.Area {
       this.noMarginsOrPadding();
     }
      draw() {
-      if (this.area.draw) {
+      if (this.area&&this.area.draw) {
           this.area.push_ctx_active();
           this.area.draw();
           this.area.pop_ctx_active();
@@ -3759,6 +8040,7 @@ pathux.Area {
           cpy.ctx = this.ctx;
           cpy.parentWidget = ret;
           ret.editors.push(cpy);
+          ret.editormap[cpy.constructor.define().areaname] = cpy;
           if (area===this.area) {
               ret.area = cpy;
           }
@@ -3808,6 +8090,18 @@ pathux.Area {
       }
     }
      loadFromPosSize() {
+      if (this.floating&&this._verts.length>0) {
+          let p=this.pos, s=this.size;
+          this._verts[0].loadXY(p[0], p[1]);
+          this._verts[1].loadXY(p[0], p[1]+s[1]);
+          this._verts[2].loadXY(p[0]+s[0], p[1]+s[1]);
+          this._verts[3].loadXY(p[0]+s[0], p[1]);
+          for (let border of this._borders) {
+              border.setCSS();
+          }
+          this.setCSS();
+          return ;
+      }
       let screen=this.getScreen();
       if (!screen)
         return ;
@@ -3846,9 +8140,10 @@ pathux.Area {
       this._verts.length = 0;
       let p=this.pos, s=this.size;
       let vs=[new Vector2([p[0], p[1]]), new Vector2([p[0], p[1]+s[1]]), new Vector2([p[0]+s[0], p[1]+s[1]]), new Vector2([p[0]+s[0], p[1]])];
+      let floating=this.floating;
       for (let i=0; i<vs.length; i++) {
           vs[i] = snap(vs[i]);
-          vs[i] = screen.getScreenVert(vs[i], i);
+          vs[i] = screen.getScreenVert(vs[i], i, floating);
           this._verts.push(vs[i]);
       }
       for (let i=0; i<vs.length; i++) {
@@ -3869,17 +8164,29 @@ pathux.Area {
       return this;
     }
      setCSS() {
-      this.style["position"] = "fixed";
+      this.style["position"] = UIBase.PositionKey;
       this.style["left"] = this.pos[0]+"px";
       this.style["top"] = this.pos[1]+"px";
       this.style["width"] = this.size[0]+"px";
       this.style["height"] = this.size[1]+"px";
+      this.style["overflow"] = "hidden";
+      this.style["contain"] = "layout";
       if (this.area!==undefined) {
           this.area.setCSS();
       }
     }
      appendChild(child) {
       if (__instance_of(child, Area)) {
+          let def=child.constructor.define();
+          let existing=this.editormap[def.areaname];
+          if (existing&&existing!==child) {
+              console.warn("Warning, replacing an exising editor instance", child, existing);
+              if (this.area===existing) {
+                  this.area = child;
+              }
+              existing.remove();
+              this.editormap[def.areaname] = child;
+          }
           child.ctx = this.ctx;
           child.pos = this.pos;
           child.size = this.size;
@@ -3911,7 +8218,7 @@ pathux.Area {
           this.editormap[name].inactive = false;
           this.editors.push(this.editormap[name]);
       }
-      if (this.area!==undefined) {
+      if (this.area) {
           this.area.pos = new Vector2(this.area.pos);
           this.area.size = new Vector2(this.area.size);
           this.area.owning_sarea = undefined;
@@ -3921,6 +8228,9 @@ pathux.Area {
           this.area.on_area_inactive();
           this.area.pop_ctx_active();
           this.area.remove();
+      }
+      else {
+        this.area = undefined;
       }
       this.area = this.editormap[name];
       this.area.inactive = false;
@@ -4009,9 +8319,6 @@ pathux.Area {
         return super.removeChild(ch);
       }
     }
-    static  newSTRUCT() {
-      return UIBase.createElement("screenarea-x");
-    }
      afterSTRUCT() {
       for (let area of this.editors) {
           area.pos = this.pos;
@@ -4022,24 +8329,6 @@ pathux.Area {
           area.afterSTRUCT();
           area.pop_ctx_active();
       }
-    }
-    get  pos() {
-      return this._pos;
-    }
-    set  pos(val) {
-      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
-          console.log("ScreenArea set pos", val);
-      }
-      this._pos.load(val);
-    }
-    get  size() {
-      return this._size;
-    }
-    set  size(val) {
-      if (cconst.DEBUG.screenAreaPosSizeAccesses) {
-          console.log("ScreenArea set size", val);
-      }
-      this._size.load(val);
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -4104,9 +8393,6 @@ pathux.Area {
           this.doOnce(f);
       }
     }
-    static  define() {
-      return {tagname: "screenarea-x"}
-    }
   }
   _ESClass.register(ScreenArea);
   _es6_module.add_class(ScreenArea);
@@ -4118,13 +8404,1988 @@ pathux.ScreenArea {
   type     : string;
   hidden   : bool;
   editors  : array(abstract(pathux.Area));
-  area     : string | obj.area.constructor.define().areaname;
+  area     : string | this.area ? this.area.constructor.define().areaname : "";
 }
 `;
-  nstructjs.register(ScreenArea);
+  nstructjs.register(ScreenArea, "pathux.ScreenArea");
   ui_base.UIBase.internalRegister(ScreenArea);
   ui_base._setAreaClass(Area);
+  function setScreenClass(cls) {
+    Screen = cls;
+  }
+  setScreenClass = _es6_module.add_export('setScreenClass', setScreenClass);
 }, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
+
+
+es6_module_define('app', ["../path-controller/controller/context.js", "../path-controller/controller/controller.js", "../screen/area_wrangler.js", "./app_ops.js", "./menubar.js", "../screen/FrameManager.js", "../util/util.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "../core/ui_base.js", "../path-controller/curve/curve1d_bspline.js", "./file.js", "./editor.js", "./icons.js", "../widgets/ui_noteframe.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _app_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  var Context=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'Context');
+  var ContextOverlay=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'ContextOverlay');
+  var makeDerivedOverlay=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'makeDerivedOverlay');
+  const DataModelClasses=[];
+  _es6_module.add_export('DataModelClasses', DataModelClasses);
+  var ToolStack=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'ToolStack');
+  var DataAPI=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataAPI');
+  var Screen=es6_import_item(_es6_module, '../screen/FrameManager.js', 'Screen');
+  var areaclasses=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'areaclasses');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
+  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  class DataModel  {
+    static  defineAPI(api, strct) {
+      return strct;
+    }
+    static  register(cls) {
+      if (!cls.hasOwnProperty("defineAPI")) {
+      }
+      DataModelClasses.push(cls);
+      if (cls.hasOwnProperty("STRUCT")) {
+          nstructjs.register(cls);
+      }
+    }
+  }
+  _ESClass.register(DataModel);
+  _es6_module.add_class(DataModel);
+  DataModel = _es6_module.add_export('DataModel', DataModel);
+  class EmptyContextClass extends Context {
+    static  defineAPI(api, strct) {
+
+    }
+  }
+  _ESClass.register(EmptyContextClass);
+  _es6_module.add_class(EmptyContextClass);
+  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
+  function GetContextClass(ctxClass) {
+    let ok=0;
+    let cls=ctxClass;
+    while (cls) {
+      if (cls===Context) {
+          ok = 1;
+      }
+      else 
+        if (cls===ContextOverlay) {
+          ok = 2;
+      }
+      cls = cls.__proto__;
+    }
+    if (ok===1) {
+        return ctxClass;
+    }
+    let OverlayDerived;
+    if (ok===2) {
+        OverlayDerived = ctxClass;
+    }
+    else {
+      OverlayDerived = makeDerivedOverlay(ctxClass);
+    }
+    class Overlay extends OverlayDerived {
+       constructor(state) {
+        super(state);
+      }
+      get  screen() {
+        return this.state.screen;
+      }
+      get  api() {
+        return this.state.api;
+      }
+      get  toolstack() {
+        return this.state.toolstack;
+      }
+       message(msg, timeout=2500) {
+        return ui_noteframe.message(this.screen, msg, timeout);
+      }
+       error(msg, timeout=2500) {
+        return ui_noteframe.error(this.screen, msg, timeout);
+      }
+       warning(msg, timeout=2500) {
+        return ui_noteframe.warning(this.screen, msg, timeout);
+      }
+       progressBar(msg, percent, color, timeout=1000) {
+        return ui_noteframe.progbarNote(this.screen, msg, percent, color, timeout);
+      }
+    }
+    _ESClass.register(Overlay);
+    _es6_module.add_class(Overlay);
+    Context.register(Overlay);
+    return class ContextDerived extends Context {
+       constructor(state) {
+        super(state);
+        this.pushOverlay(new Overlay(state));
+      }
+      static  defineAPI(api, st) {
+        return Overlay.defineAPI(api, st);
+      }
+    }
+    _ESClass.register(ContextDerived);
+    _es6_module.add_class(ContextDerived);
+  }
+  function makeAPI(ctxClass) {
+    let api=new DataAPI();
+    for (let cls of DataModelClasses) {
+        if (cls.defineAPI) {
+            cls.defineAPI(api, api.mapStruct(cls, true));
+        }
+    }
+    for (let k in areaclasses) {
+        areaclasses[k].defineAPI(api, api.mapStruct(areaclasses[k], true));
+    }
+    if (ctxClass.defineAPI) {
+        ctxClass.defineAPI(api, api.mapStruct(ctxClass, true));
+    }
+    else {
+      throw new Error("Context class should have a defineAPI static method");
+    }
+    api.rootContextStruct = api.mapStruct(ctxClass, api.mapStruct(ctxClass, true));
+    return api;
+  }
+  makeAPI = _es6_module.add_export('makeAPI', makeAPI);
+  var Icons=es6_import_item(_es6_module, './icons.js', 'Icons');
+  var loadDefaultIconSheet=es6_import_item(_es6_module, './icons.js', 'loadDefaultIconSheet');
+  var IconManager=es6_import_item(_es6_module, '../core/ui_base.js', 'IconManager');
+  var setIconManager=es6_import_item(_es6_module, '../core/ui_base.js', 'setIconManager');
+  var setIconMap=es6_import_item(_es6_module, '../core/ui_base.js', 'setIconMap');
+  var setTheme=es6_import_item(_es6_module, '../core/ui_base.js', 'setTheme');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var FileArgs=es6_import_item(_es6_module, './file.js', 'FileArgs');
+  var loadFile=es6_import_item(_es6_module, './file.js', 'loadFile');
+  var saveFile=es6_import_item(_es6_module, './file.js', 'saveFile');
+  var HotKey=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'HotKey');
+  var KeyMap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'KeyMap');
+  var initSplineTemplates=es6_import_item(_es6_module, '../path-controller/curve/curve1d_bspline.js', 'initSplineTemplates');
+  var MenuBarEditor=es6_import_item(_es6_module, './menubar.js', 'MenuBarEditor');
+  var registerMenuBarEditor=es6_import_item(_es6_module, './menubar.js', 'registerMenuBarEditor');
+  var register=es6_import_item(_es6_module, './app_ops.js', 'register');
+  class StartArgs  {
+     constructor() {
+      this.singlePage = true;
+      this.icons = Icons;
+      this.iconsheet = undefined;
+      this.iconSizes = [16, 24, 32, 48];
+      this.iconTileSize = 32;
+      this.iconsPerRow = 16;
+      this.theme = undefined;
+      this.registerSaveOpenOps = true;
+      this.autoLoadSplineTemplates = true;
+      this.showPathsInToolTips = true;
+      this.enableThemeAutoUpdate = false;
+      this.addHelpPickers = false;
+      this.useNumSliderTextboxes = true;
+      this.numSliderArrowLimit = cconst.numSliderArrowLimit;
+      this.simpleNumSliders = cconst.simpleNumSliders;
+    }
+  }
+  _ESClass.register(StartArgs);
+  _es6_module.add_class(StartArgs);
+  StartArgs = _es6_module.add_export('StartArgs', StartArgs);
+  class SimpleScreen extends Screen {
+     constructor() {
+      super();
+      this.keymap = new KeyMap([new HotKey("Z", ["CTRL"], () =>        {
+        this.ctx.toolstack.undo(this.ctx);
+      }), new HotKey("Z", ["CTRL", "SHIFT"], () =>        {
+        this.ctx.toolstack.redo(this.ctx);
+      })]);
+    }
+    static  define() {
+      return {tagname: "simple-screen-x"}
+    }
+     init() {
+      if (this.ctx.state.startArgs.registerSaveOpenOps) {
+          this.keymap.add(new HotKey("S", ["CTRL"], "app.save()"));
+          this.keymap.add(new HotKey("O", ["CTRL"], "app.open()"));
+      }
+    }
+     setCSS() {
+      super.setCSS();
+      this.style["position"] = UIBase.PositionKey;
+      this.style["left"] = this.pos[0]+"px";
+      this.style["top"] = this.pos[1]+"px";
+    }
+  }
+  _ESClass.register(SimpleScreen);
+  _es6_module.add_class(SimpleScreen);
+  SimpleScreen = _es6_module.add_export('SimpleScreen', SimpleScreen);
+  UIBase.register(SimpleScreen);
+  class AppState  {
+     constructor(ctxClass, screenClass=SimpleScreen) {
+      this._ctxClass = ctxClass;
+      ctxClass = GetContextClass(ctxClass);
+      this.startArgs = undefined;
+      this.currentFileRef = undefined;
+      this.ctx = new ctxClass(this);
+      this.ctx._state = this;
+      this.toolstack = new ToolStack();
+      this.api = makeAPI(ctxClass);
+      this.screenClass = screenClass;
+      this.screen = undefined;
+      this.fileMagic = "STRT";
+      this.fileVersion = [0, 0, 1];
+      this._fileExt = "data";
+      this._fileExtSet = false;
+      this.saveFilesInJSON = false;
+      this.defaultEditorClass = undefined;
+    }
+    get  fileExt() {
+      return this._fileExt;
+    }
+    set  fileExt(ext) {
+      this._fileExt = ext;
+      this._fileExtSet = true;
+    }
+     reset() {
+      this.toolstack.reset();
+    }
+     createNewFile() {
+      console.warn("appstate.createNewFile: implement me, using default hack");
+      let state=new this.constructor(this.ctx._ctxClass);
+      state.api = this.api;
+      state.ctx = this.ctx;
+      state.startArgs = this.startArgs;
+      state.saveFilesInJSON = this.saveFilesInJSON;
+      state.toolstack = this.toolstack;
+      state.toolstack.reset();
+      this.screen.unlisten();
+      this.screen.remove();
+      for (let k in state) {
+          this[k] = state[k];
+      }
+      this.makeScreen();
+    }
+     saveFileSync(objects, args={}) {
+      args = new FileArgs(Object.assign({magic: this.fileMagic, 
+     version: this.fileVersion, 
+     ext: this.fileExt}, args));
+      return saveFile(this, args, objects);
+    }
+     saveFile(objects, args={}) {
+      args = new FileArgs(Object.assign({magic: this.fileMagic, 
+     version: this.fileVersion, 
+     ext: this.fileExt}, args));
+      return new Promise((accept, reject) =>        {
+        accept(this.saveFileSync(objects, args));
+      });
+    }
+     loadFileSync(data, args={}) {
+      args = new FileArgs(Object.assign({magic: this.fileMagic, 
+     version: this.fileVersion, 
+     ext: this.fileExt}, args));
+      let ret=loadFile(this, args, data);
+      if (args.doScreen) {
+          try {
+            this.ensureMenuBar();
+          }
+          catch (error) {
+              console.error(error.stack);
+              console.error(error.message);
+              console.error("Failed to add menu bar");
+          }
+          this.screen.completeSetCSS();
+          this.screen.completeUpdate();
+      }
+      return ret;
+    }
+     loadFile(data, args={}) {
+      return new Promise((accept, reject) =>        {
+        accept(this.loadFileSync(data, args));
+      });
+    }
+     ensureMenuBar() {
+      let screen=this.screen;
+      let ok=false;
+      for (let sarea of screen.sareas) {
+          if (__instance_of(sarea.area, MenuBarEditor)) {
+              ok = true;
+              break;
+          }
+      }
+      if (ok) {
+          return ;
+      }
+      if (!Editor.makeMenuBar) {
+          return ;
+      }
+      screen.update();
+      let sarea=UIBase.createElement("screenarea-x");
+      screen.appendChild(sarea);
+      let h=55;
+      let min=new Vector2().addScalar(1e+17);
+      let max=new Vector2().addScalar(-1e+17);
+      let tmp=new Vector2();
+      for (let sarea2 of screen.sareas) {
+          if (sarea2===sarea) {
+              continue;
+          }
+          min.min(sarea2.pos);
+          tmp.load(sarea2.pos).add(sarea2.size);
+          max.max(tmp);
+      }
+      let scale=(max[1]-min[1]-h)/(max[1]-min[1]);
+      for (let sarea2 of screen.sareas) {
+          if (sarea2===sarea) {
+              continue;
+          }
+          sarea2.pos[1]*=scale;
+          sarea2.size[1]*=scale;
+          sarea2.pos[1]+=h;
+      }
+      sarea.pos.zero();
+      sarea.size[0] = screen.size[0];
+      sarea.size[1] = h;
+      screen.regenScreenMesh();
+      screen.snapScreenVerts();
+      sarea.switch_editor(MenuBarEditor);
+      screen.solveAreaConstraints();
+      screen.completeSetCSS();
+      screen.completeUpdate();
+    }
+     makeScreen() {
+      if (this.screen) {
+          this.screen.unlisten();
+          this.screen.remove();
+      }
+      let screen=this.screen = UIBase.createElement(this.screenClass.define().tagname);
+      let sarea=UIBase.createElement("screenarea-x");
+      screen.ctx = this.ctx;
+      sarea.ctx = this.ctx;
+      document.body.appendChild(screen);
+      let cls=this.defaultEditorClass;
+      if (!cls) {
+          for (let k in areaclasses) {
+              cls = areaclasses[k];
+              if (cls!==MenuBarEditor) {
+                  break;
+              }
+          }
+      }
+      sarea.switch_editor(cls);
+      screen.appendChild(sarea);
+      screen._init();
+      screen.listen();
+      screen.update();
+      screen.completeSetCSS();
+      screen.completeUpdate();
+      if (Editor.makeMenuBar) {
+          this.ensureMenuBar();
+      }
+    }
+     start(args=new StartArgs()) {
+      let args2=new StartArgs();
+      let methodsCheck=["saveFile", "createNewFile", "loadFile"];
+      for (let method of methodsCheck) {
+          let m1=AppState.prototype[method];
+          let m2=this[method];
+          if (m1===m2) {
+              console.warn(`Warning: it is recommended to override .${method} when subclassing simple.AppState`);
+          }
+      }
+      document.body.style["touch-action"] = "none";
+      registerMenuBarEditor();
+      for (let k in args2) {
+          if (args[k]===undefined) {
+              args[k] = args2[k];
+          }
+      }
+      if (args.registerSaveOpenOps) {
+          register();
+      }
+      if (!args.iconsheet) {
+          args.iconsheet = loadDefaultIconSheet();
+      }
+      this.startArgs = args;
+      cconst.loadConstants(args);
+      if (args.autoLoadSplineTemplates) {
+          initSplineTemplates();
+      }
+      let sizes=[];
+      let images=[];
+      for (let size of args.iconSizes) {
+          sizes.push([args.iconTileSize, size]);
+          images.push(args.iconsheet);
+      }
+      window.iconsheet = args.iconsheet;
+      let iconManager=new IconManager(images, sizes, args.iconsPerRow);
+      setIconManager(iconManager);
+      setIconMap(args.icons);
+      if (args.theme) {
+          setTheme(args.theme);
+      }
+      document.body.style["margin"] = "0px";
+      document.body.style["padding"] = "0px";
+      if (args.singlePage) {
+          document.body.style["overflow"] = "hidden";
+      }
+      this.makeScreen();
+      Object.defineProperty(window, "C", {get: function get() {
+          return this._appstate.ctx;
+        }});
+      nstructjs.validateStructs();
+      if (this.saveFilesInJSON&&!this._fileExtSet) {
+          this._fileExt = "json";
+      }
+      if (this._fileExt.startsWith(".")) {
+          this._fileExt = this._fileExt.slice(1, this._fileExt.length).trim();
+      }
+    }
+  }
+  _ESClass.register(AppState);
+  _es6_module.add_class(AppState);
+  AppState = _es6_module.add_export('AppState', AppState);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/app.js');
+
+
+es6_module_define('app_ops', ["../path-controller/toolsys/toolsys.js", "../widgets/ui_noteframe.js", "../path-controller/toolsys/toolprop.js", "../platforms/platform.js"], function _app_ops_module(_es6_module) {
+  var platform=es6_import(_es6_module, '../platforms/platform.js');
+  var ToolOp=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'UndoFlags');
+  var ToolProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'ToolProperty');
+  var BoolProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'BoolProperty');
+  var StringProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'StringProperty');
+  var sendNote=es6_import_item(_es6_module, '../widgets/ui_noteframe.js', 'sendNote');
+  var error=es6_import_item(_es6_module, '../widgets/ui_noteframe.js', 'error');
+  var warning=es6_import_item(_es6_module, '../widgets/ui_noteframe.js', 'warning');
+  var message=es6_import_item(_es6_module, '../widgets/ui_noteframe.js', 'message');
+  class SimpleAppNewOp extends ToolOp {
+    static  tooldef() {
+      return {uiname: "New", 
+     toolpath: "app.new", 
+     inputs: {}, 
+     undoflag: UndoFlags.NO_UNDO}
+    }
+     exec(ctx) {
+      _appstate.createNewFile();
+    }
+  }
+  _ESClass.register(SimpleAppNewOp);
+  _es6_module.add_class(SimpleAppNewOp);
+  SimpleAppNewOp = _es6_module.add_export('SimpleAppNewOp', SimpleAppNewOp);
+  class SimpleAppSaveOp extends ToolOp {
+    static  tooldef() {
+      return {uiname: "Save", 
+     toolpath: "app.save", 
+     inputs: {forceDialog: new BoolProperty()}, 
+     undoflag: UndoFlags.NO_UNDO}
+    }
+     exec(ctx) {
+      let ext=_appstate.fileExt;
+      let useJSON=_appstate.startArgs.saveFilesInJSON;
+      _appstate.saveFile({doScreen: true, 
+     useJSON: useJSON, 
+     fromFileOp: true}).then((data) =>        {
+        function save() {
+          return data;
+        }
+        platform.platform.showSaveDialog("Save As", save, {multi: false, 
+      addToRecentList: true, 
+      filters: [{name: "File", 
+       mime: useJSON ? "text/json" : "application/x-octet-stream", 
+       extensions: ["."+ext.toLowerCase()]}]}).then((path) =>          {
+          _appstate.currentFileRef = path;
+          message("File saved");
+        }).catch((err) =>          {
+          if (typeof err==="object"&&err.message) {
+              err = err.message;
+          }
+          error("Failed to save file "+err);
+        });
+      });
+    }
+  }
+  _ESClass.register(SimpleAppSaveOp);
+  _es6_module.add_class(SimpleAppSaveOp);
+  SimpleAppSaveOp = _es6_module.add_export('SimpleAppSaveOp', SimpleAppSaveOp);
+  class SimpleAppOpenOp extends ToolOp {
+    static  tooldef() {
+      return {uiname: "Open", 
+     toolpath: "app.open", 
+     inputs: {forceDialog: new BoolProperty()}, 
+     undoflag: UndoFlags.NO_UNDO}
+    }
+     exec(ctx) {
+      let ext=_appstate.fileExt;
+      let useJSON=_appstate.startArgs.saveFilesInJSON;
+      let mime=useJSON ? "text/json" : "application/x-octet-stream";
+      platform.platform.showOpenDialog("Open File", {multi: false, 
+     addToRecentList: true, 
+     filters: [{name: "File", 
+      mime: mime, 
+      extensions: ["."+ext.toLowerCase()]}]}).then((paths) =>        {
+        for (let path of paths) {
+            platform.platform.readFile(path, mime).then((data) =>              {
+              console.log("got data!", data);
+              _appstate.loadFile(data, {useJSON: useJSON, 
+         doScreen: true, 
+         fromFileOp: true}).catch((err) =>                {
+                error("File error: "+err.message);
+              });
+            });
+        }
+      }).catch((error) =>        {
+        ctx.error(error.message);
+      });
+    }
+  }
+  _ESClass.register(SimpleAppOpenOp);
+  _es6_module.add_class(SimpleAppOpenOp);
+  SimpleAppOpenOp = _es6_module.add_export('SimpleAppOpenOp', SimpleAppOpenOp);
+  function register() {
+    ToolOp.register(SimpleAppSaveOp);
+    ToolOp.register(SimpleAppOpenOp);
+    ToolOp.register(SimpleAppNewOp);
+  }
+  register = _es6_module.add_export('register', register);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/app_ops.js');
+
+
+es6_module_define('context_class', [], function _context_class_module(_es6_module) {
+  class SimpleContext  {
+     constructor() {
+
+    }
+    static  getContextClass() {
+      let props={};
+      let rec=(cls) =>        {
+        let prototype=cls.prototype;
+        if (cls.__proto__!==Object.__proto__) {
+            rec(cls);
+        }
+        for (let k in cls) {
+            let descr=Object.getOwnPropertyDescriptor(prototype, k);
+            if (descr) {
+                props[k] = descr;
+            }
+        }
+      };
+      console.log(props);
+      for (let k in props) {
+          if (k.search("_save")>=0||k.search("_load")>=0) {
+              continue;
+          }
+      }
+    }
+  }
+  _ESClass.register(SimpleContext);
+  _es6_module.add_class(SimpleContext);
+  SimpleContext = _es6_module.add_export('SimpleContext', SimpleContext);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/context_class.js');
+
+
+es6_module_define('editor', ["../core/ui_base.js", "../core/ui.js", "../screen/ScreenArea.js", "../util/util.js", "../path-controller/controller.js"], function _editor_module(_es6_module) {
+  var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
+  var contextWrangler=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'contextWrangler');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var parsepx=es6_import_item(_es6_module, '../core/ui_base.js', 'parsepx');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var util=es6_import(_es6_module, '../util/util.js');
+  let sidebar_hash=new util.HashDigest();
+  class SideBar extends Container {
+     constructor() {
+      super();
+      this.header = this.row();
+      this.header.style["height"] = "45px";
+      this._last_resize_key = undefined;
+      this._closed = false;
+      this.closeIcon = this.header.iconbutton(Icons.RIGHT_ARROW, "Close/Open sidebar", () =>        {
+        console.log("click!");
+        this.closed = !this._closed;
+      });
+      this._openWidth = undefined;
+      this.needsSetCSS = true;
+      this.tabbar = this.tabs("left");
+    }
+     saveData() {
+      return {closed: this.closed}
+    }
+     loadData(obj) {
+      this.closed = obj.closed;
+    }
+    set  closed(val) {
+      if (!!this._closed===!!val) {
+          return ;
+      }
+      if (this._openWidth===undefined&&!this._closed&&val) {
+          this._openWidth = this.width;
+      }
+      console.log("animate!");
+      let w=val ? 50 : this._openWidth;
+      this.animate().goto("width", w, 500);
+      if (val) {
+          this.closeIcon.icon = Icons.LEFT_ARROW;
+      }
+      else {
+        this.closeIcon.icon = Icons.RIGHT_ARROW;
+      }
+      this._closed = val;
+    }
+    get  closed() {
+      return this._closed;
+    }
+    get  width() {
+      return parsepx(""+this.getAttribute("width"));
+    }
+    set  width(val) {
+      this.setAttribute("width", ""+val+"px");
+      this.update();
+    }
+    get  height() {
+      return parsepx(""+this.getAttribute("height"));
+    }
+    set  height(val) {
+      this.setAttribute("height", ""+val+"px");
+      this.update();
+    }
+    static  define() {
+      return {tagname: "sidebar-base-x", 
+     style: "sidebar"}
+    }
+     tab(name) {
+      return this.tabbar.tab(name);
+    }
+     init() {
+      super.init();
+      let closed=this._closed;
+      this._closed = false;
+      if (!this.getAttribute("width")) {
+          this.width = 300;
+      }
+      if (!this.getAttribute("height")) {
+          this.height = 700;
+      }
+      this.setCSS();
+      if (closed) {
+          this.closed = true;
+      }
+    }
+     setCSS() {
+      if (!this.parentWidget) {
+          return ;
+      }
+      let editor=this.parentWidget;
+      if (!editor.pos||!editor.size) {
+          return ;
+      }
+      this.needsSetCSS = false;
+      let w=this.width, h=this.height;
+      w = isNaN(w) ? 500 : w;
+      h = isNaN(h) ? 500 : h;
+      h = Math.min(h, editor.size[1]-25);
+      this.style["position"] = "absolute";
+      this.style["width"] = w+"px";
+      this.style["height"] = h+"px";
+      this.style["z-index"] = "100";
+      this.style["overflow"] = "scroll";
+      this.style["background-color"] = this.getDefault("AreaHeaderBG");
+      this.tabbar.style["height"] = (h-45)+"px";
+      this.style["left"] = (editor.size[0]-w)+"px";
+    }
+     update() {
+      sidebar_hash.reset();
+      sidebar_hash.add(this.width);
+      sidebar_hash.add(this.height);
+      let key=sidebar_hash.get();
+      if (key!==this._last_resize_key) {
+          this._last_resize_key = key;
+          this.needsSetCSS = true;
+      }
+      if (this.needsSetCSS) {
+          this.setCSS();
+      }
+    }
+  }
+  _ESClass.register(SideBar);
+  _es6_module.add_class(SideBar);
+  SideBar = _es6_module.add_export('SideBar', SideBar);
+  UIBase.register(SideBar);
+  class Editor extends Area {
+     constructor() {
+      super();
+      this.container = UIBase.createElement("container-x");
+      this.container.parentWidget = this;
+      this.shadow.appendChild(this.container);
+    }
+    static  define() {
+      return {areaname: "areaname", 
+     tagname: "tagname-x"}
+    }
+    static  defineAPI(api, strct) {
+      return strct;
+    }
+    static  registerAppMenu(makeMenuBar) {
+      if (this!==Editor) {
+          throw new Error("must call registerAppMenu from simple.Editor base class");
+      }
+      this.makeMenuBar = makeMenuBar;
+    }
+    static  register(cls) {
+      if (!cls.hasOwnProperty("define")) {
+          throw new Error("missing define() method");
+      }
+      if (!cls.hasOwnProperty("STRUCT")) {
+          cls.STRUCT = nstructjs.inherit(cls, this)+`\n}`;
+      }
+      super.register(cls);
+      nstructjs.register(cls);
+    }
+     makeSideBar() {
+      if (this.sidebar) {
+          this.sidebar.remove();
+      }
+      let sidebar=this.sidebar = UIBase.createElement("sidebar-base-x");
+      sidebar.parentWidget = this;
+      sidebar.ctx = this.ctx;
+      this.shadow.appendChild(sidebar);
+      if (this.ctx) {
+          sidebar._init();
+          this.sidebar.flushSetCSS();
+          this.sidebar.flushUpdate();
+      }
+      return this.sidebar;
+    }
+     on_resize(size, oldsize) {
+      super.on_resize(size, oldsize);
+      if (this.sidebar) {
+          if (this.ctx&&this.pos) {
+              this.sidebar.setCSS();
+          }
+          else {
+            this.sidebar.needsSetCSS = true;
+          }
+      }
+    }
+    static  findEditor(cls) {
+      return contextWrangler.getLastArea(cls);
+    }
+     getScreen() {
+      return this.ctx.screen;
+    }
+     init() {
+      super.init();
+      this.makeHeader(this.container);
+    }
+     makeHeader(container, add_note_area=true, make_draggable=true) {
+      return super.makeHeader(container, add_note_area, make_draggable);
+    }
+     update() {
+      super.update();
+    }
+     setCSS() {
+      super.setCSS();
+    }
+  }
+  _ESClass.register(Editor);
+  _es6_module.add_class(Editor);
+  Editor = _es6_module.add_export('Editor', Editor);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/editor.js');
+
+
+es6_module_define('file', ["../path-controller/util/struct.js", "../core/ui_base.js"], function _file_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  class FileHeader  {
+     constructor(version, magic, flags) {
+      this.magic = magic;
+      this.flags = flags;
+      this.version_major = version ? version[0] : 0;
+      this.version_minor = version ? version[1] : 0;
+      this.version_micro = version ? version[2] : 0;
+      this.schema = nstructjs.write_scripts();
+    }
+  }
+  _ESClass.register(FileHeader);
+  _es6_module.add_class(FileHeader);
+  FileHeader = _es6_module.add_export('FileHeader', FileHeader);
+  FileHeader.STRUCT = `
+simple.FileHeader {
+  magic         : static_string[4];
+  version_major : short;
+  version_minor : short;
+  version_micro : short;
+  flags         : short;
+  schema        : string; 
+}
+`;
+  nstructjs.register(FileHeader);
+  class FileFull extends FileHeader {
+     constructor(version, magic, flags) {
+      super(version, magic, flags);
+      this.objects = [];
+    }
+  }
+  _ESClass.register(FileFull);
+  _es6_module.add_class(FileFull);
+  FileFull = _es6_module.add_export('FileFull', FileFull);
+  FileFull.STRUCT = nstructjs.inherit(FileFull, FileHeader)+`
+  objects : array(abstract(Object));
+  screen  : abstract(Object);
+}
+`;
+  nstructjs.register(FileFull);
+  class FileArgs  {
+     constructor(args={}) {
+      this.ext = args.ext||".data";
+      this.magic = args.magic||"STRT";
+      this.doScreen = args.doScreen!==undefined ? args.doScreen : true;
+      this.resetOnLoad = args.resetOnLoad!==undefined ? args.resetOnLoad : true;
+      this.useJSON = args.useJSON!==undefined ? args.useJSON : false;
+      this.version = args.version!==undefined ? args.version : 0;
+      this.fileFlags = args.fileFlags!==undefined ? args.fileFlags : 0;
+      this.fromFileOp = false;
+    }
+  }
+  _ESClass.register(FileArgs);
+  _es6_module.add_class(FileArgs);
+  FileArgs = _es6_module.add_export('FileArgs', FileArgs);
+  class EmptyStruct  {
+  }
+  _ESClass.register(EmptyStruct);
+  _es6_module.add_class(EmptyStruct);
+  EmptyStruct = _es6_module.add_export('EmptyStruct', EmptyStruct);
+  EmptyStruct.STRUCT = `
+EmptyStruct {
+}
+`;
+  nstructjs.register(EmptyStruct);
+  function saveFile(appstate, args, objects) {
+    if (args.useJSON===undefined) {
+        args.useJSON = appstate.saveFilesInJSON;
+    }
+    args = new FileArgs(args);
+    let version=args.version;
+    if (typeof version==="number") {
+        if (version===Math.floor(version)) {
+            version = [version, 0, 0];
+        }
+        else {
+          let major=~~version;
+          let minor=~~(Math.fract(version)*10.0);
+          let micro=(Math.fract(version)-minor)*100.0;
+          version = [major, minor, micro];
+        }
+    }
+    let file=new FileFull(version, args.magic, args.fileFlags);
+    if (args.doScreen) {
+        file.screen = appstate.screen;
+    }
+    else {
+      file.screen = new EmptyStruct();
+    }
+    for (let ob of objects) {
+        file.objects.push(ob);
+    }
+    if (args.useJSON) {
+        return nstructjs.writeJSON(file);
+    }
+    else {
+      let data=[];
+      nstructjs.writeObject(data, file);
+      return (new Uint8Array(data)).buffer;
+    }
+  }
+  saveFile = _es6_module.add_export('saveFile', saveFile);
+  function loadFile(appstate, args, data) {
+    let header;
+    if (args.useJSON===undefined) {
+        args.useJSON = appstate.saveFilesInJSON;
+    }
+    args = new FileArgs(args);
+    if (!args.useJSON) {
+        if (__instance_of(data, Array)) {
+            data = (new Uint8Array(data)).buffer;
+        }
+        if (__instance_of(data, Uint8Array)) {
+            data = data.buffer;
+        }
+        if (__instance_of(data, ArrayBuffer)) {
+            data = new DataView(data);
+        }
+        header = nstructjs.readObject(data, FileHeader);
+    }
+    else {
+      if (typeof data==="string") {
+          data = JSON.parse(data);
+      }
+      header = nstructjs.readJSON(data, FileHeader);
+    }
+    if (header.magic!==args.magic) {
+        throw new Error("invalid file");
+    }
+    let istruct=new nstructjs.STRUCT();
+    istruct.parse_structs(header.schema);
+    let ret;
+    if (!args.useJSON) {
+        ret = istruct.readObject(data, FileFull);
+    }
+    else {
+      ret = istruct.readJSON(data, FileFull);
+    }
+    if (args.resetOnLoad) {
+        appstate.reset();
+    }
+    if (args.doScreen) {
+        if (appstate.screen) {
+            appstate.screen.unlisten();
+            appstate.screen.remove();
+        }
+        ret.screen.ctx = appstate.ctx;
+        if (!(__instance_of(ret.screen, appstate.screenClass))) {
+            let screen=UIBase.createElement(appstate.screenClass.define().tagname);
+            screen.ctx = appstate.ctx;
+            for (let sarea of ret.screen.sareas) {
+                screen.appendChild(sarea);
+                sarea.area.afterSTRUCT();
+                sarea.area.on_fileload();
+            }
+            ret.screen = screen;
+        }
+        appstate.screen = ret.screen;
+        document.body.appendChild(appstate.screen);
+        appstate.screen.listen();
+    }
+    return ret;
+  }
+  loadFile = _es6_module.add_export('loadFile', loadFile);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/file.js');
+
+
+es6_module_define('icons', ["./iconsheet.js"], function _icons_module(_es6_module) {
+  "use strict";
+  var iconSvg=es6_import_item(_es6_module, './iconsheet.js', 'iconSvg');
+  const Icons={FOLDER: 0, 
+   FILE: 1, 
+   TINY_X: 2, 
+   SMALL_PLUS: 3, 
+   SMALL_MINUS: 4, 
+   UNDO: 5, 
+   REDO: 6, 
+   HELP: 7, 
+   ENUM_UNCHECKED: 8, 
+   ENUM_CHECKED: 9, 
+   LARGE_CHECK: 10, 
+   CURSOR_ARROW: 11, 
+   NOTE_EXCL: 12, 
+   SCROLL_DOWN: 13, 
+   SCROLL_UP: 14, 
+   BACKSPACE: 15, 
+   LEFT_ARROW: 16, 
+   RIGHT_ARROW: 17, 
+   UI_EXPAND: 18, 
+   UI_COLLAPSE: 19, 
+   BOLD: 20, 
+   ITALIC: 21, 
+   UNDERLINE: 22, 
+   STRIKETHRU: 23, 
+   TREE_EXPAND: 24, 
+   TREE_COLLAPSE: 25, 
+   ZOOM_OUT: 26, 
+   ZOOM_IN: 27}
+  _es6_module.add_export('Icons', Icons);
+  function loadDefaultIconSheet() {
+    let iconSheet=document.createElement("img");
+    iconSheet.src = iconSvg;
+    return iconSheet;
+  }
+  loadDefaultIconSheet = _es6_module.add_export('loadDefaultIconSheet', loadDefaultIconSheet);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/icons.js');
+
+
+es6_module_define('iconsheet', [], function _iconsheet_module(_es6_module) {
+  let text=`<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="512"
+   height="512"
+   id="svg16099"
+   version="1.1"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="iconsheet.svg"
+   inkscape:export-filename="C:\dev\allshape\src\datafiles\iconsheet16.png"
+   inkscape:export-xdpi="45"
+   inkscape:export-ydpi="45">
+  <defs
+     id="defs16101">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1587"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1307"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1303"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1299"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1295"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1291"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1231"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1186"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1182"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4974"
+       is_visible="true" />
+    <linearGradient
+       id="linearGradient5481">
+      <stop
+         id="stop4865"
+         offset="0"
+         style="stop-color:#e66700;stop-opacity:1;" />
+      <stop
+         style="stop-color:#f47712;stop-opacity:1;"
+         offset="0.52777779"
+         id="stop4867" />
+      <stop
+         id="stop4869"
+         offset="1"
+         style="stop-color:#f8bb8a;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116-6">
+      <stop
+         id="stop4860"
+         offset="0"
+         style="stop-color:#b3a500;stop-opacity:1;" />
+      <stop
+         id="stop4862"
+         offset="1"
+         style="stop-color:#eaa500;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116">
+      <stop
+         id="stop4853"
+         offset="0"
+         style="stop-color:#b3a500;stop-opacity:1;" />
+      <stop
+         id="stop4855"
+         offset="1"
+         style="stop-color:#eaa500;stop-opacity:1;" />
+    </linearGradient>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4290"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4286"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4118"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4194"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5012"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5008"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3264"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5465"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4613"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4609"
+       is_visible="true" />
+    <linearGradient
+       id="linearGradient5609">
+      <stop
+         id="stop5611"
+         offset="0"
+         style="stop-color:#0089e6;stop-opacity:1;" />
+      <stop
+         style="stop-color:#1280f4;stop-opacity:1;"
+         offset="0.52777779"
+         id="stop5613" />
+      <stop
+         id="stop5615"
+         offset="1"
+         style="stop-color:#d4eefc;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient5481-8">
+      <stop
+         style="stop-color:#ffc700;stop-opacity:1"
+         offset="0"
+         id="stop5483" />
+      <stop
+         id="stop5491"
+         offset="0.52777779"
+         style="stop-color:#ffc700;stop-opacity:1" />
+      <stop
+         style="stop-color:#ffa41c;stop-opacity:1"
+         offset="1"
+         id="stop5485" />
+    </linearGradient>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="-108.10967 : 516.24314 : 1"
+       inkscape:vp_y="0 : 323.31882 : 0"
+       inkscape:vp_z="57.429562 : 516.24314 : 1"
+       inkscape:persp3d-origin="-25.340056 : 488.65327 : 1"
+       id="perspective18342" />
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Send"
+       style="overflow:visible;">
+      <path
+         id="path17173"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.3) rotate(180) translate(-2.3,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mend"
+       style="overflow:visible;">
+      <path
+         id="path17167"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Send"
+       style="overflow:visible;">
+      <path
+         id="path17155"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Lend"
+       style="overflow:visible;">
+      <path
+         id="path17161"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(1.1) rotate(180) translate(1,0)" />
+    </marker>
+    <linearGradient
+       id="linearGradient17126">
+      <stop
+         style="stop-color:#008080;stop-opacity:1;"
+         offset="0"
+         id="stop17128" />
+      <stop
+         style="stop-color:#00b3b3;stop-opacity:1;"
+         offset="1"
+         id="stop17130" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116-6-9">
+      <stop
+         style="stop-color:#b3a500;stop-opacity:1;"
+         offset="0"
+         id="stop17118" />
+      <stop
+         style="stop-color:#eaa500;stop-opacity:1;"
+         offset="1"
+         id="stop17120" />
+    </linearGradient>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-2"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-2"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-6"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-8"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-7"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-6"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-8"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-9"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-79"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-5"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-3"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-1"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-33"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-4"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-1"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-3"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient5481-5"
+       id="linearGradient5489-4"
+       x1="355.89935"
+       y1="17.125025"
+       x2="380.47559"
+       y2="17.125025"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient5481-5">
+      <stop
+         style="stop-color:#e66700;stop-opacity:1;"
+         offset="0"
+         id="stop5483-2" />
+      <stop
+         id="stop5491-9"
+         offset="0.52777779"
+         style="stop-color:#f47712;stop-opacity:1;" />
+      <stop
+         style="stop-color:#f8bb8a;stop-opacity:1;"
+         offset="1"
+         id="stop5485-9" />
+    </linearGradient>
+    <linearGradient
+       y2="17.125025"
+       x2="380.47559"
+       y1="17.125025"
+       x1="355.89935"
+       gradientUnits="userSpaceOnUse"
+       id="linearGradient5588"
+       xlink:href="#linearGradient5609"
+       inkscape:collect="always"
+       gradientTransform="matrix(1.2151103,0,0,1.1804992,-207.06775,536.98221)" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-1"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-4"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-9"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225-1"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225-4"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122-2"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122-7"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1587-6"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4194-5"
+       is_visible="true" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#9c9c9c"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="3.8325453"
+     inkscape:cx="144.17961"
+     inkscape:cy="49.96269"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="1606"
+     inkscape:window-height="962"
+     inkscape:window-x="177"
+     inkscape:window-y="71"
+     inkscape:window-maximized="0"
+     inkscape:snap-global="false"
+     inkscape:pagecheckerboard="true"
+     inkscape:document-rotation="0">
+    <inkscape:grid
+       type="xygrid"
+       id="grid16107"
+       empspacing="1"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="false"
+       spacingx="32"
+       spacingy="32"
+       dotted="false"
+       originx="0"
+       originy="0" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata16104">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-540.36218)">
+    <ellipse
+       style="opacity:0.79203539;fill:url(#linearGradient5588);fill-opacity:1;stroke:#3c3c3c;stroke-width:1.1393038;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path3171-8"
+       cx="240.32063"
+       cy="557.19836"
+       rx="14.353489"
+       ry="14.165989" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot5564"
+       style="font-style:normal;font-weight:normal;line-height:0.01%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       transform="matrix(0.64571833,0,0,0.61432912,8.6966653,558.72048)"><flowRegion
+         id="flowRegion5566"
+         style="font-family:sans-serif"><rect
+           id="rect5568"
+           width="78.749992"
+           height="72.5"
+           x="346.24997"
+           y="-21.999973"
+           style="font-family:sans-serif" /></flowRegion><flowPara
+         id="flowPara5570"
+         style="font-weight:bold;font-size:40px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'Sans Bold'">?</flowPara></flowRoot>
+    <path
+       style="fill:none;stroke:#ec6900;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
+       d="m 187.1235,559.26606 c -3.71166,-5.87882 -12.04056,-10.0009 -18.86169,0.34701"
+       id="path4144-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ec6900;fill-opacity:1;stroke:none;stroke-width:0.001;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 170.01417,560.40163 2.05175,2.63036 -9.89352,4.33226 2.83717,-13.08504 z"
+       id="path5370-7"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#1f9000;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
+       d="m 197.1805,559.70121 c 3.69186,-5.88365 11.97631,-10.00911 18.76103,0.3473"
+       id="path4144-1-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#1f9000;fill-opacity:1;stroke:none"
+       d="m 213.95021,560.59037 -2.0408,2.63252 9.84072,4.33582 -2.82203,-13.09579 z"
+       id="path5370-7-4"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       id="rect3224"
+       width="23.641272"
+       height="8.4057856"
+       x="487.73776"
+       y="552.41565" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 498.18023,567.81152 484.7754,556.20378 498.93081,545.77569"
+       id="path4074"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccc" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 17.866009,585.82436 -0.09,-4.53232 -14.5167501,7.49748 14.5683701,7.84238 z"
+       id="path5370-5-0-6-5"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 46.366429,592.31275 0.0109,4.6129 14.90287,-7.37024 -14.68289,-8.23782 z"
+       id="path5370-5-1-2"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
+       id="rect5558-3-3"
+       width="10.726034"
+       height="5.6689787"
+       x="-3.0812507"
+       y="587.85645"
+       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
+    <rect
+       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
+       id="rect5558-1"
+       width="10.540748"
+       height="5.5710502"
+       x="-22.93788"
+       y="587.9295"
+       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
+    <path
+       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
+       d="m 71.46269,592.27473 0.01481,6.27371 20.268436,-10.02379 -19.969263,-11.20374 z"
+       id="path5370-5-1-2-1"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
+       d="m 108.87703,578.56977 -6.27262,0.11779 10.35514,20.10117 10.87444,-20.15049 z"
+       id="path5370-5-1-2-1-7"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 69.769603,567.95981 5.60449,-5.39601"
+       id="path5452-5-5-1-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.061478"
+       inkscape:transform-center-y="-0.63275351" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 75.172083,567.8747 -5.47097,-5.53134"
+       id="path5452-5-5-1-7-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.196728"
+       inkscape:transform-center-y="-0.78552851" />
+    <path
+       style="fill:#ffe87e;fill-opacity:1;stroke:#a58000;stroke-width:1.02573335px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
+       id="path4607"
+       inkscape:path-effect="#path-effect4609"
+       inkscape:original-d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccccc"
+       transform="translate(-33.065965,-31.819347)" />
+    <path
+       style="fill:#dfc449;fill-opacity:1;stroke:#a58000;stroke-width:1.04236829px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
+       id="path5463"
+       inkscape:path-effect="#path-effect5465"
+       inkscape:original-d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       transform="translate(-33.065965,-31.819347)" />
+    <path
+       style="fill:#d7f0fb;fill-opacity:1;stroke:#4f4f4f;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
+       id="path3262"
+       inkscape:path-effect="#path-effect3264"
+       inkscape:original-d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccc"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.190225,596.58015 16.81157,-0.35024"
+       id="path4106"
+       inkscape:path-effect="#path-effect4108"
+       inkscape:original-d="m 73.190225,596.58015 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.540465,591.50166 16.81157,-0.35024"
+       id="path4106-7"
+       inkscape:path-effect="#path-effect4108-1"
+       inkscape:original-d="m 73.540465,591.50166 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.365345,586.59829 16.81157,-0.35024"
+       id="path4106-0"
+       inkscape:path-effect="#path-effect4108-4"
+       inkscape:original-d="m 73.365345,586.59829 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.365345,582.22027 16.81157,-0.35024"
+       id="path4106-4"
+       inkscape:path-effect="#path-effect4108-9"
+       inkscape:original-d="m 73.365345,582.22027 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 103.19489,558.19446 16.18158,0.0627"
+       id="path5452-5-5-1-7-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.6534509"
+       inkscape:transform-center-y="-5.3788766" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f4f4f4;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 111.38254,565.89244 -0.15492,-16.18101"
+       id="path5452-5-5-1-7-4-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.6340509"
+       inkscape:transform-center-y="-5.8027516" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.54087734;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 135.53124,558.66024 15.77493,0.0612"
+       id="path5452-5-5-1-7-7-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.561639"
+       inkscape:transform-center-y="-5.2436726" />
+    <path
+       style="fill:#bfbfbf;fill-opacity:1;stroke:#ffffff;stroke-width:1.39999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 273.79736,565.92624 4.84986,4.15066 7.44379,-12.0346 -3.26109,-1.20718 -4.82074,8.91974 -2.46038,-2.39761 z"
+       id="path1157"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:#ff9d00;fill-opacity:1;stroke:#808080;stroke-width:0.78749156px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 306.19903,566.65065 4.84985,4.15066 7.4438,-12.0346 -3.26109,-1.20718 -4.82075,8.91974 -2.46037,-2.39761 z"
+       id="path1157-6"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
+       id="path1585"
+       inkscape:connector-curvature="0"
+       inkscape:path-effect="#path-effect1587"
+       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
+       sodipodi:nodetypes="ccc"
+       transform="matrix(0.82348572,0,0,0.82348572,75.604975,111.95505)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
+       id="path1585-6"
+       inkscape:connector-curvature="0"
+       inkscape:path-effect="#path-effect1587-6"
+       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
+       sodipodi:nodetypes="ccc"
+       transform="matrix(-0.82326686,0.01898429,-0.01898429,-0.82326686,829.82733,995.45395)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:1.4972775px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 325.7796,560.88703 9.22114,7.89176 14.15308,-22.88169 -6.20039,-2.29524 -9.16581,16.95932 -4.67796,-4.55863 z"
+       id="path1157-6-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 4.98485,11.66133 z"
+       id="path4192-0"
+       inkscape:path-effect="#path-effect4194-5"
+       inkscape:original-d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 c 11.73953,18.68506 2.52594,6.89719 4.98485,11.66133 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccc"
+       transform="rotate(-9.319008,159.52768,371.93318)" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.712px;line-height:0%;font-family:'MV Boli';-inkscape-font-specification:'MV Boli';letter-spacing:0px;word-spacing:0px;fill:#ffdc00;fill-opacity:1;stroke:none;stroke-width:1.476"
+       x="179.14906"
+       y="751.84772"
+       id="text3255-0"
+       transform="matrix(1.2141217,-0.1513943,0.23126622,0.79480305,0,0)"><tspan
+         sodipodi:role="line"
+         id="tspan3257-0"
+         x="179.14906"
+         y="751.84772"
+         style="font-size:44.4154px;line-height:1.25;stroke-width:1.476">!</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:32.4516px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.81129"
+       x="131.62856"
+       y="599.63672"
+       id="text1309"><tspan
+         sodipodi:role="line"
+         id="tspan1307"
+         x="131.62856"
+         y="599.63672"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.81129">B</tspan></text>
+    <text
+       id="text1309-2"
+       y="658.43152"
+       x="153.61592"
+       style="font-style:normal;font-weight:normal;font-size:41.6588px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.04147"
+       xml:space="preserve"
+       transform="scale(1.0962314,0.91221617)"><tspan
+         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Bold Italic';stroke-width:1.04147"
+         y="658.43152"
+         x="153.61592"
+         id="tspan1307-4"
+         sodipodi:role="line">i</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:38.431px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.960773"
+       x="264.23669"
+       y="522.23657"
+       id="text1309-0-9"
+       transform="scale(0.87011438,1.1492742)"><tspan
+         sodipodi:role="line"
+         id="tspan1307-3-4"
+         x="264.23669"
+         y="522.23657"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.960773"><tspan
+           style="font-weight:normal;stroke-width:0.960773"
+           id="tspan1365">s</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:31.7797px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.794494"
+       x="195.07664"
+       y="596.5979"
+       id="text1309-0-2"
+       transform="scale(0.99519471,1.0048285)"><tspan
+         sodipodi:role="line"
+         id="tspan1307-3-1"
+         x="195.07664"
+         y="596.5979"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.794494">U</tspan></text>
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:3.47724;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 194.05959,600.03363 25.702,0.14808"
+       id="path1375" />
+    <path
+       id="path1375-2"
+       d="m 227.04774,587.38832 25.63991,0.14772"
+       style="fill:none;stroke:#ffffff;stroke-width:3.46884;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:transform-center-x="1.1856386"
+       inkscape:transform-center-y="-0.33875464" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 262.93706,592.38036 0.0134,5.70131 18.41916,-9.10923 -18.14729,-10.18151 z"
+       id="path5370-5-1-2-1-4"
+       inkscape:connector-curvature="0" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path5370-5-1-2-1-4-0"
+       d="m 301.44451,581.20782 -5.70129,0.0197 9.12976,18.40899 10.16128,-18.15862 z"
+       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <ellipse
+       style="fill:none;stroke:#242424;stroke-width:2.80047;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1"
+       id="path1040"
+       ry="8.7032747"
+       rx="8.4312963"
+       cy="583.49023"
+       cx="331.71524" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 336.4644,589.47097 10.10632,10.66173"
+       id="path1042"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 325.36075,583.26941 12.63506,0.34484"
+       id="path1044" />
+    <ellipse
+       cx="364.00839"
+       cy="584.36328"
+       rx="9.6165609"
+       ry="9.9267731"
+       id="path1040-0"
+       style="fill:none;stroke:#242424;stroke-width:3.19416;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1" />
+    <path
+       sodipodi:nodetypes="cc"
+       id="path1042-6"
+       d="m 369.73697,590.7899 10.89694,10.89694"
+       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       id="path1044-4"
+       d="m 357.64269,584.09303 12.63506,0.34484"
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 363.94156,590.78154 0.20796,-12.63806"
+       id="path1044-4-9" />
+  </g>
+</svg>
+`.trim();
+  text = btoa(text);
+  let iconSvg=`data:image/svg+xml;base64,`+text;
+  iconSvg = _es6_module.add_export('iconSvg', iconSvg);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/iconsheet.js');
+
+
+es6_module_define('menubar', ["../path-controller/controller.js", "./editor.js", "../screen/ScreenArea.js", "../core/ui_base.js"], function _menubar_module(_es6_module) {
+  var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
+  var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
+  class MenuBarEditor extends Editor {
+     constructor() {
+      super();
+      this.updateHeight();
+      this.borderLock = 1|2|4|8;
+      this.areaDragToolEnabled = false;
+      this._height = 25;
+      this.needsRebuild = false;
+    }
+    get  height() {
+      return this._height;
+    }
+    set  height(v) {
+      this._height = v;
+      this.updateHeight();
+    }
+    static  define() {
+      return {tagname: "simple-menu-editor-x", 
+     areaname: "menu", 
+     uiname: "Menu Bar", 
+     icon: -1, 
+     flag: AreaFlags.HIDDEN|AreaFlags.NO_HEADER_CONTEXT_MENU|AreaFlags.NO_COLLAPSE|AreaFlags.NO_SWITCHER}
+    }
+     updateHeight(force=false) {
+      if (!this.header)
+        return ;
+      if (window.haveElectron) {
+          this.maxSize[1] = this.minSize[1] = 1;
+          electron_api.initMenuBar(this);
+          return ;
+      }
+      if (this._height===undefined) {
+          let rect=this.header.getClientRects()[0];
+          if (rect) {
+              this._height = rect.height;
+          }
+      }
+      let update=force||this._height!==this.minSize[1];
+      this.minSize[1] = this.maxSize[1] = this._height;
+      if (update&&this.ctx&&this.getScreen()) {
+          this.getScreen().solveAreaConstraints();
+      }
+    }
+     makeMenuBar(container) {
+      if (Editor.makeMenuBar) {
+          Editor.makeMenuBar(this.ctx, container, this);
+      }
+    }
+     flagRebuild() {
+      this.needsRebuild = true;
+    }
+     init() {
+      super.init();
+      this.background = this.getDefault("AreaHeaderBG");
+      this.menuRow = this.header.row();
+      this.makeMenuBar(this.menuRow);
+      this.doOnce(() =>        {
+        if (window.haveElectron) {
+            this.height = 1;
+            electron_api.initMenuBar(this);
+        }
+      });
+      this.updateHeight(true);
+      this.flushUpdate();
+    }
+     rebuild() {
+      this.needsRebuild = false;
+      this.menuRow.clear();
+      this.makeMenuBar(this.menuRow);
+      this.flushUpdate();
+    }
+     update() {
+      if (this.needsRebuild) {
+          this.rebuild();
+      }
+    }
+  }
+  _ESClass.register(MenuBarEditor);
+  _es6_module.add_class(MenuBarEditor);
+  MenuBarEditor = _es6_module.add_export('MenuBarEditor', MenuBarEditor);
+  MenuBarEditor.STRUCT = nstructjs.inherit(MenuBarEditor, Editor, "MenuBarEditor")+`
+}
+`;
+  function registerMenuBarEditor() {
+    Editor.register(MenuBarEditor);
+  }
+  registerMenuBarEditor = _es6_module.add_export('registerMenuBarEditor', registerMenuBarEditor);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/menubar.js');
+
+
+es6_module_define('setup', [], function _setup_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/simple/setup.js');
+
+
+es6_module_define('simple', ["./file.js", "./app.js", "./setup.js", "./menubar.js", "./context_class.js", "../widgets/ui_menu.js", "./editor.js", "./icons.js", "./iconsheet.js"], function _simple_module(_es6_module) {
+  var app=es6_import(_es6_module, './app.js');
+  var editor=es6_import(_es6_module, './editor.js');
+  var ___app_js=es6_import(_es6_module, './app.js');
+  for (let k in ___app_js) {
+      _es6_module.add_export(k, ___app_js[k], true);
+  }
+  var ___editor_js=es6_import(_es6_module, './editor.js');
+  for (let k in ___editor_js) {
+      _es6_module.add_export(k, ___editor_js[k], true);
+  }
+  var ___setup_js=es6_import(_es6_module, './setup.js');
+  for (let k in ___setup_js) {
+      _es6_module.add_export(k, ___setup_js[k], true);
+  }
+  var ___icons_js=es6_import(_es6_module, './icons.js');
+  for (let k in ___icons_js) {
+      _es6_module.add_export(k, ___icons_js[k], true);
+  }
+  var ___iconsheet_js=es6_import(_es6_module, './iconsheet.js');
+  for (let k in ___iconsheet_js) {
+      _es6_module.add_export(k, ___iconsheet_js[k], true);
+  }
+  var ___file_js=es6_import(_es6_module, './file.js');
+  for (let k in ___file_js) {
+      _es6_module.add_export(k, ___file_js[k], true);
+  }
+  var ___context_class_js=es6_import(_es6_module, './context_class.js');
+  for (let k in ___context_class_js) {
+      _es6_module.add_export(k, ___context_class_js[k], true);
+  }
+  var ___menubar_js=es6_import(_es6_module, './menubar.js');
+  for (let k in ___menubar_js) {
+      _es6_module.add_export(k, ___menubar_js[k], true);
+  }
+  let _ex_Menu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'Menu');
+  _es6_module.add_export('Menu', _ex_Menu, true);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/simple.js');
 
 
 es6_module_define('simple_toolsys', ["../path-controller/toolsys/toolsys.js"], function _simple_toolsys_module(_es6_module) {
@@ -4167,7 +10428,7 @@ es6_module_define('events', ["../path-controller/util/events.js"], function _eve
 }, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
 
 
-es6_module_define('graphpack', ["./math.js", "./solver.js", "./vectormath.js", "./util.js"], function _graphpack_module(_es6_module) {
+es6_module_define('graphpack', ["./solver.js", "./util.js", "./vectormath.js", "./math.js"], function _graphpack_module(_es6_module) {
   "use strict";
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
@@ -4312,7 +10573,7 @@ es6_module_define('graphpack', ["./math.js", "./solver.js", "./vectormath.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0urre=params, v1=$_t0urre[0], v2=$_t0urre[1];
+      let $_t0agvk=params, v1=$_t0agvk[0], v2=$_t0agvk[1];
       if (disableEdges)
         return 0;
       return v1.absPos.vectorDistance(v2.absPos);
@@ -4336,7 +10597,7 @@ es6_module_define('graphpack', ["./math.js", "./solver.js", "./vectormath.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1rmpv=params, n1=$_t1rmpv[0], n2=$_t1rmpv[1];
+      let $_t1viou=params, n1=$_t1viou[0], n2=$_t1viou[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);
@@ -4518,7 +10779,7 @@ es6_module_define('nstructjs', ["../path-controller/util/nstructjs.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
 
 
-es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./math.js", "../core/ui.js", "./util.js", "./vectormath.js"], function _ScreenOverdraw_module(_es6_module) {
+es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "../core/ui.js", "./math.js", "./vectormath.js", "./util.js"], function _ScreenOverdraw_module(_es6_module) {
   "use strict";
   const SVG_URL='http://www.w3.org/2000/svg';
   _es6_module.add_export('SVG_URL', SVG_URL);
@@ -4617,11 +10878,9 @@ es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./math.js", "../core
       if (!this.parentNode) {
           node.appendChild(this);
       }
-      this.style["display"] = "float";
       this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
+      this.style["position"] = "relative";
+      this.style["margin"] = this.style["padding"] = "0px";
       this.style["width"] = "100%";
       this.style["height"] = "100%";
       this.style["pointer-events"] = "none";
@@ -4649,7 +10908,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./math.js", "../core
       this.shadow.appendChild(this.svg);
     }
      clear() {
-      for (let child of list(this.svg.childNodes)) {
+      for (let child of util.list(this.svg.childNodes)) {
           child.remove();
       }
       for (let child of this.otherChildren) {
@@ -4791,7 +11050,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./math.js", "../core
       }
       let box=document.createElement("div");
       box.setAttribute("class", "overdrawx");
-      box.style["position"] = "absolute";
+      box.style["position"] = "fixed";
       box.style["width"] = "min-contents";
       box.style["height"] = "min-contents";
       box.style["border-width"] = args["border-width"];
@@ -4899,6 +11158,10 @@ es6_module_define('struct', ["../path-controller/util/struct.js"], function _str
   for (let k in ____path_controller_util_struct_js) {
       _es6_module.add_export(k, ____path_controller_util_struct_js[k], true);
   }
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  nstructjs;
+  _es6_module.set_default_export('nstructjs', nstructjs);
+  
 }, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
 
 
@@ -4910,7 +11173,7 @@ es6_module_define('vectormath', ["../path-controller/util/vectormath.js"], funct
 }, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
 
 
-es6_module_define('dragbox', ["../core/ui_theme.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "../core/ui.js"], function _dragbox_module(_es6_module) {
+es6_module_define('dragbox', ["../core/ui_theme.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../core/ui.js"], function _dragbox_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
@@ -5099,7 +11362,7 @@ es6_module_define('dragbox', ["../core/ui_theme.js", "../path-controller/util/si
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
 
 
-es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/struct.js", "../screen/ScreenArea.js"], function _theme_editor_module(_es6_module) {
+es6_module_define('theme_editor', ["../path-controller/util/struct.js", "../core/ui_theme.js", "../screen/ScreenArea.js", "../core/ui.js", "../core/ui_base.js"], function _theme_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
@@ -5336,7 +11599,7 @@ es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_base.js", "../co
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
 
 
-es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../path-controller/util/events.js", "../path-controller/controller/controller.js", "../path-controller/toolsys/toolsys.js", "../core/ui_base.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../path-controller/controller/controller.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -5352,106 +11615,51 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var _themeUpdateKey=es6_import_item(_es6_module, '../core/ui_base.js', '_themeUpdateKey');
   var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
-  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var eventWasTouch=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'eventWasTouch');
   let keymap=events.keymap;
   let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
   let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
   let parsepx=ui_base.parsepx;
   cconst.DEBUG.buttonEvents = true;
-  class Button extends UIBase {
+  class ButtonEventBase extends UIBase {
      constructor() {
       super();
-      this.label = document.createElement("span");
-      this.label.innerText = "button";
-      this.shadow.appendChild(this.label);
-      this.label.style["pointer-events"] = "none";
-      this._pressed = false;
-      this._highlight = false;
       this._auto_depress = true;
-      this._modalstate = undefined;
-      this._last_name = undefined;
-      this._last_disabled = undefined;
-    }
-     init() {
-      super.init();
-      this.tabIndex = 0;
-      this.bindEvents();
-      this.setCSS();
-    }
-    get  name() {
-      return ""+this.getAttribute("name");
-    }
-    set  name(val) {
-      this.setAttribute("name", val);
-    }
-     setCSS() {
-      super.setCSS();
-      let subkey=undefined;
-      if (this.disabled) {
-          subkey = "disabled";
-      }
-      else 
-        if (this._pressed&&this._highlight) {
-          subkey = "highlight-pressed";
-      }
-      else 
-        if (this._pressed) {
-          subkey = "pressed";
-      }
-      else 
-        if (this._highlight) {
-          subkey = "highlight";
-      }
-      let h=this.getDefault("height");
-      this.setBoxCSS(subkey);
-      this.label.style["padding"] = this.label.style["margin"] = "0px";
-      this.style["background-color"] = this.getSubDefault(subkey, "background-color");
-      let font=this.getSubDefault(subkey, "DefaultText");
-      this.label.style["font"] = font.genCSS();
-      this.label.style["color"] = font.color;
-      this.style["display"] = "flex";
-      this.style["align-items"] = "center";
-      this.style["width"] = "max-content";
-      this.style["height"] = h+"px";
-      this.style["user-select"] = "none";
-      this.label.style["user-select"] = "none";
-    }
-     click() {
-      if (this._onpress) {
-          let rect=this.getClientRects();
-          let x=rect.x+rect.width*0.5;
-          let y=rect.y+rect.height*0.5;
-          let e={x: x, 
-       y: y, 
-       stopPropagation: () =>              {            }, 
-       preventDefault: () =>              {            }};
-          this._onpress(e);
-      }
-      super.click();
+      this._highlight = false;
+      this._pressed = false;
     }
      bindEvents() {
       let press_gen=0;
       let depress;
       let press=(e) =>        {
         e.stopPropagation();
-        if (!this._modalstate) {
+        if (!this.modalRunning) {
             let this2=this;
-            this._modalstate = pushModalLight({on_mousedown: function on_mousedown(e) {
+            this.pushModal({on_pointerdown: function on_pointerdown(e) {
                 this.end(e);
               }, 
-        on_mouseup: function on_mouseup(e) {
+        on_pointerup: function on_pointerup(e) {
                 this.end(e);
+              }, 
+        on_pointercancel: function on_pointercancel(e) {
+                console.warn("Pointer cancel in button");
+                this2.popModal();
+              }, 
+        on_keydown: function on_keydown(e) {
+                switch (e.keyCode) {
+                  case keymap["Enter"]:
+                  case keymap["Escape"]:
+                  case keymap["Space"]:
+                    this.end();
+                    break;
+                }
               }, 
         end: function end(e) {
-                if (!this2._modalstate) {
+                if (!this2.modalRunning) {
                     return ;
                 }
-                popModalLight(this2._modalstate);
-                this2._modalstate = undefined;
+                this2.popModal();
                 depress(e);
-              }});
+              }}, undefined, e.pointerId);
         }
         if (cconst.DEBUG.buttonEvents) {
             console.log("button press", this._pressed, this.disabled, e.button);
@@ -5459,9 +11667,6 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
         if (this.disabled)
           return ;
         this._pressed = true;
-        if (util.isMobile()&&this.onclick&&e.button===0) {
-            this.onclick();
-        }
         if (this._onpress) {
             this._onpress(this);
         }
@@ -5479,13 +11684,13 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
         }
         e.preventDefault();
         e.stopPropagation();
-        if (util.isMobile()||e.type==="mouseup"&&e.button) {
+        if (util.isMobile()||e.type==="pointerup"&&e.button) {
             return ;
         }
         this._redraw();
         if (cconst.DEBUG.buttonEvents)
           console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        if (this.onclick&&e.touches!==undefined) {
+        if (this.onclick&&e.pointerType!=="mouse") {
             this.onclick(this);
         }
         this.undoBreakPoint();
@@ -5495,17 +11700,17 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
         this._highlight = false;
         this._redraw();
       });
-      this.addEventListener("mousedown", press, {captured: true, 
+      this.addEventListener("pointerdown", press, {captured: true, 
      passive: false});
-      this.addEventListener("mouseup", depress, {captured: true, 
+      this.addEventListener("pointerup", depress, {captured: true, 
      passive: false});
-      this.addEventListener("mouseover", (e) =>        {
+      this.addEventListener("pointerover", (e) =>        {
         if (this.disabled)
           return ;
         this._highlight = true;
         this._redraw();
       });
-      this.addEventListener("mouseout", (e) =>        {
+      this.addEventListener("pointerout", (e) =>        {
         if (this.disabled)
           return ;
         this._highlight = false;
@@ -5545,6 +11750,118 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
       });
     }
      _redraw() {
+
+    }
+  }
+  _ESClass.register(ButtonEventBase);
+  _es6_module.add_class(ButtonEventBase);
+  ButtonEventBase = _es6_module.add_export('ButtonEventBase', ButtonEventBase);
+  class Button extends ButtonEventBase {
+     constructor() {
+      super();
+      this.label = document.createElement("span");
+      this.label.innerText = "button";
+      this.shadow.appendChild(this.label);
+      this.label.style["pointer-events"] = "none";
+      this._pressed = false;
+      this._highlight = false;
+      this._pressedTime = 0;
+      this._pressedTimeout = 100;
+      this._auto_depress = true;
+      this._last_name = undefined;
+      this._last_disabled = undefined;
+    }
+    get  name() {
+      return ""+this.getAttribute("name");
+    }
+    set  name(val) {
+      this.setAttribute("name", val);
+    }
+    get  _pressed() {
+      return this.__pressed;
+    }
+    set  _pressed(v) {
+      let changed=!v!==!this._pressed;
+      if (v) {
+          this._pressedTime = util.time_ms();
+      }
+      else 
+        if (changed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
+          window.setTimeout(() =>            {
+            this.setCSS();
+          }, this._pressedTimeout-(util.time_ms()-this._pressedTime)+1);
+      }
+      this.__pressed = v;
+    }
+    static  define() {
+      return {tagname: "button-x", 
+     style: "button"}
+    }
+     init() {
+      super.init();
+      this.tabIndex = 0;
+      this.bindEvents();
+      this.setCSS();
+    }
+     on_enabled() {
+      this.setCSS();
+    }
+     on_disabled() {
+      this.setCSS();
+    }
+     setCSS() {
+      super.setCSS();
+      if (this.hasDefault("pressedTimeout")) {
+          this._pressedTimeout = this.getDefault("pressedTimeout");
+      }
+      let subkey=undefined;
+      let pressed=this._pressed;
+      if (!pressed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
+          pressed = true;
+      }
+      if (this.disabled) {
+          subkey = "disabled";
+      }
+      else 
+        if (pressed&&this._highlight) {
+          subkey = "highlight-pressed";
+      }
+      else 
+        if (pressed) {
+          subkey = "pressed";
+      }
+      else 
+        if (this._highlight) {
+          subkey = "highlight";
+      }
+      let h=this.getDefault("height");
+      this.setBoxCSS(subkey);
+      this.label.style["padding"] = this.label.style["margin"] = "0px";
+      this.style["background-color"] = this.getSubDefault(subkey, "background-color");
+      let font=this.getSubDefault(subkey, "DefaultText");
+      this.label.style["font"] = font.genCSS();
+      this.label.style["color"] = font.color;
+      this.style["display"] = "flex";
+      this.style["align-items"] = "center";
+      this.style["width"] = "max-content";
+      this.style["height"] = h+"px";
+      this.style["user-select"] = "none";
+      this.label.style["user-select"] = "none";
+    }
+     click() {
+      if (this._onpress) {
+          let rect=this.getClientRects();
+          let x=rect.x+rect.width*0.5;
+          let y=rect.y+rect.height*0.5;
+          let e={x: x, 
+       y: y, 
+       stopPropagation: () =>              {            }, 
+       preventDefault: () =>              {            }};
+          this._onpress(e);
+      }
+      super.click();
+    }
+     _redraw() {
       this.setCSS();
     }
      updateDisabled() {
@@ -5561,16 +11878,12 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
           this._last_name = this.name;
       }
     }
-    static  define() {
-      return {tagname: "button-x", 
-     style: "button"}
-    }
   }
   _ESClass.register(Button);
   _es6_module.add_class(Button);
   Button = _es6_module.add_export('Button', Button);
   UIBase.register(Button);
-  class OldButton extends UIBase {
+  class OldButton extends ButtonEventBase {
      constructor() {
       super();
       let dpi=this.getDPI();
@@ -5625,6 +11938,16 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
       this._auto_depress = true;
       this.shadow.appendChild(this.dom);
     }
+    get  r() {
+      return this.getDefault("border-radius");
+    }
+    set  r(val) {
+      this.overrideDefault("border-radius", val);
+    }
+    static  define() {
+      return {tagname: "old-button-x", 
+     style: "button"}
+    }
      click() {
       if (this._onpress) {
           let rect=this.getClientRects();
@@ -5659,13 +11982,7 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
           this.updateWidth();
       }
     }
-    get  r() {
-      return this.getDefault("border-radius");
-    }
-    set  r(val) {
-      this.overrideDefault("border-radius", val);
-    }
-     bindEvents() {
+     old_bindEvents() {
       let press_gen=0;
       let press=(e) =>        {
         e.stopPropagation();
@@ -5695,13 +12012,14 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
         }
         e.preventDefault();
         e.stopPropagation();
-        if (util.isMobile()||e.type==="mouseup"&&e.button) {
+        if (util.isMobile()||e.type==="pointerup"&&e.button) {
             return ;
         }
         this._redraw();
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        if (this.onclick&&e.touches!==undefined) {
+        if (cconst.DEBUG.buttonEvents) {
+            console.log("button click callback:", this.onclick, this._onpress, this.onpress);
+        }
+        if (this.onclick&&e.pointerType!=="mouse") {
             this.onclick(this);
         }
         this.undoBreakPoint();
@@ -5921,10 +12239,6 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
      size: ts/dpi, 
      font: font});
     }
-    static  define() {
-      return {tagname: "old-button-x", 
-     style: "button"}
-    }
   }
   _ESClass.register(OldButton);
   _es6_module.add_class(OldButton);
@@ -5933,7 +12247,7 @@ es6_module_define('ui_button', ["../config/const.js", "../path-controller/util/v
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
 
 
-es6_module_define('ui_colorpicker', ["../path-controller/toolsys/toolprop.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js", "../path-controller/util/util.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
+es6_module_define('ui_colorpicker', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js"], function _ui_colorpicker_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -6550,6834 +12864,4 @@ es6_module_define('ui_colorpicker', ["../path-controller/toolsys/toolprop.js", "
   ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
   UIBase.internalRegister(ColorPicker);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
-
-
-es6_module_define('ui_colorpicker2', ["../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/util/colorutils.js"], function _ui_colorpicker2_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var color2web=es6_import_item(_es6_module, '../core/ui_base.js', 'color2web');
-  var web2color=es6_import_item(_es6_module, '../core/ui_base.js', 'web2color');
-  var validateWebColor=es6_import_item(_es6_module, '../core/ui_base.js', 'validateWebColor');
-  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
-  let _ex_rgb_to_hsv=es6_import_item(_es6_module, '../path-controller/util/colorutils.js', 'rgb_to_hsv');
-  _es6_module.add_export('rgb_to_hsv', _ex_rgb_to_hsv, true);
-  let _ex_hsv_to_rgb=es6_import_item(_es6_module, '../path-controller/util/colorutils.js', 'hsv_to_rgb');
-  _es6_module.add_export('hsv_to_rgb', _ex_hsv_to_rgb, true);
-  var rgb_to_hsv=es6_import_item(_es6_module, '../path-controller/util/colorutils.js', 'rgb_to_hsv');
-  var hsv_to_rgb=es6_import_item(_es6_module, '../path-controller/util/colorutils.js', 'hsv_to_rgb');
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let UPW=1.25, VPW=0.75;
-  let sample_rets=new util.cachering(() =>    {
-    return [0, 0];
-  }, 64);
-  function inv_sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, UPW);
-    ret[1] = Math.pow(v, VPW);
-    return ret;
-  }
-  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
-  function sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, 1.0/UPW);
-    ret[1] = Math.pow(v, 1.0/VPW);
-    return ret;
-  }
-  sample = _es6_module.add_export('sample', sample);
-  let fieldrand=new util.MersenneRandom(0);
-  let huefields={}
-  function getHueField(width, height, dpi) {
-    let key=width+":"+height+":"+dpi.toFixed(4);
-    if (key in huefields) {
-        return huefields[key];
-    }
-    let field=new ImageData(width, height);
-    let idata=field.data;
-    for (let i=0; i<width*height; i++) {
-        let ix=i%width, iy = ~~(i/width);
-        let idx=i*4;
-        let rgb=hsv_to_rgb(ix/width, 1, 1);
-        idata[idx] = rgb[0]*255;
-        idata[idx+1] = rgb[1]*255;
-        idata[idx+2] = rgb[2]*255;
-        idata[idx+3] = 255;
-    }
-    let canvas=document.createElement("canvas");
-    canvas.width = field.width;
-    canvas.height = field.height;
-    let g=canvas.getContext("2d");
-    g.putImageData(field, 0, 0);
-    field = canvas;
-    huefields[key] = field;
-    return field;
-  }
-  getHueField = _es6_module.add_export('getHueField', getHueField);
-  let fields={}
-  function getFieldImage(fieldsize, width, height, hsva) {
-    fieldrand.seed(0);
-    let hue=hsva[0];
-    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
-    let key=fieldsize+":"+width+":"+height+":"+hue.toFixed(5);
-    if (key in fields)
-      return fields[key];
-    let size2=fieldsize;
-    let valpow=0.75;
-    let image={width: width, 
-    height: height, 
-    image: new ImageData(fieldsize, fieldsize), 
-    x2sat: (x) =>        {
-        return Math.min(Math.max(x/width, 0), 1);
-      }, 
-    y2val: (y) =>        {
-        y = 1.0-Math.min(Math.max(y/height, 0), 1);
-        return y===0.0 ? 0.0 : y**valpow;
-      }, 
-    sat2x: (s) =>        {
-        return s*width;
-      }, 
-    val2y: (v) =>        {
-        if (v==0)
-          return height;
-        v = v**(1.0/valpow);
-        return (1.0-v)*height;
-      }}
-    image.params = {box: {x: 0, 
-     y: 0, 
-     width: width, 
-     height: height}}
-    let idata=image.image.data;
-    for (let i=0; i<idata.length; i+=4) {
-        let i2=i/4;
-        let x=i2%size2, y = ~~(i2/size2);
-        let v=1.0-(y/size2);
-        let s=(x/size2);
-        let rgb=hsv_to_rgb(hsva[0], s, v**valpow);
-        idata[i] = rgb[0]*255;
-        idata[i+1] = rgb[1]*255;
-        idata[i+2] = rgb[2]*255;
-        idata[i+3] = 255;
-    }
-    let image2=document.createElement("canvas");
-    image2.width = size2;
-    image2.height = size2;
-    let g=image2.getContext("2d");
-    g.putImageData(image.image, 0, 0);
-    image.canvas = image2;
-    image.scale = width/size2;
-    fields[key] = image;
-    return image;
-  }
-  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
-  let _update_temp=new Vector4();
-  class SimpleBox  {
-     constructor(pos=[0, 0], size=[1, 1]) {
-      this.pos = new Vector2(pos);
-      this.size = new Vector2(size);
-      this.r = 0;
-    }
-  }
-  _ESClass.register(SimpleBox);
-  _es6_module.add_class(SimpleBox);
-  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
-  class HueField extends UIBase {
-     constructor() {
-      super();
-      this.canvas = document.createElement("canvas");
-      this.g = this.canvas.getContext("2d");
-      this.shadow.appendChild(this.canvas);
-      let setFromXY=(x, y) =>        {
-        let dpi=this.getDPI();
-        let r=this.getDefault("circleSize");
-        let h=x/((this.canvas.width-r*4)/dpi);
-        h = Math.min(Math.max(h, 0.0), 1.0);
-        this.hsva[0] = h;
-        if (this.onchange!==undefined) {
-            this.onchange(this.hsva);
-        }
-        this._redraw();
-      };
-      this.addEventListener("mousedown", (e) =>        {
-        e.preventDefault();
-        let rect=this.canvas.getClientRects()[0];
-        let x=e.clientX-rect.x, y=e.clientY-rect.y;
-        setFromXY(x, y);
-        setTimeout(() =>          {
-          this.pushModal({on_mousemove: (e) =>              {
-              let rect=this.canvas.getClientRects()[0];
-              let x=e.clientX-rect.x, y=e.clientY-rect.y;
-              setFromXY(x, y);
-            }, 
-       on_mousedown: (e) =>              {
-              this.popModal();
-            }, 
-       on_mouseup: (e) =>              {
-              this.popModal();
-            }, 
-       on_keydown: (e) =>              {
-              if (e.keyCode===keymap["Enter"]||e.keyCode===keymap["Escape"]||e.keyCode===keymap["Space"]) {
-                  this.popModal();
-              }
-            }});
-        }, 1);
-      });
-    }
-     _redraw() {
-      let g=this.g, canvas=this.canvas;
-      let dpi=this.getDPI();
-      let w=this.getDefault("width");
-      let h=this.getDefault("hueHeight");
-      canvas.width = ~~(w*dpi);
-      canvas.height = ~~(h*dpi);
-      canvas.style["width"] = w+"px";
-      canvas.style["height"] = h+"px";
-      let rselector=~~(this.getDefault("circleSize")*dpi);
-      let w2=canvas.width-rselector*4, h2=canvas.height;
-      g.drawImage(getHueField(w2, h2, dpi), 0, 0, w2, h2, rselector*2, 0, w2, h2);
-      let x=this.hsva[0]*(canvas.width-rselector*4)+rselector*2;
-      let y=canvas.height*0.5;
-      g.beginPath();
-      g.arc(x, y, rselector, -Math.PI, Math.PI);
-      g.closePath();
-      g.strokeStyle = "white";
-      g.lineWidth = 3*dpi;
-      g.stroke();
-      g.strokeStyle = "grey";
-      g.lineWidth = 1*dpi;
-      g.stroke();
-      if (this.disabled) {
-          g.beginPath();
-          g.fillStyle = "rgba(25,25,25,0.75)";
-          g.rect(0, 0, this.canvas.width, this.canvas.height);
-          g.fill();
-      }
-    }
-     on_disabled() {
-      this._redraw();
-    }
-     on_enabled() {
-      this._redraw();
-    }
-    static  define() {
-      return {tagname: "huefield-x", 
-     style: "colorfield"}
-    }
-  }
-  _ESClass.register(HueField);
-  _es6_module.add_class(HueField);
-  HueField = _es6_module.add_export('HueField', HueField);
-  UIBase.internalRegister(HueField);
-  class SatValField extends UIBase {
-     constructor() {
-      super();
-      this.hsva = [0, 0, 0, 1];
-      this.canvas = document.createElement("canvas");
-      this.g = this.canvas.getContext("2d");
-      this.shadow.appendChild(this.canvas);
-      this.onchange = undefined;
-      let setFromXY=(x, y) =>        {
-        let field=this._getField();
-        let r=~~(this.getDefault("circleSize")*this.getDPI());
-        let sat=field.x2sat(x-r);
-        let val=field.y2val(y-r);
-        this.hsva[1] = sat;
-        this.hsva[2] = val;
-        if (this.onchange) {
-            this.onchange(this.hsva);
-        }
-        this._redraw();
-      };
-      this.canvas.addEventListener("mousedown", (e) =>        {
-        e.preventDefault();
-        let rect=this.canvas.getClientRects()[0];
-        let x=e.clientX-rect.x, y=e.clientY-rect.y;
-        setFromXY(x, y);
-        setTimeout(() =>          {
-          this.pushModal({on_mousemove: (e) =>              {
-              let rect=this.canvas.getClientRects()[0];
-              if (rect===undefined) {
-                  return ;
-              }
-              let x=e.clientX-rect.x, y=e.clientY-rect.y;
-              setFromXY(x, y);
-            }, 
-       on_mousedown: (e) =>              {
-              this.popModal();
-            }, 
-       on_mouseup: (e) =>              {
-              this.popModal();
-            }, 
-       on_keydown: (e) =>              {
-              if (e.keyCode===keymap["Enter"]||e.keyCode===keymap["Escape"]||e.keyCode===keymap["Space"]) {
-                  this.popModal();
-              }
-            }});
-        }, 1);
-      });
-      this.canvas.addEventListener("touchstart", (e) =>        {
-        e.preventDefault();
-        let rect=this.canvas.getClientRects()[0];
-        let x=e.touches[0].clientX-rect.x, y=e.touches[0].clientY-rect.y;
-        setFromXY(x, y);
-        setTimeout(() =>          {
-          this.pushModal({on_mousemove: (e) =>              {
-              let rect=this.canvas.getClientRects()[0];
-              let x, y;
-              if (e.touches&&e.touches.length) {
-                  x = e.touches[0].clientX-rect.x;
-                  y = e.touches[0].clientY-rect.y;
-              }
-              else {
-                x = e.x;
-                y = e.y;
-              }
-              setFromXY(x, y);
-            }, 
-       on_touchmove: (e) =>              {
-              let rect=this.canvas.getClientRects()[0];
-              let x=e.touches[0].clientX-rect.x, y=e.touches[0].clientY-rect.y;
-              setFromXY(x, y);
-            }, 
-       on_mousedown: (e) =>              {
-              this.popModal();
-            }, 
-       on_touchcancel: (e) =>              {
-              this.popModal();
-            }, 
-       on_touchend: (e) =>              {
-              this.popModal();
-            }, 
-       on_mouseup: (e) =>              {
-              this.popModal();
-            }, 
-       on_keydown: (e) =>              {
-              if (e.keyCode==keymap["Enter"]||e.keyCode==keymap["Escape"]||e.keyCode==keymap["Space"]) {
-                  this.popModal();
-              }
-            }});
-        }, 1);
-      });
-    }
-     _getField() {
-      let dpi=this.getDPI();
-      let canvas=this.canvas;
-      let r=this.getDefault("circleSize");
-      let w=this.getDefault("width");
-      let h=this.getDefault("height");
-      return getFieldImage(this.getDefault("fieldSize"), w-r*2, h-r*2, this.hsva);
-    }
-     update(force_update=false) {
-      super.update();
-      if (force_update) {
-          this._redraw();
-      }
-    }
-     _redraw() {
-      let g=this.g, canvas=this.canvas;
-      let dpi=this.getDPI();
-      let w=this.getDefault("width");
-      let h=this.getDefault("height");
-      canvas.width = ~~(w*dpi);
-      canvas.height = ~~(h*dpi);
-      canvas.style["width"] = w+"px";
-      canvas.style["height"] = h+"px";
-      let rselector=~~(this.getDefault("circleSize")*dpi);
-      let field=this._getField();
-      let image=field.canvas;
-      g.globalAlpha = 1.0;
-      g.beginPath();
-      g.rect(0, 0, canvas.width, canvas.height);
-      g.fillStyle = "rgb(200, 200, 200)";
-      g.fill();
-      g.beginPath();
-      let steps=17;
-      let dx=canvas.width/steps;
-      let dy=canvas.height/steps;
-      for (let i=0; i<steps*steps; i++) {
-          let x=(i%steps)*dx, y=(~~(i/steps))*dy;
-          if (i%2==0) {
-              continue;
-          }
-          g.rect(x, y, dx, dy);
-      }
-      g.fillStyle = "rgb(110, 110, 110)";
-      g.fill();
-      g.globalAlpha = this.hsva[3];
-      g.drawImage(image, 0, 0, image.width, image.height, rselector, rselector, canvas.width-rselector*2, canvas.height-rselector*2);
-      let hsva=this.hsva;
-      let x=field.sat2x(hsva[1])*dpi+rselector;
-      let y=field.val2y(hsva[2])*dpi+rselector;
-      let r=rselector;
-      g.beginPath();
-      g.arc(x, y, r, -Math.PI, Math.PI);
-      g.closePath();
-      g.strokeStyle = "white";
-      g.lineWidth = 3*dpi;
-      g.stroke();
-      g.strokeStyle = "grey";
-      g.lineWidth = 1*dpi;
-      g.stroke();
-      if (this.disabled) {
-          g.beginPath();
-          g.fillStyle = "rgba(25,25,25,0.75)";
-          g.rect(0, 0, this.canvas.width, this.canvas.height);
-          g.fill();
-      }
-    }
-     on_disabled() {
-      this._redraw();
-    }
-     on_enabled() {
-      this._redraw();
-    }
-    static  define() {
-      return {tagname: "satvalfield-x", 
-     style: "colorfield"}
-    }
-  }
-  _ESClass.register(SatValField);
-  _es6_module.add_class(SatValField);
-  SatValField = _es6_module.add_export('SatValField', SatValField);
-  UIBase.internalRegister(SatValField);
-  class ColorField extends ui.ColumnFrame {
-     constructor() {
-      super();
-      this.hsva = new Vector4([0.05, 0.6, 0.15, 1.0]);
-      this.rgba = new Vector4([0, 0, 0, 0]);
-      this._recalcRGBA();
-      this._last_dpi = undefined;
-      let satvalfield=this.satvalfield = UIBase.createElement("satvalfield-x");
-      satvalfield.hsva = this.hsva;
-      let huefield=this.huefield = UIBase.createElement("huefield-x");
-      huefield.hsva = this.hsva;
-      huefield.onchange = (e) =>        {
-        this.satvalfield._redraw();
-        this._recalcRGBA();
-        if (this.onchange) {
-            this.onchange(this.rgba);
-        }
-      };
-      satvalfield.onchange = (e) =>        {
-        this._recalcRGBA();
-        if (this.onchange) {
-            this.onchange(this.rgba);
-        }
-      };
-      this._add(satvalfield);
-      this._add(huefield);
-    }
-     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
-      this.hsva[0] = h;
-      this.hsva[1] = s;
-      this.hsva[2] = v;
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
-      let hsv=rgb_to_hsv(r, g, b);
-      this.hsva[0] = hsv[0];
-      this.hsva[1] = hsv[1];
-      this.hsva[2] = hsv[2];
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     _recalcRGBA() {
-      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
-      this.rgba[0] = ret[0];
-      this.rgba[1] = ret[1];
-      this.rgba[2] = ret[2];
-      this.rgba[3] = this.hsva[3];
-      return this;
-    }
-     updateDPI(force_update=false, _in_update=false) {
-      let dpi=this.getDPI();
-      let update=force_update;
-      update = update||dpi!=this._last_dpi;
-      if (update) {
-          this._last_dpi = dpi;
-          if (!_in_update)
-            this._redraw();
-          return true;
-      }
-    }
-     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
-      if (bad(r)||bad(g)||bad(b)||bad(a)) {
-          console.warn("Invalid value!");
-          return ;
-      }
-      let ret=rgb_to_hsv(r, g, b);
-      function bad(f) {
-        return typeof f!=="number"||isNaN(f);
-      }
-      this.hsva[0] = ret[0];
-      this.hsva[1] = ret[1];
-      this.hsva[2] = ret[2];
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     update(force_update=false) {
-      super.update();
-      let redraw=false;
-      redraw = redraw||this.updateDPI(force_update, true);
-      if (redraw) {
-          this.satvalfield.update(true);
-          this._redraw();
-      }
-    }
-    static  define() {
-      return {tagname: "colorfield-x", 
-     style: "colorfield"}
-    }
-     _redraw() {
-      this.satvalfield._redraw();
-      this.huefield._redraw();
-    }
-  }
-  _ESClass.register(ColorField);
-  _es6_module.add_class(ColorField);
-  ColorField = _es6_module.add_export('ColorField', ColorField);
-  UIBase.internalRegister(ColorField);
-  class ColorPicker extends ui.ColumnFrame {
-     constructor() {
-      super();
-    }
-     init() {
-      super.init();
-      this.field = UIBase.createElement("colorfield-x");
-      this.field.setAttribute("class", "colorpicker");
-      this.field.packflag|=this.inherit_packflag;
-      this.field.packflag|=this.packflag;
-      this.field.onchange = () =>        {
-        this._setDataPath();
-        this._setSliders();
-        if (this.onchange) {
-            this.onchange(this.field.rgba);
-        }
-      };
-      let style=document.createElement("style");
-      style.textContent = `
-      .colorpicker {
-        background-color : ${this.getDefault("background-color")};
-      }
-    `;
-      this._style = style;
-      let cb=this.colorbox = document.createElement("div");
-      cb.style["width"] = "100%";
-      cb.style["height"] = this.getDefault("colorBoxHeight")+"px";
-      cb.style["background-color"] = "black";
-      this.shadow.appendChild(style);
-      this.field.ctx = this.ctx;
-      this.add(this.colorbox);
-      this.add(this.field);
-      this.style["width"] = this.getDefault("width")+"px";
-    }
-     updateColorBox() {
-      let r=this.field.rgba[0], g=this.field.rgba[1], b=this.field.rgba[2];
-      r = ~~(r*255);
-      g = ~~(g*255);
-      b = ~~(b*255);
-      let css=`rgb(${r},${g},${b})`;
-      this.colorbox.style["background-color"] = css;
-    }
-    static  setDefault(node) {
-      let tabs=node.tabs();
-      node.cssText = node.textbox();
-      node.cssText.onchange = (val) =>        {
-        let ok=validateWebColor(val);
-        if (!ok) {
-            node.cssText.flash("red");
-            return ;
-        }
-        else {
-          node.cssText.flash("green");
-        }
-        val = val.trim();
-        let color=web2color(val);
-        node._no_update_textbox = true;
-        node.field.setRGBA(color[0], color[1], color[2], color[3]);
-        node._setSliders();
-        node._no_update_textbox = false;
-      };
-      let tab=tabs.tab("HSV");
-      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
-      });
-      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
-      });
-      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
-      });
-      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
-      });
-      tab = tabs.tab("RGB");
-      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
-      });
-      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
-      });
-      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
-      });
-      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
-      });
-      node._setSliders();
-    }
-     _setSliders() {
-      if (this.h===undefined) {
-          console.warn("colorpicker ERROR");
-          return ;
-      }
-      let hsva=this.field.hsva;
-      this.h.setValue(hsva[0], false);
-      this.s.setValue(hsva[1], false);
-      this.v.setValue(hsva[2], false);
-      this.a.setValue(hsva[3], false);
-      let rgba=this.field.rgba;
-      this.r.setValue(rgba[0], false);
-      this.g.setValue(rgba[1], false);
-      this.b.setValue(rgba[2], false);
-      this.a2.setValue(rgba[3], false);
-      this.updateColorBox();
-      if (!this._no_update_textbox) {
-          this.cssText.text = color2web(this.field.rgba);
-      }
-    }
-    get  hsva() {
-      return this.field.hsva;
-    }
-    get  rgba() {
-      return this.field.rgba;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      this.internalDisabled = false;
-      _update_temp.load(val);
-      if (prop.type===PropTypes.VEC3) {
-          _update_temp[3] = 1.0;
-      }
-      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
-          this.field.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3], false);
-          this._setSliders();
-          this.field.update(true);
-      }
-    }
-     update() {
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-      super.update();
-    }
-     _setDataPath() {
-      if (this.hasAttribute("datapath")) {
-          let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-          if (prop===undefined) {
-              console.warn("Bad data path for color field:", this.getAttribute("datapath"));
-          }
-          let val=this.field.rgba;
-          if (prop!==undefined&&prop.type===PropTypes.VEC3) {
-              val = new Vector3();
-              val.load(this.field.rgba);
-          }
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), val);
-      }
-    }
-     setHSVA(h, s, v, a) {
-      this.field.setHSVA(h, s, v, a);
-      this._setSliders();
-      this._setDataPath();
-    }
-     setRGBA(r, g, b, a) {
-      this.field.setRGBA(r, g, b, a);
-      this._setSliders();
-      this._setDataPath();
-    }
-    static  define() {
-      return {tagname: "colorpicker-x", 
-     style: "colorfield"}
-    }
-  }
-  _ESClass.register(ColorPicker);
-  _es6_module.add_class(ColorPicker);
-  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
-  UIBase.internalRegister(ColorPicker);
-  class ColorPickerButton extends UIBase {
-     constructor() {
-      super();
-      this._highlight = false;
-      this._depress = false;
-      this._label = "";
-      this.customLabel = undefined;
-      this.rgba = new Vector4([1, 1, 1, 1]);
-      this.labelDom = document.createElement("span");
-      this.labelDom.textContent = "error";
-      this.dom = document.createElement("canvas");
-      this.g = this.dom.getContext("2d");
-      this.shadow.appendChild(this.labelDom);
-      this.shadow.appendChild(this.dom);
-    }
-    set  label(val) {
-      this._label = val;
-      this.labelDom.textContent = val;
-    }
-    get  label() {
-      return this._label;
-    }
-     init() {
-      super.init();
-      this._font = "DefaultText";
-      let enter=(e) =>        {
-        this._keyhandler_add();
-        this._highlight = true;
-        this._redraw();
-      };
-      let leave=(e) =>        {
-        this._keyhandler_remove();
-        this._highlight = false;
-        this._redraw();
-      };
-      this.tabIndex = 0;
-      this._has_keyhandler = false;
-      this._keyhandler_timeout = -1;
-      this._last_keyevt = undefined;
-      this._keydown = this._keydown.bind(this);
-      this.addEventListener("keydown", (e) =>        {
-        return this._keydown(e, true);
-      });
-      this.addEventListener("mousedown", (e) =>        {
-        e.preventDefault();
-        this.click(e);
-      });
-      this.addEventListener("mouseover", enter);
-      this.addEventListener("mouseleave", leave);
-      this.addEventListener("mousein", enter);
-      this.addEventListener("mouseout", leave);
-      this.addEventListener("focus", enter);
-      this.addEventListener("blur", leave);
-      this.setCSS();
-    }
-     _keyhandler_remove() {
-      if (this._has_keyhandler) {
-          window.removeEventListener("keydown", this._keydown, {capture: true, 
-       passive: false});
-          this._has_keyhandler = false;
-      }
-    }
-     _keyhandler_add() {
-      if (!this._has_keyhandler) {
-          window.addEventListener("keydown", this._keydown, {capture: true, 
-       passive: false});
-          this._has_keyhandler = true;
-      }
-      this._keyhandler_timeout = util.time_ms();
-    }
-     _keydown(e, internal_mode=false) {
-      if (internal_mode&&!this._highlight) {
-          return ;
-      }
-      if (e===this._last_keyevt) {
-          return ;
-      }
-      this._last_keyevt = e;
-      if (e.keyCode===67&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey) {
-          this.clipboardCopy();
-          e.preventDefault();
-          e.stopPropagation();
-      }
-      if (e.keyCode===86&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey) {
-          this.clipboardPaste();
-          e.preventDefault();
-          e.stopPropagation();
-      }
-    }
-     clipboardCopy() {
-      if (!cconst.setClipboardData) {
-          console.log("no clipboard api");
-          return ;
-      }
-      let r=this.rgba[0]*255;
-      let g=this.rgba[1]*255;
-      let b=this.rgba[2]*255;
-      let a=this.rgba[3];
-      let data=`rgba(${r.toFixed(4)}, ${g.toFixed(4)}, ${b.toFixed(4)}, ${a.toFixed(4)})`;
-      cconst.setClipboardData("color", "text/plain", data);
-    }
-     clipboardPaste() {
-      if (!cconst.getClipboardData) {
-          return ;
-      }
-      let data=cconst.getClipboardData("text/plain");
-      if (!data||!validateCSSColor(""+data.data)) {
-          return ;
-      }
-      let color;
-      try {
-        color = css2color(data.data);
-      }
-      catch (error) {
-          console.log(error.stack);
-          console.log(error.message);
-      }
-      if (color) {
-          if (color.length<4) {
-              color.push(1.0);
-          }
-          this.setRGBA(color);
-      }
-    }
-     click(e) {
-      if (this.onclick) {
-          this.onclick(e);
-      }
-      let colorpicker=this.ctx.screen.popup(this, this);
-      colorpicker.useDataPathUndo = this.useDataPathUndo;
-      let path=this.hasAttribute("datapath") ? this.getAttribute("datapath") : undefined;
-      let widget=colorpicker.colorPicker(path, undefined, this.getAttribute("mass_set_path"));
-      widget._init();
-      widget.setRGBA(this.rgba[0], this.rgba[1], this.rgba[2], this.rgba[3]);
-      widget.style["padding"] = "20px";
-      let onchange=() =>        {
-        this.rgba.load(widget.rgba);
-        this.redraw();
-        if (this.onchange) {
-            this.onchange(this);
-        }
-      };
-      widget.onchange = onchange;
-      colorpicker.style["background-color"] = widget.getDefault("background-color");
-      colorpicker.style["border-width"] = widget.getDefault("border-width");
-    }
-     setRGBA(val) {
-      let a=this.rgba[3];
-      let old=new Vector4(this.rgba);
-      this.rgba.load(val);
-      if (val.length<4) {
-          this.rgba[3] = a;
-      }
-      if (this.rgba.vectorDistance(old)<0.001) {
-          return ;
-      }
-      if (this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.rgba);
-      }
-      if (this.onchange) {
-          this.onchange();
-      }
-      this._redraw();
-      return this;
-    }
-    get  font() {
-      return this._font;
-    }
-    set  font(val) {
-      this._font = val;
-      this.setCSS();
-    }
-     on_disabled() {
-      this.setCSS();
-      this._redraw();
-    }
-     _redraw() {
-      let canvas=this.dom, g=this.g;
-      g.clearRect(0, 0, canvas.width, canvas.height);
-      if (this.disabled) {
-          let color="rgb(55, 55, 55)";
-          g.save();
-          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color);
-          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip");
-          let steps=5;
-          let dt=canvas.width/steps, t=0;
-          g.beginPath();
-          g.lineWidth = 2;
-          g.strokeStyle = "black";
-          for (let i=0; i<steps; i++, t+=dt) {
-              g.moveTo(t, 0);
-              g.lineTo(t+dt, canvas.height);
-              g.moveTo(t+dt, 0);
-              g.lineTo(t, canvas.height);
-          }
-          g.stroke();
-          g.restore();
-          return ;
-      }
-      g.save();
-      let grid1="rgb(100, 100, 100)";
-      let grid2="rgb(175, 175, 175)";
-      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip");
-      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", grid1);
-      let cellsize=10;
-      let totx=Math.ceil(canvas.width/cellsize), toty=Math.ceil(canvas.height/cellsize);
-      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip", undefined, undefined, true);
-      g.clip();
-      g.beginPath();
-      for (let x=0; x<totx; x++) {
-          for (let y=0; y<toty; y++) {
-              if ((x+y)&1) {
-                  continue;
-              }
-              g.rect(x*cellsize, y*cellsize, cellsize, cellsize);
-          }
-      }
-      g.fillStyle = grid2;
-      g.fill();
-      let color=color2css(this.rgba);
-      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color, undefined, true);
-      if (this._highlight) {
-          let color=this.getDefault("BoxHighlight");
-          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color);
-      }
-      g.restore();
-    }
-     setCSS() {
-      super.setCSS();
-      let w=this.getDefault("width");
-      let h=this.getDefault("height");
-      let dpi=this.getDPI();
-      this.style["width"] = "min-contents"+"px";
-      this.style["height"] = h+"px";
-      this.style["flex-direction"] = "row";
-      this.style["display"] = "flex";
-      this.labelDom.style["color"] = this.getDefault(this._font).color;
-      this.labelDom.style["font"] = ui_base.getFont(this, undefined, this._font, false);
-      let canvas=this.dom;
-      canvas.style["width"] = w+"px";
-      canvas.style["height"] = h+"px";
-      canvas.width = ~~(w*dpi);
-      canvas.height = ~~(h*dpi);
-      this.style["background-color"] = "rgba(0,0,0,0)";
-      this._redraw();
-    }
-    static  define() {
-      return {tagname: "color-picker-button-x", 
-     style: "colorpickerbutton"}
-    }
-     updateDataPath() {
-      if (!(this.hasAttribute("datapath"))) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let prop=this.getPathMeta(this.ctx, path);
-      if ((prop===undefined||prop.data===undefined)&&cconst.DEBUG.verboseDataPath) {
-          console.log("bad path", path);
-          return ;
-      }
-      else 
-        if (prop===undefined) {
-          let redraw=!this.disabled;
-          this.internalDisabled = true;
-          if (redraw) {
-              this._redraw();
-          }
-          return ;
-      }
-      let redraw=this.disabled;
-      this.internalDisabled = false;
-      if (this.customLabel===undefined&&prop.uiname!==this._label) {
-          this.label = prop.uiname;
-      }
-      let val=this.getPathValue(this.ctx, path);
-      if (val===undefined) {
-          redraw = redraw||this.disabled!==true;
-          this.internalDisabled = true;
-          if (redraw) {
-              this._redraw();
-          }
-      }
-      else {
-        this.internalDisabled = false;
-        let dis;
-        if (val.length===3) {
-            dis = Vector3.prototype.vectorDistance.call(val, this.rgba);
-        }
-        else {
-          dis = this.rgba.vectorDistance(val);
-        }
-        if (dis>0.0001) {
-            if (prop.type===PropTypes.VEC3) {
-                this.rgba.load(val);
-                this.rgba[3] = 1.0;
-            }
-            else {
-              this.rgba.load(val);
-            }
-            redraw = true;
-        }
-        if (redraw) {
-            this._redraw();
-        }
-      }
-    }
-     update() {
-      super.update();
-      if (this.customLabel!==undefined&&this.customLabel!==this._label) {
-          this.label = this.customLabel;
-      }
-      if (this._has_keyhandler&&util.time_ms()-this._keyhandler_timeout>3500) {
-          console.log("keyhandler auto remove");
-          this._keyhandler_remove();
-      }
-      for (let i=0; i<this.rgba.length; i++) {
-          if (this.rgba[i]==undefined) {
-              console.warn("corrupted color or alpha detected", this.rgba);
-              this.rgba[i] = 1.0;
-          }
-      }
-      let key=""+this.rgba[0].toFixed(4)+" "+this.rgba[1].toFixed(4)+" "+this.rgba[2].toFixed(4)+" "+this.rgba[3].toFixed(4);
-      key+=this.disabled;
-      if (key!==this._last_key) {
-          this._last_key = key;
-          this.redraw();
-      }
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-    }
-     redraw() {
-      this._redraw();
-    }
-  }
-  _ESClass.register(ColorPickerButton);
-  _es6_module.add_class(ColorPickerButton);
-  ColorPickerButton = _es6_module.add_export('ColorPickerButton', ColorPickerButton);
-  
-  UIBase.internalRegister(ColorPickerButton);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker2.js');
-
-
-es6_module_define('ui_container', ["../path-controller/controller/controller.js", "../core/ui.js", "../core/ui_base.js"], function _ui_container_module(_es6_module) {
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var DataAPI=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataAPI');
-  let api=new DataAPI();
-  api = _es6_module.add_export('api', api);
-  function setRootStruct(val) {
-    return api.setRoot(val);
-  }
-  setRootStruct = _es6_module.add_export('setRootStruct', setRootStruct);
-  class ContainerIF  {
-     beginPath(path, cls) {
-
-    }
-     endPath() {
-
-    }
-     prop(path, args) {
-
-    }
-     tool(path, args) {
-
-    }
-     menu(title, definition, args) {
-
-    }
-     slider(path, args) {
-
-    }
-     simpleslider(path, args) {
-
-    }
-     textbox(path, args) {
-
-    }
-     vector(path, args) {
-
-    }
-     colorpicker(path, args) {
-
-    }
-     colorbutton(path, args) {
-
-    }
-     iconenum(path, args) {
-
-    }
-     iconcheck(path, args) {
-
-    }
-     button(name, tooltip, args) {
-
-    }
-     iconbutton(icon, tooltip, args) {
-
-    }
-     listenum(path, args) {
-
-    }
-     table() {
-
-    }
-     row() {
-
-    }
-     col() {
-
-    }
-     strip() {
-
-    }
-     useIcons() {
-
-    }
-     useSimpleSliders() {
-
-    }
-  }
-  _ESClass.register(ContainerIF);
-  _es6_module.add_class(ContainerIF);
-  ContainerIF = _es6_module.add_export('ContainerIF', ContainerIF);
-  class BuilderContainer extends Container {
-     constructor() {
-      super();
-      this.pathPrefix = "";
-      this.pathstack = [];
-      this._class = undefined;
-      this._struct = undefined;
-    }
-     init() {
-      super.init();
-    }
-     _buildPath() {
-      let path="";
-      for (let p of this.pathstack) {
-          if (p[0].trim()==="") {
-              continue;
-          }
-          if (path.length>0)
-            path+=".";
-          path+=p[0];
-      }
-      if (this.pathstack.length>0) {
-          this._class = this.pathstack[this.pathstack.length-1][1];
-          this._struct = this.pathstack[this.pathstack.length-1][2];
-      }
-      else {
-        this._class = undefined;
-        this._struct = undefined;
-      }
-      this.pathPrefix = path;
-      return path;
-    }
-     beginPath(path, cls) {
-      this.pathstack.push([path, cls, api.mapStruct(cls, true)]);
-      this._buildPath();
-    }
-     popPath(path, cls) {
-      this.pathstack.pop();
-      this._buildPath();
-    }
-     joinPath(path) {
-      if (this.pathPrefix.trim().length>0) {
-          return this.pathPrefix+"."+path;
-      }
-      else {
-        return path.trim();
-      }
-    }
-     _makeAPI(path) {
-      if (!path) {
-          return false;
-      }
-      if (!this._struct) {
-          console.warn("No struct");
-          return false;
-      }
-      return !(path in this._struct.pathmap);
-    }
-    static  define() {
-      return {tagname: "container-builder-x"}
-    }
-     _args(args={}) {
-      if (args.packflag===undefined)
-        args.packflag = 0;
-      args.packflag|=this.inherit_packflag;
-      return args;
-    }
-     prop(path, args) {
-      args = this._args(args);
-      return super.prop(path, args.packflag, args.mass_set_path);
-    }
-     tool(path, args) {
-      args = this._args(args);
-      return super.tool(path, args.packflag, args.create_cb);
-    }
-     menu(title, definition, args) {
-      args = this._args(args);
-      return super.menu(title, definition, args.packflag);
-    }
-     _wrapElem(e, dpath) {
-      return {widget: e, 
-     range: (min, max) =>          {
-          return dpath.range(min, max);
-        }, 
-     description: (d) =>          {
-          return dpath.description(d);
-        }, 
-     on: () =>          {
-          return dpath.on(...arguments);
-        }, 
-     off: () =>          {
-          return dpath.off(...arguments);
-        }, 
-     simpleSlider: () =>          {
-          return dpath.simpleSlider();
-        }, 
-     rollerSlider: () =>          {
-          return dpath.rollerSlider();
-        }, 
-     uiRange: (min, max) =>          {
-          return dpath.uiRange();
-        }, 
-     decimalPlaces: (p) =>          {
-          return dpath.decimalPlaces();
-        }, 
-     expRate: (p) =>          {
-          return dpath.expRate(p);
-        }, 
-     radix: (p) =>          {
-          return dpath.radix(p);
-        }, 
-     step: (p) =>          {
-          return dpath.step(p);
-        }, 
-     icon: (icon) =>          {
-          return dpath.icon(icon);
-        }, 
-     icons: (iconmap) =>          {
-          return dpath.icons(iconmap);
-        }, 
-     descriptions: (ds) =>          {
-          return dpath.descriptions(ds);
-        }, 
-     customGetSet: () =>          {
-          return dpath.customGetSet.apply(...arguments);
-        }}
-    }
-     slider(path, args) {
-      args = this._args(args);
-      let dopatch=false, dpath;
-      if (this._makeAPI(path)) {
-          let path2=args.apiname ? args.apiname : path;
-          let uiname=args.uiName ? args.uiName : path2;
-          if (args.is_int||args.isInt) {
-              dpath = this._struct.int(path, path2, uiname, args.description);
-          }
-          else {
-            dpath = this._struct.float(path, path2, uiname, args.description);
-          }
-          if (args.min&&args.max) {
-              dpath.range(args.min, args.max);
-          }
-      }
-      let ret=super.slider(this.joinPath(path), args.name, args.defaultval, args.min, args.max, args.step, args.is_int, args.do_redraw, args.callback, args.packflag);
-      if (dopatch) {
-          this._wrapElem(ret, dpath);
-      }
-      return ret;
-    }
-     simpleslider(path, args) {
-      args = this._args(args);
-      args.packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-      return this.slider(path, args);
-    }
-     textbox(path, args) {
-      args = this._args(args);
-      let dopatch=false, dpath;
-      if (this._makeAPI(path)) {
-          let path2=args.apiname ? args.apiname : path;
-          let uiname=args.uiName ? args.uiName : path2;
-          if (args.type==="int") {
-              dpath = this._struct.int(path, path2, uiname, args.description);
-          }
-          else 
-            if (args.type==="float") {
-              dpath = this._struct.float(path, path2, uiname, args.description);
-          }
-          else {
-            dpath = this._struct.string(path, path2, uiname, args.description);
-          }
-          if ((args.type==="int"||args.type==="float")&&args.min&&args.max) {
-              dpath.range(args.min, args.max);
-          }
-      }
-      let ret=super.textbox(this.joinPath(path), args.text, args.callback, args.packflag);
-      if (dopatch) {
-          this._wrapElem(ret, dpath);
-      }
-      return ret;
-    }
-     vector(path, args) {
-
-    }
-     colorpicker(path, args) {
-
-    }
-     colorbutton(path, args) {
-
-    }
-     iconenum(path, args) {
-
-    }
-     iconcheck(path, args) {
-
-    }
-     button(name, tooltip, args) {
-
-    }
-     iconbutton(icon, tooltip, args) {
-
-    }
-     listenum(path, args) {
-
-    }
-     table() {
-
-    }
-     row() {
-
-    }
-     col() {
-
-    }
-     strip() {
-
-    }
-     useIcons() {
-
-    }
-     useSimpleSliderS() {
-
-    }
-  }
-  _ESClass.register(BuilderContainer);
-  _es6_module.add_class(BuilderContainer);
-  BuilderContainer = _es6_module.add_export('BuilderContainer', BuilderContainer);
-  class BuilderRow extends BuilderContainer {
-     init() {
-      super.init();
-      this.style["flex-direction"] = "row";
-    }
-    static  define() {
-      return {tagname: "row-builder-x"}
-    }
-  }
-  _ESClass.register(BuilderRow);
-  _es6_module.add_class(BuilderRow);
-  BuilderRow = _es6_module.add_export('BuilderRow', BuilderRow);
-  UIBase.internalRegister(BuilderRow);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_container.js');
-
-
-es6_module_define('ui_curvewidget', ["../path-controller/util/util.js", "../path-controller/curve/curve1d.js", "../core/ui_base.js", "../path-controller/curve/curve1d_utils.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js"], function _ui_curvewidget_module(_es6_module) {
-  var Curve1DProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'Curve1DProperty');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Curve1D=es6_import_item(_es6_module, '../path-controller/curve/curve1d.js', 'Curve1D');
-  var mySafeJSONStringify=es6_import_item(_es6_module, '../path-controller/curve/curve1d.js', 'mySafeJSONStringify');
-  var makeGenEnum=es6_import_item(_es6_module, '../path-controller/curve/curve1d_utils.js', 'makeGenEnum');
-  class Curve1DWidget extends ColumnFrame {
-     constructor() {
-      super();
-      this.useDataPathUndo = false;
-      this._on_draw = this._on_draw.bind(this);
-      this.drawTransform = [1.0, [0, 0]];
-      this._value = new Curve1D();
-      this._value.on("draw", this._on_draw);
-      this._value._on_change = (msg) =>        {
-        if (this.onchange) {
-            this.onchange(this._value);
-        }
-        if (this.hasAttribute("datapath")) {
-            let path=this.getAttribute("datapath");
-            if (this._value!==undefined) {
-                let val=this.getPathValue(this.ctx, path);
-                if (val) {
-                    val.load(this._value);
-                    this.setPathValue(this.ctx, path, val);
-                }
-                else {
-                  val = this._value.copy();
-                  this.setPathValue(this.ctx, path, val);
-                }
-            }
-        }
-      };
-      this._gen_type = undefined;
-      this._lastGen = undefined;
-      this._last_dpi = undefined;
-      this.canvas = document.createElement("canvas");
-      this.g = this.canvas.getContext("2d");
-      this.canvas.g = this.g;
-      window.cw = this;
-      this.shadow.appendChild(this.canvas);
-    }
-    get  value() {
-      return this._value;
-    }
-     _on_draw(e) {
-      let curve=e.data;
-      this._redraw();
-    }
-    set  value(val) {
-      this._value.load(val);
-      this.update();
-      this._redraw();
-    }
-     _on_change() {
-      if (this.onchange) {
-          this.onchange(this);
-      }
-    }
-     init() {
-      super.init();
-      this.useDataPathUndo = false;
-      let row=this.row();
-      let prop=makeGenEnum();
-      prop.setValue(this.value.generatorType);
-      this.dropbox = row.listenum(undefined, "Type", prop, this.value.generatorType, (id) =>        {
-        console.warn("SELECT", id, prop.keys[id]);
-        this.value.setGenerator(id);
-        this.value._on_change("curve type change");
-      });
-      this.dropbox._init();
-      row.iconbutton(Icons.ZOOM_OUT, "Zoom Out", () =>        {
-        let curve=this._value;
-        if (!curve)
-          return ;
-        curve.uiZoom*=0.9;
-        if (this.getAttribute("datapath")) {
-            this.setPathValue(this.ctx, this.getAttribute("datapath"), curve);
-        }
-        this._redraw();
-      }).iconsheet = 0;
-      row.iconbutton(Icons.ZOOM_IN, "Zoom In", () =>        {
-        let curve=this._value;
-        if (!curve)
-          return ;
-        curve.uiZoom*=1.1;
-        if (this.getAttribute("datapath")) {
-            this.setPathValue(this.ctx, this.getAttribute("datapath"), curve);
-        }
-        this._redraw();
-      }).iconsheet = 0;
-      this.container = this.col();
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["width"] = "min-contents";
-      this.style["height"] = "min-contents";
-      this.updateSize();
-    }
-     updateSize() {
-      let dpi=UIBase.getDPI();
-      let w=~~(this.getDefault("CanvasWidth")*dpi);
-      let h=~~(this.getDefault("CanvasHeight")*dpi);
-      let bad=w!==this.canvas.width||h!==this.canvas.height;
-      bad = bad||dpi!==this._last_dpi;
-      if (!bad) {
-          return ;
-      }
-      this._last_dpi = dpi;
-      this.canvas.width = w;
-      this.canvas.height = h;
-      this.canvas.style["width"] = (w/dpi)+"px";
-      this.canvas.style["height"] = (h/dpi)+"px";
-      this._redraw();
-    }
-     _redraw() {
-      this.canvas.width = this.canvas.width;
-      this.canvas.height = this.canvas.height;
-      let canvas=this.canvas, g=this.g;
-      g.beginPath();
-      g.rect(0, 0, canvas.width, canvas.height);
-      g.fillStyle = this.getDefault("CanvasBG");
-      g.fill();
-      g.save();
-      let zoom=this._value.uiZoom;
-      let scale=Math.max(canvas.width, canvas.height);
-      g.lineWidth/=scale;
-      this.drawTransform[0] = scale*zoom;
-      this.drawTransform[1][0] = 0.0;
-      this.drawTransform[1][1] = -1.0;
-      this.drawTransform[1][0]-=0.5-0.5/zoom;
-      this.drawTransform[1][1]+=0.5-0.5/zoom;
-      g.scale(this.drawTransform[0], -this.drawTransform[0]);
-      g.translate(this.drawTransform[1][0], this.drawTransform[1][1]);
-      g.lineWidth/=zoom;
-      this._value.draw(this.canvas, this.g, this.drawTransform);
-      g.restore();
-    }
-     rebuild() {
-      let ctx=this.ctx;
-      if (ctx===undefined||this.container===undefined) {
-          return ;
-      }
-      this._gen_type = this.value.generatorType;
-      let col=this.container;
-      if (this._lastGen!==undefined) {
-          this._lastGen.killGUI(col, this.canvas);
-      }
-      let onchange=this.dropbox.onchange;
-      this.dropbox.onchange = undefined;
-      this.dropbox.setValue(this.value.generatorType);
-      this.dropbox.onchange = onchange;
-      col.clear();
-      let gen=this.value.generators.active;
-      gen.makeGUI(col, this.canvas);
-      this._lastGen = gen;
-      this._redraw();
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let val=this.getPathValue(this.ctx, path);
-      if (this._lastu===undefined) {
-          this._lastu = 0;
-      }
-      if (val&&!val.equals(this._value)&&util.time_ms()-this._lastu>200) {
-          this._lastu = util.time_ms();
-          this._value.load(val);
-          this.update();
-          this._redraw();
-      }
-    }
-     updateGenUI() {
-      let bad=this._lastGen!==this.value.generators.active;
-      if (bad) {
-          this.rebuild();
-          this._redraw();
-      }
-    }
-     update() {
-      super.update();
-      this.updateDataPath();
-      this.updateSize();
-      this.updateGenUI();
-    }
-    static  define() {
-      return {tagname: "curve-widget-x", 
-     style: "curvewidget"}
-    }
-  }
-  _ESClass.register(Curve1DWidget);
-  _es6_module.add_class(Curve1DWidget);
-  Curve1DWidget = _es6_module.add_export('Curve1DWidget', Curve1DWidget);
-  UIBase.internalRegister(Curve1DWidget);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_curvewidget.js');
-
-
-es6_module_define('ui_dialog', ["../screen/ScreenArea.js", "../path-controller/util/simple_events.js"], function _ui_dialog_module(_es6_module) {
-  var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  function makePopupArea(area_class, screen, args) {
-    if (args===undefined) {
-        args = {};
-    }
-    let sarea=UIBase.createElement("screenarea-x");
-    let width=args.width||(screen.size[0]*0.7);
-    let height=args.height||(screen.size[1]*0.7);
-    let addEscapeKeyHandler=args.addEscapeKeyHandler!==undefined ? args.addEscapeKeyHandler : true;
-    sarea.ctx = screen.ctx;
-    sarea.size[0] = width;
-    sarea.size[1] = height;
-    sarea.pos[0] = 100;
-    sarea.pos[1] = 100;
-    sarea.pos[0] = Math.min(sarea.pos[0], screen.size[0]-sarea.size[0]-2);
-    sarea.pos[1] = Math.min(sarea.pos[1], screen.size[1]-sarea.size[1]-2);
-    sarea.switch_editor(area_class);
-    sarea.overrideClass("popup");
-    sarea.style["background-color"] = sarea.getDefault("background-color");
-    sarea.style["border-radius"] = sarea.getDefault("border-radius")+"px";
-    sarea.style["border-color"] = sarea.getDefault("border-color");
-    sarea.style["border-style"] = sarea.getDefault("border-style");
-    sarea.style["border-width"] = sarea.getDefault("border-width")+"px";
-    sarea.area.flag|=AreaFlags.FLOATING|AreaFlags.INDEPENDENT;
-    screen.appendChild(sarea);
-    sarea.setCSS();
-    if (addEscapeKeyHandler) {
-        sarea.on_keydown = (e) =>          {
-          if (e.keyCode===keymap.Escape) {
-              screen.removeArea(sarea);
-          }
-        };
-    }
-    sarea.bringToFront();
-    return sarea;
-  }
-  makePopupArea = _es6_module.add_export('makePopupArea', makePopupArea);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
-
-
-es6_module_define('ui_lasttool', ["../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "../core/ui.js", "../path-controller/controller/controller.js", "../config/const.js", "../path-controller/toolsys/toolsys.js"], function _ui_lasttool_module(_es6_module) {
-  var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
-  var PropFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropFlags');
-  var UndoFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'ToolFlags');
-  var DataPath=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPath');
-  var DataTypes=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataTypes');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  const LastKey=Symbol("LastToolPanelId");
-  let tool_idgen=0;
-  function getLastToolStruct(ctx) {
-    let ret=ctx.state._last_tool;
-    if (!ret) {
-        ret = ctx.toolstack.head;
-    }
-    else {
-      let msg="Passing the last tool to last-tool-panel via appstate._last_tool is deprecated;";
-      msg+="\nctx.toolstack.head is now used instead.";
-      console.warn(msg);
-    }
-    return ret;
-  }
-  getLastToolStruct = _es6_module.add_export('getLastToolStruct', getLastToolStruct);
-  class LastToolPanel extends ColumnFrame {
-     constructor() {
-      super();
-      this._tool_id = undefined;
-      this.useDataPathUndo = false;
-    }
-     init() {
-      super.init();
-      this.useDataPathUndo = false;
-      this.rebuild();
-    }
-     getToolStackHead(ctx) {
-      let bad=ctx.toolstack.length===0||ctx.toolstack.cur>=ctx.toolstack.length;
-      bad = bad||ctx.toolstack.cur<0;
-      bad = bad||ctx.toolstack[ctx.toolstack.cur].undoflag&UndoFlags.IS_UNDO_ROOT;
-      if (bad) {
-          return undefined;
-      }
-      return ctx.toolstack[ctx.toolstack.cur];
-    }
-     rebuild() {
-      let ctx=this.ctx;
-      if (ctx===undefined) {
-          this._tool_id = -1;
-          return ;
-      }
-      this.clear();
-      this.label("Recent Command Settings");
-      let tool=this.getToolStackHead(ctx);
-      if (!tool) {
-          this.setCSS();
-          return ;
-      }
-      let def=tool.constructor.tooldef();
-      let name=def.uiname!==undefined ? def.uiname : def.name;
-      let panel=this.panel(def.uiname);
-      this.buildTool(ctx, tool, panel);
-      this.flushUpdate();
-    }
-     buildTool(ctx, tool, panel) {
-      let fakecls={};
-      fakecls.constructor = fakecls;
-      this.ctx.state._last_tool = fakecls;
-      let lastkey=tool[LastKey];
-      let getTool=() =>        {
-        let tool=this.ctx.toolstack[this.ctx.toolstack.cur];
-        if (!tool||tool[LastKey]!==lastkey) {
-            return undefined;
-        }
-        return tool;
-      };
-      if (tool.flag&ToolFlags.PRIVATE) {
-          return ;
-      }
-      let st=this.ctx.api.mapStruct(fakecls, true);
-      let paths=[];
-      function defineProp(k, key) {
-        Object.defineProperty(fakecls, key, {get: function () {
-            let tool=getTool();
-            if (tool) {
-                if (!tool.inputs[k]) {
-                    console.error("Missing property "+k, tool);
-                }
-                return tool.inputs[k].getValue();
-            }
-          }, 
-      set: function (val) {
-            let tool=getTool();
-            if (tool) {
-                tool.inputs[k].setValue(val);
-                ctx.toolstack.rerun(tool);
-            }
-          }});
-      }
-      for (let k in tool.inputs) {
-          let prop=tool.inputs[k];
-          if (prop.flag&(PropFlags.PRIVATE|PropFlags.READ_ONLY)) {
-              continue;
-          }
-          let uiname=prop.uiname!==undefined ? prop.uiname : k;
-          prop.uiname = uiname;
-          let apikey=k.replace(/[\t ]/g, "_");
-          let dpath=new DataPath(apikey, apikey, prop, DataTypes.PROP);
-          st.add(dpath);
-          paths.push(dpath);
-          defineProp(k, apikey);
-      }
-      panel.useDataPathUndo = false;
-      for (let dpath of paths) {
-          let path="last_tool."+dpath.path;
-          panel.label(dpath.data.uiname);
-          let ret=panel.prop(path, PackFlags.FORCE_ROLLER_SLIDER);
-          if (ret) {
-              ret.useDataPathUndo = false;
-          }
-      }
-      this.setCSS();
-    }
-     update() {
-      super.update();
-      let ctx=this.ctx;
-      if (!ctx) {
-          return ;
-      }
-      let tool=this.getToolStackHead(ctx);
-      if (tool&&(!(LastKey in tool)||tool[LastKey]!==this._tool_id)) {
-          tool[LastKey] = tool_idgen++;
-          this._tool_id = tool[LastKey];
-          this.rebuild();
-      }
-    }
-    static  define() {
-      return {tagname: "last-tool-panel-x"}
-    }
-  }
-  _ESClass.register(LastToolPanel);
-  _es6_module.add_class(LastToolPanel);
-  LastToolPanel = _es6_module.add_export('LastToolPanel', LastToolPanel);
-  UIBase.internalRegister(LastToolPanel);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_lasttool.js');
-
-
-es6_module_define('ui_listbox', ["../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "./ui_table.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolsys.js", "../core/ui.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _ui_listbox_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var simple_toolsys=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  var TableFrame=es6_import_item(_es6_module, './ui_table.js', 'TableFrame');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/events.js', 'keymap');
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  function getpx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  class ListItem extends RowFrame {
-     constructor() {
-      super();
-      let highlight=() =>        {
-        this.highlight = true;
-        this.setBackground();
-      };
-      let unhighlight=() =>        {
-        this.highlight = false;
-        this.setBackground();
-      };
-      this.addEventListener("mouseover", highlight);
-      this.addEventListener("mousein", highlight);
-      this.addEventListener("mouseleave", unhighlight);
-      this.addEventListener("mouseout", unhighlight);
-      this.addEventListener("blur", unhighlight);
-      this.addEventListener("click", (e) =>        {
-        if (this.onclick) {
-            this.onclick();
-        }
-      });
-      let style=document.createElement("style");
-      style.textContent = `
-      .listitem {
-        -moz-user-focus: normal;
-        moz-user-focus: normal;
-        user-focus: normal;
-      }
-    `;
-      this.shadowRoot.prepend(style);
-    }
-    static  define() {
-      return {tagname: "listitem-x", 
-     style: "listbox"}
-    }
-     init() {
-      super.init();
-      this.setAttribute("class", "listitem");
-      this.style["width"] = "100%";
-      this.style["height"] = this.getDefault("ItemHeight")+"px";
-      this.style["flex-grow"] = "unset";
-      this.setCSS();
-    }
-     setBackground() {
-      if (this.highlight&&this.is_active) {
-          this.background = this.getDefault("ListActiveHighlight");
-      }
-      else 
-        if (this.highlight) {
-          this.background = this.getDefault("ListHighlight");
-      }
-      else 
-        if (this.is_active) {
-          this.background = this.getDefault("ListActive");
-      }
-      else {
-        this.background = this.getDefault("background-color");
-      }
-    }
-  }
-  _ESClass.register(ListItem);
-  _es6_module.add_class(ListItem);
-  UIBase.internalRegister(ListItem);
-  class ListBox extends Container {
-     constructor() {
-      super();
-      this.items = [];
-      this.idmap = {};
-      this.items.active = undefined;
-      this.highlight = false;
-      this.is_active = false;
-      let style=document.createElement("style");
-      style.textContent = `
-      .listbox {
-        -moz-user-focus: normal;
-        moz-user-focus: normal;
-        user-focus: normal;
-      }
-    `;
-      this.shadow.prepend(style);
-      this.onkeydown = (e) =>        {
-        switch (e.keyCode) {
-          case keymap["Up"]:
-          case keymap["Down"]:
-            if (this.items.length==0)
-              return ;
-            if (this.items.active===undefined) {
-                this.setActive(this.items[0]);
-                return ;
-            }
-            let i=this.items.indexOf(this.items.active);
-            let dir=e.keyCode==keymap["Up"] ? -1 : 1;
-            i = Math.max(Math.min(i+dir, this.items.length-1), 0);
-            this.setActive(this.items[i]);
-            break;
-        }
-      };
-    }
-    static  define() {
-      return {tagname: "listbox-x", 
-     style: "listbox"}
-    }
-     setCSS() {
-      super.setCSS();
-    }
-     init() {
-      super.init();
-      this.setCSS();
-      this.style["width"] = this.getDefault("width")+"px";
-      this.style["height"] = this.getDefault("height")+"px";
-      this.style["overflow"] = "scroll";
-    }
-     addItem(name, id) {
-      let item=UIBase.createElement("listitem-x");
-      item._id = id===undefined ? this.items.length : id;
-      this.idmap[item._id] = item;
-      this.tabIndex = 1;
-      this.setAttribute("tabindex", 1);
-      this.add(item);
-      this.items.push(item);
-      item.label(name);
-      let this2=this;
-      item.onclick = function () {
-        this2.setActive(this);
-        this.setBackground();
-      };
-      return item;
-    }
-     removeItem(item) {
-      if (typeof item=="number") {
-          item = this.idmap[item];
-      }
-      item.remove();
-      delete this.idmap[item._id];
-      this.items.remove(item);
-    }
-     setActive(item) {
-      if (typeof item=="number") {
-          item = this.idmap[item];
-      }
-      if (item===this.items.active) {
-          return ;
-      }
-      if (this.items.active!==undefined) {
-          this.items.active.highlight = false;
-          this.items.active.is_active = false;
-          this.items.active.setBackground();
-      }
-      this.items.active = item;
-      if (item) {
-          item.is_active = true;
-          item.setBackground();
-          item.scrollIntoViewIfNeeded();
-      }
-      if (this.onchange) {
-          this.onchange(item ? item._id : undefined, item);
-      }
-    }
-     clear() {
-
-    }
-  }
-  _ESClass.register(ListBox);
-  _es6_module.add_class(ListBox);
-  UIBase.internalRegister(ListBox);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
-
-
-es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/events.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "./ui_button.js"], function _ui_menu_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  var OldButton=es6_import_item(_es6_module, './ui_button.js', 'OldButton');
-  var DomEventTypes=es6_import_item(_es6_module, '../path-controller/util/events.js', 'DomEventTypes');
-  var HotKey=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'HotKey');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  function getpx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  class Menu extends UIBase {
-     constructor() {
-      super();
-      this.items = [];
-      this.autoSearchMode = true;
-      this._ignoreFocusEvents = false;
-      this.closeOnMouseUp = true;
-      this._submenu = undefined;
-      this.itemindex = 0;
-      this.closed = false;
-      this.started = false;
-      this.activeItem = undefined;
-      this.overrideDefault("DefaultText", this.getDefault("MenuText"));
-      this.container = document.createElement("span");
-      this.container.style["display"] = "flex";
-      this.container.style["color"] = this.getDefault("MenuText").color;
-      this.container.setAttribute("class", "menucon");
-      this.dom = document.createElement("ul");
-      this.dom.setAttribute("class", "menu");
-      let style=this.menustyle = document.createElement("style");
-      this.buildStyle();
-      this.dom.setAttribute("tabindex", -1);
-      this.shadow.appendChild(style);
-      this.shadow.appendChild(this.container);
-    }
-     float(x, y, zindex=undefined) {
-      let dpi=this.getDPI();
-      let rect=this.dom.getClientRects();
-      let maxx=this.getWinWidth()-10;
-      let maxy=this.getWinHeight()-10;
-      if (rect.length>0) {
-          rect = rect[0];
-          if (y+rect.height>maxy) {
-              y = maxy-rect.height-1;
-          }
-          if (x+rect.width>maxx) {
-              x = maxx-rect.width-1;
-          }
-      }
-      super.float(x, y, 50);
-    }
-     click() {
-      if (!this.activeItem||this.activeItem._isMenu) {
-          return ;
-      }
-      if (this.onselect) {
-          try {
-            this.onselect(this.activeItem._id);
-          }
-          catch (error) {
-              util.print_stack(error);
-              console.log("Error in menu callback");
-          }
-      }
-      this.close();
-    }
-     _ondestroy() {
-      if (this.started) {
-          menuWrangler.popMenu(this);
-          if (this.onclose) {
-              this.onclose();
-          }
-      }
-    }
-     init() {
-      super.init();
-      this.setCSS();
-    }
-     close() {
-      if (this.closed) {
-          return ;
-      }
-      this.closed = true;
-      if (this.started) {
-          menuWrangler.popMenu(this);
-      }
-      this.started = false;
-      if (this._popup) {
-          this._popup.end();
-          this._popup = undefined;
-      }
-      this.remove();
-      this.dom.remove();
-      if (this.onclose) {
-          this.onclose(this);
-      }
-    }
-     _select(dir, focus=true) {
-      if (this.activeItem===undefined) {
-          for (let item of this.items) {
-              if (!item.hidden) {
-                  this.setActive(item, focus);
-                  break;
-              }
-          }
-      }
-      else {
-        let i=this.items.indexOf(this.activeItem);
-        let item=this.activeItem;
-        do {
-          i = (i+dir+this.items.length)%this.items.length;
-          item = this.items[i];
-          if (!item.hidden) {
-              break;
-          }
-        } while (item!==this.activeItem);
-        
-        this.setActive(item, focus);
-      }
-      if (this.hasSearchBox) {
-          this.activeItem.scrollIntoView();
-      }
-    }
-     selectPrev(focus=true) {
-      return this._select(-1, focus);
-    }
-     selectNext(focus=true) {
-      return this._select(1, focus);
-    }
-    static  define() {
-      return {tagname: "menu-x", 
-     style: "menu"}
-    }
-     start_fancy(prepend, setActive=true) {
-      return this.startFancy(prepend, setActive);
-    }
-     setActive(item, focus=true) {
-      if (this.activeItem===item) {
-          return ;
-      }
-      if (this.activeItem) {
-          this.activeItem.style["background-color"] = this.getDefault("MenuBG");
-          if (focus) {
-              this.activeItem.blur();
-          }
-      }
-      if (item) {
-          item.style["background-color"] = this.getDefault("MenuHighlight");
-          if (focus) {
-              item.focus();
-          }
-      }
-      this.activeItem = item;
-    }
-     startFancy(prepend, setActive=true) {
-      this.hasSearchBox = true;
-      this.started = true;
-      menuWrangler.pushMenu(this);
-      let dom2=document.createElement("div");
-      this.dom.setAttribute("class", "menu");
-      dom2.setAttribute("class", "menu");
-      let sbox=this.textbox = UIBase.createElement("textbox-x");
-      this.textbox.parentWidget = this;
-      dom2.appendChild(sbox);
-      dom2.appendChild(this.dom);
-      dom2.style["height"] = "300px";
-      this.dom.style["height"] = "300px";
-      this.dom.style["overflow"] = "scroll";
-      if (prepend) {
-          this.container.prepend(dom2);
-      }
-      else {
-        this.container.appendChild(dom2);
-      }
-      dom2.parentWidget = this.container;
-      sbox.focus();
-      sbox.onchange = () =>        {
-        let t=sbox.text.trim().toLowerCase();
-        for (let item of this.items) {
-            item.hidden = true;
-            item.remove();
-        }
-        for (let item of this.items) {
-            let ok=t=="";
-            ok = ok||item.innerHTML.toLowerCase().search(t)>=0;
-            if (ok) {
-                item.hidden = false;
-                this.dom.appendChild(item);
-            }
-            else 
-              if (item===this.activeItem) {
-                this.selectNext(false);
-            }
-        }
-      };
-      sbox.addEventListener("keydown", (e) =>        {
-        switch (e.keyCode) {
-          case 27:
-            this.close();
-            break;
-          case 13:
-            this.click(this.activeItem);
-            this.close();
-            break;
-        }
-      });
-    }
-     start(prepend=false, setActive=true) {
-      this.closed = false;
-      this.started = true;
-      this.focus();
-      menuWrangler.pushMenu(this);
-      if (this.items.length>15&&this.autoSearchMode) {
-          return this.start_fancy(prepend, setActive);
-      }
-      if (prepend) {
-          this.container.prepend(this.dom);
-      }
-      else {
-        this.container.appendChild(this.dom);
-      }
-      if (!setActive)
-        return ;
-      this.setCSS();
-      this.flushUpdate();
-      window.setTimeout(() =>        {
-        this.flushUpdate();
-        if (this.activeItem===undefined) {
-            this.activeItem = this.dom.childNodes[0];
-        }
-        if (this.activeItem===undefined) {
-            return ;
-        }
-        this.activeItem.focus();
-      }, 0);
-    }
-     addItemExtra(text, id=undefined, hotkey, icon=-1, add=true, tooltip=undefined) {
-      let dom=document.createElement("span");
-      dom.style["display"] = "inline-flex";
-      dom.hotkey = hotkey;
-      dom.icon = icon;
-      let icon_div;
-      if (1) {
-          icon_div = ui_base.makeIconDiv(icon, IconSheets.SMALL);
-      }
-      else {
-        let tilesize=ui_base.iconmanager.getTileSize(IconSheets.SMALL);
-        icon_div = document.createElement("span");
-        icon_div.style["padding"] = icon_div.style["margin"] = "0px";
-        icon_div.style["width"] = tilesize+"px";
-        icon_div.style["height"] = tilesize+"px";
-      }
-      icon_div.style["display"] = "inline-flex";
-      icon_div.style["margin-right"] = "1px";
-      icon_div.style["align"] = "left";
-      let span=document.createElement("span");
-      span.style["font"] = ui_base.getFont(this, undefined, "MenuText");
-      let dpi=this.getDPI();
-      let tsize=this.getDefault("MenuText").size;
-      let canvas=document.createElement("canvas");
-      let g=canvas.getContext("2d");
-      g.font = span.style["font"];
-      let rect=span.getClientRects();
-      let twid=Math.ceil(g.measureText(text).width);
-      let hwid;
-      if (hotkey) {
-          dom.hotkey = hotkey;
-          g.font = ui_base.getFont(this, undefined, "HotkeyText");
-          hwid = Math.ceil(g.measureText(hotkey).width/UIBase.getDPI());
-          twid+=hwid+8;
-      }
-      span.innerText = text;
-      span.style["word-wrap"] = "none";
-      span.style["white-space"] = "pre";
-      span.style["overflow"] = "hidden";
-      span.style["text-overflow"] = "clip";
-      span.style["width"] = ~~(twid)+"px";
-      span.style["padding"] = "0px";
-      span.style["margin"] = "0px";
-      dom.style["width"] = "100%";
-      dom.appendChild(icon_div);
-      dom.appendChild(span);
-      if (hotkey) {
-          let hotkey_span=document.createElement("span");
-          hotkey_span.innerText = hotkey;
-          hotkey_span.style["display"] = "inline-flex";
-          hotkey_span.style["margin"] = "0px";
-          hotkey_span.style["margin-left"] = "auto";
-          hotkey_span.style["margin-right"] = "0px";
-          hotkey_span.style["padding"] = "0px";
-          hotkey_span.style["font"] = ui_base.getFont(this, undefined, "HotkeyText");
-          hotkey_span.style["color"] = this.getDefault("HotkeyTextColor");
-          hotkey_span.style["width"] = "max-content";
-          hotkey_span.style["text-align"] = "right";
-          hotkey_span.style["justify-content"] = "right";
-          hotkey_span["flex-wrap"] = "nowrap";
-          hotkey_span["text-wrap"] = "nowrap";
-          dom.appendChild(hotkey_span);
-      }
-      let ret=this.addItem(dom, id, add);
-      ret.hotkey = hotkey;
-      ret.icon = icon;
-      ret.label = text ? text : ret.innerText;
-      if (tooltip) {
-          ret.title = tooltip;
-      }
-      return ret;
-    }
-     addItem(item, id, add=true, tooltip=undefined) {
-      id = id===undefined ? item : id;
-      let text=item;
-      if (typeof item==="string"||__instance_of(item, String)) {
-          let dom=document.createElement("dom");
-          dom.textContent = item;
-          item = dom;
-      }
-      else {
-        text = item.textContent;
-      }
-      let li=document.createElement("li");
-      li.setAttribute("tabindex", this.itemindex++);
-      li.setAttribute("class", "menuitem");
-      if (tooltip!==undefined) {
-          li.title = tooltip;
-      }
-      if (__instance_of(item, Menu)) {
-          let dom=document.createElement("span");
-          dom.innerHTML = ""+item.title;
-          dom._id = dom.id = id;
-          dom.setAttribute("class", "menu");
-          li.style["width"] = "100%";
-          li.appendChild(dom);
-          li._isMenu = true;
-          li._menu = item;
-          item.hidden = false;
-          item.container = this.container;
-      }
-      else {
-        li._isMenu = false;
-        li.appendChild(item);
-      }
-      li._id = id;
-      this.items.push(li);
-      li.label = text ? text : li.innerText.trim();
-      if (add) {
-          li.addEventListener("click", (e) =>            {
-            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
-                return ;
-            }
-            this.click();
-          });
-          li.addEventListener("blur", (e) =>            {
-            if (this._ignoreFocusEvents) {
-                return ;
-            }
-            if (this.activeItem&&!this.activeItem._isMenu) {
-                this.setActive(undefined, false);
-            }
-          });
-          let onfocus=(e) =>            {
-            if (this._ignoreFocusEvents) {
-                return ;
-            }
-            let active=this.activeItem;
-            if (this._submenu) {
-                this._submenu.close();
-                this._submenu = undefined;
-            }
-            if (li._isMenu) {
-                li._menu.onselect = (item) =>                  {
-                  this.onselect(item);
-                  li._menu.close();
-                  this.close();
-                };
-                li._menu.start(false, false);
-                this._submenu = li._menu;
-            }
-            this.setActive(li, false);
-          };
-          li.addEventListener("touchend", (e) =>            {
-            onfocus(e);
-            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
-                return ;
-            }
-            this.click();
-          });
-          li.addEventListener("focus", (e) =>            {
-            onfocus(e);
-          });
-          li.addEventListener("touchmove", (e) =>            {
-            onfocus(e);
-            li.focus();
-          });
-          li.addEventListener("mouseenter", (e) =>            {
-            li.focus();
-          });
-          this.dom.appendChild(li);
-      }
-      return li;
-    }
-     _getBorderStyle() {
-      let r=this.getDefault("border-width");
-      let s=this.getDefault("border-style");
-      let c=this.getDefault("border-color");
-      return `${r}px ${s} ${c}`;
-    }
-     buildStyle() {
-      let pad1=util.isMobile() ? 2 : 0;
-      pad1+=this.getDefault("MenuSpacing");
-      let boxShadow="";
-      if (this.hasDefault("box-shadow")) {
-          boxShadow = "box-shadow: "+this.getDefault("box-shadow")+';';
-      }
-      this.menustyle.textContent = `
-        .menucon {
-          position:absolute;
-          float:left;
-          
-          border-radius : ${this.getDefault("border-radius")}px;
-
-          display: block;
-          -moz-user-focus: normal;
-          ${boxShadow}
-        }
-        
-        ul.menu {
-          display        : flex;
-          flex-direction : column;
-          flex-wrap      : nowrap;
-          width          : max-content;
-          
-          margin : 0px;
-          padding : 0px;
-          border : ${this._getBorderStyle()};
-          border-radius : ${this.getDefault("border-radius")}px;
-          -moz-user-focus: normal;
-          background-color: ${this.getDefault("MenuBG")};
-          color : ${this.getDefault("MenuText").color};
-        }
-        
-        .menuitem {
-          display : flex;
-          flex-wrap : nowrap;
-          flex-direction : row;          
-          
-          list-style-type:none;
-          -moz-user-focus: normal;
-          
-          margin : 0;
-          padding : 0px;
-          padding-right: 16px;
-          padding-left: 16px;
-          padding-top : ${pad1}px;
-          padding-bottom : ${pad1}px;
-          
-          border-radius : ${this.getDefault("border-radius")}px;
-          
-          color : ${this.getDefault("MenuText").color};
-          font : ${this.getDefault("MenuText").genCSS()};
-          background-color: ${this.getDefault("MenuBG")};
-        }
-        
-        .menuseparator {
-          ${this.getDefault("MenuSeparator")}
-        }
-        
-        .menuitem:focus {
-          display : flex;
-          flex-wrap : nowrap;
-          
-          border : none;
-          outline : none;
-          border-radius : ${this.getDefault("border-radius")}px;
-          
-          background-color: ${this.getDefault("MenuHighlight")};
-          color : ${this.getDefault("MenuText").color};
-          -moz-user-focus: normal;
-        }
-      `;
-    }
-     setCSS() {
-      super.setCSS();
-      this.buildStyle();
-      this.container.style["color"] = this.getDefault("MenuText").color;
-      this.style["color"] = this.getDefault("MenuText").color;
-    }
-     seperator() {
-      let bar=document.createElement("div");
-      bar.setAttribute("class", "menuseparator");
-      this.dom.appendChild(bar);
-      return this;
-    }
-     menu(title) {
-      let ret=UIBase.createElement("menu-x");
-      ret.setAttribute("name", title);
-      this.addItem(ret);
-      return ret;
-    }
-     calcSize() {
-
-    }
-  }
-  _ESClass.register(Menu);
-  _es6_module.add_class(Menu);
-  Menu = _es6_module.add_export('Menu', Menu);
-  Menu.SEP = Symbol("menu seperator");
-  UIBase.internalRegister(Menu);
-  class DropBox extends OldButton {
-     constructor() {
-      super();
-      this._template = undefined;
-      this._searchMenuMode = false;
-      this.altKey = undefined;
-      this._value = 0;
-      this._last_datapath = undefined;
-      this.r = 5;
-      this._menu = undefined;
-      this._auto_depress = false;
-      this._onpress = this._onpress.bind(this);
-    }
-     init() {
-      super.init();
-      this.updateWidth();
-    }
-    get  searchMenuMode() {
-      return this._searchMenuMode;
-    }
-    set  searchMenuMode(v) {
-      this._searchMenuMode = v;
-    }
-     setCSS() {
-      this.style["user-select"] = "none";
-      this.dom.style["user-select"] = "none";
-      let keys;
-      if (this.getAttribute("simple")) {
-          keys = ["margin-left", "margin-right", "padding-left", "padding-right"];
-      }
-      else {
-        keys = ["margin", "margin-left", "margin-right", "margin-top", "margin-bottom", "padding", "padding-left", "padding-right", "padding-top", "padding-bottom"];
-      }
-      let setDefault=(key) =>        {
-        if (this.hasDefault(key)) {
-            this.dom.style[key] = this.getDefault(key, undefined, 0)+"px";
-        }
-      };
-      for (let k of keys) {
-          setDefault(k);
-      }
-    }
-     _genLabel() {
-      let s=super._genLabel();
-      let ret="";
-      if (s.length===0) {
-          s = "(error)";
-      }
-      this.altKey = s[0].toUpperCase().charCodeAt(0);
-      for (let i=0; i<s.length; i++) {
-          if (s[i]==="&"&&i<s.length-1&&s[i+1]!=="&") {
-              this.altKey = s[i+1].toUpperCase().charCodeAt(0);
-          }
-          else 
-            if (s[i]==="&"&&i<s.length-1&&s[i+1]==="&") {
-              continue;
-          }
-          else {
-            ret+=s[i];
-          }
-      }
-      return ret;
-    }
-     updateWidth() {
-      let dpi=this.getDPI();
-      let ts=this.getDefault("DefaultText").size;
-      let tw=this.g.measureText(this._genLabel()).width/dpi;
-      tw = ~~tw;
-      tw+=15;
-      if (!this.getAttribute("simple")) {
-          tw+=35;
-      }
-      if (tw!==this._last_w) {
-          this._last_w = tw;
-          this.dom.style["width"] = tw+"px";
-          this.style["width"] = tw+"px";
-          this.width = tw;
-          this.overrideDefault("width", tw);
-          this._repos_canvas();
-          this._redraw();
-      }
-      return 0;
-    }
-     updateDataPath() {
-      if (!this.ctx||!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (!prop) {
-          return ;
-      }
-      if (this.prop===undefined) {
-          this.prop = prop;
-      }
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      else {
-        this.internalDisabled = false;
-      }
-      prop = this.prop;
-      let name=this.getAttribute("name");
-      if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
-          name = prop.ui_value_names[prop.keys[val]];
-      }
-      else {
-        name = ""+val;
-      }
-      if (name!==this.getAttribute("name")) {
-          this.setAttribute("name", name);
-          this.updateName();
-      }
-    }
-     update() {
-      let path=this.getAttribute("datapath");
-      if (path&&path!==this._last_datapath) {
-          this._last_datapath = path;
-          this.prop = undefined;
-          this.updateDataPath();
-      }
-      super.update();
-      let key=this.getDefault("dropTextBG");
-      if (key!==this._last_dbox_key) {
-          this._last_dbox_key = key;
-          this.setCSS();
-          this._redraw();
-      }
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-    }
-    set  template(v) {
-      this._template = v;
-    }
-    get  template() {
-      return this._template;
-    }
-     _build_menu_template() {
-      if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
-          this._menu.remove();
-      }
-      let template=this._template;
-      if (typeof template==="function") {
-          template = template();
-      }
-      this._menu = createMenu(this.ctx, "", template);
-      return this._menu;
-    }
-     _build_menu() {
-      if (this._template) {
-          this._build_menu_template();
-          return ;
-      }
-      let prop=this.prop;
-      if (this.prop===undefined) {
-          return ;
-      }
-      if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
-          this._menu.remove();
-      }
-      let menu=this._menu = UIBase.createElement("menu-x");
-      menu.setAttribute("name", "");
-      menu._dropbox = this;
-      let valmap={};
-      let enummap=prop.values;
-      let iconmap=prop.iconmap;
-      let uimap=prop.ui_value_names;
-      let desr=prop.descriptions||{};
-      for (let k in enummap) {
-          let uk=k;
-          valmap[enummap[k]] = k;
-          if (uimap!==undefined&&k in uimap) {
-              uk = uimap[k];
-          }
-          let tooltip=desr[k];
-          if (iconmap&&iconmap[k]) {
-              menu.addItemExtra(uk, enummap[k], undefined, iconmap[k], undefined, tooltip);
-          }
-          else {
-            menu.addItem(uk, enummap[k], undefined, tooltip);
-          }
-      }
-      menu.onselect = (id) =>        {
-        this._pressed = false;
-        this._pressed = false;
-        this._redraw();
-        this._menu = undefined;
-        let callProp=true;
-        if (this.hasAttribute("datapath")) {
-            let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-            callProp = !prop||prop!==this.prop;
-        }
-        this._value = this._convertVal(id);
-        if (callProp) {
-            this.prop.setValue(id);
-        }
-        this.setAttribute("name", this.prop.ui_value_names[valmap[id]]);
-        if (this.onselect) {
-            this.onselect(id);
-        }
-        if (this.hasAttribute("datapath")&&this.ctx) {
-            this.setPathValue(this.ctx, this.getAttribute("datapath"), id);
-        }
-      };
-    }
-     _onpress(e) {
-      if (this._menu!==undefined) {
-          this._pressed = false;
-          this._redraw();
-          let menu=this._menu;
-          this._menu = undefined;
-          menu.close();
-          return ;
-      }
-      this._build_menu();
-      if (this._menu===undefined) {
-          return ;
-      }
-      this._menu.autoSearchMode = false;
-      this._menu._dropbox = this;
-      this.dom._background = this.getDefault("BoxDepressed");
-      this._background = this.getDefault("BoxDepressed");
-      this._redraw();
-      this._pressed = true;
-      this.setCSS();
-      let onclose=this._menu.onclose;
-      this._menu.onclose = () =>        {
-        this._pressed = false;
-        this._redraw();
-        let menu=this._menu;
-        if (menu) {
-            this._menu = undefined;
-            menu._dropbox = undefined;
-        }
-        if (onclose) {
-            onclose.call(menu);
-        }
-      };
-      let menu=this._menu;
-      let screen=this.getScreen();
-      let dpi=this.getDPI();
-      let x=e.x, y=e.y;
-      let rects=this.dom.getBoundingClientRect();
-      x = rects.x-window.scrollX;
-      y = rects.y+rects.height-window.scrollY;
-      if (!window.haveElectron) {
-      }
-      let con=this._popup = menu._popup = screen.popup(this, x, y, false, 0);
-      con.noMarginsOrPadding();
-      con.add(menu);
-      if (this.searchMenuMode) {
-          menu.startFancy();
-      }
-      else {
-        menu.start();
-      }
-    }
-     _redraw() {
-      if (this.getAttribute("simple")) {
-          let color;
-          if (this._highlight) {
-              ui_base.drawRoundBox2(this, {canvas: this.dom, 
-         g: this.g, 
-         color: this.getDefault("BoxHighlight")});
-          }
-          if (this._focus) {
-              ui_base.drawRoundBox2(this, {canvas: this.dom, 
-         g: this.g, 
-         color: this.getDefault("BoxHighlight"), 
-         op: "stroke", 
-         no_clear: true});
-              ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, 2, "stroke");
-          }
-          this._draw_text();
-          return ;
-      }
-      super._redraw(false);
-      let g=this.g;
-      let w=this.dom.width, h=this.dom.height;
-      let dpi=this.getDPI();
-      let p=10*dpi;
-      let p2=dpi;
-      let bg=this.getDefault("dropTextBG");
-      if (bg!==undefined) {
-          g.fillStyle = bg;
-          g.beginPath();
-          g.rect(p2, p2, this.dom.width-p2-h, this.dom.height-p2*2);
-          g.fill();
-      }
-      g.fillStyle = "rgba(50, 50, 50, 0.2)";
-      g.strokeStyle = "rgba(50, 50, 50, 0.8)";
-      g.beginPath();
-      let sz=0.3;
-      g.moveTo(w-h*0.5-p, p);
-      g.lineTo(w-p, p);
-      g.moveTo(w-h*0.5-p, p+sz*h/3);
-      g.lineTo(w-p, p+sz*h/3);
-      g.moveTo(w-h*0.5-p, p+sz*h*2/3);
-      g.lineTo(w-p, p+sz*h*2/3);
-      g.lineWidth = 1;
-      g.stroke();
-      this._draw_text();
-    }
-    set  menu(val) {
-      this._menu = val;
-      if (val!==undefined) {
-          this._name = val.title;
-          this.updateName();
-      }
-    }
-     _convertVal(val) {
-      if (typeof val==="string"&&this.prop) {
-          if (val in this.prop.values) {
-              return this.prop.values[val];
-          }
-          else 
-            if (val in this.prop.keys) {
-              return this.prop.keys[val];
-          }
-          else {
-            return undefined;
-          }
-      }
-      return val;
-    }
-    get  value() {
-      return this._value;
-    }
-    set  value(v) {
-      this.setValue(v);
-    }
-     setValue(val, setLabelOnly=false) {
-      if (val===undefined||val===this._value) {
-          return ;
-      }
-      val = this._convertVal(val);
-      if (val===undefined) {
-          console.warn("Bad val", arguments[0]);
-          return ;
-      }
-      this._value = val;
-      if (this.prop!==undefined&&!setLabelOnly) {
-          this.prop.setValue(val);
-          let val2=val;
-          if (val2 in this.prop.keys)
-            val2 = this.prop.keys[val2];
-          val2 = this.prop.ui_value_names[val2];
-          this.setAttribute("name", ""+val2);
-          this._name = ""+val2;
-      }
-      else {
-        this.setAttribute("name", ""+val);
-        this._name = ""+val;
-      }
-      if (this.onchange&&!setLabelOnly) {
-          this.onchange(val);
-      }
-      this.setCSS();
-      this.updateDataPath();
-      this._redraw();
-    }
-    get  menu() {
-      return this._menu;
-    }
-    static  define() {
-      return {tagname: "dropbox-x", 
-     style: "dropbox"}
-    }
-  }
-  _ESClass.register(DropBox);
-  _es6_module.add_class(DropBox);
-  DropBox = _es6_module.add_export('DropBox', DropBox);
-  UIBase.internalRegister(DropBox);
-  class MenuWrangler  {
-     constructor() {
-      this.screen = undefined;
-      this.menustack = [];
-      this.closetimer = 0;
-      this.closeOnMouseUp = undefined;
-      this.closereq = undefined;
-      this.timer = undefined;
-    }
-    get  menu() {
-      return this.menustack.length>0 ? this.menustack[this.menustack.length-1] : undefined;
-    }
-     pushMenu(menu) {
-      this.spawnreq = undefined;
-      if (this.menustack.length===0&&menu.closeOnMouseUp) {
-          this.closeOnMouseUp = true;
-      }
-      this.menustack.push(menu);
-    }
-     popMenu(menu) {
-      return this.menustack.pop();
-    }
-     endMenus() {
-      for (let menu of this.menustack) {
-          menu.close();
-      }
-      this.menustack = [];
-    }
-     searchKeyDown(e) {
-      let menu=this.menu;
-      e.stopPropagation();
-      menu._ignoreFocusEvents = true;
-      menu.textbox.focus();
-      menu._ignoreFocusEvents = false;
-      switch (e.keyCode) {
-        case keymap["Enter"]:
-          menu.click(menu.activeItem);
-          break;
-        case keymap["Escape"]:
-          menu.close();
-          break;
-        case keymap["Up"]:
-          menu.selectPrev(false);
-          break;
-        case keymap["Down"]:
-          menu.selectNext(false);
-          break;
-      }
-    }
-     on_keydown(e) {
-      window.menu = this.menu;
-      if (this.menu===undefined) {
-          return ;
-      }
-      if (this.menu.hasSearchBox) {
-          return this.searchKeyDown(e);
-      }
-      let menu=this.menu;
-      switch (e.keyCode) {
-        case keymap["Left"]:
-        case keymap["Right"]:
-          if (menu._dropbox) {
-              let dropbox=menu._dropbox;
-              if (e.keyCode===keymap["Left"]) {
-                  dropbox = dropbox.previousElementSibling;
-              }
-              else {
-                dropbox = dropbox.nextElementSibling;
-              }
-              if (dropbox!==undefined&&__instance_of(dropbox, DropBox)) {
-                  this.endMenus();
-                  dropbox._onpress(e);
-              }
-          }
-          break;
-        case keymap["Up"]:
-          menu.selectPrev();
-          break;
-        case keymap["Down"]:
-          menu.selectNext();
-          break;
-        case 13:
-        case 32:
-          menu.click(menu.activeItem);
-          break;
-        case 27:
-          menu.close();
-          break;
-      }
-    }
-     on_mousedown(e) {
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element=screen.pickElement(x, y);
-      if (element!==undefined&&(__instance_of(element, DropBox)||util.isMobile())) {
-          this.endMenus();
-          e.preventDefault();
-          e.stopPropagation();
-      }
-    }
-     on_mouseup(e) {
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element=screen.pickElement(x, y, undefined, undefined, DropBox);
-      if (element!==undefined) {
-          this.closeOnMouseUp = false;
-      }
-      else {
-        element = screen.pickElement(x, y, undefined, undefined, Menu);
-        if (element&&this.closeOnMouseUp) {
-            element.click();
-        }
-      }
-    }
-     findMenu(x, y) {
-      let screen=this.screen;
-      let element=screen.pickElement(x, y);
-      if (element===undefined) {
-          return ;
-      }
-      if (__instance_of(element, Menu)) {
-          return element;
-      }
-      let w=element;
-      while (w) {
-        if (__instance_of(w, Menu)) {
-            return w;
-            break;
-        }
-        w = w.parentWidget;
-      }
-      return undefined;
-    }
-     on_mousemove(e) {
-      if (this.menu&&this.menu.hasSearchBox) {
-          this.closetimer = util.time_ms();
-          this.closereq = undefined;
-          return ;
-      }
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          this.closereq = undefined;
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element;
-      let menu=this.menu;
-      if (menu) {
-          let r=menu.getBoundingClientRect();
-          let pad=15;
-          if (r&&x>=r.x-pad&&y>=r.y-pad&&x<=r.x+r.width+pad*2&&y<=r.y+r.height+pad*2) {
-              element = menu;
-          }
-      }
-      if (!element) {
-          element = screen.pickElement(x, y);
-      }
-      if (element===undefined) {
-          return ;
-      }
-      if (__instance_of(element, Menu)) {
-          this.closetimer = util.time_ms();
-          this.closereq = undefined;
-          return ;
-      }
-      if (__instance_of(element, DropBox)&&element.menu!==this.menu&&element.getAttribute("simple")) {
-          this.endMenus();
-          this.closetimer = util.time_ms();
-          this.closereq = undefined;
-          element._onpress(e);
-          return ;
-      }
-      let ok=false;
-      let w=element;
-      while (w) {
-        if (__instance_of(w, Menu)) {
-            ok = true;
-            break;
-        }
-        if (__instance_of(w, DropBox)&&w._menu===this.menu) {
-            ok = true;
-            break;
-        }
-        w = w.parentWidget;
-      }
-      if (!ok) {
-          this.closereq = this.menu;
-      }
-      else {
-        this.closetimer = util.time_ms();
-        this.closereq = undefined;
-      }
-    }
-     update() {
-      let closetime=cconst.menu_close_time;
-      closetime = closetime===undefined ? 50 : closetime;
-      let close=this.closereq&&this.closereq===this.menu;
-      close = close&&util.time_ms()-this.closetimer>closetime;
-      if (close) {
-          this.closereq = undefined;
-          this.endMenus();
-      }
-    }
-     startTimer() {
-      if (this.timer) {
-          this.stopTimer();
-      }
-      this.timer = setInterval(() =>        {
-        this.update();
-      }, 150);
-    }
-     stopTimer() {
-      if (this.timer) {
-          clearInterval(this.timer);
-          this.timer = undefined;
-      }
-    }
-  }
-  _ESClass.register(MenuWrangler);
-  _es6_module.add_class(MenuWrangler);
-  MenuWrangler = _es6_module.add_export('MenuWrangler', MenuWrangler);
-  let menuWrangler=new MenuWrangler();
-  menuWrangler = _es6_module.add_export('menuWrangler', menuWrangler);
-  let wrangerStarted=false;
-  function startMenuEventWrangling(screen) {
-    menuWrangler.screen = screen;
-    if (wrangerStarted) {
-        return ;
-    }
-    wrangerStarted = true;
-    for (let k in DomEventTypes) {
-        if (menuWrangler[k]===undefined) {
-            continue;
-        }
-        let dom=k.search("key")>=0 ? window : document.body;
-        dom = window;
-        dom.addEventListener(DomEventTypes[k], menuWrangler[k].bind(menuWrangler), {passive: false, 
-      capture: true});
-    }
-    menuWrangler.screen = screen;
-    menuWrangler.startTimer();
-  }
-  startMenuEventWrangling = _es6_module.add_export('startMenuEventWrangling', startMenuEventWrangling);
-  function setWranglerScreen(screen) {
-    startMenuEventWrangling(screen);
-  }
-  setWranglerScreen = _es6_module.add_export('setWranglerScreen', setWranglerScreen);
-  function getWranglerScreen() {
-    return menuWrangler.screen;
-  }
-  getWranglerScreen = _es6_module.add_export('getWranglerScreen', getWranglerScreen);
-  function createMenu(ctx, title, templ) {
-    let menu=UIBase.createElement("menu-x");
-    menu.ctx = ctx;
-    menu.setAttribute("name", title);
-    let SEP=menu.constructor.SEP;
-    let id=0;
-    let cbs={}
-    let doItem=(item) =>      {
-      if (item!==undefined&&__instance_of(item, Menu)) {
-          menu.addItem(item);
-      }
-      else 
-        if (typeof item=="string") {
-          let def, hotkey;
-          try {
-            def = ctx.api.getToolDef(item);
-          }
-          catch (error) {
-              menu.addItem("(tool path error)", id++);
-              return ;
-          }
-          if (!def.hotkey) {
-              try {
-                hotkey = ctx.api.getToolPathHotkey(ctx, item);
-              }
-              catch (error) {
-                  util.print_stack(error);
-                  console.warn("error getting hotkey for tool "+item);
-                  hotkey = undefined;
-              }
-          }
-          else {
-            hotkey = def.hotkey;
-          }
-          menu.addItemExtra(def.uiname, id, hotkey, def.icon);
-          cbs[id] = (function (toolpath) {
-            return function () {
-              ctx.api.execTool(ctx, toolpath);
-            }
-          })(item);
-          id++;
-      }
-      else 
-        if (item===SEP) {
-          menu.seperator();
-      }
-      else 
-        if (typeof item==="function"||__instance_of(item, Function)) {
-          doItem(item());
-      }
-      else 
-        if (__instance_of(item, Array)) {
-          let hotkey=item.length>2 ? item[2] : undefined;
-          let icon=item.length>3 ? item[3] : undefined;
-          let tooltip=item.length>4 ? item[4] : undefined;
-          let id2=item.length>5 ? item[5] : id++;
-          if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
-              hotkey = hotkey.buildString();
-          }
-          menu.addItemExtra(item[0], id2, hotkey, icon, undefined, tooltip);
-          cbs[id2] = (function (cbfunc, arg) {
-            return function () {
-              cbfunc(arg);
-            }
-          })(item[1], id2);
-      }
-      else 
-        if (typeof item==="object") {
-          let $_t0fotj=item, name=$_t0fotj.name, callback=$_t0fotj.callback, hotkey=$_t0fotj.hotkey, icon=$_t0fotj.icon, tooltip=$_t0fotj.tooltip;
-          let id2=item.id!==undefined ? item.id : id++;
-          if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
-              hotkey = hotkey.buildString();
-          }
-          menu.addItemExtra(name, id2, hotkey, icon, undefined, tooltip);
-          cbs[id2] = (function (cbfunc, arg) {
-            return function () {
-              cbfunc(arg);
-            }
-          })(callback, id2);
-      }
-    }
-    for (let item of templ) {
-        doItem(item);
-    }
-    menu.onselect = (id) =>      {
-      cbs[id]();
-    }
-    return menu;
-  }
-  createMenu = _es6_module.add_export('createMenu', createMenu);
-  function startMenu(menu, x, y, searchMenuMode, safetyDelay) {
-    if (searchMenuMode===undefined) {
-        searchMenuMode = false;
-    }
-    if (safetyDelay===undefined) {
-        safetyDelay = 55;
-    }
-    let screen=menu.ctx.screen;
-    let con=menu._popup = screen.popup(undefined, x, y, false, safetyDelay);
-    con.noMarginsOrPadding();
-    con.add(menu);
-    if (searchMenuMode) {
-        menu.startFancy();
-    }
-    else {
-      menu.start();
-    }
-  }
-  startMenu = _es6_module.add_export('startMenu', startMenu);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
-
-
-es6_module_define('ui_noteframe', ["../core/ui_base.js", "../core/ui.js", "../path-controller/util/util.js"], function _ui_noteframe_module(_es6_module) {
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var css2color=es6_import_item(_es6_module, '../core/ui_base.js', 'css2color');
-  var color2css=es6_import_item(_es6_module, '../core/ui_base.js', 'color2css');
-  let UIBase=ui_base.UIBase;
-  class Note extends ui_base.UIBase {
-     constructor() {
-      super();
-      let style=document.createElement("style");
-      this._noteid = undefined;
-      this.height = 20;
-      this.showExclMark = true;
-      style.textContent = `
-    .notex {
-      display : flex;
-      flex-direction : row;
-      flex-wrap : nowrap;
-      height : {this.height}px;
-      padding : 0px;
-      margin : 0px;
-    }
-    `;
-      this.dom = document.createElement("div");
-      this.dom.setAttribute("class", "notex");
-      this.color = "red";
-      this.shadow.appendChild(style);
-      this.shadow.append(this.dom);
-      this.setLabel("");
-    }
-    static  define() {
-      return {tagname: "note-x", 
-     style: 'notification'}
-    }
-     setLabel(s) {
-      let color=this.color;
-      if (this.showExclMark&&this.mark===undefined) {
-          this.mark = document.createElement("div");
-          this.mark.style["display"] = "flex";
-          this.mark.style["flex-direction"] = "row";
-          this.mark.style["flex-wrap"] = "nowrap";
-          let sheet=0;
-          let size=ui_base.iconmanager.getTileSize(sheet);
-          this.mark.style["width"] = ""+size+"px";
-          this.mark.style["height"] = ""+size+"px";
-          this.dom.appendChild(this.mark);
-          this.ntext = document.createElement("div");
-          this.ntext.style["display"] = "inline-flex";
-          this.ntext.style["flex-wrap"] = "nowrap";
-          this.dom.appendChild(this.ntext);
-          ui_base.iconmanager.setCSS(Icons.NOTE_EXCL, this.mark, sheet);
-      }
-      else 
-        if (!this.showExclMark&&this.mark) {
-          this.mark.remove();
-          this.mark = undefined;
-      }
-      let ntext=this.ntext;
-      ntext.innerText = " "+s;
-    }
-     init() {
-      super.init();
-      this.setAttribute("class", "notex");
-      this.style["display"] = "flex";
-      this.style["flex-wrap"] = "nowrap";
-      this.style["flex-direction"] = "row";
-      this.style["border-radius"] = "7px";
-      this.style["padding"] = "2px";
-      this.style["color"] = this.getDefault("DefaultText").color;
-      let clr=css2color(this.color);
-      clr = color2css([clr[0], clr[1], clr[2], 0.25]);
-      this.style["background-color"] = clr;
-      this.setCSS();
-    }
-  }
-  _ESClass.register(Note);
-  _es6_module.add_class(Note);
-  Note = _es6_module.add_export('Note', Note);
-  UIBase.internalRegister(Note);
-  class ProgBarNote extends Note {
-     constructor() {
-      super();
-      this._percent = 0.0;
-      this.barWidth = 100;
-      let bar=this.bar = document.createElement("div");
-      bar.style["display"] = "flex";
-      bar.style["flex-direction"] = "row";
-      bar.style["width"] = this.barWidth+"px";
-      bar.style["height"] = this.height+"px";
-      bar.style["background-color"] = this.getDefault("ProgressBarBG");
-      bar.style["border-radius"] = "12px";
-      bar.style["align-items"] = "center";
-      bar.style["padding"] = bar.style["margin"] = "0px";
-      let bar2=this.bar2 = document.createElement("div");
-      let w=50.0;
-      bar2.style["display"] = "flex";
-      bar2.style["flex-direction"] = "row";
-      bar2.style["height"] = this.height+"px";
-      bar2.style["background-color"] = this.getDefault("ProgressBar");
-      bar2.style["border-radius"] = "12px";
-      bar2.style["align-items"] = "center";
-      bar2.style["padding"] = bar2.style["margin"] = "0px";
-      this.bar.appendChild(bar2);
-      this.dom.appendChild(this.bar);
-    }
-    get  percent() {
-      return this._percent;
-    }
-    set  percent(val) {
-      this._percent = val;
-      this.setCSS();
-    }
-    static  define() {
-      return {tagname: "note-progress-x", 
-     style: 'notification'}
-    }
-     setCSS() {
-      super.setCSS();
-      let w=~~(this.percent*this.barWidth+0.5);
-      this.bar2.style["width"] = w+"px";
-    }
-     init() {
-      super.init();
-    }
-  }
-  _ESClass.register(ProgBarNote);
-  _es6_module.add_class(ProgBarNote);
-  ProgBarNote = _es6_module.add_export('ProgBarNote', ProgBarNote);
-  UIBase.internalRegister(ProgBarNote);
-  class NoteFrame extends ui.RowFrame {
-     constructor() {
-      super();
-      this._h = 20;
-    }
-    static  define() {
-      return {tagname: "noteframe-x", 
-     style: 'noteframe'}
-    }
-     init() {
-      super.init();
-      this.noMarginsOrPadding();
-      noteframes.push(this);
-      this.background = this.getDefault("background-color");
-      this.style['flex-grow'] = 'unset';
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["width"] = "min-contents";
-      this.style["height"] = this._h+"px";
-    }
-     _ondestroy() {
-      if (noteframes.indexOf(this)>=0) {
-          noteframes.remove(this);
-      }
-      super._ondestroy();
-    }
-     progbarNote(msg, percent, color="rgba(255,0,0,0.2)", timeout=700, id=msg) {
-      let note;
-      for (let child of this.children) {
-          if (child._noteid===id) {
-              note = child;
-              break;
-          }
-      }
-      let f=(100.0*Math.min(percent, 1.0)).toFixed(1);
-      if (note===undefined) {
-          note = this.addNote(msg, color, -1, "note-progress-x");
-          note._noteid = id;
-      }
-      note.percent = percent;
-      if (percent>=1.0) {
-          window.setTimeout(() =>            {
-            note.remove();
-          }, timeout);
-      }
-      return note;
-    }
-     addNote(msg, color="rgba(255,0,0,0.2)", timeout=1200, tagname="note-x", showExclMark=true) {
-      let note=UIBase.createElement(tagname);
-      note.color = color;
-      note.setLabel(msg);
-      note.style["text-align"] = "center";
-      note.style["font"] = ui_base.getFont(note, "DefaultText");
-      note.style["color"] = this.getDefault("DefaultText").color;
-      note.showExclMark = showExclMark;
-      this.add(note);
-      this.noMarginsOrPadding();
-      note.noMarginsOrPadding();
-      note.style["height"] = this._h+"px";
-      note.height = this._h;
-      if (timeout!==-1) {
-          window.setTimeout(() =>            {
-            note.remove();
-          }, timeout);
-      }
-      return note;
-    }
-  }
-  _ESClass.register(NoteFrame);
-  _es6_module.add_class(NoteFrame);
-  NoteFrame = _es6_module.add_export('NoteFrame', NoteFrame);
-  UIBase.internalRegister(NoteFrame);
-  function getNoteFrames(screen) {
-    let ret=[];
-    let rec=(n) =>      {
-      if (__instance_of(n, NoteFrame)) {
-          ret.push(n);
-      }
-      if (n.childNodes!==undefined) {
-          for (let node of n.childNodes) {
-              rec(node);
-          }
-      }
-      if (__instance_of(n, ui_base.UIBase)&&n.shadow!==undefined&&n.shadow.childNodes) {
-          for (let node of n.shadow.childNodes) {
-              rec(node);
-          }
-      }
-    }
-    rec(screen);
-    return ret;
-  }
-  getNoteFrames = _es6_module.add_export('getNoteFrames', getNoteFrames);
-  let noteframes=[];
-  noteframes = _es6_module.add_export('noteframes', noteframes);
-  function progbarNote(screen, msg, percent, color, timeout) {
-    noteframes = getNoteFrames(screen);
-    for (let frame of noteframes) {
-        try {
-          frame.progbarNote(msg, percent, color, timeout);
-        }
-        catch (error) {
-            print_stack(error);
-            console.log(error.stack, error.message);
-            console.log("bad notification frame");
-        }
-    }
-  }
-  progbarNote = _es6_module.add_export('progbarNote', progbarNote);
-  function sendNote(screen, msg, color, timeout, showExclMark) {
-    if (timeout===undefined) {
-        timeout = 3000;
-    }
-    if (showExclMark===undefined) {
-        showExclMark = true;
-    }
-    noteframes = getNoteFrames(screen);
-    for (let frame of noteframes) {
-        try {
-          frame.addNote(msg, color, timeout, undefined, showExclMark);
-        }
-        catch (error) {
-            print_stack(error);
-            console.log(error.stack, error.message);
-            console.log("bad notification frame");
-        }
-    }
-  }
-  sendNote = _es6_module.add_export('sendNote', sendNote);
-  window._sendNote = sendNote;
-  function error(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([1.0, 0.0, 0.0, 1.0]), timeout);
-  }
-  error = _es6_module.add_export('error', error);
-  function warning(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([0.78, 0.78, 0.2, 1.0]), timeout);
-  }
-  warning = _es6_module.add_export('warning', warning);
-  function message(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([0.2, 0.9, 0.1, 1.0]), timeout, false);
-  }
-  message = _es6_module.add_export('message', message);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
-
-
-es6_module_define('ui_numsliders', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui.js", "../core/ui_base.js", "../core/units.js", "../path-controller/util/simple_events.js", "./ui_widgets.js", "../config/const.js", "../path-controller/util/util.js"], function _ui_numsliders_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
-  var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var units=es6_import(_es6_module, '../core/units.js');
-  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
-  var isNumber=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'isNumber');
-  var PropSubTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropSubTypes');
-  var PropFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropFlags');
-  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var KeyMap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'KeyMap');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  const sliderDomAttributes=new Set(["min", "max", "integer", "displayUnit", "baseUnit", "labelOnTop", "radix", "step", "expRate", "stepIsRelative", "decimalPlaces"]);
-  _es6_module.add_export('sliderDomAttributes', sliderDomAttributes);
-  function updateSliderFromDom(dom, slider) {
-    if (slider===undefined) {
-        slider = dom;
-    }
-    let redraw=false;
-    function getbool(attr, prop) {
-      if (prop===undefined) {
-          prop = attr;
-      }
-      if (!dom.hasAttribute(attr)) {
-          return ;
-      }
-      let v=dom.getAttribute(attr);
-      let ret=v===null||v.toLowerCase()==="true"||v.toLowerCase==="yes";
-      let old=slider[prop];
-      if (old!==undefined&&old!==ret) {
-          redraw = true;
-      }
-      slider[prop] = ret;
-      return ret;
-    }
-    function getfloat(attr, prop) {
-      if (prop===undefined) {
-          prop = attr;
-      }
-      if (!dom.hasAttribute(attr)) {
-          return ;
-      }
-      let v=dom.getAttribute(attr);
-      let ret=parseFloat(v);
-      let old=slider[prop];
-      if (old!==undefined&&Math.abs(old-v)<1e-05) {
-          redraw = true;
-      }
-      slider[prop] = ret;
-      return ret;
-    }
-    function getint(attr, prop) {
-      if (prop===undefined) {
-          prop = attr;
-      }
-      if (!dom.hasAttribute(attr)) {
-          return ;
-      }
-      let v=(""+dom.getAttribute(attr)).toLowerCase();
-      let ret;
-      if (v==="true") {
-          ret = true;
-      }
-      else 
-        if (v==="false") {
-          ret = false;
-      }
-      else {
-        ret = parseInt(v);
-      }
-      if (isNaN(ret)) {
-          console.error("bad value "+v);
-          return 0.0;
-      }
-      let old=slider[prop];
-      if (old!==undefined&&Math.abs(old-v)<1e-05) {
-          redraw = true;
-      }
-      slider[prop] = ret;
-      return ret;
-    }
-    if (dom.hasAttribute("min")) {
-        slider.range = slider.range||[-1e+17, 1e+17];
-        let r=slider.range[0];
-        slider.range[0] = parseFloat(dom.getAttribute("min"));
-        redraw = Math.abs(slider.range[0]-r)>0.0001;
-    }
-    if (dom.hasAttribute("max")) {
-        slider.range = slider.range||[-1e+17, 1e+17];
-        let r=slider.range[1];
-        slider.range[1] = parseFloat(dom.getAttribute("max"));
-        redraw = redraw||Math.abs(slider.range[1]-r)>0.0001;
-    }
-    if (dom.hasAttribute("displayUnit")) {
-        let old=slider.displayUnit;
-        slider.displayUnit = dom.getAttribute("displayUnit").trim();
-        redraw = redraw||old!==slider.displayUnit;
-    }
-    getint("integer", "isInt");
-    getint("radix");
-    getint("decimalPlaces");
-    getbool("labelOnTop");
-    getbool("stepIsRelative");
-    getfloat("expRate");
-    getfloat("step");
-    return redraw;
-  }
-  class NumSlider extends ValueButtonBase {
-     constructor() {
-      super();
-      this._last_label = undefined;
-      this.mdown = false;
-      this._name = "";
-      this._step = 0.1;
-      this._value = 0.0;
-      this._expRate = 1.333;
-      this.decimalPlaces = 4;
-      this.radix = 10;
-      this.vertical = false;
-      this._last_disabled = false;
-      this.range = [-1e+17, 1e+17];
-      this.isInt = false;
-      this.editAsBaseUnit = undefined;
-      this._redraw();
-    }
-    get  step() {
-      return this._step;
-    }
-    set  step(v) {
-      this._step = v;
-    }
-    get  expRate() {
-      return this._expRate;
-    }
-    set  expRate(v) {
-      this._expRate = v;
-    }
-    get  value() {
-      return this._value;
-    }
-    set  value(val) {
-      this.setValue(val, true, false);
-    }
-    static  define() {
-      return {tagname: "numslider-x", 
-     style: "numslider", 
-     parentStyle: "button"}
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let rdef=this.ctx.api.resolvePath(this.ctx, this.getAttribute("datapath"));
-      let prop=rdef ? rdef.prop : undefined;
-      if (!prop)
-        return ;
-      if (prop.expRate) {
-          this._expRate = prop.expRate;
-      }
-      if (prop.radix!==undefined) {
-          this.radix = prop.radix;
-      }
-      this.isInt = prop.type===PropTypes.INT;
-      if (prop.step) {
-          this._step = prop.getStep(rdef.value);
-      }
-      if (prop.decimalPlaces!==undefined) {
-          this.decimalPlaces = prop.decimalPlaces;
-      }
-      if (prop.baseUnit!==undefined) {
-          this.baseUnit = prop.baseUnit;
-      }
-      if (this.editAsBaseUnit===undefined) {
-          if (prop.flag&PropFlags.EDIT_AS_BASE_UNIT) {
-              this.editAsBaseUnit = true;
-          }
-          else {
-            this.editAsBaseUnit = false;
-          }
-      }
-      if (prop.displayUnit!==undefined) {
-          this.displayUnit = prop.displayUnit;
-      }
-      super.updateDataPath();
-    }
-     update() {
-      if (!!this._last_disabled!==!!this.disabled) {
-          this._last_disabled = !!this.disabled;
-          this._redraw();
-          this.setCSS();
-      }
-      super.update();
-      this.updateDataPath();
-      updateSliderFromDom(this);
-    }
-     swapWithTextbox() {
-      let tbox=UIBase.createElement("textbox-x");
-      tbox.ctx = this.ctx;
-      tbox._init();
-      tbox.decimalPlaces = this.decimalPlaces;
-      tbox.isInt = this.isInt;
-      tbox.editAsBaseUnit = this.editAsBaseUnit;
-      if (this.isInt&&this.radix!=10) {
-          let text=this.value.toString(this.radix);
-          if (this.radix===2)
-            text = "0b"+text;
-          else 
-            if (this.radix===16)
-            text+="h";
-          tbox.text = text;
-      }
-      else {
-        tbox.text = units.buildString(this.value, this.baseUnit, this.decimalPlaces, this.displayUnit);
-      }
-      this.parentNode.insertBefore(tbox, this);
-      this.hidden = true;
-      let finish=(ok) =>        {
-        tbox.remove();
-        this.hidden = false;
-        if (ok) {
-            let val=tbox.text.trim();
-            if (this.isInt&&this.radix!==10) {
-                val = parseInt(val);
-            }
-            else {
-              let displayUnit=this.editAsBaseUnit ? undefined : this.displayUnit;
-              val = units.parseValue(val, this.baseUnit, displayUnit);
-            }
-            if (isNaN(val)) {
-                console.log("Text input error", val, tbox.text.trim(), this.isInt);
-                this.flash(ui_base.ErrorColors.ERROR);
-            }
-            else {
-              this.setValue(val);
-              if (this.onchange) {
-                  this.onchange(this);
-              }
-            }
-        }
-      };
-      tbox.onend = finish;
-      tbox.focus();
-      tbox.select();
-      return ;
-    }
-     bindEvents() {
-      let dir=this.range&&this.range[0]>this.range[1] ? -1 : 1;
-      this.addEventListener("keydown", (e) =>        {
-        switch (e.keyCode) {
-          case keymap["Left"]:
-          case keymap["Down"]:
-            this.setValue(this.value-dir*5*this.step);
-            break;
-          case keymap["Up"]:
-          case keymap["Right"]:
-            this.setValue(this.value+dir*5*this.step);
-            break;
-        }
-      });
-      let onmousedown=(e) =>        {
-        if (this.disabled) {
-            e.preventDefault();
-            e.stopPropagation();
-            return ;
-        }
-        if (e.button===0&&e.shiftKey) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.swapWithTextbox();
-        }
-        else 
-          if (!e.button) {
-            this.dragStart(e);
-            this.mdown = true;
-            e.preventDefault();
-            e.stopPropagation();
-        }
-      };
-      let onmouseup=this._on_click = (e) =>        {
-        this.mdown = false;
-        if (this.disabled) {
-            e.preventDefault();
-            e.stopPropagation();
-            return ;
-        }
-        let r=this.getClientRects()[0];
-        let x=e.x;
-        if (r) {
-            x-=r.x;
-            let sz=this._getArrowSize();
-            let v=this.value;
-            let step=this.step||0.01;
-            if (this.isInt) {
-                step = Math.max(step, 1);
-            }
-            else {
-              step*=5.0;
-            }
-            let szmargin=Math.min(sz*8.0, r.width*0.4);
-            if (x<szmargin) {
-                this.setValue(v-step);
-            }
-            else 
-              if (x>r.width-szmargin) {
-                this.setValue(v+step);
-            }
-        }
-      };
-      this.addEventListener("dblclick", (e) =>        {
-        if (this.disabled) {
-            e.preventDefault();
-            e.stopPropagation();
-            return ;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        this.swapWithTextbox();
-      });
-      this.addEventListener("mousedown", (e) =>        {
-        if (this.disabled)
-          return ;
-        onmousedown(e);
-      });
-      this.addEventListener("mouseover", (e) =>        {
-        if (this.disabled)
-          return ;
-        this.dom._background = this.getDefault("BoxHighlight");
-        this._repos_canvas();
-        this._redraw();
-      });
-      this.addEventListener("blur", (e) =>        {
-        this.mdown = false;
-      });
-      this.addEventListener("mouseout", (e) =>        {
-        if (this.disabled)
-          return ;
-        this.dom._background = this.getDefault("background-color");
-        this._repos_canvas();
-        this._redraw();
-      });
-    }
-     doRange() {
-      if (this.hasAttribute("min")) {
-          this.range[0] = parseFloat(this.getAttribute("min"));
-      }
-      if (this.hasAttribute("max")) {
-          this.range[1] = parseFloat(this.getAttribute("max"));
-      }
-      this._value = Math.min(Math.max(this._value, this.range[0]), this.range[1]);
-    }
-     setValue(value, fire_onchange=true) {
-      this._value = value;
-      if (this.hasAttribute("integer")) {
-          this.isInt = true;
-      }
-      if (this.isInt) {
-          this._value = Math.floor(this._value);
-      }
-      this.doRange();
-      if (this.ctx&&this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this._value);
-      }
-      if (fire_onchange&&this.onchange) {
-          this.onchange(this.value);
-      }
-      this._redraw();
-    }
-     dragStart(e) {
-      if (this.disabled)
-        return ;
-      let last_background=this.dom._background;
-      let cancel;
-      let startvalue=this.value;
-      let value=startvalue;
-      let startx=this.vertical ? e.y : e.x, starty=this.vertical ? e.x : e.y;
-      let sumdelta=0;
-      this.dom._background = this.getDefault("BoxDepressed");
-      let fire=() =>        {
-        if (this.onchange) {
-            this.onchange(this);
-        }
-      };
-      let handlers={on_keydown: (e) =>          {
-          switch (e.keyCode) {
-            case 27:
-              cancel(true);
-            case 13:
-              cancel(false);
-              break;
-          }
-          e.preventDefault();
-          e.stopPropagation();
-        }, 
-     on_mousemove: (e) =>          {
-          if (this.disabled)
-            return ;
-          e.preventDefault();
-          e.stopPropagation();
-          let dx=(this.vertical ? e.y : e.x)-startx;
-          startx = (this.vertical ? e.y : e.x);
-          if (e.shiftKey) {
-              dx*=0.1;
-          }
-          dx*=this.vertical ? -1 : 1;
-          sumdelta+=Math.abs(dx);
-          value+=dx*this._step*0.1;
-          let dvalue=value-startvalue;
-          let dsign=Math.sign(dvalue);
-          if (!this.hasAttribute("linear")) {
-              dvalue = Math.pow(Math.abs(dvalue), this._expRate)*dsign;
-          }
-          this.value = startvalue+dvalue;
-          this.doRange();
-          this.updateWidth();
-          this._redraw();
-          fire();
-        }, 
-     on_mouseup: (e) =>          {
-          let dpi=UIBase.getDPI();
-          let limit=cconst.numSliderArrowLimit;
-          limit = limit===undefined ? 6 : limit;
-          limit*=dpi;
-          let dv=this.vertical ? starty-e.y : startx-e.x;
-          this.undoBreakPoint();
-          cancel(false);
-          if (sumdelta<limit) {
-              this._on_click(e);
-          }
-          e.preventDefault();
-          e.stopPropagation();
-        }, 
-     on_mouseout: (e) =>          {
-          last_background = this.getDefault("background-color");
-          e.preventDefault();
-          e.stopPropagation();
-        }, 
-     on_mouseover: (e) =>          {
-          last_background = this.getDefault("BoxHighlight");
-          e.preventDefault();
-          e.stopPropagation();
-        }, 
-     on_mousedown: (e) =>          {
-          this.popModal();
-        }};
-      this.pushModal(handlers);
-      cancel = (restore_value) =>        {
-        if (restore_value) {
-            this.value = startvalue;
-            this.updateWidth();
-            fire();
-        }
-        this.dom._background = last_background;
-        this._redraw();
-        this.popModal();
-      };
-    }
-     setCSS() {
-      let dpi=this.getDPI();
-      let ts=this.getDefault("DefaultText").size*UIBase.getDPI();
-      let dd=this.isInt ? 5 : this.decimalPlaces+8;
-      let label=this._genLabel();
-      let tw=ui_base.measureText(this, label, {size: ts, 
-     font: this.getDefault("DefaultText")}).width/dpi;
-      tw = Math.max(tw+this._getArrowSize()*0, this.getDefault("width"));
-      tw+=ts;
-      tw = ~~tw;
-      if (this.vertical) {
-          this.style["width"] = this.dom.style["width"] = this.getDefault("height")+"px";
-          this.style["height"] = tw+"px";
-          this.dom.style["height"] = tw+"px";
-      }
-      else {
-        this.style["height"] = this.dom.style["height"] = this.getDefault("height")+"px";
-        this.style["width"] = tw+"px";
-        this.dom.style["width"] = tw+"px";
-      }
-      this._repos_canvas();
-      this._redraw();
-    }
-     updateName(force) {
-      let name=this.getAttribute("name");
-      if (force||name!==this._name) {
-          this._name = name;
-          this.setCSS();
-      }
-      let label=this._genLabel();
-      if (label!==this._last_label) {
-          this._last_label = label;
-          this.setCSS();
-      }
-    }
-     _genLabel() {
-      let val=this.value;
-      let text;
-      if (val===undefined) {
-          text = "error";
-      }
-      else {
-        val = val===undefined ? 0.0 : val;
-        if (this.isInt) {
-            val = Math.floor(val);
-        }
-        val = units.buildString(val, this.baseUnit, this.decimalPlaces, this.displayUnit);
-        text = val;
-        if (this._name) {
-            text = this._name+": "+text;
-        }
-      }
-      return text;
-    }
-     _redraw() {
-      let g=this.g;
-      let canvas=this.dom;
-      let dpi=this.getDPI();
-      let disabled=this.disabled;
-      let r=this.getDefault("border-radius");
-      if (this.isInt) {
-          r*=0.25;
-      }
-      let boxbg=this.getDefault("background-color");
-      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "fill", disabled ? this.getDefault("DisabledBG") : boxbg);
-      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "stroke", disabled ? this.getDefault("DisabledBG") : this.getDefault("border-color"));
-      r*=dpi;
-      let pad=this.getDefault("padding");
-      let ts=this.getDefault("DefaultText").size;
-      let text=this._genLabel();
-      let tw=ui_base.measureText(this, text, this.dom, this.g).width;
-      let cx=ts+this._getArrowSize();
-      let cy=this.dom.height/2;
-      this.dom.font = undefined;
-      g.save();
-      let th=Math.PI*0.5;
-      if (this.vertical) {
-          g.rotate(th);
-          ui_base.drawText(this, cx, -ts*0.5, text, {canvas: this.dom, 
-       g: this.g, 
-       size: ts});
-          g.restore();
-      }
-      else {
-        ui_base.drawText(this, cx, cy+ts/2, text, {canvas: this.dom, 
-      g: this.g, 
-      size: ts});
-      }
-      let arrowcolor=this.getDefault("arrow-color")||"33%";
-      arrowcolor = arrowcolor.trim();
-      if (arrowcolor.endsWith("%")) {
-          arrowcolor = arrowcolor.slice(0, arrowcolor.length-1).trim();
-          let perc=parseFloat(arrowcolor)/100.0;
-          let c=css2color(this.getDefault("arrow-color"));
-          let f=1.0-(c[0]+c[1]+c[2])*perc;
-          f = ~~(f*255);
-          g.fillStyle = `rgba(${f},${f},${f},0.95)`;
-      }
-      else {
-        g.fillStyle = arrowcolor;
-      }
-      let d=7, w=canvas.width, h=canvas.height;
-      let sz=this._getArrowSize();
-      if (this.vertical) {
-          g.beginPath();
-          g.moveTo(w*0.5, d);
-          g.lineTo(w*0.5+sz*0.5, d+sz);
-          g.lineTo(w*0.5-sz*0.5, d+sz);
-          g.moveTo(w*0.5, h-d);
-          g.lineTo(w*0.5+sz*0.5, h-sz-d);
-          g.lineTo(w*0.5-sz*0.5, h-sz-d);
-      }
-      else {
-        g.beginPath();
-        g.moveTo(d, h*0.5);
-        g.lineTo(d+sz, h*0.5+sz*0.5);
-        g.lineTo(d+sz, h*0.5-sz*0.5);
-        g.moveTo(w-d, h*0.5);
-        g.lineTo(w-sz-d, h*0.5+sz*0.5);
-        g.lineTo(w-sz-d, h*0.5-sz*0.5);
-      }
-      g.fill();
-    }
-     _getArrowSize() {
-      return UIBase.getDPI()*10;
-    }
-  }
-  _ESClass.register(NumSlider);
-  _es6_module.add_class(NumSlider);
-  NumSlider = _es6_module.add_export('NumSlider', NumSlider);
-  UIBase.internalRegister(NumSlider);
-  class NumSliderSimpleBase extends UIBase {
-     constructor() {
-      super();
-      this.baseUnit = undefined;
-      this.displayUnit = undefined;
-      this.editAsBaseUnit = undefined;
-      this.canvas = document.createElement("canvas");
-      this.g = this.canvas.getContext("2d");
-      this.canvas.style["width"] = this.getDefault("width")+"px";
-      this.canvas.style["height"] = this.getDefault("height")+"px";
-      this.canvas.style["pointer-events"] = "none";
-      this.highlight = false;
-      this.isInt = false;
-      this.shadow.appendChild(this.canvas);
-      this.range = [0, 1];
-      this.step = 0.1;
-      this._value = 0.5;
-      this._focus = false;
-      this.modal = undefined;
-      this._last_slider_key = '';
-    }
-    get  value() {
-      return this._value;
-    }
-    set  value(val) {
-      this.setValue(val);
-    }
-    static  define() {
-      return {tagname: "numslider-simple-base-x", 
-     style: "numslider_simple", 
-     parentStyle: "button"}
-    }
-     setValue(val, fire_onchange=true) {
-      val = Math.min(Math.max(val, this.range[0]), this.range[1]);
-      if (this.isInt) {
-          val = Math.floor(val);
-      }
-      if (this._value!==val) {
-          this._value = val;
-          this._redraw();
-          if (this.onchange&&fire_onchange) {
-              this.onchange(val);
-          }
-          if (this.getAttribute("datapath")) {
-              let path=this.getAttribute("datapath");
-              this.setPathValue(this.ctx, path, this._value);
-          }
-      }
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      if (!path||path==="null"||path==="undefined") {
-          return ;
-      }
-      let val=this.getPathValue(this.ctx, path);
-      if (this.isInt) {
-          val = Math.floor(val);
-      }
-      if (val!==this._value) {
-          let prop=this.getPathMeta(this.ctx, path);
-          if (!prop) {
-              return ;
-          }
-          this.isInt = prop.type===PropTypes.INT;
-          if (prop.range!==undefined) {
-              this.range[0] = prop.range[0];
-              this.range[1] = prop.range[1];
-          }
-          if (prop.uiRange!==undefined) {
-              this.uiRange = new Array(2);
-              this.uiRange[0] = prop.uiRange[0];
-              this.uiRange[1] = prop.uiRange[1];
-          }
-          this.value = val;
-      }
-    }
-     _setFromMouse(e) {
-      let rect=this.getClientRects()[0];
-      if (rect===undefined) {
-          return ;
-      }
-      let x=e.x-rect.left;
-      let dpi=UIBase.getDPI();
-      let co=this._getButtonPos();
-      let val=this._invertButtonX(x*dpi);
-      this.value = val;
-    }
-     _startModal(e) {
-      if (this.disabled) {
-          return ;
-      }
-      if (e!==undefined) {
-          this._setFromMouse(e);
-      }
-      let dom=window;
-      let evtargs={capture: false};
-      if (this.modal) {
-          console.warn("Double call to _startModal!");
-          return ;
-      }
-      let end=() =>        {
-        if (this._modal===undefined) {
-            return ;
-        }
-        popModalLight(this._modal);
-        this._modal = undefined;
-        this.modal = undefined;
-      };
-      this.modal = {mousemove: (e) =>          {
-          this._setFromMouse(e);
-        }, 
-     mouseover: (e) =>          {        }, 
-     mouseout: (e) =>          {        }, 
-     mouseleave: (e) =>          {        }, 
-     mouseenter: (e) =>          {        }, 
-     blur: (e) =>          {        }, 
-     focus: (e) =>          {        }, 
-     mouseup: (e) =>          {
-          this.undoBreakPoint();
-          end();
-        }, 
-     keydown: (e) =>          {
-          switch (e.keyCode) {
-            case keymap["Enter"]:
-            case keymap["Space"]:
-            case keymap["Escape"]:
-              end();
-          }
-        }};
-      function makefunc(f) {
-        return (e) =>          {
-          e.stopPropagation();
-          e.preventDefault();
-          return f(e);
-        }
-      }
-      for (let k in this.modal) {
-          this.modal[k] = makefunc(this.modal[k]);
-      }
-      this._modal = pushModalLight(this.modal);
-    }
-     init() {
-      super.init();
-      if (!this.hasAttribute("tab-index")) {
-          this.setAttribute("tab-index", 0);
-      }
-      this.updateSize();
-      this.addEventListener("keydown", (e) =>        {
-        let dt=this.range[1]>this.range[0] ? 1 : -1;
-        switch (e.keyCode) {
-          case keymap["Left"]:
-          case keymap["Right"]:
-            let fac=this.step;
-            if (e.shiftKey) {
-                fac*=0.1;
-            }
-            if (this.isInt) {
-                fac = Math.max(fac, 1);
-            }
-            this.value+=e.keyCode===keymap["Left"] ? -dt*fac : dt*fac;
-            break;
-        }
-      });
-      this.addEventListener("focusin", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 1;
-        this._redraw();
-        this.focus();
-      });
-      this.addEventListener("mousedown", (e) =>        {
-        if (this.disabled) {
-            return ;
-        }
-        e.preventDefault();
-        this._startModal(e);
-      });
-      this.addEventListener("mousein", (e) =>        {
-        this.setHighlight(e);
-        this._redraw();
-      });
-      this.addEventListener("mouseout", (e) =>        {
-        this.highlight = false;
-        this._redraw();
-      });
-      this.addEventListener("mouseover", (e) =>        {
-        this.setHighlight(e);
-        this._redraw();
-      });
-      this.addEventListener("mousemove", (e) =>        {
-        this.setHighlight(e);
-        this._redraw();
-      });
-      this.addEventListener("mouseleave", (e) =>        {
-        this.highlight = false;
-        this._redraw();
-      });
-      this.addEventListener("blur", (e) =>        {
-        this._focus = 0;
-        this.highlight = false;
-        this._redraw();
-      });
-      this.setCSS();
-    }
-     setHighlight(e) {
-      this.highlight = this.isOverButton(e) ? 2 : 1;
-    }
-     _redraw() {
-      let g=this.g, canvas=this.canvas;
-      let w=canvas.width, h=canvas.height;
-      let dpi=UIBase.getDPI();
-      let color=this.getDefault("background-color");
-      let sh=~~(this.getDefault("SlideHeight")*dpi+0.5);
-      g.clearRect(0, 0, canvas.width, canvas.height);
-      g.fillStyle = color;
-      let y=(h-sh)*0.5;
-      let r=this.getDefault("border-radius");
-      r = 3;
-      g.translate(0, y);
-      ui_base.drawRoundBox(this, this.canvas, g, w, sh, r, "fill", color, undefined, true);
-      let bcolor=this.getDefault('border-color');
-      ui_base.drawRoundBox(this, this.canvas, g, w, sh, r, "stroke", bcolor, undefined, true);
-      g.translate(0, -y);
-      if (this.highlight===1) {
-          color = this.getDefault("BoxHighlight");
-      }
-      else {
-        color = this.getDefault("border-color");
-      }
-      g.strokeStyle = color;
-      g.stroke();
-      let co=this._getButtonPos();
-      g.beginPath();
-      if (this.highlight===2) {
-          color = this.getDefault("BoxHighlight");
-      }
-      else {
-        color = this.getDefault("border-color");
-      }
-      g.arc(co[0], co[1], Math.abs(co[2]), -Math.PI, Math.PI);
-      g.fill();
-      g.strokeStyle = color;
-      g.stroke();
-      g.beginPath();
-      g.setLineDash([4, 4]);
-      if (this._focus) {
-          g.strokeStyle = this.getDefault("BoxHighlight");
-          g.arc(co[0], co[1], co[2]-4, -Math.PI, Math.PI);
-          g.stroke();
-      }
-      g.setLineDash([]);
-    }
-     isOverButton(e) {
-      let x=e.x, y=e.y;
-      let rect=this.getClientRects()[0];
-      if (!rect) {
-          return false;
-      }
-      x-=rect.left;
-      y-=rect.top;
-      let co=this._getButtonPos();
-      let dpi=UIBase.getDPI();
-      let dv=new Vector2([co[0]/dpi-x, co[1]/dpi-y]);
-      let dis=dv.vectorLength();
-      return dis<co[2]/dpi;
-    }
-     _invertButtonX(x) {
-      let w=this.canvas.width;
-      let dpi=UIBase.getDPI();
-      let sh=~~(this.getDefault("SlideHeight")*dpi+0.5);
-      let boxw=this.canvas.height-4;
-      let w2=w-boxw;
-      x = (x-boxw*0.5)/w2;
-      x = x*(this.range[1]-this.range[0])+this.range[0];
-      return x;
-    }
-     _getButtonPos() {
-      let w=this.canvas.width;
-      let dpi=UIBase.getDPI();
-      let sh=~~(this.getDefault("SlideHeight")*dpi+0.5);
-      let x=this._value;
-      x = (x-this.range[0])/(this.range[1]-this.range[0]);
-      let boxw=this.canvas.height-4;
-      let w2=w-boxw;
-      x = x*w2+boxw*0.5;
-      return [x, boxw*0.5, boxw*0.5];
-    }
-     setCSS() {
-      this.canvas.style["width"] = "min-contents";
-      this.canvas.style["min-width"] = this.getDefault("width")+"px";
-      this.canvas.style["height"] = this.getDefault("height")+"px";
-      this.canvas.height = this.getDefault("height")*UIBase.getDPI();
-      this.style["min-width"] = this.getDefault("width")+"px";
-      this._redraw();
-    }
-     updateSize() {
-      if (this.canvas===undefined) {
-          return ;
-      }
-      let rect=this.getClientRects()[0];
-      if (rect===undefined) {
-          return ;
-      }
-      let dpi=UIBase.getDPI();
-      let w=~~(rect.width*dpi), h=~~(rect.height*dpi);
-      let canvas=this.canvas;
-      if (w!==canvas.width||h!==canvas.height) {
-          this.canvas.width = w;
-          this.canvas.height = h;
-          this.setCSS();
-          this._redraw();
-      }
-    }
-     _ondestroy() {
-      if (this._modal) {
-          popModalLight(this._modal);
-          this._modal = undefined;
-      }
-    }
-     update() {
-      super.update();
-      let key=this.getDefault("width")+this.getDefault("height")+this.getDefault("SlideHeight");
-      if (key!==this._last_slider_key) {
-          this._last_slider_key = key;
-          this.flushUpdate();
-          this.setCSS();
-          this._redraw();
-      }
-      if (this.getAttribute("tab-index")!==this.tabIndex) {
-          this.tabIndex = this.getAttribute("tab-index");
-      }
-      this.updateSize();
-      this.updateDataPath();
-      updateSliderFromDom(this);
-    }
-  }
-  _ESClass.register(NumSliderSimpleBase);
-  _es6_module.add_class(NumSliderSimpleBase);
-  NumSliderSimpleBase = _es6_module.add_export('NumSliderSimpleBase', NumSliderSimpleBase);
-  UIBase.internalRegister(NumSliderSimpleBase);
-  class SliderWithTextbox extends ColumnFrame {
-     constructor() {
-      super();
-      this._value = 0;
-      this._name = undefined;
-      this._lock_textbox = false;
-      this._labelOnTop = undefined;
-      this._last_label_on_top = undefined;
-      this.container = this;
-      this.textbox = UIBase.createElement("textbox-x");
-      this.textbox.width = 55;
-      this._numslider = undefined;
-      this.textbox.overrideDefault("width", this.getDefault("TextBoxWidth"));
-      this.textbox.setAttribute("class", "numslider_simple_textbox");
-      this._last_value = undefined;
-    }
-    get  labelOnTop() {
-      let ret=this._labelOnTop;
-      if (ret===undefined&&this.hasAttribute("labelOnTop")) {
-          let val=this.getAttribute("labelOnTop");
-          if (typeof val==="string") {
-              val = val.toLowerCase();
-              ret = val==="true"||val==="yes";
-          }
-          else {
-            ret = !!val;
-          }
-      }
-      if (ret===undefined) {
-          ret = this.getDefault("labelOnTop");
-      }
-      return !!ret;
-    }
-    set  labelOnTop(v) {
-      this._labelOnTop = v;
-    }
-    get  numslider() {
-      return this._numslider;
-    }
-    set  numslider(v) {
-      this._numslider = v;
-      this.textbox.range = this._numslider.range;
-    }
-    get  range() {
-      return this.numslider.range;
-    }
-    set  range(v) {
-      this.numslider.range = v;
-    }
-    get  step() {
-      return this.numslider.step;
-    }
-    set  step(v) {
-      this.numslider.step = v;
-    }
-    get  expRate() {
-      return this.numslider.expRate;
-    }
-    set  expRate(v) {
-      this.numslider.expRate = v;
-    }
-    get  decimalPlaces() {
-      return this.numslider.decimalPlaces;
-    }
-    set  decimalPlaces(v) {
-      this.numslider.decimalPlaces = v;
-    }
-    get  isInt() {
-      return this.numslider.isInt;
-    }
-    set  isInt(v) {
-      this.numslider.isInt = v;
-    }
-    get  radix() {
-      return this.numslider.radix;
-    }
-    set  radix(v) {
-      this.numslider.radix = v;
-    }
-    get  stepIsRelative() {
-      return this.numslider.stepIsRelative;
-    }
-    set  stepIsRelative(v) {
-      this.numslider.stepIsRelative = v;
-    }
-    get  displayUnit() {
-      return this.textbox.displayUnit;
-    }
-    set  displayUnit(val) {
-      let update=val!==this.displayUnit;
-      this.numslider.displayUnit = this.textbox.displayUnit = val;
-      if (update) {
-          this.updateTextBox();
-      }
-    }
-    get  baseUnit() {
-      return this.textbox.baseUnit;
-    }
-    set  baseUnit(val) {
-      let update=val!==this.baseUnit;
-      this.numslider.baseUnit = this.textbox.baseUnit = val;
-      if (update) {
-          this.updateTextBox();
-      }
-    }
-    get  realTimeTextBox() {
-      let ret=this.getAttribute("realtime");
-      if (!ret) {
-          return false;
-      }
-      ret = ret.toLowerCase().trim();
-      return ret==='true'||ret==='on'||ret==='yes';
-    }
-    set  realTimeTextBox(val) {
-      this.setAttribute("realtime", val ? "true" : "false");
-    }
-    get  value() {
-      return this._value;
-    }
-    set  value(val) {
-      this.setValue(val);
-    }
-     init() {
-      super.init();
-      this.rebuild();
-      window.setTimeout(() =>        {
-        return this.updateTextBox();
-      }, 500);
-    }
-     rebuild() {
-      this._last_label_on_top = this.labelOnTop;
-      this.container.clear();
-      if (!this.labelOnTop) {
-          this.container = this.row();
-      }
-      else {
-        this.container = this;
-      }
-      if (this.hasAttribute("name")) {
-          this._name = this.hasAttribute("name");
-      }
-      else {
-        this._name = "slider";
-      }
-      this.l = this.container.label(this._name);
-      this.l.overrideClass("numslider_textbox");
-      this.l.font = "TitleText";
-      this.l.style["display"] = "float";
-      this.l.style["position"] = "relative";
-      let strip=this.container.row();
-      strip.add(this.numslider);
-      let path=this.hasAttribute("datapath") ? this.getAttribute("datapath") : undefined;
-      let textbox=this.textbox;
-      this.textbox.overrideDefault("width", this.getDefault("TextBoxWidth"));
-      let apply_textbox=() =>        {
-        let text=textbox.text;
-        if (!units.isNumber(text)) {
-            textbox.flash("red");
-            return ;
-        }
-        else {
-          textbox.flash("green");
-          let displayUnit=this.editAsBaseUnit ? undefined : this.displayUnit;
-          let f=units.parseValue(text, this.baseUnit, displayUnit);
-          if (isNaN(f)) {
-              this.flash("red");
-              return ;
-          }
-          if (this.isInt) {
-              f = Math.floor(f);
-          }
-          this._lock_textbox = 1;
-          this.setValue(f);
-          this._lock_textbox = 0;
-        }
-      };
-      if (this.realTimeTextBox) {
-          textbox.onchange = apply_textbox;
-      }
-      textbox.onend = apply_textbox;
-      textbox.ctx = this.ctx;
-      textbox.packflag|=this.inherit_packflag;
-      textbox.overrideDefault("width", this.getDefault("TextBoxWidth"));
-      textbox.style["height"] = (this.getDefault("height")-2)+"px";
-      textbox._init();
-      strip.add(textbox);
-      textbox.setCSS();
-      this.linkTextBox();
-      let in_onchange=0;
-      this.numslider.onchange = (val) =>        {
-        this._value = this.numslider.value;
-        this.updateTextBox();
-        if (in_onchange) {
-            return ;
-        }
-        if (this.onchange!==undefined) {
-            in_onchange++;
-            try {
-              if (this.onchange) {
-                  this.onchange(this);
-              }
-            }
-            catch (error) {
-                util.print_stack(error);
-            }
-        }
-        in_onchange--;
-      };
-    }
-     updateTextBox() {
-      if (!this._init_done) {
-          return ;
-      }
-      if (this._lock_textbox>0)
-        return ;
-      this.textbox.text = this.formatNumber(this._value);
-      this.textbox.update();
-      updateSliderFromDom(this, this.numslider);
-    }
-     linkTextBox() {
-      this.updateTextBox();
-      let onchange=this.numslider.onchange;
-      this.numslider.onchange = (e) =>        {
-        this._value = e.value;
-        this.updateTextBox();
-        onchange(e);
-      };
-    }
-     setValue(val, fire_onchange=true) {
-      this._value = val;
-      this.numslider.setValue(val, fire_onchange);
-      this.updateTextBox();
-    }
-     updateName() {
-      let name=this.getAttribute("name");
-      if (!name&&this.hasAttribute("datapath")) {
-          let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-          if (prop) {
-              name = prop.uiname;
-          }
-      }
-      if (!name) {
-          name = "[error]";
-      }
-      if (name!==this._name) {
-          this._name = name;
-          this.l.text = name;
-      }
-    }
-     updateLabelOnTop() {
-      if (this.labelOnTop!==this._last_label_on_top) {
-          this._last_label_on_top = this.labelOnTop;
-          this.rebuild();
-      }
-    }
-     updateDataPath() {
-      if (!this.ctx||!this.getAttribute("datapath")) {
-          return ;
-      }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      if (!prop) {
-          return ;
-      }
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val!==this._last_value) {
-          this._last_value = this._value = val;
-          this.updateTextBox();
-      }
-      if (!this.baseUnit&&prop.baseUnit) {
-          this.baseUnit = prop.baseUnit;
-      }
-      if (prop.decimalPlaces!==undefined) {
-          this.decimalPlaces = prop.decimalPlaces;
-      }
-      if (this.editAsBaseUnit===undefined) {
-          if (prop.flag&PropFlags.EDIT_AS_BASE_UNIT) {
-              this.editAsBaseUnit = true;
-          }
-          else {
-            this.editAsBaseUnit = false;
-          }
-      }
-      if (!this.displayUnit&&prop.displayUnit) {
-          this.displayUnit = prop.displayUnit;
-      }
-    }
-     update() {
-      this.updateLabelOnTop();
-      super.update();
-      this.updateDataPath();
-      let redraw=false;
-      updateSliderFromDom(this.numslider, this);
-      updateSliderFromDom(this.textbox, this);
-      if (redraw) {
-          this.setCSS();
-          this.numslider.setCSS();
-          this.numslider._redraw();
-      }
-      this.updateName();
-      this.numslider.description = this.description;
-      this.textbox.description = this.title;
-      if (this.hasAttribute("datapath")) {
-          this.numslider.setAttribute("datapath", this.getAttribute("datapath"));
-      }
-      if (this.hasAttribute("mass_set_path")) {
-          this.numslider.setAttribute("mass_set_path", this.getAttribute("mass_set_path"));
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      this.textbox.setCSS();
-    }
-  }
-  _ESClass.register(SliderWithTextbox);
-  _es6_module.add_class(SliderWithTextbox);
-  SliderWithTextbox = _es6_module.add_export('SliderWithTextbox', SliderWithTextbox);
-  class NumSliderSimple extends SliderWithTextbox {
-     constructor() {
-      super();
-      this.numslider = UIBase.createElement("numslider-simple-base-x");
-    }
-    static  define() {
-      return {tagname: "numslider-simple-x", 
-     style: "numslider_simple"}
-    }
-     _redraw() {
-      this.numslider._redraw();
-    }
-  }
-  _ESClass.register(NumSliderSimple);
-  _es6_module.add_class(NumSliderSimple);
-  NumSliderSimple = _es6_module.add_export('NumSliderSimple', NumSliderSimple);
-  UIBase.internalRegister(NumSliderSimple);
-  class NumSliderWithTextBox extends SliderWithTextbox {
-     constructor() {
-      super();
-      this.numslider = UIBase.createElement("numslider-x");
-    }
-    static  define() {
-      return {tagname: "numslider-textbox-x", 
-     style: "numslider_textbox"}
-    }
-     _redraw() {
-      this.numslider._redraw();
-    }
-  }
-  _ESClass.register(NumSliderWithTextBox);
-  _es6_module.add_class(NumSliderWithTextBox);
-  NumSliderWithTextBox = _es6_module.add_export('NumSliderWithTextBox', NumSliderWithTextBox);
-  UIBase.internalRegister(NumSliderWithTextBox);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
-
-
-es6_module_define('ui_panel', ["./ui_widgets.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/html5_fileapi.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js"], function _ui_panel_module(_es6_module) {
-  var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
-  var _ui=undefined;
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui_widgets=es6_import(_es6_module, './ui_widgets.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  es6_import(_es6_module, '../path-controller/util/html5_fileapi.js');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  let PropFlags=toolprop.PropFlags;
-  let PropSubTypes=toolprop.PropSubTypes;
-  let EnumProperty=toolprop.EnumProperty;
-  let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
-  let forward_keys=new Set(["row", "col", "strip", "noteframe", "helppicker", "vecpopup", "tabs", "table", "menu", "listbox", "panel", "pathlabel", "label", "listenum", "check", "iconcheck", "button", "iconbutton", "colorPicker", "twocol", "treeview", "slider", "simpleslider", "curve1d", "noteframe", "vecpopup", "prop", "tool", "toolPanel", "textbox", "dynamicMenu", "add", "prepend", "useIcons", "noMarginsOrPadding", "wrap"]);
-  class PanelFrame extends ColumnFrame {
-     constructor() {
-      super();
-      this.titleframe = super.row();
-      this.contents = super.col();
-      this.contents._remove = this.contents.remove;
-      this.contents.remove = () =>        {
-        this.remove();
-      };
-      this._panel = this;
-      this.contents._panel = this;
-      this.iconcheck = UIBase.createElement("iconcheck-x");
-      this.iconcheck.noEmboss = true;
-      Object.defineProperty(this.contents, "closed", {get: () =>          {
-          return this.closed;
-        }, 
-     set: (v) =>          {
-          this.closed = v;
-        }});
-      Object.defineProperty(this.contents, "title", {get: () =>          {
-          return this.titleframe.getAttribute("title");
-        }, 
-     set: (v) =>          {
-          return this.setHeaderToolTip(v);
-        }});
-      this.packflag = this.inherit_packflag = 0;
-      this._closed = false;
-      this.makeHeader();
-    }
-    get  inherit_packflag() {
-      if (!this.contents)
-        return ;
-      return this.contents.inherit_packflag;
-    }
-    set  inherit_packflag(val) {
-      if (!this.contents)
-        return ;
-      this.contents.inherit_packflag = val;
-    }
-    get  packflag() {
-      if (!this.contents)
-        return ;
-      return this.contents.packflag;
-    }
-    set  packflag(val) {
-      if (!this.contents)
-        return ;
-      this.contents.packflag = val;
-    }
-     appendChild(child) {
-      return this.contents.shadow.appendChild(child);
-    }
-    get  headerLabel() {
-      return this.__label.text;
-    }
-    set  headerLabel(v) {
-      this.__label.text = v;
-      this.__label._updateFont();
-      if (this.ctx) {
-          this.setCSS();
-      }
-    }
-    get  dataPrefix() {
-      return this.contents ? this.contents.dataPrefix : "";
-    }
-    set  dataPrefix(v) {
-      if (this.contents) {
-          this.contents.dataPrefix = v;
-      }
-    }
-    get  closed() {
-      return this._closed;
-    }
-    set  closed(val) {
-      let update=!!val!==!!this.closed;
-      this._closed = val;
-      if (update) {
-          this._updateClosed(true);
-      }
-    }
-    static  define() {
-      return {tagname: "panelframe-x", 
-     style: "panel", 
-     subclassChecksTheme: true}
-    }
-     setHeaderToolTip(tooltip) {
-      this.titleframe.setAttribute("title", tooltip);
-      this.titleframe._forEachChildWidget((child) =>        {
-        child.setAttribute("title", tooltip);
-      });
-    }
-     saveData() {
-      let ret={closed: this._closed};
-      return Object.assign(super.saveData(), ret);
-    }
-     loadData(obj) {
-      if (!("closed" in obj)) {
-          this.closed = obj._closed;
-      }
-      else {
-        this.closed = obj.closed;
-      }
-    }
-     clear() {
-      super.clear();
-      super.add(this.titleframe);
-    }
-     makeHeader() {
-      let row=this.titleframe;
-      let iconcheck=this.iconcheck;
-      if (!iconcheck) {
-          return ;
-      }
-      iconcheck.overrideDefault("padding", 0);
-      iconcheck.noMarginsOrPadding();
-      iconcheck.overrideDefault("background-color", "rgba(0,0,0,0)");
-      iconcheck.overrideDefault("BoxDepressed", "rgba(0,0,0,0)");
-      iconcheck.overrideDefault("border-color", "rgba(0,0,0,0)");
-      iconcheck.ctx = this.ctx;
-      iconcheck._icon_pressed = ui_base.Icons.UI_EXPAND;
-      iconcheck._icon = ui_base.Icons.UI_COLLAPSE;
-      iconcheck.drawCheck = false;
-      iconcheck.iconsheet = ui_base.IconSheets.SMALL;
-      iconcheck.checked = this._closed;
-      this.iconcheck.onchange = (e) =>        {
-        this.closed = this.iconcheck.checked;
-      };
-      row._add(iconcheck);
-      let onclick=(e) =>        {
-        iconcheck.checked = !iconcheck.checked;
-        e.preventDefault();
-      };
-      let label=this.__label = row.label(this.getAttribute("label"));
-      this.__label.overrideClass("panel");
-      this.__label.font = "TitleText";
-      label._updateFont();
-      label.noMarginsOrPadding();
-      label.addEventListener("mousedown", onclick);
-      label.addEventListener("touchdown", onclick);
-      let bs=this.getDefault("border-style");
-      row.background = this.getDefault("TitleBackground");
-      row.style["border-radius"] = this.getDefault("border-radius")+"px";
-      row.style["border"] = `${this.getDefault("border-width")}px ${bs} ${this.getDefault("border-color")}`;
-      row.style["padding-right"] = "20px";
-      row.style["padding-left"] = "5px";
-      row.style["padding-top"] = this.getDefault("padding-top")+"px";
-      row.style["padding-bottom"] = this.getDefault("padding-bottom")+"px";
-    }
-     init() {
-      super.init();
-      this.background = this.getDefault("background-color");
-      this.style["width"] = "100%";
-      this.contents.ctx = this.ctx;
-      if (!this._closed) {
-          super.add(this.contents);
-          this.contents.flushUpdate();
-      }
-      this.contents.dataPrefix = this.dataPrefix;
-      this.setCSS();
-    }
-     setCSS() {
-      super.setCSS();
-      if (!this.titleframe||!this.__label) {
-          return ;
-      }
-      let getDefault=(key, defval) =>        {
-        let val=this.getDefault(key);
-        return val!==undefined ? val : defval;
-      };
-      let bs=this.getDefault("border-style");
-      let header_radius=this.getDefault("HeaderRadius");
-      if (header_radius===undefined) {
-          header_radius = this.getDefault("border-radius");
-      }
-      let boxmargin=getDefault("padding", 0);
-      let paddingleft=getDefault("padding-left", 0);
-      let paddingright=getDefault("padding-right", 0);
-      paddingleft+=boxmargin;
-      paddingright+=boxmargin;
-      this.titleframe.background = this.getDefault("TitleBackground");
-      this.titleframe.style["border-radius"] = header_radius+"px";
-      this.titleframe.style["border"] = `${this.getDefault("border-width")}px ${bs} ${this.getDefault("TitleBorder")}`;
-      this.style["border"] = `${this.getDefault("border-width")}px ${bs} ${this.getDefault("border-color")}`;
-      this.style["border-radius"] = this.getDefault("border-radius")+"px";
-      this.titleframe.style["padding-top"] = this.getDefault("padding-top")+"px";
-      this.titleframe.style["padding-bottom"] = this.getDefault("padding-bottom")+"px";
-      this.titleframe.style["padding-left"] = paddingleft+"px";
-      this.titleframe.style["padding-right"] = paddingright+"px";
-      this.titleframe.style["margin-bottom"] = "0px";
-      this.titleframe.style["margin-top"] = "0px";
-      this.__label.style["border"] = "unset";
-      this.__label.style["border-radius"] = "unset";
-      let bg=this.getDefault("background-color");
-      this.background = bg;
-      this.contents.background = bg;
-      this.contents.parentWidget = this;
-      this.contents.style["background-color"] = bg;
-      this.style["background-color"] = bg;
-      let margintop, marginbottom;
-      if (this._closed) {
-          margintop = getDefault('margin-top-closed', 0);
-          marginbottom = getDefault('margin-bottom-closed', 5);
-      }
-      else {
-        margintop = getDefault('margin-top', 0);
-        marginbottom = getDefault('margin-bottom', 0);
-      }
-      let marginleft=getDefault('margin-left', 0);
-      let marginright=getDefault('margin-right', 0);
-      this.style['margin-left'] = marginleft+"px";
-      this.style['margin-right'] = marginright+"px";
-      this.style['margin-top'] = margintop+"px";
-      this.style['margin-bottom'] = marginbottom+"px";
-      this.__label._updateFont();
-    }
-     on_disabled() {
-      super.on_disabled();
-      this.__label._updateFont();
-      this.setCSS();
-    }
-     on_enabled() {
-      super.on_enabled();
-      this.__label.setCSS();
-      this.__label.style["color"] = this.style["color"];
-      this.setCSS();
-    }
-     update() {
-      let text=this.getAttribute("label");
-      let update=text!==this.__label.text;
-      if (this.checkThemeUpdate()) {
-          update = true;
-          this._setVisible(this.closed, true);
-          this.setCSS();
-          this.flushSetCSS();
-      }
-      if (update) {
-          this.headerLabel = this.getAttribute("label");
-          this.__label._updateFont();
-          this.setCSS();
-      }
-      super.update();
-    }
-     _onchange(isClosed) {
-      if (this.onchange) {
-          this.onchange(isClosed);
-      }
-      if (this.contents.onchange) {
-          this.contents.onchange(isClosed);
-      }
-    }
-     setAttribute(key, value) {
-      let ret=super.setAttribute(key, value);
-      if (this.ctx) {
-          this.update();
-          this.flushUpdate();
-      }
-      return ret;
-    }
-    get  noUpdateClosedContents() {
-      if (!this.hasAttribute("update-closed-contents")) {
-          return false;
-      }
-      let ret=this.getAttribute("update-closed-contents");
-      return ret==="true"||ret==="on";
-    }
-    set  noUpdateClosedContents(v) {
-      this.setAttribute("update-closed-contents", v ? "true" : "false");
-    }
-     _setVisible(isClosed, changed) {
-      changed = changed||!!isClosed!==!!this._closed;
-      this._state = isClosed;
-      if (isClosed) {
-          this.contents.style.display = "none";
-          if (!this.noUpdateClosedContents) {
-              this.contents.packflag|=PackFlags.NO_UPDATE;
-          }
-      }
-      else {
-        this.contents.style.display = "flex";
-        this.contents.packflag&=~PackFlags.NO_UPDATE;
-        this.contents.flushUpdate();
-      }
-      this.contents.hidden = isClosed;
-      if (this.parentWidget) {
-          this.parentWidget.flushUpdate();
-      }
-      else {
-        this.flushUpdate();
-      }
-      if (changed) {
-          this._onchange(isClosed);
-      }
-    }
-     _updateClosed(changed) {
-      this._setVisible(this._closed, changed);
-      if (this.iconcheck) {
-          this.iconcheck.checked = this._closed;
-      }
-    }
-  }
-  _ESClass.register(PanelFrame);
-  _es6_module.add_class(PanelFrame);
-  PanelFrame = _es6_module.add_export('PanelFrame', PanelFrame);
-  let makeForward=(k) =>    {
-    return function () {
-      return this.contents[k](...arguments);
-    }
-  }
-  for (let k of forward_keys) {
-      PanelFrame.prototype[k] = makeForward(k);
-  }
-  UIBase.internalRegister(PanelFrame);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_panel.js');
-
-
-es6_module_define('ui_progress', ["../path-controller/util/simple_events.js", "../core/ui_base.js", "../path-controller/util/util.js"], function _ui_progress_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  class ProgressCircle extends UIBase {
-     constructor() {
-      super();
-      this.canvas = document.createElement("canvas");
-      this.g = this.canvas.getContext("2d");
-      this.shadow.appendChild(this.canvas);
-      this.size = 150;
-      this.animreq = undefined;
-      this._value = 0.0;
-      this.startTime = util.time_ms();
-    }
-     init() {
-      super.init();
-      this.flagRedraw();
-      this.update();
-      this.tabIndex = 0;
-      this.setAttribute("tab-index", 0);
-      this.setAttribute("tabindex", 0);
-      let onkey=(e) =>        {
-        switch (e.keyCode) {
-          case keymap["Escape"]:
-            if (this.oncancel) {
-                this.oncancel(this);
-            }
-            break;
-        }
-      };
-      this.addEventListener("keydown", onkey);
-      this.canvas.addEventListener("keydown", onkey);
-    }
-     flagRedraw() {
-      if (this.animreq!==undefined) {
-          return ;
-      }
-      this.animreq = requestAnimationFrame(() =>        {
-        this.animreq = undefined;
-        this.draw();
-      });
-    }
-     draw() {
-      let c=this.canvas, g=this.g;
-      let clr1="rgb(68,69,83)";
-      let clr2="rgb(141,154,196)";
-      let clr3="rgb(214,110,54)";
-      let t=(util.time_ms()-this.startTime)/1000.0;
-      g.save();
-      g.clearRect(0, 0, c.width, c.height);
-      g.lineWidth/=c.width*0.5;
-      g.scale(c.width, c.height);
-      g.translate(0.5, 0.5);
-      g.fillStyle = clr2;
-      g.strokeStyle = clr1;
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.arc(0, 0, 0.45, Math.PI, -Math.PI);
-      g.moveTo(0, 0);
-      g.arc(0, 0, 0.2, Math.PI, -Math.PI);
-      g.clip("evenodd");
-      g.beginPath();
-      g.arc(0, 0, 0.45, -Math.PI, Math.PI);
-      g.fill();
-      g.stroke();
-      g.beginPath();
-      g.arc(0, 0, 0.2, Math.PI, -Math.PI);
-      g.stroke();
-      g.beginPath();
-      let th=this._value*Math.PI*2.0;
-      let steps=12;
-      let dth=(Math.PI*2.0)/steps;
-      let lwid=g.lineWidth;
-      g.lineWidth*=3;
-      for (let i=0; i<steps; i++) {
-          let th1=i*dth;
-          th1+=t;
-          let r1=0.2;
-          let r2=0.45;
-          let th2=th1+dth*0.5;
-          g.beginPath();
-          g.moveTo(Math.cos(th1)*r1, Math.sin(th1)*r1);
-          g.lineTo(Math.cos(th2)*r2, Math.sin(th2)*r2);
-          g.strokeStyle = "rgba(255,255,255,0.5)";
-          g.stroke();
-      }
-      g.lineWidth = lwid;
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.arc(0, 0, 0.4, Math.PI, -Math.PI);
-      g.clip("evenodd");
-      g.beginPath();
-      g.fillStyle = clr3;
-      g.moveTo(0, 0);
-      g.arc(0, 0, 0.45, 0, th);
-      g.lineTo(0, 0);
-      g.fill();
-      g.strokeStyle = "rgb(141,154,196)";
-      g.stroke();
-      g.restore();
-    }
-    set  value(percent) {
-      this._value = percent;
-      this.flagRedraw();
-    }
-    get  value() {
-      return this._value;
-    }
-     startTimer() {
-      if (this.timer!==undefined) {
-          return ;
-      }
-      this.focus();
-      window.setInterval(() =>        {
-        if (!this.isConnected) {
-            this.endTimer();
-            return ;
-        }
-        this.flagRedraw();
-      }, 50);
-    }
-     endTimer() {
-      if (this.timer!==undefined) {
-          window.clearInterval(this.timer);
-      }
-      this.timer = undefined;
-    }
-     update() {
-      if (!this.isConnected&&this.timer) {
-          this.endTimer();
-      }
-      let size=~~(this.size*UIBase.getDPI());
-      if (size!==this.canvas.width) {
-          this.setCSS();
-      }
-    }
-     setCSS() {
-      let c=this.canvas;
-      let size=~~(this.size*UIBase.getDPI());
-      if (c.width!==size) {
-          c.width = c.height = size;
-          size/=UIBase.getDPI();
-          c.style["width"] = size+"px";
-          c.style["height"] = size+"px";
-          c.style["display"] = "flex";
-          this.style["width"] = size+"px";
-          this.style["height"] = size+"px";
-          this.draw();
-      }
-      this.style["display"] = "flex";
-      this.style["align-items"] = "center";
-      this.style["justify-content"] = "center";
-      this.style["width"] = "100%";
-      this.style["height"] = "100%";
-    }
-    static  define() {
-      return {tagname: "progress-circle-x"}
-    }
-  }
-  _ESClass.register(ProgressCircle);
-  _es6_module.add_class(ProgressCircle);
-  ProgressCircle = _es6_module.add_export('ProgressCircle', ProgressCircle);
-  UIBase.register(ProgressCircle);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_progress.js');
-
-
-es6_module_define('ui_richedit', ["../core/ui_base.js", "../path-controller/util/util.js", "./ui_textbox.js", "../path-controller/util/simple_events.js", "../core/ui.js"], function _ui_richedit_module(_es6_module) {
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  let UIBase=ui_base.UIBase, Icons=ui_base.Icons;
-  var TextBoxBase=es6_import_item(_es6_module, './ui_textbox.js', 'TextBoxBase');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  class RichEditor extends TextBoxBase {
-     constructor() {
-      super();
-      this._internalDisabled = false;
-      this._value = "";
-      this.textOnlyMode = false;
-      this.styletag = document.createElement("style");
-      this.styletag.textContent = `
-      div.rich-text-editor-x {
-        width        :   100%;
-        height       :   100%;
-        min-height   :   150px;
-        overflow     :   scroll;
-        padding      :   5px;
-        white-space  :   pre-wrap;
-      }
-      
-      rich-text-editor-x {
-        display        : flex;
-        flex-direction : column;
-      }
-    `;
-      this.shadow.appendChild(this.styletag);
-      let controls=this.controls = UIBase.createElement("rowframe-x");
-      let makeicon=(icon, description, cb) =>        {
-        icon = controls.iconbutton(icon, description, cb);
-        icon.iconsheet = 1;
-        icon.overrideDefault("padding", 3);
-        return icon;
-      };
-      makeicon(Icons.BOLD, "Bold", () =>        {
-        document.execCommand("bold");
-      });
-      makeicon(Icons.ITALIC, "Italic", () =>        {
-        document.execCommand("italic");
-      });
-      makeicon(Icons.UNDERLINE, "Underline", () =>        {
-        document.execCommand("underline");
-      });
-      makeicon(Icons.STRIKETHRU, "Strikethrough", () =>        {
-        document.execCommand("strikeThrough");
-      });
-      controls.background = this.getDefault("background-color");
-      this.shadow.appendChild(controls);
-      this.textarea = document.createElement("div");
-      this.textarea.contentEditable = true;
-      this.textarea.setAttribute("class", "rich-text-editor-x");
-      this.textarea.style["font"] = this.getDefault("DefaultText").genCSS();
-      this.textarea.style["background-color"] = this.getDefault("background-color");
-      this.textarea.setAttribute("white-space", "pre-wrap");
-      this.textarea.addEventListener("keydown", (e) =>        {
-        if (e.keyCode===keymap["S"]&&e.shiftKey&&(e.ctrlKey||e.commandKey)) {
-            this.toggleStrikeThru();
-            e.preventDefault();
-            e.stopPropagation();
-        }
-      });
-      this.textarea.addEventListener("focus", (e) =>        {
-        this._focus = 1;
-        this.setCSS();
-      });
-      this.textarea.addEventListener("blur", (e) =>        {
-        this._focus = 0;
-        this.setCSS();
-      });
-      document.execCommand("styleWithCSS", true);
-      window.ta = this;
-      this.textarea.addEventListener("selectionchange", (e) =>        {
-        console.log("sel1");
-      });
-      document.addEventListener("selectionchange", (e, b) =>        {
-        console.log("sel2", document.getSelection().startNode, b);
-      });
-      this.textarea.addEventListener("input", (e) =>        {
-        if (this.internalDisabled) {
-            return ;
-        }
-        console.log("text input", e);
-        let text;
-        if (this.textOnlyMode) {
-            text = this.textarea.innerText;
-        }
-        else {
-          text = this.textarea.innerHTML;
-        }
-        if (this.textOnlyMode&&text===this._value) {
-            console.log("detected formatting change");
-            return ;
-        }
-        let sel=document.getSelection();
-        let range=sel.getRangeAt(0);
-        let node=sel.anchorNode;
-        let off=sel.anchorOffset;
-        this._value = text;
-        if (this.hasAttribute("datapath")) {
-            let path=this.getAttribute("datapath");
-            this.setPathValue(this.ctx, path, this.value);
-        }
-        if (this.onchange) {
-            this.onchange(this._value);
-        }
-        if (this.oninput) {
-            this.oninput(this._value);
-        }
-        this.dispatchEvent(new InputEvent(this));
-        this.dispatchEvent(new CustomEvent('change'));
-      });
-      this.shadow.appendChild(this.textarea);
-    }
-     formatStart() {
-
-    }
-     formatLine(line, text) {
-      return line;
-    }
-     toggleStrikeThru() {
-      console.log("strike thru!");
-      document.execCommand("strikeThrough");
-    }
-     formatEnd() {
-
-    }
-     init() {
-      super.init();
-      window.rc = this;
-      document.execCommand("defaultParagraphSeparator", false, "div");
-      this.setCSS();
-    }
-    get  internalDisabled() {
-      return this._internalDisabled;
-    }
-    set  internalDisabled(val) {
-      let changed=!!this._internalDisabled!==!!val;
-      if (changed||1) {
-          this._internalDisabled = !!val;
-          super.internalDisabled = val;
-          this.textarea.internalDisabled = val;
-          this.textarea.contentEditable = !val;
-          this.setCSS();
-      }
-    }
-    set  value(val) {
-      this._value = val;
-      if (this.textOnlyMode) {
-          let val2="";
-          for (let l of val.split("\n")) {
-              val2+=l+"<br>";
-          }
-          val = val2;
-      }
-      this.textarea.innerHTML = val;
-    }
-    get  value() {
-      return this._value;
-    }
-     setCSS() {
-      super.setCSS();
-      this.controls.background = this.getDefault("background-color");
-      if (this._focus) {
-          this.textarea.style["border"] = `2px dashed ${this.getDefault('focus-border-color')}`;
-      }
-      else {
-        this.textarea.style["border"] = "none";
-      }
-      if (this.style["font"]) {
-          this.textarea.style["font"] = this.style["font"];
-      }
-      else {
-        this.textarea.style["font"] = this.getDefault("DefaultText").genCSS();
-      }
-      if (this.style["color"]) {
-          this.textarea.style["color"] = this.style["color"];
-      }
-      else {
-        this.textarea.style["color"] = this.getDefault("DefaultText").color;
-      }
-      if (this.disabled) {
-          this.textarea.style["background-color"] = this.getDefault("DisabledBG");
-      }
-      else {
-        this.textarea.style["background-color"] = this.getDefault("background-color");
-      }
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let prop=this.getPathMeta(this.ctx, path);
-      if (prop===undefined) {
-          console.warn("invalid datapath "+path);
-          this.internalDisabled = true;
-          return ;
-      }
-      this.internalDisabled = false;
-      let value=this.getPathValue(this.ctx, path);
-      if (value!==this._value) {
-          console.log("text change");
-          this.value = value;
-      }
-    }
-     update() {
-      super.update();
-      this.updateDataPath();
-    }
-    static  define() {
-      return {tagname: "rich-text-editor-x", 
-     style: "richtext", 
-     modalKeyEvents: true}
-    }
-  }
-  _ESClass.register(RichEditor);
-  _es6_module.add_class(RichEditor);
-  RichEditor = _es6_module.add_export('RichEditor', RichEditor);
-  UIBase.internalRegister(RichEditor);
-  class RichViewer extends UIBase {
-     constructor() {
-      super();
-      this.contents = document.createElement("div");
-      this.contents.style["padding"] = "10px";
-      this.contents.style["margin"] = "10px";
-      this.contents.style["overflow"] = "scroll";
-      this.shadow.appendChild(this.contents);
-      this._value = "";
-    }
-     hideScrollBars() {
-      this.contents.style["overflow"] = "hidden";
-    }
-     showScrollBars() {
-      this.contents.style["overflow"] = "scroll";
-    }
-     textTransform(text) {
-      return text;
-    }
-    set  value(val) {
-      this._value = val;
-      this.contents.innerHTML = this.textTransform(val);
-    }
-    get  value() {
-      return this._value;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let prop=this.getPathMeta(this.ctx, path);
-      if (prop===undefined) {
-          console.warn("invalid datapath "+path);
-          this.internalDisabled = true;
-          return ;
-      }
-      this.internalDisabled = false;
-      let value=this.getPathValue(this.ctx, path);
-      if (value!==this.value) {
-          this.value = value;
-      }
-    }
-     update() {
-      super.update();
-      this.updateDataPath();
-    }
-    static  define() {
-      return {tagname: "html-viewer-x", 
-     style: "html_viewer"}
-    }
-  }
-  _ESClass.register(RichViewer);
-  _es6_module.add_class(RichViewer);
-  RichViewer = _es6_module.add_export('RichViewer', RichViewer);
-  UIBase.internalRegister(RichViewer);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
-
-
-es6_module_define('ui_table', ["../path-controller/util/util.js", "./ui_widgets.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../core/ui_base.js", "./ui_curvewidget.js"], function _ui_table_module(_es6_module) {
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var _ui=undefined;
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_curvewidget=es6_import(_es6_module, './ui_curvewidget.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui_widgets=es6_import(_es6_module, './ui_widgets.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  let PropFlags=toolprop.PropFlags;
-  let PropSubTypes=toolprop.PropSubTypes;
-  let EnumProperty=toolprop.EnumProperty;
-  let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
-  var list=function list(iter) {
-    let ret=[];
-    for (let item of iter) {
-        ret.push(item);
-    }
-    return ret;
-  }
-  class TableRow extends Container {
-     constructor() {
-      super();
-      this.dom.remove();
-      this.dom = document.createElement("tr");
-      this.dom.setAttribute("class", "containerx");
-    }
-    static  define() {
-      return {tagname: "tablerow-x"}
-    }
-     _add(child) {
-      child.ctx = this.ctx;
-      child.parentWidget = this;
-      let td=document.createElement("td");
-      td.appendChild(child);
-      this.dom.appendChild(td);
-      child.onadd();
-    }
-  }
-  _ESClass.register(TableRow);
-  _es6_module.add_class(TableRow);
-  TableRow = _es6_module.add_export('TableRow', TableRow);
-  
-  UIBase.internalRegister(TableRow);
-  class TableFrame extends Container {
-     constructor() {
-      super();
-      this.dom = document.createElement("table");
-      this.shadow.appendChild(this.dom);
-      this.dom.setAttribute("class", "containerx");
-    }
-     update() {
-      this.style["display"] = "inline-block";
-      super.update();
-    }
-     _add(child) {
-      child.ctx = this.ctx;
-      child.parentWidget = this;
-      this.dom.appendChild(child);
-      child.onadd();
-    }
-     add(child) {
-      this._add(child);
-    }
-     row() {
-      let tr=document.createElement("tr");
-      let cls="table-tr";
-      tr.setAttribute("class", cls);
-      this.dom.appendChild(tr);
-      let this2=this;
-      function maketd() {
-        let td=document.createElement("td");
-        tr.appendChild(td);
-        td.style["margin"] = tr.style["margin"];
-        td.style["padding"] = tr.style["padding"];
-        let container=UIBase.createElement("rowframe-x");
-        container.ctx = this2.ctx;
-        container.parentWidget = this2;
-        container.setAttribute("class", cls);
-        td.setAttribute("class", cls);
-        td.appendChild(container);
-        return container;
-      }
-      let ret={_tr: tr, 
-     style: tr.style, 
-     focus: function (args) {
-          tr.focus(args);
-        }, 
-     blur: function (args) {
-          tr.blur(args);
-        }, 
-     remove: () =>          {
-          tr.remove();
-        }, 
-     addEventListener: function (type, cb, arg) {
-          tr.addEventListener(type, cb, arg);
-        }, 
-     removeEventListener: function (type, cb, arg) {
-          tr.removeEventListener(type, cb, arg);
-        }, 
-     setAttribute: function (attr, val) {
-          if (attr=="class") {
-              cls = val;
-          }
-          tr.setAttribute(attr, val);
-        }, 
-     scrollTo: function () {
-          return this._tr.scrollTo(...arguments);
-        }, 
-     scrollIntoView: function () {
-          return this._tr.scrollIntoView(...arguments);
-        }, 
-     clear: function () {
-          for (let node of list(tr.childNodes)) {
-              tr.removeChild(node);
-          }
-        }};
-      function makefunc(f) {
-        ret[f] = function () {
-          let container=maketd();
-          container.background = tr.style["background-color"];
-          return container[f].apply(container, arguments);
-        }
-      }
-      let _bg="";
-      Object.defineProperty(ret, "tabIndex", {set: function (f) {
-          tr.tabIndex = f;
-        }, 
-     get: function (f) {
-          return tr.tabIndex;
-        }});
-      Object.defineProperty(ret, "background", {set: function (bg) {
-          _bg = bg;
-          tr.style["background-color"] = bg;
-          for (let node of tr.childNodes) {
-              if (node.childNodes.length>0) {
-                  node.childNodes[0].background = bg;
-                  node.style["background-color"] = bg;
-              }
-          }
-        }, 
-     get: function () {
-          return _bg;
-        }});
-      ret.cell = () =>        {
-        let container=maketd();
-        container.background = tr.style["background-color"];
-        return container;
-      };
-      makefunc("label");
-      makefunc("tool");
-      makefunc("prop");
-      makefunc("pathlabel");
-      makefunc("button");
-      makefunc("iconbutton");
-      makefunc("textbox");
-      makefunc("col");
-      makefunc("row");
-      makefunc("table");
-      makefunc("listenum");
-      makefunc("check");
-      return ret;
-    }
-     update() {
-      super.update();
-    }
-     clear() {
-      super.clear();
-      for (let child of list(this.dom.childNodes)) {
-          child.remove();
-      }
-    }
-    static  define() {
-      return {tagname: "tableframe-x"}
-    }
-  }
-  _ESClass.register(TableFrame);
-  _es6_module.add_class(TableFrame);
-  TableFrame = _es6_module.add_export('TableFrame', TableFrame);
-  UIBase.internalRegister(TableFrame);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
-
-
-es6_module_define('ui_tabs', ["../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/events.js"], function _ui_tabs_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
-  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets, iconmanager=ui_base.iconmanager;
-  let tab_idgen=1;
-  tab_idgen = _es6_module.add_export('tab_idgen', tab_idgen);
-  let debug=false;
-  let Vector2=vectormath.Vector2;
-  function getpx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  let FAKE_TAB_ID=Symbol("fake_tab_id");
-  class TabItem  {
-     constructor(name, id, tooltip="", tbar) {
-      this.name = name;
-      this.icon = undefined;
-      this.id = id;
-      this.tooltip = tooltip;
-      this.movable = true;
-      this.tbar = tbar;
-      this.dom = undefined;
-      this.extra = undefined;
-      this.extraSize = undefined;
-      this.size = new Vector2();
-      this.pos = new Vector2();
-      this.abssize = new Vector2();
-      this.abspos = new Vector2();
-    }
-     getClientRects() {
-      let r=this.tbar.getClientRects()[0];
-      let s=this.abssize, p=this.abspos;
-      s.load(this.size);
-      p.load(this.pos);
-      if (r) {
-          p[0]+=r.x;
-          p[1]+=r.y;
-      }
-      return [{x: p[0], 
-     y: p[1], 
-     width: s[0], 
-     height: s[1], 
-     left: p[0], 
-     top: p[1], 
-     right: p[0]+s[0], 
-     bottom: p[1]+s[1]}];
-    }
-  }
-  _ESClass.register(TabItem);
-  _es6_module.add_class(TabItem);
-  TabItem = _es6_module.add_export('TabItem', TabItem);
-  class ModalTabMove extends events.EventHandler {
-     constructor(tab, tbar, dom) {
-      super();
-      this.dom = dom;
-      this.tab = tab;
-      this.tbar = tbar;
-      this.first = true;
-      this.droptarget = undefined;
-      this.start_mpos = new Vector2();
-      this.mpos = undefined;
-      this.dragtab = undefined;
-      this.dragstate = false;
-    }
-     finish() {
-      if (debug)
-        if (debug)
-        console.log("finish");
-      this.tbar.tool = undefined;
-      this.popModal(this.dom);
-      this.tbar.update(true);
-    }
-     popModal() {
-      if (this.dragcanvas!==undefined) {
-          this.dragcanvas.remove();
-      }
-      return super.popModal(...arguments);
-    }
-     on_mousedown(e) {
-      this.finish();
-    }
-     on_touchstart(e) {
-      this.finish();
-    }
-     on_touchend(e) {
-      this.finish();
-    }
-     on_mouseup(e) {
-      this.finish();
-    }
-     on_mousemove(e) {
-      return this._on_move(e, e.x, e.y);
-    }
-     on_touchmove(e) {
-      if (e.touches.length==0)
-        return ;
-      let x=e.touches[0].pageX;
-      let y=e.touches[0].pageY;
-      return this._on_move(e, x, y);
-    }
-     _dragstate(e, x, y) {
-      this.dragcanvas.style["left"] = x+"px";
-      this.dragcanvas.style["top"] = y+"px";
-      let ctx=this.tbar.ctx;
-      let screen=ctx.screen;
-      let elem=screen.pickElement(x, y);
-      let e2=new DragEvent("dragenter", this.dragevent);
-      if (elem!==this.droptarget) {
-          let e2=new DragEvent("dragexit", this.dragevent);
-          if (this.droptarget) {
-              this.droptarget.dispatchEvent(e2);
-          }
-          e2 = new DragEvent("dragover", this.dragevent);
-          this.droptarget = elem;
-          if (elem) {
-              elem.dispatchEvent(e2);
-          }
-      }
-    }
-     _on_move(e, x, y) {
-      let r=this.tbar.getClientRects()[0];
-      let dpi=UIBase.getDPI();
-      if (r===undefined) {
-          this.finish();
-          return ;
-      }
-      if (this.dragstate) {
-          this._dragstate(e, x, y);
-          return ;
-      }
-      x-=r.x;
-      y-=r.y;
-      let dx, dy;
-      x*=dpi;
-      y*=dpi;
-      if (this.first) {
-          this.first = false;
-          this.start_mpos[0] = x;
-          this.start_mpos[1] = y;
-      }
-      if (this.mpos===undefined) {
-          this.mpos = [0, 0];
-          dx = dy = 0;
-      }
-      else {
-        dx = x-this.mpos[0];
-        dy = y-this.mpos[1];
-      }
-      if (debug)
-        console.log(x, y, dx, dy);
-      let tab=this.tab, tbar=this.tbar;
-      let axis=tbar.horiz ? 0 : 1;
-      let distx, disty;
-      if (tbar.horiz) {
-          tab.pos[0]+=dx;
-          disty = Math.abs(y-this.start_mpos[1]);
-      }
-      else {
-        tab.pos[1]+=dy;
-        disty = Math.abs(x-this.start_mpos[0]);
-      }
-      let limit=50;
-      let csize=tbar.horiz ? this.tbar.canvas.width : this.tbar.canvas.height;
-      let dragok=tab.pos[axis]+tab.size[axis]<-limit||tab.pos[axis]>=csize+limit;
-      dragok = dragok||disty>limit*1.5;
-      dragok = dragok&&(this.tbar.draggable||this.tbar.getAttribute("draggable"));
-      if (dragok) {
-          this.dragstate = true;
-          this.dragevent = new DragEvent("dragstart", {dataTransfer: new DataTransfer()});
-          this.dragtab = tab;
-          let g=this.tbar.g;
-          this.dragimg = g.getImageData(~~tab.pos[0], ~~tab.pos[1], ~~tab.size[0], ~~tab.size[1]);
-          this.dragcanvas = document.createElement("canvas");
-          let g2=this.drag_g = this.dragcanvas.getContext("2d");
-          this.dragcanvas.visibleToPick = false;
-          this.dragcanvas.width = ~~tab.size[0];
-          this.dragcanvas.height = ~~tab.size[1];
-          this.dragcanvas.style["width"] = (tab.size[0]/dpi)+"px";
-          this.dragcanvas.style["height"] = (tab.size[1]/dpi)+"px";
-          this.dragcanvas.style["position"] = "absolute";
-          this.dragcanvas.style["left"] = e.x+"px";
-          this.dragcanvas.style["top"] = e.y+"px";
-          this.dragcanvas.style["z-index"] = "500";
-          document.body.appendChild(this.dragcanvas);
-          g2.putImageData(this.dragimg, 0, 0);
-          this.tbar.dispatchEvent(this.dragevent);
-          return ;
-      }
-      let ti=tbar.tabs.indexOf(tab);
-      let next=ti<tbar.tabs.length-1 ? tbar.tabs[ti+1] : undefined;
-      let prev=ti>0 ? tbar.tabs[ti-1] : undefined;
-      if (next!==undefined&&tab.pos[axis]>next.pos[axis]) {
-          tbar.swapTabs(tab, next);
-      }
-      else 
-        if (prev!==undefined&&tab.pos[axis]<prev.pos[axis]+prev.size[axis]*0.5) {
-          tbar.swapTabs(tab, prev);
-      }
-      tbar.update(true);
-      this.mpos[0] = x;
-      this.mpos[1] = y;
-    }
-     on_keydown(e) {
-      if (debug)
-        console.log(e.keyCode);
-      switch (e.keyCode) {
-        case 27:
-        case 32:
-        case 13:
-        case 9:
-          this.finish();
-          break;
-      }
-    }
-  }
-  _ESClass.register(ModalTabMove);
-  _es6_module.add_class(ModalTabMove);
-  ModalTabMove = _es6_module.add_export('ModalTabMove', ModalTabMove);
-  class TabBar extends UIBase {
-     constructor() {
-      super();
-      let style=document.createElement("style");
-      let canvas=document.createElement("canvas");
-      this.iconsheet = 0;
-      this.movableTabs = true;
-      this.tabFontScale = 1.0;
-      this.tabs = [];
-      this.tabs.active = undefined;
-      this.tabs.highlight = undefined;
-      this._last_style_key = undefined;
-      canvas.style["width"] = "145px";
-      canvas.style["height"] = "45px";
-      this.r = 8;
-      this.canvas = canvas;
-      this.g = canvas.getContext("2d");
-      style.textContent = `
-    `;
-      this.shadow.appendChild(style);
-      this.shadow.appendChild(canvas);
-      this._last_dpi = undefined;
-      this._last_pos = undefined;
-      this.horiz = true;
-      this.onchange = null;
-      this.onselect = null;
-      let mx, my;
-      let do_element=(e) =>        {
-        for (let tab of this.tabs) {
-            let ok;
-            if (this.horiz) {
-                ok = mx>=tab.pos[0]&&mx<=tab.pos[0]+tab.size[0];
-            }
-            else {
-              ok = my>=tab.pos[1]&&my<=tab.pos[1]+tab.size[1];
-            }
-            if (ok&&this.tabs.highlight!==tab) {
-                this.tabs.highlight = tab;
-                this.update(true);
-            }
-        }
-      };
-      let do_mouse=(e) =>        {
-        let r=this.canvas.getClientRects()[0];
-        mx = e.x-r.x;
-        my = e.y-r.y;
-        let dpi=this.getDPI();
-        mx*=dpi;
-        my*=dpi;
-        do_element(e);
-        const is_mdown=e.type==="mousedown";
-        if (is_mdown&&this.onselect&&this._fireOnSelect().defaultPrevented) {
-            e.preventDefault();
-        }
-      };
-      let do_touch=(e) =>        {
-        let r=this.canvas.getClientRects()[0];
-        if (debug)
-          console.log(e.touches);
-        mx = e.touches[0].pageX-r.x;
-        my = e.touches[0].pageY-r.y;
-        let dpi=this.getDPI();
-        mx*=dpi;
-        my*=dpi;
-        do_element(e);
-        const is_mdown=e.type==="touchstart";
-        if (is_mdown&&this.onselect&&this._fireOnSelect().defaultPrevented) {
-            e.preventDefault();
-        }
-      };
-      this.canvas.addEventListener("mousemove", (e) =>        {
-        if (debug)
-          console.log("yay");
-        let r=this.canvas.getClientRects()[0];
-        do_mouse(e);
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
-      this.canvas.addEventListener("touchstart", (e) =>        {
-        if (e.touches.length===0) {
-            return ;
-        }
-        do_touch(e);
-        if (e.defaultPrevented) {
-            return ;
-        }
-        let ht=this.tabs.highlight;
-        if (ht!==undefined&&this.tool===undefined) {
-            this.setActive(ht);
-            if (this.movableTabs) {
-                let edom=this.getScreen();
-                let tool=new ModalTabMove(ht, this, edom);
-                this.tool = tool;
-                tool.pushModal(edom, false);
-            }
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
-      this.canvas.addEventListener("mousedown", (e) =>        {
-        do_mouse(e);
-        if (e.defaultPrevented) {
-            return ;
-        }
-        if (debug)
-          console.log("mdown");
-        if (e.button!==0) {
-            e.preventDefault();
-            return ;
-        }
-        let ht=this.tabs.highlight;
-        if (ht!==undefined&&this.tool===undefined) {
-            this.setActive(ht);
-            if (this.ctx===undefined) {
-                e.preventDefault();
-                return ;
-            }
-            if (this.movableTabs) {
-                let edom=this.getScreen();
-                let tool=new ModalTabMove(ht, this, edom);
-                this.tool = tool;
-                tool.pushModal(edom, false);
-            }
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
-    }
-    static  setDefault(e) {
-      e.setAttribute("bar_pos", "top");
-      e.updatePos(true);
-      return e;
-    }
-    static  define() {
-      return {tagname: "tabbar-x", 
-     style: "tabs"}
-    }
-     _fireOnSelect() {
-      let e=this._makeOnSelectEvt();
-      if (this.onselect) {
-          this.onselect(e);
-      }
-      return e;
-    }
-     _makeOnSelectEvt() {
-      return {tab: this.tabs.highlight, 
-     defaultPrevented: false, 
-     preventDefault: function preventDefault() {
-          this.defaultPrevented = true;
-        }}
-    }
-     getTab(name_or_id) {
-      for (let tab of this.tabs) {
-          if (tab.id===name_or_id||tab.name===name_or_id)
-            return tab;
-      }
-      return undefined;
-    }
-     clear() {
-      for (let t of this.tabs) {
-          if (t.dom) {
-              t.dom.remove();
-              t.dom = undefined;
-          }
-      }
-      this.tabs = [];
-      this.setCSS();
-      this._redraw();
-    }
-     saveData() {
-      let taborder=[];
-      for (let tab of this.tabs) {
-          taborder.push(tab.name);
-      }
-      let act=this.tabs.active!==undefined ? this.tabs.active.name : "null";
-      return {taborder: taborder, 
-     active: act}
-    }
-     loadData(obj) {
-      if (!obj.taborder) {
-          return ;
-      }
-      let tabs=this.tabs;
-      let active=undefined;
-      let ntabs=[];
-      ntabs.active = undefined;
-      ntabs.highlight = undefined;
-      for (let tname of obj.taborder) {
-          let tab=this.getTab(tname);
-          if (tab===undefined) {
-              continue;
-          }
-          if (tab.name===obj.active) {
-              active = tab;
-          }
-          ntabs.push(tab);
-      }
-      for (let tab of tabs) {
-          if (ntabs.indexOf(tab)<0) {
-              ntabs.push(tab);
-          }
-      }
-      this.tabs = ntabs;
-      if (active!==undefined) {
-          this.setActive(active);
-      }
-      else {
-        this.setActive(this.tabs[0]);
-      }
-      this.update(true);
-      return this;
-    }
-     swapTabs(a, b) {
-      let tabs=this.tabs;
-      let ai=tabs.indexOf(a);
-      let bi=tabs.indexOf(b);
-      tabs[ai] = b;
-      tabs[bi] = a;
-      this.update(true);
-    }
-     addIconTab(icon, id, tooltip, movable=true) {
-      let tab=this.addTab("", id, tooltip, movable);
-      tab.icon = icon;
-      return tab;
-    }
-     addTab(name, id, tooltip="", movable) {
-      let tab=new TabItem(name, id, tooltip, this);
-      tab.movable = movable;
-      this.tabs.push(tab);
-      this.update(true);
-      if (this.tabs.length===1) {
-          this.setActive(this.tabs[0]);
-      }
-      return tab;
-    }
-     updatePos(force_update=false) {
-      let pos=this.getAttribute("bar_pos");
-      if (pos!==this._last_pos||force_update) {
-          this._last_pos = pos;
-          this.horiz = pos==="top"||pos==="bottom";
-          if (debug)
-            console.log("tab bar position update", this.horiz);
-          if (this.horiz) {
-              this.style["width"] = "100%";
-              delete this.style["height"];
-          }
-          else {
-            this.style["height"] = "100%";
-            delete this.style["width"];
-          }
-          this._redraw();
-      }
-    }
-     updateDPI(force_update=false) {
-      let dpi=this.getDPI();
-      if (dpi!==this._last_dpi) {
-          if (debug)
-            console.log("DPI update!");
-          this._last_dpi = dpi;
-          this.updateCanvas(true);
-      }
-    }
-     updateCanvas(force_update=false) {
-      let canvas=this.canvas;
-      let dpi=this.getDPI();
-      let rwidth=getpx(this.canvas.style["width"]);
-      let rheight=getpx(this.canvas.style["height"]);
-      let width=~~(rwidth*dpi);
-      let height=~~(rheight*dpi);
-      let update=force_update;
-      update = update||canvas.width!==width||canvas.height!==height;
-      if (update) {
-          canvas.width = width;
-          canvas.height = height;
-          this._redraw();
-      }
-    }
-     _getFont(tsize) {
-      let font=this.getDefault("TabText");
-      if (this.tabFontScale!==1.0) {
-          font = font.copy();
-          font.size*=this.tabFontScale;
-      }
-      return font;
-    }
-     _layout() {
-      if ((!this.ctx||!this.ctx.screen)&&!this.isDead()) {
-          this.doOnce(this._layout);
-      }
-      let g=this.g;
-      if (debug)
-        console.log("tab layout");
-      let dpi=this.getDPI();
-      let font=this._getFont();
-      let tsize=(font.size*dpi);
-      g.font = font.genCSS(tsize);
-      let axis=this.horiz ? 0 : 1;
-      let pad=4*dpi+Math.ceil(tsize*0.25);
-      let x=pad;
-      let y=0;
-      let h=tsize+Math.ceil(tsize*0.5);
-      let iconsize=iconmanager.getTileSize(this.iconsheet);
-      let have_icons=false;
-      for (let tab of this.tabs) {
-          if (tab.icon!==undefined) {
-              have_icons = true;
-              h = Math.max(h, iconsize+4);
-              break;
-          }
-      }
-      let r1=this.parentWidget ? this.parentWidget.getClientRects()[0] : undefined;
-      let r2=this.canvas.getClientRects()[0];
-      let rx=0, ry=0;
-      if (r1&&r2) {
-          rx = r2.x;
-          ry = r2.y;
-      }
-      let ti=-1;
-      let makeTabWatcher=(tab) =>        {
-        if (tab.watcher) {
-            clearInterval(tab.watcher.timer);
-        }
-        let watcher=() =>          {
-          let dead=this.tabs.indexOf(tab)<0;
-          dead = dead||this.isDead();
-          if (dead) {
-              if (tab.dom)
-                tab.dom.remove();
-              tab.dom = undefined;
-              if (tab.watcher.timer)
-                clearInterval(tab.watcher.timer);
-          }
-        }
-        tab.watcher = watcher;
-        tab.watcher.timer = window.setInterval(watcher, 750);
-        return tab.watcher.timer;
-      };
-      let haveTabDom=false;
-      for (let tab of this.tabs) {
-          if (tab.extra) {
-              haveTabDom = true;
-          }
-      }
-      if (haveTabDom&&this.ctx&&this.ctx.screen&&!this._size_cb) {
-          this._size_cb = () =>            {
-            if (this.isDead()) {
-                this.ctx.screen.removeEventListener("resize", this._size_cb);
-                this._size_cb = undefined;
-                return ;
-            }
-            if (!this.ctx)
-              return ;
-            this._layout();
-            this._redraw();
-          };
-          this.ctx.screen.addEventListener("resize", this._size_cb);
-      }
-      for (let tab of this.tabs) {
-          ti++;
-          if (tab.extra&&!tab.dom) {
-              tab.dom = document.createElement("div");
-              tab.dom.style["margin"] = tab.dom.style["padding"] = "0px";
-              let z=this.calcZ();
-              tab.dom.style["z-index"] = z+1+ti;
-              document.body.appendChild(tab.dom);
-              tab.dom.style["position"] = "fixed";
-              tab.dom.style["display"] = "flex";
-              tab.dom.style["flex-direction"] = this.horiz ? "row" : "column";
-              tab.dom.style["pointer-events"] = "none";
-              if (!this.horiz) {
-                  tab.dom.style["width"] = (tab.size[0]/dpi)+"px";
-                  tab.dom.style["height"] = (tab.size[1]/dpi)+"px";
-                  tab.dom.style["left"] = (rx+tab.pos[0]/dpi)+"px";
-                  tab.dom.style["top"] = (ry+tab.pos[1]/dpi)+"px";
-              }
-              else {
-                tab.dom.style["width"] = (tab.size[0]/dpi)+"px";
-                tab.dom.style["height"] = (tab.size[1]/dpi)+"px";
-                tab.dom.style["left"] = (rx+tab.pos[0]/dpi)+"px";
-                tab.dom.style["top"] = (ry+tab.pos[1]/dpi)+"px";
-              }
-              let font=this._getFont();
-              tab.dom.style["font"] = font.genCSS();
-              tab.dom.style["color"] = font.color;
-              tab.dom.appendChild(tab.extra);
-              makeTabWatcher(tab);
-          }
-          let w=g.measureText(tab.name).width;
-          if (tab.extra) {
-              w+=tab.extraSize||tab.extra.getClientRects()[0].width;
-          }
-          if (tab.icon!==undefined) {
-              w+=iconsize;
-          }
-          let bad=this.tool!==undefined&&tab===this.tabs.active;
-          if (!bad) {
-              tab.pos[axis] = x;
-              tab.pos[axis^1] = y;
-          }
-          tab.size[axis] = w+pad*2;
-          tab.size[axis^1] = h;
-          x+=w+pad*2;
-      }
-      x = (~~(x+pad))/dpi;
-      h = (~~h)/dpi;
-      if (this.horiz) {
-          this.canvas.style["width"] = x+"px";
-          this.canvas.style["height"] = h+"px";
-      }
-      else {
-        this.canvas.style["height"] = x+"px";
-        this.canvas.style["width"] = h+"px";
-      }
-    }
-     setActive(tab) {
-      let update=tab!==this.tabs.active;
-      this.tabs.active = tab;
-      if (update) {
-          if (this.onchange)
-            this.onchange(tab);
-          this.update(true);
-      }
-    }
-     _redraw() {
-      let g=this.g;
-      let activecolor=this.getDefault("TabActive")||"rgba(0,0,0,0)";
-      if (debug)
-        console.log("tab draw");
-      g.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      let dpi=this.getDPI();
-      let font=this._getFont();
-      let tsize=font.size;
-      let iconsize=iconmanager.getTileSize(this.iconsheet);
-      tsize = (tsize*dpi);
-      g.font = font.genCSS(tsize);
-      g.lineWidth = 2;
-      g.strokeStyle = this.getDefault("TabStrokeStyle1");
-      let r=this.r*dpi;
-      this._layout();
-      let tab;
-      let ti=-1;
-      for (tab of this.tabs) {
-          ti++;
-          if (tab===this.tabs.active)
-            continue;
-          let x=tab.pos[0], y=tab.pos[1];
-          let w=tab.size[0], h=tab.size[1];
-          let tw=ui_base.measureText(this, tab.name, this.canvas, g, tsize, font).width;
-          let x2=x+(tab.size[this.horiz^1]-tw)*0.5;
-          let y2=y+tsize;
-          if (tab===this.tabs.highlight) {
-              let p=2;
-              g.beginPath();
-              g.rect(x+p, y+p, w-p*2, h-p*2);
-              g.fillStyle = this.getDefault("TabHighlight");
-              g.fill();
-          }
-          g.fillStyle = this.getDefault("TabText").color;
-          if (!this.horiz) {
-              let x3=0, y3=y2;
-              g.save();
-              g.translate(x3, y3);
-              g.rotate(Math.PI/2);
-              g.translate(x3-tsize, -y3-tsize*0.5);
-          }
-          if (tab.icon!==undefined) {
-              iconmanager.canvasDraw(this, this.canvas, g, tab.icon, x, y, this.iconsheet);
-              x2+=iconsize+4;
-          }
-          g.fillText(tab.name, x2, y2);
-          if (!this.horiz) {
-              g.restore();
-          }
-          let prev=this.tabs[Math.max(ti-1+this.tabs.length, 0)];
-          let next=this.tabs[Math.min(ti+1, this.tabs.length-1)];
-          if (tab!==this.tabs[this.tabs.length-1]&&prev!==this.tabs.active&&next!==this.tabs.active) {
-              g.beginPath();
-              if (this.horiz) {
-                  g.moveTo(x+w, h-5);
-                  g.lineTo(x+w, 5);
-              }
-              else {
-                g.moveTo(w-5, y+h);
-                g.lineTo(5, y+h);
-              }
-              g.strokeStyle = this.getDefault("TabStrokeStyle1");
-              g.stroke();
-          }
-      }
-      let th=tsize;
-      tab = this.tabs.active;
-      if (tab) {
-          let x=tab.pos[0], y=tab.pos[1];
-          let w=tab.size[0], h=tab.size[1];
-          let tw=ui_base.measureText(this, tab.name, this.canvas, g, tsize, font).width;
-          if (this.horiz) {
-              h+=2;
-          }
-          else {
-            w+=2;
-          }
-          let x2=x+(tab.size[this.horiz^1]-tw)*0.5;
-          let y2=y+tsize;
-          if (tab===this.tabs.active) {
-              g.beginPath();
-              let ypad=2;
-              g.strokeStyle = this.getDefault("TabStrokeStyle2");
-              g.fillStyle = activecolor;
-              let r2=r*1.5;
-              if (this.horiz) {
-                  g.moveTo(x-r, h);
-                  g.quadraticCurveTo(x, h, x, h-r);
-                  g.lineTo(x, r2);
-                  g.quadraticCurveTo(x, ypad, x+r2, ypad);
-                  g.lineTo(x+w-r2, ypad);
-                  g.quadraticCurveTo(x+w, 0, x+w, r2);
-                  g.lineTo(x+w, h-r2);
-                  g.quadraticCurveTo(x+w, h, x+w+r, h);
-                  g.stroke();
-                  g.closePath();
-              }
-              else {
-                g.moveTo(w, y-r);
-                g.quadraticCurveTo(w, y, w-r, y);
-                g.lineTo(r2, y);
-                g.quadraticCurveTo(ypad, y, ypad, y+r2);
-                g.lineTo(ypad, y+h-r2);
-                g.quadraticCurveTo(0, y+h, r2, y+h);
-                g.lineTo(w-r2, y+h);
-                g.quadraticCurveTo(w, y+h, w, y+h+r);
-                g.stroke();
-                g.closePath();
-              }
-              let cw=this.horiz ? this.canvas.width : this.canvas.height;
-              let worig=g.lineWidth;
-              g.lineWidth*=0.5;
-              g.fill();
-              g.lineWidth = worig;
-              if (!this.horiz) {
-                  let x3=0, y3=y2;
-                  g.save();
-                  g.translate(x3, y3);
-                  g.rotate(Math.PI/2);
-                  g.translate(-x3-tsize, -y3-tsize*0.5);
-              }
-              g.fillStyle = this.getDefault("TabText").color;
-              g.fillText(tab.name, x2, y2);
-              if (!this.horiz) {
-                  g.restore();
-              }
-              if (!this.horiz) {
-              }
-          }
-      }
-    }
-     removeTab(tab) {
-      this.tabs.remove(tab);
-      if (tab===this.tabs.active) {
-          this.tabs.active = this.tabs[0];
-      }
-      this._layout();
-      this._redraw();
-      this.setCSS();
-    }
-     setCSS() {
-      super.setCSS(false);
-      let r=this.getDefault("TabBarRadius");
-      r = r!==undefined ? r : 3;
-      this.canvas.style["background-color"] = this.getDefault("TabInactive");
-      this.canvas.style["border-radius"] = r+"px";
-    }
-     updateStyle() {
-      let key=""+this.getDefault("background-color");
-      key+=this.getDefault("TabActive");
-      key+=this.getDefault("TabInactive");
-      key+=this.getDefault("TabBarRadius");
-      key+=this.getDefault("TabStrokeStyle1");
-      key+=this.getDefault("TabStrokeStyle2");
-      key+=this.getDefault("TabHighlight");
-      key+=JSON.stringify(this.getDefault("TabText"));
-      key+=this.tabFontScale;
-      if (key!==this._last_style_key) {
-          this._last_style_key = key;
-          this._layout();
-          this.setCSS();
-          this._redraw();
-      }
-    }
-     update(force_update=false) {
-      let rect=this.getClientRects()[0];
-      if (rect) {
-          let key=Math.floor(rect.x*4.0)+":"+Math.floor(rect.y*4.0);
-          if (key!==this._last_p_key) {
-              this._last_p_key = key;
-              this._layout();
-          }
-      }
-      super.update();
-      this.updateStyle();
-      this.updatePos(force_update);
-      this.updateDPI(force_update);
-      this.updateCanvas(force_update);
-    }
-  }
-  _ESClass.register(TabBar);
-  _es6_module.add_class(TabBar);
-  TabBar = _es6_module.add_export('TabBar', TabBar);
-  UIBase.internalRegister(TabBar);
-  class TabContainer extends UIBase {
-     constructor() {
-      super();
-      this._last_style_key = "";
-      this.dataPrefix = "";
-      this.inherit_packflag = 0;
-      this.packflag = 0;
-      this.tabFontScale = 1.0;
-      this.tbar = UIBase.createElement("tabbar-x");
-      this.tbar.parentWidget = this;
-      this.tbar.setAttribute("class", "_tbar_"+this._id);
-      this.tbar.constructor.setDefault(this.tbar);
-      this.tbar.tabFontScale = this.tabFontScale;
-      this._remakeStyle();
-      this.tabs = {};
-      this._last_horiz = undefined;
-      this._last_bar_pos = undefined;
-      this._tab = undefined;
-      let div=document.createElement("div");
-      div.setAttribute("class", `_tab_${this._id}`);
-      div.appendChild(this.tbar);
-      this.shadow.appendChild(div);
-      this.tbar.parentWidget = this;
-      this.tbar.onselect = (e) =>        {
-        if (this.onselect) {
-            this.onselect(e);
-        }
-      };
-      this.tbar.onchange = (tab) =>        {
-        if (this._tab) {
-            HTMLElement.prototype.remove.call(this._tab);
-        }
-        this._tab = this.tabs[tab.id];
-        this._tab.parentWidget = this;
-        for (let i=0; i<2; i++) {
-            this._tab.flushUpdate();
-        }
-        let div=document.createElement("div");
-        this.tbar.setCSS.once(() =>          {
-          return div.style["background-color"] = this.getDefault("background-color");
-        }, div);
-        div.setAttribute("class", `_tab_${this._id}`);
-        div.appendChild(this._tab);
-        this.shadow.appendChild(div);
-        if (this.onchange) {
-            this.onchange(tab);
-        }
-      };
-    }
-    get  movableTabs() {
-      let attr;
-      if (!this.hasAttribute("movable-tabs")) {
-          attr = this.getDefault("movable-tabs");
-          if (attr===undefined||attr===null) {
-              attr = "true";
-          }
-          if (typeof attr==="boolean"||typeof attr==="number") {
-              attr = attr ? "true" : "false";
-          }
-      }
-      else {
-        attr = ""+this.getAttribute("movable-tabs");
-      }
-      attr = attr.toLowerCase();
-      return attr==="true";
-    }
-    set  movableTabs(val) {
-      val = !!val;
-      this.setAttribute("movable-tabs", val ? "true" : "false");
-      this.tbar.movableTabs = this.movableTabs;
-    }
-    static  setDefault(e) {
-      e.setAttribute("bar_pos", "top");
-      return e;
-    }
-    static  define() {
-      return {tagname: "tabcontainer-x", 
-     style: "tabs"}
-    }
-     saveData() {
-      let json=super.saveData()||{};
-      json.tabs = {};
-      for (let k in this.tabs) {
-          let tab=this.tabs[k];
-          if (k===this.tbar.tabs.active.id) {
-              continue;
-          }
-          try {
-            json.tabs[tab.id] = JSON.parse(saveUIData(tab, "tab"));
-          }
-          catch (error) {
-              console.error("Failed to save tab UI layout", tab.id);
-          }
-      }
-      return json;
-    }
-     loadData(json) {
-      if (!json.tabs) {
-          return ;
-      }
-      for (let k in json.tabs) {
-          if (!(k in this.tabs)) {
-              continue;
-          }
-          let uidata=JSON.stringify(json.tabs[k]);
-          loadUIData(this.tabs[k], uidata);
-      }
-    }
-     enableDrag() {
-      this.tbar.draggable = this.draggable = true;
-      this.tbar.addEventListener("dragstart", (e) =>        {
-        this.dispatchEvent(new DragEvent("dragstart", e));
-      });
-      this.tbar.addEventListener("dragover", (e) =>        {
-        this.dispatchEvent(new DragEvent("dragover", e));
-      });
-      this.tbar.addEventListener("dragexit", (e) =>        {
-        this.dispatchEvent(new DragEvent("dragexit", e));
-      });
-    }
-     clear() {
-      this.tbar.clear();
-      if (this._tab!==undefined) {
-          HTMLElement.prototype.remove.call(this._tab);
-          this._tab = undefined;
-      }
-      this.tabs = {};
-    }
-     init() {
-      super.init();
-      this.background = this.getDefault("background-color");
-    }
-     setCSS() {
-      super.setCSS();
-      this.background = this.getDefault("background-color");
-      this._remakeStyle();
-    }
-     _remakeStyle() {
-      let horiz=this.tbar.horiz;
-      let display="flex";
-      let flexDir=!horiz ? "row" : "column";
-      let bgcolor=this.__background;
-      let style=document.createElement("style");
-      style.textContent = `
-      ._tab_${this._id} {
-        display : ${display};
-        flex-direction : ${flexDir};
-        margin : 0px;
-        padding : 0px;
-        align-self : flex-start;
-        ${!horiz ? "vertical-align : top;" : ""}
-      }
-      
-      ._tbar_${this._id} {
-        list-style-type : none;
-        align-self : flex-start;
-        background-color : ${bgcolor};
-        flex-direction : ${flexDir};
-        ${!horiz ? "vertical-align : top;" : ""}
-      }
-    `;
-      if (this._style)
-        this._style.remove();
-      this._style = style;
-      this.shadow.prepend(style);
-    }
-     icontab(icon, id, tooltip) {
-      let t=this.tab("", id, tooltip);
-      t._tab.icon = icon;
-      return t;
-    }
-     removeTab(tab) {
-      let tab2=tab._tab;
-      this.tbar.removeTab(tab2);
-      tab.remove();
-    }
-     tab(name, id=undefined, tooltip=undefined, movable=true) {
-      if (id===undefined) {
-          id = tab_idgen++;
-      }
-      let col=UIBase.createElement("colframe-x");
-      this.tabs[id] = col;
-      col.dataPrefix = this.dataPrefix;
-      col.ctx = this.ctx;
-      col._tab = this.tbar.addTab(name, id, tooltip, movable);
-      col.inherit_packflag|=this.inherit_packflag;
-      col.packflag|=this.packflag;
-      col.parentWidget = this;
-      if (col.ctx) {
-          col._init();
-      }
-      col.setCSS();
-      if (this._tab===undefined) {
-          this.setActive(col);
-      }
-      return col;
-    }
-     setActive(tab) {
-      if (typeof tab==="string") {
-          tab = this.getTab(tab);
-      }
-      if (tab._tab!==this.tbar.tabs.active) {
-          this.tbar.setActive(tab._tab);
-      }
-    }
-     getTabCount() {
-      return this.tbar.tabs.length;
-    }
-     moveTab(tab, i) {
-      tab = tab._tab;
-      let tab2=this.tbar.tabs[i];
-      if (tab!==tab2) {
-          this.tbar.swapTabs(tab, tab2);
-      }
-      this.tbar.setCSS();
-      this.tbar._layout();
-      this.tbar._redraw();
-    }
-     getTab(name_or_id) {
-      if (name_or_id in this.tabs) {
-          return this.tabs[name_or_id];
-      }
-      for (let k in this.tabs) {
-          let t=this.tabs[k];
-          if (t.name===name_or_id) {
-              return t;
-          }
-      }
-    }
-     updateBarPos() {
-      let barpos=this.getAttribute("bar_pos");
-      if (barpos!==this._last_bar_pos) {
-          this.horiz = barpos==="top"||barpos==="bottom";
-          this._last_bar_pos = barpos;
-          this.tbar.setAttribute("bar_pos", barpos);
-          this.tbar.update(true);
-          this.update();
-      }
-    }
-     updateHoriz() {
-      let horiz=this.tbar.horiz;
-      if (this._last_horiz!==horiz) {
-          this._last_horiz = horiz;
-          this._remakeStyle();
-      }
-    }
-     updateStyle() {
-      let key=""+this.getDefault("background-color");
-      if (key!==this._last_style_key) {
-          this._last_style_key = key;
-          this.setCSS();
-      }
-    }
-     update() {
-      super.update();
-      this.tbar.movableTabs = this.movableTabs;
-      if (this._tab!==undefined) {
-          this._tab.update();
-      }
-      this.style["display"] = "flex";
-      this.style["flex-direction"] = !this.horiz ? "row" : "column";
-      this.tbar.tabFontScale = this.tabFontScale;
-      this.updateStyle();
-      this.updateHoriz();
-      this.updateBarPos();
-      this.tbar.update();
-    }
-  }
-  _ESClass.register(TabContainer);
-  _es6_module.add_class(TabContainer);
-  TabContainer = _es6_module.add_export('TabContainer', TabContainer);
-  UIBase.internalRegister(TabContainer);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_tabs.js');
 

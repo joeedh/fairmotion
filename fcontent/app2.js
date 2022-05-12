@@ -255,7 +255,7 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/core/jobs.js');
 
 
-es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], function _ajax_module(_es6_module) {
+es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   let profile_start=(name) =>    {  }
@@ -982,7 +982,7 @@ es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], functi
 }, '/dev/fairmotion/src/core/ajax.js');
 
 
-es6_module_define('raster', ["../config/config.js", "./icon.js"], function _raster_module(_es6_module) {
+es6_module_define('raster', ["./icon.js", "../config/config.js"], function _raster_module(_es6_module) {
   "use strict";
   var IconManager=es6_import_item(_es6_module, './icon.js', 'IconManager');
   var config=es6_import(_es6_module, '../config/config.js');
@@ -1016,7 +1016,7 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_OklU_viewport;
+  var $ret_Tbwd_viewport;
   class RasterState  {
     
     
@@ -1050,10 +1050,10 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_OklU_viewport[0][0] = $ret_OklU_viewport[0][1] = 0.0;
-        $ret_OklU_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_OklU_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_OklU_viewport;
+        $ret_Tbwd_viewport[0][0] = $ret_Tbwd_viewport[0][1] = 0.0;
+        $ret_Tbwd_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_Tbwd_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_Tbwd_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1118,14 +1118,14 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_OklU_viewport=[[0, 0], [0, 0]];
+  var $ret_Tbwd_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
 
 
-es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "./struct.js", "./lib_api.js", "../util/strutils.js", "./toolops_api.js", "../editors/viewport/selectmode.js", "../path.ux/scripts/util/vectormath.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../util/strutils.js", "./lib_api.js", "./struct.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1151,6 +1151,7 @@ es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "./stru
       return {typeName: "image", 
      defaultName: "Image", 
      uiName: "Image", 
+     accessorName: "images", 
      typeIndex: 8, 
      linkOrder: 0}
     }
@@ -1239,7 +1240,7 @@ ImageUser {
 }, '/dev/fairmotion/src/core/imageblock.js');
 
 
-es6_module_define('image_ops', ["../core/toolops_api.js", "../curve/spline.js", "../core/struct.js", "../core/imageblock.js", "../core/lib_api.js", "../core/toolprops.js", "../curve/spline_draw.js", "../config/config.js", "../core/frameset.js", "../core/fileapi/fileapi.js", "../path.ux/scripts/util/struct.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../core/frameset.js", "../core/toolops_api.js", "../core/toolprops.js", "../path.ux/scripts/util/struct.js", "../curve/spline_draw.js", "../core/fileapi/fileapi.js", "../curve/spline.js", "../core/struct.js", "../core/lib_api.js", "../core/imageblock.js", "../config/config.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1318,18 +1319,20 @@ es6_module_define('image_ops', ["../core/toolops_api.js", "../curve/spline.js", 
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["../editors/theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/util/util.js", "./struct.js", "../datafiles/theme.js", "../config/config.js", "../util/strutils.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["./keymap.js", "../datafiles/theme.js", "../util/strutils.js", "../editors/theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../config/config.js", "../path.ux/scripts/util/util.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
   var b64decode=es6_import_item(_es6_module, '../util/strutils.js', 'b64decode');
-  var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var exportTheme=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_theme.js', 'exportTheme');
   var CSSFont=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_theme.js', 'CSSFont');
   var setTheme=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'setTheme');
   var ui_base=es6_import(_es6_module, '../path.ux/scripts/core/ui_base.js');
   var theme=es6_import_item(_es6_module, '../editors/theme.js', 'theme');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var KeyMapDeltaSet=es6_import_item(_es6_module, './keymap.js', 'KeyMapDeltaSet');
+  var KeyMapDelta=es6_import_item(_es6_module, './keymap.js', 'KeyMapDelta');
+  var KeyMap=es6_import_item(_es6_module, './keymap.js', 'KeyMap');
   let defaultTheme=exportTheme(theme);
   function loadTheme(str) {
     var theme;
@@ -1421,7 +1424,28 @@ ToolOpSettings {
       this.reload_defaults(false);
       this.recent_paths = [];
       this.tool_settings = [];
+      this.keyMaps = [];
       this.version = SETTINGS_VERSION;
+      this.keyDeltaGen = 0;
+    }
+     updateKeyDeltas(typeName, keymap) {
+      for (let kd of this.keyMaps) {
+          if (kd.typeName===typeName) {
+              this.keyMaps.remove(kd);
+          }
+      }
+      this.keyMaps.push(keymap.asDeltaSet());
+      this.keyDeltaGen++;
+    }
+     getKeyMapDeltaSet(typeName) {
+      for (let kd of this.keyMaps) {
+          if (kd.typeName===typeName) {
+              return kd;
+          }
+      }
+      let kd=new KeyMapDeltaSet(typeName);
+      this.keyMaps.push(kd);
+      return kd;
     }
      _getToolOpS(toolcls) {
       for (let settings of this.tool_settings) {
@@ -1570,6 +1594,7 @@ AppSettings {
   theme         : string;
   recent_paths  : array(RecentPath);
   version       : int;
+  keyMaps       : array(KeyMapDeltaSet);
 }
 `;
   class OldAppSettings  {
@@ -1806,10 +1831,11 @@ AppSettings {
 }, '/dev/fairmotion/src/core/UserSettings.js');
 
 
-es6_module_define('context', ["../editors/menubar/MenuBar.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/ops/ops_editor.js", "../editors/settings/SettingsEditor.js", "./data_api/data_api.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/console/console.js", "../editors/material/MaterialEditor.js", "../editors/editor_base.js", "../editors/viewport/view2d.js", "../curve/spline.js", "./lib_api.js", "../path.ux/scripts/pathux.js", "./frameset.js", "../scene/scene.js", "../path.ux/scripts/screen/FrameManager_ops.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../editors/viewport/view2d.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/curve/CurveEditor.js", "../editors/console/console.js", "./lib_api.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/path-controller/controller/context.js", "../scene/scene.js", "../curve/spline.js", "../path.ux/scripts/pathux.js", "../editors/ops/ops_editor.js", "./frameset.js", "../editors/editor_base.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
   var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
+  var DataAPI=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'DataAPI');
   class BaseContextOverlay extends ContextOverlay {
      constructor(state=g_app_state) {
       super(state);
@@ -1938,6 +1964,7 @@ es6_module_define('context', ["../editors/menubar/MenuBar.js", "../editors/dopes
     
     
     
+    
      constructor(state=g_app_state) {
       super(state);
       this.reset(state);
@@ -2019,39 +2046,27 @@ es6_module_define('context', ["../editors/menubar/MenuBar.js", "../editors/dopes
   FullContext = _es6_module.add_export('FullContext', FullContext);
   window.Context = FullContext;
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
-  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
-  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
-  var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
+  var Editor=es6_import_item(_es6_module, '../editors/editor_base.js', 'Editor');
+  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
   var CurveEditor=es6_import_item(_es6_module, '../editors/curve/CurveEditor.js', 'CurveEditor');
   var OpStackEditor=es6_import_item(_es6_module, '../editors/ops/ops_editor.js', 'OpStackEditor');
-  var MaterialEditor=es6_import_item(_es6_module, '../editors/material/MaterialEditor.js', 'MaterialEditor');
+  var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
   var DopeSheetEditor=es6_import_item(_es6_module, '../editors/dopesheet/DopeSheetEditor.js', 'DopeSheetEditor');
-  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
-  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
-  var registerToolStackGetter=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager_ops.js', 'registerToolStackGetter');
-  var FairmotionScreen=es6_import_item(_es6_module, '../editors/editor_base.js', 'FairmotionScreen');
-  var resetAreaStacks=es6_import_item(_es6_module, '../editors/editor_base.js', 'resetAreaStacks');
-  var Editor=es6_import_item(_es6_module, '../editors/editor_base.js', 'Editor');
   var View2DHandler=es6_import_item(_es6_module, '../editors/viewport/view2d.js', 'View2DHandler');
   var Scene=es6_import_item(_es6_module, '../scene/scene.js', 'Scene');
   var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
-  var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
 
 
-es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./const.js", "../path.ux/scripts/pathux.js", "./toolops_api.js", "./data_api/data_api.js", "./context.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./const.js", "../path.ux/scripts/pathux.js", "./context.js", "./toolops_api.js", "./toolprops.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
   var ToolMacro=es6_import_item(_es6_module, './toolops_api.js', 'ToolMacro');
   var ToolOp=es6_import_item(_es6_module, './toolops_api.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, './toolops_api.js', 'UndoFlags');
-  var DataFlags=es6_import_item(_es6_module, './data_api/data_api.js', 'DataFlags');
-  var DataPath=es6_import_item(_es6_module, './data_api/data_api.js', 'DataPath');
-  var DataStruct=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStruct');
-  var DataStructArray=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStructArray');
   var CollectionProperty=es6_import_item(_es6_module, './toolprops.js', 'CollectionProperty');
   var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
@@ -2257,20 +2272,7 @@ es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./const.js",
       return datastruct;
     }
      rebuild_last_tool(tool) {
-      return ;
-      if (USE_PATHUX_API) {
-          return ;
-      }
-      let s;
-      if (tool!==undefined)
-        s = this.gen_tool_datastruct(tool);
-      else 
-        s = new DataStruct([]);
-      s.flag|=DataFlags.RECALC_CACHE;
-      s.name = "last_tool";
-      s = new DataPath(s, "last_tool", "", false, false);
-      s.flag|=DataFlags.RECALC_CACHE;
-      ContextStruct.addOrReplace(s, s);
+      console.warn("toolstack.rebuild_last_tool called!");
     }
      set_tool_coll_flag(tool) {
       for (let k in tool.inputs) {
@@ -2386,11 +2388,10 @@ es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./const.js",
     undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
   }
 `;
-  var AppState=es6_import_item(_es6_module, './AppState.js', 'AppState');
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./startup/startup_file_example.js", "../editors/viewport/view2d_ops.js", "../path.ux/scripts/screen/FrameManager.js", "./data_api/data_api_pathux.js", "./lib_utils.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../editors/editor_base.js", "../editors/curve/CurveEditor.js", "./startup/startup_file.js", "../../platforms/platform.js", "./toolops_api.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../scene/scene.js", "../editors/material/MaterialEditor.js", "./frameset.js", "./data_api/data_api_new.js", "./raster.js", "../editors/ops/ops_editor.js", "./lib_api.js", "../editors/console/console.js", "./context.js", "../editors/viewport/view2d.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./toolstack.js", "../editors/theme.js", "./data_api/data_api.js", "../path.ux/scripts/screen/ScreenArea.js", "./ajax.js", "./struct.js", "../path.ux/scripts/util/util.js", "../editors/all.js", "../util/strutils.js", "../config/config.js", "../path.ux/scripts/config/const.js", "./fileapi/fileapi.js", "./UserSettings.js", "./toolprops.js", "../editors/menubar/MenuBar.js", "./jobs.js", "./notifications.js", "../path.ux/scripts/core/ui_base.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../editors/curve/CurveEditor.js", "./toolprops.js", "./data_api/data_api_define.js", "../editors/ops/ops_editor.js", "../config/config.js", "./toolstack.js", "../editors/console/console.js", "./struct.js", "../util/strutils.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/material/MaterialEditor.js", "../editors/all.js", "./jobs.js", "./frameset.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/viewport/view2d.js", "./UserSettings.js", "./notifications.js", "./startup/startup_file_example.js", "../path.ux/scripts/core/ui_base.js", "./raster.js", "./toolops_api.js", "../path.ux/scripts/screen/ScreenArea.js", "./const.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "./lib_api.js", "../path.ux/scripts/util/util.js", "../editors/editor_base.js", "./ajax.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "../curve/spline_base.js", "../scene/scene.js", "./lib_utils.js", "../../platforms/platform.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/config/const.js", "../editors/theme.js", "./context.js", "./fileapi/fileapi.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2405,7 +2406,7 @@ es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./start
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var BaseContextOverlay=es6_import_item(_es6_module, './context.js', 'BaseContextOverlay');
-  var makeAPI=es6_import_item(_es6_module, './data_api/data_api_new.js', 'makeAPI');
+  var makeAPI=es6_import_item(_es6_module, './data_api/data_api_define.js', 'makeAPI');
   let _ex_FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   _es6_module.add_export('FullContext', _ex_FullContext, true);
   let _ex_BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
@@ -2450,7 +2451,6 @@ es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./start
   var setAreaTypes=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'setAreaTypes');
   setAreaTypes(AreaTypes);
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
-  var PathUXInterface=es6_import_item(_es6_module, './data_api/data_api_pathux.js', 'PathUXInterface');
   function get_app_div() {
     let app=document.getElementById("app");
     if (!app) {
@@ -2497,12 +2497,6 @@ es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./start
   gen_screen = _es6_module.add_export('gen_screen', gen_screen);
   es6_import(_es6_module, './startup/startup_file_example.js');
   var startup_file=es6_import_item(_es6_module, './startup/startup_file.js', 'startup_file');
-  var DataPath=es6_import_item(_es6_module, './data_api/data_api.js', 'DataPath');
-  var DataStruct=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStruct');
-  var DataPathTypes=es6_import_item(_es6_module, './data_api/data_api.js', 'DataPathTypes');
-  var DataFlags=es6_import_item(_es6_module, './data_api/data_api.js', 'DataFlags');
-  var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
-  var DataStructArray=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStructArray');
   var wrap_getblock=es6_import_item(_es6_module, './lib_utils.js', 'wrap_getblock');
   var wrap_getblock_us=es6_import_item(_es6_module, './lib_utils.js', 'wrap_getblock_us');
   var urlencode=es6_import_item(_es6_module, '../util/strutils.js', 'urlencode');
@@ -2513,7 +2507,6 @@ es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./start
   var JobManager=es6_import_item(_es6_module, './jobs.js', 'JobManager');
   var RasterState=es6_import_item(_es6_module, './raster.js', 'RasterState');
   var NotificationManager=es6_import_item(_es6_module, './notifications.js', 'NotificationManager');
-  var Notification=es6_import_item(_es6_module, './notifications.js', 'Notification');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
@@ -2781,15 +2774,8 @@ es6_module_define('AppState', ["./const.js", "../curve/spline_base.js", "./start
       this.was_touch = false;
       this.toolstack = new ToolStack(this);
       this.active_view2d = undefined;
-      if (USE_PATHUX_API) {
-          this.api = makeAPI();
-          this.pathcontroller = this.api;
-      }
-      else {
-        this.api = new DataAPI(this);
-        this.pathcontroller = new PathUXInterface(this.api);
-        this.pathcontroller.setContext(new FullContext(this));
-      }
+      this.api = makeAPI();
+      this.pathcontroller = this.api;
       this.filepath = "";
       this.version = g_app_version;
       this.size = screen!==undefined ? screen.size : [512, 512];
@@ -3864,7 +3850,7 @@ SavedContext {
       return this._scene!==undefined ? g_app_state.datalib.get(this._scene) : undefined;
     }
     get  api() {
-      return g_app_state.pathcontroller;
+      return g_app_state.api;
     }
     static  fromSTRUCT(reader) {
       let sctx=new SavedContext();
@@ -3903,7 +3889,7 @@ SavedContext {
       this.spline = spline;
       this.scene = scene;
       this.edit_all_layers = ctx.edit_all_layers;
-      this.api = g_app_state.pathcontroller;
+      this.api = g_app_state.api;
     }
   }
   _ESClass.register(_ToolContext);
@@ -4056,1656 +4042,6 @@ es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_modul
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-
-
-es6_module_define('data_api_types', ["./data_api_base.js", "../toolprops.js", "../toolops_api.js"], function _data_api_types_module(_es6_module) {
-  var DataFlags=es6_import_item(_es6_module, './data_api_base.js', 'DataFlags');
-  var DataPathTypes=es6_import_item(_es6_module, './data_api_base.js', 'DataPathTypes');
-  var PropTypes=es6_import_item(_es6_module, '../toolprops.js', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, '../toolprops.js', 'TPropFlags');
-  var ToolProperty=es6_import_item(_es6_module, '../toolprops.js', 'ToolProperty');
-  var IntProperty=es6_import_item(_es6_module, '../toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../toolprops.js', 'FloatProperty');
-  var Vec2Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec2Property');
-  var BoolProperty=es6_import_item(_es6_module, '../toolprops.js', 'BoolProperty');
-  var Vec3Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec4Property');
-  var StringProperty=es6_import_item(_es6_module, '../toolprops.js', 'StringProperty');
-  var FlagProperty=es6_import_item(_es6_module, '../toolprops.js', 'FlagProperty');
-  var EnumProperty=es6_import_item(_es6_module, '../toolprops.js', 'EnumProperty');
-  var ToolFlags=es6_import_item(_es6_module, '../toolops_api.js', 'ToolFlags');
-  var UndoFlags=es6_import_item(_es6_module, '../toolops_api.js', 'UndoFlags');
-  var PropSubTypes=es6_import_item(_es6_module, '../toolprops.js', 'PropSubTypes');
-  class DataPath  {
-     constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) {
-      this.flag = flag;
-      this.dest_is_prop = dest_is_prop;
-      if (prop==undefined)
-        this.type = dest_is_prop ? DataPathTypes.PROP : DataPathTypes.STRUCT;
-      if (prop!=undefined&&__instance_of(prop, ToolProperty)) {
-          this.type = DataPathTypes.PROP;
-      }
-      else 
-        if (prop!=undefined&&__instance_of(prop, DataStruct)) {
-          this.type = DataPathTypes.STRUCT;
-          prop.parent = this;
-          this.pathmap = prop.pathmap;
-      }
-      else 
-        if (prop!=undefined&&__instance_of(prop, DataStructArray)) {
-          this.type = DataPathTypes.STRUCT_ARRAY;
-          prop.parent = this;
-          this.getter = prop.getter;
-      }
-      this.name = name;
-      this.data = prop;
-      this.path = path;
-      this.update = undefined;
-      this.use_path = use_path;
-      this.parent = undefined;
-    }
-     OnUpdate(func) {
-      this.update = func;
-      if (this.data!==undefined) {
-          this.data.update = func;
-      }
-      return this;
-    }
-     Default(val) {
-      this.data.value = val;
-      return this;
-    }
-     Range(min, max) {
-      this.data.range = [min, max];
-      return this;
-    }
-     ExpRate(rate) {
-      this.data.expRate = rate;
-      return this;
-    }
-     Step(f) {
-      this.data.step = f;
-      return this;
-    }
-     DecimalPlaces(p) {
-      this.data.decimalPlaces = p;
-      return this;
-    }
-     SetFlag(flag) {
-      this.data.flag|=flag;
-      return this;
-    }
-     ClearFlag() {
-      this.data.flag = 0;
-      return this;
-    }
-     FlagsUINames(uinames) {
-      this.data.setUINames(uinames);
-      return this;
-    }
-     cache_good() {
-      var p=this;
-      while (p!==undefined) {
-        if (p.flag&(DataFlags.RECALC_CACHE|DataFlags.NO_CACHE))
-          return false;
-        p = p.parent;
-      }
-      return true;
-    }
-  }
-  _ESClass.register(DataPath);
-  _es6_module.add_class(DataPath);
-  DataPath = _es6_module.add_export('DataPath', DataPath);
-  class DataStructIter  {
-     constructor(s) {
-      this.ret = {done: false, 
-     value: undefined};
-      this.cur = 0;
-      this.strct = s;
-      this.value = undefined;
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-     reset() {
-      this.cur = 0;
-      this.ret.done = false;
-      this.ret.value = undefined;
-    }
-     next() {
-      if (this.cur>=this.strct.paths.length) {
-          var ret=this.ret;
-          this.cur = 0;
-          ret.done = true;
-          this.ret = {done: false, 
-       value: undefined};
-          return ret;
-      }
-      var p=this.strct.paths[this.cur++];
-      p.data.path = p.path;
-      this.ret.value = p;
-      return this.ret;
-    }
-  }
-  _ESClass.register(DataStructIter);
-  _es6_module.add_class(DataStructIter);
-  DataStructIter = _es6_module.add_export('DataStructIter', DataStructIter);
-  class DataStructArray  {
-     constructor(array_item_struct_getter, getitempath, getitem, getiter, getkeyiter, getlength) {
-      this.getter = array_item_struct_getter;
-      this.getitempath = getitempath;
-      this.getitem = getitem;
-      this.getiter = getiter;
-      this.getkeyiter = getkeyiter;
-      this.getlength = getlength;
-      this.type = DataPathTypes.STRUCT_ARRAY;
-    }
-  }
-  _ESClass.register(DataStructArray);
-  _es6_module.add_class(DataStructArray);
-  DataStructArray = _es6_module.add_export('DataStructArray', DataStructArray);
-  class DataStruct  {
-     constructor(paths=[], cls) {
-      this.paths = new GArray();
-      this.pathmap = {};
-      this.parent = undefined;
-      this.dataClass = cls;
-      this._flag = 0;
-      for (let p of paths) {
-          this.add(p);
-      }
-      this.type = DataPathTypes.STRUCT;
-    }
-     Color3(apiname, path, uiname, description) {
-      var ret=new Vec3Property(undefined, apiname, uiname, description);
-      ret.subtype = PropSubTypes.COLOR;
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     String(apiname, path, uiname, description) {
-      let ret=new StringProperty("", apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, true, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Color4(apiname, path, uiname, description) {
-      var ret=new Vec4Property(undefined, apiname, uiname, description);
-      ret.subtype = PropSubTypes.COLOR;
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Vector2(apiname, path, uiname, description) {
-      var ret=new Vec2Property(undefined, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Vector3(apiname, path, uiname, description) {
-      var ret=new Vec3Property(undefined, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!=undefined);
-      this.add(ret);
-      return ret;
-    }
-     Bool(apiname, path, uiname, description) {
-      var ret=new BoolProperty(0, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Flags(flags, apiname, path, uiname, description) {
-      var ret=new FlagProperty(0, flags, undefined, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Float(apiname, path, uiname, description) {
-      var ret=new FloatProperty(0, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     Struct(apiname, path, uiname, description) {
-      var ret=new DataStruct([]);
-      var path=new DataPath(ret, apiname, path, path!==undefined);
-      this.add(path);
-      return ret;
-    }
-     Int(apiname, path, uiname, description) {
-      var ret=new IntProperty(0, apiname, uiname, description);
-      ret = new DataPath(ret, apiname, path, path!==undefined);
-      this.add(ret);
-      return ret;
-    }
-     [Symbol.iterator]() {
-      return new DataStructIter(this);
-    }
-    get  flag() {
-      return this._flag;
-    }
-     cache_good() {
-      var p=this;
-      while (p!==undefined) {
-        if (p.flag&DataFlags.RECALC_CACHE)
-          return false;
-        p = p.parent;
-      }
-      return true;
-    }
-    set  flag(val) {
-      this._flag = val;
-      function recurse(p, flag) {
-        p.flag|=flag;
-        if (__instance_of(p, DataStruct)) {
-            for (var p2 of p.paths) {
-                if (__instance_of(p2, DataStruct)) {
-                    p2.flag|=flag;
-                }
-                else {
-                  recurse(p2, flag);
-                }
-            }
-        }
-      }
-      if (val&DataFlags.NO_CACHE) {
-          for (var p of this.paths) {
-              recurse(p, DataFlags.NO_CACHE);
-          }
-      }
-      if (val&DataFlags.RECALC_CACHE) {
-          for (var p of this.paths) {
-              recurse(p, DataFlags.RECALC_CACHE);
-          }
-      }
-    }
-     add(p) {
-      if (!p) {
-          console.warn("Invalid call to DataStruct.prototype.add()");
-          return ;
-      }
-      if (this._flag&DataFlags.NO_CACHE) {
-          p.flag|=DataFlags.NO_CACHE;
-      }
-      else {
-        p.flag|=DataFlags.RECALC_CACHE;
-        this._flag|=DataFlags.RECALC_CACHE;
-      }
-      this.pathmap[p.name] = p;
-      this.paths.push(p);
-      p.parent = this;
-      if (p.type===DataPathTypes.PROP) {
-          p.data.path = p.path;
-      }
-      return this;
-    }
-     remove(p) {
-      delete this.pathmap[p.name];
-      this.paths.remove(p);
-      this.flag|=DataFlags.RECALC_CACHE;
-      return this;
-    }
-     addOrReplace(p) {
-      return this.replace(p, p);
-    }
-     replace(p, p2) {
-      if (p2===undefined) {
-          console.warn("Invalid call to DataStruct.prototype.replace()");
-          return ;
-      }
-      for (let p3 of this.paths) {
-          if (p3.name===p.name) {
-              this.remove(p3);
-              break;
-          }
-      }
-      this.add(p2);
-      return this;
-    }
-  }
-  _ESClass.register(DataStruct);
-  _es6_module.add_class(DataStruct);
-  DataStruct = _es6_module.add_export('DataStruct', DataStruct);
-}, '/dev/fairmotion/src/core/data_api/data_api_types.js');
-
-
-es6_module_define('data_api', ["../lib_api.js", "./data_api_pathux.js", "./data_api_parser.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_multires.js", "../toolops_api.js", "../safe_eval.js", "../toolprops.js", "../animdata.js", "./data_api_types.js", "./data_api_base.js", "../../config/config.js"], function _data_api_module(_es6_module) {
-  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
-  function is_int(s) {
-    s = s.trim();
-    if (typeof s=="number") {
-        return s===~~s;
-    }
-    let m=s.match(/(\-)?[0-9]+/);
-    if (!m)
-      return false;
-    return m[0].length===s.length;
-  }
-  window._is_int = is_int;
-  let arraypool=new util.ArrayPool();
-  let token_cachering;
-  let tks_cachering;
-  var DataPathTypes={PROP: 0, 
-   STRUCT: 1, 
-   STRUCT_ARRAY: 2}
-  DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
-  var DataFlags={NO_CACHE: 1, 
-   RECALC_CACHE: 2}
-  DataFlags = _es6_module.add_export('DataFlags', DataFlags);
-  var ___data_api_types_js=es6_import(_es6_module, './data_api_types.js');
-  for (let k in ___data_api_types_js) {
-      _es6_module.add_export(k, ___data_api_types_js[k], true);
-  }
-  var DataStruct=es6_import_item(_es6_module, './data_api_types.js', 'DataStruct');
-  var DataStructArray=es6_import_item(_es6_module, './data_api_types.js', 'DataStructArray');
-  var DataStructIter=es6_import_item(_es6_module, './data_api_types.js', 'DataStructIter');
-  var DataPath=es6_import_item(_es6_module, './data_api_types.js', 'DataPath');
-  var config=es6_import(_es6_module, '../../config/config.js');
-  var safe_eval=es6_import(_es6_module, '../safe_eval.js');
-  var PropSubTypes=es6_import_item(_es6_module, '../toolprops.js', 'PropSubTypes');
-  class TinyParserError extends Error {
-  }
-  _ESClass.register(TinyParserError);
-  _es6_module.add_class(TinyParserError);
-  TinyParserError = _es6_module.add_export('TinyParserError', TinyParserError);
-  var PropTypes=es6_import_item(_es6_module, '../toolprops.js', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, '../toolprops.js', 'TPropFlags');
-  var ToolProperty=es6_import_item(_es6_module, '../toolprops.js', 'ToolProperty');
-  var IntProperty=es6_import_item(_es6_module, '../toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../toolprops.js', 'FloatProperty');
-  var Vec2Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec2Property');
-  var BoolProperty=es6_import_item(_es6_module, '../toolprops.js', 'BoolProperty');
-  var Vec3Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, '../toolprops.js', 'Vec4Property');
-  var StringProperty=es6_import_item(_es6_module, '../toolprops.js', 'StringProperty');
-  var FlagProperty=es6_import_item(_es6_module, '../toolprops.js', 'FlagProperty');
-  var EnumProperty=es6_import_item(_es6_module, '../toolprops.js', 'EnumProperty');
-  var ToolFlags=es6_import_item(_es6_module, '../toolops_api.js', 'ToolFlags');
-  var UndoFlags=es6_import_item(_es6_module, '../toolops_api.js', 'UndoFlags');
-  var DataBlock=es6_import_item(_es6_module, '../lib_api.js', 'DataBlock');
-  var apiparser=es6_import_item(_es6_module, './data_api_parser.js', 'apiparser');
-  var MultiResLayer=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'MultiResLayer');
-  var MultiResEffector=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'MultiResEffector');
-  var MResFlags=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'MResFlags');
-  var has_multires=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'has_multires');
-  var ensure_multires=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'ensure_multires');
-  var iterpoints=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'iterpoints');
-  var compose_id=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, '../../curve/spline_multires.js', 'decompose_id');
-  var safe_eval=es6_import(_es6_module, '../safe_eval.js');
-  var ___data_api_base_js=es6_import(_es6_module, './data_api_base.js');
-  for (let k in ___data_api_base_js) {
-      _es6_module.add_export(k, ___data_api_base_js[k], true);
-  }
-  var DataPathTypes=es6_import_item(_es6_module, './data_api_base.js', 'DataPathTypes');
-  var DataFlags=es6_import_item(_es6_module, './data_api_base.js', 'DataFlags');
-  var DataAPIError=es6_import_item(_es6_module, './data_api_base.js', 'DataAPIError');
-  let resolve_path_rets=new cachering(() =>    {
-    return new Array(6);
-  }, 32);
-  var _TOKEN=0;
-  var _WORD=1;
-  var _STRLIT=2;
-  var _LP="(";
-  var _RP=")";
-  var _LS="[";
-  var _RS="]";
-  var _CM=",";
-  var _EQ="=";
-  var _DT=".";
-  class TinyParser  {
-     constructor(data) {
-      var tpl=TinyParser.ctemplates;
-      this.toks = tks_cachering.next();
-      this.toks.length = 0;
-      this.split_chars = TinyParser.split_chars;
-      this.ws = TinyParser.ws;
-      this.data = data;
-      this.cur = 0;
-    }
-     reset(data) {
-      this.cur = 0;
-      this.toks.length = 0;
-      this.data = data;
-      if (data!==undefined&&data!=="")
-        this.lex();
-    }
-     gen_tok(a, b) {
-      var ret=token_cachering.next();
-      ret[0] = a;
-      ret[1] = b;
-      ret.length = 2;
-      return ret;
-    }
-     lex(data) {
-      var gt=this.gen_tok;
-      if (data===undefined)
-        data = this.data;
-      var toks=this.toks;
-      var tok=undefined;
-      var in_str=false;
-      var lastc=0;
-      var i=0;
-      while (i<data.length) {
-        var c=data[i];
-        if (c=="'"&&lastc!="\\") {
-            in_str^=1;
-            if (in_str) {
-                tok = gt("", _STRLIT);
-                toks.push(tok);
-            }
-            else {
-              tok = undefined;
-            }
-        }
-        else 
-          if (in_str) {
-            tok[0]+=c;
-        }
-        else 
-          if (this.ws.has(c)) {
-            if (tok!=undefined&&tok[1]==_WORD) {
-                tok = undefined;
-            }
-        }
-        else 
-          if (this.split_chars.has(c)) {
-            toks.push(gt(c, _TOKEN));
-            tok = undefined;
-        }
-        else {
-          if (tok==undefined) {
-              tok = gt("", _WORD);
-              toks.push(tok);
-          }
-          tok[0]+=c;
-        }
-        lastc = c;
-        i+=1;
-      }
-    }
-     next() {
-      this.cur++;
-      if (this.cur-1<this.toks.length) {
-          return this.toks[this.cur-1];
-      }
-      return undefined;
-    }
-     peek() {
-      if (this.cur<this.toks.length) {
-          return this.toks[this.cur];
-      }
-      return undefined;
-    }
-     expect(type, val) {
-      if (this.peek()[1]!=type) {
-          console.trace("Unexpected token "+this.peek[0]+", expected "+(type==_WORD ? "WORD" : val));
-          throw new TinyParserError();
-      }
-      if (type==_TOKEN&&this.peek()[0]!=val) {
-          console.trace("Unexpected token "+this.peek[0]);
-          throw new TinyParserError();
-      }
-      return this.next()[0];
-    }
-  }
-  _ESClass.register(TinyParser);
-  _es6_module.add_class(TinyParser);
-  
-  var AnimKey=es6_import_item(_es6_module, '../animdata.js', 'AnimKey');
-  var AnimChannel=es6_import_item(_es6_module, '../animdata.js', 'AnimChannel');
-  var AnimKeyFlags=es6_import_item(_es6_module, '../animdata.js', 'AnimKeyFlags');
-  var AnimInterpModes=es6_import_item(_es6_module, '../animdata.js', 'AnimInterpModes');
-  TinyParser.ctemplates = {toks: {obj: Array(64), 
-    init: function (val) {
-        val.length = 0;
-      }}, 
-   token: {obj: ["", ""], 
-    cachesize: 512}}
-  token_cachering = new util.cachering(() =>    {
-    return {obj: ["", ""], 
-    cachesize: 512}
-  }, 512);
-  tks_cachering = new util.cachering(() =>    {
-    return [];
-  }, 64);
-  TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
-  TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_Qb3z_resolve_path_intern;
-  var $retcpy_8eSq_set_prop;
-  var $scope_xxq0_set_prop;
-  class DataAPI  {
-     constructor(appstate) {
-      this.appstate = appstate;
-      this.parser = new TinyParser();
-      this.parser2 = apiparser();
-      this.root_struct = ContextStruct;
-      this.cache = {};
-      this.evalcache = {};
-      this.evalcache2 = {};
-      this.op_keyhandler_cache = {};
-    }
-     parse_call_line_intern(ctx, line) {
-      var p=this.parser;
-      function parse_argval(p) {
-        var val;
-        if (p.peek()[1]==_STRLIT) {
-            val = p.next()[0];
-        }
-        else {
-          val = p.expect(_WORD);
-        }
-        var args;
-        if (p.peek()[0]==_LP) {
-            args = parse_call(p);
-        }
-        return [val, args];
-      }
-      function parse_arg(p) {
-        var arg=p.expect(_WORD);
-        var val=undefined;
-        if (p.peek()[0]==_EQ) {
-            p.next();
-            val = parse_argval(p);
-        }
-        return [arg, val];
-      }
-      function parse_call(p) {
-        p.expect(_TOKEN, _LP);
-        var args=[];
-        var t=undefined;
-        while (p.peek()!=undefined) {
-          if (p.peek()[1]==_WORD) {
-              args.push(parse_arg(p));
-          }
-          else 
-            if (p.peek()[0]==_CM) {
-              p.next();
-          }
-          else {
-            p.expect(_TOKEN, _RP);
-            break;
-          }
-        }
-        return args;
-      }
-      if (line.contains(_LP)==0)
-        throw new TinyParserError();
-      var li=line.search(/\(/);
-      path = line.slice(0, li);
-      line = line.slice(li, line.length);
-      p.reset(line);
-      var call=parse_call(p);
-      path = path.trimRight().trimLeft();
-      var ret=arraypool.get(2, false);
-      ret[0] = path;
-      ret[1] = call;
-      return ret;
-    }
-     parse_call_line(ctx, line) {
-      if (line==undefined) {
-          line = ctx;
-          ctx = new Context();
-      }
-      try {
-        var ret=this.parse_call_line_intern(ctx, line);
-        return ret;
-      }
-      catch (error) {
-          if (!(__instance_of(error, TinyParserError))) {
-              throw error;
-          }
-          else {
-            console.log("Could not parse tool call line "+line+"!");
-          }
-      }
-    }
-     do_selectmode(ctx, args) {
-      return ctx.view2d.selectmode;
-    }
-     do_datapath(ctx, args) {
-      if (args==undefined||args.length==0||args[0].length!=1) {
-          console.log("Invalid arguments to do_datapath()");
-          throw TinyParserError();
-      }
-      return args[0];
-    }
-     do_active_vertex(ctx, args) {
-      var spline=ctx.spline;
-      var v=spline.verts.active;
-      return v==undefined ? -1 : v.eid;
-    }
-     do_mesh_selected(ctx, args) {
-      if (args==undefined||args.length==0||args[0].length!=2) {
-          console.log("Invalid arguments to do_mesh_selected()");
-          throw TinyParserError();
-      }
-      var val=args[0][0];
-      var typemask=0;
-      for (var i=0; i<val.length; i++) {
-          c = val[i].toLowerCase();
-          if (c=="v") {
-              typemask|=MeshTypes.VERT;
-          }
-          else 
-            if (c=="e") {
-              typemask|=MeshTypes.EDGE;
-          }
-          else 
-            if (c=="f") {
-              typemask|=MeshTypes.FACE;
-          }
-          else {
-            console.log("Invalid arguments to do_mesh_select(): "+c);
-            throw TinyParserError();
-          }
-      }
-      var mesh=ctx.mesh;
-      if (mesh===undefined) {
-          console.trace();
-          console.log("Mesh operation called with bad context");
-          console.log("Creating dummy mesh. . .");
-          console.log(ctx);
-          mesh = new Mesh();
-      }
-      return new MSelectIter(typemask, mesh);
-    }
-     prepare_args(ctx, call) {
-      var args={};
-      for (var i=0; i<call.length; i++) {
-          var a=call[i];
-          if (a[1]!=undefined) {
-              if ("do_"+a[1][0] in this) {
-                  args[a[0]] = this["do_"+a[1][0]](ctx, a[1][1], a[1], a);
-              }
-              else 
-                if (typeof a[1][0]=="string") {
-                  args[a[0]] = a[1][0];
-              }
-              else 
-                if (typeof a[1][0]=="number"||parseFloat(a[1][0])!=NaN) {
-                  args[a[0]] = parseFloat(a[1][0]);
-              }
-              else {
-                console.log("Invalid initializer"+a[1][1], a[1], a);
-              }
-          }
-          else {
-            console.log("Error: No parameter for undefined argument "+a[0]);
-            throw TinyParserError();
-          }
-      }
-      return args;
-    }
-     get_opclass_intern(ctx, str) {
-      var ret=this.parse_call_line(ctx, str);
-      if (ret===undefined)
-        return ;
-      var call=ret[1];
-      var path=ret[0];
-      if (!(path in toolmap)) {
-          console.error("Invalid api call "+str+"!", call, path);
-          return ;
-      }
-      return toolmap[path];
-    }
-     get_op_intern(ctx, str) {
-      var ret=this.parse_call_line(ctx, str);
-      if (ret==undefined)
-        return ;
-      var call=ret[1];
-      var path=ret[0];
-      if (!(path in toolmap)) {
-          console.error("Invalid api call "+str+"!");
-          return ;
-      }
-      var args=this.prepare_args(ctx, call);
-      let cls=toolmap[path];
-      let op=cls.invoke(ctx, args);
-      return op;
-    }
-     get_op_keyhandler(ctx, str) {
-      console.warn("get_op_keyhandler: implement me!");
-      if (0) {
-          var hash=str;
-          if (ctx.screen.active.type!=undefined)
-            hash+=ctx.screen.active.type;
-          if (hash in this.op_keyhandler_cache) {
-              return this.op_keyhandler_cache[hash];
-          }
-          function find_hotkey_recurse(element) {
-            if (element==undefined)
-              return undefined;
-            var maps=element.get_keymaps();
-            for (var i=0; i<maps.length; i++) {
-                var km=maps[i];
-                var handler=km.get_tool_handler(str);
-                if (handler!=undefined)
-                  return handler;
-            }
-            if (__instance_of(element, UIFrame)&&element.active!=undefined) {
-                return find_hotkey_recurse(element.active);
-            }
-          }
-          this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
-          return this.op_keyhandler_cache[hash];
-      }
-    }
-     call_op(ctx, str) {
-      if (RELEASE)
-        return this.call_op_release(ctx, str);
-      else 
-        return this.call_op_debug(ctx, str);
-    }
-     call_op_debug(ctx, str) {
-      console.log("calling op", str);
-      var op=this.get_op_intern(ctx, str);
-      if (op==undefined) {
-          throw new Error("Unknown tool '"+str+"'!");
-      }
-      if (op.flag&ToolFlags.USE_DEFAULT_INPUT) {
-          this.appstate.toolstack.default_inputs(ctx, op);
-      }
-      this.appstate.toolstack.exec_tool(op);
-    }
-     call_op_release(ctx, str) {
-      try {
-        var op=this.get_op_intern(ctx, str);
-        if (op.flag&ToolFlags.USE_DEFAULT_INPUT) {
-            this.appstate.toolstack.default_inputs(ctx, op);
-        }
-        this.appstate.toolstack.exec_tool(op);
-      }
-      catch (error) {
-          console.log("Error calling "+str);
-          print_stack(error);
-      }
-    }
-     get_op_uiname(ctx, str) {
-      if (str==undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      try {
-        var op=this.get_op_intern(ctx, str);
-        return op.uiname;
-      }
-      catch (error) {
-          if (!(__instance_of(error, TinyParserError))) {
-              throw error;
-          }
-          else {
-            console.log("Error calling "+str);
-            console.trace();
-          }
-      }
-    }
-     get_op(ctx, str) {
-      if (str==undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      try {
-        var op=this.get_op_intern(ctx, str);
-        return op;
-      }
-      catch (error) {
-          if ((__instance_of(error, TinyParserError))) {
-              throw error;
-          }
-          else {
-            print_stack(error);
-            console.log("Error calling "+str);
-          }
-      }
-    }
-     get_opclass(ctx, str) {
-      if (str===undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      try {
-        var op=this.get_opclass_intern(ctx, str);
-        return op;
-      }
-      catch (error) {
-          if ((__instance_of(error, TinyParserError))) {
-              throw error;
-          }
-          else {
-            console.log(error.stack);
-            console.log(error.message);
-            console.warn("Error calling "+str);
-          }
-      }
-    }
-     copy_path(path) {
-      var ret=[];
-      ret.push(path[0]);
-      for (var i=1; i<path.length; i++) {
-          ret.push(copy_object_deep(path[i]));
-      }
-      return ret;
-    }
-     _build_path(dp) {
-      var s="";
-      while (dp!=undefined) {
-        if (__instance_of(dp, DataPath))
-          s = dp.path+"."+s;
-        dp = dp.parent;
-      }
-      s = s.slice(0, s.length-1);
-      return s;
-    }
-     onFrameChange(ctx, time) {
-      return this.on_frame_change(ctx, time);
-    }
-     on_frame_change(ctx, time) {
-      for (var id in ctx.datalib.idmap) {
-          var block=ctx.datalib.idmap[id];
-          for (var ch of block.lib_anim_channels) {
-              this.set_prop(ctx, ch.path, ch.evaluate(time));
-          }
-      }
-    }
-     key_animpath(ctx, owner, path, time) {
-      if (ctx==undefined) {
-          time = path;
-          path = ctx;
-          ctx = new Context();
-      }
-      path = path.trim();
-      var ret=this.resolve_path_intern(ctx, path);
-      if (ret==undefined||ret[0]==undefined) {
-          console.log("Error, cannot set keyframe for path", path, "!");
-          return ;
-      }
-      var prop=ret[0];
-      if (!(path in owner.lib_anim_pathmap)) {
-          var name=path.split(".");
-          name = name[name.length-1];
-          var ch=new AnimChannel(prop.type, name, path);
-          ch.idgen = owner.lib_anim_idgen;
-          ch.id = owner.lib_anim_idgen.next();
-          ch.idmap = owner.lib_anim_idmap;
-          ch.owner = owner;
-          owner.lib_anim_pathmap[path] = ch;
-          owner.lib_anim_channels.push(ch);
-      }
-      var ch=owner.lib_anim_pathmap[path];
-      var val=this.get_prop(ctx, path);
-      ch.update(time, val);
-    }
-     resolve_path_intern(ctx, str) {
-      if (str===undefined) {
-          throw new Error("invalid arguments to resolve_path_intern");
-      }
-      if (str===undefined) {
-          warntrace("Warning, undefined path in resolve_path_intern (forgot to pass ctx?)");
-          return undefined;
-      }
-      let ret;
-      try {
-        if (!(str in $cache_Qb3z_resolve_path_intern)) {
-            ret = this.resolve_path_intern2(ctx, str);
-            let ret2=[];
-            for (let i=0; i<ret.length; i++) {
-                ret2.push(ret[i]);
-            }
-            $cache_Qb3z_resolve_path_intern[str] = ret2;
-        }
-        else {
-          ret = $cache_Qb3z_resolve_path_intern[str];
-          if (ret[0]===undefined||!ret[0].cache_good()) {
-              delete $cache_Qb3z_resolve_path_intern[str];
-              return this.resolve_path_intern(ctx, str);
-          }
-          else {
-            let ret2=resolve_path_rets.next();
-            for (let i=0; i<ret.length; i++) {
-                ret2[i] = ret[i];
-            }
-            return ret2;
-          }
-        }
-        return ret;
-      }
-      catch (_err) {
-          print_stack(_err);
-          console.log("error: ", str);
-      }
-      return undefined;
-    }
-     resolve_path_intern2(ctx, str) {
-      var parser=this.parser2;
-      var arr_index=undefined;
-      var build_path=this._build_path;
-      var pathout=[""];
-      var spathout=["ContextStruct"];
-      var ownerpathout=[""];
-      var mass_set=undefined;
-      var this2=this;
-      var debugmsg="";
-      function do_eval(node, scope, pathout, spathout) {
-        if (node.type==="ID") {
-            if (scope===undefined) {
-                console.log("data api error: ", str+", "+pathout[0]+", "+spathout[0]);
-            }
-            if (scope.pathmap==undefined||!(node.val in scope.pathmap))
-              return undefined;
-            var ret=scope.pathmap[node.val];
-            if (ret===undefined)
-              return undefined;
-            if (ret.use_path) {
-                ownerpathout[0] = pathout[0];
-                if (ret.path!==""&&ret.path[0]!=="["&&ret.path[0]!="(")
-                  pathout[0] = pathout[0]+"."+ret.path;
-                else 
-                  pathout[0]+=ret.path;
-            }
-            spathout[0] = spathout[0]+".pathmap."+node.val;
-            return ret;
-        }
-        else 
-          if (node.type==="EQUALS") {
-            let ret=do_eval(node.children[0], scope, pathout, spathout);
-            pathout[0]+="==";
-            let val=node.children[1].value;
-            if (typeof val==="string"||__instance_of(val, String)) {
-                let prop=ret.data;
-                if (prop.type===PropTypes.ENUM) {
-                    val = prop.values[val];
-                }
-            }
-            pathout[0]+=val;
-            return ret;
-        }
-        else 
-          if (node.type==="CODE") {
-            mass_set = {filter: node.children[1].value, 
-        path: str.slice(0, node.children[1].lexstart), 
-        subpath: str.slice(node.children[1].lexend, str.length).trim(), 
-        do_mass_set: true};
-            if (mass_set.subpath[0]===".")
-              mass_set.subpath = mass_set.subpath.slice(1, mass_set.subpath.length);
-            return mass_set;
-        }
-        else 
-          if (node.type===".") {
-            var n2=do_eval(node.children[0], scope, pathout, spathout);
-            if (n2!==undefined) {
-                if (__instance_of(n2, DataPath))
-                  n2 = n2.data;
-                return do_eval(node.children[1], n2, pathout, spathout);
-            }
-        }
-        else 
-          if (node.type==="ARRAY") {
-            var array=do_eval(node.children[0], scope, pathout, spathout);
-            if (array===undefined) {
-                console.log(node, "eek!");
-                return undefined;
-            }
-            scope = Object.assign({}, scope);
-            let index;
-            if (array.type===DataPathTypes.PROP&&(array.data.type&(PropTypes.FLAG|PropTypes.ENUM))) {
-                index = node.children[1].val;
-                if (typeof index==="string") {
-                    index = index.trim();
-                }
-                debugmsg = index in array.data.values;
-                if (index in array.data.values) {
-                    index = array.data.values[index];
-                }
-                else 
-                  if (index in array.data.keys) {
-                    index = array.data.keys[index];
-                }
-            }
-            else {
-              index = do_eval(node.children[1], scope, pathout, spathout);
-            }
-            if (index===undefined)
-              index = node.children[1].val;
-            arr_index = index;
-            var is_flag=false;
-            if (array.type===DataPathTypes.PROP&&(array.data.type&(PropTypes.FLAG|PropTypes.ENUM))) {
-                spathout[0]+=".data.data & "+index;
-                is_flag = true;
-            }
-            else 
-              if (array.type===DataPathTypes.PROP) {
-                spathout[0]+=".data.data["+index+"]";
-            }
-            if (!array.use_path) {
-                return array;
-            }
-            else {
-              if (!is_flag) {
-                  ownerpathout[0] = pathout[0];
-              }
-              var path=pathout[0];
-              path = path.slice(1, path.length);
-              if (array.type===DataPathTypes.PROP&&array.data.type===PropTypes.FLAG) {
-                  pathout[0]+="&"+index;
-              }
-              else 
-                if (array.type===DataPathTypes.PROP&&array.data.type===PropTypes.ENUM) {
-                  pathout[0]+="=="+index;
-              }
-              else 
-                if (array.type===DataPathTypes.STRUCT_ARRAY) {
-                  pathout[0]+=array.data.getitempath(index);
-              }
-              else {
-                pathout[0]+="["+index+"]";
-              }
-              if (array.type===DataPathTypes.STRUCT_ARRAY) {
-                  var arr=this2.evaluate(ctx, path, undefined);
-                  var stt=array.data.getter(arr[index]);
-                  stt.parent = array;
-                  spathout[0]+=".getter("+path+"["+index+"]"+")";
-                  return stt;
-              }
-              else {
-                return array;
-              }
-            }
-        }
-        else 
-          if (node.type=="NUM") {
-            return node.val;
-        }
-      }
-      var ast=parser.parse(str);
-      let sret=resolve_path_rets.next();
-      sret[0] = do_eval(ast, ContextStruct, pathout, spathout);
-      pathout[0] = pathout[0].slice(1, pathout[0].length);
-      sret[1] = pathout[0];
-      sret[2] = spathout[0];
-      sret[3] = mass_set;
-      sret[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-      sret[5] = debugmsg;
-      return sret;
-    }
-     evaluate(ctx, str, scope) {
-      try {
-        if (str in this.evalcache) {
-            return this.evalcache[str](ctx, scope);
-        }
-        var func;
-        if (config.HAVE_EVAL) {
-            var script=`
-          func = function(ctx, scope) {
-            return $s
-          }
-        `.replace("$s", str);
-            eval(script);
-        }
-        else {
-          var ast=safe_eval.compile(str);
-          var _scope={ctx: undefined, 
-       scope: undefined, 
-       ContextStruct: ContextStruct, 
-       g_theme: g_theme};
-          func = function (ctx, scope) {
-            _scope.scope = scope;
-            _scope.ctx = ctx;
-            _scope.g_theme = window.g_theme;
-            return safe_eval.exec(ast, _scope);
-          };
-        }
-        this.evalcache[str] = func;
-        return func(ctx, scope);
-      }
-      catch (error) {
-          if (window.DEBUG!==undefined&&window.DEBUG.ui_datapaths)
-            print_stack(error);
-          throw new DataAPIError(error.message);
-      }
-    }
-     get_object(ctx, str) {
-      if (str===undefined) {
-          throw new Error("context cannot be undefined");
-      }
-      var ret=this.resolve_path_intern(ctx, str);
-      if (ret===undefined||ret[0]===undefined||ret[0].type===DataPathTypes.PROP) {
-          console.trace("Not a direct object reference", str);
-          return undefined;
-      }
-      else {
-        var path=ret[1];
-        var val=this.evaluate(ctx, path);
-        return val;
-      }
-    }
-     get_prop(ctx, str) {
-      try {
-        return this.get_prop_intern(ctx, str);
-      }
-      catch (error) {
-          if (!(__instance_of(error, DataAPIError))) {
-              print_stack(error);
-              console.log("Data API error! path:", str);
-          }
-          if (DEBUG.ui_datapaths) {
-              print_stack(error);
-          }
-          throw error;
-      }
-    }
-     get_prop_intern(ctx, str) {
-      if (str===undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      let ret=this.resolve_path_intern(ctx, str);
-      if (ret===undefined)
-        return undefined;
-      let val=ret[0];
-      if (ret[0].type===DataPathTypes.PROP) {
-          if (ret[0].use_path) {
-              let path=ret[1];
-              val = this.evaluate(ctx, path);
-          }
-          else {
-            val = this.evaluate(ctx, ret[2]);
-            if (__instance_of(val, DataPath))
-              val = val.data;
-            if (__instance_of(val, ToolProperty))
-              val = val.data;
-          }
-          window.__prop = {path: path, 
-       val: val};
-          let prop=ret[0].data;
-          if (prop.flag&TPropFlags.USE_CUSTOM_GETSET) {
-              let thisvar=undefined;
-              if (prop.flag&TPropFlags.NEEDS_OWNING_OBJECT) {
-                  thisvar = ret[4]!==undefined ? this.evaluate(ctx, ret[4]) : prop;
-              }
-              val = prop.userGetData.call(thisvar, prop, val);
-              window.__prop = {path: path, 
-         val: val, 
-         userGetData: prop.userGetData, 
-         flag: prop.flag};
-              if (path.match("==")) {
-                  let i=path.search(/\=\=/);
-                  let num=path.slice(i+2, path.length).trim();
-                  if (num.match(/[0-9]+/)) {
-                      num = parseInt(num);
-                  }
-                  else 
-                    if (num in prop.values) {
-                      num = prop.values[num];
-                  }
-                  val = val===num;
-              }
-          }
-      }
-      else {
-        let path=ret[1];
-        val = this.evaluate(ctx, path);
-        window.__prop = {path: path, 
-      val: val};
-        return val;
-      }
-      return val;
-    }
-     build_mass_set_paths(ctx, listpath, subpath, value, filterstr) {
-      if (ctx===undefined) {
-          filterstr = value;
-          value = subpath;
-          subpath = listpath;
-          listpath = ctx;
-          ctx = new Context();
-      }
-      var filter;
-      if (config.HAVE_EVAL) {
-          var filtercode=`
-        filter = function filter($) {\n
-          return `+filterstr+`\n;
-        }`;
-          eval(filtercode);
-      }
-      else {
-        var ast=safe_eval.compile(filterstr);
-        var scope={ctx: ctx, 
-      $: undefined};
-        filter = function filter($) {
-          scope.$ = $;
-          return safe_eval.exec(ast, scope);
-        };
-      }
-      var list=this.get_object(ctx, listpath);
-      var ret=this.resolve_path_intern(ctx, listpath);
-      var sta=ret[0].data;
-      var ret=[];
-      for (var key of sta.getkeyiter.call(list, ctx)) {
-          var item=sta.getitem.call(list, key);
-          if (!filter(item))
-            continue;
-          var path=(listpath+"["+key+"]"+"."+subpath).trim();
-          ret.push(path);
-      }
-      return ret;
-    }
-     mass_set_prop(ctx, listpath, subpath, value, filterstr) {
-      if (ctx==undefined) {
-          filterstr = value;
-          value = subpath;
-          subpath = listpath;
-          listpath = ctx;
-          ctx = new Context();
-      }
-      var paths=this.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
-      for (var i=0; i<paths.length; i++) {
-          this.set_prop(ctx, paths[i], value);
-      }
-    }
-     set_prop(ctx, str, value) {
-      var ret=this.resolve_path_intern(ctx, str);
-      if (ret===undefined) {
-          if (DEBUG.ui_datapaths) {
-              console.log("Failed to resolve path:", str, "with context", ctx);
-          }
-          return ret;
-      }
-      $retcpy_8eSq_set_prop.length = ret.length;
-      for (var i=0; i<5; i++) {
-          $retcpy_8eSq_set_prop[i] = ret[i];
-      }
-      ret = $retcpy_8eSq_set_prop;
-      var owner=this.evaluate(ctx, ret[4]);
-      if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
-          var prop=ret[0].data;
-          prop.ctx = ctx;
-          if (prop.flag&TPropFlags.USE_CUSTOM_GETSET) {
-              value = prop.userSetData.call(owner, prop, value);
-          }
-      }
-      if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
-          if (DEBUG.ui_datapaths) {
-              console.log("Mass set prop", str, value);
-          }
-          this.mass_set_prop(ctx, ret[3].path, ret[3].subpath, value, ret[3].filter);
-          return ;
-      }
-      else 
-        if (ret[0]==undefined) {
-          console.trace("Error! Unknown path", str, "!");
-          return ;
-      }
-      if (DEBUG.ui_datapaths&&ret[0]==undefined) {
-          console.log("error setting", str, "to", value, "ret[0] was undefined", ret.slice(0, ret.length));
-      }
-      if (DEBUG.ui_datapaths) {
-          console.log("set", str, "to", value, "type", ret[0].type, "use_path", ret[0].use_path, "rdata", ret.slice(0, ret.length));
-      }
-      if (ret[0].type!=DataPathTypes.PROP) {
-          console.trace("Error: non-property in set_prop()", str, ret.slice(0, ret.length));
-          return ;
-      }
-      var old_value=this.get_prop(ctx, str);
-      var changed=true;
-      if (ret[0].type==DataPathTypes.PROP) {
-          if (DEBUG.ui_datapaths) {
-              console.log("prop set; use_path: ", ret[0].use_path, "type", ret[0].type, ret[0].data);
-          }
-          var path;
-          if (ret[0].use_path) {
-              path = ret[1];
-          }
-          else {
-            path = ret[2];
-          }
-          let si=path.search(/\=\=/);
-          if (si>=0) {
-              value = path.slice(si+2, path.length).trim();
-              path = path.slice(0, si).trim();
-              if (is_int(value)) {
-                  value = parseInt(value);
-              }
-          }
-          var prop=ret[0].data;
-          prop.ctx = ctx;
-          if (prop.type==PropTypes.FLAG) {
-              if (path.contains("&")) {
-                  var mask=Number.parseInt(path.slice(path.search("&")+1, path.length).trim());
-                  var path2=path.slice(0, path.search("&"));
-                  var val=this.evaluate(ctx, path2);
-                  changed = !!(val&mask)!=!!(old_value&mask);
-                  if (value)
-                    val|=mask;
-                  else 
-                    val&=~mask;
-                  prop.dataref = owner;
-                  prop.setValue(val, owner, changed);
-                  $scope_xxq0_set_prop[0] = val;
-                  path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_xxq0_set_prop);
-              }
-              else {
-                path+=" = "+value;
-                this.evaluate(ctx, path);
-                changed = value!=old_value;
-                prop.dataref = owner;
-                prop.setValue(value, owner, changed);
-              }
-          }
-          else {
-            if (prop.type==PropTypes.DATAREF) {
-                console.trace("IMPLEMENT ME!");
-            }
-            else 
-              if (prop.type==PropTypes.ENUM) {
-                if (__instance_of(value, String)||typeof value=="string") {
-                    value = prop.values[value];
-                }
-                if (__instance_of(value, String)||typeof value=="string") {
-                    value = '"'+value+'"';
-                }
-            }
-            else 
-              if (prop.type==PropTypes.STRING) {
-                value = '"'+value+'"';
-            }
-            var valpath=path;
-            if (path.endsWith("]")) {
-                var i=path.length-1;
-                while (i>=0&&path[i]!="[") {
-                  i--                }
-                valpath = path.slice(0, i);
-            }
-            else 
-              if (!ret[0].use_path) {
-                valpath+=".data.data";
-                path+=".data.data";
-            }
-            var oval=this.evaluate(ctx, path);
-            if (typeof value!="number"&&(prop.type==PropTypes.VEC2||prop.type==PropTypes.VEC3||prop.type==PropTypes.VEC4)) {
-                var arr=this.evaluate(ctx, path);
-                changed = false;
-                for (var i=0; i<arr.length; i++) {
-                    changed = changed||arr[i]!=value[i];
-                    arr[i] = value[i];
-                }
-            }
-            else {
-              if (typeof value=="object") {
-                  $scope_xxq0_set_prop[0] = value;
-                  path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_xxq0_set_prop);
-              }
-              else {
-                changed = value==old_value;
-                path+=" = "+value;
-                if (DEBUG.ui_datapaths) {
-                    console.log("SETPATH:", path);
-                }
-                this.evaluate(ctx, path);
-              }
-            }
-            window.__path = {path: path, 
-        valpath: valpath};
-            changed = value==old_value;
-            if (DEBUG.ui_datapaths) {
-                console.log("prop set:", valpath, value);
-            }
-            value = this.evaluate(ctx, valpath);
-            prop.dataref = owner;
-            prop.setValue(value, owner, changed);
-          }
-          ret[0].ctx = ctx;
-          if (ret[0].update!=undefined)
-            ret[0].update.call(ret[0], owner, old_value, changed);
-      }
-    }
-     get_struct(ctx, str) {
-      if (str==undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      var ret=this.resolve_path_intern(ctx, str);
-      if (ret==undefined||ret[0]==undefined)
-        return undefined;
-      if (__instance_of(ret[0], DataPath)) {
-          return ret[0].data;
-      }
-      return ret[0];
-    }
-     get_prop_meta(ctx, str) {
-      if (str==undefined) {
-          str = ctx;
-          ctx = new Context();
-      }
-      var ret=this.resolve_path_intern(ctx, str);
-      if (ret==undefined||ret[0]==undefined)
-        return undefined;
-      return ret[0].data;
-    }
-  }
-  var $cache_Qb3z_resolve_path_intern={}
-  var $retcpy_8eSq_set_prop=new Array(16);
-  var $scope_xxq0_set_prop=[0, 0];
-  _ESClass.register(DataAPI);
-  _es6_module.add_class(DataAPI);
-  DataAPI = _es6_module.add_export('DataAPI', DataAPI);
-}, '/dev/fairmotion/src/core/data_api/data_api.js');
-
-
-es6_module_define('data_api_parser', ["../../util/parseutil.js"], function _data_api_parser_module(_es6_module) {
-  "use strict";
-  var PUTL=es6_import(_es6_module, '../../util/parseutil.js');
-  function apiparser() {
-    function tk(name, re, func) {
-      return new PUTL.tokdef(name, re, func);
-    }
-    var tokens=[tk("ID", /[a-zA-Z_]+[a-zA-Z$0-9_]*/), tk("ASSIGN", /=/), tk("EQUALS", /==/), tk("COLON", /:/), tk("INT", /[0-9]+/, (t) =>      {
-      t.value = parseInt(t.value);
-      return t;
-    }), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("CODE", /\{.*\}/, function (t) {
-      t.value = t.value.slice(1, t.value.length-1).trim();
-      return t;
-    }), tk("COMMA", /,/), tk("DOT", /\./), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
-      t.lexer.lineno+=1;
-    }), tk("SPACE", / |\t/, function (t) {
-    })];
-    function errfunc(lexer) {
-      return true;
-    }
-    var lex=new PUTL.lexer(tokens, errfunc);
-    var parser=new PUTL.parser(lex);
-    function numnode(token, n) {
-      return {type: "INT", 
-     val: n, 
-     children: [], 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function valnode(token, id) {
-      return {type: "ID", 
-     val: id, 
-     children: [], 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function varnode(token, id, val) {
-      if (val===undefined) {
-          val = undefined;
-      }
-      var cs=val!=undefined ? [val] : [];
-      return {type: "VAR", 
-     val: id, 
-     children: cs, 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function bnode(token, l, r, op) {
-      return {type: op, 
-     children: [l, r], 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function funcnode(token, name_expr, args) {
-      var cs=[name_expr];
-      for (var i=0; i<args.length; i++) {
-          cs.push(args[i]);
-      }
-      return {type: "FUNC", 
-     children: cs, 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function arrnode(token, name_expr, ref) {
-      return {type: "ARRAY", 
-     children: [name_expr, ref], 
-     lexstart: token.lexpos, 
-     lexend: token.lexpos+token.lexlen}
-    }
-    function p_FuncCall(p, name_expr) {
-      var args=[];
-      var lexstart1=p.lexer.lexpos;
-      p.expect("LPARAM");
-      while (!p.at_end()) {
-        var t=p.peeknext();
-        if (t==undefined) {
-            p.error(t, "func");
-        }
-        if (t.type=="RPARAM") {
-            p.next();
-            break;
-        }
-        var lexstart=p.lexer.lexpos;
-        var arg=p.expect("ID");
-        var val=undefined;
-        if (p.peeknext().type=="ASSIGN") {
-            p.next();
-            var val=p_Expr(p, ",)");
-        }
-        var lexend=p.lexer.lexpos;
-        args.push({lexpos: lexstart, 
-      lexlen: lexstart-lexend}, varnode(arg, val));
-        var t=p.next();
-        if (t.type=="RPARAM") {
-            break;
-        }
-        else 
-          if (t.type!="COMMA") {
-            p.error(t, "invalid token in function call");
-        }
-      }
-      var lexlen=p.lexer.lexpos-lexstart1;
-      var ret=funcnode({lexpos: lexstart, 
-     lexlen: lexlen}, name_expr, args);
-      return ret;
-    }
-    function p_Expr(p, end_chars) {
-      if (end_chars===undefined) {
-          end_chars = "";
-      }
-      var lexstart=p.lexer.lexpos;
-      var t=p.peeknext();
-      var ast;
-      if (t.type=="ID")
-        ast = valnode(t, p.expect("ID"));
-      else 
-        if (t.type=="INT")
-        ast = numnode(t, p.expect("INT"));
-      else 
-        p.error("Invalid token "+t.type+"'"+t.value+"'");
-      while (!p.at_end()) {
-        var t=p.peeknext();
-        if (t.type=="DOT") {
-            p.next();
-            var t2=p.peeknext();
-            var id=p.expect("ID", "expected id after '.'");
-            ast = bnode({lexpos: lexstart, 
-        lexlen: t.lexpos+t.lexlen}, ast, valnode(t2, id), ".");
-        }
-        else 
-          if (t.type=="LPARAM") {
-            ast = p_FuncCall(p, ast);
-        }
-        else 
-          if (t.type=="EQUALS") {
-            p.expect("EQUALS");
-            let t2=p.next();
-            var n2={type: "EQUALS", 
-        lexstart: t2.lexpos, 
-        lexend: t2.lexpos+t2.lexlen, 
-        value: t2.value};
-            ast = bnode({lexstart: n2.lexstart, 
-        lexend: n2.lexend}, ast, n2, "EQUALS");
-        }
-        else 
-          if (t.type=="LSBRACKET") {
-            p.expect("LSBRACKET");
-            var val=p_Expr(p, "]");
-            p.expect("RSBRACKET");
-            ast = arrnode({lexpos: lexstart, 
-        lexlen: t.lexpos+t.lexlen}, ast, val);
-        }
-        else 
-          if (t.type=="INT") {
-            ast = numnode(t, t.value);
-            p.next();
-        }
-        else 
-          if (t.type=="CODE") {
-            p.next();
-            var n2={type: "STRING", 
-        lexstart: t.lexpos, 
-        lexend: t.lexpos+t.lexlen, 
-        value: t.value};
-            ast = bnode({lexpos: lexstart, 
-        lexlen: t.lexpos+t.lexlen}, ast, n2, "CODE");
-        }
-        else 
-          if (end_chars.contains(t.value)) {
-            return ast;
-        }
-        else {
-          p.error(t, "Invalid token "+t.type+"'"+t.value+"'");
-        }
-      }
-      return ast;
-    }
-    parser.start = p_Expr;
-    return parser;
-  }
-  apiparser = _es6_module.add_export('apiparser', apiparser);
-  function fmt_ast(ast, tlevel) {
-    if (tlevel===undefined) {
-        tlevel = 0;
-    }
-    var s="";
-    var t="";
-    for (var i=0; i<tlevel; i++) {
-t+=" "
-    }
-    s+=t+ast["type"];
-    if (ast["type"]=="ID"||ast["type"]=="VAR"||ast["type"]=="INT")
-      s+=" "+ast["val"];
-    s+=" {\n";
-    var cs=ast["children"];
-    if (cs==undefined)
-      cs = [];
-    for (var i=0; i<cs.length; i++) {
-        s+=fmt_ast(cs[i], tlevel+1);
-    }
-    s+=t+"}\n";
-    return s;
-  }
-  function test_dapi_parser() {
-    var p=apiparser();
-    var tst="operator_stack[0].name";
-    var tree=p.parse(tst);
-    console.log(fmt_ast(tree));
-    console.log(g_app_state.api.get_prop_new(new Context(), tst));
-    g_app_state.api.set_prop_new(new Context(), "view2d.zoomfac", 0.5);
-  }
-}, '/dev/fairmotion/src/core/data_api/data_api_parser.js');
 
 
 es6_module_define('video', [], function _video_module(_es6_module) {
@@ -5886,7 +4222,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
 }, '/dev/fairmotion/src/core/video.js');
 
 
-es6_module_define('fileapi', ["./fileapi_electron", "./fileapi_html5", "./fileapi_chrome", "../../config/config.js"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["./fileapi_html5", "./fileapi_chrome", "../../config/config.js", "./fileapi_electron"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -6114,7 +4450,7 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
 }, '/dev/fairmotion/src/core/fileapi/fileapi_chrome.js');
 
 
-es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../config/config.js"], function _fileapi_electron_module(_es6_module) {
+es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron/electron_api.js", "./fileapi_html5.js", "../../config/config.js"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../../config/config.js');
   var fileapi_html5=es6_import(_es6_module, './fileapi_html5.js');
@@ -6155,7 +4491,7 @@ es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../path.ux/scri
     if (thisvar==undefined)
       thisvar = this;
     let default_path=get_base_dir(g_app_state.filepath);
-    let $_t0dpoo=require('electron'), ipcRenderer=$_t0dpoo.ipcRenderer;
+    let $_t0rksk=require('electron'), ipcRenderer=$_t0rksk.ipcRenderer;
     let onthen=(e) =>      {
       if (e.cancelled) {
           return ;
@@ -6249,7 +4585,7 @@ es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../path.ux/scri
     if (dialog===undefined) {
         dialog = require('electron').remote.dialog;
     }
-    let $_t1qtjs=require('electron'), ipcRenderer=$_t1qtjs.ipcRenderer;
+    let $_t1jupk=require('electron'), ipcRenderer=$_t1jupk.ipcRenderer;
     let onthen=(dialog_data) =>      {
       let canceled=dialog_data.canceled;
       let path=dialog_data.filePath;
@@ -6293,7 +4629,7 @@ es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../path.ux/scri
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
 
 
-es6_module_define('animdata', ["./eventdag.js", "../curve/spline_base.js", "./toolprops.js", "./struct.js", "./lib_api.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./lib_api.js", "./struct.js", "../curve/spline_base.js", "./eventdag.js", "./toolprops.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -6393,7 +4729,7 @@ es6_module_define('animdata', ["./eventdag.js", "../curve/spline_base.js", "./to
       }
       else {
         var name=DataNames[owner.lib_type].toLowerCase();
-        path = "datalib."+name+".items["+owner.lib_id+"]";
+        path = "datalib.items["+owner.lib_id+"]";
       }
       path+=".animkeys["+this.id+"]";
       return path;
@@ -6565,7 +4901,7 @@ es6_module_define('config_defines', [], function _config_defines_module(_es6_mod
 }, '/dev/fairmotion/src/config/config_defines.js');
 
 
-es6_module_define('svg_export', ["./mathlib.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_draw_new.js", "../curve/spline_base.js", "../curve/spline_draw.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../vectordraw/vectordraw_svg.js", "../curve/spline_draw.js", "../curve/spline_base.js", "../curve/spline_draw_new.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -6651,7 +4987,7 @@ es6_module_define('simple_controller', ["../path-controller/controller/controlle
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
 
 
-es6_module_define('anim', ["../path-controller/util/vectormath.js", "../path-controller/curve/curve1d.js", "./ui_theme.js", "../path-controller/util/math.js", "../path-controller/util/util.js"], function _anim_module(_es6_module) {
+es6_module_define('anim', ["../path-controller/util/util.js", "../path-controller/util/math.js", "../path-controller/curve/curve1d.js", "./ui_theme.js", "../path-controller/util/vectormath.js"], function _anim_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
   var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
@@ -6966,60 +5302,67 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
     UIBase = uibase;
   }
   _setUIBase = _es6_module.add_export('_setUIBase', _setUIBase);
+  let AspectKeys=Symbol("aspect-keys");
   function initAspectClass(object, blacklist) {
     if (blacklist===undefined) {
         blacklist = new Set();
     }
     let cls=object.constructor;
-    let keys=[];
-    let p=object.__proto__;
-    while (p) {
-      keys = keys.concat(Reflect.ownKeys(p));
-      p = p.__proto__;
-    }
-    keys = new Set(keys);
-    object.__aspect_methods = new Set();
-    function validProperty(obj, key) {
-      let descr=Object.getOwnPropertyDescriptor(obj, key);
-      if (descr&&(descr.get||descr.set)) {
-          return false;
-      }
-      let p=obj.constructor;
-      do {
-        if (p.prototype) {
-            let descr=Object.getOwnPropertyDescriptor(p.prototype, key);
-            if (descr&&(descr.set||descr.get)) {
-                return false;
+    if (!cls[AspectKeys]) {
+        cls[AspectKeys] = [];
+        let keys=[];
+        let p=object.__proto__;
+        while (p) {
+          keys = keys.concat(Reflect.ownKeys(p));
+          p = p.__proto__;
+        }
+        keys = new Set(keys);
+        function validProperty(obj, key) {
+          let descr=Object.getOwnPropertyDescriptor(obj, key);
+          if (descr&&(descr.get||descr.set)) {
+              return false;
+          }
+          let p=obj.constructor;
+          do {
+            if (p.prototype) {
+                let descr=Object.getOwnPropertyDescriptor(p.prototype, key);
+                if (descr&&(descr.set||descr.get)) {
+                    return false;
+                }
             }
+            p = p.__proto__;
+          } while (p&&p!==p.__proto__);
+          
+          return true;
         }
-        p = p.__proto__;
-      } while (p&&p!==p.__proto__);
-      
-      return true;
+        for (let k of keys) {
+            let v;
+            if (typeof k==="string"&&k.startsWith("_")) {
+                continue;
+            }
+            if (k==="constructor") {
+                continue;
+            }
+            if (blacklist.has(k)||exclude.has(k)) {
+                continue;
+            }
+            if (!validProperty(object, k)) {
+                continue;
+            }
+            try {
+              v = object[k];
+            }
+            catch (error) {
+                continue;
+            }
+            if (typeof v!=="function") {
+                continue;
+            }
+            cls[AspectKeys].push(k);
+        }
     }
-    for (let k of keys) {
-        let v;
-        if (typeof k==="string"&&k.startsWith("_")) {
-            continue;
-        }
-        if (k==="constructor") {
-            continue;
-        }
-        if (blacklist.has(k)||exclude.has(k)) {
-            continue;
-        }
-        if (!validProperty(object, k)) {
-            continue;
-        }
-        try {
-          v = object[k];
-        }
-        catch (error) {
-            continue;
-        }
-        if (typeof v!=="function") {
-            continue;
-        }
+    object.__aspect_methods = new Set();
+    for (let k of cls[AspectKeys]) {
         AfterAspect.bind(object, k);
     }
   }
@@ -7046,7 +5389,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             chain2[i] = chain[i];
         }
         for (let i=0; i<chain2.length; i++) {
-            let $_t0afta=chain2[i], cb=$_t0afta[0], node=$_t0afta[1], once=$_t0afta[2];
+            let $_t0fwac=chain2[i], cb=$_t0fwac[0], node=$_t0fwac[1], once=$_t0fwac[2];
             if (node) {
                 let isDead=!node.isConnected;
                 if (__instance_of(node, UIBase)) {
@@ -7323,7 +5666,7 @@ es6_module_define('safeobservable', [], function _safeobservable_module(_es6_mod
   _es6_module.add_class(ObserveManger);
   ObserveManger = _es6_module.add_export('ObserveManger', ObserveManger);
   var manager=new ObserveManger();
-  manager = _es6_module.set_default_export('manager', manager);
+  _es6_module.set_default_export('manager', manager);
   
   class Observable extends AbstractObservable {
     static  observeDefine() {
@@ -7372,7 +5715,14 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     BasePackFlag: 0, 
     BoxDepressed: 'rgba(130,130,130, 1)', 
     BoxHighlight: 'rgba(151,208,239, 1)', 
+    "flex-grow": "unset", 
     DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    LabelText: new CSSFont({font: 'sans-serif', 
      weight: 'normal', 
      variant: 'normal', 
      style: 'normal', 
@@ -7401,16 +5751,6 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     'border-radius': 4, 
     'border-style': 'solid', 
     'border-width': 2, 
-    pressed: {DefaultText: new CSSFont({font: 'poppins', 
-      weight: 'bold', 
-      variant: 'normal', 
-      style: 'normal', 
-      size: 12, 
-      color: 'rgba(35,35,35, 1)'}), 
-     'background-color': 'rgba(113,113,113, 1)', 
-     'border-color': '#DADCE0', 
-     'border-style': 'solid', 
-     'border-width': 1}, 
     disabled: {DefaultText: new CSSFont({font: 'poppins', 
       weight: 'bold', 
       variant: 'normal', 
@@ -7419,16 +5759,6 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
       color: 'rgb(109,109,109)'}), 
      'background-color': 'rgb(19,19,19)', 
      'border-color': '#f58f8f', 
-     'border-style': 'solid', 
-     'border-width': 1}, 
-    "highlight-pressed": {DefaultText: new CSSFont({font: 'poppins', 
-      weight: 'bold', 
-      variant: 'normal', 
-      style: 'normal', 
-      size: 12, 
-      color: 'rgba(35,35,35, 1)'}), 
-     'background-color': 'rgba(113,113,113, 1)', 
-     'border-color': '#DADCE0', 
      'border-style': 'solid', 
      'border-width': 1}, 
     height: 25, 
@@ -7443,66 +5773,137 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
      'border-radius': 4, 
      'border-style': 'solid', 
      'border-width': 2}, 
+    'highlight-pressed': {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(35,35,35, 1)'}), 
+     'background-color': 'rgba(113,113,113, 1)', 
+     'border-color': '#DADCE0', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
     margin: 4, 
     'margin-left': 4, 
     'margin-right': 4, 
     padding: 1, 
+    pressed: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(35,35,35, 1)'}), 
+     'background-color': 'rgba(113,113,113, 1)', 
+     'border-color': '#DADCE0', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
     width: 25}, 
    checkbox: {CheckSide: 'left', 
     height: 32, 
-    width: 32}, 
-   colorfield: {circleSize: 16, 
+    width: 32, 
+    "background-color": "rgb(168,168,168)"}, 
+   colorfield: {circleSize: 11, 
     colorBoxHeight: 24, 
     fieldSize: 400, 
     height: 256, 
     hueHeight: 32, 
     width: 256}, 
    colorpickerbutton: {height: 32, 
-    width: 120}, 
-   curvewidget: {CanvasBG: 'rgba(117,79,79, 1)', 
+    width: 95}, 
+   curvewidget: {CanvasBG: 'rgb(44,44,44)', 
     CanvasHeight: 256, 
     CanvasWidth: 256}, 
    dropbox: {dropTextBG: 'rgba(233,233,233, 1)', 
     height: 25, 
     width: 32}, 
-   iconbutton: {'background-color': 'rgba(15,15,15, 0)', 
+   iconbutton: {highlight: {'background-color': 'rgba(133,182,255,0.8)', 
+     'border-color': 'black', 
+     'border-radius': 5, 
+     'border-width': 1, 
+     height: 32, 
+     'margin-bottom': 1, 
+     'margin-left': 2, 
+     'margin-right': 2, 
+     'margin-top': 1, 
+     padding: 2, 
+     width: 32}, 
+    depressed: {'background-color': 'rgba(42,61,77,0.8)', 
+     'border-color': 'black', 
+     'border-radius': 5, 
+     'border-width': 1, 
+     height: 32, 
+     'margin-bottom': 1, 
+     'margin-left': 2, 
+     'margin-right': 2, 
+     'margin-top': 1, 
+     padding: 2, 
+     width: 32}, 
+    'background-color': 'rgba(15,15,15, 0)', 
     'border-color': 'black', 
     'border-radius': 5, 
     'border-width': 1, 
     height: 32, 
-    width: 32, 
     'margin-bottom': 1, 
     'margin-left': 2, 
     'margin-right': 2, 
     'margin-top': 1, 
-    padding: 2}, 
-   iconcheck: {'background-color': 'rgba(15,15,15, 0)', 
+    padding: 2, 
+    width: 32}, 
+   iconcheck: {highlight: {'background-color': 'rgba(133,182,255,0.8)', 
+     'border-color': 'black', 
+     'border-radius': 5, 
+     'border-width': 1, 
+     height: 32, 
+     'margin-bottom': 1, 
+     'margin-left': 2, 
+     'margin-right': 2, 
+     'margin-top': 1, 
+     padding: 2, 
+     width: 32}, 
+    depressed: {'background-color': 'rgba(42,61,77,0.8)', 
+     'border-color': 'black', 
+     'border-radius': 5, 
+     'border-width': 1, 
+     height: 32, 
+     'margin-bottom': 1, 
+     'margin-left': 2, 
+     'margin-right': 2, 
+     'margin-top': 1, 
+     padding: 2, 
+     width: 32}, 
+    'background-color': 'rgba(15,15,15, 0)', 
     'border-color': 'rgba(237,209,209, 1)', 
     'border-radius': 5, 
     'border-width': 0, 
     drawCheck: true, 
     height: 32, 
-    width: 32, 
     'margin-bottom': 1, 
     'margin-left': 2, 
     'margin-right': 2, 
     'margin-top': 1, 
-    padding: 2}, 
+    padding: 2, 
+    width: 32}, 
+   label: {LabelText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: 'rgba(35, 35, 35, 1.0)'})}, 
    listbox: {ListActive: 'rgba(200, 205, 215, 1.0)', 
     ListHighlight: 'rgba(155, 220, 255, 0.5)', 
     height: 200, 
     width: 110}, 
    menu: {MenuBG: 'rgba(250, 250, 250, 1.0)', 
+    "item-radius": 0, 
     MenuBorder: '1px solid grey', 
     MenuHighlight: 'rgba(155, 220, 255, 1.0)', 
-    MenuSeparator: `
-      width : 100%;
-      height : 2px;
-      padding : 0px;
-      margin : 0px;
-      border : none;
-      background-color : grey; 
-    `, 
+    MenuSeparator: {width: "100%", 
+     height: 2, 
+     padding: 0, 
+     margin: 0, 
+     border: "none", 
+     "background-color": "grey"}, 
+    'box-shadow': '5px 5px 25px rgba(0,0,0,0.75)', 
     MenuSpacing: 5, 
     MenuText: new CSSFont({font: 'sans-serif', 
      weight: 'normal', 
@@ -7510,37 +5911,46 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
      style: 'normal', 
      size: 12, 
      color: 'rgba(25, 25, 25, 1.0)'}), 
+    "padding-top": 0, 
+    "padding-left": 0, 
+    "padding-right": 0, 
+    "padding-bottom": 0, 
     'border-color': 'grey', 
     'border-radius': 5, 
     'border-style': 'solid', 
     'border-width': 1}, 
+   notification: {DefaultText: new CSSFont({font: 'poppins', 
+     weight: 'bold', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgb(55,55,55)'}), 
+    "background-color": "rgba(72,72,72,0)", 
+    "border-radius": 5, 
+    "border-color": "grey", 
+    "border-width": 1, 
+    "border-style": "solid", 
+    ProgressBarBG: "rgb(74,148,183)", 
+    ProgressBar: "rgb(250,132,58)"}, 
    numslider: {'background-color': 'rgba(219,219,219, 1)', 
     'border-color': 'black', 
     'border-radius': 1, 
     height: 18, 
-    width: 135}, 
-   numslider_simple: {DefaultHeight: 18, 
-    DefaultWidth: 135, 
-    SlideHeight: 10, 
+    width: 90}, 
+   numslider_simple: {SlideHeight: 10, 
     TextBoxWidth: 45, 
     'background-color': 'rgba(219,219,219, 1)', 
     height: 18, 
     labelOnTop: true, 
     width: 135}, 
-   label: {LabelText: new CSSFont({font: 'sans-serif', 
-     weight: 'normal', 
-     variant: 'normal', 
-     style: 'normal', 
-     size: 14, 
-     color: 'rgba(35, 35, 35, 1.0)'})}, 
    numslider_textbox: {TextBoxHeight: 25, 
-    TextBoxWidth: 100, 
+    TextBoxWidth: 50, 
     'background-color': 'rgba(219,219,219, 1)', 
     height: 25, 
     labelOnTop: true, 
     width: 120}, 
-   panel: {HeaderBorderRadius: 5.829650280441558, 
-    HeaderRadius: 5.829650280441558, 
+   panel: {HeaderBorderRadius: 5.329650280441558, 
+    HeaderRadius: 4, 
     TitleBackground: 'rgba(177,219,255, 1)', 
     TitleBorder: 'rgba(104,104,104, 1)', 
     TitleText: new CSSFont({font: 'sans-serif', 
@@ -7551,19 +5961,19 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
      color: 'rgba(0,0,0, 1)'}), 
     'background-color': 'rgba(184,184,184, 0.7594818376068376)', 
     'border-color': 'rgba(0,0,0, 0.5598061397157866)', 
-    'border-radius': 7.243125760182565, 
+    'border-radius': 4, 
     'border-style': 'groove', 
     'border-width': 1.141, 
-    'margin-bottom': 15.762442435166511, 
+    'margin-bottom': 0, 
     'margin-bottom-closed': 0, 
-    'margin-top': 0.2606556353343805, 
-    'margin-top-closed': 0, 
-    'margin-left': 0, 
+    'margin-left': 5.6584810220495445, 
     'margin-right': 0, 
-    'padding-bottom': 0.8561244078997758, 
+    'margin-top': 0, 
+    'margin-top-closed': 0, 
+    'padding-bottom': 0, 
     'padding-left': 0, 
     'padding-right': 0, 
-    'padding-top': 0.9665377430621097}, 
+    'padding-top': 0}, 
    richtext: {DefaultText: new CSSFont({font: 'sans-serif', 
      weight: 'normal', 
      variant: 'normal', 
@@ -7574,7 +5984,7 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
    screenborder: {'border-inner': 'grey', 
     'border-outer': 'rgba(228,228,228, 1)', 
     'border-width': 2, 
-    'mouse-threshold': 5}, 
+    'mouse-threshold': 8}, 
    scrollbars: {border: undefined, 
     color: undefined, 
     color2: undefined, 
@@ -7588,8 +5998,10 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     'border-width': 1, 
     margin: 2, 
     oneAxisPadding: 2, 
-    padding: 1}, 
-   tabs: {TabActive: 'rgba(212,212,212, 1)', 
+    padding: 1, 
+    "flex-grow": "unset"}, 
+   tabs: {"movable-tabs": "true", 
+    TabActive: 'rgba(212,212,212, 1)', 
     TabBarRadius: 6, 
     TabHighlight: 'rgba(50, 50, 50, 0.2)', 
     TabInactive: 'rgba(183,183,183, 1)', 
@@ -7623,14 +6035,14 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     padding: 5}, 
    treeview: {itemIndent: 10, 
     rowHeight: 18}, 
-   vecPopupButton: {defaultHeight: 18, 
-    defaultWidth: 100, 
-    padding: 3}}
+   vecPopupButton: {height: 18, 
+    padding: 3, 
+    width: 100}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
 
 
-es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/util/html5_fileapi.js", "./ui_base.js", "../widgets/ui_menu.js", "../path-controller/controller/controller_base.js", "../widgets/ui_widgets.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/simple_events.js", "../config/const.js", "../core/units.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../path-controller/toolsys/toolprop.js", "../path-controller/util/html5_fileapi.js", "../widgets/ui_menu.js", "../widgets/ui_widgets.js", "../path-controller/util/simple_events.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "./ui_base.js", "../core/units.js", "../path-controller/controller/controller_base.js", "./ui_theme.js", "../config/const.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var units=es6_import(_es6_module, '../core/units.js');
@@ -7651,13 +6063,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
   let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
   var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller_base.js', 'DataPathError');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var list=function list(iter) {
-    let ret=[];
-    for (let item of iter) {
-        ret.push(item);
-    }
-    return ret;
-  }
   class Label extends ui_base.UIBase {
      constructor() {
       super();
@@ -7678,9 +6083,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       this.shadow.appendChild(this.dom);
       this.font = "LabelText";
     }
-     init() {
-      this.dom.style["width"] = "max-content";
-    }
     get  font() {
       return this._font;
     }
@@ -7699,6 +6101,22 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
         console.warn("Invalid font", fontDefaultName);
       }
       this._updateFont();
+    }
+    get  text() {
+      return this._label;
+    }
+    set  text(text) {
+      this._label = text;
+      if (!this.hasAttribute("datapath")) {
+          this.dom.innerText = text;
+      }
+    }
+    static  define() {
+      return {tagname: "label-x", 
+     style: "label"}
+    }
+     init() {
+      this.dom.style["width"] = "max-content";
     }
      setCSS() {
       super.setCSS(false);
@@ -7755,19 +6173,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           this.updateDataPath();
       }
     }
-    get  text() {
-      return this._label;
-    }
-    set  text(text) {
-      this._label = text;
-      if (!this.hasAttribute("datapath")) {
-          this.dom.innerText = text;
-      }
-    }
-    static  define() {
-      return {tagname: "label-x", 
-     style: "label"}
-    }
   }
   _ESClass.register(Label);
   _es6_module.add_class(Label);
@@ -7786,6 +6191,24 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       this.reversed = false;
       this._prefixstack = [];
       this._mass_prefixstack = [];
+    }
+    set  background(bg) {
+      this.__background = bg;
+      this.styletag.textContent = `div.containerx {
+        background-color : ${bg};
+      }
+    `;
+      this.style["background-color"] = bg;
+    }
+    get  children() {
+      let list=[];
+      this._forEachChildWidget((n) =>        {
+        list.push(n);
+      });
+      return list;
+    }
+    static  define() {
+      return {tagname: "container-x"}
     }
      changePathPrefix(newprefix) {
       let prefix=this.dataPrefix.trim();
@@ -8019,17 +6442,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       }
       return this;
     }
-    set  background(bg) {
-      this.__background = bg;
-      this.styletag.textContent = `div.containerx {
-        background-color : ${bg};
-      }
-    `;
-      this.style["background-color"] = bg;
-    }
-    static  define() {
-      return {tagname: "container-x"}
-    }
      save() {
 
     }
@@ -8080,13 +6492,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       window.setInterval(() =>        {
         this.update();
       }, 150);
-    }
-    get  children() {
-      let list=[];
-      this._forEachChildWidget((n) =>        {
-        list.push(n);
-      });
-      return list;
     }
      update() {
       super.update();
@@ -8142,7 +6547,7 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           this.add(ch);
       }
       else {
-        this.shadow.insertBefore(ch, list(this.children)[i]);
+        this.shadow.insertBefore(ch, util.list(this.children)[i]);
       }
       if (ch.onadd) {
           ch.onadd();
@@ -8181,7 +6586,7 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
             if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
                 this._menu.remove();
             }
-            this._menu = createMenu(this.ctx, title, templ);
+            this._menu = createMenu(this.ctx, title, list);
             return this._menu;
           };
       }
@@ -8304,8 +6709,9 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
     }
      textbox(inpath, text, cb=undefined, packflag=0) {
       let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
+      if (inpath) {
+          path = this._joinPrefix(inpath);
+      }
       packflag|=this.inherit_packflag&~PackFlags.NO_UPDATE;
       let ret=UIBase.createElement("textbox-x");
       if (path!==undefined) {
@@ -8314,12 +6720,12 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       ret.ctx = this.ctx;
       ret.parentWidget = this;
       ret._init();
+      this._add(ret);
       ret.setCSS();
       ret.update();
       ret.packflag|=packflag;
       ret.onchange = cb;
       ret.text = text;
-      this._add(ret);
       return ret;
     }
      pathlabel(inpath, label="", packflag=0) {
@@ -8380,7 +6786,10 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           return undefined;
       }
       path = path.trim();
-      if (prefix.length>0&&!prefix.endsWith(".")&&!path.startsWith(".")) {
+      if (path[0]==="/") {
+          return path;
+      }
+      if (prefix.length>0&&path.length>0&&!prefix.endsWith(".")&&!path.startsWith(".")) {
           path = "."+path;
       }
       return prefix+path;
@@ -8555,7 +6964,7 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
               check.icon = rdef.prop.iconmap[rdef.subkey];
               return check;
           }
-          if (!(packflag&PackFlags.USE_ICONS)) {
+          if (!(packflag&PackFlags.USE_ICONS)&&!(prop.flag&(PropFlags.USE_ICONS|PropFlags.FORCE_ENUM_CHECKBOXES))) {
               if (packflag&PackFlags.FORCE_PROP_LABELS) {
                   let strip=this.strip();
                   strip.label(prop.uiname);
@@ -8568,8 +6977,15 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
               }
           }
           else {
+            if (prop.flag&PropFlags.USE_ICONS) {
+                packflag|=PackFlags.USE_ICONS;
+            }
+            else 
+              if (prop.flag&PropFlags.FORCE_ENUM_CHECKBOXES) {
+                packflag&=~PackFlags.USE_ICONS;
+            }
             if (packflag&PackFlags.FORCE_PROP_LABELS) {
-                let strip=thdis.strip();
+                let strip=this.strip();
                 strip.label(prop.uiname);
                 return strip.checkenum(inpath, undefined, packflag).setUndo(useDataPathUndo);
             }
@@ -8807,6 +7223,7 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           if (packflag&PackFlags.USE_ICONS) {
               for (let key in prop.values) {
                   let check=frame.check(inpath+"["+key+"]", "", packflag);
+                  check.packflag|=PackFlags.HIDE_CHECK_MARKS;
                   check.icon = prop.iconmap[key];
                   check.drawCheck = false;
                   check.style["padding"] = "0px";
@@ -9047,34 +7464,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       let decimals;
       if (inpath) {
           ret.setAttribute("datapath", inpath);
-          let rdef;
-          try {
-            rdef = this.ctx.api.resolvePath(this.ctx, inpath, true);
-          }
-          catch (error) {
-              if (__instance_of(error, DataPathError)) {
-                  util.print_stack(error);
-                  console.warn("Error resolving property", inpath);
-              }
-              else {
-                throw error;
-              }
-          }
-          if (rdef&&rdef.prop) {
-              let prop=rdef.prop;
-              let range=prop.uiRange!==undefined ? prop.uiRange : prop.range;
-              range = range===undefined ? [-100000, 100000] : range;
-              min = min===undefined ? range[0] : min;
-              max = max===undefined ? range[1] : max;
-              is_int = is_int===undefined ? prop.type===PropTypes.INT : is_int;
-              name = name===undefined ? prop.uiname : name;
-              step = step===undefined ? prop.step : step;
-              step = step===undefined ? (is_int ? 1 : 0.1) : step;
-              decimals = decimals===undefined ? prop.decimalPlaces : decimals;
-          }
-          else {
-            console.warn("warning, failed to lookup property info for path", inpath);
-          }
       }
       if (name) {
           ret.setAttribute("name", name);
@@ -9088,8 +7477,9 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       if (defaultval!==undefined) {
           ret.setValue(defaultval);
       }
-      if (is_int)
-        ret.setAttribute("integer", is_int);
+      if (is_int) {
+          ret.setAttribute("integer", is_int);
+      }
       if (decimals!==undefined) {
           ret.decimalPlaces = decimals;
       }
@@ -9097,6 +7487,10 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           ret.onchange = callback;
       }
       this._add(ret);
+      if (this.ctx) {
+          ret.setCSS();
+          ret.update();
+      }
       return ret;
     }
      _container_inherit(elem, packflag=0) {
@@ -9164,12 +7558,22 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       this._add(ret);
       return ret;
     }
-     colorPicker(inpath, packflag=0, mass_set_path=undefined) {
+     colorPicker(inpath, packflag_or_args=0, mass_set_path=undefined, themeOverride=undefined) {
+      let packflag;
+      if (typeof packflag_or_args==="object") {
+          let args=packflag_or_args;
+          packflag = args.packflag!==undefined ? args.packflag : 0;
+          mass_set_path = args.massSetPath;
+          themeOverride = args.themeOverride;
+      }
       let path;
       if (inpath) {
           path = this._joinPrefix(inpath);
       }
       let ret=UIBase.createElement("colorpicker-x");
+      if (themeOverride) {
+          ret.overrideClass(themeOverride);
+      }
       packflag|=PackFlags.SIMPLE_NUMSLIDERS;
       this._container_inherit(ret, packflag);
       ret.ctx = this.ctx;
@@ -9244,6 +7648,9 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
      constructor() {
       super();
     }
+    static  define() {
+      return {tagname: 'rowframe-x'}
+    }
      connectedCallback() {
       super.connectedCallback();
       this.style['display'] = 'flex';
@@ -9274,9 +7681,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
      update() {
       super.update();
     }
-    static  define() {
-      return {tagname: 'rowframe-x'}
-    }
   }
   _ESClass.register(RowFrame);
   _es6_module.add_class(RowFrame);
@@ -9285,6 +7689,9 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
   class ColumnFrame extends Container {
      constructor() {
       super();
+    }
+    static  define() {
+      return {tagname: "colframe-x"}
     }
      init() {
       super.init();
@@ -9304,9 +7711,6 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
       this.style['padding-top'] = this.style['padding-bottom'] = ''+m+'px';
       this.style['padding-left'] = this.style['padding-right'] = ''+m2+'px';
       return this;
-    }
-    static  define() {
-      return {tagname: "colframe-x"}
     }
   }
   _ESClass.register(ColumnFrame);
@@ -9333,6 +7737,9 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
         this._colWidth = v;
       }
     }
+    static  define() {
+      return {tagname: "two-column-x"}
+    }
      init() {
       super.init();
       this.style["display"] = "flex";
@@ -9356,13 +7763,3457 @@ es6_module_define('ui', ["../path-controller/util/util.js", "../path-controller/
           this.style["flex-direction"] = style;
       }
     }
-    static  define() {
-      return {tagname: "two-column-x"}
-    }
   }
   _ESClass.register(TwoColumnFrame);
   _es6_module.add_class(TwoColumnFrame);
   TwoColumnFrame = _es6_module.add_export('TwoColumnFrame', TwoColumnFrame);
   UIBase.internalRegister(TwoColumnFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
+
+
+es6_module_define('ui_base', ["../path-controller/util/util.js", "../path-controller/controller/controller.js", "./anim.js", "../path-controller/util/simple_events.js", "./aspect.js", "./ui_consts.js", "../path-controller/util/vectormath.js", "./units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/math.js", "./theme.js", "../icon_enum.js", "./ui_theme.js", "../screen/area_wrangler.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
+  var contextWrangler=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'contextWrangler');
+  let _ui_base=undefined;
+  let TextBox=undefined;
+  function _setTextboxClass(cls) {
+    TextBox = cls;
+  }
+  _setTextboxClass = _es6_module.add_export('_setTextboxClass', _setTextboxClass);
+  var Animator=es6_import_item(_es6_module, './anim.js', 'Animator');
+  es6_import(_es6_module, './units.js');
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  var math=es6_import(_es6_module, '../path-controller/util/math.js');
+  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
+  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
+  var copyEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'copyEvent');
+  var pathDebugEvent=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pathDebugEvent');
+  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
+  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
+  var reverse_keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'reverse_keymap');
+  var pushPointerModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushPointerModal');
+  var getDataPathToolOp=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'getDataPathToolOp');
+  var units=es6_import(_es6_module, './units.js');
+  var rgb_to_hsv=es6_import_item(_es6_module, '../util/colorutils.js', 'rgb_to_hsv');
+  var hsv_to_rgb=es6_import_item(_es6_module, '../util/colorutils.js', 'hsv_to_rgb');
+  var ___ui_theme_js=es6_import(_es6_module, './ui_theme.js');
+  for (let k in ___ui_theme_js) {
+      _es6_module.add_export(k, ___ui_theme_js[k], true);
+  }
+  var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
+  var theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
+  var parsepx=es6_import_item(_es6_module, './ui_theme.js', 'parsepx');
+  var compatMap=es6_import_item(_es6_module, './ui_theme.js', 'compatMap');
+  var DefaultTheme=es6_import_item(_es6_module, './theme.js', 'DefaultTheme');
+  let ElementClasses=[];
+  ElementClasses = _es6_module.add_export('ElementClasses', ElementClasses);
+  let _ex_theme=es6_import_item(_es6_module, './ui_theme.js', 'theme');
+  _es6_module.add_export('theme', _ex_theme, true);
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  window.__cconst = cconst;
+  let Vector4=vectormath.Vector4;
+  let _ex_Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
+  _es6_module.add_export('Icons', _ex_Icons, true);
+  var Icons=es6_import_item(_es6_module, '../icon_enum.js', 'Icons');
+  let _ex_setIconMap=es6_import_item(_es6_module, '../icon_enum.js', 'setIconMap');
+  _es6_module.add_export('setIconMap', _ex_setIconMap, true);
+  var setIconMap=es6_import_item(_es6_module, '../icon_enum.js', 'setIconMap');
+  var AfterAspect=es6_import_item(_es6_module, './aspect.js', 'AfterAspect');
+  var initAspectClass=es6_import_item(_es6_module, './aspect.js', 'initAspectClass');
+  var aspect=es6_import(_es6_module, './aspect.js');
+  const EnumProperty=toolprop.EnumProperty;
+  let Area;
+  let _setAreaClass=(cls) =>    {
+    Area = cls;
+  }
+  _setAreaClass = _es6_module.add_export('_setAreaClass', _setAreaClass);
+  const ErrorColors={WARNING: "yellow", 
+   ERROR: "red", 
+   OK: "green"}
+  _es6_module.add_export('ErrorColors', ErrorColors);
+  window.__theme = theme;
+  let registered_has_happened=false;
+  let tagPrefix="";
+  const EventCBSymbol=Symbol("wrapped event callback");
+  function calcElemCBKey(elem, type, options) {
+    return elem._id+":"+type+":"+JSON.stringify(options||{});
+  }
+  function setTagPrefix(prefix) {
+    if (registered_has_happened) {
+        throw new Error("have to call ui_base.setTagPrefix before loading any other path.ux modules");
+    }
+    tagPrefix = ""+prefix;
+  }
+  setTagPrefix = _es6_module.add_export('setTagPrefix', setTagPrefix);
+  function getTagPrefix(prefix) {
+    return tagPrefix;
+  }
+  getTagPrefix = _es6_module.add_export('getTagPrefix', getTagPrefix);
+  let prefix=document.getElementById("pathux-tag-prefix");
+  if (prefix) {
+      console.log("Found pathux-tag-prefix element");
+      prefix = prefix.innerText.trim();
+      setTagPrefix(prefix);
+  }
+  var ClassIdSymbol=es6_import_item(_es6_module, './ui_consts.js', 'ClassIdSymbol');
+  ClassIdSymbol = _es6_module.add_export('ClassIdSymbol', ClassIdSymbol);
+  let class_idgen=1;
+  function setTheme(theme2) {
+    for (let k in theme2) {
+        let v=theme2[k];
+        if (typeof v!=="object") {
+            theme[k] = v;
+            continue;
+        }
+        let v0=theme[k];
+        if (!(k in theme)) {
+            theme[k] = {};
+        }
+        for (let k2 in v) {
+            if (k2 in compatMap) {
+                let k3=compatMap[k2];
+                if (v[k3]===undefined) {
+                    v[k3] = v[k2];
+                }
+                delete v[k2];
+                k2 = k3;
+            }
+            theme[k][k2] = v[k2];
+        }
+    }
+  }
+  setTheme = _es6_module.add_export('setTheme', setTheme);
+  setTheme(DefaultTheme);
+  let _last_report=util.time_ms();
+  function report() {
+    if (util.time_ms()-_last_report>350) {
+        console.warn(...arguments);
+        _last_report = util.time_ms();
+    }
+  }
+  report = _es6_module.add_export('report', report);
+  function getDefault(key, elem) {
+    console.warn("Deprecated call to ui_base.js:getDefault");
+    if (key in theme.base) {
+        return theme.base[key];
+    }
+    else {
+      throw new Error("Unknown default "+key);
+    }
+  }
+  getDefault = _es6_module.add_export('getDefault', getDefault);
+  function IsMobile() {
+    console.warn("ui_base.IsMobile is deprecated; use util.isMobile instead");
+    return util.isMobile();
+  }
+  IsMobile = _es6_module.add_export('IsMobile', IsMobile);
+  
+  let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
+  keys = keys.concat(["padding-block-start", "padding-block-end"]);
+  keys = keys.concat(["margin-left", "margin-top", "margin-bottom", "margin-right"]);
+  keys = keys.concat(["padding-left", "padding-top", "padding-bottom", "padding-right"]);
+  const marginPaddingCSSKeys=keys;
+  _es6_module.add_export('marginPaddingCSSKeys', marginPaddingCSSKeys);
+  class _IconManager  {
+     constructor(image, tilesize, number_of_horizontal_tiles, drawsize) {
+      this.tilex = number_of_horizontal_tiles;
+      this.tilesize = tilesize;
+      this.drawsize = drawsize;
+      this.customIcons = new Map();
+      this.image = image;
+      this.promise = undefined;
+      this._accept = undefined;
+      this._reject = undefined;
+    }
+    get  ready() {
+      return this.image&&this.image.width;
+    }
+     onReady() {
+      if (this.ready) {
+          return new Promise((accept, reject) =>            {
+            accept(this);
+          });
+      }
+      if (this.promise) {
+          return this.promise;
+      }
+      let onload=this.image.onload;
+      this.image.onload = (e) =>        {
+        if (onload) {
+            onload.call(this.image, e);
+        }
+        if (!this._accept) {
+            return ;
+        }
+        let accept=this._accept;
+        this._accept = this._reject = this.promise = undefined;
+        if (this.image.width) {
+            accept(this);
+        }
+      };
+      this.promise = new util.TimeoutPromise((accept, reject) =>        {
+        this._accept = accept;
+        this._reject = reject;
+      }, 15000, true);
+      this.promise.catch((error) =>        {
+        util.print_stack(error);
+        this.promise = this._accept = this._reject = undefined;
+      });
+      return this.promise;
+    }
+     canvasDraw(elem, canvas, g, icon, x=0, y=0) {
+      let customIcon=this.customIcons.get(icon);
+      if (customIcon) {
+          g.drawImage(customIcon.canvas, x, y);
+          return ;
+      }
+      let tx=icon%this.tilex;
+      let ty=~~(icon/this.tilex);
+      let dpi=elem.getDPI();
+      let ts=this.tilesize;
+      let ds=this.drawsize;
+      if (!this.image) {
+          return ;
+      }
+      try {
+        g.drawImage(this.image, tx*ts, ty*ts, ts, ts, x, y, ds*dpi, ds*dpi);
+      }
+      catch (error) {
+          console.log("failed to draw an icon");
+      }
+    }
+     setCSS(icon, dom, fitsize=undefined) {
+      if (!fitsize) {
+          fitsize = this.drawsize;
+      }
+      if (typeof fitsize==="object") {
+          fitsize = Math.max(fitsize[0], fitsize[1]);
+      }
+      dom.style["background"] = this.getCSS(icon, fitsize);
+      if (this.customIcons.has(icon)) {
+          dom.style["background-size"] = (fitsize)+"px";
+      }
+      else {
+        dom.style["background-size"] = (fitsize*this.tilex)+"px";
+      }
+      dom.style["background-clip"] = "content-box";
+      if (!dom.style["width"]) {
+          dom.style["width"] = this.drawsize+"px";
+      }
+      if (!dom.style["height"]) {
+          dom.style["height"] = this.drawsize+"px";
+      }
+    }
+     getCSS(icon, fitsize=this.drawsize) {
+      if (icon===-1) {
+          return '';
+      }
+      if (typeof fitsize==="object") {
+          fitsize = Math.max(fitsize[0], fitsize[1]);
+      }
+      let ratio=fitsize/this.tilesize;
+      let customIcon=this.customIcons.get(icon);
+      if (customIcon!==undefined) {
+          let d=0.0;
+          let css=`url("${customIcon.blobUrl}")`;
+          return css;
+      }
+      let x=(-(icon%this.tilex)*this.tilesize)*ratio;
+      let y=(-(~~(icon/this.tilex))*this.tilesize)*ratio;
+      return `url("${this.image.src}") ${x}px ${y}px`;
+    }
+  }
+  _ESClass.register(_IconManager);
+  _es6_module.add_class(_IconManager);
+  class CustomIcon  {
+     constructor(manager, key, id, baseImage) {
+      this.key = key;
+      this.baseImage = baseImage;
+      this.images = [];
+      this.id = id;
+      this.manager = manager;
+    }
+     regenIcons() {
+      let manager=this.manager;
+      let doSheet=(sheet) =>        {
+        let size=sheet.drawsize;
+        let canvas=document.createElement("canvas");
+        let g=canvas.getContext("2d");
+        canvas.width = canvas.height = size;
+        g.drawImage(this.baseImage, 0, 0, size, size);
+        canvas.toBlob((blob) =>          {
+          let blobUrl=URL.createObjectURL(blob);
+          sheet.customIcons.set(this.id, {blobUrl: blobUrl, 
+       canvas: canvas});
+        });
+      };
+      for (let sheet of manager.iconsheets) {
+          doSheet(sheet);
+      }
+    }
+  }
+  _ESClass.register(CustomIcon);
+  _es6_module.add_class(CustomIcon);
+  CustomIcon = _es6_module.add_export('CustomIcon', CustomIcon);
+  class IconManager  {
+     constructor(images, sizes, horizontal_tile_count) {
+      this.iconsheets = [];
+      this.tilex = horizontal_tile_count;
+      this.customIcons = new Map();
+      this.customIconIDMap = new Map();
+      for (let i=0; i<images.length; i++) {
+          let size, drawsize;
+          if (typeof sizes[i]=="object") {
+              size = sizes[i][0], drawsize = sizes[i][1];
+          }
+          else {
+            size = drawsize = sizes[i];
+          }
+          if (util.isMobile()) {
+              drawsize = ~~(drawsize*theme.base.mobileSizeMultiplier);
+          }
+          this.iconsheets.push(new _IconManager(images[i], size, horizontal_tile_count, drawsize));
+      }
+    }
+     isReady(sheet=0) {
+      return this.iconsheets[sheet].ready;
+    }
+     addCustomIcon(key, image) {
+      let icon=this.customIcons.get(key);
+      if (!icon) {
+          let maxid=0;
+          for (let k in Icons) {
+              maxid = Math.max(maxid, Icons[k]+1);
+          }
+          for (let icon of this.customIcons.values()) {
+              maxid = Math.max(maxid, icon.id+1);
+          }
+          maxid = Math.max(maxid, 1000);
+          let id=maxid;
+          icon = new CustomIcon(this, key, id, image);
+          this.customIcons.set(key, icon);
+          this.customIconIDMap.set(id, icon);
+      }
+      icon.baseImage = image;
+      icon.regenIcons();
+      return icon.id;
+    }
+     load(manager2) {
+      this.iconsheets = manager2.iconsheets;
+      this.tilex = manager2.tilex;
+      return this;
+    }
+     reset(horizontal_tile_count) {
+      this.iconsheets.length = 0;
+      this.tilex = horizontal_tile_count;
+    }
+     add(image, size, drawsize=size) {
+      this.iconsheets.push(new _IconManager(image, size, this.tilex, drawsize));
+      return this;
+    }
+     canvasDraw(elem, canvas, g, icon, x=0, y=0, sheet=0) {
+      let base=this.iconsheets[sheet];
+      sheet = this.findSheet(sheet);
+      let ds=sheet.drawsize;
+      sheet.drawsize = base.drawsize;
+      sheet.canvasDraw(elem, canvas, g, icon, x, y);
+      sheet.drawsize = ds;
+    }
+     findClosestSheet(size) {
+      let sheets=this.iconsheets.concat([]);
+      sheets.sort((a, b) =>        {
+        return a.drawsize-b.drawsize;
+      });
+      let sheet;
+      for (let i=0; i<sheets.length; i++) {
+          if (sheets[i].drawsize<=size) {
+              sheet = sheets[i];
+              break;
+          }
+      }
+      if (!sheet)
+        sheet = sheets[sheets.length-1];
+      return this.iconsheets.indexOf(sheet);
+    }
+     findSheet(sheet) {
+      if (sheet===undefined) {
+          console.warn("sheet was undefined");
+          sheet = 0;
+      }
+      let base=this.iconsheets[sheet];
+      let dpi=UIBase.getDPI();
+      let minsheet=undefined;
+      let goal=dpi*base.drawsize;
+      for (let sheet of this.iconsheets) {
+          minsheet = sheet;
+          if (sheet.drawsize>=goal) {
+              break;
+          }
+      }
+      return minsheet===undefined ? base : minsheet;
+    }
+     getTileSize(sheet=0) {
+      return this.iconsheets[sheet].drawsize;
+      return this.findSheet(sheet).drawsize;
+    }
+     getRealSize(sheet=0) {
+      return this.iconsheets[sheet].tilesize;
+      return this.findSheet(sheet).tilesize;
+    }
+     getCSS(icon, sheet=0) {
+      let base=this.iconsheets[sheet];
+      sheet = this.findSheet(sheet);
+      let ds=sheet.drawsize;
+      sheet.drawsize = base.drawsize;
+      let ret=sheet.getCSS(icon);
+      sheet.drawsize = ds;
+      return ret;
+    }
+     setCSS(icon, dom, sheet=0, fitsize=undefined) {
+      let base=this.iconsheets[sheet];
+      sheet = this.findSheet(sheet);
+      let ds=sheet.drawsize;
+      sheet.drawsize = base.drawsize;
+      let ret=sheet.setCSS(icon, dom, fitsize);
+      sheet.drawsize = ds;
+      return ret;
+    }
+  }
+  _ESClass.register(IconManager);
+  _es6_module.add_class(IconManager);
+  IconManager = _es6_module.add_export('IconManager', IconManager);
+  let iconmanager=new IconManager([document.getElementById("iconsheet16"), document.getElementById("iconsheet32"), document.getElementById("iconsheet48")], [16, 32, 64], 16);
+  iconmanager = _es6_module.add_export('iconmanager', iconmanager);
+  window._iconmanager = iconmanager;
+  let IconSheets={SMALL: 0, 
+   LARGE: 1, 
+   XLARGE: 2}
+  IconSheets = _es6_module.add_export('IconSheets', IconSheets);
+  function iconSheetFromPackFlag(flag) {
+    if (flag&PackFlags.CUSTOM_ICON_SHEET) {
+        return flag>>PackFlags.CUSTOM_ICON_SHEET_START;
+    }
+    if ((flag&PackFlags.SMALL_ICON)&&!(PackFlags.LARGE_ICON)) {
+        return 0;
+    }
+    else {
+      return 1;
+    }
+  }
+  iconSheetFromPackFlag = _es6_module.add_export('iconSheetFromPackFlag', iconSheetFromPackFlag);
+  function getIconManager() {
+    return iconmanager;
+  }
+  getIconManager = _es6_module.add_export('getIconManager', getIconManager);
+  function setIconManager(manager, IconSheetsOverride) {
+    iconmanager.load(manager);
+    if (IconSheetsOverride!==undefined) {
+        for (let k in IconSheetsOverride) {
+            IconSheets[k] = IconSheetsOverride[k];
+        }
+    }
+  }
+  setIconManager = _es6_module.add_export('setIconManager', setIconManager);
+  function makeIconDiv(icon, sheet) {
+    if (sheet===undefined) {
+        sheet = 0;
+    }
+    let size=iconmanager.getRealSize(sheet);
+    let drawsize=iconmanager.getTileSize(sheet);
+    let icontest=document.createElement("div");
+    icontest.style["width"] = icontest.style["min-width"] = drawsize+"px";
+    icontest.style["height"] = icontest.style["min-height"] = drawsize+"px";
+    icontest.style["margin"] = "0px";
+    icontest.style["padding"] = "0px";
+    iconmanager.setCSS(icon, icontest, sheet);
+    return icontest;
+  }
+  makeIconDiv = _es6_module.add_export('makeIconDiv', makeIconDiv);
+  let Vector2=vectormath.Vector2;
+  let Matrix4=vectormath.Matrix4;
+  let dpistack=[];
+  dpistack = _es6_module.add_export('dpistack', dpistack);
+  const UIFlags={}
+  _es6_module.add_export('UIFlags', UIFlags);
+  const internalElementNames={}
+  const externalElementNames={}
+  const PackFlags={INHERIT_WIDTH: 1, 
+   INHERIT_HEIGHT: 2, 
+   VERTICAL: 4, 
+   USE_ICONS: 8, 
+   SMALL_ICON: 16, 
+   LARGE_ICON: 32, 
+   FORCE_PROP_LABELS: 64, 
+   PUT_FLAG_CHECKS_IN_COLUMNS: 128, 
+   WRAP_CHECKBOXES: 256, 
+   STRIP_HORIZ: 512, 
+   STRIP_VERT: 1024, 
+   STRIP: 512|1024, 
+   SIMPLE_NUMSLIDERS: 2048, 
+   FORCE_ROLLER_SLIDER: 4096, 
+   HIDE_CHECK_MARKS: (1<<13), 
+   NO_NUMSLIDER_TEXTBOX: (1<<14), 
+   CUSTOM_ICON_SHEET: 1<<15, 
+   CUSTOM_ICON_SHEET_START: 20, 
+   NO_UPDATE: 1<<16}
+  _es6_module.add_export('PackFlags', PackFlags);
+  let first=(iter) =>    {
+    if (iter===undefined) {
+        return undefined;
+    }
+    if (!(Symbol.iterator in iter)) {
+        for (let item in iter) {
+            return item;
+        }
+        return undefined;
+    }
+    for (let item of iter) {
+        return item;
+    }
+  }
+  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
+  var TimeoutPromise=es6_import_item(_es6_module, '../path-controller/util/util.js', 'TimeoutPromise');
+  var IntProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'IntProperty');
+  var NumberConstraints=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'NumberConstraints');
+  var PropFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropFlags');
+  let _mobile_theme_patterns=[/.*width.*/, /.*height.*/, /.*size.*/, /.*margin.*/, /.*pad/, /.*radius.*/];
+  let _idgen=0;
+  window._testSetScrollbars = function (color, contrast, width, border) {
+    if (color===undefined) {
+        color = "grey";
+    }
+    if (contrast===undefined) {
+        contrast = 0.5;
+    }
+    if (width===undefined) {
+        width = 15;
+    }
+    if (border===undefined) {
+        border = "solid";
+    }
+    let buf=styleScrollBars(color, undefined, contrast, width, border, "*");
+    CTX.screen.mergeGlobalCSS(buf);
+    return buf;
+  }
+  function styleScrollBars(color, color2, contrast, width, border, selector) {
+    if (color===undefined) {
+        color = "grey";
+    }
+    if (color2===undefined) {
+        color2 = undefined;
+    }
+    if (contrast===undefined) {
+        contrast = 0.5;
+    }
+    if (width===undefined) {
+        width = 15;
+    }
+    if (border===undefined) {
+        border = "1px groove black";
+    }
+    if (selector===undefined) {
+        selector = "*";
+    }
+    if (!color2) {
+        let c=css2color(color);
+        let a=c.length>3 ? c[3] : 1.0;
+        c = rgb_to_hsv(c[0], c[1], c[2]);
+        let inv=c.slice(0, c.length);
+        inv[2] = 1.0-inv[2];
+        inv[2]+=(c[2]-inv[2])*(1.0-contrast);
+        inv = hsv_to_rgb(inv[0], inv[1], inv[2]);
+        inv.length = 4;
+        inv[3] = a;
+        inv = color2css(inv);
+        color2 = inv;
+    }
+    let buf=`
+
+${selector} {
+  scrollbar-width : ${width <= 16 ? 'thin' : 'auto'};
+  scrollbar-color : ${color2} ${color};
+}
+
+${selector}::-webkit-scrollbar {
+  width : ${width}px;
+  background-color : ${color};
+}
+
+${selector}::-webkit-scrollbar-track {
+  background-color : ${color};
+  border : ${border};
+}
+
+${selector}::-webkit-scrollbar-thumb {
+  background-color : ${color2};
+  border : ${border};
+}
+    `;
+    return buf;
+  }
+  styleScrollBars = _es6_module.add_export('styleScrollBars', styleScrollBars);
+  window.styleScrollBars = styleScrollBars;
+  let _digest=new util.HashDigest();
+  function calcThemeKey(digest) {
+    if (digest===undefined) {
+        digest = _digest.reset();
+    }
+    for (let k in theme) {
+        let obj=theme[k];
+        if (typeof obj!=="object") {
+            continue;
+        }
+        for (let k2 in obj) {
+            let v2=obj[k2];
+            if (typeof v2==="number"||typeof v2==="boolean"||typeof v2==="string") {
+                digest.add(v2);
+            }
+            else 
+              if (typeof v2==="object"&&__instance_of(v2, CSSFont)) {
+                v2.calcHashUpdate(digest);
+            }
+        }
+    }
+    return digest.get();
+  }
+  calcThemeKey = _es6_module.add_export('calcThemeKey', calcThemeKey);
+  var _themeUpdateKey=calcThemeKey();
+  _themeUpdateKey = _es6_module.add_export('_themeUpdateKey', _themeUpdateKey);
+  function flagThemeUpdate() {
+    _themeUpdateKey = calcThemeKey();
+  }
+  flagThemeUpdate = _es6_module.add_export('flagThemeUpdate', flagThemeUpdate);
+  let setTimeoutQueue=new Set();
+  let haveTimeout=false;
+  function timeout_cb() {
+    if (setTimeoutQueue.size===0) {
+        haveTimeout = false;
+        return ;
+    }
+    for (let item of new Set(setTimeoutQueue)) {
+        let $_t0knls=item, cb=$_t0knls.cb, timeout=$_t0knls.timeout, time=$_t0knls.time;
+        if (util.time_ms()-time<timeout) {
+            continue;
+        }
+        setTimeoutQueue.delete(item);
+        try {
+          cb();
+        }
+        catch (error) {
+            console.error(error.stack);
+        }
+    }
+    window.setTimeout(timeout_cb, 0);
+  }
+  function internalSetTimeout(cb, timeout) {
+    if (timeout>100) {
+        window.setTimeout(cb, timeout);
+        return ;
+    }
+    setTimeoutQueue.add({cb: cb, 
+    timeout: timeout, 
+    time: util.time_ms()});
+    if (!haveTimeout) {
+        haveTimeout = true;
+        window.setTimeout(timeout_cb, 0);
+    }
+  }
+  internalSetTimeout = _es6_module.add_export('internalSetTimeout', internalSetTimeout);
+  window.setTimeoutQueue = setTimeoutQueue;
+  class UIBase extends HTMLElement {
+     constructor() {
+      super();
+      this._modalstack = [];
+      this._tool_tip_abort_delay = undefined;
+      this._tooltip_ref = undefined;
+      this._textBoxEvents = false;
+      this._themeOverride = undefined;
+      this._checkTheme = true;
+      this._last_theme_update_key = _themeUpdateKey;
+      this._client_disabled_set = undefined;
+      this._useNativeToolTips = cconst.useNativeToolTips;
+      this._useNativeToolTips_set = false;
+      this._has_own_tooltips = undefined;
+      this._tooltip_timer = util.time_ms();
+      this.pathUndoGen = 0;
+      this._lastPathUndoGen = 0;
+      this._useDataPathUndo = undefined;
+      this._active_animations = [];
+      this._screenStyleTag = document.createElement("style");
+      this._screenStyleUpdateHash = 0;
+      initAspectClass(this, new Set(["appendChild", "animate", "shadow", "removeNode", "prepend", "add", "init"]));
+      this.shadow = this.attachShadow({mode: 'open'});
+      if (cconst.DEBUG.paranoidEvents) {
+          this.__cbs = [];
+      }
+      this.shadow.appendChild(this._screenStyleTag);
+      this.shadow._appendChild = this.shadow.appendChild;
+      let appendChild=this.shadow.appendChild;
+      this.shadow.appendChild = (child) =>        {
+        if (child&&typeof child==="object"&&__instance_of(child, UIBase)) {
+            child.parentWidget = this;
+        }
+        return this.shadow._appendChild(child);
+      };
+      this._wasAddedToNodeAtSomeTime = false;
+      this.visibleToPick = true;
+      this._override_class = undefined;
+      this.parentWidget = undefined;
+      let tagname=this.constructor.define().tagname;
+      this._id = tagname.replace(/\-/g, "_")+(_idgen++);
+      this.default_overrides = {};
+      this.my_default_overrides = {};
+      this.class_default_overrides = {};
+      this._last_description = undefined;
+      this._description_final = undefined;
+      this._modaldata = undefined;
+      this.packflag = this.getDefault("BasePackFlag");
+      this._internalDisabled = false;
+      this.__disabledState = false;
+      this._disdata = undefined;
+      this._ctx = undefined;
+      this._description = undefined;
+      let style=document.createElement("style");
+      style.textContent = `
+    .DefaultText {
+      font: `+_getFont(this)+`;
+    }
+    `;
+      this.shadow.appendChild(style);
+      this._init_done = false;
+      let do_touch=(e, type, button) =>        {
+        if (haveModal()) {
+            return ;
+        }
+        button = button===undefined ? 0 : button;
+        let e2=copyEvent(e);
+        if (e.touches.length===0) {
+        }
+        else {
+          let t=e.touches[0];
+          e2.pageX = t.pageX;
+          e2.pageY = t.pageY;
+          e2.screenX = t.screenX;
+          e2.screenY = t.screenY;
+          e2.clientX = t.clientX;
+          e2.clientY = t.clientY;
+          e2.x = t.x;
+          e2.y = t.y;
+        }
+        e2.button = button;
+        e2 = new MouseEvent(type, e2);
+        e2.was_touch = true;
+        e2.stopPropagation = e.stopPropagation.bind(e);
+        e2.preventDefault = e.preventDefault.bind(e);
+        e2.touches = e.touches;
+        this.dispatchEvent(e2);
+      };
+      this.addEventListener("touchstart", (e) =>        {
+        do_touch(e, "mousedown", 0);
+      }, {passive: false});
+      this.addEventListener("touchmove", (e) =>        {
+        do_touch(e, "mousemove");
+      }, {passive: false});
+      this.addEventListener("touchcancel", (e) =>        {
+        do_touch(e, "mouseup", 2);
+      }, {passive: false});
+      this.addEventListener("touchend", (e) =>        {
+        do_touch(e, "mouseup", 0);
+      }, {passive: false});
+      if (this.constructor.define().havePickClipboard) {
+          this._clipboardHotkeyInit();
+      }
+    }
+    get  useNativeToolTips() {
+      return this._useNativeToolTips;
+    }
+    set  useNativeToolTips(val) {
+      this._useNativeToolTips = val;
+      this._useNativeToolTips_set = true;
+    }
+    get  parentWidget() {
+      return this._parentWidget;
+    }
+    set  parentWidget(val) {
+      if (val) {
+          this._wasAddedToNodeAtSomeTime = true;
+      }
+      this._parentWidget = val;
+    }
+    get  useDataPathUndo() {
+      let p=this;
+      while (p) {
+        if (p._useDataPathUndo!==undefined) {
+            return p._useDataPathUndo;
+        }
+        p = p.parentWidget;
+      }
+      return false;
+    }
+    set  useDataPathUndo(val) {
+      this._useDataPathUndo = val;
+    }
+    get  description() {
+      return this._description;
+    }
+    set  description(val) {
+      if (val===null) {
+          this._description = undefined;
+          return ;
+      }
+      this._description = val;
+      if (val===undefined||val===null) {
+          return ;
+      }
+      if (cconst.showPathsInToolTips&&this.hasAttribute("datapath")) {
+          let s=""+this._description;
+          let path=this.getAttribute("datapath");
+          s+="\n    path: "+path;
+          if (this.hasAttribute("mass_set_path")) {
+              let m=this.getAttribute("mass_set_path");
+              s+="\n    massSetPath: "+m;
+          }
+          this._description_final = s;
+      }
+      if (cconst.useNativeToolTips) {
+          this.title = ""+this._description_final;
+      }
+    }
+    get  background() {
+      return this.__background;
+    }
+    set  background(bg) {
+      this.__background = bg;
+      this.overrideDefault("background-color", bg, true);
+      this.style["background-color"] = bg;
+    }
+    get  disabled() {
+      if (this.parentWidget&&this.parentWidget.disabled) {
+          return true;
+      }
+      return !!this._client_disabled_set||!!this._internalDisabled;
+    }
+    set  disabled(v) {
+      this._client_disabled_set = v;
+      this.__updateDisable(this.disabled);
+    }
+    get  internalDisabled() {
+      return this._internalDisabled;
+    }
+    set  internalDisabled(val) {
+      this._internalDisabled = !!val;
+      this.__updateDisable(this.disabled);
+    }
+    get  ctx() {
+      return this._ctx;
+    }
+    set  ctx(c) {
+      this._ctx = c;
+      this._forEachChildWidget((n) =>        {
+        n.ctx = c;
+      });
+    }
+    get  _reportCtxName() {
+      return ""+this._id;
+    }
+    get  modalRunning() {
+      return this._modaldata!==undefined;
+    }
+    static  getIconEnum() {
+      return Icons;
+    }
+    static  setDefault(element) {
+      return element;
+    }
+    static  getDPI() {
+      return window.devicePixelRatio;
+      return window.devicePixelRatio;
+    }
+    static  prefix(name) {
+      return tagPrefix+name;
+    }
+    static  internalRegister(cls) {
+      cls[ClassIdSymbol] = class_idgen++;
+      registered_has_happened = true;
+      internalElementNames[cls.define().tagname] = this.prefix(cls.define().tagname);
+      customElements.define(this.prefix(cls.define().tagname), cls);
+    }
+    static  getInternalName(name) {
+      return internalElementNames[name];
+    }
+    static  createElement(name, internal=false) {
+      if (!internal&&name in externalElementNames) {
+          return document.createElement(name);
+      }
+      else 
+        if (name in internalElementNames) {
+          return document.createElement(internalElementNames[name]);
+      }
+      else {
+        return document.createElement(name);
+      }
+    }
+    static  register(cls) {
+      registered_has_happened = true;
+      cls[ClassIdSymbol] = class_idgen++;
+      ElementClasses.push(cls);
+      externalElementNames[cls.define().tagname] = cls.define().tagname;
+      customElements.define(cls.define().tagname, cls);
+    }
+    static  define() {
+      throw new Error("Missing define() for ux element");
+    }
+     setUndo(val) {
+      this.useDataPathUndo = val;
+      return this;
+    }
+     hide(sethide=true) {
+      this.hidden = sethide;
+      for (let n of this.shadow.childNodes) {
+          n.hidden = sethide;
+      }
+      this._forEachChildWidget((n) =>        {
+        n.hide(sethide);
+      });
+    }
+     getElementById(id) {
+      let ret;
+      let rec=(n) =>        {
+        if (ret) {
+            return ;
+        }
+        if (n.getAttribute("id")===id||n.id===id) {
+            ret = n;
+        }
+        if (__instance_of(n, UIBase)&&n.constructor.define().tagname==="panelframe-x") {
+            rec(n.contents);
+        }
+        else 
+          if (__instance_of(n, UIBase)&&n.constructor.define().tagname==="tabcontainer-x") {
+            for (let k in n.tabs) {
+                let tab=n.tabs[k];
+                if (tab) {
+                    rec(tab);
+                }
+            }
+        }
+        for (let n2 of n.childNodes) {
+            if (__instance_of(n2, HTMLElement)) {
+                rec(n2);
+                if (ret) {
+                    break;
+                }
+            }
+        }
+        if (n.shadow) {
+            for (let n2 of n.shadow.childNodes) {
+                if (__instance_of(n2, HTMLElement)) {
+                    rec(n2);
+                    if (ret) {
+                        break;
+                    }
+                }
+            }
+        }
+      };
+      rec(this);
+      return ret;
+    }
+     unhide() {
+      this.hide(false);
+    }
+     findArea() {
+      let p=this;
+      while (p) {
+        if (__instance_of(p, Area)) {
+            return p;
+        }
+        p = p.parentWidget;
+      }
+      return p;
+    }
+     addEventListener(type, cb, options) {
+      if (cconst.DEBUG.domEventAddRemove) {
+          console.log("addEventListener", type, this._id, options);
+      }
+      let cb2=(e) =>        {
+        if (cconst.DEBUG.paranoidEvents) {
+            if (this.isDead()) {
+                this.removeEventListener(type, cb, options);
+                return ;
+            }
+        }
+        if (cconst.DEBUG.domEvents) {
+            pathDebugEvent(e);
+        }
+        let area=this.findArea();
+        if (area) {
+            area.push_ctx_active();
+            try {
+              let ret=cb(e);
+              area.pop_ctx_active();
+              return ret;
+            }
+            catch (error) {
+                area.pop_ctx_active();
+                throw error;
+            }
+        }
+        else {
+          if (cconst.DEBUG.areaContextPushes) {
+              console.warn("Element is not part of an area?", element);
+          }
+          return cb(e);
+        }
+      };
+      if (!cb[EventCBSymbol]) {
+          cb[EventCBSymbol] = new Map();
+      }
+      let key=calcElemCBKey(this, type, options);
+      cb[EventCBSymbol].set(key, cb2);
+      if (cconst.DEBUG.paranoidEvents) {
+          this.__cbs.push([type, cb2, options]);
+      }
+      return super.addEventListener(type, cb2, options);
+    }
+     removeEventListener(type, cb, options) {
+      if (cconst.DEBUG.paranoidEvents) {
+          for (let item of this.__cbs) {
+              if (item[0]==type&&item[1]===cb._cb2&&(""+item[2])===(""+options)) {
+                  this.__cbs.remove(item);
+                  break;
+              }
+          }
+      }
+      if (cconst.DEBUG.domEventAddRemove) {
+          console.log("removeEventListener", type, this._id, options);
+      }
+      let key=calcElemCBKey(this, type, options);
+      if (!cb[EventCBSymbol]||!cb[EventCBSymbol].has(key)) {
+          return super.removeEventListener(type, cb, options);
+      }
+      else {
+        let cb2=cb[EventCBSymbol].get(key);
+        let ret=super.removeEventListener(type, cb2, options);
+        cb[EventCBSymbol].delete(key);
+        return ret;
+      }
+    }
+     connectedCallback() {
+
+    }
+     noMarginsOrPadding() {
+      return ;
+      let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
+      keys = keys.concat(["padding-block-start", "padding-block-end"]);
+      keys = keys.concat(["margin-left", "margin-top", "margin-bottom", "margin-right"]);
+      keys = keys.concat(["padding-left", "padding-top", "padding-bottom", "padding-right"]);
+      for (let k of keys) {
+          this.style[k] = "0px";
+      }
+      return this;
+    }
+     regenTabOrder() {
+      let screen=this.getScreen();
+      if (screen!==undefined) {
+          screen.needsTabRecalc = true;
+      }
+      return this;
+    }
+     noMargins() {
+      this.style["margin"] = this.style["margin-left"] = this.style["margin-right"] = "0px";
+      this.style["margin-top"] = this.style["margin-bottom"] = "0px";
+      return this;
+    }
+     noPadding() {
+      this.style["padding"] = this.style["padding-left"] = this.style["padding-right"] = "0px";
+      this.style["padding-top"] = this.style["padding-bottom"] = "0px";
+      return this;
+    }
+     getTotalRect() {
+      let found=false;
+      let min=new Vector2([1e+17, 1e+17]);
+      let max=new Vector2([-1e+17, -1e+17]);
+      let doaabb=(n) =>        {
+        let rs=n.getClientRects();
+        for (let r of rs) {
+            min[0] = Math.min(min[0], r.x);
+            min[1] = Math.min(min[1], r.y);
+            max[0] = Math.max(max[0], r.x+r.width);
+            max[1] = Math.max(max[1], r.y+r.height);
+            found = true;
+        }
+      };
+      doaabb(this);
+      this._forEachChildWidget((n) =>        {
+        doaabb(n);
+      });
+      if (found) {
+          return {width: max[0]-min[0], 
+       height: max[1]-min[1], 
+       x: min[0], 
+       y: min[1], 
+       left: min[0], 
+       top: min[1], 
+       right: max[0], 
+       bottom: max[1]}
+      }
+      else {
+        return undefined;
+      }
+    }
+     parseNumber(value, args={}) {
+      value = (""+value).trim().toLowerCase();
+      let baseUnit=args.baseUnit||this.baseUnit;
+      let isInt=args.isInt||this.isInt;
+      let sign=1.0;
+      if (value.startsWith("-")) {
+          value = value.slice(1, value.length).trim();
+          sign = -1;
+      }
+      let hexre=/-?[0-9a-f]+h$/;
+      if (value.startsWith("0b")) {
+          value = value.slice(2, value.length).trim();
+          value = parseInt(value, 2);
+      }
+      else 
+        if (value.startsWith("0x")) {
+          value = value.slice(2, value.length).trim();
+          value = parseInt(value, 16);
+      }
+      else 
+        if (value.search(hexre)===0) {
+          value = value.slice(0, value.length-1).trim();
+          value = parseInt(value, 16);
+      }
+      else {
+        value = units.parseValue(value, baseUnit);
+      }
+      if (isInt) {
+          value = ~~value;
+      }
+      return value*sign;
+    }
+     formatNumber(value, args={}) {
+      let baseUnit=args.baseUnit||this.baseUnit;
+      let displayUnit=args.displayUnit||this.displayUnit;
+      let isInt=args.isInt||this.isInt;
+      let radix=args.radix||this.radix||10;
+      let decimalPlaces=args.decimalPlaces||this.decimalPlaces;
+      if (isInt&&radix!==10) {
+          let ret=Math.floor(value).toString(radix);
+          if (radix===2)
+            return "0b"+ret;
+          else 
+            if (radix===16)
+            return ret+"h";
+      }
+      return units.buildString(value, baseUnit, decimalPlaces, displayUnit);
+    }
+     setBoxCSS(subkey) {
+      let boxcode='';
+      let keys=["left", "right", "top", "bottom"];
+      let sub;
+      if (subkey) {
+          sub = this.getAttribute(subkey)||{};
+      }
+      let def=(key) =>        {
+        if (sub) {
+            return this.getSubDefault(subkey, key);
+        }
+        return this.getDefault(key);
+      };
+      for (let i=0; i<2; i++) {
+          let key=i ? "padding" : "margin";
+          this.style[key] = "unset";
+          let val=def(key);
+          if (val!==undefined) {
+              for (let j=0; j<4; j++) {
+                  this.style[key+"-"+keys[j]] = val+"px";
+              }
+          }
+          for (let j=0; j<4; j++) {
+              let key2=`${key}-${keys[j]}`;
+              let val2=def(key2);
+              if (val2!==undefined) {
+                  this.style[key2] = val2+"px";
+              }
+          }
+      }
+      this.style["border-radius"] = def("border-radius")+"px";
+      this.style["border"] = `${def("border-width")}px ${def("border-style")} ${def("border-color")}`;
+    }
+     genBoxCSS(subkey) {
+      let boxcode='';
+      let keys=["left", "right", "top", "bottom"];
+      let sub;
+      if (subkey) {
+          sub = this.getAttribute(subkey)||{};
+      }
+      let def=(key) =>        {
+        if (sub) {
+            return this.getSubDefault(subkey, key);
+        }
+        return this.getDefault(key);
+      };
+      for (let i=0; i<2; i++) {
+          let key=i ? "padding" : "margin";
+          let val=def(key);
+          if (val!==undefined) {
+              boxcode+=`${key}: ${val} px;\n`;
+          }
+          for (let j=0; j<4; j++) {
+              let key2=`${key}-${keys[j]}`;
+              let val2=def(key2);
+              if (val2!==undefined) {
+                  boxcode+=`${key2}: ${val}px;\n`;
+              }
+          }
+      }
+      boxcode+=`border-radius: ${def("border-radius")}px;\n`;
+      boxcode+=`border: ${def("border-width")}px ${def("border-style")} ${def("border-color")};\n`;
+      return boxcode;
+    }
+     setCSS(setBG=true) {
+      if (setBG) {
+          let bg=this.getDefault("background-color");
+          if (bg) {
+              this.style["background-color"] = bg;
+          }
+      }
+      let zoom=this.getZoom();
+      if (zoom===1.0) {
+          return ;
+      }
+      let transform=""+this.style["transform"];
+      transform = transform.replace(/[ \t\n\r]+/g, ' ');
+      transform = transform.replace(/, /g, ',');
+      let transform2=transform.replace(/scale\([^)]+\)/, '').trim();
+      this.style["transform"] = transform2+` scale(${zoom},${zoom})`;
+    }
+     flushSetCSS() {
+      this._init();
+      this.setCSS();
+      this._forEachChildWidget((c) =>        {
+        if (!(c.packflag&PackFlags.NO_UPDATE)) {
+            c.flushSetCSS();
+        }
+      });
+    }
+     replaceChild(newnode, node) {
+      for (let i=0; i<this.childNodes.length; i++) {
+          if (this.childNodes[i]===node) {
+              super.replaceChild(newnode, node);
+              return true;
+          }
+      }
+      for (let i=0; i<this.shadow.childNodes.length; i++) {
+          if (this.shadow.childNodes[i]===node) {
+              this.shadow.replaceChild(newnode, node);
+              return true;
+          }
+      }
+      console.error("Unknown child node", node);
+      return false;
+    }
+     swapWith(b) {
+      let p1=this.parentNode;
+      let p2=b.parentNode;
+      if (this.parentWidget&&(p1===this.parentWidget.shadow)||p1===null) {
+          p1 = this.parentWidget;
+      }
+      if (b.parentWidget&&(p2===b.parentWidget.shadow)||p2===null) {
+          p2 = b.parentWidget;
+      }
+      if (!p1||!p2) {
+          console.error("Invalid call to UIBase.prototype.swapWith", this, b, p1, p2);
+          return false;
+      }
+      let getPos=(n, p) =>        {
+        let i=Array.prototype.indexOf.call(p.childNodes, n);
+        if (i<0&&p.shadow) {
+            p = p.shadow;
+            i = Array.prototype.indexOf.call(p.childNodes, n);
+        }
+        return [i, p];
+      };
+      let $_t1jcrd=getPos(this, p1), i1=$_t1jcrd[0], n1=$_t1jcrd[1];
+      let $_t2aqfb=getPos(b, p2), i2=$_t2aqfb[0], n2=$_t2aqfb[1];
+      console.log("i1, i2, n1, n2", i1, i2, n1, n2);
+      let tmp1=document.createElement("div");
+      let tmp2=document.createElement("div");
+      n1.insertBefore(tmp1, this);
+      n2.insertBefore(tmp2, b);
+      n1.replaceChild(b, tmp1);
+      n2.replaceChild(this, tmp2);
+      let ptmp=this.parentWidget;
+      this.parentWidget = b.parentWidget;
+      b.parentWidget = ptmp;
+      tmp1.remove();
+      tmp2.remove();
+      return true;
+    }
+     traverse(type_or_set) {
+      let this2=this;
+      let classes=type_or_set;
+      let is_set=__instance_of(type_or_set, Set);
+      is_set = is_set||__instance_of(type_or_set, util.set);
+      is_set = is_set||Array.isArray(type_or_set);
+      if (!is_set) {
+          classes = [type_or_set];
+      }
+      let visit=new Set();
+      return (function* () {
+        let stack=[this2];
+        while (stack.length>0) {
+          let n=stack.pop();
+          visit.add(n);
+          if (!n||!n.childNodes) {
+              continue;
+          }
+          for (let cls of classes) {
+              if (__instance_of(n, cls)) {
+                  yield n;
+              }
+          }
+          for (let c of n.childNodes) {
+              if (!visit.has(c)) {
+                  stack.push(c);
+              }
+          }
+          if (n.shadow) {
+              for (let c of n.shadow.childNodes) {
+                  if (!visit.has(c)) {
+                      stack.push(c);
+                  }
+              }
+          }
+        }
+      })();
+    }
+     appendChild(child) {
+      if (__instance_of(child, UIBase)) {
+          child.ctx = this.ctx;
+          child.parentWidget = this;
+          child.useDataPathUndo = this.useDataPathUndo;
+      }
+      return super.appendChild(child);
+    }
+     _clipboardHotkeyInit() {
+      this._clipboard_over = false;
+      this._last_clipboard_keyevt = undefined;
+      this._clipboard_keystart = () =>        {
+        if (this._clipboard_events) {
+            return ;
+        }
+        this._clipboard_events = true;
+        window.addEventListener("keydown", this._clipboard_keydown, {capture: true, 
+      passive: false});
+      };
+      this._clipboard_keyend = () =>        {
+        if (!this._clipboard_events) {
+            return ;
+        }
+        this._clipboard_events = false;
+        window.removeEventListener("keydown", this._clipboard_keydown, {capture: true, 
+      passive: false});
+      };
+      this._clipboard_keydown = (e, internal_mode) =>        {
+        if (!this.isConnected||!cconst.getClipboardData) {
+            this._clipboard_keyend();
+            return ;
+        }
+        if (e===this._last_clipboard_keyevt||!this._clipboard_over) {
+            return ;
+        }
+        let is_copy=e.keyCode===keymap["C"]&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey;
+        let is_paste=e.keyCode===keymap["V"]&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey;
+        if (!is_copy&&!is_paste) {
+            return ;
+        }
+        if (!internal_mode) {
+            let screen=this.ctx.screen;
+            let elem=screen.pickElement(screen.mpos[0], screen.mpos[1]);
+            let checkTree=is_paste&&this.constructor.define().pasteForAllChildren;
+            checkTree = checkTree||(is_copy&&this.constructor.define().copyForAllChildren);
+            while (checkTree&&!(__instance_of(elem, TextBox))&&elem!==this&&elem.parentWidget) {
+              console.log("  "+elem._id);
+              elem = elem.parentWidget;
+            }
+            console.warn("COLOR", this._id, elem._id);
+            if (elem!==this) {
+                this._clipboard_keyend();
+                return ;
+            }
+        }
+        else {
+          console.warn("COLOR", this._id);
+        }
+        this._last_clipboard_keyevt = e;
+        if (is_copy) {
+            this.clipboardCopy();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (is_paste) {
+            this.clipboardPaste();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+      };
+      let start=(e) =>        {
+        this._clipboard_over = true;
+        this._clipboard_keystart();
+      };
+      let stop=(e) =>        {
+        this._clipboard_over = false;
+        this._clipboard_keyend();
+      };
+      this.doOnce(() =>        {
+        this.tabIndex = 0;
+      });
+      this.addEventListener("keydown", (e) =>        {
+        return this._clipboard_keydown(e, true);
+      });
+      this.addEventListener("pointerover", start, {capture: true, 
+     passive: true});
+      this.addEventListener("pointerout", stop, {capture: true, 
+     passive: true});
+      this.addEventListener("focus", stop, {capture: true, 
+     passive: true});
+    }
+     clipboardCopy() {
+      throw new Error("implement me!");
+    }
+     clipboardPaste() {
+      throw new Error("implement me!");
+    }
+     init() {
+      this._init_done = true;
+      if (!this.hasAttribute("id")&&this._id) {
+          this.setAttribute("id", this._id);
+      }
+    }
+     _ondestroy() {
+      if (this.tabIndex>=0) {
+          this.regenTabOrder();
+      }
+      if (cconst.DEBUG.paranoidEvents) {
+          for (let item of this.__cbs) {
+              this.removeEventListener(item[0], item[1], item[2]);
+          }
+          this.__cbs = [];
+      }
+      if (this.ondestroy!==undefined) {
+          this.ondestroy();
+      }
+    }
+     remove(trigger_on_destroy=true) {
+      if (this.tabIndex>=0) {
+          this.regenTabOrder();
+      }
+      super.remove();
+      if (trigger_on_destroy) {
+          this._ondestroy();
+      }
+      if (this.on_remove) {
+          this.on_remove();
+      }
+      this.parentWidget = undefined;
+    }
+     on_remove() {
+
+    }
+     removeChild(child, trigger_on_destroy=true) {
+      super.removeChild(child);
+      if (trigger_on_destroy) {
+          child._ondestroy();
+      }
+    }
+     flushUpdate(force=false) {
+      this._init();
+      this.update();
+      this._forEachChildWidget((c) =>        {
+        if (force||!(c.packflag&PackFlags.NO_UPDATE)) {
+            if (!c.ctx) {
+                c.ctx = this.ctx;
+            }
+            c.flushUpdate(force);
+        }
+      });
+    }
+     _forEachChildWidget(cb, thisvar) {
+      let rec=(n) =>        {
+        if (__instance_of(n, UIBase)) {
+            if (thisvar!==undefined) {
+                cb.call(thisvar, n);
+            }
+            else {
+              cb(n);
+            }
+        }
+        else {
+          for (let n2 of n.childNodes) {
+              rec(n2);
+          }
+          if (n.shadow!==undefined) {
+              for (let n2 of n.shadow.childNodes) {
+                  rec(n2);
+              }
+          }
+        }
+      };
+      for (let n of this.childNodes) {
+          rec(n);
+      }
+      if (this.shadow) {
+          for (let n of this.shadow.childNodes) {
+              rec(n);
+          }
+      }
+    }
+     checkInit() {
+      return this._init();
+    }
+     _init() {
+      if (this._init_done) {
+          return false;
+      }
+      this._init_done = true;
+      this.init();
+      return true;
+    }
+     getWinWidth() {
+      return window.innerWidth;
+    }
+     getWinHeight() {
+      return window.innerHeight;
+    }
+     calcZ() {
+      let p=this;
+      let n=this;
+      while (n) {
+        if (n.style&&n.style["z-index"]) {
+            let z=parseFloat(n.style["z-index"]);
+            return z;
+        }
+        n = n.parentNode;
+        if (!n) {
+            n = p = p.parentWidget;
+        }
+      }
+      return 0;
+    }
+     pickElement(x, y, args={}, marginy=0, nodeclass=UIBase, excluded_classes=undefined) {
+      let marginx;
+      let clip;
+      let mouseEvent;
+      let isMouseMove, isMouseDown;
+      if (typeof args==="object") {
+          marginx = args.sx||0;
+          marginy = args.sy||0;
+          nodeclass = args.nodeclass||UIBase;
+          excluded_classes = args.excluded_classes;
+          clip = args.clip;
+          mouseEvent = args.mouseEvent;
+      }
+      else {
+        marginx = args;
+        args = {marginx: marginx||0, 
+      marginy: marginy||0, 
+      nodeclass: nodeclass||UIBase, 
+      excluded_classes: excluded_classes, 
+      clip: clip};
+      }
+      if (mouseEvent) {
+          isMouseMove = mouseEvent.type==="mousemove"||mouseEvent.type==="touchmove"||mouseEvent.type==="pointermove";
+          isMouseDown = mouseEvent.buttons||(mouseEvent.touches&&mouseEvent.touches.length>0);
+      }
+      x-=window.scrollX;
+      y-=window.scrollY;
+      let elem=document.elementFromPoint(x, y);
+      if (!elem) {
+          return ;
+      }
+      let path=[elem];
+      let lastelem=elem;
+      let i=0;
+      while (elem.shadow) {
+        if (i++>1000) {
+            console.error("Infinite loop error");
+            break;
+        }
+        elem = elem.shadow.elementFromPoint(x, y);
+        if (elem===lastelem) {
+            break;
+        }
+        if (elem) {
+            path.push(elem);
+        }
+        lastelem = elem;
+      }
+      path.reverse();
+      for (let i=0; i<path.length; i++) {
+          let node=path[i];
+          let ok=__instance_of(node, nodeclass);
+          if (excluded_classes) {
+              for (let cls of excluded_classes) {
+                  ok = ok&&!(__instance_of(node, cls));
+              }
+          }
+          if (clip) {
+              let rect=node.getBoundingClientRect();
+              let clip2=math.aabb_intersect_2d(clip.pos, clip.size, [rect.x, rect.y], [rect.width, rect.height]);
+              ok = ok&&clip2;
+          }
+          if (ok) {
+              window.elem = node;
+              return node;
+          }
+      }
+    }
+     __updateDisable(val) {
+      if (!!val===!!this.__disabledState) {
+          return ;
+      }
+      this.__disabledState = !!val;
+      if (val&&!this._disdata) {
+          let style=this.getDefault("disabled")||this.getDefault("internalDisabled")||{"background-color": this.getDefault("DisabledBG")};
+          this._disdata = {style: {}, 
+       defaults: {}};
+          for (let k in style) {
+              this._disdata.style[k] = this.style[k];
+              this._disdata.defaults[k] = this.default_overrides[k];
+              let v=style[k];
+              if (typeof v==="object"&&__instance_of(v, CSSFont)) {
+                  this.style[k] = style[k].genCSS();
+              }
+              else 
+                if (typeof v==="object") {
+                  continue;
+              }
+              else {
+                this.style[k] = style[k];
+              }
+              this.default_overrides[k] = style[k];
+          }
+          this.__disabledState = !!val;
+          this.on_disabled();
+      }
+      else 
+        if (!val&&this._disdata) {
+          for (let k in this._disdata.style) {
+              this.style[k] = this._disdata.style[k];
+          }
+          for (let k in this._disdata.defaults) {
+              let v=this._disdata.defaults[k];
+              if (v===undefined) {
+                  delete this.default_overrides[k];
+              }
+              else {
+                this.default_overrides[k] = v;
+              }
+          }
+          this._disdata = undefined;
+          this.__disabledState = !!val;
+          this.on_enabled();
+      }
+      this.__disabledState = !!val;
+      let visit=(n) =>        {
+        if (__instance_of(n, UIBase)) {
+            let changed=!!n.__disabledState;
+            n.__updateDisable(n.disabled);
+            changed = changed!==!!n.__disabledState;
+            if (changed) {
+                n.update();
+                n.setCSS();
+            }
+        }
+      };
+      this._forEachChildWidget(visit);
+    }
+     on_disabled() {
+
+    }
+     on_enabled() {
+
+    }
+     pushModal(handlers=this, autoStopPropagation=true, pointerId=undefined, pointerElem=this) {
+      if (this._modaldata!==undefined) {
+          console.warn("UIBase.prototype.pushModal called when already in modal mode");
+          this.popModal();
+      }
+      let _areaWrangler=contextWrangler.copy();
+      contextWrangler.copy(this.ctx);
+      function bindFunc(func) {
+        return function () {
+          _areaWrangler.copyTo(contextWrangler);
+          return func.apply(handlers, arguments);
+        }
+      }
+      let handlers2={};
+      for (let k in handlers) {
+          let func=handlers[k];
+          if (typeof func!=="function") {
+              continue;
+          }
+          handlers2[k] = bindFunc(func);
+      }
+      if (pointerId!==undefined&&pointerElem) {
+          this._modaldata = pushPointerModal(handlers2, autoStopPropagation);
+      }
+      else {
+        this._modaldata = pushModalLight(handlers2, autoStopPropagation);
+      }
+      return this._modaldata;
+    }
+     popModal() {
+      if (this._modaldata===undefined) {
+          console.warn("Invalid call to UIBase.prototype.popModal");
+          return ;
+      }
+      popModalLight(this._modaldata);
+      this._modaldata = undefined;
+    }
+     _flash_focus() {
+      this.focus();
+    }
+     flash(color, rect_element=this, timems=355, autoFocus=true) {
+      if (typeof color!="object") {
+          color = css2color(color);
+      }
+      color = new Vector4(color);
+      let csscolor=color2css(color);
+      if (this._flashtimer!==undefined&&this._flashcolor!==csscolor) {
+          window.setTimeout(() =>            {
+            this.flash(color, rect_element, timems, autoFocus);
+          }, 100);
+          return ;
+      }
+      else 
+        if (this._flashtimer!==undefined) {
+          return ;
+      }
+      let rect=rect_element.getBoundingClientRect();
+      if (rect===undefined) {
+          return ;
+      }
+      let timer;
+      let tick=0;
+      let max=~~(timems/20);
+      let x=rect.x, y=rect.y;
+      let cb=(e) =>        {
+        if (timer===undefined) {
+            return ;
+        }
+        let a=1.0-tick/max;
+        div.style["background-color"] = color2css(color, a*a*0.5);
+        if (tick>max) {
+            window.clearInterval(timer);
+            this._flashtimer = undefined;
+            this._flashcolor = undefined;
+            timer = undefined;
+            div.remove();
+            if (autoFocus) {
+                this._flash_focus();
+            }
+        }
+        tick++;
+      };
+      window.setTimeout(cb, 5);
+      this._flashtimer = timer = window.setInterval(cb, 20);
+      let div=document.createElement("div");
+      div.style["pointer-events"] = "none";
+      div.tabIndex = undefined;
+      div.style["z-index"] = "900";
+      div.style["display"] = "float";
+      div.style["position"] = UIBase.PositionKey;
+      div.style["margin"] = "0px";
+      div.style["left"] = x+"px";
+      div.style["top"] = y+"px";
+      div.style["background-color"] = color2css(color, 0.5);
+      div.style["width"] = rect.width+"px";
+      div.style["height"] = rect.height+"px";
+      div.setAttribute("class", "UIBaseFlash");
+      let screen=this.getScreen();
+      if (screen!==undefined) {
+          screen._enterPopupSafe();
+      }
+      document.body.appendChild(div);
+      if (autoFocus) {
+          this._flash_focus();
+      }
+      this._flashcolor = csscolor;
+      if (screen!==undefined) {
+          screen._exitPopupSafe();
+      }
+    }
+     destroy() {
+
+    }
+     on_resize(newsize) {
+
+    }
+     toJSON() {
+      let ret={};
+      if (this.hasAttribute("datapath")) {
+          ret.datapath = this.getAttribute("datapath");
+      }
+      return ret;
+    }
+     loadJSON(obj) {
+      if (!this._init_done) {
+          this._init();
+      }
+    }
+     getPathValue(ctx, path) {
+      try {
+        return ctx.api.getValue(ctx, path);
+      }
+      catch (error) {
+          return undefined;
+      }
+    }
+     undoBreakPoint() {
+      this.pathUndoGen++;
+    }
+     setPathValueUndo(ctx, path, val) {
+      let mass_set_path=this.getAttribute("mass_set_path");
+      let rdef=ctx.api.resolvePath(ctx, path);
+      let prop=rdef.prop;
+      if (ctx.api.getValue(ctx, path)===val) {
+          return ;
+      }
+      let toolstack=this.ctx.toolstack;
+      let head=toolstack.head;
+      let bad=head===undefined||!(__instance_of(head, getDataPathToolOp()));
+      bad = bad||head.hashThis()!==head.hash(mass_set_path, path, prop.type, this._id);
+      bad = bad||this.pathUndoGen!==this._lastPathUndoGen;
+      if (!bad) {
+          toolstack.undo();
+          head.setValue(ctx, val, rdef.obj);
+          toolstack.redo();
+      }
+      else {
+        this._lastPathUndoGen = this.pathUndoGen;
+        let toolop=getDataPathToolOp().create(ctx, path, val, this._id, mass_set_path);
+        ctx.toolstack.execTool(this.ctx, toolop);
+        head = toolstack.head;
+      }
+      if (!head||head.hadError===true) {
+          throw new Error("toolpath error");
+      }
+    }
+     loadNumConstraints(prop=undefined, dom=this, onModifiedCallback=undefined) {
+      let modified=false;
+      if (!prop) {
+          let path;
+          if (dom.hasAttribute("datapath")) {
+              path = dom.getAttribute("datapath");
+          }
+          if (path===undefined&&this.hasAttribute("datapath")) {
+              path = this.getAttribute("datapath");
+          }
+          if (typeof path==="string") {
+              prop = this.getPathMeta(this.ctx, path);
+          }
+      }
+      let loadAttr=(propkey, domkey, thiskey) =>        {
+        if (domkey===undefined) {
+            domkey = key;
+        }
+        if (thiskey===undefined) {
+            thiskey = key;
+        }
+        let old=this[thiskey];
+        if (dom.hasAttribute(domkey)) {
+            this[thiskey] = parseFloat(dom.getAttribute(domkey));
+        }
+        else 
+          if (prop) {
+            this[thiskey] = prop[propkey];
+        }
+        if (this[thiskey]!==old) {
+            modified = true;
+        }
+      };
+      for (let key of NumberConstraints) {
+          let thiskey=key, domkey=key;
+          if (key==="range") {
+              continue;
+          }
+          loadAttr(key, domkey, thiskey);
+      }
+      let oldmin=this.range[0];
+      let oldmax=this.range[1];
+      let range=prop ? prop.range : undefined;
+      if (range&&!dom.hasAttribute("min")) {
+          this.range[0] = range[0];
+      }
+      else 
+        if (dom.hasAttribute("min")) {
+          this.range[0] = parseFloat(dom.getAttribute("min"));
+      }
+      if (range&&!dom.hasAttribute("max")) {
+          this.range[1] = range[1];
+      }
+      else 
+        if (dom.hasAttribute("max")) {
+          this.range[1] = parseFloat(dom.getAttribute("max"));
+      }
+      if (this.range[0]!==oldmin||this.range[1]!==oldmax) {
+          modified = true;
+      }
+      let oldint=this.isInt;
+      if (dom.getAttribute("integer")) {
+          let val=dom.getAttribute("integer");
+          val = (""+val).toLowerCase();
+          this.isInt = val==="null"||val==="true"||val==="yes"||val==="1";
+      }
+      else {
+        this.isInt = prop&&__instance_of(prop, IntProperty);
+      }
+      if (!this.isInt!==!oldint) {
+          modified = true;
+      }
+      let oldedit=this.editAsBaseUnit;
+      if (this.editAsBaseUnit===undefined) {
+          if (prop&&(prop.flag&PropFlags.EDIT_AS_BASE_UNIT)) {
+              this.editAsBaseUnit = true;
+          }
+          else {
+            this.editAsBaseUnit = false;
+          }
+      }
+      if (!this.editAsBaseUnit!==!oldedit) {
+          modified = true;
+      }
+      if (modified) {
+          this.setCSS();
+          if (onModifiedCallback) {
+              onModifiedCallback.call(this);
+          }
+      }
+    }
+     pushReportContext(key) {
+      if (this.ctx.api.pushReportContext) {
+          this.ctx.api.pushReportContext(key);
+      }
+    }
+     popReportContext() {
+      if (this.ctx.api.popReportContext)
+        this.ctx.api.popReportContext();
+    }
+     setPathValue(ctx, path, val) {
+      if (this.useDataPathUndo) {
+          this.pushReportContext(this._reportCtxName);
+          try {
+            this.setPathValueUndo(ctx, path, val);
+          }
+          catch (error) {
+              this.popReportContext();
+              if (!(__instance_of(error, DataPathError))) {
+                  throw error;
+              }
+              else {
+                return ;
+              }
+          }
+          this.popReportContext();
+          return ;
+      }
+      this.pushReportContext(this._reportCtxName);
+      try {
+        if (this.hasAttribute("mass_set_path")) {
+            ctx.api.massSetProp(ctx, this.getAttribute("mass_set_path"), val);
+            ctx.api.setValue(ctx, path, val);
+        }
+        else {
+          ctx.api.setValue(ctx, path, val);
+        }
+      }
+      catch (error) {
+          this.popReportContext();
+          if (!(__instance_of(error, DataPathError))) {
+              throw error;
+          }
+          return ;
+      }
+      this.popReportContext();
+    }
+     getPathMeta(ctx, path) {
+      this.pushReportContext(this._reportCtxName);
+      let ret=ctx.api.resolvePath(ctx, path);
+      this.popReportContext();
+      return ret!==undefined ? ret.prop : undefined;
+    }
+     getPathDescription(ctx, path) {
+      let ret;
+      this.pushReportContext(this._reportCtxName);
+      try {
+        ret = ctx.api.getDescription(ctx, path);
+      }
+      catch (error) {
+          this.popReportContext();
+          if (__instance_of(error, DataPathError)) {
+              return undefined;
+          }
+          else {
+            throw error;
+          }
+      }
+      this.popReportContext();
+      return ret;
+    }
+     getScreen() {
+      if (this.ctx!==undefined)
+        return this.ctx.screen;
+    }
+     isDead() {
+      return !this.isConnected;
+      let p=this, lastp=this;
+      function find(c, n) {
+        for (let n2 of c) {
+            if (n2===n) {
+                return true;
+            }
+        }
+      }
+      while (p) {
+        lastp = p;
+        let parent=p.parentWidget;
+        if (!parent) {
+            parent = p.parentElement ? p.parentElement : p.parentNode;
+        }
+        if (parent&&p&&!find(parent.childNodes, p)) {
+            if (parent.shadow!==undefined&&!find(parent.shadow.childNodes)) {
+                return true;
+            }
+        }
+        p = parent;
+        if (p===document.body) {
+            return false;
+        }
+      }
+      return true;
+    }
+     doOnce(func, timeout=undefined) {
+      if (func._doOnce===undefined) {
+          func._doOnce_reqs = new Set();
+          func._doOnce = function (thisvar, trace) {
+            if (func._doOnce_reqs.has(thisvar._id)) {
+                return ;
+            }
+            func._doOnce_reqs.add(thisvar._id);
+            function f() {
+              if (thisvar.isDead()) {
+                  func._doOnce_reqs.delete(thisvar._id);
+                  if (func===thisvar._init||!cconst.DEBUG.doOnce) {
+                      return ;
+                  }
+                  console.warn("Ignoring doOnce call for dead element", thisvar._id, func, trace);
+                  return ;
+              }
+              if (!thisvar.ctx) {
+                  if (cconst.DEBUG.doOnce) {
+                      console.warn("doOnce call is waiting for context...", thisvar._id, func);
+                  }
+                  internalSetTimeout(f, 0);
+                  return ;
+              }
+              func._doOnce_reqs.delete(thisvar._id);
+              func.call(thisvar);
+            }
+            internalSetTimeout(f, timeout);
+          };
+      }
+      let trace=new Error().stack;
+      func._doOnce(this, trace);
+    }
+     float(x=0, y=0, zindex=undefined, positionKey=UIBase.PositionKey) {
+      this.style.position = positionKey;
+      this.style.left = x+"px";
+      this.style.top = y+"px";
+      if (zindex!==undefined) {
+          this.style["z-index"] = zindex;
+      }
+      return this;
+    }
+     _ensureChildrenCtx() {
+      let ctx=this.ctx;
+      if (ctx===undefined) {
+          return ;
+      }
+      this._forEachChildWidget((n) =>        {
+        n.parentWidget = this;
+        if (n.ctx===undefined) {
+            n.ctx = ctx;
+        }
+        n._ensureChildrenCtx(ctx);
+      });
+    }
+     checkThemeUpdate() {
+      if (!cconst.enableThemeAutoUpdate) {
+          return false;
+      }
+      if (_themeUpdateKey!==this._last_theme_update_key) {
+          this._last_theme_update_key = _themeUpdateKey;
+          return true;
+      }
+      return false;
+    }
+     abortToolTips(delayMs=500) {
+      if (this._has_own_tooltips) {
+          this._has_own_tooltips.stop_timer();
+      }
+      if (this._tooltip_ref) {
+          this._tooltip_ref.remove();
+          this._tooltip_ref = undefined;
+      }
+      this._tool_tip_abort_delay = util.time_ms()+delayMs;
+      return this;
+    }
+     updateToolTipHandlers() {
+      if (!this._useNativeToolTips_set&&!cconst.useNativeToolTips!==!this._useNativeToolTips) {
+          this._useNativeToolTips = cconst.useNativeToolTips;
+      }
+      if (!!this.useNativeToolTips===!this._has_own_tooltips) {
+          return ;
+      }
+      if (!this.useNativeToolTips) {
+          let state=this._has_own_tooltips = {start_timer: (e) =>              {
+              this._tooltip_timer = util.time_ms();
+            }, 
+       stop_timer: (e) =>              {
+              this._tooltip_timer = undefined;
+            }, 
+       reset_timer: (e) =>              {
+              if (this._tooltip_timer!==undefined) {
+                  this._tooltip_timer = util.time_ms();
+              }
+            }, 
+       start_events: ["mouseover"], 
+       reset_events: ["mousemove", "mousedown", "mouseup", "touchstart", "touchend", "keydown", "focus"], 
+       stop_events: ["mouseleave", "blur", "mouseout"], 
+       handlers: {}};
+          let bind_handler=(type, etype) =>            {
+            let handler=(e) =>              {
+              if (this._tool_tip_abort_delay!==undefined&&util.time_ms()<this._tool_tip_abort_delay) {
+                  this._tooltip_timer = undefined;
+                  return ;
+              }
+              state[type](e);
+            }
+            if (etype in state.handlers) {
+                console.error(type, "is in handlers already");
+                return ;
+            }
+            state.handlers[etype] = handler;
+            return handler;
+          };
+          let i=0;
+          let lists=[state.start_events, state.stop_events, state.reset_events];
+          for (let type of ["start_timer", "stop_timer", "reset_timer"]) {
+              for (let etype of lists[i]) {
+                  this.addEventListener(etype, bind_handler(type, etype), {passive: true});
+              }
+              i++;
+          }
+      }
+      else {
+        console.warn(this.id, "removing tooltip handlers");
+        let state=this._has_own_tooltips;
+        for (let k in this.state.handlers) {
+            let handler=this.state.handlers[k];
+            this.removeEventListener(k, handler);
+        }
+        this._has_own_tooltips = undefined;
+        this._tooltip_timer = undefined;
+      }
+    }
+     updateToolTips() {
+      if (this._description_final===undefined||this._description_final===null||this._description_final.trim().length===0) {
+          return ;
+      }
+      if (!this.ctx||!this.ctx.screen) {
+          return ;
+      }
+      this.updateToolTipHandlers();
+      if (this.useNativeToolTips||this._tooltip_timer===undefined) {
+          return ;
+      }
+      if (this._tool_tip_abort_delay!==undefined&&util.time_ms()<this._tool_tip_abort_delay) {
+          return ;
+      }
+      this._tool_tip_abort_delay = undefined;
+      let screen=this.ctx.screen;
+      const timelimit=500;
+      let ok=util.time_ms()-this._tooltip_timer>timelimit;
+      let x=screen.mpos[0], y=screen.mpos[1];
+      let r=this.getClientRects();
+      r = r ? r[0] : r;
+      if (!r) {
+          ok = false;
+      }
+      else {
+        ok = ok&&x>=r.x&&x<r.x+r.width;
+        ok = ok&&y>=r.y&&y<r.y+r.height;
+      }
+      if (r) {
+      }
+      ok = ok&&!haveModal();
+      ok = ok&&screen.pickElement(x, y)===this;
+      ok = ok&&this._description_final;
+      if (ok) {
+          this._tooltip_ref = _ToolTip.show(this._description_final, this.ctx.screen, x, y);
+      }
+      else {
+        if (this._tooltip_ref) {
+            this._tooltip_ref.remove();
+        }
+        this._tooltip_ref = undefined;
+      }
+      if (util.time_ms()-this._tooltip_timer>timelimit) {
+          this._tooltip_timer = undefined;
+      }
+    }
+     update() {
+      this.updateToolTips();
+      if (this.ctx&&this._description===undefined&&this.getAttribute("datapath")) {
+          let d=this.getPathDescription(this.ctx, this.getAttribute("datapath"));
+          this.description = d;
+      }
+      if (!this._init_done) {
+          this._init();
+      }
+      if (this._init_done&&!this.constructor.define().subclassChecksTheme) {
+          if (this.checkThemeUpdate()) {
+              console.log("theme update!");
+              this.setCSS();
+          }
+      }
+    }
+     onadd() {
+      if (!this._init_done) {
+          this.doOnce(this._init);
+      }
+      if (this.tabIndex>=0) {
+          this.regenTabOrder();
+      }
+    }
+     getZoom() {
+      if (this.parentWidget!==undefined) {
+          return this.parentWidget.getZoom();
+      }
+      return 1.0;
+    }
+     getDPI() {
+      if (this.parentWidget!==undefined) {
+          return this.parentWidget.getDPI();
+      }
+      return UIBase.getDPI();
+    }
+     saveData() {
+      return {}
+    }
+     loadData(obj) {
+      return this;
+    }
+     overrideDefault(key, val, localOnly=false) {
+      this.my_default_overrides[key] = val;
+      if (!localOnly) {
+          this.default_overrides[key] = val;
+      }
+      return this;
+    }
+     overrideClass(style) {
+      this._override_class = style;
+    }
+     overrideClassDefault(style, key, val) {
+      if (!(style in this.class_default_overrides)) {
+          this.class_default_overrides[style] = {};
+      }
+      this.class_default_overrides[style][key] = val;
+    }
+     _doMobileDefault(key, val) {
+      if (!util.isMobile())
+        return val;
+      key = key.toLowerCase();
+      let ok=false;
+      for (let re of _mobile_theme_patterns) {
+          if (key.search(re)>=0) {
+              ok = true;
+              break;
+          }
+      }
+      if (ok) {
+          val*=theme.base.mobileSizeMultiplier;
+      }
+      return val;
+    }
+     hasDefault(key) {
+      let p=this;
+      while (p) {
+        if (key in p.default_overrides) {
+            return true;
+        }
+        p = p.parentWidget;
+      }
+      return this.hasClassDefault(key);
+    }
+     getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined) {
+      if (!key) {
+          return this.getDefault(subkey, undefined, defaultval);
+      }
+      let style=this.getDefault(key);
+      if (!style||typeof style!=="object"||!(subkey in style)) {
+          if (defaultval!==undefined) {
+              return defaultval;
+          }
+          else 
+            if (backupkey!==undefined) {
+              return this.getDefault(backupkey);
+          }
+      }
+      else {
+        return style[subkey];
+      }
+    }
+     getDefault(key, checkForMobile=true, defaultval=undefined) {
+      let ret=this.getDefault_intern(key, checkForMobile, defaultval);
+      if (typeof ret==="string"&&ret.trim().toLowerCase().endsWith("px")) {
+          let s=ret.trim().toLowerCase();
+          s = s.slice(0, s.length-2).trim();
+          let f=parseFloat(s);
+          if (!isNaN(f)&&isFinite(f)) {
+              return f;
+          }
+      }
+      return ret;
+    }
+     getDefault_intern(key, checkForMobile=true, defaultval=undefined) {
+      if (this.my_default_overrides[key]!==undefined) {
+          let v=this.my_default_overrides[key];
+          return checkForMobile ? this._doMobileDefault(key, v) : v;
+      }
+      let p=this;
+      while (p) {
+        if (p.default_overrides[key]!==undefined) {
+            let v=p.default_overrides[key];
+            checkForMobile ? this._doMobileDefault(key, v) : v;
+        }
+        p = p.parentWidget;
+      }
+      return this.getClassDefault(key, checkForMobile, defaultval);
+    }
+     getStyleClass() {
+      if (this._override_class!==undefined) {
+          return this._override_class;
+      }
+      let p=this.constructor, lastp=undefined;
+      while (p&&p!==lastp&&p!==UIBase&&p!==Object) {
+        let def=p.define();
+        if (def.style) {
+            return def.style;
+        }
+        if (!p.prototype||!p.prototype.__proto__)
+          break;
+        p = p.prototype.__proto__.constructor;
+      }
+      return "base";
+    }
+     hasClassDefault(key) {
+      let style=this.getStyleClass();
+      let p=this;
+      while (p) {
+        let def=p.class_default_overrides[style];
+        if (def&&(key in def)) {
+            return true;
+        }
+        p = p.parentWidget;
+      }
+      let th=this._themeOverride;
+      if (th&&style in th&&key in th[style]) {
+          return true;
+      }
+      if (style in theme&&key in theme[style]) {
+          return true;
+      }
+      return key in theme.base;
+    }
+     getClassDefault(key, checkForMobile=true, defaultval=undefined) {
+      let style=this.getStyleClass();
+      if (style==="none") {
+          return undefined;
+      }
+      let val=undefined;
+      let p=this;
+      while (p) {
+        let def=p.class_default_overrides[style];
+        if (def&&(key in def)) {
+            val = def[key];
+            break;
+        }
+        p = p.parentWidget;
+      }
+      if (val===undefined&&style in theme&&!(key in theme[style])&&!(key in theme.base)) {
+          if (window.DEBUG.theme) {
+              report("Missing theme key ", key, "for", style);
+          }
+      }
+      for (let i=0; i<2; i++) {
+          let th=!i ? this._themeOverride : theme;
+          if (!th) {
+              continue;
+          }
+          if (val===undefined&&style in th&&key in th[style]) {
+              val = th[style][key];
+          }
+          else 
+            if (defaultval!==undefined) {
+              val = defaultval;
+          }
+          else 
+            if (val===undefined) {
+              let def=this.constructor.define();
+              if (def.parentStyle&&key in th[def.parentStyle]) {
+                  val = th[def.parentStyle][key];
+              }
+              else {
+                val = th.base[key];
+              }
+          }
+      }
+      return checkForMobile ? this._doMobileDefault(key, val) : val;
+    }
+     overrideTheme(theme) {
+      this._themeOverride = theme;
+      this._forEachChildWidget((child) =>        {
+        child.overrideTheme(theme);
+      });
+      if (this.ctx) {
+          this.flushSetCSS();
+          this.flushUpdate();
+      }
+      return this;
+    }
+     getStyle() {
+      console.warn("deprecated call to UIBase.getStyle");
+      return this.getStyleClass();
+    }
+     animate(_extra_handlers={}) {
+      let transform=new DOMMatrix(this.style["transform"]);
+      let update_trans=() =>        {
+        let t=transform;
+        let css="matrix("+t.a+","+t.b+","+t.c+","+t.d+","+t.e+","+t.f+")";
+        this.style["transform"] = css;
+      };
+      let handlers={background_get: function background_get() {
+          return css2color(this.background);
+        }, 
+     background_set: function background_set(c) {
+          if (typeof c!=="string") {
+              c = color2css(c);
+          }
+          this.background = c;
+        }, 
+     dx_get: function dx_get() {
+          return transform.m41;
+        }, 
+     dx_set: function dx_set(x) {
+          transform.m41 = x;
+          update_trans();
+        }, 
+     dy_get: function dy_get() {
+          return transform.m42;
+        }, 
+     dy_set: function dy_set(x) {
+          transform.m42 = x;
+          update_trans();
+        }};
+      let pixkeys=["width", "height", "left", "top", "right", "bottom", "border-radius", "border-width", "margin", "padding", "margin-left", "margin-right", "margin-top", "margin-bottom", "padding-left", "padding-right", "padding-bottom", "padding-top"];
+      handlers = Object.assign(handlers, _extra_handlers);
+      let makePixHandler=(k, k2) =>        {
+        handlers[k2+"_get"] = () =>          {
+          let s=this.style[k];
+          if (s.endsWith("px")) {
+              return parsepx(s);
+          }
+          else {
+            return 0.0;
+          }
+        }
+        handlers[k2+"_set"] = (val) =>          {
+          this.style[k] = val+"px";
+        }
+      };
+      for (let k of pixkeys) {
+          if (!(k in handlers)) {
+              makePixHandler(k, `style.${k}`);
+              makePixHandler(k, `style["${k}"]`);
+              makePixHandler(k, `style['${k}']`);
+          }
+      }
+      let handler={get: (target, key, receiver) =>          {
+          console.log(key, handlers[key+"_get"], handlers);
+          if ((key+"_get") in handlers) {
+              return handlers[key+"_get"].call(target);
+          }
+          else {
+            return target[key];
+          }
+        }, 
+     set: (target, key, val, receiver) =>          {
+          console.log(key);
+          if ((key+"_set") in handlers) {
+              handlers[key+"_set"].call(target, val);
+          }
+          else {
+            target[key] = val;
+          }
+          return true;
+        }};
+      let proxy=new Proxy(this, handler);
+      let anim=new Animator(proxy);
+      anim.onend = () =>        {
+        this._active_animations.remove(anim);
+      };
+      this._active_animations.push(anim);
+      return anim;
+    }
+     abortAnimations() {
+      for (let anim of util.list(this._active_animations)) {
+          anim.end();
+      }
+      this._active_animations = [];
+    }
+  }
+  _ESClass.register(UIBase);
+  _es6_module.add_class(UIBase);
+  UIBase = _es6_module.add_export('UIBase', UIBase);
+  function drawRoundBox2(elem, options) {
+    if (options===undefined) {
+        options = {};
+    }
+    drawRoundBox(elem, options.canvas, options.g, options.width, options.height, options.r, options.op, options.color, options.margin, options.no_clear);
+  }
+  drawRoundBox2 = _es6_module.add_export('drawRoundBox2', drawRoundBox2);
+  function drawRoundBox(elem, canvas, g, width, height, r, op, color, margin, no_clear) {
+    if (r===undefined) {
+        r = undefined;
+    }
+    if (op===undefined) {
+        op = "fill";
+    }
+    if (color===undefined) {
+        color = undefined;
+    }
+    if (margin===undefined) {
+        margin = undefined;
+    }
+    if (no_clear===undefined) {
+        no_clear = false;
+    }
+    width = width===undefined ? canvas.width : width;
+    height = height===undefined ? canvas.height : height;
+    g.save();
+    let dpi=elem.getDPI();
+    r = r===undefined ? elem.getDefault("border-radius") : r;
+    if (margin===undefined) {
+        margin = 1;
+    }
+    r*=dpi;
+    let r1=r, r2=r;
+    if (r>(height-margin*2)*0.5) {
+        r1 = (height-margin*2)*0.5;
+    }
+    if (r>(width-margin*2)*0.5) {
+        r2 = (width-margin*2)*0.5;
+    }
+    let bg=color;
+    if (bg===undefined&&canvas._background!==undefined) {
+        bg = canvas._background;
+    }
+    else 
+      if (bg===undefined) {
+        bg = elem.getDefault("background-color");
+    }
+    if (op==="fill"&&!no_clear) {
+        g.clearRect(0, 0, width, height);
+    }
+    g.fillStyle = bg;
+    g.strokeStyle = color===undefined ? elem.getDefault("border-color") : color;
+    let w=width, h=height;
+    let th=Math.PI/4;
+    let th2=Math.PI*0.75;
+    g.beginPath();
+    g.moveTo(margin, margin+r1);
+    g.lineTo(margin, h-r1-margin);
+    g.quadraticCurveTo(margin, h-margin, margin+r2, h-margin);
+    g.lineTo(w-margin-r2, h-margin);
+    g.quadraticCurveTo(w-margin, h-margin, w-margin, h-margin-r1);
+    g.lineTo(w-margin, margin+r1);
+    g.quadraticCurveTo(w-margin, margin, w-margin-r2, margin);
+    g.lineTo(margin+r2, margin);
+    g.quadraticCurveTo(margin, margin, margin, margin+r1);
+    g.closePath();
+    if (op==="clip") {
+        g.clip();
+    }
+    else 
+      if (op==="fill") {
+        g.fill();
+    }
+    else {
+      g.stroke();
+    }
+    g.restore();
+  }
+  drawRoundBox = _es6_module.add_export('drawRoundBox', drawRoundBox);
+  
+  function _getFont_new(elem, size, font, do_dpi) {
+    if (font===undefined) {
+        font = "DefaultText";
+    }
+    if (do_dpi===undefined) {
+        do_dpi = true;
+    }
+    font = elem.getDefault(font);
+    return font.genCSS(size);
+  }
+  _getFont_new = _es6_module.add_export('_getFont_new', _getFont_new);
+  function getFont(elem, size, font, do_dpi) {
+    if (font===undefined) {
+        font = "DefaultText";
+    }
+    if (do_dpi===undefined) {
+        do_dpi = true;
+    }
+    return _getFont_new(elem, size, font = "DefaultText", do_dpi = true);
+  }
+  getFont = _es6_module.add_export('getFont', getFont);
+  function _getFont(elem, size, font, do_dpi) {
+    if (font===undefined) {
+        font = "DefaultText";
+    }
+    if (do_dpi===undefined) {
+        do_dpi = true;
+    }
+    let dpi=elem.getDPI();
+    let font2=elem.getDefault(font);
+    if (font2!==undefined) {
+        return _getFont_new(elem, size, font, do_dpi);
+    }
+    throw new Error("unknown font "+font);
+  }
+  _getFont = _es6_module.add_export('_getFont', _getFont);
+  function _ensureFont(elem, canvas, g, size) {
+    if (canvas.font) {
+        g.font = canvas.font;
+    }
+    else {
+      let font=elem.getDefault("DefaultText");
+      g.font = font.genCSS(size);
+    }
+  }
+  _ensureFont = _es6_module.add_export('_ensureFont', _ensureFont);
+  let _mc;
+  function get_measure_canvas() {
+    if (_mc!==undefined) {
+        return _mc;
+    }
+    _mc = document.createElement("canvas");
+    _mc.width = 256;
+    _mc.height = 256;
+    _mc.g = _mc.getContext("2d");
+    return _mc;
+  }
+  function measureTextBlock(elem, text, canvas, g, size, font) {
+    if (canvas===undefined) {
+        canvas = undefined;
+    }
+    if (g===undefined) {
+        g = undefined;
+    }
+    if (size===undefined) {
+        size = undefined;
+    }
+    if (font===undefined) {
+        font = undefined;
+    }
+    let lines=text.split("\n");
+    let ret={width: 0, 
+    height: 0}
+    if (size===undefined) {
+        if (font!==undefined&&typeof font==="object") {
+            size = font.size;
+        }
+        if (size===undefined) {
+            size = elem.getDefault("DefaultText").size;
+        }
+    }
+    for (let line of lines) {
+        let m=measureText(elem, line, canvas, g, size, font);
+        ret.width = Math.max(ret.width, m.width);
+        let h=m.height!==undefined ? m.height : size*1.25;
+        ret.height+=h;
+    }
+    return ret;
+  }
+  measureTextBlock = _es6_module.add_export('measureTextBlock', measureTextBlock);
+  function measureText(elem, text, canvas, g, size, font) {
+    if (canvas===undefined) {
+        canvas = undefined;
+    }
+    if (g===undefined) {
+        g = undefined;
+    }
+    if (size===undefined) {
+        size = undefined;
+    }
+    if (font===undefined) {
+        font = undefined;
+    }
+    if (typeof canvas==="object"&&canvas!==null&&!(__instance_of(canvas, HTMLCanvasElement))&&canvas.tagName!=="CANVAS") {
+        let args=canvas;
+        canvas = args.canvas;
+        g = args.g;
+        size = args.size;
+        font = args.font;
+    }
+    if (g===undefined) {
+        canvas = get_measure_canvas();
+        g = canvas.g;
+    }
+    if (font!==undefined) {
+        if (typeof font==="object"&&__instance_of(font, CSSFont)) {
+            font = font.genCSS(size);
+        }
+        g.font = font;
+    }
+    else {
+      _ensureFont(elem, canvas, g, size);
+    }
+    let ret=g.measureText(text);
+    if (ret&&util.isMobile()) {
+        let ret2={};
+        let dpi=UIBase.getDPI();
+        for (let k in ret) {
+            let v=ret[k];
+            if (typeof v==="number") {
+                v*=dpi;
+            }
+            ret2[k] = v;
+        }
+        ret = ret2;
+    }
+    if (size!==undefined) {
+        g.font = undefined;
+    }
+    return ret;
+  }
+  measureText = _es6_module.add_export('measureText', measureText);
+  function drawText(elem, x, y, text, args) {
+    if (args===undefined) {
+        args = {};
+    }
+    let canvas=args.canvas, g=args.g, color=args.color, font=args.font;
+    let size=args.size;
+    if (size===undefined) {
+        if (font!==undefined&&__instance_of(font, CSSFont)) {
+            size = font.size;
+        }
+        else {
+          size = elem.getDefault("DefaultText").size;
+        }
+    }
+    size*=UIBase.getDPI();
+    if (color===undefined) {
+        if (font&&font.color) {
+            color = font.color;
+        }
+        else {
+          color = elem.getDefault("DefaultText").color;
+        }
+    }
+    if (font===undefined) {
+        _ensureFont(elem, canvas, g, size);
+    }
+    else 
+      if (typeof font==="object"&&__instance_of(font, CSSFont)) {
+        g.font = font = font.genCSS(size);
+    }
+    else 
+      if (font) {
+        g.font = font;
+    }
+    if (typeof color==="object") {
+        color = color2css(color);
+    }
+    g.fillStyle = color;
+    g.fillText(text, x+0.5, y+0.5);
+    if (size!==undefined) {
+        g.font = undefined;
+    }
+  }
+  drawText = _es6_module.add_export('drawText', drawText);
+  let PIDX=0, PSHADOW=1, PTOT=2;
+  function saveUIData(node, key) {
+    if (key===undefined) {
+        throw new Error("ui_base.saveUIData(): key cannot be undefined");
+    }
+    let paths=[];
+    let rec=(n, path, ni, is_shadow) =>      {
+      path = path.slice(0, path.length);
+      let pi=path.length;
+      for (let i=0; i<PTOT; i++) {
+          path.push(undefined);
+      }
+      path[pi] = ni;
+      path[pi+1] = is_shadow ? 1 : 0;
+      if (__instance_of(n, UIBase)) {
+          let path2=path.slice(0, path.length);
+          let data=n.saveData();
+          let bad=!data;
+          bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
+          if (!bad) {
+              path2.push(data);
+              if (path2[pi+2]) {
+                  paths.push(path2);
+              }
+          }
+      }
+      for (let i=0; i<n.childNodes.length; i++) {
+          let n2=n.childNodes[i];
+          rec(n2, path, i, false);
+      }
+      let shadow=n.shadow;
+      if (!shadow)
+        return ;
+      for (let i=0; i<shadow.childNodes.length; i++) {
+          let n2=shadow.childNodes[i];
+          rec(n2, path, i, true);
+      }
+    }
+    rec(node, [], 0, false);
+    return JSON.stringify({key: key, 
+    paths: paths, 
+    _ui_version: 1});
+  }
+  saveUIData = _es6_module.add_export('saveUIData', saveUIData);
+  window._saveUIData = saveUIData;
+  function loadUIData(node, buf) {
+    if (buf===undefined||buf===null) {
+        return ;
+    }
+    let obj=JSON.parse(buf);
+    let key=buf.key;
+    for (let path of obj.paths) {
+        let n=node;
+        let data=path[path.length-1];
+        path = path.slice(2, path.length-1);
+        for (let pi=0; pi<path.length; pi+=PTOT) {
+            let ni=path[pi], shadow=path[pi+1];
+            let list;
+            if (shadow) {
+                list = n.shadow;
+                if (list) {
+                    list = list.childNodes;
+                }
+            }
+            else {
+              list = n.childNodes;
+            }
+            if (list===undefined||list[ni]===undefined) {
+                n = undefined;
+                break;
+            }
+            n = list[ni];
+        }
+        if (n!==undefined&&__instance_of(n, UIBase)) {
+            n._init();
+            n.loadData(data);
+        }
+    }
+  }
+  loadUIData = _es6_module.add_export('loadUIData', loadUIData);
+  UIBase.PositionKey = "fixed";
+  window._loadUIData = loadUIData;
+  aspect._setUIBase(UIBase);
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_base.js');
+
+
+es6_module_define('ui_consts', [], function _ui_consts_module(_es6_module) {
+  const ClassIdSymbol=Symbol("pathux-class-id");
+  _es6_module.add_export('ClassIdSymbol', ClassIdSymbol);
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_consts.js');
+
+
+es6_module_define('ui_save', ["../path-controller/util/parseutil.js", "../util/util.js", "../util/vectormath.js"], function _ui_save_module(_es6_module) {
+  var util=es6_import(_es6_module, '../util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  const UI_SAVE_VERSION=2;
+  _es6_module.add_export('UI_SAVE_VERSION', UI_SAVE_VERSION);
+  function debuglog() {
+    if (window.DEBUG&&window.DEBUG.uipaths) {
+        console.warn.apply(...arguments);
+    }
+  }
+  let UIBase;
+  function setUIBase(cls) {
+    UIBase = cls;
+  }
+  setUIBase = _es6_module.add_export('setUIBase', setUIBase);
+  function saveUIData(node, key) {
+    if (key===undefined) {
+        throw new Error("ui_base.saveUIData(): key cannot be undefined");
+    }
+    let paths=new Map();
+    let rec=(path, n) =>      {
+      if (!(__instance_of(n, HTMLElement))) {
+          return ;
+      }
+      if (__instance_of(n, UIBase)) {
+          let path2=n.constructor.define().tagname+"|"+path;
+          paths.set(path2, n.saveData());
+      }
+      let ni=0;
+      for (let n2 of n.childNodes) {
+          let path2=path+`[${ni}]`;
+          rec(path2, n2);
+          ni++;
+      }
+      if (n.shadow) {
+          let ni=0;
+          for (let n2 of n.shadow.childNodes) {
+              let path2=path+`{${ni}}`;
+              rec(path2, n2);
+              ni++;
+          }
+      }
+    }
+    rec("", node, undefined, 0, false);
+    let paths2={}
+    for (let /*unprocessed ExpandNode*/[path, data] of paths) {
+        let bad=!data;
+        bad = bad||(typeof data==="object"&&Object.keys(data).length===0);
+        if (!bad) {
+            paths2[path] = data;
+        }
+    }
+    paths = paths2;
+    return JSON.stringify({version: UI_SAVE_VERSION, 
+    key: key, 
+    paths: paths});
+  }
+  saveUIData = _es6_module.add_export('saveUIData', saveUIData);
+  var tokdef=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'tokdef');
+  var parser=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'parser');
+  var lexer=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'lexer');
+  var PUTLParseError=es6_import_item(_es6_module, '../path-controller/util/parseutil.js', 'PUTLParseError');
+  function makeParser() {
+    const tk=(name, re, func) =>      {
+      return new tokdef(name, re, func);
+    }
+    let p;
+    const tokens=[tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACE", /\{/), tk("RBRACE", /\}/), tk("NUM", /[0-9]+/, (t) =>      {
+      return t.setValue(parseInt(t.value));
+    }), tk("WS", /[ \t]/, (token) =>      {
+      return undefined;
+    })];
+    function p_error(t) {
+      console.warn(t);
+      p.userdata = undefined;
+      throw new PUTLParseError("Parse error");
+    }
+    const l=new lexer(tokens);
+    p = new parser(l, p_error);
+    function consumeAll() {
+      while (!p.at_end()) {
+        p.next();
+      }
+    }
+    function p_Start() {
+      let node=p.userdata;
+      while (!p.at_end()) {
+        let t=p.peeknext();
+        if (t.type==="LSBRACKET") {
+            p.next();
+            let idx=p.expect("NUM");
+            if (idx>=node.childNodes.length||!(__instance_of(node.childNodes[idx], HTMLElement))) {
+                let li=p.lexer.lexpos;
+                let path=p.lexer.lexdata;
+                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node.childNodes);
+                consumeAll();
+                return undefined;
+            }
+            node = node.childNodes[idx];
+            p.expect('RSBRACKET');
+        }
+        else 
+          if (t.type==="LBRACE") {
+            p.next();
+            let idx=p.expect("NUM");
+            if (!node.shadow||idx>=node.shadow.childNodes.length||!(__instance_of(node.shadow.childNodes[idx], HTMLElement))) {
+                let li=p.lexer.lexpos;
+                let path=p.lexer.lexdata;
+                debuglog(idx, p.lexer.lexpos, path.slice(li-3, path.length), node, node.shadow ? node.shadow.childNodes : undefined);
+                consumeAll();
+                return undefined;
+            }
+            node = node.shadow.childNodes[idx];
+            p.expect("RBRACE");
+        }
+        else {
+          p.expect("LBRACE");
+        }
+      }
+      return node;
+    }
+    p.start = p_Start;
+    return p;
+  }
+  makeParser = _es6_module.add_export('makeParser', makeParser);
+  const pathParser=makeParser();
+  function loadPath(node, key, json) {
+    console.log(key);
+    key = key.split("|");
+    let tagname=key[0].trim();
+    let path=(key[1]||"").trim();
+    if (path==="") {
+        if (tagname===node.constructor.define().tagname) {
+            node.loadData(json);
+        }
+        else {
+          debuglog("Failed to load ui save path", key);
+        }
+        return ;
+    }
+    pathParser.userdata = node;
+    let child;
+    try {
+      child = pathParser.parse(path);
+    }
+    catch (error) {
+        if (__instance_of(error, PUTLParseError)) {
+            console.error("Parse error parsing ui save path "+path);
+        }
+        else {
+          throw error;
+        }
+    }
+    if (child&&child.constructor.define().tagname!==tagname) {
+        debuglog("Failed to load ui save path", key);
+        child = undefined;
+    }
+    else 
+      if (!child) {
+        debuglog("Failed to load ui save path", key);
+    }
+    pathParser.userdata = undefined;
+    if (child) {
+        child.loadData(json);
+    }
+  }
+  loadPath = _es6_module.add_export('loadPath', loadPath);
+  function loadUIData(node, json) {
+    if (typeof json==='string') {
+        json = JSON.parse(json);
+    }
+    for (let k in json.paths) {
+        let v=json.paths[k];
+        if (v===undefined) {
+            continue;
+        }
+        loadPath(node, k, v);
+    }
+  }
+  loadUIData = _es6_module.add_export('loadUIData', loadUIData);
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_save.js');
+
+
+es6_module_define('ui_theme', ["../path-controller/util/util.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _ui_theme_module(_es6_module) {
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  let compatMap={BoxMargin: "padding", 
+   BoxBG: "background", 
+   BoxRadius: "border-radius", 
+   background: "background-color", 
+   defaultWidth: "width", 
+   defaultHeight: "height", 
+   DefaultWidth: "width", 
+   DefaultHeight: "height", 
+   BoxBorder: "border-color", 
+   BoxLineWidth: "border-width", 
+   BoxSubBG: "background-color", 
+   BoxSub2BG: "background-color", 
+   DefaultPanelBG: "background-color", 
+   InnerPanelBG: "background-color", 
+   Background: "background-color", 
+   numslider_width: "width", 
+   numslider_height: "height"}
+  compatMap = _es6_module.add_export('compatMap', compatMap);
+  let ColorSchemeTypes={LIGHT: "light", 
+   DARK: "dark"}
+  ColorSchemeTypes = _es6_module.add_export('ColorSchemeTypes', ColorSchemeTypes);
+  function parsepx(css) {
+    return parseFloat(css.trim().replace("px", ""));
+  }
+  parsepx = _es6_module.add_export('parsepx', parsepx);
+  function color2css(c, alpha_override) {
+    let r=~~(c[0]*255);
+    let g=~~(c[1]*255);
+    let b=~~(c[2]*255);
+    let a=c.length<4 ? 1.0 : c[3];
+    a = alpha_override!==undefined ? alpha_override : a;
+    if (c.length===3&&alpha_override===undefined) {
+        return `rgb(${r},${g},${b})`;
+    }
+    else {
+      return `rgba(${r},${g},${b}, ${a})`;
+    }
+  }
+  color2css = _es6_module.add_export('color2css', color2css);
+  window.color2css = color2css;
+  let css2color_rets=util.cachering.fromConstructor(Vector4, 64);
+  let basic_colors={'white': [1, 1, 1], 
+   'grey': [0.5, 0.5, 0.5], 
+   'gray': [0.5, 0.5, 0.5], 
+   'black': [0, 0, 0], 
+   'red': [1, 0, 0], 
+   'yellow': [1, 1, 0], 
+   'green': [0, 1, 0], 
+   'teal': [0, 1, 1], 
+   'cyan': [0, 1, 1], 
+   'blue': [0, 0, 1], 
+   'orange': [1, 0.5, 0.25], 
+   'brown': [0.5, 0.4, 0.3], 
+   'purple': [1, 0, 1], 
+   'pink': [1, 0.5, 0.5]}
+  function color2web(color) {
+    function tostr(n) {
+      n = ~~(n*255);
+      let s=n.toString(16);
+      if (s.length>2) {
+          s = s.slice(0, 2);
+      }
+      while (s.length<2) {
+        s = "0"+s;
+      }
+      return s;
+    }
+    if (color.length===3||color[3]===1.0) {
+        let r=tostr(color[0]);
+        let g=tostr(color[1]);
+        let b=tostr(color[2]);
+        return "#"+r+g+b;
+    }
+    else {
+      let r=tostr(color[0]);
+      let g=tostr(color[1]);
+      let b=tostr(color[2]);
+      let a=tostr(color[3]);
+      return "#"+r+g+b+a;
+    }
+  }
+  color2web = _es6_module.add_export('color2web', color2web);
+  window.color2web = color2web;
+  function css2color(color) {
+    if (!color) {
+        return new Vector4([0, 0, 0, 1]);
+    }
+    color = (""+color).trim();
+    let ret=css2color_rets.next();
+    if (color[0]==="#") {
+        color = color.slice(1, color.length);
+        let parts=[];
+        for (let i=0; i<color.length>>1; i++) {
+            let part="0x"+color.slice(i*2, i*2+2);
+            parts.push(parseInt(part));
+        }
+        ret.zero();
+        let i;
+        for (i = 0; i<Math.min(parts.length, ret.length); i++) {
+            ret[i] = parts[i]/255.0;
+        }
+        if (i<4) {
+            ret[3] = 1.0;
+        }
+        return ret;
+    }
+    if (color in basic_colors) {
+        ret.load(basic_colors[color]);
+        ret[3] = 1.0;
+        return ret;
+    }
+    color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
+    for (let i=0; i<color.length; i++) {
+        ret[i] = parseFloat(color[i]);
+        if (i<3) {
+            ret[i]/=255;
+        }
+    }
+    if (color.length===3) {
+        color.push(1.0);
+    }
+    return ret;
+  }
+  css2color = _es6_module.add_export('css2color', css2color);
+  window.css2color = css2color;
+  function web2color(str) {
+    if (typeof str==="string"&&str.trim()[0]!=="#") {
+        str = "#"+str.trim();
+    }
+    return css2color(str);
+  }
+  web2color = _es6_module.add_export('web2color', web2color);
+  window.web2color = web2color;
+  let validate_pat=/\#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
+  function validateWebColor(str) {
+    if (typeof str!=="string"&&!(__instance_of(str, String)))
+      return false;
+    return str.trim().search(validate_pat)===0;
+  }
+  validateWebColor = _es6_module.add_export('validateWebColor', validateWebColor);
+  let num="(([0-9]+\.[0-9]+)|[0-9a-f]+)";
+  let validate_rgba=new RegExp(`rgba\\(${num},${num},${num},${num}\\)$`);
+  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num}\\)$`);
+  function validateCSSColor(color) {
+    if (color.toLowerCase() in basic_colors) {
+        return true;
+    }
+    let rgba=color.toLowerCase().replace(/[ \t]/g, "");
+    rgba = rgba.trim();
+    if (validate_rgba.test(rgba)||validate_rgb.exec(rgba)) {
+        return true;
+    }
+    return validateWebColor(color);
+  }
+  validateCSSColor = _es6_module.add_export('validateCSSColor', validateCSSColor);
+  window.validateCSSColor = validateCSSColor;
+  let theme={}
+  theme = _es6_module.add_export('theme', theme);
+  function invertTheme() {
+    cconst.colorSchemeType = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? ColorSchemeTypes.DARK : ColorSchemeTypes.LIGHT;
+    function inverted(color) {
+      if (Array.isArray(color)) {
+          for (let i=0; i<3; i++) {
+              color[i] = 1.0-color[i];
+          }
+          return color;
+      }
+      color = css2color(color);
+      return color2css(inverted(color));
+    }
+    let bg=document.body.style["background-color"];
+    bg = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? "rgb(200,200,200)" : "rgb(55, 55, 55)";
+    document.body.style["background-color"] = bg;
+    for (let style in theme) {
+        style = theme[style];
+        for (let k in style) {
+            let v=style[k];
+            if (__instance_of(v, CSSFont)) {
+                v.color = inverted(v.color);
+            }
+            else 
+              if (typeof v==="string") {
+                v = v.trim().toLowerCase();
+                let iscolor=v.search("rgb")>=0;
+                iscolor = iscolor||v in basic_colors;
+                iscolor = iscolor||validateWebColor(v);
+                if (iscolor) {
+                    style[k] = inverted(v);
+                }
+            }
+        }
+    }
+  }
+  invertTheme = _es6_module.add_export('invertTheme', invertTheme);
+  window.invertTheme = invertTheme;
+  function setColorSchemeType(mode) {
+    if (!!mode!==cconst.colorSchemeType) {
+        invertTheme();
+        cconst.colorSchemeType = mode;
+    }
+  }
+  setColorSchemeType = _es6_module.add_export('setColorSchemeType', setColorSchemeType);
+  window.validateWebColor = validateWebColor;
+  let _digest=new util.HashDigest();
+  class CSSFont  {
+     constructor(args={}) {
+      this._size = args.size ? args.size : 12;
+      this.font = args.font;
+      this.style = args.style!==undefined ? args.style : "normal";
+      this.weight = args.weight!==undefined ? args.weight : "normal";
+      this.variant = args.variant!==undefined ? args.variant : "normal";
+      this.color = args.color;
+    }
+     calcHashUpdate(digest=_digest.reset()) {
+      digest.add(this._size||0);
+      digest.add(this.font);
+      digest.add(this.style);
+      digest.add(this.weight);
+      digest.add(this.variant);
+      digest.add(this.color);
+      return digest.get();
+    }
+    set  size(val) {
+      this._size = val;
+    }
+    get  size() {
+      if (util.isMobile()) {
+          let mul=theme.base.mobileTextSizeMultiplier/visualViewport.scale;
+          if (mul) {
+              return this._size*mul;
+              
+          }
+      }
+      return this._size;
+    }
+     copyTo(b) {
+      b._size = this._size;
+      b.font = this.font;
+      b.style = this.style;
+      b.color = this.color;
+      b.variant = this.variant;
+      b.weight = this.weight;
+    }
+     copy() {
+      let ret=new CSSFont();
+      this.copyTo(ret);
+      return ret;
+    }
+     genCSS(size=this.size) {
+      return `${this.style} ${this.variant} ${this.weight} ${size}px ${this.font}`;
+    }
+     hash() {
+      return this.genKey();
+    }
+     genKey() {
+      let color=this.color;
+      if (typeof this.color==="object"||typeof this.color==="function") {
+          color = JSON.stringify(color);
+      }
+      return this.genCSS()+":"+this.size+":"+color;
+    }
+  }
+  _ESClass.register(CSSFont);
+  _es6_module.add_class(CSSFont);
+  CSSFont = _es6_module.add_export('CSSFont', CSSFont);
+  CSSFont.STRUCT = `
+CSSFont {
+  size     : float | obj._size;
+  font     : string | obj.font || "";
+  style    : string | obj.font || "";
+  color    : string | ""+obj.color;
+  variant  : string | obj.variant || "";
+  weight   : string | ""+obj.weight;
+}
+`;
+  nstructjs.register(CSSFont);
+  function exportTheme(theme1, addVarDecl) {
+    if (theme1===undefined) {
+        theme1 = theme;
+    }
+    if (addVarDecl===undefined) {
+        addVarDecl = true;
+    }
+    let sortkeys=(obj) =>      {
+      let keys=[];
+      for (let k in obj) {
+          keys.push(k);
+      }
+      keys.sort();
+      return keys;
+    }
+    let s=addVarDecl ? "var theme = {\n" : "{\n";
+    function writekey(v, indent) {
+      if (indent===undefined) {
+          indent = "";
+      }
+      if (typeof v==="string") {
+          if (v.search("\n")>=0) {
+              v = "`"+v+"`";
+          }
+          else {
+            v = "'"+v+"'";
+          }
+          return v;
+      }
+      else 
+        if (typeof v==="object") {
+          if (__instance_of(v, CSSFont)) {
+              return `new CSSFont({
+${indent}  font    : ${writekey(v.font)},
+${indent}  weight  : ${writekey(v.weight)},
+${indent}  variant : ${writekey(v.variant)},
+${indent}  style   : ${writekey(v.style)},
+${indent}  size    : ${writekey(v._size)},
+${indent}  color   : ${writekey(v.color)}
+${indent}})`;
+          }
+          else {
+            let s="{\n";
+            for (let k of sortkeys(v)) {
+                let v2=v[k];
+                if (k.search(" ")>=0||k.search("-")>=0) {
+                    k = "'"+k+"'";
+                }
+                s+=indent+"  "+k+" : "+writekey(v2, indent+"  ")+",\n";
+            }
+            s+=indent+"}";
+            return s;
+          }
+      }
+      else {
+        return ""+v;
+      }
+      return "error";
+    }
+    for (let k of sortkeys(theme1)) {
+        let k2=k;
+        if (k.search("-")>=0||k.search(" ")>=0) {
+            k2 = "'"+k+"'";
+        }
+        s+="  "+k2+": ";
+        let v=theme1[k];
+        if (typeof v!=="object"||__instance_of(v, CSSFont)) {
+            s+=writekey(v, "  ")+",\n";
+        }
+        else {
+          s+=" {\n";
+          let s2="";
+          let maxwid=0;
+          for (let k2 of sortkeys(v)) {
+              if (k2.search("-")>=0||k2.search(" ")>=0) {
+                  k2 = "'"+k2+"'";
+              }
+              maxwid = Math.max(maxwid, k2.length);
+          }
+          for (let k2 of sortkeys(v)) {
+              let v2=v[k2];
+              if (k2.search("-")>=0||k2.search(" ")>=0) {
+                  k2 = "'"+k2+"'";
+              }
+              let pad="";
+              for (let i=0; i<maxwid-k2.length; i++) {
+                  pad+=" ";
+              }
+              s2+="    "+k2+pad+": "+writekey(v2, "    ")+",\n";
+          }
+          s+=s2;
+          s+="  },\n\n";
+        }
+    }
+    s+="};\n";
+    return s;
+  }
+  exportTheme = _es6_module.add_export('exportTheme', exportTheme);
+  window._exportTheme = exportTheme;
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
 

@@ -1,5 +1,5 @@
 
-es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_module(_es6_module) {
+es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, './util.js');
   var vectormath=es6_import(_es6_module, './vectormath.js');
@@ -430,7 +430,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     let p=dtvtmps.next().load(co);
     p.sub(v1);
     let planedis=-p.dot(no);
-    let $_t0rkgu=calc_projection_axes(no), axis=$_t0rkgu[0], axis2=$_t0rkgu[1];
+    let $_t0ejjg=calc_projection_axes(no), axis=$_t0ejjg[0], axis2=$_t0ejjg[1];
     let p1=dtvtmps.next();
     let p2=dtvtmps.next();
     let p3=dtvtmps.next();
@@ -447,64 +447,52 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     pp[0] = co[axis];
     pp[1] = co[axis2];
     pp[2] = 0.0;
+    let dis=1e+17;
+    function linedis2d(a, b, c) {
+      let dx1=a[0]-b[0];
+      let dy1=a[1]-b[1];
+      let dx2=c[0]-b[0];
+      let dy2=c[1]-b[1];
+      let len=dx2*dx2+dy2*dy2;
+      len = len>1e-06 ? 1.0/len : 0.0;
+      dx2*=len;
+      dy2*=len;
+      return Math.abs(dx1*dy2-dx2*dy1);
+    }
+    let tmp=dtvtmps.next();
+    let tmp2=dtvtmps.next();
+    function linedis3d(a, b, c) {
+      tmp.load(a).sub(b);
+      tmp2.load(c).sub(b).normalize();
+      let t=tmp.dot(tmp2);
+      t = Math.min(Math.max(t, 0.0), b.vectorDistance(c));
+      tmp2.mulScalar(t).add(b);
+      return tmp2.vectorDistance(a);
+    }
     if (point_in_tri(pp, p1, p2, p3)) {
         return Math.abs(planedis);
     }
-    else {
-      let dis=1e+17;
-      if (0) {
-          dis = Math.min(dis, _linedis2(co, v1, v2));
-          dis = Math.min(dis, _linedis2(co, v2, v3));
-          dis = Math.min(dis, _linedis2(co, v3, v1));
-          dis = Math.sqrt(dis);
-      }
-      else {
-        dis = Math.min(dis, dist_to_line_sqr(co, v1, v2, true));
-        dis = Math.min(dis, dist_to_line_sqr(co, v2, v3, true));
-        dis = Math.min(dis, dist_to_line_sqr(co, v3, v1, true));
-        dis = Math.sqrt(dis);
-      }
-      return dis;
-    }
+    dis = Math.min(dis, linedis3d(co, v1, v2));
+    dis = Math.min(dis, linedis3d(co, v2, v3));
+    dis = Math.min(dis, linedis3d(co, v3, v1));
     if (0) {
-        p.add(a).addFac(no, planedis);
-        if (Math.abs(p.dot(no))>1e-06) {
-            console.log(p.dot(no), p, no);
-            throw new Error("");
-        }
-        a.add(co);
-        b.add(co);
-        c.add(co);
-        let ax=a[0], bx=b[0], cx=c[0];
-        let ay=a[1], by=b[1], cy=c[1];
-        let az=a[2], bz=b[2], cz=c[2];
-        let div=((bx*cz-bz*cx)*ay-(by*cz-bz*cy)*ax-(bx*cy-by*cx)*az);
-        if (div===0.0) {
-            return 0.0;
-        }
-        let x1=co[0], y1=co[1], z1=co[2];
-        let u=((cx*z1-cz*x1)*by-(cy*z1-cz*y1)*bx-(cx*y1-cy*x1)*bz)/div;
-        let v=(-((cx*z1-cz*x1)*ay-(cy*z1-cz*y1)*ax)+(cx*y1-cy*x1)*az)/div;
-        let w=((bx*z1-bz*x1)*ay-(by*z1-bz*y1)*ax-(bx*y1-by*x1)*az)/div;
-        if (isNaN(u)||isNaN(v)||isNaN(w)) {
-            console.log(u, v, w, co, a, b, c, div);
-            throw new Error("NaN!");
-        }
-        u = Math.min(Math.max(u, 0), 1.0);
-        v = Math.min(Math.max(v, 0), 1.0);
-        w = Math.min(Math.max(w, 0), 1.0);
-        let tot=u+v+w;
-        if (tot>0) {
-            tot = 1.0/tot;
-            u*=tot;
-            v*=tot;
-            w*=tot;
-        }
-        p2.addFac(v1, u);
-        p2.addFac(v2, v);
-        p2.addFac(v3, w);
-        return p2.vectorDistance(co);
+        let uv=barycentric_v2(pp, p1, p2, p3);
+        let w=1.0-uv[0]-uv[1];
+        uv[0] = Math.min(Math.max(uv[0], 0.0), 1.0);
+        uv[1] = Math.min(Math.max(uv[1], 0.0), 1.0);
+        w = Math.min(Math.max(w, 0.0), 1.0);
+        let sum=(uv[0]+uv[1]+w);
+        sum = sum!==0.0 ? 1.0/sum : 0.0;
+        w*=sum;
+        uv[0]*=sum;
+        uv[1]*=sum;
+        pp.zero();
+        pp.addFac(v1, uv[0]);
+        pp.addFac(v2, uv[1]);
+        pp.addFac(v3, 1.0-uv[0]-uv[1]);
+        dis = Math.min(dis, pp.vectorDistance(co));
     }
+    return dis;
   }
   dist_to_tri_v3_old = _es6_module.add_export('dist_to_tri_v3_old', dist_to_tri_v3_old);
   function dist_to_tri_v3(p, v1, v2, v3, n) {
@@ -1308,30 +1296,12 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     }
   }
   line_line_isect = _es6_module.add_export('line_line_isect', line_line_isect);
-  function line_line_cross(v1, v2, v3, v4) {
-    var l1=_llc_l3, l2=_llc_l4;
-    var a=l1[0], b=l1[1], c=l2[0], d=l2[1];
-    a[0] = v1[0];
-    a[1] = v1[1];
-    a[2] = v1[2];
-    b[0] = v2[0];
-    b[1] = v2[1];
-    b[2] = v2[2];
-    c[0] = v3[0];
-    c[1] = v3[1];
-    c[2] = v3[2];
-    d[0] = v4[0];
-    d[1] = v4[1];
-    d[2] = v4[2];
-    var a=l1[0];
-    var b=l1[1];
-    var c=l2[0];
-    var d=l2[1];
-    var w1=winding(a, b, c);
-    var w2=winding(c, a, d);
-    var w3=winding(a, b, d);
-    var w4=winding(c, b, d);
-    return (w1==w2)&&(w3==w4)&&(w1!=w3);
+  function line_line_cross(a, b, c, d) {
+    let w1=winding(a, b, c);
+    let w2=winding(c, a, d);
+    let w3=winding(a, b, d);
+    let w4=winding(c, b, d);
+    return (w1===w2)&&(w3===w4)&&(w1!==w3);
   }
   line_line_cross = _es6_module.add_export('line_line_cross', line_line_cross);
   
@@ -1796,22 +1766,92 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   var _circ_from_line_tan_vs=util.cachering.fromConstructor(Vector3, 32);
   var _circ_from_line_tan_ret=new util.cachering(function () {
     return [new Vector3(), 0];
-  });
+  }, 64);
   function circ_from_line_tan(a, b, t) {
-    var p1=_circ_from_line_tan_vs.next();
-    var t2=_circ_from_line_tan_vs.next();
-    var n1=_circ_from_line_tan_vs.next();
+    let p1=_circ_from_line_tan_vs.next();
+    let t2=_circ_from_line_tan_vs.next();
+    let n1=_circ_from_line_tan_vs.next();
     p1.load(a).sub(b);
     t2.load(t).normalize();
     n1.load(p1).normalize().cross(t2).cross(t2).normalize();
-    var ax=p1[0], ay=p1[1], az=p1[2], nx=n1[0], ny=n1[1], nz=n1[2];
-    var r=-(ax*ax+ay*ay+az*az)/(2*(ax*nx+ay*ny+az*nz));
-    var ret=_circ_from_line_tan_ret.next();
+    let ax=p1[0], ay=p1[1], az=p1[2], nx=n1[0], ny=n1[1], nz=n1[2];
+    let r=-(ax*ax+ay*ay+az*az);
+    let div=(2*(ax*nx+ay*ny+az*nz));
+    if (Math.abs(div)>1e-06) {
+        r/=div;
+    }
+    else {
+      r = 1000000.0;
+    }
+    let ret=_circ_from_line_tan_ret.next();
     ret[0].load(n1).mulScalar(r).add(a);
     ret[1] = r;
     return ret;
   }
   circ_from_line_tan = _es6_module.add_export('circ_from_line_tan', circ_from_line_tan);
+  var _circ_from_line_tan2d_vs=util.cachering.fromConstructor(Vector3, 32);
+  var _circ_from_line_tan2d_ret=new util.cachering(function () {
+    return [new Vector2(), 0];
+  }, 64);
+  function circ_from_line_tan_2d(a, b, t) {
+    a = _circ_from_line_tan2d_vs.next().load(a);
+    b = _circ_from_line_tan2d_vs.next().load(b);
+    t = _circ_from_line_tan2d_vs.next().load(t);
+    a[2] = b[2] = t[2] = 0.0;
+    let p1=_circ_from_line_tan2d_vs.next();
+    let t2=_circ_from_line_tan2d_vs.next();
+    let n1=_circ_from_line_tan2d_vs.next();
+    p1.load(a).sub(b);
+    t2.load(t).normalize();
+    n1.load(p1).normalize().cross(t2).cross(t2).normalize();
+    if (1) {
+        let cx, cy, r;
+        let x1=a[0], y1=a[1];
+        let x2=b[0], y2=b[1];
+        let tanx1=t[0], tany1=t[1];
+        let div=(4.0*((x1-x2)*tany1-(y1-y2)*tanx1)**2);
+        let div2=(2.0*(x1-x2)*tany1-2.0*(y1-y2)*tanx1);
+        if (Math.abs(div)<0.0001||Math.abs(div2)<0.0001) {
+            let ret=_circ_from_line_tan2d_ret.next();
+            ret[0].load(a).interp(b, 0.5);
+            let dx=a[1]-b[1];
+            let dy=b[0]-a[0];
+            r = 1000000.0;
+            ret[0][0]+=dx*r;
+            ret[0][1]+=dy*r;
+            ret[1] = r;
+            return ret;
+        }
+        cx = (((x1+x2)*(x1-x2)-(y1-y2)**2)*tany1-2.0*(y1-y2)*tanx1*x1)/div2;
+        cy = (-((y1+y2)*(y1-y2)-x2**2-(x1-2.0*x2)*x1)*tanx1+2.0*(x1-x2)*tany1*y1)/div2;
+        r = (((y1-y2)**2+x2**2+(x1-2.0*x2)*x1)**2*(tanx1**2+tany1**2))/div;
+        let midx=a[0]*0.5+b[0]*0.5;
+        let midy=a[1]*0.5+b[1]*0.5;
+        cx = 2.0*midx-cx;
+        cy = 2.0*midy-cy;
+        let ret=_circ_from_line_tan2d_ret.next();
+        ret[0].loadXY(cx, cy);
+        ret[1] = Math.sqrt(r);
+        return ret;
+    }
+    else {
+      let ax=p1[0], ay=p1[1], az=p1[2], nx=n1[0], ny=n1[1], nz=n1[2];
+      let r=-(ax*ax+ay*ay+az*az);
+      let div=(2*(ax*nx+ay*ny+az*nz));
+      if (Math.abs(div)>1e-06) {
+          r/=div;
+      }
+      else {
+        r = 1000000.0;
+      }
+      let ret=_circ_from_line_tan2d_ret.next();
+      ret[0].load(n1).mulScalar(r).add(a);
+      ret[1] = r;
+      return ret;
+    }
+    return ret;
+  }
+  circ_from_line_tan_2d = _es6_module.add_export('circ_from_line_tan_2d', circ_from_line_tan_2d);
   var _gtc_e1=new Vector3();
   var _gtc_e2=new Vector3();
   var _gtc_e3=new Vector3();
@@ -2230,7 +2270,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   function lreport() {
   }
   function trilinear_v3(uvw, boxverts) {
-    let $_t1dbkn=uvw, u=$_t1dbkn[0], v=$_t1dbkn[1], w=$_t1dbkn[2];
+    let $_t1fwrj=uvw, u=$_t1fwrj[0], v=$_t1fwrj[1], w=$_t1fwrj[2];
     const a1x=boxverts[0][0], a1y=boxverts[0][1], a1z=boxverts[0][2];
     const b1x=boxverts[1][0]-a1x, b1y=boxverts[1][1]-a1y, b1z=boxverts[1][2]-a1z;
     const c1x=boxverts[2][0]-a1x, c1y=boxverts[2][1]-a1y, c1z=boxverts[2][2]-a1z;
@@ -2279,7 +2319,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     if (!boxfacecents) {
         boxfacecents = boxfaces_tmp;
         for (let i=0; i<6; i++) {
-            let $_t2otnk=boxfaces_table[i], v1=$_t2otnk[0], v2=$_t2otnk[1], v3=$_t2otnk[2], v4=$_t2otnk[3];
+            let $_t2iald=boxfaces_table[i], v1=$_t2iald[0], v2=$_t2iald[1], v3=$_t2iald[2], v4=$_t2iald[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2290,7 +2330,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     if (!boxfacenormals) {
         boxfacenormals = boxfacenormals_tmp;
         for (let i=0; i<6; i++) {
-            let $_t3sogn=boxfaces_table[i], v1=$_t3sogn[0], v2=$_t3sogn[1], v3=$_t3sogn[2], v4=$_t3sogn[3];
+            let $_t3ldbw=boxfaces_table[i], v1=$_t3ldbw[0], v2=$_t3ldbw[1], v3=$_t3ldbw[2], v4=$_t3ldbw[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2342,7 +2382,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
         let mini=undefined;
         let mindis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
         for (let i=0; i<8; i++) {
-            let $_t4hhov=wtable[i], t1=$_t4hhov[0], t2=$_t4hhov[1], t3=$_t4hhov[2];
+            let $_t4smke=wtable[i], t1=$_t4smke[0], t2=$_t4smke[1], t3=$_t4smke[2];
             let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
             let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
             let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -2377,7 +2417,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
             lreport("mindis:", (mindis**0.5).toFixed(3));
             break;
         }
-        let $_t5ftud=wtable[mini], t1=$_t5ftud[0], t2=$_t5ftud[1], t3=$_t5ftud[2];
+        let $_t5cmaf=wtable[mini], t1=$_t5cmaf[0], t2=$_t5cmaf[1], t3=$_t5cmaf[2];
         let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
         let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
         let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -3026,596 +3066,167 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       _nGlobal.module = {exports: exports};
     }
     'use strict';
-    if (Array.prototype.pop_i===undefined) {
-        Array.prototype.pop_i = function (idx) {
-          if (idx<0||idx>=this.length) {
-              throw new Error("Index out of range");
-          }
-          while (idx<this.length) {
-            this[idx] = this[idx+1];
-            idx++;
-          }
-          this.length-=1;
-        };
+    Object.defineProperty(exports, '__esModule', {value: true});
+    let colormap={"black": 30, 
+    "red": 31, 
+    "green": 32, 
+    "yellow": 33, 
+    "blue": 34, 
+    "magenta": 35, 
+    "cyan": 36, 
+    "white": 37, 
+    "reset": 0, 
+    "grey": 2, 
+    "orange": 202, 
+    "pink": 198, 
+    "brown": 314, 
+    "lightred": 91, 
+    "peach": 210}
+    let termColorMap={}
+    for (let k in colormap) {
+        termColorMap[k] = colormap[k];
+        termColorMap[colormap[k]] = k;
     }
-    if (Array.prototype.remove===undefined) {
-        Array.prototype.remove = function (item, suppress_error) {
-          var i=this.indexOf(item);
-          if (i<0) {
-              if (suppress_error)
-                console.trace("Warning: item not in array", item);
-              else 
-                throw new Error("Error: item not in array "+item);
-              return ;
-          }
-          this.pop_i(i);
-        };
-    }
-    if (String.prototype.contains===undefined) {
-        String.prototype.contains = function (substr) {
-          return String.search(substr)!=null;
-        };
-    }
-    Symbol["_struct_keystr"] = Symbol("_struct_keystr");
-    String.prototype[Symbol._struct_keystr] = function () {
-      return this;
-    }
-    Number.prototype[Symbol._struct_keystr] = Boolean.prototype[Symbol._struct_keystr] = function () {
-      return ""+this;
-    }
-    var _o_basic_types={"String": 0, 
-    "Number": 0, 
-    "Array": 0, 
-    "Function": 0}
-    const _export_truncateDollarSign_=function (s) {
-      let i=s.search("$");
-      if (i>0) {
-          return s.slice(0, i).trim();
+    function termColor(s, c) {
+      if (typeof s==="symbol") {
+          s = s.toString();
       }
-      return s;
+      else {
+        s = ""+s;
+      }
+      if (c in colormap)
+        c = colormap[c];
+      if (c>107) {
+          let s2='\u001b[38;5;'+c+"m";
+          return s2+s+'\u001b[0m';
+      }
+      return '\u001b['+c+'m'+s+'\u001b[0m';
     }
-    const _export_cachering_=class cachering extends Array {
-       constructor(cb, tot) {
-        super();
-        this.length = tot;
-        this.cur = 0;
-        for (let i=0; i<tot; i++) {
-            this[i] = cb();
+    function termPrint() {
+      let s='';
+      for (let i=0; i<arguments.length; i++) {
+          if (i>0) {
+              s+=' ';
+          }
+          s+=arguments[i];
+      }
+      let re1a=/\u001b\[[1-9][0-9]?m/;
+      let re1b=/\u001b\[[1-9][0-9];[0-9][0-9]?;[0-9]+m/;
+      let re2=/\u001b\[0m/;
+      let endtag='\u001b[0m';
+      function tok(s, type) {
+        return {type: type, 
+      value: s}
+      }
+      let tokdef=[[re1a, "start"], [re1b, "start"], [re2, "end"]];
+      let s2=s;
+      let i=0;
+      let tokens=[];
+      while (s2.length>0) {
+        let ok=false;
+        let mintk=undefined, mini=undefined;
+        let minslice=undefined, mintype=undefined;
+        for (let tk of tokdef) {
+            let i=s2.search(tk[0]);
+            if (i>=0&&(mini===undefined||i<mini)) {
+                minslice = s2.slice(i, s2.length).match(tk[0])[0];
+                mini = i;
+                mintype = tk[1];
+                mintk = tk;
+                ok = true;
+            }
         }
+        if (!ok) {
+            break;
+        }
+        if (mini>0) {
+            let chunk=s2.slice(0, mini);
+            tokens.push(tok(chunk, "chunk"));
+        }
+        s2 = s2.slice(mini+minslice.length, s2.length);
+        let t=tok(minslice, mintype);
+        tokens.push(t);
       }
-       next() {
-        let ret=this[this.cur];
-        this.cur = (this.cur+1)%this.length;
-        return ret;
+      if (s2.length>0) {
+          tokens.push(tok(s2, "chunk"));
       }
-      static  fromConstructor(cls, tot) {
-        return new _export_cachering_(() =>          {
-          return new cls();
-        }, tot);
-      }
-    }
-    _ESClass.register(_export_cachering_);
-    function isNodeJS() {
-      ret = typeof process!=="undefined";
-      ret = ret&&process.release;
-      ret = ret&&process.release.name==="node";
-      ret = ret&&process.version;
-      return !!ret;
-    }
-    let is_obj_lit=function is_obj_lit(obj) {
-      if (typeof obj!=="object") {
-          return false;
-      }
-      let good=obj.__proto__&&obj.__proto__.constructor&&obj.__proto__.constructor===Object;
-      if (good) {
-          return true;
-      }
-      let bad=typeof obj!=="object";
-      bad = bad||obj.constructor.name in _o_basic_types;
-      bad = bad||__instance_of(obj, String);
-      bad = bad||__instance_of(obj, Number);
-      bad = bad||__instance_of(obj, Boolean);
-      bad = bad||__instance_of(obj, Function);
-      bad = bad||__instance_of(obj, Array);
-      bad = bad||__instance_of(obj, Set);
-      bad = bad||(obj.__proto__.constructor&&obj.__proto__.constructor!==Object);
-      return !bad;
-    }
-    _nGlobal.is_obj_lit = is_obj_lit;
-    function set_getkey(obj) {
-      if (typeof obj=="number"||typeof obj=="boolean")
-        return ""+obj;
-      else 
-        if (typeof obj=="string")
-        return obj;
-      else 
-        return obj[Symbol._struct_keystr]();
-    }
-    const _export_get_callstack_=function get_callstack(err) {
-      var callstack=[];
-      var isCallstackPopulated=false;
-      var err_was_undefined=err==undefined;
-      if (err==undefined) {
-          try {
-            _idontexist.idontexist+=0;
-          }
-          catch (err1) {
-              err = err1;
-          }
-      }
-      if (err!=undefined) {
-          if (err.stack) {
-              var lines=err.stack.split('\n');
-              var len=lines.length;
-              for (var i=0; i<len; i++) {
-                  if (1) {
-                      lines[i] = lines[i].replace(/@http\:\/\/.*\//, "|");
-                      var l=lines[i].split("|");
-                      lines[i] = l[1]+": "+l[0];
-                      lines[i] = lines[i].trim();
-                      callstack.push(lines[i]);
-                  }
-              }
-              if (err_was_undefined) {
-              }
-              isCallstackPopulated = true;
+      let stack=[];
+      let cur;
+      let out='';
+      for (let t of tokens) {
+          if (t.type==="chunk") {
+              out+=t.value;
           }
           else 
-            if (window.opera&&e.message) {
-              var lines=err.message.split('\n');
-              var len=lines.length;
-              for (var i=0; i<len; i++) {
-                  if (lines[i].match(/^\s*[A-Za-z0-9\-_\$]+\(/)) {
-                      var entry=lines[i];
-                      if (lines[i+1]) {
-                          entry+=' at '+lines[i+1];
-                          i++;
-                      }
-                      callstack.push(entry);
-                  }
+            if (t.type==="start") {
+              stack.push(cur);
+              cur = t.value;
+              out+=t.value;
+          }
+          else 
+            if (t.type==="end") {
+              cur = stack.pop();
+              if (cur) {
+                  out+=cur;
               }
-              if (err_was_undefined) {
-                  callstack.shift();
+              else {
+                out+=endtag;
               }
-              isCallstackPopulated = true;
           }
       }
-      var limit=24;
-      if (!isCallstackPopulated) {
-          var currentFunction=arguments.callee.caller;
-          var i=0;
-          while (currentFunction&&i<24) {
-            var fn=currentFunction.toString();
-            var fname=fn.substring(fn.indexOf("function")+8, fn.indexOf(''))||'anonymous';
-            callstack.push(fname);
-            currentFunction = currentFunction.caller;
-            i++;
-          }
-      }
-      return callstack;
+      return out;
     }
-    const _export_print_stack_=function print_stack(err) {
-      try {
-        var cs=_export_get_callstack_(err);
-      }
-      catch (err2) {
-          console.log("Could not fetch call stack.");
-          return ;
-      }
-      console.log("Callstack:");
-      for (var i=0; i<cs.length; i++) {
-          console.log(cs[i]);
-      }
-    }
-    const EmptySlot=Symbol("emptyslot");
-    var set$1=class set  {
-       constructor(input) {
-        this.items = [];
-        this.keys = {};
-        this.freelist = [];
-        this.length = 0;
-        if (typeof input=="string") {
-            input = new String(input);
-        }
-        if (input!==undefined) {
-            if (Symbol.iterator in input) {
-                for (var item of input) {
-                    this.add(item);
-                }
-            }
-            else 
-              if ("forEach" in input) {
-                input.forEach(function (item) {
-                  this.add(item);
-                }, this);
-            }
-            else 
-              if (__instance_of(input, Array)) {
-                for (var i=0; i<input.length; i++) {
-                    this.add(input[i]);
-                }
-            }
-        }
-      }
-       [Symbol.iterator]() {
-        return new SetIter(this);
-      }
-       equals(setb) {
-        for (let item of this) {
-            if (!setb.has(item)) {
-                return false;
-            }
-        }
-        for (let item of setb) {
-            if (!this.has(item)) {
-                return false;
-            }
-        }
-        return true;
-      }
-       clear() {
-        this.items.length = 0;
-        this.keys = {};
-        this.freelist.length = 0;
-        this.length = 0;
-        return this;
-      }
-       filter(f, thisvar) {
-        let i=0;
-        let ret=new set();
-        for (let item of this) {
-            if (f.call(thisvar, item, i++, this)) {
-                ret.add(item);
-            }
-        }
-        return ret;
-      }
-       map(f, thisvar) {
-        let ret=new set();
-        let i=0;
-        for (let item of this) {
-            ret.add(f.call(thisvar, item, i++, this));
-        }
-        return ret;
-      }
-       reduce(f, initial) {
-        if (initial===undefined) {
-            for (let item of this) {
-                initial = item;
-                break;
-            }
-        }
-        let i=0;
-        for (let item of this) {
-            initial = f(initial, item, i++, this);
-        }
-        return initial;
-      }
-       copy() {
-        let ret=new set();
-        for (let item of this) {
-            ret.add(item);
-        }
-        return ret;
-      }
-       add(item) {
-        var key=item[Symbol._struct_keystr]();
-        if (key in this.keys)
-          return ;
-        if (this.freelist.length>0) {
-            var i=this.freelist.pop();
-            this.keys[key] = i;
-            this.items[i] = item;
-        }
-        else {
-          var i=this.items.length;
-          this.keys[key] = i;
-          this.items.push(item);
-        }
-        this.length++;
-      }
-       remove(item, ignore_existence) {
-        var key=item[Symbol._struct_keystr]();
-        if (!(key in this.keys)) {
-            if (!ignore_existence) {
-                console.warn("Warning, item", item, "is not in set");
-            }
-            return ;
-        }
-        var i=this.keys[key];
-        this.freelist.push(i);
-        this.items[i] = EmptySlot;
-        delete this.keys[key];
-        this.length--;
-      }
-       has(item) {
-        return item[Symbol._struct_keystr]() in this.keys;
-      }
-       forEach(func, thisvar) {
-        for (var i=0; i<this.items.length; i++) {
-            var item=this.items[i];
-            if (item===EmptySlot)
-              continue;
-            thisvar!==undefined ? func.call(thisvar, item) : func(item);
-        }
-      }
-    }
-    _ESClass.register(set$1);
-    var IDGen=class IDGen  {
-       constructor() {
-        this.cur_id = 1;
-      }
-       gen_id() {
-        return this.cur_id++;
-      }
-      static  fromSTRUCT(reader) {
-        var ret=new IDGen();
-        reader(ret);
-        return ret;
-      }
-    }
-    _ESClass.register(IDGen);
-    IDGen.STRUCT = `
-struct_util.IDGen {
-  cur_id : int;
-}
-`;
-    var struct_util=Object.freeze({__proto__: null, 
-    truncateDollarSign: _export_truncateDollarSign_, 
-    cachering: _export_cachering_, 
-    is_obj_lit: is_obj_lit, 
-    get_callstack: _export_get_callstack_, 
-    print_stack: _export_print_stack_, 
-    set: set$1, 
-    IDGen: IDGen});
     "use strict";
-    const _module_exports_={}
-    _module_exports_.STRUCT_ENDIAN = true;
-    let temp_dataview=new DataView(new ArrayBuffer(16));
-    let uint8_view=new Uint8Array(temp_dataview.buffer);
-    let unpack_context=_module_exports_.unpack_context = class unpack_context  {
-       constructor() {
-        this.i = 0;
-      }
-    }
-    _ESClass.register(_module_exports_.unpack_context);
-    let pack_byte=_module_exports_.pack_byte = function (array, val) {
-      array.push(val);
-    }
-    let pack_sbyte=_module_exports_.pack_sbyte = function (array, val) {
-      if (val<0) {
-          val = 256+val;
-      }
-      array.push(val);
-    }
-    let pack_bytes=_module_exports_.pack_bytes = function (array, bytes) {
-      for (let i=0; i<bytes.length; i++) {
-          array.push(bytes[i]);
-      }
-    }
-    let pack_int=_module_exports_.pack_int = function (array, val) {
-      temp_dataview.setInt32(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-      array.push(uint8_view[2]);
-      array.push(uint8_view[3]);
-    }
-    let pack_uint=_module_exports_.pack_uint = function (array, val) {
-      temp_dataview.setUint32(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-      array.push(uint8_view[2]);
-      array.push(uint8_view[3]);
-    }
-    let pack_ushort=_module_exports_.pack_ushort = function (array, val) {
-      temp_dataview.setUint16(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-    }
-    _module_exports_.pack_float = function (array, val) {
-      temp_dataview.setFloat32(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-      array.push(uint8_view[2]);
-      array.push(uint8_view[3]);
-    }
-    _module_exports_.pack_double = function (array, val) {
-      temp_dataview.setFloat64(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-      array.push(uint8_view[2]);
-      array.push(uint8_view[3]);
-      array.push(uint8_view[4]);
-      array.push(uint8_view[5]);
-      array.push(uint8_view[6]);
-      array.push(uint8_view[7]);
-    }
-    _module_exports_.pack_short = function (array, val) {
-      temp_dataview.setInt16(0, val, _module_exports_.STRUCT_ENDIAN);
-      array.push(uint8_view[0]);
-      array.push(uint8_view[1]);
-    }
-    let encode_utf8=_module_exports_.encode_utf8 = function encode_utf8(arr, str) {
-      for (let i=0; i<str.length; i++) {
-          let c=str.charCodeAt(i);
-          while (c!=0) {
-            let uc=c&127;
-            c = c>>7;
-            if (c!=0)
-              uc|=128;
-            arr.push(uc);
+    function print_lines(ld, lineno, col, printColors, token) {
+      let buf='';
+      let lines=ld.split("\n");
+      let istart=Math.max(lineno-5, 0);
+      let iend=Math.min(lineno+3, lines.length);
+      let color=printColors ? (c) =>        {
+        return c;
+      } : termColor;
+      for (let i=istart; i<iend; i++) {
+          let l=""+(i+1);
+          while (l.length<3) {
+            l = " "+l;
+          }
+          l+=`: ${lines[i]}\n`;
+          if (i===lineno&&token&&token.value.length===1) {
+              l = l.slice(0, col+5)+color(l[col+5], "yellow")+l.slice(col+6, l.length);
+          }
+          buf+=l;
+          if (i===lineno) {
+              let colstr='     ';
+              for (let i=0; i<col; i++) {
+                  colstr+=' ';
+              }
+              colstr+=color("^", "red");
+              buf+=colstr+"\n";
           }
       }
+      buf = "------------------\n"+buf+"\n==================\n";
+      return buf;
     }
-    let decode_utf8=_module_exports_.decode_utf8 = function decode_utf8(arr) {
-      let str="";
-      let i=0;
-      while (i<arr.length) {
-        let c=arr[i];
-        let sum=c&127;
-        let j=0;
-        let lasti=i;
-        while (i<arr.length&&(c&128)) {
-          j+=7;
-          i++;
-          c = arr[i];
-          c = (c&127)<<j;
-          sum|=c;
-        }
-        if (sum===0)
-          break;
-        str+=String.fromCharCode(sum);
-        i++;
-      }
-      return str;
-    }
-    let test_utf8=_module_exports_.test_utf8 = function test_utf8() {
-      let s="a"+String.fromCharCode(8800)+"b";
-      let arr=[];
-      encode_utf8(arr, s);
-      let s2=decode_utf8(arr);
-      if (s!=s2) {
-          throw new Error("UTF-8 encoding/decoding test failed");
-      }
-      return true;
-    }
-    function truncate_utf8(arr, maxlen) {
-      let len=Math.min(arr.length, maxlen);
-      let last_codepoint=0;
-      let last2=0;
-      let incode=false;
-      let i=0;
-      let code=0;
-      while (i<len) {
-        incode = arr[i]&128;
-        if (!incode) {
-            last2 = last_codepoint+1;
-            last_codepoint = i+1;
-        }
-        i++;
-      }
-      if (last_codepoint<maxlen)
-        arr.length = last_codepoint;
-      else 
-        arr.length = last2;
-      return arr;
-    }
-    let _static_sbuf_ss=new Array(2048);
-    let pack_static_string=_module_exports_.pack_static_string = function pack_static_string(data, str, length) {
-      if (length==undefined)
-        throw new Error("'length' paremter is not optional for pack_static_string()");
-      let arr=length<2048 ? _static_sbuf_ss : new Array();
-      arr.length = 0;
-      encode_utf8(arr, str);
-      truncate_utf8(arr, length);
-      for (let i=0; i<length; i++) {
-          if (i>=arr.length) {
-              data.push(0);
-          }
-          else {
-            data.push(arr[i]);
-          }
-      }
-    }
-    let _static_sbuf=new Array(32);
-    let pack_string=_module_exports_.pack_string = function pack_string(data, str) {
-      _static_sbuf.length = 0;
-      encode_utf8(_static_sbuf, str);
-      pack_int(data, _static_sbuf.length);
-      for (let i=0; i<_static_sbuf.length; i++) {
-          data.push(_static_sbuf[i]);
-      }
-    }
-    let unpack_bytes=_module_exports_.unpack_bytes = function unpack_bytes(dview, uctx, len) {
-      let ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
-      uctx.i+=len;
-      return ret;
-    }
-    let unpack_byte=_module_exports_.unpack_byte = function (dview, uctx) {
-      return dview.getUint8(uctx.i++);
-    }
-    let unpack_sbyte=_module_exports_.unpack_sbyte = function (dview, uctx) {
-      return dview.getInt8(uctx.i++);
-    }
-    let unpack_int=_module_exports_.unpack_int = function (dview, uctx) {
-      uctx.i+=4;
-      return dview.getInt32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
-    }
-    let unpack_uint=_module_exports_.unpack_uint = function (dview, uctx) {
-      uctx.i+=4;
-      return dview.getUint32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
-    }
-    let unpack_ushort=_module_exports_.unpack_ushort = function (dview, uctx) {
-      uctx.i+=2;
-      return dview.getUint16(uctx.i-2, _module_exports_.STRUCT_ENDIAN);
-    }
-    _module_exports_.unpack_float = function (dview, uctx) {
-      uctx.i+=4;
-      return dview.getFloat32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
-    }
-    _module_exports_.unpack_double = function (dview, uctx) {
-      uctx.i+=8;
-      return dview.getFloat64(uctx.i-8, _module_exports_.STRUCT_ENDIAN);
-    }
-    _module_exports_.unpack_short = function (dview, uctx) {
-      uctx.i+=2;
-      return dview.getInt16(uctx.i-2, _module_exports_.STRUCT_ENDIAN);
-    }
-    let _static_arr_us=new Array(32);
-    _module_exports_.unpack_string = function (data, uctx) {
-      let slen=unpack_int(data, uctx);
-      if (!slen) {
-          return "";
-      }
-      let str="";
-      let arr=slen<2048 ? _static_arr_us : new Array(slen);
-      arr.length = slen;
-      for (let i=0; i<slen; i++) {
-          arr[i] = unpack_byte(data, uctx);
-      }
-      return decode_utf8(arr);
-    }
-    let _static_arr_uss=new Array(2048);
-    _module_exports_.unpack_static_string = function unpack_static_string(data, uctx, length) {
-      let str="";
-      if (length==undefined)
-        throw new Error("'length' cannot be undefined in unpack_static_string()");
-      let arr=length<2048 ? _static_arr_uss : new Array(length);
-      arr.length = 0;
-      let done=false;
-      for (let i=0; i<length; i++) {
-          let c=unpack_byte(data, uctx);
-          if (c==0) {
-              done = true;
-          }
-          if (!done&&c!=0) {
-              arr.push(c);
-          }
-      }
-      truncate_utf8(arr, length);
-      return decode_utf8(arr);
-    }
-    let _export_parser_;
-    "use strict";
-    var t;
-    const _export_token_=class token  {
-       constructor(type, val, lexpos, lineno, lexer, parser) {
+    class token  {
+       constructor(type, val, lexpos, lineno, lexer, parser, col) {
         this.type = type;
         this.value = val;
         this.lexpos = lexpos;
         this.lineno = lineno;
+        this.col = col;
         this.lexer = lexer;
         this.parser = parser;
       }
        toString() {
-        if (this.value!=undefined)
+        if (this.value!==undefined)
           return "token(type="+this.type+", value='"+this.value+"')";
         else 
           return "token(type="+this.type+")";
       }
     }
-    _ESClass.register(_export_token_);
-    const _export_tokdef_=class tokdef  {
+    _ESClass.register(token);
+    _es6_module.add_class(token);
+    class tokdef  {
        constructor(name, regexpr, func, example) {
         this.name = name;
         this.re = regexpr;
@@ -3636,31 +3247,40 @@ struct_util.IDGen {
         }
       }
     }
-    _ESClass.register(_export_tokdef_);
-    var PUTIL_ParseError=class PUTIL_ParseError extends Error {
+    _ESClass.register(tokdef);
+    _es6_module.add_class(tokdef);
+    class PUTIL_ParseError extends Error {
        constructor(msg) {
         super();
       }
     }
     _ESClass.register(PUTIL_ParseError);
-    const _export_lexer_=class lexer  {
+    _es6_module.add_class(PUTIL_ParseError);
+    class lexer  {
        constructor(tokdef, errfunc) {
         this.tokdef = tokdef;
         this.tokens = new Array();
         this.lexpos = 0;
         this.lexdata = "";
+        this.colmap = undefined;
         this.lineno = 0;
+        this.printTokens = false;
+        this.linestart = 0;
         this.errfunc = errfunc;
+        this.linemap = undefined;
         this.tokints = {};
-        for (var i=0; i<tokdef.length; i++) {
+        for (let i=0; i<tokdef.length; i++) {
             this.tokints[tokdef[i].name] = i;
         }
         this.statestack = [["__main__", 0]];
         this.states = {"__main__": [tokdef, errfunc]};
         this.statedata = 0;
+        this.logger = function () {
+          console.log(...arguments);
+        };
       }
        add_state(name, tokdef, errfunc) {
-        if (errfunc==undefined) {
+        if (errfunc===undefined) {
             errfunc = function (lexer) {
               return true;
             };
@@ -3678,13 +3298,26 @@ struct_util.IDGen {
         this.errfunc = state[1];
       }
        pop_state() {
-        var item=this.statestack[this.statestack.length-1];
-        var state=this.states[item[0]];
+        let item=this.statestack[this.statestack.length-1];
+        let state=this.states[item[0]];
         this.tokdef = state[0];
         this.errfunc = state[1];
         this.statedata = item[1];
       }
        input(str) {
+        let linemap=this.linemap = new Array(str.length);
+        let lineno=0;
+        let col=0;
+        let colmap=this.colmap = new Array(str.length);
+        for (let i=0; i<str.length; i++, col++) {
+            let c=str[i];
+            linemap[i] = lineno;
+            colmap[i] = col;
+            if (c==="\n") {
+                lineno++;
+                col = 0;
+            }
+        }
         while (this.statestack.length>1) {
           this.pop_state();
         }
@@ -3695,16 +3328,20 @@ struct_util.IDGen {
         this.peeked_tokens = [];
       }
        error() {
-        if (this.errfunc!=undefined&&!this.errfunc(this))
+        if (this.errfunc!==undefined&&!this.errfunc(this))
           return ;
-        console.log("Syntax error near line "+this.lineno);
-        var next=Math.min(this.lexpos+8, this.lexdata.length);
-        console.log("  "+this.lexdata.slice(this.lexpos, next));
+        let safepos=Math.min(this.lexpos, this.lexdata.length-1);
+        let line=this.linemap[safepos];
+        let col=this.colmap[safepos];
+        let s=print_lines(this.lexdata, line, col, true);
+        this.logger("  "+s);
+        this.logger("Syntax error near line "+(this.lineno+1));
+        let next=Math.min(this.lexpos+8, this.lexdata.length);
         throw new PUTIL_ParseError("Parse error");
       }
        peek() {
-        var tok=this.next(true);
-        if (tok==undefined)
+        let tok=this.next(true);
+        if (tok===undefined)
           return undefined;
         this.peeked_tokens.push(tok);
         return tok;
@@ -3716,68 +3353,82 @@ struct_util.IDGen {
         return this.peek();
       }
        at_end() {
-        return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
+        return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length===0;
       }
        next(ignore_peek) {
         if (!ignore_peek&&this.peeked_tokens.length>0) {
-            var tok=this.peeked_tokens[0];
+            let tok=this.peeked_tokens[0];
             this.peeked_tokens.shift();
+            if (!ignore_peek&&this.printTokens) {
+                this.logger(""+tok);
+            }
             return tok;
         }
         if (this.lexpos>=this.lexdata.length)
           return undefined;
-        var ts=this.tokdef;
-        var tlen=ts.length;
-        var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
-        var results=[];
+        let ts=this.tokdef;
+        let tlen=ts.length;
+        let lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+        let results=[];
         for (var i=0; i<tlen; i++) {
-            var t=ts[i];
-            if (t.re==undefined)
+            let t=ts[i];
+            if (t.re===undefined)
               continue;
-            var res=t.re.exec(lexdata);
-            if (res!=null&&res!=undefined&&res.index==0) {
+            let res=t.re.exec(lexdata);
+            if (res!==null&&res!==undefined&&res.index===0) {
                 results.push([t, res]);
             }
         }
-        var max_res=0;
-        var theres=undefined;
+        let max_res=0;
+        let theres=undefined;
         for (var i=0; i<results.length; i++) {
-            var res=results[i];
+            let res=results[i];
             if (res[1][0].length>max_res) {
                 theres = res;
                 max_res = res[1][0].length;
             }
         }
-        if (theres==undefined) {
+        if (theres===undefined) {
             this.error();
             return ;
         }
-        var def=theres[0];
-        var token=new _export_token_(def.name, theres[1][0], this.lexpos, this.lineno, this, undefined);
-        this.lexpos+=token.value.length;
+        let def=theres[0];
+        let col=this.colmap[Math.min(this.lexpos, this.lexdata.length-1)];
+        if (this.lexpos<this.lexdata.length) {
+            this.lineno = this.linemap[this.lexpos];
+        }
+        let tok=new token(def.name, theres[1][0], this.lexpos, this.lineno, this, undefined, col);
+        this.lexpos+=tok.value.length;
         if (def.func) {
-            token = def.func(token);
-            if (token==undefined) {
+            tok = def.func(tok);
+            if (tok===undefined) {
                 return this.next();
             }
         }
-        return token;
+        if (!ignore_peek&&this.printTokens) {
+            this.logger(""+tok);
+        }
+        return tok;
       }
     }
-    _ESClass.register(_export_lexer_);
-    const parser=_export_parser_ = class parser  {
+    _ESClass.register(lexer);
+    _es6_module.add_class(lexer);
+    class parser  {
        constructor(lexer, errfunc) {
         this.lexer = lexer;
         this.errfunc = errfunc;
         this.start = undefined;
+        this.logger = function () {
+          console.log(...arguments);
+        };
       }
        parse(data, err_on_unconsumed) {
-        if (err_on_unconsumed==undefined)
+        if (err_on_unconsumed===undefined)
           err_on_unconsumed = true;
-        if (data!=undefined)
+        if (data!==undefined)
           this.lexer.input(data);
-        var ret=this.start(this);
-        if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
+        let ret=this.start(this);
+        if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
             this.error(undefined, "parser did not consume entire input");
         }
         return ret;
@@ -3786,57 +3437,48 @@ struct_util.IDGen {
         this.lexer.input(data);
       }
        error(token, msg) {
-        if (msg==undefined)
+        let estr;
+        if (msg===undefined)
           msg = "";
-        if (token==undefined)
-          var estr="Parse error at end of input: "+msg;
+        if (token===undefined)
+          estr = "Parse error at end of input: "+msg;
         else 
-          estr = "Parse error at line "+(token.lineno+1)+": "+msg;
-        var buf="1| ";
-        var ld=this.lexer.lexdata;
-        var l=1;
-        for (var i=0; i<ld.length; i++) {
-            var c=ld[i];
-            if (c=='\n') {
-                l++;
-                buf+="\n"+l+"| ";
-            }
-            else {
-              buf+=c;
-            }
-        }
-        console.log("------------------");
-        console.log(buf);
-        console.log("==================");
-        console.log(estr);
+          estr = `Parse error at line ${token.lineno + 1}:${token.col+1}: ${msg}`;
+        let buf="";
+        let ld=this.lexer.lexdata;
+        let lineno=token ? token.lineno : this.lexer.linemap[this.lexer.linemap.length-1];
+        let col=token ? token.col : 0;
+        ld = ld.replace(/\r/g, '');
+        this.logger(print_lines(ld, lineno, col, true, token));
+        this.logger(estr);
         if (this.errfunc&&!this.errfunc(token)) {
             return ;
         }
         throw new PUTIL_ParseError(estr);
       }
        peek() {
-        var tok=this.lexer.peek();
-        if (tok!=undefined)
+        let tok=this.lexer.peek();
+        if (tok!==undefined)
           tok.parser = this;
         return tok;
       }
        peeknext() {
-        var tok=this.lexer.peeknext();
-        if (tok!=undefined)
+        let tok=this.lexer.peeknext();
+        if (tok!==undefined)
           tok.parser = this;
         return tok;
       }
        next() {
-        var tok=this.lexer.next();
-        if (tok!=undefined)
+        let tok=this.lexer.next();
+        if (tok!==undefined)
           tok.parser = this;
         return tok;
       }
        optional(type) {
-        var tok=this.peek();
-        if (tok==undefined)
+        let tok=this.peek();
+        if (tok===undefined)
           return false;
-        if (tok.type==type) {
+        if (tok.type===type) {
             this.next();
             return true;
         }
@@ -3846,8 +3488,8 @@ struct_util.IDGen {
         return this.lexer.at_end();
       }
        expect(type, msg) {
-        var tok=this.next();
-        if (msg==undefined) {
+        let tok=this.next();
+        if (msg===undefined) {
             msg = type;
             for (let tk of this.lexer.tokdef) {
                 if (tk.name===type&&tk.example) {
@@ -3855,30 +3497,31 @@ struct_util.IDGen {
                 }
             }
         }
-        if (tok==undefined||tok.type!=type) {
+        if (tok===undefined||tok.type!==type) {
             this.error(tok, "Expected "+msg);
         }
         return tok.value;
       }
     }
-    _ESClass.register(_export_parser_);
+    _ESClass.register(parser);
+    _es6_module.add_class(parser);
     function test_parser() {
-      var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
-      var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+      let basic_types=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+      let reserved_tokens=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
       function tk(name, re, func) {
-        return new _export_tokdef_(name, re, func);
+        return new tokdef(name, re, func);
       }
-      var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      let tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
         if (reserved_tokens.has(t.value)) {
             t.type = t.value.toUpperCase();
         }
         return t;
       }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
-        var js="";
-        var lexer=t.lexer;
+        let js="";
+        let lexer=t.lexer;
         while (lexer.lexpos<lexer.lexdata.length) {
-          var c=lexer.lexdata[lexer.lexpos];
-          if (c=="\n")
+          let c=lexer.lexdata[lexer.lexpos];
+          if (c==="\n")
             break;
           js+=c;
           lexer.lexpos++;
@@ -3893,34 +3536,41 @@ struct_util.IDGen {
         t.lexer.lineno+=1;
       }), tk("SPACE", / |\t/, function (t) {
       })];
-      var __iter_rt=__get_iter(reserved_tokens);
-      var rt;
-      while (1) {
-        var __ival_rt=__iter_rt.next();
-        if (__ival_rt.done) {
-            break;
-        }
-        rt = __ival_rt.value;
-        tokens.push(tk(rt.toUpperCase()));
+      for (let rt of reserved_tokens) {
+          tokens.push(tk(rt.toUpperCase()));
       }
-      var a="\n  Loop {\n    eid : int;\n    flag : int;\n    index : int;\n    type : int;\n\n    co : vec3;\n    no : vec3;\n    loop : int | eid(loop);\n    edges : array(e, int) | e.eid;\n\n    loops : array(Loop);\n  }\n  ";
+      let a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+
+    loops :, array(Loop);
+  }
+  `;
       function errfunc(lexer) {
         return true;
       }
-      var lex=new _export_lexer_(tokens, errfunc);
+      let lex=new lexer(tokens, errfunc);
       console.log("Testing lexical scanner...");
       lex.input(a);
-      var token;
+      let token;
       while (token = lex.next()) {
         console.log(token.toString());
       }
-      var parser=new _export_parser_(lex);
-      parser.input(a);
+      let parse=new parser(lex);
+      parse.input(a);
       function p_Array(p) {
         p.expect("ARRAY");
         p.expect("LPARAM");
-        var arraytype=p_Type(p);
-        var itername="";
+        let arraytype=p_Type(p);
+        let itername="";
         if (p.optional("COMMA")) {
             itername = arraytype;
             arraytype = p_Type(p);
@@ -3931,8 +3581,8 @@ struct_util.IDGen {
        iname: itername}}
       }
       function p_Type(p) {
-        var tok=p.peek();
-        if (tok.type=="ID") {
+        let tok=p.peek();
+        if (tok.type==="ID") {
             p.next();
             return {type: "struct", 
         data: "\""+tok.value+"\""}
@@ -3943,7 +3593,7 @@ struct_util.IDGen {
             return {type: tok.type.toLowerCase()}
         }
         else 
-          if (tok.type=="ARRAY") {
+          if (tok.type==="ARRAY") {
             return p_Array(p);
         }
         else {
@@ -3951,20 +3601,20 @@ struct_util.IDGen {
         }
       }
       function p_Field(p) {
-        var field={}
+        let field={}
         console.log("-----", p.peek().type);
         field.name = p.expect("ID", "struct field name");
         p.expect("COLON");
         field.type = p_Type(p);
         field.set = undefined;
         field.get = undefined;
-        var tok=p.peek();
-        if (tok.type=="JSCRIPT") {
+        let tok=p.peek();
+        if (tok.type==="JSCRIPT") {
             field.get = tok.value;
             p.next();
         }
         tok = p.peek();
-        if (tok.type=="JSCRIPT") {
+        if (tok.type==="JSCRIPT") {
             field.set = tok.value;
             p.next();
         }
@@ -3972,7 +3622,7 @@ struct_util.IDGen {
         return field;
       }
       function p_Struct(p) {
-        var st={}
+        let st={}
         st.name = p.expect("ID", "struct name");
         st.fields = [];
         p.expect("OPEN");
@@ -3990,19 +3640,17 @@ struct_util.IDGen {
         }
         return st;
       }
-      var ret=p_Struct(parser);
+      let ret=p_Struct(parse);
       console.log(JSON.stringify(ret));
     }
     var struct_parseutil=Object.freeze({__proto__: null, 
-    get parser() {
-        return _export_parser_;
-      }, 
-    token: _export_token_, 
-    tokdef: _export_tokdef_, 
+    token: token, 
+    tokdef: tokdef, 
     PUTIL_ParseError: PUTIL_ParseError, 
-    lexer: _export_lexer_});
+    lexer: lexer, 
+    parser: parser});
     "use strict";
-    let NStruct=class NStruct  {
+    class NStruct  {
        constructor(name) {
         this.fields = [];
         this.id = -1;
@@ -4010,40 +3658,41 @@ struct_util.IDGen {
       }
     }
     _ESClass.register(NStruct);
-    let StructEnum={T_INT: 0, 
-    T_FLOAT: 1, 
-    T_DOUBLE: 2, 
-    T_STRING: 7, 
-    T_STATIC_STRING: 8, 
-    T_STRUCT: 9, 
-    T_TSTRUCT: 10, 
-    T_ARRAY: 11, 
-    T_ITER: 12, 
-    T_SHORT: 13, 
-    T_BYTE: 14, 
-    T_BOOL: 15, 
-    T_ITERKEYS: 16, 
-    T_UINT: 17, 
-    T_USHORT: 18, 
-    T_STATIC_ARRAY: 19, 
-    T_SIGNED_BYTE: 20}
-    let ValueTypes=new Set([StructEnum.T_INT, StructEnum.T_FLOAT, StructEnum.T_DOUBLE, StructEnum.T_STRING, StructEnum.T_STATIC_STRING, StructEnum.T_SHORT, StructEnum.T_BYTE, StructEnum.T_BOOL, StructEnum.T_UINT, StructEnum.T_USHORT, StructEnum.T_SIGNED_BYTE]);
-    let StructTypes={"int": StructEnum.T_INT, 
-    "uint": StructEnum.T_UINT, 
-    "ushort": StructEnum.T_USHORT, 
-    "float": StructEnum.T_FLOAT, 
-    "double": StructEnum.T_DOUBLE, 
-    "string": StructEnum.T_STRING, 
-    "static_string": StructEnum.T_STATIC_STRING, 
-    "struct": StructEnum.T_STRUCT, 
-    "abstract": StructEnum.T_TSTRUCT, 
-    "array": StructEnum.T_ARRAY, 
-    "iter": StructEnum.T_ITER, 
-    "short": StructEnum.T_SHORT, 
-    "byte": StructEnum.T_BYTE, 
-    "bool": StructEnum.T_BOOL, 
-    "iterkeys": StructEnum.T_ITERKEYS, 
-    "sbyte": StructEnum.T_SIGNED_BYTE}
+    _es6_module.add_class(NStruct);
+    const StructEnum={INT: 0, 
+    FLOAT: 1, 
+    DOUBLE: 2, 
+    STRING: 7, 
+    STATIC_STRING: 8, 
+    STRUCT: 9, 
+    TSTRUCT: 10, 
+    ARRAY: 11, 
+    ITER: 12, 
+    SHORT: 13, 
+    BYTE: 14, 
+    BOOL: 15, 
+    ITERKEYS: 16, 
+    UINT: 17, 
+    USHORT: 18, 
+    STATIC_ARRAY: 19, 
+    SIGNED_BYTE: 20}
+    const ValueTypes=new Set([StructEnum.INT, StructEnum.FLOAT, StructEnum.DOUBLE, StructEnum.STRING, StructEnum.STATIC_STRING, StructEnum.SHORT, StructEnum.BYTE, StructEnum.BOOL, StructEnum.UINT, StructEnum.USHORT, StructEnum.SIGNED_BYTE]);
+    let StructTypes={"int": StructEnum.INT, 
+    "uint": StructEnum.UINT, 
+    "ushort": StructEnum.USHORT, 
+    "float": StructEnum.FLOAT, 
+    "double": StructEnum.DOUBLE, 
+    "string": StructEnum.STRING, 
+    "static_string": StructEnum.STATIC_STRING, 
+    "struct": StructEnum.STRUCT, 
+    "abstract": StructEnum.TSTRUCT, 
+    "array": StructEnum.ARRAY, 
+    "iter": StructEnum.ITER, 
+    "short": StructEnum.SHORT, 
+    "byte": StructEnum.BYTE, 
+    "bool": StructEnum.BOOL, 
+    "iterkeys": StructEnum.ITERKEYS, 
+    "sbyte": StructEnum.SIGNED_BYTE}
     let StructTypeMap={}
     for (let k in StructTypes) {
         StructTypeMap[StructTypes[k]] = k;
@@ -4055,18 +3704,69 @@ struct_util.IDGen {
       }
       return s;
     }
+    function stripComments(buf) {
+      let s='';
+      const MAIN=0, COMMENT=1, STR=2;
+      let p, n;
+      let strs=new Set(["'", '"', "`"]);
+      let mode=MAIN;
+      let strlit;
+      let escape=false;
+      for (let i=0; i<buf.length; i++) {
+          let p=i>0 ? buf[i-1] : undefined;
+          let c=buf[i];
+          let n=i<buf.length-1 ? buf[i+1] : undefined;
+          switch (mode) {
+            case MAIN:
+              if (c==="/"&&n==="/") {
+                  mode = COMMENT;
+                  continue;
+              }
+              if (strs.has(c)) {
+                  strlit = c;
+                  mode = STR;
+              }
+              s+=c;
+              break;
+            case COMMENT:
+              if (n==="\n") {
+                  mode = MAIN;
+              }
+              break;
+            case STR:
+              if (c===strlit&&!escape) {
+                  mode = MAIN;
+              }
+              s+=c;
+              break;
+          }
+          if (c==="\\") {
+              escape^=true;
+          }
+          else {
+            escape = false;
+          }
+      }
+      return s;
+    }
     function StructParser() {
-      let basic_types=new set$1(["int", "float", "double", "string", "short", "byte", "sbyte", "bool", "uint", "ushort"]);
-      let reserved_tokens=new set$1(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "sbyte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
+      let basic_types=new Set(["int", "float", "double", "string", "short", "byte", "sbyte", "bool", "uint", "ushort"]);
+      let reserved_tokens=new Set(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "sbyte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
       function tk(name, re, func) {
-        return new _export_tokdef_(name, re, func);
+        return new tokdef(name, re, func);
       }
       let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_\.$]*/, function (t) {
         if (reserved_tokens.has(t.value)) {
             t.type = t.value.toUpperCase();
         }
         return t;
-      }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
+      }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("STRLIT", /\"[^"]*\"/, (t) =>        {
+        t.value = t.value.slice(1, t.value.length-1);
+        return t;
+      }), tk("STRLIT", /\'[^']*\'/, (t) =>        {
+        t.value = t.value.slice(1, t.value.length-1);
+        return t;
+      }), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
         let js="";
         let lexer=t.lexer;
         while (lexer.lexpos<lexer.lexdata.length) {
@@ -4092,14 +3792,22 @@ struct_util.IDGen {
       function errfunc(lexer) {
         return true;
       }
-      let lex=new _export_lexer_(tokens, errfunc);
-      let parser=new _export_parser_(lex);
+      class Lexer extends lexer {
+         input(str) {
+          str = stripComments(str);
+          return super.input(str);
+        }
+      }
+      _ESClass.register(Lexer);
+      _es6_module.add_class(Lexer);
+      let lex=new Lexer(tokens, errfunc);
+      let parser$1=new parser(lex);
       function p_Static_String(p) {
         p.expect("STATIC_STRING");
         p.expect("SOPEN");
         let num=p.expect("NUM");
         p.expect("SCLOSE");
-        return {type: StructEnum.T_STATIC_STRING, 
+        return {type: StructEnum.STATIC_STRING, 
       data: {maxlength: num}}
       }
       function p_DataRef(p) {
@@ -4107,7 +3815,7 @@ struct_util.IDGen {
         p.expect("LPARAM");
         let tname=p.expect("ID");
         p.expect("RPARAM");
-        return {type: StructEnum.T_DATAREF, 
+        return {type: StructEnum.DATAREF, 
       data: tname}
       }
       function p_Array(p) {
@@ -4120,7 +3828,7 @@ struct_util.IDGen {
             arraytype = p_Type(p);
         }
         p.expect("RPARAM");
-        return {type: StructEnum.T_ARRAY, 
+        return {type: StructEnum.ARRAY, 
       data: {type: arraytype, 
        iname: itername}}
       }
@@ -4134,7 +3842,7 @@ struct_util.IDGen {
             arraytype = p_Type(p);
         }
         p.expect("RPARAM");
-        return {type: StructEnum.T_ITER, 
+        return {type: StructEnum.ITER, 
       data: {type: arraytype, 
        iname: itername}}
       }
@@ -4154,7 +3862,7 @@ struct_util.IDGen {
             itername = p_Type(p).data;
         }
         p.expect("SCLOSE");
-        return {type: StructEnum.T_STATIC_ARRAY, 
+        return {type: StructEnum.STATIC_ARRAY, 
       data: {type: arraytype, 
        size: size, 
        iname: itername}}
@@ -4169,7 +3877,7 @@ struct_util.IDGen {
             arraytype = p_Type(p);
         }
         p.expect("RPARAM");
-        return {type: StructEnum.T_ITERKEYS, 
+        return {type: StructEnum.ITERKEYS, 
       data: {type: arraytype, 
        iname: itername}}
       }
@@ -4177,15 +3885,20 @@ struct_util.IDGen {
         p.expect("ABSTRACT");
         p.expect("LPARAM");
         let type=p.expect("ID");
+        let jsonKeyword="_structName";
+        if (p.optional("COMMA")) {
+            jsonKeyword = p.expect("STRLIT");
+        }
         p.expect("RPARAM");
-        return {type: StructEnum.T_TSTRUCT, 
-      data: type}
+        return {type: StructEnum.TSTRUCT, 
+      data: type, 
+      jsonKeyword: jsonKeyword}
       }
       function p_Type(p) {
         let tok=p.peek();
         if (tok.type==="ID") {
             p.next();
-            return {type: StructEnum.T_STRUCT, 
+            return {type: StructEnum.STRUCT, 
         data: tok.value}
         }
         else 
@@ -4283,43 +3996,316 @@ struct_util.IDGen {
         }
         return st;
       }
-      parser.start = p_Struct;
-      return parser;
+      parser$1.start = p_Struct;
+      return parser$1;
     }
-    const _export_struct_parse_=StructParser();
+    const struct_parse=StructParser();
     var struct_parser=Object.freeze({__proto__: null, 
     NStruct: NStruct, 
     StructEnum: StructEnum, 
     ValueTypes: ValueTypes, 
     StructTypes: StructTypes, 
     StructTypeMap: StructTypeMap, 
-    struct_parse: _export_struct_parse_});
-    let _export_StructFieldTypeMap_;
-    let warninglvl=1;
+    stripComments: stripComments, 
+    struct_parse: struct_parse});
+    var struct_typesystem=Object.freeze({__proto__: null});
+    "use strict";
+    var STRUCT_ENDIAN=true;
+    function setBinaryEndian(mode) {
+      STRUCT_ENDIAN = !!mode;
+    }
+    let temp_dataview=new DataView(new ArrayBuffer(16));
+    let uint8_view=new Uint8Array(temp_dataview.buffer);
+    class unpack_context  {
+       constructor() {
+        this.i = 0;
+      }
+    }
+    _ESClass.register(unpack_context);
+    _es6_module.add_class(unpack_context);
+    function pack_byte(array, val) {
+      array.push(val);
+    }
+    function pack_sbyte(array, val) {
+      if (val<0) {
+          val = 256+val;
+      }
+      array.push(val);
+    }
+    function pack_bytes(array, bytes) {
+      for (let i=0; i<bytes.length; i++) {
+          array.push(bytes[i]);
+      }
+    }
+    function pack_int(array, val) {
+      temp_dataview.setInt32(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+      array.push(uint8_view[2]);
+      array.push(uint8_view[3]);
+    }
+    function pack_uint(array, val) {
+      temp_dataview.setUint32(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+      array.push(uint8_view[2]);
+      array.push(uint8_view[3]);
+    }
+    function pack_ushort(array, val) {
+      temp_dataview.setUint16(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+    }
+    function pack_float(array, val) {
+      temp_dataview.setFloat32(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+      array.push(uint8_view[2]);
+      array.push(uint8_view[3]);
+    }
+    function pack_double(array, val) {
+      temp_dataview.setFloat64(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+      array.push(uint8_view[2]);
+      array.push(uint8_view[3]);
+      array.push(uint8_view[4]);
+      array.push(uint8_view[5]);
+      array.push(uint8_view[6]);
+      array.push(uint8_view[7]);
+    }
+    function pack_short(array, val) {
+      temp_dataview.setInt16(0, val, STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+    }
+    function encode_utf8(arr, str) {
+      for (let i=0; i<str.length; i++) {
+          let c=str.charCodeAt(i);
+          while (c!==0) {
+            let uc=c&127;
+            c = c>>7;
+            if (c!==0)
+              uc|=128;
+            arr.push(uc);
+          }
+      }
+    }
+    function decode_utf8(arr) {
+      let str="";
+      let i=0;
+      while (i<arr.length) {
+        let c=arr[i];
+        let sum=c&127;
+        let j=0;
+        let lasti=i;
+        while (i<arr.length&&(c&128)) {
+          j+=7;
+          i++;
+          c = arr[i];
+          c = (c&127)<<j;
+          sum|=c;
+        }
+        if (sum===0)
+          break;
+        str+=String.fromCharCode(sum);
+        i++;
+      }
+      return str;
+    }
+    function test_utf8() {
+      let s="a"+String.fromCharCode(8800)+"b";
+      let arr=[];
+      encode_utf8(arr, s);
+      let s2=decode_utf8(arr);
+      if (s!==s2) {
+          throw new Error("UTF-8 encoding/decoding test failed");
+      }
+      return true;
+    }
+    function truncate_utf8(arr, maxlen) {
+      let len=Math.min(arr.length, maxlen);
+      let last_codepoint=0;
+      let last2=0;
+      let incode=false;
+      let i=0;
+      let code=0;
+      while (i<len) {
+        incode = arr[i]&128;
+        if (!incode) {
+            last2 = last_codepoint+1;
+            last_codepoint = i+1;
+        }
+        i++;
+      }
+      if (last_codepoint<maxlen)
+        arr.length = last_codepoint;
+      else 
+        arr.length = last2;
+      return arr;
+    }
+    let _static_sbuf_ss=new Array(2048);
+    function pack_static_string(data, str, length) {
+      if (length===undefined)
+        throw new Error("'length' paremter is not optional for pack_static_string()");
+      let arr=length<2048 ? _static_sbuf_ss : new Array();
+      arr.length = 0;
+      encode_utf8(arr, str);
+      truncate_utf8(arr, length);
+      for (let i=0; i<length; i++) {
+          if (i>=arr.length) {
+              data.push(0);
+          }
+          else {
+            data.push(arr[i]);
+          }
+      }
+    }
+    let _static_sbuf=new Array(32);
+    function pack_string(data, str) {
+      _static_sbuf.length = 0;
+      encode_utf8(_static_sbuf, str);
+      pack_int(data, _static_sbuf.length);
+      for (let i=0; i<_static_sbuf.length; i++) {
+          data.push(_static_sbuf[i]);
+      }
+    }
+    function unpack_bytes(dview, uctx, len) {
+      let ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
+      uctx.i+=len;
+      return ret;
+    }
+    function unpack_byte(dview, uctx) {
+      return dview.getUint8(uctx.i++);
+    }
+    function unpack_sbyte(dview, uctx) {
+      return dview.getInt8(uctx.i++);
+    }
+    function unpack_int(dview, uctx) {
+      uctx.i+=4;
+      return dview.getInt32(uctx.i-4, STRUCT_ENDIAN);
+    }
+    function unpack_uint(dview, uctx) {
+      uctx.i+=4;
+      return dview.getUint32(uctx.i-4, STRUCT_ENDIAN);
+    }
+    function unpack_ushort(dview, uctx) {
+      uctx.i+=2;
+      return dview.getUint16(uctx.i-2, STRUCT_ENDIAN);
+    }
+    function unpack_float(dview, uctx) {
+      uctx.i+=4;
+      return dview.getFloat32(uctx.i-4, STRUCT_ENDIAN);
+    }
+    function unpack_double(dview, uctx) {
+      uctx.i+=8;
+      return dview.getFloat64(uctx.i-8, STRUCT_ENDIAN);
+    }
+    function unpack_short(dview, uctx) {
+      uctx.i+=2;
+      return dview.getInt16(uctx.i-2, STRUCT_ENDIAN);
+    }
+    let _static_arr_us=new Array(32);
+    function unpack_string(data, uctx) {
+      let slen=unpack_int(data, uctx);
+      if (!slen) {
+          return "";
+      }
+      let str="";
+      let arr=slen<2048 ? _static_arr_us : new Array(slen);
+      arr.length = slen;
+      for (let i=0; i<slen; i++) {
+          arr[i] = unpack_byte(data, uctx);
+      }
+      return decode_utf8(arr);
+    }
+    let _static_arr_uss=new Array(2048);
+    function unpack_static_string(data, uctx, length) {
+      let str="";
+      if (length===undefined)
+        throw new Error("'length' cannot be undefined in unpack_static_string()");
+      let arr=length<2048 ? _static_arr_uss : new Array(length);
+      arr.length = 0;
+      let done=false;
+      for (let i=0; i<length; i++) {
+          let c=unpack_byte(data, uctx);
+          if (c===0) {
+              done = true;
+          }
+          if (!done&&c!==0) {
+              arr.push(c);
+          }
+      }
+      truncate_utf8(arr, length);
+      return decode_utf8(arr);
+    }
+    var struct_binpack=Object.freeze({__proto__: null, 
+    get STRUCT_ENDIAN() {
+        return STRUCT_ENDIAN;
+      }, 
+    setBinaryEndian: setBinaryEndian, 
+    temp_dataview: temp_dataview, 
+    uint8_view: uint8_view, 
+    unpack_context: unpack_context, 
+    pack_byte: pack_byte, 
+    pack_sbyte: pack_sbyte, 
+    pack_bytes: pack_bytes, 
+    pack_int: pack_int, 
+    pack_uint: pack_uint, 
+    pack_ushort: pack_ushort, 
+    pack_float: pack_float, 
+    pack_double: pack_double, 
+    pack_short: pack_short, 
+    encode_utf8: encode_utf8, 
+    decode_utf8: decode_utf8, 
+    test_utf8: test_utf8, 
+    pack_static_string: pack_static_string, 
+    pack_string: pack_string, 
+    unpack_bytes: unpack_bytes, 
+    unpack_byte: unpack_byte, 
+    unpack_sbyte: unpack_sbyte, 
+    unpack_int: unpack_int, 
+    unpack_uint: unpack_uint, 
+    unpack_ushort: unpack_ushort, 
+    unpack_float: unpack_float, 
+    unpack_double: unpack_double, 
+    unpack_short: unpack_short, 
+    unpack_string: unpack_string, 
+    unpack_static_string: unpack_static_string});
+    let warninglvl=2;
     let debug=0;
-    let pack_int$1=_module_exports_.pack_int;
-    let pack_uint$1=_module_exports_.pack_uint;
-    let pack_ushort$1=_module_exports_.pack_ushort;
-    let pack_float=_module_exports_.pack_float;
-    let pack_string$1=_module_exports_.pack_string;
-    let pack_byte$1=_module_exports_.pack_byte;
-    let pack_sbyte$1=_module_exports_.pack_sbyte;
-    let pack_double=_module_exports_.pack_double;
-    let pack_static_string$1=_module_exports_.pack_static_string;
-    let pack_short=_module_exports_.pack_short;
-    let unpack_int$1=_module_exports_.unpack_int;
-    let unpack_float=_module_exports_.unpack_float;
-    let unpack_uint$1=_module_exports_.unpack_uint;
-    let unpack_ushort$1=_module_exports_.unpack_ushort;
-    let unpack_string=_module_exports_.unpack_string;
-    let unpack_byte$1=_module_exports_.unpack_byte;
-    let unpack_sbyte$1=_module_exports_.unpack_sbyte;
-    let unpack_double=_module_exports_.unpack_double;
-    let unpack_static_string=_module_exports_.unpack_static_string;
-    let unpack_short=_module_exports_.unpack_short;
     let _static_envcode_null="";
     let packer_debug, packer_debug_start, packer_debug_end;
     let packdebug_tablevel=0;
+    function _get_pack_debug() {
+      return {packer_debug: packer_debug, 
+     packer_debug_start: packer_debug_start, 
+     packer_debug_end: packer_debug_end, 
+     debug: debug, 
+     warninglvl: warninglvl}
+    }
+    class cachering extends Array {
+       constructor(cb, tot) {
+        super();
+        this.length = tot;
+        this.cur = 0;
+        for (let i=0; i<tot; i++) {
+            this[i] = cb();
+        }
+      }
+      static  fromConstructor(cls, tot) {
+        return new cachering(() =>          {
+          return new cls();
+        }, tot);
+      }
+       next() {
+        let ret=this[this.cur];
+        this.cur = (this.cur+1)%this.length;
+        return ret;
+      }
+    }
+    _ESClass.register(cachering);
+    _es6_module.add_class(cachering);
     function gen_tabstr$1(tot) {
       let ret="";
       for (let i=0; i<tot; i++) {
@@ -4327,22 +4313,22 @@ struct_util.IDGen {
       }
       return ret;
     }
-    const _export_setWarningMode_=(t) =>      {
+    function setWarningMode2(t) {
       if (typeof t!=="number"||isNaN(t)) {
           throw new Error("Expected a single number (>= 0) argument to setWarningMode");
       }
       warninglvl = t;
     }
-    const _export_setDebugMode_=(t) =>      {
+    function setDebugMode2(t) {
       debug = t;
       if (debug) {
-          packer_debug = function (msg) {
-            if (msg!==undefined) {
-                let t=gen_tabstr$1(packdebug_tablevel);
-                console.log(t+msg);
+          packer_debug = function () {
+            let tab=gen_tabstr$1(packdebug_tablevel);
+            if (arguments.length>0) {
+                console.warn(tab);
             }
             else {
-              console.log("Warning: undefined msg");
+              console.warn("Warning: undefined msg");
             }
           };
           packer_debug_start = function (funcname) {
@@ -4351,7 +4337,9 @@ struct_util.IDGen {
           };
           packer_debug_end = function (funcname) {
             packdebug_tablevel--;
-            packer_debug("Leave "+funcname);
+            if (funcname) {
+                packer_debug("Leave "+funcname);
+            }
           };
       }
       else {
@@ -4363,57 +4351,59 @@ struct_util.IDGen {
         };
       }
     }
-    _export_setDebugMode_(debug);
-    const _export_StructFieldTypes_=[];
-    let StructFieldTypeMap=_export_StructFieldTypeMap_ = {}
-    let packNull=function (manager, data, field, type) {
+    setDebugMode2(debug);
+    const StructFieldTypes=[];
+    const StructFieldTypeMap={}
+    function packNull(manager, data, field, type) {
       StructFieldTypeMap[type.type].packNull(manager, data, field, type);
     }
-    let toJSON=function (manager, val, obj, field, type) {
-      return _export_StructFieldTypeMap_[type.type].toJSON(manager, val, obj, field, type);
+    function toJSON(manager, val, obj, field, type) {
+      return StructFieldTypeMap[type.type].toJSON(manager, val, obj, field, type);
     }
-    let fromJSON=function (manager, val, obj, field, type, instance) {
-      return _export_StructFieldTypeMap_[type.type].fromJSON(manager, val, obj, field, type, instance);
+    function fromJSON(manager, val, obj, field, type, instance) {
+      return StructFieldTypeMap[type.type].fromJSON(manager, val, obj, field, type, instance);
+    }
+    function validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      return StructFieldTypeMap[type.type].validateJSON(manager, val, obj, field, type, instance, _abstractKey);
     }
     function unpack_field(manager, data, type, uctx) {
       let name;
       if (debug) {
-          name = _export_StructFieldTypeMap_[type.type].define().name;
-          packer_debug_start("R start "+name);
+          name = StructFieldTypeMap[type.type].define().name;
+          packer_debug_start("R "+name);
       }
-      let ret=_export_StructFieldTypeMap_[type.type].unpack(manager, data, type, uctx);
+      let ret=StructFieldTypeMap[type.type].unpack(manager, data, type, uctx);
       if (debug) {
-          packer_debug_end("R end "+name);
+          packer_debug_end();
       }
       return ret;
     }
-    let fakeFields=new _export_cachering_(() =>      {
+    let fakeFields=new cachering(() =>      {
       return {type: undefined, 
      get: undefined, 
      set: undefined}
     }, 256);
     function fmt_type(type) {
-      return _export_StructFieldTypeMap_[type.type].format(type);
+      return StructFieldTypeMap[type.type].format(type);
     }
     function do_pack(manager, data, val, obj, field, type) {
       let name;
       if (debug) {
-          name = _export_StructFieldTypeMap_[type.type].define().name;
-          packer_debug_start("W start "+name);
+          name = StructFieldTypeMap[type.type].define().name;
+          packer_debug_start("W "+name);
       }
       let typeid=type;
       if (typeof typeid!=="number") {
           typeid = typeid.type;
       }
-      let ret=_export_StructFieldTypeMap_[typeid].pack(manager, data, val, obj, field, type);
+      let ret=StructFieldTypeMap[typeid].pack(manager, data, val, obj, field, type);
       if (debug) {
-          packer_debug_end("W end "+name);
+          packer_debug_end();
       }
       return ret;
     }
-    let StructEnum$1=StructEnum;
     let _ws_env=[[undefined, undefined]];
-    let StructFieldType=class StructFieldType  {
+    class StructFieldType  {
       static  pack(manager, data, val, obj, field, type) {
 
       }
@@ -4432,6 +4422,9 @@ struct_util.IDGen {
       static  fromJSON(manager, val, obj, field, type, instance) {
         return val;
       }
+      static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+        return true;
+      }
       static  useHelperJS(field) {
         return true;
       }
@@ -4440,7 +4433,7 @@ struct_util.IDGen {
       name: "(error)"}
       }
       static  register(cls) {
-        if (_export_StructFieldTypes_.indexOf(cls)>=0) {
+        if (StructFieldTypes.indexOf(cls)>=0) {
             throw new Error("class already registered");
         }
         if (cls.define===StructFieldType.define) {
@@ -4449,23 +4442,30 @@ struct_util.IDGen {
         if (cls.define().type===undefined) {
             throw new Error("cls.define().type was undefined!");
         }
-        if (cls.define().type in _export_StructFieldTypeMap_) {
+        if (cls.define().type in StructFieldTypeMap) {
             throw new Error("type "+cls.define().type+" is used by another StructFieldType subclass");
         }
-        _export_StructFieldTypes_.push(cls);
-        _export_StructFieldTypeMap_[cls.define().type] = cls;
+        StructFieldTypes.push(cls);
+        StructFieldTypeMap[cls.define().type] = cls;
       }
     }
     _ESClass.register(StructFieldType);
+    _es6_module.add_class(StructFieldType);
     class StructIntField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_int$1(data, val);
+        pack_int(data, val);
       }
       static  unpack(manager, data, type, uctx) {
-        return unpack_int$1(data, uctx);
+        return unpack_int(data, uctx);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="number"||val!==Math.floor(val)) {
+            return ""+val+" is not an integer";
+        }
+        return true;
       }
       static  define() {
-        return {type: StructEnum$1.T_INT, 
+        return {type: StructEnum.INT, 
       name: "int"}
       }
     }
@@ -4479,8 +4479,14 @@ struct_util.IDGen {
       static  unpack(manager, data, type, uctx) {
         return unpack_float(data, uctx);
       }
+      static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+        if (typeof val!=="number") {
+            return "Not a float: "+val;
+        }
+        return true;
+      }
       static  define() {
-        return {type: StructEnum$1.T_FLOAT, 
+        return {type: StructEnum.FLOAT, 
       name: "float"}
       }
     }
@@ -4494,8 +4500,14 @@ struct_util.IDGen {
       static  unpack(manager, data, type, uctx) {
         return unpack_double(data, uctx);
       }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="number") {
+            return "Not a double: "+val;
+        }
+        return true;
+      }
       static  define() {
-        return {type: StructEnum$1.T_DOUBLE, 
+        return {type: StructEnum.DOUBLE, 
       name: "double"}
       }
     }
@@ -4505,7 +4517,13 @@ struct_util.IDGen {
     class StructStringField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
         val = !val ? "" : val;
-        pack_string$1(data, val);
+        pack_string(data, val);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="string") {
+            return "Not a string: "+val;
+        }
+        return true;
       }
       static  packNull(manager, data, field, type) {
         this.pack(manager, data, "", 0, field, type);
@@ -4514,7 +4532,7 @@ struct_util.IDGen {
         return unpack_string(data, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_STRING, 
+        return {type: StructEnum.STRING, 
       name: "string"}
       }
     }
@@ -4524,7 +4542,16 @@ struct_util.IDGen {
     class StructStaticStringField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
         val = !val ? "" : val;
-        pack_static_string$1(data, val, type.data.maxlength);
+        pack_static_string(data, val, type.data.maxlength);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="string") {
+            return "Not a string: "+val;
+        }
+        if (val.length>type.data.maxlength) {
+            return "String is too big; limit is "+type.data.maxlength+"; string:"+val;
+        }
+        return true;
       }
       static  format(type) {
         return `static_string[${type.data.maxlength}]`;
@@ -4536,7 +4563,7 @@ struct_util.IDGen {
         return unpack_static_string(data, uctx, type.data.maxlength);
       }
       static  define() {
-        return {type: StructEnum$1.T_STATIC_STRING, 
+        return {type: StructEnum.STATIC_STRING, 
       name: "static_string"}
       }
     }
@@ -4545,7 +4572,16 @@ struct_util.IDGen {
     StructFieldType.register(StructStaticStringField);
     class StructStructField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        manager.write_struct(data, val, manager.get_struct(type.data));
+        let stt=manager.get_struct(type.data);
+        packer_debug("struct", stt.name);
+        manager.write_struct(data, val, stt);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+        let stt=manager.get_struct(type.data);
+        if (!val) {
+            return "Expected "+stt.name+" object";
+        }
+        return manager.validateJSONIntern(val, stt, _abstractKey);
       }
       static  format(type) {
         return type.data;
@@ -4560,10 +4596,12 @@ struct_util.IDGen {
       }
       static  unpackInto(manager, data, type, uctx, dest) {
         let cls2=manager.get_struct_cls(type.data);
+        packer_debug("struct", cls2 ? cls2.name : "(error)");
         return manager.read_object(data, cls2, uctx, dest);
       }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
+        packer_debug("struct", type);
         for (let field2 of stt.fields) {
             let type2=field2.type;
             packNull(manager, data, field2, type2);
@@ -4571,10 +4609,11 @@ struct_util.IDGen {
       }
       static  unpack(manager, data, type, uctx) {
         let cls2=manager.get_struct_cls(type.data);
+        packer_debug("struct", cls2 ? cls2.name : "(error)");
         return manager.read_object(data, cls2, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_STRUCT, 
+        return {type: StructEnum.STRUCT, 
       name: "struct"}
       }
     }
@@ -4585,49 +4624,73 @@ struct_util.IDGen {
       static  pack(manager, data, val, obj, field, type) {
         let cls=manager.get_struct_cls(type.data);
         let stt=manager.get_struct(type.data);
-        if (val.constructor.structName!==type.data&&(__instance_of(val, cls))) {
-            stt = manager.get_struct(val.constructor.structName);
+        const keywords=manager.constructor.keywords;
+        if (val.constructor[keywords.name]!==type.data&&(__instance_of(val, cls))) {
+            stt = manager.get_struct(val.constructor[keywords.name]);
         }
         else 
-          if (val.constructor.structName===type.data) {
+          if (val.constructor[keywords.name]===type.data) {
             stt = manager.get_struct(type.data);
         }
         else {
           console.trace();
-          throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
+          throw new Error("Bad struct "+val.constructor[keywords.name]+" passed to write_struct");
         }
         packer_debug("int "+stt.id);
-        pack_int$1(data, stt.id);
+        pack_int(data, stt.id);
         manager.write_struct(data, val, stt);
       }
+      static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+        let key=type.jsonKeyword;
+        if (typeof val!=="object") {
+            return typeof val+" is not an object";
+        }
+        let stt=manager.get_struct(val[key]);
+        let cls=manager.get_struct_cls(stt.name);
+        let parentcls=manager.get_struct_cls(type.data);
+        let ok=false;
+        do {
+          if (cls===parentcls) {
+              ok = true;
+              break;
+          }
+          cls = cls.prototype.__proto__.constructor;
+        } while (cls&&cls!==Object);
+        
+        if (!ok) {
+            return stt.name+" is not a child class off "+type.data;
+        }
+        return manager.validateJSONIntern(val, stt, type.jsonKeyword);
+      }
       static  fromJSON(manager, val, obj, field, type, instance) {
-        let stt=manager.get_struct(val._structName);
+        let key=type.jsonKeyword;
+        let stt=manager.get_struct(val[key]);
         return manager.readJSON(val, stt, instance);
       }
       static  toJSON(manager, val, obj, field, type) {
-        let stt=manager.get_struct(val.constructor.structName);
+        const keywords=manager.constructor.keywords;
+        let stt=manager.get_struct(val.constructor[keywords.name]);
         let ret=manager.writeJSON(val, stt);
-        ret._structName = ""+stt.name;
+        ret[type.jsonKeyword] = ""+stt.name;
         return ret;
       }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
-        pack_int$1(data, stt.id);
-        packNull(manager, data, field, {type: StructEnum$1.T_STRUCT, 
+        pack_int(data, stt.id);
+        packNull(manager, data, field, {type: StructEnum.STRUCT, 
       data: type.data});
       }
       static  format(type) {
         return "abstract("+type.data+")";
       }
       static  unpackInto(manager, data, type, uctx, dest) {
-        let id=_module_exports_.unpack_int(data, uctx);
+        let id=unpack_int(data, uctx);
         packer_debug("-int "+id);
         if (!(id in manager.struct_ids)) {
-            packer_debug("struct id: "+id);
+            packer_debug("tstruct id: "+id);
             console.trace();
             console.log(id);
             console.log(manager.struct_ids);
-            packer_debug_end("tstruct");
             throw new Error("Unknown struct type "+id+".");
         }
         let cls2=manager.get_struct_id(id);
@@ -4636,14 +4699,13 @@ struct_util.IDGen {
         return manager.read_object(data, cls2, uctx, dest);
       }
       static  unpack(manager, data, type, uctx) {
-        let id=_module_exports_.unpack_int(data, uctx);
+        let id=unpack_int(data, uctx);
         packer_debug("-int "+id);
         if (!(id in manager.struct_ids)) {
-            packer_debug("struct id: "+id);
+            packer_debug("tstruct id: "+id);
             console.trace();
             console.log(id);
             console.log(manager.struct_ids);
-            packer_debug_end("tstruct");
             throw new Error("Unknown struct type "+id+".");
         }
         let cls2=manager.get_struct_id(id);
@@ -4652,7 +4714,7 @@ struct_util.IDGen {
         return manager.read_object(data, cls2, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_TSTRUCT, 
+        return {type: StructEnum.TSTRUCT, 
       name: "tstruct"}
       }
     }
@@ -4668,11 +4730,11 @@ struct_util.IDGen {
             console.log("Type: ", type);
             console.log("");
             packer_debug("int 0");
-            _module_exports_.pack_int(data, 0);
+            pack_int(data, 0);
             return ;
         }
         packer_debug("int "+val.length);
-        _module_exports_.pack_int(data, val.length);
+        pack_int(data, val.length);
         let d=type.data;
         let itername=d.iname;
         let type2=d.type;
@@ -4690,7 +4752,7 @@ struct_util.IDGen {
         }
       }
       static  packNull(manager, data, field, type) {
-        pack_int$1(data, 0);
+        pack_int(data, 0);
       }
       static  format(type) {
         if (type.data.iname!==""&&type.data.iname!==undefined) {
@@ -4702,6 +4764,18 @@ struct_util.IDGen {
       }
       static  useHelperJS(field) {
         return !field.type.data.iname;
+      }
+      static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+        if (!val) {
+            return "not an array: "+val;
+        }
+        for (let i=0; i<val.length; i++) {
+            let ret=validateJSON(manager, val[i], val, field, type.data.type, undefined, _abstractKey);
+            if (typeof ret==="string"||!ret) {
+                return ret;
+            }
+        }
+        return true;
       }
       static  fromJSON(manager, val, obj, field, type, instance) {
         let ret=instance||[];
@@ -4734,14 +4808,14 @@ struct_util.IDGen {
         return json;
       }
       static  unpackInto(manager, data, type, uctx, dest) {
-        let len=_module_exports_.unpack_int(data, uctx);
+        let len=unpack_int(data, uctx);
         dest.length = 0;
         for (let i=0; i<len; i++) {
             dest.push(unpack_field(manager, data, type.data.type, uctx));
         }
       }
       static  unpack(manager, data, type, uctx) {
-        let len=_module_exports_.unpack_int(data, uctx);
+        let len=unpack_int(data, uctx);
         packer_debug("-int "+len);
         let arr=new Array(len);
         for (let i=0; i<len; i++) {
@@ -4750,7 +4824,7 @@ struct_util.IDGen {
         return arr;
       }
       static  define() {
-        return {type: StructEnum$1.T_ARRAY, 
+        return {type: StructEnum.ARRAY, 
       name: "array"}
       }
     }
@@ -4779,21 +4853,12 @@ struct_util.IDGen {
             console.log("");
           }
         }
-        let len=0.0;
-        forEach(() =>          {
-          len++;
-        });
-        packer_debug("int "+len);
-        _module_exports_.pack_int(data, len);
+        let starti=data.length;
+        data.length+=4;
         let d=type.data, itername=d.iname, type2=d.type;
         let env=_ws_env;
         let i=0;
         forEach(function (val2) {
-          if (i>=len) {
-              if (warninglvl>0)
-                console.trace("Warning: iterator returned different length of list!", val, i);
-              return ;
-          }
           if (itername!==""&&itername!==undefined&&field.get) {
               env[0][0] = itername;
               env[0][1] = val2;
@@ -4804,6 +4869,14 @@ struct_util.IDGen {
           do_pack(manager, data, val2, obj, fakeField, type2);
           i++;
         }, this);
+        temp_dataview.setInt32(0, i, STRUCT_ENDIAN);
+        data[starti++] = uint8_view[0];
+        data[starti++] = uint8_view[1];
+        data[starti++] = uint8_view[2];
+        data[starti++] = uint8_view[3];
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        return StructArrayField.validateJSON(...arguments);
       }
       static  fromJSON() {
         return StructArrayField.fromJSON(...arguments);
@@ -4824,7 +4897,7 @@ struct_util.IDGen {
         return json;
       }
       static  packNull(manager, data, field, type) {
-        pack_int$1(data, 0);
+        pack_int(data, 0);
       }
       static  useHelperJS(field) {
         return !field.type.data.iname;
@@ -4838,7 +4911,7 @@ struct_util.IDGen {
         }
       }
       static  unpackInto(manager, data, type, uctx, arr) {
-        let len=_module_exports_.unpack_int(data, uctx);
+        let len=unpack_int(data, uctx);
         packer_debug("-int "+len);
         arr.length = 0;
         for (let i=0; i<len; i++) {
@@ -4847,7 +4920,7 @@ struct_util.IDGen {
         return arr;
       }
       static  unpack(manager, data, type, uctx) {
-        let len=_module_exports_.unpack_int(data, uctx);
+        let len=unpack_int(data, uctx);
         packer_debug("-int "+len);
         let arr=new Array(len);
         for (let i=0; i<len; i++) {
@@ -4856,7 +4929,7 @@ struct_util.IDGen {
         return arr;
       }
       static  define() {
-        return {type: StructEnum$1.T_ITER, 
+        return {type: StructEnum.ITER, 
       name: "iter"}
       }
     }
@@ -4871,7 +4944,7 @@ struct_util.IDGen {
         return unpack_short(data, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_SHORT, 
+        return {type: StructEnum.SHORT, 
       name: "short"}
       }
     }
@@ -4880,13 +4953,13 @@ struct_util.IDGen {
     StructFieldType.register(StructShortField);
     class StructByteField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_byte$1(data, val);
+        pack_byte(data, val);
       }
       static  unpack(manager, data, type, uctx) {
-        return unpack_byte$1(data, uctx);
+        return unpack_byte(data, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_BYTE, 
+        return {type: StructEnum.BYTE, 
       name: "byte"}
       }
     }
@@ -4895,13 +4968,13 @@ struct_util.IDGen {
     StructFieldType.register(StructByteField);
     class StructSignedByteField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_sbyte$1(data, val);
+        pack_sbyte(data, val);
       }
       static  unpack(manager, data, type, uctx) {
-        return unpack_sbyte$1(data, uctx);
+        return unpack_sbyte(data, uctx);
       }
       static  define() {
-        return {type: StructEnum$1.T_SIGNED_BYTE, 
+        return {type: StructEnum.SIGNED_BYTE, 
       name: "sbyte"}
       }
     }
@@ -4910,13 +4983,28 @@ struct_util.IDGen {
     StructFieldType.register(StructSignedByteField);
     class StructBoolField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_byte$1(data, !!val);
+        pack_byte(data, !!val);
       }
       static  unpack(manager, data, type, uctx) {
-        return !!unpack_byte$1(data, uctx);
+        return !!unpack_byte(data, uctx);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (val===0||val===1||val===true||val===false||val==="true"||val==="false") {
+            return true;
+        }
+        return ""+val+" is not a bool";
+      }
+      static  fromJSON(manager, val, obj, field, type, instance) {
+        if (val==="false") {
+            val = false;
+        }
+        return !!val;
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        return !!val;
       }
       static  define() {
-        return {type: StructEnum$1.T_BOOL, 
+        return {type: StructEnum.BOOL, 
       name: "bool"}
       }
     }
@@ -4930,8 +5018,7 @@ struct_util.IDGen {
             console.log("Field: ", field);
             console.log("Type: ", type);
             console.log("");
-            _module_exports_.pack_int(data, 0);
-            packer_debug_end("iterkeys");
+            pack_int(data, 0);
             return ;
         }
         let len=0.0;
@@ -4939,7 +5026,7 @@ struct_util.IDGen {
             len++;
         }
         packer_debug("int "+len);
-        _module_exports_.pack_int(data, len);
+        pack_int(data, len);
         let d=type.data, itername=d.iname, type2=d.type;
         let env=_ws_env;
         let i=0;
@@ -4964,6 +5051,9 @@ struct_util.IDGen {
             i++;
         }
       }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        return StructArrayField.validateJSON(...arguments);
+      }
       static  fromJSON() {
         return StructArrayField.fromJSON(...arguments);
       }
@@ -4984,7 +5074,7 @@ struct_util.IDGen {
         return json;
       }
       static  packNull(manager, data, field, type) {
-        pack_int$1(data, 0);
+        pack_int(data, 0);
       }
       static  useHelperJS(field) {
         return !field.type.data.iname;
@@ -4998,7 +5088,7 @@ struct_util.IDGen {
         }
       }
       static  unpackInto(manager, data, type, uctx, arr) {
-        let len=unpack_int$1(data, uctx);
+        let len=unpack_int(data, uctx);
         packer_debug("-int "+len);
         arr.length = 0;
         for (let i=0; i<len; i++) {
@@ -5007,7 +5097,7 @@ struct_util.IDGen {
         return arr;
       }
       static  unpack(manager, data, type, uctx) {
-        let len=unpack_int$1(data, uctx);
+        let len=unpack_int(data, uctx);
         packer_debug("-int "+len);
         let arr=new Array(len);
         for (let i=0; i<len; i++) {
@@ -5016,7 +5106,7 @@ struct_util.IDGen {
         return arr;
       }
       static  define() {
-        return {type: StructEnum$1.T_ITERKEYS, 
+        return {type: StructEnum.ITERKEYS, 
       name: "iterkeys"}
       }
     }
@@ -5025,13 +5115,19 @@ struct_util.IDGen {
     StructFieldType.register(StructIterKeysField);
     class StructUintField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_uint$1(data, val);
+        pack_uint(data, val);
       }
       static  unpack(manager, data, type, uctx) {
-        return unpack_uint$1(data, uctx);
+        return unpack_uint(data, uctx);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="number"||val!==Math.floor(val)) {
+            return ""+val+" is not an integer";
+        }
+        return true;
       }
       static  define() {
-        return {type: StructEnum$1.T_UINT, 
+        return {type: StructEnum.UINT, 
       name: "uint"}
       }
     }
@@ -5040,13 +5136,19 @@ struct_util.IDGen {
     StructFieldType.register(StructUintField);
     class StructUshortField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        pack_ushort$1(data, val);
+        pack_ushort(data, val);
       }
       static  unpack(manager, data, type, uctx) {
-        return unpack_ushort$1(data, uctx);
+        return unpack_ushort(data, uctx);
+      }
+      static  validateJSON(manager, val, obj, field, type, instance) {
+        if (typeof val!=="number"||val!==Math.floor(val)) {
+            return ""+val+" is not an integer";
+        }
+        return true;
       }
       static  define() {
-        return {type: StructEnum$1.T_USHORT, 
+        return {type: StructEnum.USHORT, 
       name: "ushort"}
       }
     }
@@ -5078,6 +5180,9 @@ struct_util.IDGen {
       static  useHelperJS(field) {
         return !field.type.data.iname;
       }
+      static  validateJSON() {
+        return StructArrayField.validateJSON(...arguments);
+      }
       static  fromJSON() {
         return StructArrayField.fromJSON(...arguments);
       }
@@ -5091,7 +5196,7 @@ struct_util.IDGen {
         return StructArrayField.toJSON(...arguments);
       }
       static  format(type) {
-        let type2=_export_StructFieldTypeMap_[type.data.type.type].format(type.data.type);
+        let type2=StructFieldTypeMap[type.data.type.type].format(type.data.type);
         let ret=`static_array[${type2}, ${type.data.size}`;
         if (type.data.iname) {
             ret+=`, ${type.data.iname}`;
@@ -5116,34 +5221,271 @@ struct_util.IDGen {
         return ret;
       }
       static  define() {
-        return {type: StructEnum$1.T_STATIC_ARRAY, 
+        return {type: StructEnum.STATIC_ARRAY, 
       name: "static_array"}
       }
     }
     _ESClass.register(StructStaticArrayField);
     _es6_module.add_class(StructStaticArrayField);
     StructFieldType.register(StructStaticArrayField);
+    var _sintern2=Object.freeze({__proto__: null, 
+    _get_pack_debug: _get_pack_debug, 
+    setWarningMode2: setWarningMode2, 
+    setDebugMode2: setDebugMode2, 
+    StructFieldTypes: StructFieldTypes, 
+    StructFieldTypeMap: StructFieldTypeMap, 
+    packNull: packNull, 
+    toJSON: toJSON, 
+    fromJSON: fromJSON, 
+    validateJSON: validateJSON, 
+    do_pack: do_pack, 
+    StructFieldType: StructFieldType});
+    var structEval=eval;
+    function setStructEval(val) {
+      structEval = val;
+    }
+    var _struct_eval=Object.freeze({__proto__: null, 
+    get structEval() {
+        return structEval;
+      }, 
+    setStructEval: setStructEval});
+    const TokSymbol=Symbol("token-info");
+    function buildJSONParser() {
+      let tk=(name, re, func, example) =>        {
+        return new tokdef(name, re, func, example);
+      }
+      let parse;
+      let nint="[+-]?[0-9]+";
+      let nhex="[+-]?0x[0-9a-fA-F]+";
+      let nfloat1="[+-]?[0-9]+\\.[0-9]*";
+      let nfloat2="[+-]?[0-9]*\\.[0-9]+";
+      let nfloat3="[+-]?[0-9]+\\.[0-9]+";
+      let nfloatexp="[+-]?[0-9]+\\.[0-9]+[eE][+-]?[0-9]+";
+      let nfloat=`(${nfloat1})|(${nfloat2})|(${nfloatexp})`;
+      let num=`(${nint})|(${nfloat})|(${nhex})`;
+      let numre=new RegExp(num);
+      let numreTest=new RegExp(`(${num})$`);
+      nfloat3 = new RegExp(nfloat3);
+      nfloatexp = new RegExp(nfloatexp);
+      let tests=["1.234234", ".23432", "-234.", "1e-17", "-0x23423ff", "+23423", "-4.263256414560601e-14"];
+      for (let test of tests) {
+          if (!numreTest.test(test)) {
+              console.error("Error! Number regexp failed:", test);
+          }
+      }
+      let tokens=[tk("BOOL", /true|false/), tk("WS", /[ \r\t\n]/, (t) =>        {
+        return undefined;
+      }), tk("STRLIT", /["']/, (t) =>        {
+        let lex=t.lexer;
+        let char=t.value;
+        let i=lex.lexpos;
+        let lexdata=lex.lexdata;
+        let escape=0;
+        t.value = "";
+        let prev;
+        while (i<lexdata.length) {
+          let c=lexdata[i];
+          t.value+=c;
+          if (c==="\\") {
+              escape^=true;
+          }
+          else 
+            if (!escape&&c===char) {
+              break;
+          }
+          else {
+            escape = false;
+          }
+          i++;
+        }
+        lex.lexpos = i+1;
+        if (t.value.length>0) {
+            t.value = t.value.slice(0, t.value.length-1);
+        }
+        return t;
+      }), tk("LSBRACKET", /\[/), tk("RSBRACKET", /]/), tk("LBRACE", /{/), tk("RBRACE", /}/), tk("NULL", /null/), tk("COMMA", /,/), tk("COLON", /:/), tk("NUM", numre, (t) =>        {
+        return (t.value = parseFloat(t.value), t);
+      }), tk("NUM", nfloat3, (t) =>        {
+        return (t.value = parseFloat(t.value), t);
+      }), tk("NUM", nfloatexp, (t) =>        {
+        return (t.value = parseFloat(t.value), t);
+      })];
+      function tokinfo(t) {
+        return {lexpos: t.lexpos, 
+      lineno: t.lineno, 
+      col: t.col, 
+      fields: {}}
+      }
+      function p_Array(p) {
+        p.expect("LSBRACKET");
+        let t=p.peeknext();
+        let first=true;
+        let ret=[];
+        ret[TokSymbol] = tokinfo(t);
+        while (t&&t.type!=="RSBRACKET") {
+          if (!first) {
+              p.expect("COMMA");
+          }
+          ret[TokSymbol].fields[ret.length] = tokinfo(t);
+          ret.push(p_Start(p));
+          first = false;
+          t = p.peeknext();
+        }
+        p.expect("RSBRACKET");
+        return ret;
+      }
+      function p_Object(p) {
+        p.expect("LBRACE");
+        let obj={}
+        let first=true;
+        let t=p.peeknext();
+        obj[TokSymbol] = tokinfo(t);
+        while (t&&t.type!=="RBRACE") {
+          if (!first) {
+              p.expect("COMMA");
+          }
+          let key=p.expect("STRLIT");
+          p.expect("COLON");
+          let val=p_Start(p, true);
+          obj[key] = val;
+          first = false;
+          t = p.peeknext();
+          obj[TokSymbol].fields[key] = tokinfo(t);
+        }
+        p.expect("RBRACE");
+        return obj;
+      }
+      function p_Start(p, throwError) {
+        if (throwError===undefined) {
+            throwError = true;
+        }
+        let t=p.peeknext();
+        if (t.type==="LSBRACKET") {
+            return p_Array(p);
+        }
+        else 
+          if (t.type==="LBRACE") {
+            return p_Object(p);
+        }
+        else 
+          if (t.type==="STRLIT"||t.type==="NUM"||t.type==="NULL"||t.type==="BOOL") {
+            return p.next().value;
+        }
+        else {
+          p.error(t, "Unknown token");
+        }
+      }
+      function p_Error(token, msg) {
+        throw new PUTIL_ParseError("Parse Error");
+      }
+      let lex=new lexer(tokens);
+      lex.linestart = 0;
+      parse = new parser(lex, p_Error);
+      parse.start = p_Start;
+      return parse;
+    }
+    var jsonParser=buildJSONParser();
+    function printContext(buf, tokinfo, printColors) {
+      if (printColors===undefined) {
+          printColors = true;
+      }
+      let lines=buf.split("\n");
+      if (!tokinfo) {
+          return '';
+      }
+      let lineno=tokinfo.lineno;
+      let col=tokinfo.col;
+      let istart=Math.max(lineno-50, 0);
+      let iend=Math.min(lineno+2, lines.length-1);
+      let s='';
+      if (printColors) {
+          s+=termColor("  /* pretty-printed json */\n", "blue");
+      }
+      else {
+        s+="/* pretty-printed json */\n";
+      }
+      for (let i=istart; i<iend; i++) {
+          let l=lines[i];
+          let idx=""+i;
+          while (idx.length<3) {
+            idx = " "+idx;
+          }
+          if (i===lineno&&printColors) {
+              s+=termColor(`${idx}: ${l}\n`, "yellow");
+          }
+          else {
+            s+=`${idx}: ${l}\n`;
+          }
+          if (i===lineno) {
+              let l2='';
+              for (let j=0; j<col+5; j++) {
+                  l2+=" ";
+              }
+              s+=l2+"^\n";
+          }
+      }
+      return s;
+    }
+    var nGlobal;
+    if (typeof globalThis!=="undefined") {
+        nGlobal = globalThis;
+    }
+    else 
+      if (typeof window!=="undefined") {
+        nGlobal = window;
+    }
+    else 
+      if (typeof global!=="undefined") {
+        nGlobal = global;
+    }
+    else 
+      if (typeof globals!=="undefined") {
+        nGlobal = globals;
+    }
+    else 
+      if (typeof self!=="undefined") {
+        nGlobal = self;
+    }
+    const DEBUG={}
+    function updateDEBUG() {
+      for (let k in Object.keys(DEBUG)) {
+          delete DEBUG[k];
+      }
+      if (typeof nGlobal.DEBUG==="object") {
+          for (let k in nGlobal.DEBUG) {
+              DEBUG[k] = nGlobal.DEBUG[k];
+          }
+      }
+    }
     "use strict";
-    const NStruct$1=NStruct;
-    let StructFieldTypeMap$1=_export_StructFieldTypeMap_;
+    var sintern2=_sintern2;
+    var struct_eval=_struct_eval;
     let warninglvl$1=2;
-    const _module_exports_$1={}
+    var truncateDollarSign=true;
+    class JSONError extends Error {
+    }
+    _ESClass.register(JSONError);
+    _es6_module.add_class(JSONError);
+    
+    function setTruncateDollarSign(v) {
+      truncateDollarSign = !!v;
+    }
+    function _truncateDollarSign(s) {
+      let i=s.search("$");
+      if (i>0) {
+          return s.slice(0, i).trim();
+      }
+      return s;
+    }
     function unmangle(name) {
-      if (_module_exports_$1.truncateDollarSign) {
-          return _export_truncateDollarSign_(name);
+      if (truncateDollarSign) {
+          return _truncateDollarSign(name);
       }
       else {
         return name;
       }
     }
-    let StructTypeMap$1=StructTypeMap;
-    let StructTypes$1=StructTypes;
-    let struct_parse=_export_struct_parse_;
-    let StructEnum$2=StructEnum;
     let _static_envcode_null$1="";
-    let debug_struct=0;
-    let packdebug_tablevel$1=0;
-    _module_exports_$1.truncateDollarSign = true;
     function gen_tabstr$2(tot) {
       let ret="";
       for (let i=0; i<tot; i++) {
@@ -5152,121 +5494,190 @@ struct_util.IDGen {
       return ret;
     }
     let packer_debug$1, packer_debug_start$1, packer_debug_end$1;
-    if (debug_struct) {
-        packer_debug$1 = function (msg) {
-          if (msg!==undefined) {
-              let t=gen_tabstr$2(packdebug_tablevel$1);
-              console.log(t+msg);
-          }
-          else {
-            console.log("Warning: undefined msg");
-          }
-        };
-        packer_debug_start$1 = function (funcname) {
-          packer_debug$1("Start "+funcname);
-          packdebug_tablevel$1++;
-        };
-        packer_debug_end$1 = function (funcname) {
-          packdebug_tablevel$1--;
-          packer_debug$1("Leave "+funcname);
-        };
+    function update_debug_data() {
+      let ret=_get_pack_debug();
+      packer_debug$1 = ret.packer_debug;
+      packer_debug_start$1 = ret.packer_debug_start;
+      packer_debug_end$1 = ret.packer_debug_end;
+      warninglvl$1 = ret.warninglvl;
     }
-    else {
-      packer_debug$1 = function () {
-      };
-      packer_debug_start$1 = function () {
-      };
-      packer_debug_end$1 = function () {
-      };
-    }
-    _module_exports_$1.setWarningMode = (t) =>      {
-      _export_setWarningMode_(t);
+    update_debug_data();
+    function setWarningMode(t) {
+      sintern2.setWarningMode2(t);
       if (typeof t!=="number"||isNaN(t)) {
           throw new Error("Expected a single number (>= 0) argument to setWarningMode");
       }
       warninglvl$1 = t;
     }
-    _module_exports_$1.setDebugMode = (t) =>      {
-      debug_struct = t;
-      _export_setDebugMode_(t);
-      if (debug_struct) {
-          packer_debug$1 = function (msg) {
-            if (msg!==undefined) {
-                let t=gen_tabstr$2(packdebug_tablevel$1);
-                console.log(t+msg);
-            }
-            else {
-              console.log("Warning: undefined msg");
-            }
-          };
-          packer_debug_start$1 = function (funcname) {
-            packer_debug$1("Start "+funcname);
-            packdebug_tablevel$1++;
-          };
-          packer_debug_end$1 = function (funcname) {
-            packdebug_tablevel$1--;
-            packer_debug$1("Leave "+funcname);
-          };
-      }
-      else {
-        packer_debug$1 = function () {
-        };
-        packer_debug_start$1 = function () {
-        };
-        packer_debug_end$1 = function () {
-        };
-      }
+    function setDebugMode(t) {
+      sintern2.setDebugMode2(t);
+      update_debug_data();
     }
     let _ws_env$1=[[undefined, undefined]];
-    function do_pack$1(data, val, obj, thestruct, field, type) {
-      StructFieldTypeMap$1[field.type.type].pack(manager, data, val, obj, field, type);
-    }
-    function define_empty_class(name) {
+    function define_empty_class(scls, name) {
       let cls=function () {
       }
       cls.prototype = Object.create(Object.prototype);
       cls.constructor = cls.prototype.constructor = cls;
-      cls.STRUCT = name+" {\n  }\n";
-      cls.structName = name;
-      cls.prototype.loadSTRUCT = function (reader) {
+      let keywords=scls.keywords;
+      cls[keywords.script] = name+" {\n  }\n";
+      cls[keywords.name] = name;
+      cls.prototype[keywords.load] = function (reader) {
         reader(this);
       }
-      cls.newSTRUCT = function () {
+      cls[keywords.new] = function () {
         return new this();
       }
       return cls;
     }
-    let STRUCT=_module_exports_$1.STRUCT = class STRUCT  {
+    let haveCodeGen;
+    class STRUCT  {
        constructor() {
-        this.idgen = new IDGen();
+        this.idgen = 0;
         this.allowOverriding = true;
         this.structs = {};
         this.struct_cls = {};
         this.struct_ids = {};
         this.compiled_code = {};
         this.null_natives = {};
-        function define_null_native(name, cls) {
-          let obj=define_empty_class(name);
-          let stt=struct_parse.parse(obj.STRUCT);
-          stt.id = this.idgen.gen_id();
-          this.structs[name] = stt;
-          this.struct_cls[name] = cls;
-          this.struct_ids[stt.id] = stt;
-          this.null_natives[name] = 1;
+        this.define_null_native("Object", Object);
+        this.jsonUseColors = true;
+        this.jsonBuf = '';
+      }
+      static  inherit(child, parent, structName=child.name) {
+        const keywords=this.keywords;
+        if (!parent[keywords.script]) {
+            return structName+"{\n";
         }
-        define_null_native.call(this, "Object", Object);
+        let stt=struct_parse.parse(parent[keywords.script]);
+        let code=structName+"{\n";
+        code+=STRUCT.fmt_struct(stt, true);
+        return code;
+      }
+      static  Super(obj, reader) {
+        if (warninglvl$1>0)
+          console.warn("deprecated");
+        reader(obj);
+        function reader2(obj) {
+        }
+        let cls=obj.constructor;
+        let bad=cls===undefined||cls.prototype===undefined||cls.prototype.__proto__===undefined;
+        if (bad) {
+            return ;
+        }
+        let parent=cls.prototype.__proto__.constructor;
+        bad = bad||parent===undefined;
+        if (!bad&&parent.prototype[keywords.load]&&parent.prototype[keywords.load]!==obj[keywords.load]) {
+            parent.prototype[keywords.load].call(obj, reader2);
+        }
+      }
+      static  chain_fromSTRUCT(cls, reader) {
+        if (warninglvl$1>0)
+          console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
+        let proto=cls.prototype;
+        let parent=cls.prototype.prototype.constructor;
+        let obj=parent[keywords.from](reader);
+        let obj2=new cls();
+        let keys=Object.keys(obj).concat(Object.getOwnPropertySymbols(obj));
+        for (let i=0; i<keys.length; i++) {
+            let k=keys[i];
+            try {
+              obj2[k] = obj[k];
+            }
+            catch (error) {
+                if (warninglvl$1>0)
+                  console.warn("  failed to set property", k);
+            }
+        }
+        return obj2;
+      }
+      static  formatStruct(stt, internal_only, no_helper_js) {
+        return this.fmt_struct(stt, internal_only, no_helper_js);
+      }
+      static  fmt_struct(stt, internal_only, no_helper_js) {
+        if (internal_only===undefined)
+          internal_only = false;
+        if (no_helper_js===undefined)
+          no_helper_js = false;
+        let s="";
+        if (!internal_only) {
+            s+=stt.name;
+            if (stt.id!==-1)
+              s+=" id="+stt.id;
+            s+=" {\n";
+        }
+        let tab="  ";
+        function fmt_type(type) {
+          return StructFieldTypeMap[type.type].format(type);
+          if (type.type===StructEnum.ARRAY||type.type===StructEnum.ITER||type.type===StructEnum.ITERKEYS) {
+              if (type.data.iname!==""&&type.data.iname!==undefined) {
+                  return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+              }
+              else {
+                return "array("+fmt_type(type.data.type)+")";
+              }
+          }
+          else 
+            if (type.type===StructEnum.STATIC_STRING) {
+              return "static_string["+type.data.maxlength+"]";
+          }
+          else 
+            if (type.type===StructEnum.STRUCT) {
+              return type.data;
+          }
+          else 
+            if (type.type===StructEnum.TSTRUCT) {
+              return "abstract("+type.data+")";
+          }
+          else {
+            return StructTypeMap[type.type];
+          }
+        }
+        let fields=stt.fields;
+        for (let i=0; i<fields.length; i++) {
+            let f=fields[i];
+            s+=tab+f.name+" : "+fmt_type(f.type);
+            if (!no_helper_js&&f.get!==undefined) {
+                s+=" | "+f.get.trim();
+            }
+            s+=";\n";
+        }
+        if (!internal_only)
+          s+="}";
+        return s;
+      }
+      static  setClassKeyword(keyword, nameKeyword=undefined) {
+        if (!nameKeyword) {
+            nameKeyword = keyword.toLowerCase()+"Name";
+        }
+        this.keywords = {script: keyword, 
+      name: nameKeyword, 
+      load: "load"+keyword, 
+      new: "new"+keyword, 
+      after: "after"+keyword, 
+      from: "from"+keyword};
+      }
+       define_null_native(name, cls) {
+        const keywords=this.constructor.keywords;
+        let obj=define_empty_class(this.constructor, name);
+        let stt=struct_parse.parse(obj[keywords.script]);
+        stt.id = this.idgen++;
+        this.structs[name] = stt;
+        this.struct_cls[name] = cls;
+        this.struct_ids[stt.id] = stt;
+        this.null_natives[name] = 1;
       }
        validateStructs(onerror) {
         function getType(type) {
           switch (type.type) {
-            case StructEnum$2.T_ITERKEYS:
-            case StructEnum$2.T_ITER:
-            case StructEnum$2.T_STATIC_ARRAY:
-            case StructEnum$2.T_ARRAY:
+            case StructEnum.ITERKEYS:
+            case StructEnum.ITER:
+            case StructEnum.STATIC_ARRAY:
+            case StructEnum.ARRAY:
               return getType(type.data.type);
-            case StructEnum$2.T_TSTRUCT:
+            case StructEnum.TSTRUCT:
               return type;
-            case StructEnum$2.T_STRUCT:
+            case StructEnum.STRUCT:
             default:
               return type;
           }
@@ -5275,8 +5686,8 @@ struct_util.IDGen {
           let ret={}
           ret.type = type.type;
           if (typeof ret.type==="number") {
-              for (let k in StructEnum$2) {
-                  if (StructEnum$2[k]===ret.type) {
+              for (let k in StructEnum) {
+                  if (StructEnum[k]===ret.type) {
                       ret.type = k;
                       break;
                   }
@@ -5314,7 +5725,7 @@ struct_util.IDGen {
                     }
                 }
                 let type=getType(field.type);
-                if (type.type!==StructEnum$2.T_STRUCT&&type.type!==StructEnum$2.T_TSTRUCT) {
+                if (type.type!==StructEnum.STRUCT&&type.type!==StructEnum.TSTRUCT) {
                     continue;
                 }
                 if (!(type.data in this.structs)) {
@@ -5334,8 +5745,9 @@ struct_util.IDGen {
         }
       }
        parse_structs(buf, defined_classes) {
+        const keywords=this.constructor.keywords;
         if (defined_classes===undefined) {
-            defined_classes = _module_exports_$1.manager;
+            defined_classes = exports.manager;
         }
         if (__instance_of(defined_classes, STRUCT)) {
             let struct2=defined_classes;
@@ -5346,24 +5758,24 @@ struct_util.IDGen {
         }
         if (defined_classes===undefined) {
             defined_classes = [];
-            for (let k in _module_exports_$1.manager.struct_cls) {
-                defined_classes.push(_module_exports_$1.manager.struct_cls[k]);
+            for (let k in exports.manager.struct_cls) {
+                defined_classes.push(exports.manager.struct_cls[k]);
             }
         }
         let clsmap={};
         for (let i=0; i<defined_classes.length; i++) {
             let cls=defined_classes[i];
-            if (!cls.structName&&cls.STRUCT) {
-                let stt=struct_parse.parse(cls.STRUCT.trim());
-                cls.structName = stt.name;
+            if (!cls[keywords.name]&&cls[keywords.script]) {
+                let stt=struct_parse.parse(cls[keywords.script].trim());
+                cls[keywords.name] = stt.name;
             }
             else 
-              if (!cls.structName&&cls.name!=="Object") {
+              if (!cls[keywords.name]&&cls.name!=="Object") {
                 if (warninglvl$1>0)
                   console.log("Warning, bad class in registered class list", unmangle(cls.name), cls);
                 continue;
             }
-            clsmap[cls.structName] = defined_classes[i];
+            clsmap[cls[keywords.name]] = defined_classes[i];
         }
         struct_parse.input(buf);
         while (!struct_parse.at_end()) {
@@ -5372,12 +5784,12 @@ struct_util.IDGen {
               if (!(stt.name in this.null_natives))
                 if (warninglvl$1>0)
                 console.log("WARNING: struct "+stt.name+" is missing from class list.");
-              let dummy=define_empty_class(stt.name);
-              dummy.STRUCT = STRUCT.fmt_struct(stt);
-              dummy.structName = stt.name;
-              dummy.prototype.structName = dummy.name;
-              this.struct_cls[dummy.structName] = dummy;
-              this.structs[dummy.structName] = stt;
+              let dummy=define_empty_class(this.constructor, stt.name);
+              dummy[keywords.script] = STRUCT.fmt_struct(stt);
+              dummy[keywords.name] = stt.name;
+              dummy.prototype[keywords.name] = dummy.name;
+              this.struct_cls[dummy[keywords.name]] = dummy;
+              this.structs[dummy[keywords.name]] = stt;
               if (stt.id!==-1)
                 this.struct_ids[stt.id] = stt;
           }
@@ -5393,77 +5805,137 @@ struct_util.IDGen {
           }
         }
       }
+       registerGraph(srcSTRUCT, cls) {
+        if (!cls[keywords.name]) {
+            console.warn("class was not in srcSTRUCT");
+            return this.register(cls);
+        }
+        let recStruct;
+        let recArray=(t) =>          {
+          switch (t.type) {
+            case StructEnum.ARRAY:
+              return recArray(t.data.type);
+            case StructEnum.ITERKEYS:
+              return recArray(t.data.type);
+            case StructEnum.STATIC_ARRAY:
+              return recArray(t.data.type);
+            case StructEnum.ITER:
+              return recArray(t.data.type);
+            case StructEnum.STRUCT:
+            case StructEnum.TSTRUCT:
+              let st=srcSTRUCT.structs[t.data];
+              let cls=srcSTRUCT.struct_cls[st.name];
+              return recStruct(st, cls);
+          }
+        };
+        recStruct = (st, cls) =>          {
+          if (!(cls[keywords.name] in this.structs)) {
+              this.add_class(cls, cls[keywords.name]);
+          }
+          for (let f of st.fields) {
+              if (f.type.type===StructEnum.STRUCT||f.type.type===StructEnum.TSTRUCT) {
+                  let st2=srcSTRUCT.structs[f.type.data];
+                  let cls2=srcSTRUCT.struct_cls[st2.name];
+                  recStruct(st2, cls2);
+              }
+              else 
+                if (f.type.type===StructEnum.ARRAY) {
+                  recArray(f.type);
+              }
+              else 
+                if (f.type.type===StructEnum.ITER) {
+                  recArray(f.type);
+              }
+              else 
+                if (f.type.type===StructEnum.ITERKEYS) {
+                  recArray(f.type);
+              }
+              else 
+                if (f.type.type===StructEnum.STATIC_ARRAY) {
+                  recArray(f.type);
+              }
+          }
+        };
+        let st=srcSTRUCT.structs[cls[keywords.name]];
+        recStruct(st, cls);
+      }
        register(cls, structName) {
         return this.add_class(cls, structName);
       }
        unregister(cls) {
-        if (!cls||!cls.structName||!(cls.structName in this.struct_cls)) {
+        const keywords=this.constructor.keywords;
+        if (!cls||!cls[keywords.name]||!(cls[keywords.name] in this.struct_cls)) {
             console.warn("Class not registered with nstructjs", cls);
             return ;
         }
-        let st=this.structs[cls.structName];
-        delete this.structs[cls.structName];
-        delete this.struct_cls[cls.structName];
+        let st=this.structs[cls[keywords.name]];
+        delete this.structs[cls[keywords.name]];
+        delete this.struct_cls[cls[keywords.name]];
         delete this.struct_ids[st.id];
       }
        add_class(cls, structName) {
-        if (cls.STRUCT) {
+        if (cls===Object) {
+            return ;
+        }
+        const keywords=this.constructor.keywords;
+        if (cls[keywords.script]) {
             let bad=false;
             let p=cls;
             while (p) {
               p = p.__proto__;
-              if (p&&p.STRUCT&&p.STRUCT===cls.STRUCT) {
+              if (p&&p[keywords.script]&&p[keywords.script]===cls[keywords.script]) {
                   bad = true;
                   break;
               }
             }
             if (bad) {
-                console.warn("Generating STRUCT script for derived class "+unmangle(cls.name));
+                console.warn("Generating "+keywords.script+" script for derived class "+unmangle(cls.name));
                 if (!structName) {
                     structName = unmangle(cls.name);
                 }
-                cls.STRUCT = STRUCT.inherit(cls, p)+`\n}`;
+                cls[keywords.script] = STRUCT.inherit(cls, p)+"\n}";
             }
         }
-        if (!cls.STRUCT) {
-            throw new Error("class "+unmangle(cls.name)+" has no STRUCT script");
+        if (!cls[keywords.script]) {
+            throw new Error("class "+unmangle(cls.name)+" has no "+keywords.script+" script");
         }
-        let stt=struct_parse.parse(cls.STRUCT);
+        let stt=struct_parse.parse(cls[keywords.script]);
         stt.name = unmangle(stt.name);
-        cls.structName = stt.name;
-        if (cls.newSTRUCT===undefined) {
-            cls.newSTRUCT = function () {
+        cls[keywords.name] = stt.name;
+        if (cls[keywords.new]===undefined) {
+            cls[keywords.new] = function () {
               return new this();
             };
         }
         if (structName!==undefined) {
-            stt.name = cls.structName = structName;
+            stt.name = cls[keywords.name] = structName;
         }
         else 
-          if (cls.structName===undefined) {
-            cls.structName = stt.name;
+          if (cls[keywords.name]===undefined) {
+            cls[keywords.name] = stt.name;
         }
         else {
-          stt.name = cls.structName;
+          stt.name = cls[keywords.name];
         }
-        if (cls.structName in this.structs) {
-            console.warn("Struct "+unmangle(cls.structName)+" is already registered", cls);
+        if (cls[keywords.name] in this.structs) {
+            console.warn("Struct "+unmangle(cls[keywords.name])+" is already registered", cls);
             if (!this.allowOverriding) {
-                throw new Error("Struct "+unmangle(cls.structName)+" is already registered");
+                throw new Error("Struct "+unmangle(cls[keywords.name])+" is already registered");
             }
             return ;
         }
         if (stt.id===-1)
-          stt.id = this.idgen.gen_id();
-        this.structs[cls.structName] = stt;
-        this.struct_cls[cls.structName] = cls;
+          stt.id = this.idgen++;
+        this.structs[cls[keywords.name]] = stt;
+        this.struct_cls[cls[keywords.name]] = cls;
         this.struct_ids[stt.id] = stt;
       }
        isRegistered(cls) {
+        const keywords=this.constructor.keywords;
         if (!cls.hasOwnProperty("structName")) {
             return false;
         }
-        return cls===this.struct_cls[cls.structName];
+        return cls===this.struct_cls[cls[keywords.name]];
       }
        get_struct_id(id) {
         return this.struct_ids[id];
@@ -5482,107 +5954,6 @@ struct_util.IDGen {
         }
         return this.struct_cls[name];
       }
-      static  inherit(child, parent, structName=child.name) {
-        if (!parent.STRUCT) {
-            return structName+"{\n";
-        }
-        let stt=struct_parse.parse(parent.STRUCT);
-        let code=structName+"{\n";
-        code+=STRUCT.fmt_struct(stt, true);
-        return code;
-      }
-      static  Super(obj, reader) {
-        if (warninglvl$1>0)
-          console.warn("deprecated");
-        reader(obj);
-        function reader2(obj) {
-        }
-        let cls=obj.constructor;
-        let bad=cls===undefined||cls.prototype===undefined||cls.prototype.__proto__===undefined;
-        if (bad) {
-            return ;
-        }
-        let parent=cls.prototype.__proto__.constructor;
-        bad = bad||parent===undefined;
-        if (!bad&&parent.prototype.loadSTRUCT&&parent.prototype.loadSTRUCT!==obj.loadSTRUCT) {
-            parent.prototype.loadSTRUCT.call(obj, reader2);
-        }
-      }
-      static  chain_fromSTRUCT(cls, reader) {
-        if (warninglvl$1>0)
-          console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
-        let proto=cls.prototype;
-        let parent=cls.prototype.prototype.constructor;
-        let obj=parent.fromSTRUCT(reader);
-        let obj2=new cls();
-        let keys=Object.keys(obj).concat(Object.getOwnPropertySymbols(obj));
-        for (let i=0; i<keys.length; i++) {
-            let k=keys[i];
-            try {
-              obj2[k] = obj[k];
-            }
-            catch (error) {
-                if (warninglvl$1>0)
-                  console.warn("  failed to set property", k);
-            }
-        }
-        return obj2;
-      }
-      static  formatStruct(stt, internal_only, no_helper_js) {
-        return this.fmt_struct(stt, internal_only, no_helper_js);
-      }
-      static  fmt_struct(stt, internal_only, no_helper_js) {
-        if (internal_only===undefined)
-          internal_only = false;
-        if (no_helper_js===undefined)
-          no_helper_js = false;
-        let s="";
-        if (!internal_only) {
-            s+=stt.name;
-            if (stt.id!==-1)
-              s+=" id="+stt.id;
-            s+=" {\n";
-        }
-        let tab="  ";
-        function fmt_type(type) {
-          return StructFieldTypeMap$1[type.type].format(type);
-          if (type.type===StructEnum$2.T_ARRAY||type.type===StructEnum$2.T_ITER||type.type===StructEnum$2.T_ITERKEYS) {
-              if (type.data.iname!==""&&type.data.iname!==undefined) {
-                  return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
-              }
-              else {
-                return "array("+fmt_type(type.data.type)+")";
-              }
-          }
-          else 
-            if (type.type===StructEnum$2.T_STATIC_STRING) {
-              return "static_string["+type.data.maxlength+"]";
-          }
-          else 
-            if (type.type===StructEnum$2.T_STRUCT) {
-              return type.data;
-          }
-          else 
-            if (type.type===StructEnum$2.T_TSTRUCT) {
-              return "abstract("+type.data+")";
-          }
-          else {
-            return StructTypeMap$1[type.type];
-          }
-        }
-        let fields=stt.fields;
-        for (let i=0; i<fields.length; i++) {
-            let f=fields[i];
-            s+=tab+f.name+" : "+fmt_type(f.type);
-            if (!no_helper_js&&f.get!==undefined) {
-                s+=" | "+f.get.trim();
-            }
-            s+=";\n";
-        }
-        if (!internal_only)
-          s+="}";
-        return s;
-      }
        _env_call(code, obj, env) {
         let envcode=_static_envcode_null$1;
         if (env!==undefined) {
@@ -5600,12 +5971,12 @@ struct_util.IDGen {
         if (!(fullcode in this.compiled_code)) {
             let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
             try {
-              func = _structEval(code2);
+              func = struct_eval.structEval(code2);
             }
             catch (err) {
-                _export_print_stack_(err);
-                console.log(code2);
-                console.log(" ");
+                console.warn(err.stack);
+                console.warn(code2);
+                console.warn(" ");
                 throw err;
             }
             this.compiled_code[fullcode] = func;
@@ -5617,17 +5988,17 @@ struct_util.IDGen {
           return func.call(obj, obj, env);
         }
         catch (err) {
-            _export_print_stack_(err);
+            console.warn(err.stack);
             let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
-            console.log(code2);
-            console.log(" ");
+            console.warn(code2);
+            console.warn(" ");
             throw err;
         }
       }
        write_struct(data, obj, stt) {
         function use_helper_js(field) {
           let type=field.type.type;
-          let cls=StructFieldTypeMap$1[type];
+          let cls=StructFieldTypeMap[type];
           return cls.useHelperJS(field);
         }
         let fields=stt.fields;
@@ -5645,19 +6016,20 @@ struct_util.IDGen {
                 else {
                   val = f.name==="this" ? obj : obj[f.name];
                 }
-                if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
+                if (DEBUG.tinyeval) {
                     console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
                 }
-                do_pack$1(data, val, obj, thestruct, f, t1);
+                sintern2.do_pack(this, data, val, obj, f, t1);
             }
             else {
               let val=f.name==="this" ? obj : obj[f.name];
-              do_pack$1(data, val, obj, thestruct, f, t1);
+              sintern2.do_pack(this, data, val, obj, f, t1);
             }
         }
       }
        write_object(data, obj) {
-        let cls=obj.constructor.structName;
+        const keywords=this.constructor.keywords;
+        let cls=obj.constructor[keywords.name];
         let stt=this.get_struct(cls);
         if (data===undefined) {
             data = [];
@@ -5679,14 +6051,15 @@ struct_util.IDGen {
         return this.write_object(data, obj);
       }
        writeJSON(obj, stt=undefined) {
+        const keywords=this.constructor.keywords;
         let cls=obj.constructor;
-        stt = stt||this.get_struct(cls.structName);
+        stt = stt||this.get_struct(cls[keywords.name]);
         function use_helper_js(field) {
           let type=field.type.type;
-          let cls=StructFieldTypeMap$1[type];
+          let cls=StructFieldTypeMap[type];
           return cls.useHelperJS(field);
         }
-        let toJSON$1=toJSON;
+        let toJSON=sintern2.toJSON;
         let fields=stt.fields;
         let thestruct=this;
         let json={};
@@ -5702,22 +6075,22 @@ struct_util.IDGen {
                 else {
                   val = f.name==="this" ? obj : obj[f.name];
                 }
-                if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
+                if (DEBUG.tinyeval) {
                     console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
                 }
-                json2 = toJSON$1(this, val, obj, f, t1);
+                json2 = toJSON(this, val, obj, f, t1);
             }
             else {
               val = f.name==="this" ? obj : obj[f.name];
-              json2 = toJSON$1(this, val, obj, f, t1);
+              json2 = toJSON(this, val, obj, f, t1);
             }
             if (f.name!=='this') {
                 json[f.name] = json2;
             }
             else {
               let isArray=Array.isArray(json2);
-              isArray = isArray||f.type.type===StructTypes$1.T_ARRAY;
-              isArray = isArray||f.type.type===StructTypes$1.T_STATIC_ARRAY;
+              isArray = isArray||f.type.type===StructTypes.ARRAY;
+              isArray = isArray||f.type.type===StructTypes.STATIC_ARRAY;
               if (isArray) {
                   json.length = json2.length;
                   for (let i=0; i<json2.length; i++) {
@@ -5732,6 +6105,7 @@ struct_util.IDGen {
         return json;
       }
        read_object(data, cls_or_struct_id, uctx, objInstance) {
+        const keywords=this.constructor.keywords;
         let cls, stt;
         if (__instance_of(data, Array)) {
             data = new DataView(new Uint8Array(data).buffer);
@@ -5745,18 +6119,18 @@ struct_util.IDGen {
         if (cls===undefined) {
             throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
         }
-        stt = this.structs[cls.structName];
+        stt = this.structs[cls[keywords.name]];
         if (uctx===undefined) {
-            uctx = new _module_exports_.unpack_context();
-            packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+            uctx = new unpack_context();
+            packer_debug$1("\n\n=Begin reading "+cls[keywords.name]+"=");
         }
         let thestruct=this;
         let this2=this;
         function unpack_field(type) {
-          return StructFieldTypeMap$1[type.type].unpack(this2, data, type, uctx);
+          return StructFieldTypeMap[type.type].unpack(this2, data, type, uctx);
         }
         function unpack_into(type, dest) {
-          return StructFieldTypeMap$1[type.type].unpackInto(this2, data, type, uctx, dest);
+          return StructFieldTypeMap[type.type].unpackInto(this2, data, type, uctx, dest);
         }
         let was_run=false;
         function makeLoader(stt) {
@@ -5779,28 +6153,32 @@ struct_util.IDGen {
           }
         }
         let load=makeLoader(stt);
-        if (cls.prototype.loadSTRUCT!==undefined) {
+        if (cls.prototype[keywords.load]!==undefined) {
             let obj=objInstance;
-            if (!obj&&cls.newSTRUCT!==undefined) {
-                obj = cls.newSTRUCT(load);
+            if (!obj&&cls[keywords.new]!==undefined) {
+                obj = cls[keywords.new](load);
             }
             else 
               if (!obj) {
                 obj = new cls();
             }
-            obj.loadSTRUCT(load);
+            obj[keywords.load](load);
+            if (!was_run) {
+                console.warn(""+cls[keywords.name]+".prototype[keywords.load]() did not execute its loader callback!");
+                load(obj);
+            }
             return obj;
         }
         else 
-          if (cls.fromSTRUCT!==undefined) {
+          if (cls[keywords.from]!==undefined) {
             if (warninglvl$1>1)
               console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
-            return cls.fromSTRUCT(load);
+            return cls[keywords.from](load);
         }
         else {
           let obj=objInstance;
-          if (!obj&&cls.newSTRUCT!==undefined) {
-              obj = cls.newSTRUCT(load);
+          if (!obj&&cls[keywords.new]!==undefined) {
+              obj = cls[keywords.new](load);
           }
           else 
             if (!obj) {
@@ -5810,13 +6188,43 @@ struct_util.IDGen {
           return obj;
         }
       }
-       readJSON(json, cls_or_struct_id, objInstance=undefined) {
+       validateJSON(json, cls_or_struct_id, useInternalParser=true, useColors=true, consoleLogger=function () {
+        console.log(...arguments);
+      }, _abstractKey="_structName") {
+        if (cls_or_struct_id===undefined) {
+            throw new Error(this.constructor.name+".prototype.validateJSON: Expected at least two arguments");
+        }
+        try {
+          json = JSON.stringify(json, undefined, 2);
+          this.jsonBuf = json;
+          this.jsonUseColors = useColors;
+          this.jsonLogger = consoleLogger;
+          jsonParser.logger = this.jsonLogger;
+          if (useInternalParser) {
+              json = jsonParser.parse(json);
+          }
+          else {
+            json = JSON.parse(json);
+          }
+          this.validateJSONIntern(json, cls_or_struct_id, _abstractKey);
+        }
+        catch (error) {
+            if (!(__instance_of(error, JSONError))) {
+                console.error(error.stack);
+            }
+            this.jsonLogger(error.message);
+            return false;
+        }
+        return true;
+      }
+       validateJSONIntern(json, cls_or_struct_id, _abstractKey="_structName") {
+        const keywords=this.constructor.keywords;
         let cls, stt;
         if (typeof cls_or_struct_id==="number") {
             cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
         }
         else 
-          if (__instance_of(cls_or_struct_id, NStruct$1)) {
+          if (__instance_of(cls_or_struct_id, NStruct)) {
             cls = this.get_struct_cls(cls_or_struct_id.name);
         }
         else {
@@ -5825,12 +6233,86 @@ struct_util.IDGen {
         if (cls===undefined) {
             throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
         }
-        stt = this.structs[cls.structName];
-        packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+        stt = this.structs[cls[keywords.name]];
+        let fields=stt.fields;
+        let flen=fields.length;
+        let keys=new Set();
+        keys.add(_abstractKey);
+        let keyTestJson=json;
+        for (let i=0; i<flen; i++) {
+            let f=fields[i];
+            let val;
+            let tokinfo;
+            if (f.name==='this') {
+                val = json;
+                keyTestJson = {"this": json};
+                keys.add("this");
+                tokinfo = json[TokSymbol];
+            }
+            else {
+              val = json[f.name];
+              keys.add(f.name);
+              tokinfo = json[TokSymbol] ? json[TokSymbol].fields[f.name] : undefined;
+              if (!tokinfo) {
+                  let f2=fields[Math.max(i-1, 0)];
+                  tokinfo = TokSymbol[TokSymbol] ? json[TokSymbol].fields[f2.name] : undefined;
+              }
+              if (!tokinfo) {
+                  tokinfo = json[TokSymbol];
+              }
+            }
+            if (val===undefined) {
+            }
+            let instance=f.name==='this' ? val : json;
+            let ret=sintern2.validateJSON(this, val, json, f, f.type, instance, _abstractKey);
+            if (!ret||typeof ret==="string") {
+                let msg=typeof ret==="string" ? ": "+ret : "";
+                if (tokinfo) {
+                    this.jsonLogger(printContext(this.jsonBuf, tokinfo, this.jsonUseColors));
+                }
+                if (val===undefined) {
+                    throw new JSONError("Missing json field "+f.name+msg);
+                }
+                else {
+                  throw new JSONError("Invalid json field "+f.name+msg);
+                }
+                return false;
+            }
+        }
+        for (let k in keyTestJson) {
+            if (typeof json[k]==="symbol") {
+                continue;
+            }
+            if (!keys.has(k)) {
+                this.jsonLogger(cls[keywords.script]);
+                throw new JSONError("Unknown json field "+k);
+                return false;
+            }
+        }
+        return true;
+      }
+       readJSON(json, cls_or_struct_id, objInstance=undefined) {
+        const keywords=this.constructor.keywords;
+        let cls, stt;
+        if (typeof cls_or_struct_id==="number") {
+            cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+        }
+        else 
+          if (__instance_of(cls_or_struct_id, NStruct)) {
+            cls = this.get_struct_cls(cls_or_struct_id.name);
+        }
+        else {
+          cls = cls_or_struct_id;
+        }
+        if (cls===undefined) {
+            throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+        }
+        stt = this.structs[cls[keywords.name]];
+        packer_debug$1("\n\n=Begin reading "+cls[keywords.name]+"=");
         let thestruct=this;
         let this2=this;
         let was_run=false;
-        let fromJSON$1=fromJSON;
+        let fromJSON=sintern2.fromJSON;
         function makeLoader(stt) {
           return function load(obj) {
             if (was_run) {
@@ -5853,7 +6335,7 @@ struct_util.IDGen {
                     continue;
                 }
                 let instance=f.name==='this' ? obj : objInstance;
-                let ret=fromJSON$1(this2, val, obj, f, f.type, instance);
+                let ret=fromJSON(this2, val, obj, f, f.type, instance);
                 if (f.name!=='this') {
                     obj[f.name] = ret;
                 }
@@ -5861,28 +6343,28 @@ struct_util.IDGen {
           }
         }
         let load=makeLoader(stt);
-        if (cls.prototype.loadSTRUCT!==undefined) {
+        if (cls.prototype[keywords.load]!==undefined) {
             let obj=objInstance;
-            if (!obj&&cls.newSTRUCT!==undefined) {
-                obj = cls.newSTRUCT(load);
+            if (!obj&&cls[keywords.new]!==undefined) {
+                obj = cls[keywords.new](load);
             }
             else 
               if (!obj) {
                 obj = new cls();
             }
-            obj.loadSTRUCT(load);
+            obj[keywords.load](load);
             return obj;
         }
         else 
-          if (cls.fromSTRUCT!==undefined) {
+          if (cls[keywords.from]!==undefined) {
             if (warninglvl$1>1)
               console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
-            return cls.fromSTRUCT(load);
+            return cls[keywords.from](load);
         }
         else {
           let obj=objInstance;
-          if (!obj&&cls.newSTRUCT!==undefined) {
-              obj = cls.newSTRUCT(load);
+          if (!obj&&cls[keywords.new]!==undefined) {
+              obj = cls[keywords.new](load);
           }
           else 
             if (!obj) {
@@ -5893,26 +6375,73 @@ struct_util.IDGen {
         }
       }
     }
-    _ESClass.register(_module_exports_$1.STRUCT);
-    let manager=_module_exports_$1.manager = new STRUCT();
-    let write_scripts=_module_exports_$1.write_scripts = function write_scripts(manager, include_code) {
+    _ESClass.register(STRUCT);
+    _es6_module.add_class(STRUCT);
+    
+    if (haveCodeGen) {
+        var StructClass;
+        eval(code);
+        STRUCT = StructClass;
+    }
+    STRUCT.setClassKeyword("STRUCT");
+    function deriveStructManager(keywords) {
+      if (keywords===undefined) {
+          keywords = {script: "STRUCT", 
+       name: undefined, 
+       load: undefined, 
+       new: undefined, 
+       from: undefined};
+      }
+      if (!keywords.name) {
+          keywords.name = keywords.script.toLowerCase()+"Name";
+      }
+      if (!keywords.load) {
+          keywords.load = "load"+keywords.script;
+      }
+      if (!keywords.new) {
+          keywords.new = "new"+keywords.script;
+      }
+      if (!keywords.from) {
+          keywords.from = "from"+keywords.script;
+      }
+      if (!haveCodeGen) {
+          class NewSTRUCT extends STRUCT {
+          }
+          _ESClass.register(NewSTRUCT);
+          _es6_module.add_class(NewSTRUCT);
+          NewSTRUCT.keywords = keywords;
+          return NewSTRUCT;
+      }
+      else {
+        var StructClass;
+        let code2=code;
+        code2 = code2.replace(/\[keywords.script\]/g, keywords.script);
+        eval(code2);
+        return StructClass;
+      }
+    }
+    exports.manager = new STRUCT();
+    function write_scripts(nManager, include_code) {
+      if (nManager===undefined) {
+          nManager = exports.manager;
+      }
       if (include_code===undefined) {
           include_code = false;
       }
-      if (manager===undefined)
-        manager = _module_exports_$1.manager;
       let buf="";
-      manager.forEach(function (stt) {
-        buf+=STRUCT.fmt_struct(stt, false, !include_code)+"\n";
+      let nl=String.fromCharCode(10);
+      let tab=String.fromCharCode(9);
+      nManager.forEach(function (stt) {
+        buf+=STRUCT.fmt_struct(stt, false, !include_code)+nl;
       });
       let buf2=buf;
       buf = "";
       for (let i=0; i<buf2.length; i++) {
           let c=buf2[i];
-          if (c==="\n") {
-              buf+="\n";
+          if (c===nl) {
+              buf+=nl;
               let i2=i;
-              while (i<buf2.length&&(buf2[i]===" "||buf2[i]==="\t"||buf2[i]==="\n")) {
+              while (i<buf2.length&&(buf2[i]===" "||buf2[i]===tab||buf2[i]===nl)) {
                 i++;
               }
               if (i!==i2)
@@ -5925,22 +6454,27 @@ struct_util.IDGen {
       return buf;
     }
     "use strict";
+    let nbtoa, natob;
     if (typeof btoa==="undefined") {
-        _nGlobal.btoa = function btoa(str) {
+        nbtoa = function btoa(str) {
           let buffer=new Buffer(""+str, 'binary');
           return buffer.toString('base64');
         };
-        _nGlobal.atob = function atob(str) {
+        natob = function atob(str) {
           return new Buffer(str, 'base64').toString('binary');
         };
     }
-    const _export_versionToInt_=function (v) {
-      v = _export_versionCoerce_(v);
+    else {
+      natob = atob;
+      nbtoa = btoa;
+    }
+    function versionToInt(v) {
+      v = versionCoerce(v);
       let mul=64;
       return ~~(v.major*mul*mul*mul+v.minor*mul*mul+v.micro*mul);
     }
     let ver_pat=/[0-9]+\.[0-9]+\.[0-9]+$/;
-    const _export_versionCoerce_=function (v) {
+    function versionCoerce(v) {
       if (!v) {
           throw new Error("empty version: "+v);
       }
@@ -5973,11 +6507,10 @@ struct_util.IDGen {
         throw new Error("invalid version "+v);
       }
     }
-    const _export_versionLessThan_=function (a, b) {
-      return _export_versionToInt_(a)<_export_versionToInt_(b);
+    function versionLessThan(a, b) {
+      return versionToInt(a)<versionToInt(b);
     }
-    let versionLessThan=_export_versionLessThan_;
-    let FileParams=class FileParams  {
+    class FileParams  {
        constructor() {
         this.magic = "STRT";
         this.ext = ".bin";
@@ -5988,17 +6521,20 @@ struct_util.IDGen {
       }
     }
     _ESClass.register(FileParams);
-    let Block=class Block  {
+    _es6_module.add_class(FileParams);
+    class Block  {
        constructor(type_magic, data) {
         this.type = type_magic;
         this.data = data;
       }
     }
     _ESClass.register(Block);
-    let FileError=class FileeError extends Error {
+    _es6_module.add_class(Block);
+    class FileeError extends Error {
     }
-    _ESClass.register(FileError);
-    let FileHelper=class FileHelper  {
+    _ESClass.register(FileeError);
+    _es6_module.add_class(FileeError);
+    class FileHelper  {
        constructor(params) {
         if (params===undefined) {
             params = new FileParams();
@@ -6018,31 +6554,31 @@ struct_util.IDGen {
         this.unpack_ctx = undefined;
       }
        read(dataview) {
-        this.unpack_ctx = new _module_exports_.unpack_context();
-        let magic=_module_exports_.unpack_static_string(dataview, this.unpack_ctx, 4);
+        this.unpack_ctx = new unpack_context();
+        let magic=unpack_static_string(dataview, this.unpack_ctx, 4);
         if (magic!==this.magic) {
             throw new FileError("corrupted file");
         }
         this.version = {};
-        this.version.major = _module_exports_.unpack_short(dataview, this.unpack_ctx);
-        this.version.minor = _module_exports_.unpack_byte(dataview, this.unpack_ctx);
-        this.version.micro = _module_exports_.unpack_byte(dataview, this.unpack_ctx);
-        let struct=this.struct = new _module_exports_$1.STRUCT();
-        let scripts=_module_exports_.unpack_string(dataview, this.unpack_ctx);
-        this.struct.parse_structs(scripts, _module_exports_$1.manager);
+        this.version.major = unpack_short(dataview, this.unpack_ctx);
+        this.version.minor = unpack_byte(dataview, this.unpack_ctx);
+        this.version.micro = unpack_byte(dataview, this.unpack_ctx);
+        let struct=this.struct = new STRUCT();
+        let scripts=unpack_string(dataview, this.unpack_ctx);
+        this.struct.parse_structs(scripts, exports.manager);
         let blocks=[];
         let dviewlen=dataview.buffer.byteLength;
         while (this.unpack_ctx.i<dviewlen) {
-          let type=_module_exports_.unpack_static_string(dataview, this.unpack_ctx, 4);
-          let datalen=_module_exports_.unpack_int(dataview, this.unpack_ctx);
-          let bstruct=_module_exports_.unpack_int(dataview, this.unpack_ctx);
+          let type=unpack_static_string(dataview, this.unpack_ctx, 4);
+          let datalen=unpack_int(dataview, this.unpack_ctx);
+          let bstruct=unpack_int(dataview, this.unpack_ctx);
           let bdata;
-          if (bstruct==-2) {
-              bdata = _module_exports_.unpack_static_string(dataview, this.unpack_ctx, datalen);
+          if (bstruct===-2) {
+              bdata = unpack_static_string(dataview, this.unpack_ctx, datalen);
           }
           else {
-            bdata = _module_exports_.unpack_bytes(dataview, this.unpack_ctx, datalen);
-            bdata = struct.read_object(bdata, bstruct, new _module_exports_.unpack_context());
+            bdata = unpack_bytes(dataview, this.unpack_ctx, datalen);
+            bdata = struct.read_object(bdata, bstruct, new unpack_context());
           }
           let block=new Block();
           block.type = type;
@@ -6058,22 +6594,22 @@ struct_util.IDGen {
         }
       }
        write(blocks) {
-        this.struct = _module_exports_$1.manager;
+        this.struct = exports.manager;
         this.blocks = blocks;
         let data=[];
-        _module_exports_.pack_static_string(data, this.magic, 4);
-        _module_exports_.pack_short(data, this.version.major);
-        _module_exports_.pack_byte(data, this.version.minor&255);
-        _module_exports_.pack_byte(data, this.version.micro&255);
-        let scripts=_module_exports_$1.write_scripts();
-        _module_exports_.pack_string(data, scripts);
+        pack_static_string(data, this.magic, 4);
+        pack_short(data, this.version.major);
+        pack_byte(data, this.version.minor&255);
+        pack_byte(data, this.version.micro&255);
+        let scripts=write_scripts();
+        pack_string(data, scripts);
         let struct=this.struct;
         for (let block of blocks) {
             if (typeof block.data==="string") {
-                _module_exports_.pack_static_string(data, block.type, 4);
-                _module_exports_.pack_int(data, block.data.length);
-                _module_exports_.pack_int(data, -2);
-                _module_exports_.pack_static_string(data, block.data, block.data.length);
+                pack_static_string(data, block.type, 4);
+                pack_int(data, block.data.length);
+                pack_int(data, -2);
+                pack_static_string(data, block.data, block.data.length);
                 continue;
             }
             let structName=block.data.constructor.structName;
@@ -6083,10 +6619,10 @@ struct_util.IDGen {
             let data2=[];
             let stt=struct.structs[structName];
             struct.write_object(data2, block.data);
-            _module_exports_.pack_static_string(data, block.type, 4);
-            _module_exports_.pack_int(data, data2.length);
-            _module_exports_.pack_int(data, stt.id);
-            _module_exports_.pack_bytes(data, data2);
+            pack_static_string(data, block.type, 4);
+            pack_int(data, data2.length);
+            pack_int(data, stt.id);
+            pack_bytes(data, data2);
         }
         return new DataView(new Uint8Array(data).buffer);
       }
@@ -6097,13 +6633,13 @@ struct_util.IDGen {
         for (let i=0; i<bytes.length; i++) {
             str+=String.fromCharCode(bytes[i]);
         }
-        return btoa(str);
+        return nbtoa(str);
       }
        makeBlock(type, data) {
         return new Block(type, data);
       }
        readBase64(base64) {
-        let data=atob(base64);
+        let data=natob(base64);
         let data2=new Uint8Array(data.length);
         for (let i=0; i<data.length; i++) {
             data2[i] = data.charCodeAt(i);
@@ -6112,95 +6648,107 @@ struct_util.IDGen {
       }
     }
     _ESClass.register(FileHelper);
+    _es6_module.add_class(FileHelper);
     var struct_filehelper=Object.freeze({__proto__: null, 
-    versionToInt: _export_versionToInt_, 
-    versionCoerce: _export_versionCoerce_, 
-    versionLessThan: _export_versionLessThan_, 
+    versionToInt: versionToInt, 
+    versionCoerce: versionCoerce, 
+    versionLessThan: versionLessThan, 
     FileParams: FileParams, 
     Block: Block, 
-    FileError: FileError, 
+    FileeError: FileeError, 
     FileHelper: FileHelper});
-    var struct_typesystem=Object.freeze({__proto__: null});
-    if (typeof window!=="undefined") {
-        window._nGlobal = window;
-    }
-    else 
-      if (typeof self!=="undefined") {
-        self._nGlobal = self;
-    }
-    else {
-      global._nGlobal = global;
-    }
-    _nGlobal._structEval = eval;
-    const _module_exports_$2={}
-    _module_exports_$2.unpack_context = _module_exports_.unpack_context;
-    Object.defineProperty(_module_exports_$2, "STRUCT_ENDIAN", {get: function () {
-        return _module_exports_.STRUCT_ENDIAN;
-      }, 
-    set: function (val) {
-        _module_exports_.STRUCT_ENDIAN = val;
-      }});
-    for (let k in _module_exports_$1) {
-        _module_exports_$2[k] = _module_exports_$1[k];
-    }
-    var StructTypeMap$2=StructTypeMap;
-    var StructTypes$2=StructTypes;
-    var Class=undefined;
-    for (var k in _module_exports_$1) {
-        _module_exports_$2[k] = _module_exports_$1[k];
-    }
-    _module_exports_$2.truncateDollarSign = function (value) {
+    function truncateDollarSign$1(value) {
       if (value===undefined) {
           value = true;
       }
-      _module_exports_$1.truncateDollarSign = !!value;
+      setTruncateDollarSign(value);
     }
-    _module_exports_$2.validateStructs = function validateStructs(onerror) {
-      return _module_exports_$2.manager.validateStructs(onerror);
+    function validateStructs(onerror) {
+      return exports.manager.validateStructs(onerror);
     }
-    _module_exports_$2.setAllowOverriding = function setAllowOverriding(t) {
-      return _module_exports_$2.manager.allowOverriding = !!t;
+    function setEndian(mode) {
+      let ret=STRUCT_ENDIAN;
+      setBinaryEndian(mode);
+      return ret;
     }
-    _module_exports_$2.isRegistered = function isRegistered(cls) {
-      return _module_exports_$2.manager.isRegistered(cls);
+    function consoleLogger() {
+      console.log(...arguments);
     }
-    _module_exports_$2.register = function register(cls, structName) {
-      return _module_exports_$2.manager.register(cls, structName);
+    function validateJSON$1(json, cls, useInternalParser, printColors, logger) {
+      if (printColors===undefined) {
+          printColors = true;
+      }
+      if (logger===undefined) {
+          logger = consoleLogger;
+      }
+      return exports.manager.validateJSON(json, cls, useInternalParser, printColors, logger);
     }
-    _module_exports_$2.unregister = function unregister(cls) {
-      _module_exports_$2.manager.unregister(cls);
+    function getEndian() {
+      return STRUCT_ENDIAN;
     }
-    _module_exports_$2.inherit = function (child, parent, structName) {
+    function setAllowOverriding(t) {
+      return exports.manager.allowOverriding = !!t;
+    }
+    function isRegistered(cls) {
+      return exports.manager.isRegistered(cls);
+    }
+    function register(cls, structName) {
+      return exports.manager.register(cls, structName);
+    }
+    function unregister(cls) {
+      exports.manager.unregister(cls);
+    }
+    function inherit(child, parent, structName) {
       if (structName===undefined) {
           structName = child.name;
       }
-      return _module_exports_$2.STRUCT.inherit(...arguments);
+      return STRUCT.inherit(...arguments);
     }
-    _module_exports_$2.readObject = function (data, cls, __uctx) {
+    function readObject(data, cls, __uctx) {
       if (__uctx===undefined) {
           __uctx = undefined;
       }
-      return _module_exports_$2.manager.readObject(data, cls, __uctx);
+      return exports.manager.readObject(data, cls, __uctx);
     }
-    _module_exports_$2.writeObject = function (data, obj) {
-      return _module_exports_$2.manager.writeObject(data, obj);
+    function writeObject(data, obj) {
+      return exports.manager.writeObject(data, obj);
     }
-    _module_exports_$2.writeJSON = function (obj) {
-      return _module_exports_$2.manager.writeJSON(obj);
+    function writeJSON(obj) {
+      return exports.manager.writeJSON(obj);
     }
-    _module_exports_$2.readJSON = function (json, class_or_struct_id) {
-      return _module_exports_$2.manager.readJSON(json, class_or_struct_id);
+    function readJSON(json, class_or_struct_id) {
+      return exports.manager.readJSON(json, class_or_struct_id);
     }
-    _module_exports_$2.setDebugMode = _module_exports_$1.setDebugMode;
-    _module_exports_$2.setWarningMode = _module_exports_$1.setWarningMode;
-    _module_exports_$2.useTinyEval = () =>      {    }
-    _module_exports_$2.binpack = _module_exports_;
-    _module_exports_$2.util = struct_util;
-    _module_exports_$2.typesystem = struct_typesystem;
-    _module_exports_$2.parseutil = struct_parseutil;
-    _module_exports_$2.parser = struct_parser;
-    _module_exports_$2.filehelper = struct_filehelper;
-    module.exports = _module_exports_$2;
+    exports.useTinyEval = () =>      {    }
+    exports.JSONError = JSONError;
+    exports.STRUCT = STRUCT;
+    exports._truncateDollarSign = _truncateDollarSign;
+    exports.binpack = struct_binpack;
+    exports.consoleLogger = consoleLogger;
+    exports.deriveStructManager = deriveStructManager;
+    exports.filehelper = struct_filehelper;
+    exports.getEndian = getEndian;
+    exports.inherit = inherit;
+    exports.isRegistered = isRegistered;
+    exports.parser = struct_parser;
+    exports.parseutil = struct_parseutil;
+    exports.readJSON = readJSON;
+    exports.readObject = readObject;
+    exports.register = register;
+    exports.setAllowOverriding = setAllowOverriding;
+    exports.setDebugMode = setDebugMode;
+    exports.setEndian = setEndian;
+    exports.setTruncateDollarSign = setTruncateDollarSign;
+    exports.setWarningMode = setWarningMode;
+    exports.truncateDollarSign = truncateDollarSign$1;
+    exports.typesystem = struct_typesystem;
+    exports.unpack_context = unpack_context;
+    exports.unregister = unregister;
+    exports.validateJSON = validateJSON$1;
+    exports.validateStructs = validateStructs;
+    exports.writeJSON = writeJSON;
+    exports.writeObject = writeObject;
+    exports.write_scripts = write_scripts;
     let glob=!((typeof window==="undefined"&&typeof self==="undefined")&&typeof global!=="undefined");
     glob = glob||(typeof global!=="undefined"&&typeof global.require==="undefined");
     if (glob) {
@@ -6214,6 +6762,3693 @@ struct_util.IDGen {
       module.exports = exports = nexports;
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/nstructjs.js');
+
+
+es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_module) {
+  let colormap={"black": 30, 
+   "red": 31, 
+   "green": 32, 
+   "yellow": 33, 
+   "blue": 34, 
+   "magenta": 35, 
+   "cyan": 36, 
+   "white": 37, 
+   "reset": 0, 
+   "grey": 2, 
+   "orange": 202, 
+   "pink": 198, 
+   "brown": 314, 
+   "lightred": 91, 
+   "peach": 210}
+  let termColorMap={}
+  for (let k in colormap) {
+      termColorMap[k] = colormap[k];
+      termColorMap[colormap[k]] = k;
+  }
+  function termColor(s, c) {
+    if (typeof s==="symbol") {
+        s = s.toString();
+    }
+    else {
+      s = ""+s;
+    }
+    if (c in colormap)
+      c = colormap[c];
+    if (c>107) {
+        let s2='\u001b[38;5;'+c+"m";
+        return s2+s+'\u001b[0m';
+    }
+    return '\u001b['+c+'m'+s+'\u001b[0m';
+  }
+  function termPrint() {
+    let s='';
+    for (let i=0; i<arguments.length; i++) {
+        if (i>0) {
+            s+=' ';
+        }
+        s+=arguments[i];
+    }
+    let re1a=/\u001b\[[1-9][0-9]?m/;
+    let re1b=/\u001b\[[1-9][0-9];[0-9][0-9]?;[0-9]+m/;
+    let re2=/\u001b\[0m/;
+    let endtag='\u001b[0m';
+    function tok(s, type) {
+      return {type: type, 
+     value: s}
+    }
+    let tokdef=[[re1a, "start"], [re1b, "start"], [re2, "end"]];
+    let s2=s;
+    let i=0;
+    let tokens=[];
+    while (s2.length>0) {
+      let ok=false;
+      let mintk=undefined, mini=undefined;
+      let minslice=undefined, mintype=undefined;
+      for (let tk of tokdef) {
+          let i=s2.search(tk[0]);
+          if (i>=0&&(mini===undefined||i<mini)) {
+              minslice = s2.slice(i, s2.length).match(tk[0])[0];
+              mini = i;
+              mintype = tk[1];
+              mintk = tk;
+              ok = true;
+          }
+      }
+      if (!ok) {
+          break;
+      }
+      if (mini>0) {
+          let chunk=s2.slice(0, mini);
+          tokens.push(tok(chunk, "chunk"));
+      }
+      s2 = s2.slice(mini+minslice.length, s2.length);
+      let t=tok(minslice, mintype);
+      tokens.push(t);
+    }
+    if (s2.length>0) {
+        tokens.push(tok(s2, "chunk"));
+    }
+    let stack=[];
+    let cur;
+    let out='';
+    for (let t of tokens) {
+        if (t.type==="chunk") {
+            out+=t.value;
+        }
+        else 
+          if (t.type==="start") {
+            stack.push(cur);
+            cur = t.value;
+            out+=t.value;
+        }
+        else 
+          if (t.type==="end") {
+            cur = stack.pop();
+            if (cur) {
+                out+=cur;
+            }
+            else {
+              out+=endtag;
+            }
+        }
+    }
+    return out;
+  }
+  "use strict";
+  function print_lines(ld, lineno, col, printColors, token) {
+    let buf='';
+    let lines=ld.split("\n");
+    let istart=Math.max(lineno-5, 0);
+    let iend=Math.min(lineno+3, lines.length);
+    let color=printColors ? (c) =>      {
+      return c;
+    } : termColor;
+    for (let i=istart; i<iend; i++) {
+        let l=""+(i+1);
+        while (l.length<3) {
+          l = " "+l;
+        }
+        l+=`: ${lines[i]}\n`;
+        if (i===lineno&&token&&token.value.length===1) {
+            l = l.slice(0, col+5)+color(l[col+5], "yellow")+l.slice(col+6, l.length);
+        }
+        buf+=l;
+        if (i===lineno) {
+            let colstr='     ';
+            for (let i=0; i<col; i++) {
+                colstr+=' ';
+            }
+            colstr+=color("^", "red");
+            buf+=colstr+"\n";
+        }
+    }
+    buf = "------------------\n"+buf+"\n==================\n";
+    return buf;
+  }
+  class token  {
+     constructor(type, val, lexpos, lineno, lexer, parser, col) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lineno = lineno;
+      this.col = col;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     toString() {
+      if (this.value!==undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  class tokdef  {
+     constructor(name, regexpr, func, example) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+      this.example = example;
+      if (example===undefined&&regexpr) {
+          let s=""+regexpr;
+          if (s.startsWith("/")&&s.endsWith("/")) {
+              s = s.slice(1, s.length-1);
+          }
+          if (s.startsWith("\\")) {
+              s = s.slice(1, s.length);
+          }
+          s = s.trim();
+          if (s.length===1) {
+              this.example = s;
+          }
+      }
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  class PUTIL_ParseError extends Error {
+     constructor(msg) {
+      super();
+    }
+  }
+  _ESClass.register(PUTIL_ParseError);
+  _es6_module.add_class(PUTIL_ParseError);
+  class lexer  {
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new Array();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.colmap = undefined;
+      this.lineno = 0;
+      this.printTokens = false;
+      this.linestart = 0;
+      this.errfunc = errfunc;
+      this.linemap = undefined;
+      this.tokints = {};
+      for (let i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+      this.logger = function () {
+        console.log(...arguments);
+      };
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc===undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      let item=this.statestack[this.statestack.length-1];
+      let state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      let linemap=this.linemap = new Array(str.length);
+      let lineno=0;
+      let col=0;
+      let colmap=this.colmap = new Array(str.length);
+      for (let i=0; i<str.length; i++, col++) {
+          let c=str[i];
+          linemap[i] = lineno;
+          colmap[i] = col;
+          if (c==="\n") {
+              lineno++;
+              col = 0;
+          }
+      }
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new Array();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!==undefined&&!this.errfunc(this))
+        return ;
+      let safepos=Math.min(this.lexpos, this.lexdata.length-1);
+      let line=this.linemap[safepos];
+      let col=this.colmap[safepos];
+      let s=print_lines(this.lexdata, line, col, true);
+      this.logger("  "+s);
+      this.logger("Syntax error near line "+(this.lineno+1));
+      let next=Math.min(this.lexpos+8, this.lexdata.length);
+      throw new PUTIL_ParseError("Parse error");
+    }
+     peek() {
+      let tok=this.next(true);
+      if (tok===undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peeknext() {
+      if (this.peeked_tokens.length>0) {
+          return this.peeked_tokens[0];
+      }
+      return this.peek();
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length===0;
+    }
+     next(ignore_peek) {
+      if (!ignore_peek&&this.peeked_tokens.length>0) {
+          let tok=this.peeked_tokens[0];
+          this.peeked_tokens.shift();
+          if (!ignore_peek&&this.printTokens) {
+              this.logger(""+tok);
+          }
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      let ts=this.tokdef;
+      let tlen=ts.length;
+      let lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      let results=[];
+      for (var i=0; i<tlen; i++) {
+          let t=ts[i];
+          if (t.re===undefined)
+            continue;
+          let res=t.re.exec(lexdata);
+          if (res!==null&&res!==undefined&&res.index===0) {
+              results.push([t, res]);
+          }
+      }
+      let max_res=0;
+      let theres=undefined;
+      for (var i=0; i<results.length; i++) {
+          let res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres===undefined) {
+          this.error();
+          return ;
+      }
+      let def=theres[0];
+      let col=this.colmap[Math.min(this.lexpos, this.lexdata.length-1)];
+      if (this.lexpos<this.lexdata.length) {
+          this.lineno = this.linemap[this.lexpos];
+      }
+      let tok=new token(def.name, theres[1][0], this.lexpos, this.lineno, this, undefined, col);
+      this.lexpos+=tok.value.length;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok===undefined) {
+              return this.next();
+          }
+      }
+      if (!ignore_peek&&this.printTokens) {
+          this.logger(""+tok);
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+      this.logger = function () {
+        console.log(...arguments);
+      };
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed===undefined)
+        err_on_unconsumed = true;
+      if (data!==undefined)
+        this.lexer.input(data);
+      let ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
+          this.error(undefined, "parser did not consume entire input");
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(token, msg) {
+      let estr;
+      if (msg===undefined)
+        msg = "";
+      if (token===undefined)
+        estr = "Parse error at end of input: "+msg;
+      else 
+        estr = `Parse error at line ${token.lineno + 1}:${token.col+1}: ${msg}`;
+      let buf="";
+      let ld=this.lexer.lexdata;
+      let lineno=token ? token.lineno : this.lexer.linemap[this.lexer.linemap.length-1];
+      let col=token ? token.col : 0;
+      ld = ld.replace(/\r/g, '');
+      this.logger(print_lines(ld, lineno, col, true, token));
+      this.logger(estr);
+      if (this.errfunc&&!this.errfunc(token)) {
+          return ;
+      }
+      throw new PUTIL_ParseError(estr);
+    }
+     peek() {
+      let tok=this.lexer.peek();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      let tok=this.lexer.peeknext();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     next() {
+      let tok=this.lexer.next();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      let tok=this.peek();
+      if (tok===undefined)
+        return false;
+      if (tok.type===type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      let tok=this.next();
+      if (msg===undefined) {
+          msg = type;
+          for (let tk of this.lexer.tokdef) {
+              if (tk.name===type&&tk.example) {
+                  msg = tk.example;
+              }
+          }
+      }
+      if (tok===undefined||tok.type!==type) {
+          this.error(tok, "Expected "+msg);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  function test_parser() {
+    let basic_types=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    let reserved_tokens=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    let tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      let js="";
+      let lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (let rt of reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    let a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+
+    loops :, array(Loop);
+  }
+  `;
+    function errfunc(lexer) {
+      return true;
+    }
+    let lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    let token;
+    while (token = lex.next()) {
+      console.log(token.toString());
+    }
+    let parse=new parser(lex);
+    parse.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      let tok=p.peek();
+      if (tok.type==="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type==="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      let field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      let tok=p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      let st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    let ret=p_Struct(parse);
+    console.log(JSON.stringify(ret));
+  }
+  var struct_parseutil=Object.freeze({__proto__: null, 
+   token: token, 
+   tokdef: tokdef, 
+   PUTIL_ParseError: PUTIL_ParseError, 
+   lexer: lexer, 
+   parser: parser});
+  "use strict";
+  class NStruct  {
+     constructor(name) {
+      this.fields = [];
+      this.id = -1;
+      this.name = name;
+    }
+  }
+  _ESClass.register(NStruct);
+  _es6_module.add_class(NStruct);
+  const StructEnum={INT: 0, 
+   FLOAT: 1, 
+   DOUBLE: 2, 
+   STRING: 7, 
+   STATIC_STRING: 8, 
+   STRUCT: 9, 
+   TSTRUCT: 10, 
+   ARRAY: 11, 
+   ITER: 12, 
+   SHORT: 13, 
+   BYTE: 14, 
+   BOOL: 15, 
+   ITERKEYS: 16, 
+   UINT: 17, 
+   USHORT: 18, 
+   STATIC_ARRAY: 19, 
+   SIGNED_BYTE: 20}
+  const ValueTypes=new Set([StructEnum.INT, StructEnum.FLOAT, StructEnum.DOUBLE, StructEnum.STRING, StructEnum.STATIC_STRING, StructEnum.SHORT, StructEnum.BYTE, StructEnum.BOOL, StructEnum.UINT, StructEnum.USHORT, StructEnum.SIGNED_BYTE]);
+  let StructTypes={"int": StructEnum.INT, 
+   "uint": StructEnum.UINT, 
+   "ushort": StructEnum.USHORT, 
+   "float": StructEnum.FLOAT, 
+   "double": StructEnum.DOUBLE, 
+   "string": StructEnum.STRING, 
+   "static_string": StructEnum.STATIC_STRING, 
+   "struct": StructEnum.STRUCT, 
+   "abstract": StructEnum.TSTRUCT, 
+   "array": StructEnum.ARRAY, 
+   "iter": StructEnum.ITER, 
+   "short": StructEnum.SHORT, 
+   "byte": StructEnum.BYTE, 
+   "bool": StructEnum.BOOL, 
+   "iterkeys": StructEnum.ITERKEYS, 
+   "sbyte": StructEnum.SIGNED_BYTE}
+  let StructTypeMap={}
+  for (let k in StructTypes) {
+      StructTypeMap[StructTypes[k]] = k;
+  }
+  function gen_tabstr(t) {
+    let s="";
+    for (let i=0; i<t; i++) {
+        s+="  ";
+    }
+    return s;
+  }
+  function stripComments(buf) {
+    let s='';
+    const MAIN=0, COMMENT=1, STR=2;
+    let p, n;
+    let strs=new Set(["'", '"', "`"]);
+    let mode=MAIN;
+    let strlit;
+    let escape=false;
+    for (let i=0; i<buf.length; i++) {
+        let p=i>0 ? buf[i-1] : undefined;
+        let c=buf[i];
+        let n=i<buf.length-1 ? buf[i+1] : undefined;
+        switch (mode) {
+          case MAIN:
+            if (c==="/"&&n==="/") {
+                mode = COMMENT;
+                continue;
+            }
+            if (strs.has(c)) {
+                strlit = c;
+                mode = STR;
+            }
+            s+=c;
+            break;
+          case COMMENT:
+            if (n==="\n") {
+                mode = MAIN;
+            }
+            break;
+          case STR:
+            if (c===strlit&&!escape) {
+                mode = MAIN;
+            }
+            s+=c;
+            break;
+        }
+        if (c==="\\") {
+            escape^=true;
+        }
+        else {
+          escape = false;
+        }
+    }
+    return s;
+  }
+  function StructParser() {
+    let basic_types=new Set(["int", "float", "double", "string", "short", "byte", "sbyte", "bool", "uint", "ushort"]);
+    let reserved_tokens=new Set(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "sbyte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_\.$]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("STRLIT", /\"[^"]*\"/, (t) =>      {
+      t.value = t.value.slice(1, t.value.length-1);
+      return t;
+    }), tk("STRLIT", /\'[^']*\'/, (t) =>      {
+      t.value = t.value.slice(1, t.value.length-1);
+      return t;
+    }), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
+      let js="";
+      let lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      while (js.trim().endsWith(";")) {
+        js = js.slice(0, js.length-1);
+        lexer.lexpos--;
+      }
+      t.value = js.trim();
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/, undefined, "number"), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }, "newline"), tk("SPACE", / |\t/, function (t) {
+    }, "whitespace")];
+    reserved_tokens.forEach(function (rt) {
+      tokens.push(tk(rt.toUpperCase()));
+    });
+    function errfunc(lexer) {
+      return true;
+    }
+    class Lexer extends lexer {
+       input(str) {
+        str = stripComments(str);
+        return super.input(str);
+      }
+    }
+    _ESClass.register(Lexer);
+    _es6_module.add_class(Lexer);
+    let lex=new Lexer(tokens, errfunc);
+    let parser$1=new parser(lex);
+    function p_Static_String(p) {
+      p.expect("STATIC_STRING");
+      p.expect("SOPEN");
+      let num=p.expect("NUM");
+      p.expect("SCLOSE");
+      return {type: StructEnum.STATIC_STRING, 
+     data: {maxlength: num}}
+    }
+    function p_DataRef(p) {
+      p.expect("DATAREF");
+      p.expect("LPARAM");
+      let tname=p.expect("ID");
+      p.expect("RPARAM");
+      return {type: StructEnum.DATAREF, 
+     data: tname}
+    }
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ARRAY, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Iter(p) {
+      p.expect("ITER");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ITER, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_StaticArray(p) {
+      p.expect("STATIC_ARRAY");
+      p.expect("SOPEN");
+      let arraytype=p_Type(p);
+      let itername="";
+      p.expect("COMMA");
+      let size=p.expect("NUM");
+      if (size<0||Math.abs(size-Math.floor(size))>1e-06) {
+          console.log(Math.abs(size-Math.floor(size)));
+          p.error("Expected an integer");
+      }
+      size = Math.floor(size);
+      if (p.optional("COMMA")) {
+          itername = p_Type(p).data;
+      }
+      p.expect("SCLOSE");
+      return {type: StructEnum.STATIC_ARRAY, 
+     data: {type: arraytype, 
+      size: size, 
+      iname: itername}}
+    }
+    function p_IterKeys(p) {
+      p.expect("ITERKEYS");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ITERKEYS, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Abstract(p) {
+      p.expect("ABSTRACT");
+      p.expect("LPARAM");
+      let type=p.expect("ID");
+      let jsonKeyword="_structName";
+      if (p.optional("COMMA")) {
+          jsonKeyword = p.expect("STRLIT");
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.TSTRUCT, 
+     data: type, 
+     jsonKeyword: jsonKeyword}
+    }
+    function p_Type(p) {
+      let tok=p.peek();
+      if (tok.type==="ID") {
+          p.next();
+          return {type: StructEnum.STRUCT, 
+       data: tok.value}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: StructTypes[tok.type.toLowerCase()]}
+      }
+      else 
+        if (tok.type==="ARRAY") {
+          return p_Array(p);
+      }
+      else 
+        if (tok.type==="ITER") {
+          return p_Iter(p);
+      }
+      else 
+        if (tok.type==="ITERKEYS") {
+          return p_IterKeys(p);
+      }
+      else 
+        if (tok.type==="STATIC_ARRAY") {
+          return p_StaticArray(p);
+      }
+      else 
+        if (tok.type==="STATIC_STRING") {
+          return p_Static_String(p);
+      }
+      else 
+        if (tok.type==="ABSTRACT") {
+          return p_Abstract(p);
+      }
+      else 
+        if (tok.type==="DATAREF") {
+          return p_DataRef(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_ID_or_num(p) {
+      let t=p.peeknext();
+      if (t.type==="NUM") {
+          p.next();
+          return t.value;
+      }
+      else {
+        return p.expect("ID", "struct field name");
+      }
+    }
+    function p_Field(p) {
+      let field={}
+      field.name = p_ID_or_num(p);
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      let check=0;
+      let tok=p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.get = tok.value;
+          check = 1;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type==="JSCRIPT") {
+          check = 1;
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      let name=p.expect("ID", "struct name");
+      let st=new NStruct(name);
+      let tok=p.peek();
+      let id=-1;
+      if (tok.type==="ID"&&tok.value==="id") {
+          p.next();
+          p.expect("EQUALS");
+          st.id = p.expect("NUM");
+      }
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    parser$1.start = p_Struct;
+    return parser$1;
+  }
+  const struct_parse=StructParser();
+  var struct_parser=Object.freeze({__proto__: null, 
+   NStruct: NStruct, 
+   StructEnum: StructEnum, 
+   ValueTypes: ValueTypes, 
+   StructTypes: StructTypes, 
+   StructTypeMap: StructTypeMap, 
+   stripComments: stripComments, 
+   struct_parse: struct_parse});
+  var struct_typesystem=Object.freeze({__proto__: null});
+  "use strict";
+  var STRUCT_ENDIAN=true;
+  function setBinaryEndian(mode) {
+    STRUCT_ENDIAN = !!mode;
+  }
+  let temp_dataview=new DataView(new ArrayBuffer(16));
+  let uint8_view=new Uint8Array(temp_dataview.buffer);
+  class unpack_context  {
+     constructor() {
+      this.i = 0;
+    }
+  }
+  _ESClass.register(unpack_context);
+  _es6_module.add_class(unpack_context);
+  function pack_byte(array, val) {
+    array.push(val);
+  }
+  function pack_sbyte(array, val) {
+    if (val<0) {
+        val = 256+val;
+    }
+    array.push(val);
+  }
+  function pack_bytes(array, bytes) {
+    for (let i=0; i<bytes.length; i++) {
+        array.push(bytes[i]);
+    }
+  }
+  function pack_int(array, val) {
+    temp_dataview.setInt32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_uint(array, val) {
+    temp_dataview.setUint32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_ushort(array, val) {
+    temp_dataview.setUint16(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+  }
+  function pack_float(array, val) {
+    temp_dataview.setFloat32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_double(array, val) {
+    temp_dataview.setFloat64(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+    array.push(uint8_view[4]);
+    array.push(uint8_view[5]);
+    array.push(uint8_view[6]);
+    array.push(uint8_view[7]);
+  }
+  function pack_short(array, val) {
+    temp_dataview.setInt16(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+  }
+  function encode_utf8(arr, str) {
+    for (let i=0; i<str.length; i++) {
+        let c=str.charCodeAt(i);
+        while (c!==0) {
+          let uc=c&127;
+          c = c>>7;
+          if (c!==0)
+            uc|=128;
+          arr.push(uc);
+        }
+    }
+  }
+  function decode_utf8(arr) {
+    let str="";
+    let i=0;
+    while (i<arr.length) {
+      let c=arr[i];
+      let sum=c&127;
+      let j=0;
+      let lasti=i;
+      while (i<arr.length&&(c&128)) {
+        j+=7;
+        i++;
+        c = arr[i];
+        c = (c&127)<<j;
+        sum|=c;
+      }
+      if (sum===0)
+        break;
+      str+=String.fromCharCode(sum);
+      i++;
+    }
+    return str;
+  }
+  function test_utf8() {
+    let s="a"+String.fromCharCode(8800)+"b";
+    let arr=[];
+    encode_utf8(arr, s);
+    let s2=decode_utf8(arr);
+    if (s!==s2) {
+        throw new Error("UTF-8 encoding/decoding test failed");
+    }
+    return true;
+  }
+  function truncate_utf8(arr, maxlen) {
+    let len=Math.min(arr.length, maxlen);
+    let last_codepoint=0;
+    let last2=0;
+    let incode=false;
+    let i=0;
+    let code=0;
+    while (i<len) {
+      incode = arr[i]&128;
+      if (!incode) {
+          last2 = last_codepoint+1;
+          last_codepoint = i+1;
+      }
+      i++;
+    }
+    if (last_codepoint<maxlen)
+      arr.length = last_codepoint;
+    else 
+      arr.length = last2;
+    return arr;
+  }
+  let _static_sbuf_ss=new Array(2048);
+  function pack_static_string(data, str, length) {
+    if (length===undefined)
+      throw new Error("'length' paremter is not optional for pack_static_string()");
+    let arr=length<2048 ? _static_sbuf_ss : new Array();
+    arr.length = 0;
+    encode_utf8(arr, str);
+    truncate_utf8(arr, length);
+    for (let i=0; i<length; i++) {
+        if (i>=arr.length) {
+            data.push(0);
+        }
+        else {
+          data.push(arr[i]);
+        }
+    }
+  }
+  let _static_sbuf=new Array(32);
+  function pack_string(data, str) {
+    _static_sbuf.length = 0;
+    encode_utf8(_static_sbuf, str);
+    pack_int(data, _static_sbuf.length);
+    for (let i=0; i<_static_sbuf.length; i++) {
+        data.push(_static_sbuf[i]);
+    }
+  }
+  function unpack_bytes(dview, uctx, len) {
+    let ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
+    uctx.i+=len;
+    return ret;
+  }
+  function unpack_byte(dview, uctx) {
+    return dview.getUint8(uctx.i++);
+  }
+  function unpack_sbyte(dview, uctx) {
+    return dview.getInt8(uctx.i++);
+  }
+  function unpack_int(dview, uctx) {
+    uctx.i+=4;
+    return dview.getInt32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_uint(dview, uctx) {
+    uctx.i+=4;
+    return dview.getUint32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_ushort(dview, uctx) {
+    uctx.i+=2;
+    return dview.getUint16(uctx.i-2, STRUCT_ENDIAN);
+  }
+  function unpack_float(dview, uctx) {
+    uctx.i+=4;
+    return dview.getFloat32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_double(dview, uctx) {
+    uctx.i+=8;
+    return dview.getFloat64(uctx.i-8, STRUCT_ENDIAN);
+  }
+  function unpack_short(dview, uctx) {
+    uctx.i+=2;
+    return dview.getInt16(uctx.i-2, STRUCT_ENDIAN);
+  }
+  let _static_arr_us=new Array(32);
+  function unpack_string(data, uctx) {
+    let slen=unpack_int(data, uctx);
+    if (!slen) {
+        return "";
+    }
+    let str="";
+    let arr=slen<2048 ? _static_arr_us : new Array(slen);
+    arr.length = slen;
+    for (let i=0; i<slen; i++) {
+        arr[i] = unpack_byte(data, uctx);
+    }
+    return decode_utf8(arr);
+  }
+  let _static_arr_uss=new Array(2048);
+  function unpack_static_string(data, uctx, length) {
+    let str="";
+    if (length===undefined)
+      throw new Error("'length' cannot be undefined in unpack_static_string()");
+    let arr=length<2048 ? _static_arr_uss : new Array(length);
+    arr.length = 0;
+    let done=false;
+    for (let i=0; i<length; i++) {
+        let c=unpack_byte(data, uctx);
+        if (c===0) {
+            done = true;
+        }
+        if (!done&&c!==0) {
+            arr.push(c);
+        }
+    }
+    truncate_utf8(arr, length);
+    return decode_utf8(arr);
+  }
+  var struct_binpack=Object.freeze({__proto__: null, 
+   get STRUCT_ENDIAN() {
+      return STRUCT_ENDIAN;
+    }, 
+   setBinaryEndian: setBinaryEndian, 
+   temp_dataview: temp_dataview, 
+   uint8_view: uint8_view, 
+   unpack_context: unpack_context, 
+   pack_byte: pack_byte, 
+   pack_sbyte: pack_sbyte, 
+   pack_bytes: pack_bytes, 
+   pack_int: pack_int, 
+   pack_uint: pack_uint, 
+   pack_ushort: pack_ushort, 
+   pack_float: pack_float, 
+   pack_double: pack_double, 
+   pack_short: pack_short, 
+   encode_utf8: encode_utf8, 
+   decode_utf8: decode_utf8, 
+   test_utf8: test_utf8, 
+   pack_static_string: pack_static_string, 
+   pack_string: pack_string, 
+   unpack_bytes: unpack_bytes, 
+   unpack_byte: unpack_byte, 
+   unpack_sbyte: unpack_sbyte, 
+   unpack_int: unpack_int, 
+   unpack_uint: unpack_uint, 
+   unpack_ushort: unpack_ushort, 
+   unpack_float: unpack_float, 
+   unpack_double: unpack_double, 
+   unpack_short: unpack_short, 
+   unpack_string: unpack_string, 
+   unpack_static_string: unpack_static_string});
+  let warninglvl=2;
+  let debug=0;
+  let _static_envcode_null="";
+  let packer_debug, packer_debug_start, packer_debug_end;
+  let packdebug_tablevel=0;
+  function _get_pack_debug() {
+    return {packer_debug: packer_debug, 
+    packer_debug_start: packer_debug_start, 
+    packer_debug_end: packer_debug_end, 
+    debug: debug, 
+    warninglvl: warninglvl}
+  }
+  class cachering extends Array {
+     constructor(cb, tot) {
+      super();
+      this.length = tot;
+      this.cur = 0;
+      for (let i=0; i<tot; i++) {
+          this[i] = cb();
+      }
+    }
+    static  fromConstructor(cls, tot) {
+      return new cachering(() =>        {
+        return new cls();
+      }, tot);
+    }
+     next() {
+      let ret=this[this.cur];
+      this.cur = (this.cur+1)%this.length;
+      return ret;
+    }
+  }
+  _ESClass.register(cachering);
+  _es6_module.add_class(cachering);
+  function gen_tabstr$1(tot) {
+    let ret="";
+    for (let i=0; i<tot; i++) {
+        ret+=" ";
+    }
+    return ret;
+  }
+  function setWarningMode2(t) {
+    if (typeof t!=="number"||isNaN(t)) {
+        throw new Error("Expected a single number (>= 0) argument to setWarningMode");
+    }
+    warninglvl = t;
+  }
+  function setDebugMode2(t) {
+    debug = t;
+    if (debug) {
+        packer_debug = function () {
+          let tab=gen_tabstr$1(packdebug_tablevel);
+          if (arguments.length>0) {
+              console.warn(tab);
+          }
+          else {
+            console.warn("Warning: undefined msg");
+          }
+        };
+        packer_debug_start = function (funcname) {
+          packer_debug("Start "+funcname);
+          packdebug_tablevel++;
+        };
+        packer_debug_end = function (funcname) {
+          packdebug_tablevel--;
+          if (funcname) {
+              packer_debug("Leave "+funcname);
+          }
+        };
+    }
+    else {
+      packer_debug = function () {
+      };
+      packer_debug_start = function () {
+      };
+      packer_debug_end = function () {
+      };
+    }
+  }
+  setDebugMode2(debug);
+  const StructFieldTypes=[];
+  const StructFieldTypeMap={}
+  function packNull(manager, data, field, type) {
+    StructFieldTypeMap[type.type].packNull(manager, data, field, type);
+  }
+  function toJSON(manager, val, obj, field, type) {
+    return StructFieldTypeMap[type.type].toJSON(manager, val, obj, field, type);
+  }
+  function fromJSON(manager, val, obj, field, type, instance) {
+    return StructFieldTypeMap[type.type].fromJSON(manager, val, obj, field, type, instance);
+  }
+  function validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+    return StructFieldTypeMap[type.type].validateJSON(manager, val, obj, field, type, instance, _abstractKey);
+  }
+  function unpack_field(manager, data, type, uctx) {
+    let name;
+    if (debug) {
+        name = StructFieldTypeMap[type.type].define().name;
+        packer_debug_start("R "+name);
+    }
+    let ret=StructFieldTypeMap[type.type].unpack(manager, data, type, uctx);
+    if (debug) {
+        packer_debug_end();
+    }
+    return ret;
+  }
+  let fakeFields=new cachering(() =>    {
+    return {type: undefined, 
+    get: undefined, 
+    set: undefined}
+  }, 256);
+  function fmt_type(type) {
+    return StructFieldTypeMap[type.type].format(type);
+  }
+  function do_pack(manager, data, val, obj, field, type) {
+    let name;
+    if (debug) {
+        name = StructFieldTypeMap[type.type].define().name;
+        packer_debug_start("W "+name);
+    }
+    let typeid=type;
+    if (typeof typeid!=="number") {
+        typeid = typeid.type;
+    }
+    let ret=StructFieldTypeMap[typeid].pack(manager, data, val, obj, field, type);
+    if (debug) {
+        packer_debug_end();
+    }
+    return ret;
+  }
+  let _ws_env=[[undefined, undefined]];
+  class StructFieldType  {
+    static  pack(manager, data, val, obj, field, type) {
+
+    }
+    static  unpack(manager, data, type, uctx) {
+
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, 0, 0, field, type);
+    }
+    static  format(type) {
+      return this.define().name;
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return val;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      return val;
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      return true;
+    }
+    static  useHelperJS(field) {
+      return true;
+    }
+    static  define() {
+      return {type: -1, 
+     name: "(error)"}
+    }
+    static  register(cls) {
+      if (StructFieldTypes.indexOf(cls)>=0) {
+          throw new Error("class already registered");
+      }
+      if (cls.define===StructFieldType.define) {
+          throw new Error("you forgot to make a define() static method");
+      }
+      if (cls.define().type===undefined) {
+          throw new Error("cls.define().type was undefined!");
+      }
+      if (cls.define().type in StructFieldTypeMap) {
+          throw new Error("type "+cls.define().type+" is used by another StructFieldType subclass");
+      }
+      StructFieldTypes.push(cls);
+      StructFieldTypeMap[cls.define().type] = cls;
+    }
+  }
+  _ESClass.register(StructFieldType);
+  _es6_module.add_class(StructFieldType);
+  class StructIntField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_int(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_int(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.INT, 
+     name: "int"}
+    }
+  }
+  _ESClass.register(StructIntField);
+  _es6_module.add_class(StructIntField);
+  StructFieldType.register(StructIntField);
+  class StructFloatField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_float(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_float(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      if (typeof val!=="number") {
+          return "Not a float: "+val;
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.FLOAT, 
+     name: "float"}
+    }
+  }
+  _ESClass.register(StructFloatField);
+  _es6_module.add_class(StructFloatField);
+  StructFieldType.register(StructFloatField);
+  class StructDoubleField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_double(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_double(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number") {
+          return "Not a double: "+val;
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.DOUBLE, 
+     name: "double"}
+    }
+  }
+  _ESClass.register(StructDoubleField);
+  _es6_module.add_class(StructDoubleField);
+  StructFieldType.register(StructDoubleField);
+  class StructStringField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      val = !val ? "" : val;
+      pack_string(data, val);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="string") {
+          return "Not a string: "+val;
+      }
+      return true;
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, "", 0, field, type);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_string(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.STRING, 
+     name: "string"}
+    }
+  }
+  _ESClass.register(StructStringField);
+  _es6_module.add_class(StructStringField);
+  StructFieldType.register(StructStringField);
+  class StructStaticStringField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      val = !val ? "" : val;
+      pack_static_string(data, val, type.data.maxlength);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="string") {
+          return "Not a string: "+val;
+      }
+      if (val.length>type.data.maxlength) {
+          return "String is too big; limit is "+type.data.maxlength+"; string:"+val;
+      }
+      return true;
+    }
+    static  format(type) {
+      return `static_string[${type.data.maxlength}]`;
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, "", 0, field, type);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_static_string(data, uctx, type.data.maxlength);
+    }
+    static  define() {
+      return {type: StructEnum.STATIC_STRING, 
+     name: "static_string"}
+    }
+  }
+  _ESClass.register(StructStaticStringField);
+  _es6_module.add_class(StructStaticStringField);
+  StructFieldType.register(StructStaticStringField);
+  class StructStructField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      let stt=manager.get_struct(type.data);
+      packer_debug("struct", stt.name);
+      manager.write_struct(data, val, stt);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      let stt=manager.get_struct(type.data);
+      if (!val) {
+          return "Expected "+stt.name+" object";
+      }
+      return manager.validateJSONIntern(val, stt, _abstractKey);
+    }
+    static  format(type) {
+      return type.data;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let stt=manager.get_struct(type.data);
+      return manager.readJSON(val, stt, instance);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      let stt=manager.get_struct(type.data);
+      return manager.writeJSON(val, stt);
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let cls2=manager.get_struct_cls(type.data);
+      packer_debug("struct", cls2 ? cls2.name : "(error)");
+      return manager.read_object(data, cls2, uctx, dest);
+    }
+    static  packNull(manager, data, field, type) {
+      let stt=manager.get_struct(type.data);
+      packer_debug("struct", type);
+      for (let field2 of stt.fields) {
+          let type2=field2.type;
+          packNull(manager, data, field2, type2);
+      }
+    }
+    static  unpack(manager, data, type, uctx) {
+      let cls2=manager.get_struct_cls(type.data);
+      packer_debug("struct", cls2 ? cls2.name : "(error)");
+      return manager.read_object(data, cls2, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.STRUCT, 
+     name: "struct"}
+    }
+  }
+  _ESClass.register(StructStructField);
+  _es6_module.add_class(StructStructField);
+  StructFieldType.register(StructStructField);
+  class StructTStructField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      let cls=manager.get_struct_cls(type.data);
+      let stt=manager.get_struct(type.data);
+      const keywords=manager.constructor.keywords;
+      if (val.constructor.structName!==type.data&&(__instance_of(val, cls))) {
+          stt = manager.get_struct(val.constructor.structName);
+      }
+      else 
+        if (val.constructor.structName===type.data) {
+          stt = manager.get_struct(type.data);
+      }
+      else {
+        console.trace();
+        throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
+      }
+      packer_debug("int "+stt.id);
+      pack_int(data, stt.id);
+      manager.write_struct(data, val, stt);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      let key=type.jsonKeyword;
+      if (typeof val!=="object") {
+          return typeof val+" is not an object";
+      }
+      let stt=manager.get_struct(val[key]);
+      let cls=manager.get_struct_cls(stt.name);
+      let parentcls=manager.get_struct_cls(type.data);
+      let ok=false;
+      do {
+        if (cls===parentcls) {
+            ok = true;
+            break;
+        }
+        cls = cls.prototype.__proto__.constructor;
+      } while (cls&&cls!==Object);
+      
+      if (!ok) {
+          return stt.name+" is not a child class off "+type.data;
+      }
+      return manager.validateJSONIntern(val, stt, type.jsonKeyword);
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let key=type.jsonKeyword;
+      let stt=manager.get_struct(val[key]);
+      return manager.readJSON(val, stt, instance);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      const keywords=manager.constructor.keywords;
+      let stt=manager.get_struct(val.constructor.structName);
+      let ret=manager.writeJSON(val, stt);
+      ret[type.jsonKeyword] = ""+stt.name;
+      return ret;
+    }
+    static  packNull(manager, data, field, type) {
+      let stt=manager.get_struct(type.data);
+      pack_int(data, stt.id);
+      packNull(manager, data, field, {type: StructEnum.STRUCT, 
+     data: type.data});
+    }
+    static  format(type) {
+      return "abstract("+type.data+")";
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let id=unpack_int(data, uctx);
+      packer_debug("-int "+id);
+      if (!(id in manager.struct_ids)) {
+          packer_debug("tstruct id: "+id);
+          console.trace();
+          console.log(id);
+          console.log(manager.struct_ids);
+          throw new Error("Unknown struct type "+id+".");
+      }
+      let cls2=manager.get_struct_id(id);
+      packer_debug("struct name: "+cls2.name);
+      cls2 = manager.struct_cls[cls2.name];
+      return manager.read_object(data, cls2, uctx, dest);
+    }
+    static  unpack(manager, data, type, uctx) {
+      let id=unpack_int(data, uctx);
+      packer_debug("-int "+id);
+      if (!(id in manager.struct_ids)) {
+          packer_debug("tstruct id: "+id);
+          console.trace();
+          console.log(id);
+          console.log(manager.struct_ids);
+          throw new Error("Unknown struct type "+id+".");
+      }
+      let cls2=manager.get_struct_id(id);
+      packer_debug("struct name: "+cls2.name);
+      cls2 = manager.struct_cls[cls2.name];
+      return manager.read_object(data, cls2, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.TSTRUCT, 
+     name: "tstruct"}
+    }
+  }
+  _ESClass.register(StructTStructField);
+  _es6_module.add_class(StructTStructField);
+  StructFieldType.register(StructTStructField);
+  class StructArrayField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if (val===undefined) {
+          console.trace();
+          console.log("Undefined array fed to struct struct packer!");
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+          packer_debug("int 0");
+          pack_int(data, 0);
+          return ;
+      }
+      packer_debug("int "+val.length);
+      pack_int(data, val.length);
+      let d=type.data;
+      let itername=d.iname;
+      let type2=d.type;
+      let env=_ws_env;
+      for (let i=0; i<val.length; i++) {
+          let val2=val[i];
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          let fakeField=fakeFields.next();
+          fakeField.type = type2;
+          do_pack(manager, data, val2, obj, fakeField, type2);
+      }
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "array("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      if (!val) {
+          return "not an array: "+val;
+      }
+      for (let i=0; i<val.length; i++) {
+          let ret=validateJSON(manager, val[i], val, field, type.data.type, undefined, _abstractKey);
+          if (typeof ret==="string"||!ret) {
+              return ret;
+          }
+      }
+      return true;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let ret=instance||[];
+      ret.length = 0;
+      for (let i=0; i<val.length; i++) {
+          let val2=fromJSON(manager, val[i], val, field, type.data.type, undefined);
+          if (val2===undefined) {
+              console.log(val2);
+              console.error("eeek");
+              process.exit();
+          }
+          ret.push(val2);
+      }
+      return ret;
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let i=0; i<val.length; i++) {
+          let val2=val[i];
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let len=unpack_int(data, uctx);
+      dest.length = 0;
+      for (let i=0; i<len; i++) {
+          dest.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ARRAY, 
+     name: "array"}
+    }
+  }
+  _ESClass.register(StructArrayField);
+  _es6_module.add_class(StructArrayField);
+  StructFieldType.register(StructArrayField);
+  class StructIterField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      function forEach(cb, thisvar) {
+        if (val&&val[Symbol.iterator]) {
+            for (let item of val) {
+                cb.call(thisvar, item);
+            }
+        }
+        else 
+          if (val&&val.forEach) {
+            val.forEach(function (item) {
+              cb.call(thisvar, item);
+            });
+        }
+        else {
+          console.trace();
+          console.log("Undefined iterable list fed to struct struct packer!", val);
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+        }
+      }
+      let starti=data.length;
+      data.length+=4;
+      let d=type.data, itername=d.iname, type2=d.type;
+      let env=_ws_env;
+      let i=0;
+      forEach(function (val2) {
+        if (itername!==""&&itername!==undefined&&field.get) {
+            env[0][0] = itername;
+            env[0][1] = val2;
+            val2 = manager._env_call(field.get, obj, env);
+        }
+        let fakeField=fakeFields.next();
+        fakeField.type = type2;
+        do_pack(manager, data, val2, obj, fakeField, type2);
+        i++;
+      }, this);
+      temp_dataview.setInt32(0, i, STRUCT_ENDIAN);
+      data[starti++] = uint8_view[0];
+      data[starti++] = uint8_view[1];
+      data[starti++] = uint8_view[2];
+      data[starti++] = uint8_view[3];
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let val2 of val) {
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "iter("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "iter("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  unpackInto(manager, data, type, uctx, arr) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      arr.length = 0;
+      for (let i=0; i<len; i++) {
+          arr.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return arr;
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ITER, 
+     name: "iter"}
+    }
+  }
+  _ESClass.register(StructIterField);
+  _es6_module.add_class(StructIterField);
+  StructFieldType.register(StructIterField);
+  class StructShortField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_short(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_short(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.SHORT, 
+     name: "short"}
+    }
+  }
+  _ESClass.register(StructShortField);
+  _es6_module.add_class(StructShortField);
+  StructFieldType.register(StructShortField);
+  class StructByteField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_byte(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_byte(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.BYTE, 
+     name: "byte"}
+    }
+  }
+  _ESClass.register(StructByteField);
+  _es6_module.add_class(StructByteField);
+  StructFieldType.register(StructByteField);
+  class StructSignedByteField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_sbyte(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_sbyte(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.SIGNED_BYTE, 
+     name: "sbyte"}
+    }
+  }
+  _ESClass.register(StructSignedByteField);
+  _es6_module.add_class(StructSignedByteField);
+  StructFieldType.register(StructSignedByteField);
+  class StructBoolField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_byte(data, !!val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return !!unpack_byte(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (val===0||val===1||val===true||val===false||val==="true"||val==="false") {
+          return true;
+      }
+      return ""+val+" is not a bool";
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      if (val==="false") {
+          val = false;
+      }
+      return !!val;
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return !!val;
+    }
+    static  define() {
+      return {type: StructEnum.BOOL, 
+     name: "bool"}
+    }
+  }
+  _ESClass.register(StructBoolField);
+  _es6_module.add_class(StructBoolField);
+  StructFieldType.register(StructBoolField);
+  class StructIterKeysField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
+          console.warn("Bad object fed to iterkeys in struct packer!", val);
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+          pack_int(data, 0);
+          return ;
+      }
+      let len=0.0;
+      for (let k in val) {
+          len++;
+      }
+      packer_debug("int "+len);
+      pack_int(data, len);
+      let d=type.data, itername=d.iname, type2=d.type;
+      let env=_ws_env;
+      let i=0;
+      for (let val2 in val) {
+          if (i>=len) {
+              if (warninglvl>0)
+                console.warn("Warning: object keys magically replaced on us", val, i);
+              return ;
+          }
+          if (itername&&itername.trim().length>0&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          else {
+            val2 = val[val2];
+          }
+          let f2={type: type2, 
+       get: undefined, 
+       set: undefined};
+          do_pack(manager, data, val2, obj, f2, type2);
+          i++;
+      }
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let k in val) {
+          let val2=val[k];
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "iterkeys("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "iterkeys("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  unpackInto(manager, data, type, uctx, arr) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      arr.length = 0;
+      for (let i=0; i<len; i++) {
+          arr.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return arr;
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ITERKEYS, 
+     name: "iterkeys"}
+    }
+  }
+  _ESClass.register(StructIterKeysField);
+  _es6_module.add_class(StructIterKeysField);
+  StructFieldType.register(StructIterKeysField);
+  class StructUintField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_uint(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_uint(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.UINT, 
+     name: "uint"}
+    }
+  }
+  _ESClass.register(StructUintField);
+  _es6_module.add_class(StructUintField);
+  StructFieldType.register(StructUintField);
+  class StructUshortField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_ushort(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_ushort(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.USHORT, 
+     name: "ushort"}
+    }
+  }
+  _ESClass.register(StructUshortField);
+  _es6_module.add_class(StructUshortField);
+  StructFieldType.register(StructUshortField);
+  class StructStaticArrayField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if (type.data.size===undefined) {
+          throw new Error("type.data.size was undefined");
+      }
+      let itername=type.data.iname;
+      if (val===undefined||!val.length) {
+          this.packNull(manager, data, field, type);
+          return ;
+      }
+      for (let i=0; i<type.data.size; i++) {
+          let i2=Math.min(i, Math.min(val.length-1, type.data.size));
+          let val2=val[i2];
+          if (itername!==""&&itername!==undefined&&field.get) {
+              let env=_ws_env;
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          do_pack(manager, data, val2, val, field, type.data.type);
+      }
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  validateJSON() {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  packNull(manager, data, field, type) {
+      let size=type.data.size;
+      for (let i=0; i<size; i++) {
+          packNull(manager, data, field, type.data.type);
+      }
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return StructArrayField.toJSON(...arguments);
+    }
+    static  format(type) {
+      let type2=StructFieldTypeMap[type.data.type.type].format(type.data.type);
+      let ret=`static_array[${type2}, ${type.data.size}`;
+      if (type.data.iname) {
+          ret+=`, ${type.data.iname}`;
+      }
+      ret+=`]`;
+      return ret;
+    }
+    static  unpackInto(manager, data, type, uctx, ret) {
+      packer_debug("-size: "+type.data.size);
+      ret.length = 0;
+      for (let i=0; i<type.data.size; i++) {
+          ret.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return ret;
+    }
+    static  unpack(manager, data, type, uctx) {
+      packer_debug("-size: "+type.data.size);
+      let ret=[];
+      for (let i=0; i<type.data.size; i++) {
+          ret.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return ret;
+    }
+    static  define() {
+      return {type: StructEnum.STATIC_ARRAY, 
+     name: "static_array"}
+    }
+  }
+  _ESClass.register(StructStaticArrayField);
+  _es6_module.add_class(StructStaticArrayField);
+  StructFieldType.register(StructStaticArrayField);
+  var _sintern2=Object.freeze({__proto__: null, 
+   _get_pack_debug: _get_pack_debug, 
+   setWarningMode2: setWarningMode2, 
+   setDebugMode2: setDebugMode2, 
+   StructFieldTypes: StructFieldTypes, 
+   StructFieldTypeMap: StructFieldTypeMap, 
+   packNull: packNull, 
+   toJSON: toJSON, 
+   fromJSON: fromJSON, 
+   validateJSON: validateJSON, 
+   do_pack: do_pack, 
+   StructFieldType: StructFieldType});
+  var structEval=eval;
+  function setStructEval(val) {
+    structEval = val;
+  }
+  var _struct_eval=Object.freeze({__proto__: null, 
+   get structEval() {
+      return structEval;
+    }, 
+   setStructEval: setStructEval});
+  const TokSymbol=Symbol("token-info");
+  function buildJSONParser() {
+    let tk=(name, re, func, example) =>      {
+      return new tokdef(name, re, func, example);
+    }
+    let parse;
+    let nint="[+-]?[0-9]+";
+    let nhex="[+-]?0x[0-9a-fA-F]+";
+    let nfloat1="[+-]?[0-9]+\\.[0-9]*";
+    let nfloat2="[+-]?[0-9]*\\.[0-9]+";
+    let nfloat3="[+-]?[0-9]+\\.[0-9]+";
+    let nfloatexp="[+-]?[0-9]+\\.[0-9]+[eE][+-]?[0-9]+";
+    let nfloat=`(${nfloat1})|(${nfloat2})|(${nfloatexp})`;
+    let num=`(${nint})|(${nfloat})|(${nhex})`;
+    let numre=new RegExp(num);
+    let numreTest=new RegExp(`(${num})$`);
+    nfloat3 = new RegExp(nfloat3);
+    nfloatexp = new RegExp(nfloatexp);
+    let tests=["1.234234", ".23432", "-234.", "1e-17", "-0x23423ff", "+23423", "-4.263256414560601e-14"];
+    for (let test of tests) {
+        if (!numreTest.test(test)) {
+            console.error("Error! Number regexp failed:", test);
+        }
+    }
+    let tokens=[tk("BOOL", /true|false/), tk("WS", /[ \r\t\n]/, (t) =>      {
+      return undefined;
+    }), tk("STRLIT", /["']/, (t) =>      {
+      let lex=t.lexer;
+      let char=t.value;
+      let i=lex.lexpos;
+      let lexdata=lex.lexdata;
+      let escape=0;
+      t.value = "";
+      let prev;
+      while (i<lexdata.length) {
+        let c=lexdata[i];
+        t.value+=c;
+        if (c==="\\") {
+            escape^=true;
+        }
+        else 
+          if (!escape&&c===char) {
+            break;
+        }
+        else {
+          escape = false;
+        }
+        i++;
+      }
+      lex.lexpos = i+1;
+      if (t.value.length>0) {
+          t.value = t.value.slice(0, t.value.length-1);
+      }
+      return t;
+    }), tk("LSBRACKET", /\[/), tk("RSBRACKET", /]/), tk("LBRACE", /{/), tk("RBRACE", /}/), tk("NULL", /null/), tk("COMMA", /,/), tk("COLON", /:/), tk("NUM", numre, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    }), tk("NUM", nfloat3, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    }), tk("NUM", nfloatexp, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    })];
+    function tokinfo(t) {
+      return {lexpos: t.lexpos, 
+     lineno: t.lineno, 
+     col: t.col, 
+     fields: {}}
+    }
+    function p_Array(p) {
+      p.expect("LSBRACKET");
+      let t=p.peeknext();
+      let first=true;
+      let ret=[];
+      ret[TokSymbol] = tokinfo(t);
+      while (t&&t.type!=="RSBRACKET") {
+        if (!first) {
+            p.expect("COMMA");
+        }
+        ret[TokSymbol].fields[ret.length] = tokinfo(t);
+        ret.push(p_Start(p));
+        first = false;
+        t = p.peeknext();
+      }
+      p.expect("RSBRACKET");
+      return ret;
+    }
+    function p_Object(p) {
+      p.expect("LBRACE");
+      let obj={}
+      let first=true;
+      let t=p.peeknext();
+      obj[TokSymbol] = tokinfo(t);
+      while (t&&t.type!=="RBRACE") {
+        if (!first) {
+            p.expect("COMMA");
+        }
+        let key=p.expect("STRLIT");
+        p.expect("COLON");
+        let val=p_Start(p, true);
+        obj[key] = val;
+        first = false;
+        t = p.peeknext();
+        obj[TokSymbol].fields[key] = tokinfo(t);
+      }
+      p.expect("RBRACE");
+      return obj;
+    }
+    function p_Start(p, throwError) {
+      if (throwError===undefined) {
+          throwError = true;
+      }
+      let t=p.peeknext();
+      if (t.type==="LSBRACKET") {
+          return p_Array(p);
+      }
+      else 
+        if (t.type==="LBRACE") {
+          return p_Object(p);
+      }
+      else 
+        if (t.type==="STRLIT"||t.type==="NUM"||t.type==="NULL"||t.type==="BOOL") {
+          return p.next().value;
+      }
+      else {
+        p.error(t, "Unknown token");
+      }
+    }
+    function p_Error(token, msg) {
+      throw new PUTIL_ParseError("Parse Error");
+    }
+    let lex=new lexer(tokens);
+    lex.linestart = 0;
+    parse = new parser(lex, p_Error);
+    parse.start = p_Start;
+    return parse;
+  }
+  var jsonParser=buildJSONParser();
+  function printContext(buf, tokinfo, printColors) {
+    if (printColors===undefined) {
+        printColors = true;
+    }
+    let lines=buf.split("\n");
+    if (!tokinfo) {
+        return '';
+    }
+    let lineno=tokinfo.lineno;
+    let col=tokinfo.col;
+    let istart=Math.max(lineno-50, 0);
+    let iend=Math.min(lineno+2, lines.length-1);
+    let s='';
+    if (printColors) {
+        s+=termColor("  /* pretty-printed json */\n", "blue");
+    }
+    else {
+      s+="/* pretty-printed json */\n";
+    }
+    for (let i=istart; i<iend; i++) {
+        let l=lines[i];
+        let idx=""+i;
+        while (idx.length<3) {
+          idx = " "+idx;
+        }
+        if (i===lineno&&printColors) {
+            s+=termColor(`${idx}: ${l}\n`, "yellow");
+        }
+        else {
+          s+=`${idx}: ${l}\n`;
+        }
+        if (i===lineno) {
+            let l2='';
+            for (let j=0; j<col+5; j++) {
+                l2+=" ";
+            }
+            s+=l2+"^\n";
+        }
+    }
+    return s;
+  }
+  var nGlobal;
+  if (typeof globalThis!=="undefined") {
+      nGlobal = globalThis;
+  }
+  else 
+    if (typeof window!=="undefined") {
+      nGlobal = window;
+  }
+  else 
+    if (typeof global!=="undefined") {
+      nGlobal = global;
+  }
+  else 
+    if (typeof globals!=="undefined") {
+      nGlobal = globals;
+  }
+  else 
+    if (typeof self!=="undefined") {
+      nGlobal = self;
+  }
+  const DEBUG={}
+  function updateDEBUG() {
+    for (let k in Object.keys(DEBUG)) {
+        delete DEBUG[k];
+    }
+    if (typeof nGlobal.DEBUG==="object") {
+        for (let k in nGlobal.DEBUG) {
+            DEBUG[k] = nGlobal.DEBUG[k];
+        }
+    }
+  }
+  "use strict";
+  var sintern2=_sintern2;
+  var struct_eval=_struct_eval;
+  let warninglvl$1=2;
+  var truncateDollarSign=true;
+  var manager;
+  class JSONError extends Error {
+  }
+  _ESClass.register(JSONError);
+  _es6_module.add_class(JSONError);
+  
+  function setTruncateDollarSign(v) {
+    truncateDollarSign = !!v;
+  }
+  function _truncateDollarSign(s) {
+    let i=s.search("$");
+    if (i>0) {
+        return s.slice(0, i).trim();
+    }
+    return s;
+  }
+  function unmangle(name) {
+    if (truncateDollarSign) {
+        return _truncateDollarSign(name);
+    }
+    else {
+      return name;
+    }
+  }
+  let _static_envcode_null$1="";
+  function gen_tabstr$2(tot) {
+    let ret="";
+    for (let i=0; i<tot; i++) {
+        ret+=" ";
+    }
+    return ret;
+  }
+  let packer_debug$1, packer_debug_start$1, packer_debug_end$1;
+  function update_debug_data() {
+    let ret=_get_pack_debug();
+    packer_debug$1 = ret.packer_debug;
+    packer_debug_start$1 = ret.packer_debug_start;
+    packer_debug_end$1 = ret.packer_debug_end;
+    warninglvl$1 = ret.warninglvl;
+  }
+  update_debug_data();
+  function setWarningMode(t) {
+    sintern2.setWarningMode2(t);
+    if (typeof t!=="number"||isNaN(t)) {
+        throw new Error("Expected a single number (>= 0) argument to setWarningMode");
+    }
+    warninglvl$1 = t;
+  }
+  function setDebugMode(t) {
+    sintern2.setDebugMode2(t);
+    update_debug_data();
+  }
+  let _ws_env$1=[[undefined, undefined]];
+  function define_empty_class(scls, name) {
+    let cls=function () {
+    }
+    cls.prototype = Object.create(Object.prototype);
+    cls.constructor = cls.prototype.constructor = cls;
+    let keywords=scls.keywords;
+    cls.STRUCT = name+" {\n  }\n";
+    cls.structName = name;
+    cls.prototype.loadSTRUCT = function (reader) {
+      reader(this);
+    }
+    cls.newSTRUCT = function () {
+      return new this();
+    }
+    return cls;
+  }
+  let haveCodeGen;
+  class STRUCT  {
+     constructor() {
+      this.idgen = 0;
+      this.allowOverriding = true;
+      this.structs = {};
+      this.struct_cls = {};
+      this.struct_ids = {};
+      this.compiled_code = {};
+      this.null_natives = {};
+      this.define_null_native("Object", Object);
+      this.jsonUseColors = true;
+      this.jsonBuf = '';
+    }
+    static  inherit(child, parent, structName=child.name) {
+      const keywords=this.keywords;
+      if (!parent.STRUCT) {
+          return structName+"{\n";
+      }
+      let stt=struct_parse.parse(parent.STRUCT);
+      let code=structName+"{\n";
+      code+=STRUCT.fmt_struct(stt, true);
+      return code;
+    }
+    static  Super(obj, reader) {
+      if (warninglvl$1>0)
+        console.warn("deprecated");
+      reader(obj);
+      function reader2(obj) {
+      }
+      let cls=obj.constructor;
+      let bad=cls===undefined||cls.prototype===undefined||cls.prototype.__proto__===undefined;
+      if (bad) {
+          return ;
+      }
+      let parent=cls.prototype.__proto__.constructor;
+      bad = bad||parent===undefined;
+      if (!bad&&parent.prototype.loadSTRUCT&&parent.prototype.loadSTRUCT!==obj.loadSTRUCT) {
+          parent.prototype.loadSTRUCT.call(obj, reader2);
+      }
+    }
+    static  chain_fromSTRUCT(cls, reader) {
+      if (warninglvl$1>0)
+        console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
+      let proto=cls.prototype;
+      let parent=cls.prototype.prototype.constructor;
+      let obj=parent.fromSTRUCT(reader);
+      let obj2=new cls();
+      let keys=Object.keys(obj).concat(Object.getOwnPropertySymbols(obj));
+      for (let i=0; i<keys.length; i++) {
+          let k=keys[i];
+          try {
+            obj2[k] = obj[k];
+          }
+          catch (error) {
+              if (warninglvl$1>0)
+                console.warn("  failed to set property", k);
+          }
+      }
+      return obj2;
+    }
+    static  formatStruct(stt, internal_only, no_helper_js) {
+      return this.fmt_struct(stt, internal_only, no_helper_js);
+    }
+    static  fmt_struct(stt, internal_only, no_helper_js) {
+      if (internal_only===undefined)
+        internal_only = false;
+      if (no_helper_js===undefined)
+        no_helper_js = false;
+      let s="";
+      if (!internal_only) {
+          s+=stt.name;
+          if (stt.id!==-1)
+            s+=" id="+stt.id;
+          s+=" {\n";
+      }
+      let tab="  ";
+      function fmt_type(type) {
+        return StructFieldTypeMap[type.type].format(type);
+        if (type.type===StructEnum.ARRAY||type.type===StructEnum.ITER||type.type===StructEnum.ITERKEYS) {
+            if (type.data.iname!==""&&type.data.iname!==undefined) {
+                return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+            }
+            else {
+              return "array("+fmt_type(type.data.type)+")";
+            }
+        }
+        else 
+          if (type.type===StructEnum.STATIC_STRING) {
+            return "static_string["+type.data.maxlength+"]";
+        }
+        else 
+          if (type.type===StructEnum.STRUCT) {
+            return type.data;
+        }
+        else 
+          if (type.type===StructEnum.TSTRUCT) {
+            return "abstract("+type.data+")";
+        }
+        else {
+          return StructTypeMap[type.type];
+        }
+      }
+      let fields=stt.fields;
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          s+=tab+f.name+" : "+fmt_type(f.type);
+          if (!no_helper_js&&f.get!==undefined) {
+              s+=" | "+f.get.trim();
+          }
+          s+=";\n";
+      }
+      if (!internal_only)
+        s+="}";
+      return s;
+    }
+    static  setClassKeyword(keyword, nameKeyword=undefined) {
+      if (!nameKeyword) {
+          nameKeyword = keyword.toLowerCase()+"Name";
+      }
+      this.keywords = {script: keyword, 
+     name: nameKeyword, 
+     load: "load"+keyword, 
+     new: "new"+keyword, 
+     after: "after"+keyword, 
+     from: "from"+keyword};
+    }
+     define_null_native(name, cls) {
+      const keywords=this.constructor.keywords;
+      let obj=define_empty_class(this.constructor, name);
+      let stt=struct_parse.parse(obj.STRUCT);
+      stt.id = this.idgen++;
+      this.structs[name] = stt;
+      this.struct_cls[name] = cls;
+      this.struct_ids[stt.id] = stt;
+      this.null_natives[name] = 1;
+    }
+     validateStructs(onerror) {
+      function getType(type) {
+        switch (type.type) {
+          case StructEnum.ITERKEYS:
+          case StructEnum.ITER:
+          case StructEnum.STATIC_ARRAY:
+          case StructEnum.ARRAY:
+            return getType(type.data.type);
+          case StructEnum.TSTRUCT:
+            return type;
+          case StructEnum.STRUCT:
+          default:
+            return type;
+        }
+      }
+      function formatType(type) {
+        let ret={}
+        ret.type = type.type;
+        if (typeof ret.type==="number") {
+            for (let k in StructEnum) {
+                if (StructEnum[k]===ret.type) {
+                    ret.type = k;
+                    break;
+                }
+            }
+        }
+        else 
+          if (typeof ret.type==="object") {
+            ret.type = formatType(ret.type);
+        }
+        if (typeof type.data==="object") {
+            ret.data = formatType(type.data);
+        }
+        else {
+          ret.data = type.data;
+        }
+        return ret;
+      }
+      function throwError(stt, field, msg) {
+        let buf=STRUCT.formatStruct(stt);
+        console.error(buf+"\n\n"+msg);
+        if (onerror) {
+            onerror(msg, stt, field);
+        }
+        else {
+          throw new Error(msg);
+        }
+      }
+      for (let k in this.structs) {
+          let stt=this.structs[k];
+          for (let field of stt.fields) {
+              if (field.name==="this") {
+                  let type=field.type.type;
+                  if (ValueTypes.has(type)) {
+                      throwError(stt, field, "'this' cannot be used with value types");
+                  }
+              }
+              let type=getType(field.type);
+              if (type.type!==StructEnum.STRUCT&&type.type!==StructEnum.TSTRUCT) {
+                  continue;
+              }
+              if (!(type.data in this.structs)) {
+                  let msg=stt.name+":"+field.name+": Unknown struct "+type.data+".";
+                  throwError(stt, field, msg);
+              }
+          }
+      }
+    }
+     forEach(func, thisvar) {
+      for (let k in this.structs) {
+          let stt=this.structs[k];
+          if (thisvar!==undefined)
+            func.call(thisvar, stt);
+          else 
+            func(stt);
+      }
+    }
+     parse_structs(buf, defined_classes) {
+      const keywords=this.constructor.keywords;
+      if (defined_classes===undefined) {
+          defined_classes = manager;
+      }
+      if (__instance_of(defined_classes, STRUCT)) {
+          let struct2=defined_classes;
+          defined_classes = [];
+          for (let k in struct2.struct_cls) {
+              defined_classes.push(struct2.struct_cls[k]);
+          }
+      }
+      if (defined_classes===undefined) {
+          defined_classes = [];
+          for (let k in manager.struct_cls) {
+              defined_classes.push(manager.struct_cls[k]);
+          }
+      }
+      let clsmap={};
+      for (let i=0; i<defined_classes.length; i++) {
+          let cls=defined_classes[i];
+          if (!cls.structName&&cls.STRUCT) {
+              let stt=struct_parse.parse(cls.STRUCT.trim());
+              cls.structName = stt.name;
+          }
+          else 
+            if (!cls.structName&&cls.name!=="Object") {
+              if (warninglvl$1>0)
+                console.log("Warning, bad class in registered class list", unmangle(cls.name), cls);
+              continue;
+          }
+          clsmap[cls.structName] = defined_classes[i];
+      }
+      struct_parse.input(buf);
+      while (!struct_parse.at_end()) {
+        let stt=struct_parse.parse(undefined, false);
+        if (!(stt.name in clsmap)) {
+            if (!(stt.name in this.null_natives))
+              if (warninglvl$1>0)
+              console.log("WARNING: struct "+stt.name+" is missing from class list.");
+            let dummy=define_empty_class(this.constructor, stt.name);
+            dummy.STRUCT = STRUCT.fmt_struct(stt);
+            dummy.structName = stt.name;
+            dummy.prototype.structName = dummy.name;
+            this.struct_cls[dummy.structName] = dummy;
+            this.structs[dummy.structName] = stt;
+            if (stt.id!==-1)
+              this.struct_ids[stt.id] = stt;
+        }
+        else {
+          this.struct_cls[stt.name] = clsmap[stt.name];
+          this.structs[stt.name] = stt;
+          if (stt.id!==-1)
+            this.struct_ids[stt.id] = stt;
+        }
+        let tok=struct_parse.peek();
+        while (tok&&(tok.value==="\n"||tok.value==="\r"||tok.value==="\t"||tok.value===" ")) {
+          tok = struct_parse.peek();
+        }
+      }
+    }
+     registerGraph(srcSTRUCT, cls) {
+      if (!cls.structName) {
+          console.warn("class was not in srcSTRUCT");
+          return this.register(cls);
+      }
+      let recStruct;
+      let recArray=(t) =>        {
+        switch (t.type) {
+          case StructEnum.ARRAY:
+            return recArray(t.data.type);
+          case StructEnum.ITERKEYS:
+            return recArray(t.data.type);
+          case StructEnum.STATIC_ARRAY:
+            return recArray(t.data.type);
+          case StructEnum.ITER:
+            return recArray(t.data.type);
+          case StructEnum.STRUCT:
+          case StructEnum.TSTRUCT:
+            let st=srcSTRUCT.structs[t.data];
+            let cls=srcSTRUCT.struct_cls[st.name];
+            return recStruct(st, cls);
+        }
+      };
+      recStruct = (st, cls) =>        {
+        if (!(cls.structName in this.structs)) {
+            this.add_class(cls, cls.structName);
+        }
+        for (let f of st.fields) {
+            if (f.type.type===StructEnum.STRUCT||f.type.type===StructEnum.TSTRUCT) {
+                let st2=srcSTRUCT.structs[f.type.data];
+                let cls2=srcSTRUCT.struct_cls[st2.name];
+                recStruct(st2, cls2);
+            }
+            else 
+              if (f.type.type===StructEnum.ARRAY) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.ITER) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.ITERKEYS) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.STATIC_ARRAY) {
+                recArray(f.type);
+            }
+        }
+      };
+      let st=srcSTRUCT.structs[cls.structName];
+      recStruct(st, cls);
+    }
+     register(cls, structName) {
+      return this.add_class(cls, structName);
+    }
+     unregister(cls) {
+      const keywords=this.constructor.keywords;
+      if (!cls||!cls.structName||!(cls.structName in this.struct_cls)) {
+          console.warn("Class not registered with nstructjs", cls);
+          return ;
+      }
+      let st=this.structs[cls.structName];
+      delete this.structs[cls.structName];
+      delete this.struct_cls[cls.structName];
+      delete this.struct_ids[st.id];
+    }
+     add_class(cls, structName) {
+      if (cls===Object) {
+          return ;
+      }
+      const keywords=this.constructor.keywords;
+      if (cls.STRUCT) {
+          let bad=false;
+          let p=cls;
+          while (p) {
+            p = p.__proto__;
+            if (p&&p.STRUCT&&p.STRUCT===cls.STRUCT) {
+                bad = true;
+                break;
+            }
+          }
+          if (bad) {
+              console.warn("Generating "+keywords.script+" script for derived class "+unmangle(cls.name));
+              if (!structName) {
+                  structName = unmangle(cls.name);
+              }
+              cls.STRUCT = STRUCT.inherit(cls, p)+"\n}";
+          }
+      }
+      if (!cls.STRUCT) {
+          throw new Error("class "+unmangle(cls.name)+" has no "+keywords.script+" script");
+      }
+      let stt=struct_parse.parse(cls.STRUCT);
+      stt.name = unmangle(stt.name);
+      cls.structName = stt.name;
+      if (cls.newSTRUCT===undefined) {
+          cls.newSTRUCT = function () {
+            return new this();
+          };
+      }
+      if (structName!==undefined) {
+          stt.name = cls.structName = structName;
+      }
+      else 
+        if (cls.structName===undefined) {
+          cls.structName = stt.name;
+      }
+      else {
+        stt.name = cls.structName;
+      }
+      if (cls.structName in this.structs) {
+          console.warn("Struct "+unmangle(cls.structName)+" is already registered", cls);
+          if (!this.allowOverriding) {
+              throw new Error("Struct "+unmangle(cls.structName)+" is already registered");
+          }
+          return ;
+      }
+      if (stt.id===-1)
+        stt.id = this.idgen++;
+      this.structs[cls.structName] = stt;
+      this.struct_cls[cls.structName] = cls;
+      this.struct_ids[stt.id] = stt;
+    }
+     isRegistered(cls) {
+      const keywords=this.constructor.keywords;
+      if (!cls.hasOwnProperty("structName")) {
+          return false;
+      }
+      return cls===this.struct_cls[cls.structName];
+    }
+     get_struct_id(id) {
+      return this.struct_ids[id];
+    }
+     get_struct(name) {
+      if (!(name in this.structs)) {
+          console.warn("Unknown struct", name);
+          throw new Error("Unknown struct "+name);
+      }
+      return this.structs[name];
+    }
+     get_struct_cls(name) {
+      if (!(name in this.struct_cls)) {
+          console.trace();
+          throw new Error("Unknown struct "+name);
+      }
+      return this.struct_cls[name];
+    }
+     _env_call(code, obj, env) {
+      let envcode=_static_envcode_null$1;
+      if (env!==undefined) {
+          envcode = "";
+          for (let i=0; i<env.length; i++) {
+              envcode = "let "+env[i][0]+" = env["+i.toString()+"][1];\n"+envcode;
+          }
+      }
+      let fullcode="";
+      if (envcode!==_static_envcode_null$1)
+        fullcode = envcode+code;
+      else 
+        fullcode = code;
+      let func;
+      if (!(fullcode in this.compiled_code)) {
+          let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+          try {
+            func = struct_eval.structEval(code2);
+          }
+          catch (err) {
+              console.warn(err.stack);
+              console.warn(code2);
+              console.warn(" ");
+              throw err;
+          }
+          this.compiled_code[fullcode] = func;
+      }
+      else {
+        func = this.compiled_code[fullcode];
+      }
+      try {
+        return func.call(obj, obj, env);
+      }
+      catch (err) {
+          console.warn(err.stack);
+          let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+          console.warn(code2);
+          console.warn(" ");
+          throw err;
+      }
+    }
+     write_struct(data, obj, stt) {
+      function use_helper_js(field) {
+        let type=field.type.type;
+        let cls=StructFieldTypeMap[type];
+        return cls.useHelperJS(field);
+      }
+      let fields=stt.fields;
+      let thestruct=this;
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          let t1=f.type;
+          let t2=t1.type;
+          if (use_helper_js(f)) {
+              let val;
+              let type=t2;
+              if (f.get!==undefined) {
+                  val = thestruct._env_call(f.get, obj);
+              }
+              else {
+                val = f.name==="this" ? obj : obj[f.name];
+              }
+              if (DEBUG.tinyeval) {
+                  console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+              }
+              sintern2.do_pack(this, data, val, obj, f, t1);
+          }
+          else {
+            let val=f.name==="this" ? obj : obj[f.name];
+            sintern2.do_pack(this, data, val, obj, f, t1);
+          }
+      }
+    }
+     write_object(data, obj) {
+      const keywords=this.constructor.keywords;
+      let cls=obj.constructor.structName;
+      let stt=this.get_struct(cls);
+      if (data===undefined) {
+          data = [];
+      }
+      this.write_struct(data, obj, stt);
+      return data;
+    }
+     readObject(data, cls_or_struct_id, uctx) {
+      if (__instance_of(data, Uint8Array)||__instance_of(data, Uint8ClampedArray)) {
+          data = new DataView(data.buffer);
+      }
+      else 
+        if (__instance_of(data, Array)) {
+          data = new DataView(new Uint8Array(data).buffer);
+      }
+      return this.read_object(data, cls_or_struct_id, uctx);
+    }
+     writeObject(data, obj) {
+      return this.write_object(data, obj);
+    }
+     writeJSON(obj, stt=undefined) {
+      const keywords=this.constructor.keywords;
+      let cls=obj.constructor;
+      stt = stt||this.get_struct(cls.structName);
+      function use_helper_js(field) {
+        let type=field.type.type;
+        let cls=StructFieldTypeMap[type];
+        return cls.useHelperJS(field);
+      }
+      let toJSON=sintern2.toJSON;
+      let fields=stt.fields;
+      let thestruct=this;
+      let json={};
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          let val;
+          let t1=f.type;
+          let json2;
+          if (use_helper_js(f)) {
+              if (f.get!==undefined) {
+                  val = thestruct._env_call(f.get, obj);
+              }
+              else {
+                val = f.name==="this" ? obj : obj[f.name];
+              }
+              if (DEBUG.tinyeval) {
+                  console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+              }
+              json2 = toJSON(this, val, obj, f, t1);
+          }
+          else {
+            val = f.name==="this" ? obj : obj[f.name];
+            json2 = toJSON(this, val, obj, f, t1);
+          }
+          if (f.name!=='this') {
+              json[f.name] = json2;
+          }
+          else {
+            let isArray=Array.isArray(json2);
+            isArray = isArray||f.type.type===StructTypes.ARRAY;
+            isArray = isArray||f.type.type===StructTypes.STATIC_ARRAY;
+            if (isArray) {
+                json.length = json2.length;
+                for (let i=0; i<json2.length; i++) {
+                    json[i] = json2[i];
+                }
+            }
+            else {
+              Object.assign(json, json2);
+            }
+          }
+      }
+      return json;
+    }
+     read_object(data, cls_or_struct_id, uctx, objInstance) {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (__instance_of(data, Array)) {
+          data = new DataView(new Uint8Array(data).buffer);
+      }
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      if (uctx===undefined) {
+          uctx = new unpack_context();
+          packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+      }
+      let thestruct=this;
+      let this2=this;
+      function unpack_field(type) {
+        return StructFieldTypeMap[type.type].unpack(this2, data, type, uctx);
+      }
+      function unpack_into(type, dest) {
+        return StructFieldTypeMap[type.type].unpackInto(this2, data, type, uctx, dest);
+      }
+      let was_run=false;
+      function makeLoader(stt) {
+        return function load(obj) {
+          if (was_run) {
+              return ;
+          }
+          was_run = true;
+          let fields=stt.fields;
+          let flen=fields.length;
+          for (let i=0; i<flen; i++) {
+              let f=fields[i];
+              if (f.name==='this') {
+                  unpack_into(f.type, obj);
+              }
+              else {
+                obj[f.name] = unpack_field(f.type);
+              }
+          }
+        }
+      }
+      let load=makeLoader(stt);
+      if (cls.prototype.loadSTRUCT!==undefined) {
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
+          }
+          else 
+            if (!obj) {
+              obj = new cls();
+          }
+          obj.loadSTRUCT(load);
+          if (!was_run) {
+              console.warn(""+cls.structName+".prototype.loadSTRUCT() did not execute its loader callback!");
+              load(obj);
+          }
+          return obj;
+      }
+      else 
+        if (cls.fromSTRUCT!==undefined) {
+          if (warninglvl$1>1)
+            console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+          return cls.fromSTRUCT(load);
+      }
+      else {
+        let obj=objInstance;
+        if (!obj&&cls.newSTRUCT!==undefined) {
+            obj = cls.newSTRUCT(load);
+        }
+        else 
+          if (!obj) {
+            obj = new cls();
+        }
+        load(obj);
+        return obj;
+      }
+    }
+     validateJSON(json, cls_or_struct_id, useInternalParser=true, useColors=true, consoleLogger=function () {
+      console.log(...arguments);
+    }, _abstractKey="_structName") {
+      if (cls_or_struct_id===undefined) {
+          throw new Error(this.constructor.name+".prototype.validateJSON: Expected at least two arguments");
+      }
+      try {
+        json = JSON.stringify(json, undefined, 2);
+        this.jsonBuf = json;
+        this.jsonUseColors = useColors;
+        this.jsonLogger = consoleLogger;
+        jsonParser.logger = this.jsonLogger;
+        if (useInternalParser) {
+            json = jsonParser.parse(json);
+        }
+        else {
+          json = JSON.parse(json);
+        }
+        this.validateJSONIntern(json, cls_or_struct_id, _abstractKey);
+      }
+      catch (error) {
+          if (!(__instance_of(error, JSONError))) {
+              console.error(error.stack);
+          }
+          this.jsonLogger(error.message);
+          return false;
+      }
+      return true;
+    }
+     validateJSONIntern(json, cls_or_struct_id, _abstractKey="_structName") {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else 
+        if (__instance_of(cls_or_struct_id, NStruct)) {
+          cls = this.get_struct_cls(cls_or_struct_id.name);
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      let fields=stt.fields;
+      let flen=fields.length;
+      let keys=new Set();
+      keys.add(_abstractKey);
+      let keyTestJson=json;
+      for (let i=0; i<flen; i++) {
+          let f=fields[i];
+          let val;
+          let tokinfo;
+          if (f.name==='this') {
+              val = json;
+              keyTestJson = {"this": json};
+              keys.add("this");
+              tokinfo = json[TokSymbol];
+          }
+          else {
+            val = json[f.name];
+            keys.add(f.name);
+            tokinfo = json[TokSymbol] ? json[TokSymbol].fields[f.name] : undefined;
+            if (!tokinfo) {
+                let f2=fields[Math.max(i-1, 0)];
+                tokinfo = TokSymbol[TokSymbol] ? json[TokSymbol].fields[f2.name] : undefined;
+            }
+            if (!tokinfo) {
+                tokinfo = json[TokSymbol];
+            }
+          }
+          if (val===undefined) {
+          }
+          let instance=f.name==='this' ? val : json;
+          let ret=sintern2.validateJSON(this, val, json, f, f.type, instance, _abstractKey);
+          if (!ret||typeof ret==="string") {
+              let msg=typeof ret==="string" ? ": "+ret : "";
+              if (tokinfo) {
+                  this.jsonLogger(printContext(this.jsonBuf, tokinfo, this.jsonUseColors));
+              }
+              if (val===undefined) {
+                  throw new JSONError("Missing json field "+f.name+msg);
+              }
+              else {
+                throw new JSONError("Invalid json field "+f.name+msg);
+              }
+              return false;
+          }
+      }
+      for (let k in keyTestJson) {
+          if (typeof json[k]==="symbol") {
+              continue;
+          }
+          if (!keys.has(k)) {
+              this.jsonLogger(cls.STRUCT);
+              throw new JSONError("Unknown json field "+k);
+              return false;
+          }
+      }
+      return true;
+    }
+     readJSON(json, cls_or_struct_id, objInstance=undefined) {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else 
+        if (__instance_of(cls_or_struct_id, NStruct)) {
+          cls = this.get_struct_cls(cls_or_struct_id.name);
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+      let thestruct=this;
+      let this2=this;
+      let was_run=false;
+      let fromJSON=sintern2.fromJSON;
+      function makeLoader(stt) {
+        return function load(obj) {
+          if (was_run) {
+              return ;
+          }
+          was_run = true;
+          let fields=stt.fields;
+          let flen=fields.length;
+          for (let i=0; i<flen; i++) {
+              let f=fields[i];
+              let val;
+              if (f.name==='this') {
+                  val = json;
+              }
+              else {
+                val = json[f.name];
+              }
+              if (val===undefined) {
+                  console.warn("nstructjs.readJSON: Missing field "+f.name+" in struct "+stt.name);
+                  continue;
+              }
+              let instance=f.name==='this' ? obj : objInstance;
+              let ret=fromJSON(this2, val, obj, f, f.type, instance);
+              if (f.name!=='this') {
+                  obj[f.name] = ret;
+              }
+          }
+        }
+      }
+      let load=makeLoader(stt);
+      if (cls.prototype.loadSTRUCT!==undefined) {
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
+          }
+          else 
+            if (!obj) {
+              obj = new cls();
+          }
+          obj.loadSTRUCT(load);
+          return obj;
+      }
+      else 
+        if (cls.fromSTRUCT!==undefined) {
+          if (warninglvl$1>1)
+            console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+          return cls.fromSTRUCT(load);
+      }
+      else {
+        let obj=objInstance;
+        if (!obj&&cls.newSTRUCT!==undefined) {
+            obj = cls.newSTRUCT(load);
+        }
+        else 
+          if (!obj) {
+            obj = new cls();
+        }
+        load(obj);
+        return obj;
+      }
+    }
+  }
+  _ESClass.register(STRUCT);
+  _es6_module.add_class(STRUCT);
+  
+  if (haveCodeGen) {
+      var StructClass;
+      eval(code);
+      STRUCT = StructClass;
+  }
+  STRUCT.setClassKeyword("STRUCT");
+  function deriveStructManager(keywords) {
+    if (keywords===undefined) {
+        keywords = {script: "STRUCT", 
+      name: undefined, 
+      load: undefined, 
+      new: undefined, 
+      from: undefined};
+    }
+    if (!keywords.name) {
+        keywords.name = keywords.script.toLowerCase()+"Name";
+    }
+    if (!keywords.load) {
+        keywords.load = "load"+keywords.script;
+    }
+    if (!keywords.new) {
+        keywords.new = "new"+keywords.script;
+    }
+    if (!keywords.from) {
+        keywords.from = "from"+keywords.script;
+    }
+    if (!haveCodeGen) {
+        class NewSTRUCT extends STRUCT {
+        }
+        _ESClass.register(NewSTRUCT);
+        _es6_module.add_class(NewSTRUCT);
+        NewSTRUCT.keywords = keywords;
+        return NewSTRUCT;
+    }
+    else {
+      var StructClass;
+      let code2=code;
+      code2 = code2.replace(/\[keywords.script\]/g, keywords.script);
+      eval(code2);
+      return StructClass;
+    }
+  }
+  manager = new STRUCT();
+  function write_scripts(nManager, include_code) {
+    if (nManager===undefined) {
+        nManager = manager;
+    }
+    if (include_code===undefined) {
+        include_code = false;
+    }
+    let buf="";
+    let nl=String.fromCharCode(10);
+    let tab=String.fromCharCode(9);
+    nManager.forEach(function (stt) {
+      buf+=STRUCT.fmt_struct(stt, false, !include_code)+nl;
+    });
+    let buf2=buf;
+    buf = "";
+    for (let i=0; i<buf2.length; i++) {
+        let c=buf2[i];
+        if (c===nl) {
+            buf+=nl;
+            let i2=i;
+            while (i<buf2.length&&(buf2[i]===" "||buf2[i]===tab||buf2[i]===nl)) {
+              i++;
+            }
+            if (i!==i2)
+              i--;
+        }
+        else {
+          buf+=c;
+        }
+    }
+    return buf;
+  }
+  "use strict";
+  let nbtoa, natob;
+  if (typeof btoa==="undefined") {
+      nbtoa = function btoa(str) {
+        let buffer=new Buffer(""+str, 'binary');
+        return buffer.toString('base64');
+      };
+      natob = function atob(str) {
+        return new Buffer(str, 'base64').toString('binary');
+      };
+  }
+  else {
+    natob = atob;
+    nbtoa = btoa;
+  }
+  function versionToInt(v) {
+    v = versionCoerce(v);
+    let mul=64;
+    return ~~(v.major*mul*mul*mul+v.minor*mul*mul+v.micro*mul);
+  }
+  let ver_pat=/[0-9]+\.[0-9]+\.[0-9]+$/;
+  function versionCoerce(v) {
+    if (!v) {
+        throw new Error("empty version: "+v);
+    }
+    if (typeof v==="string") {
+        if (!ver_pat.exec(v)) {
+            throw new Error("invalid version string "+v);
+        }
+        let ver=v.split(".");
+        return {major: parseInt(ver[0]), 
+      minor: parseInt(ver[1]), 
+      micro: parseInt(ver[2])}
+    }
+    else 
+      if (Array.isArray(v)) {
+        return {major: v[0], 
+      minor: v[1], 
+      micro: v[2]}
+    }
+    else 
+      if (typeof v==="object") {
+        let test=(k) =>          {
+          return k in v&&typeof v[k]==="number";
+        };
+        if (!test("major")||!test("minor")||!test("micro")) {
+            throw new Error("invalid version object: "+v);
+        }
+        return v;
+    }
+    else {
+      throw new Error("invalid version "+v);
+    }
+  }
+  function versionLessThan(a, b) {
+    return versionToInt(a)<versionToInt(b);
+  }
+  class FileParams  {
+     constructor() {
+      this.magic = "STRT";
+      this.ext = ".bin";
+      this.blocktypes = ["DATA"];
+      this.version = {major: 0, 
+     minor: 0, 
+     micro: 1};
+    }
+  }
+  _ESClass.register(FileParams);
+  _es6_module.add_class(FileParams);
+  class Block  {
+     constructor(type_magic, data) {
+      this.type = type_magic;
+      this.data = data;
+    }
+  }
+  _ESClass.register(Block);
+  _es6_module.add_class(Block);
+  class FileeError extends Error {
+  }
+  _ESClass.register(FileeError);
+  _es6_module.add_class(FileeError);
+  class FileHelper  {
+     constructor(params) {
+      if (params===undefined) {
+          params = new FileParams();
+      }
+      else {
+        let fp=new FileParams();
+        for (let k in params) {
+            fp[k] = params[k];
+        }
+        params = fp;
+      }
+      this.version = params.version;
+      this.blocktypes = params.blocktypes;
+      this.magic = params.magic;
+      this.ext = params.ext;
+      this.struct = undefined;
+      this.unpack_ctx = undefined;
+    }
+     read(dataview) {
+      this.unpack_ctx = new unpack_context();
+      let magic=unpack_static_string(dataview, this.unpack_ctx, 4);
+      if (magic!==this.magic) {
+          throw new FileError("corrupted file");
+      }
+      this.version = {};
+      this.version.major = unpack_short(dataview, this.unpack_ctx);
+      this.version.minor = unpack_byte(dataview, this.unpack_ctx);
+      this.version.micro = unpack_byte(dataview, this.unpack_ctx);
+      let struct=this.struct = new STRUCT();
+      let scripts=unpack_string(dataview, this.unpack_ctx);
+      this.struct.parse_structs(scripts, manager);
+      let blocks=[];
+      let dviewlen=dataview.buffer.byteLength;
+      while (this.unpack_ctx.i<dviewlen) {
+        let type=unpack_static_string(dataview, this.unpack_ctx, 4);
+        let datalen=unpack_int(dataview, this.unpack_ctx);
+        let bstruct=unpack_int(dataview, this.unpack_ctx);
+        let bdata;
+        if (bstruct===-2) {
+            bdata = unpack_static_string(dataview, this.unpack_ctx, datalen);
+        }
+        else {
+          bdata = unpack_bytes(dataview, this.unpack_ctx, datalen);
+          bdata = struct.read_object(bdata, bstruct, new unpack_context());
+        }
+        let block=new Block();
+        block.type = type;
+        block.data = bdata;
+        blocks.push(block);
+      }
+      this.blocks = blocks;
+      return blocks;
+    }
+     doVersions(old) {
+      let blocks=this.blocks;
+      if (versionLessThan(old, "0.0.1")) {
+      }
+    }
+     write(blocks) {
+      this.struct = manager;
+      this.blocks = blocks;
+      let data=[];
+      pack_static_string(data, this.magic, 4);
+      pack_short(data, this.version.major);
+      pack_byte(data, this.version.minor&255);
+      pack_byte(data, this.version.micro&255);
+      let scripts=write_scripts();
+      pack_string(data, scripts);
+      let struct=this.struct;
+      for (let block of blocks) {
+          if (typeof block.data==="string") {
+              pack_static_string(data, block.type, 4);
+              pack_int(data, block.data.length);
+              pack_int(data, -2);
+              pack_static_string(data, block.data, block.data.length);
+              continue;
+          }
+          let structName=block.data.constructor.structName;
+          if (structName===undefined||!(structName in struct.structs)) {
+              throw new Error("Non-STRUCTable object "+block.data);
+          }
+          let data2=[];
+          let stt=struct.structs[structName];
+          struct.write_object(data2, block.data);
+          pack_static_string(data, block.type, 4);
+          pack_int(data, data2.length);
+          pack_int(data, stt.id);
+          pack_bytes(data, data2);
+      }
+      return new DataView(new Uint8Array(data).buffer);
+    }
+     writeBase64(blocks) {
+      let dataview=this.write(blocks);
+      let str="";
+      let bytes=new Uint8Array(dataview.buffer);
+      for (let i=0; i<bytes.length; i++) {
+          str+=String.fromCharCode(bytes[i]);
+      }
+      return nbtoa(str);
+    }
+     makeBlock(type, data) {
+      return new Block(type, data);
+    }
+     readBase64(base64) {
+      let data=natob(base64);
+      let data2=new Uint8Array(data.length);
+      for (let i=0; i<data.length; i++) {
+          data2[i] = data.charCodeAt(i);
+      }
+      return this.read(new DataView(data2.buffer));
+    }
+  }
+  _ESClass.register(FileHelper);
+  _es6_module.add_class(FileHelper);
+  var struct_filehelper=Object.freeze({__proto__: null, 
+   versionToInt: versionToInt, 
+   versionCoerce: versionCoerce, 
+   versionLessThan: versionLessThan, 
+   FileParams: FileParams, 
+   Block: Block, 
+   FileeError: FileeError, 
+   FileHelper: FileHelper});
+  function truncateDollarSign$1(value) {
+    if (value===undefined) {
+        value = true;
+    }
+    setTruncateDollarSign(value);
+  }
+  function validateStructs(onerror) {
+    return manager.validateStructs(onerror);
+  }
+  function setEndian(mode) {
+    let ret=STRUCT_ENDIAN;
+    setBinaryEndian(mode);
+    return ret;
+  }
+  function consoleLogger() {
+    console.log(...arguments);
+  }
+  function validateJSON$1(json, cls, useInternalParser, printColors, logger) {
+    if (printColors===undefined) {
+        printColors = true;
+    }
+    if (logger===undefined) {
+        logger = consoleLogger;
+    }
+    return manager.validateJSON(json, cls, useInternalParser, printColors, logger);
+  }
+  function getEndian() {
+    return STRUCT_ENDIAN;
+  }
+  function setAllowOverriding(t) {
+    return manager.allowOverriding = !!t;
+  }
+  function isRegistered(cls) {
+    return manager.isRegistered(cls);
+  }
+  function register(cls, structName) {
+    return manager.register(cls, structName);
+  }
+  function unregister(cls) {
+    manager.unregister(cls);
+  }
+  function inherit(child, parent, structName) {
+    if (structName===undefined) {
+        structName = child.name;
+    }
+    return STRUCT.inherit(...arguments);
+  }
+  function readObject(data, cls, __uctx) {
+    if (__uctx===undefined) {
+        __uctx = undefined;
+    }
+    return manager.readObject(data, cls, __uctx);
+  }
+  function writeObject(data, obj) {
+    return manager.writeObject(data, obj);
+  }
+  function writeJSON(obj) {
+    return manager.writeJSON(obj);
+  }
+  function readJSON(json, class_or_struct_id) {
+    return manager.readJSON(json, class_or_struct_id);
+  }
+  JSONError = _es6_module.add_export('JSONError', JSONError);
+  STRUCT = _es6_module.add_export('STRUCT', STRUCT);
+  _truncateDollarSign = _es6_module.add_export('_truncateDollarSign', _truncateDollarSign);
+  struct_binpack = _es6_module.add_export('struct_binpack', struct_binpack);
+  consoleLogger = _es6_module.add_export('consoleLogger', consoleLogger);
+  deriveStructManager = _es6_module.add_export('deriveStructManager', deriveStructManager);
+  struct_filehelper = _es6_module.add_export('struct_filehelper', struct_filehelper);
+  getEndian = _es6_module.add_export('getEndian', getEndian);
+  inherit = _es6_module.add_export('inherit', inherit);
+  isRegistered = _es6_module.add_export('isRegistered', isRegistered);
+  manager = _es6_module.add_export('manager', manager);
+  struct_parser = _es6_module.add_export('struct_parser', struct_parser);
+  struct_parseutil = _es6_module.add_export('struct_parseutil', struct_parseutil);
+  readJSON = _es6_module.add_export('readJSON', readJSON);
+  readObject = _es6_module.add_export('readObject', readObject);
+  register = _es6_module.add_export('register', register);
+  setAllowOverriding = _es6_module.add_export('setAllowOverriding', setAllowOverriding);
+  setDebugMode = _es6_module.add_export('setDebugMode', setDebugMode);
+  setEndian = _es6_module.add_export('setEndian', setEndian);
+  setTruncateDollarSign = _es6_module.add_export('setTruncateDollarSign', setTruncateDollarSign);
+  setWarningMode = _es6_module.add_export('setWarningMode', setWarningMode);
+  truncateDollarSign$1 = _es6_module.add_export('truncateDollarSign$1', truncateDollarSign$1);
+  struct_typesystem = _es6_module.add_export('struct_typesystem', struct_typesystem);
+  unpack_context = _es6_module.add_export('unpack_context', unpack_context);
+  unregister = _es6_module.add_export('unregister', unregister);
+  validateJSON$1 = _es6_module.add_export('validateJSON$1', validateJSON$1);
+  validateStructs = _es6_module.add_export('validateStructs', validateStructs);
+  writeJSON = _es6_module.add_export('writeJSON', writeJSON);
+  writeObject = _es6_module.add_export('writeObject', writeObject);
+  write_scripts = _es6_module.add_export('write_scripts', write_scripts);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/nstructjs_es6.js');
 
 
 es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
@@ -6265,7 +10500,9 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.lineno = 0;
       this.errfunc = errfunc;
       this.tokints = {};
-      for (var i=0; i<tokdef.length; i++) {
+      this.print_tokens = false;
+      this.print_debug = false;
+      for (let i=0; i<tokdef.length; i++) {
           this.tokints[tokdef[i].name] = i;
       }
       this.statestack = [["__main__", 0]];
@@ -6301,8 +10538,8 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.errfunc = state[1];
     }
      pop_state() {
-      var item=this.statestack[this.statestack.length-1];
-      var state=this.states[item[0]];
+      let item=this.statestack[this.statestack.length-1];
+      let state=this.states[item[0]];
       this.tokdef = state[0];
       this.errfunc = state[1];
       this.statedata = item[1];
@@ -6321,12 +10558,12 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       if (this.errfunc!==undefined&&!this.errfunc(this))
         return ;
       console.log("Syntax error near line "+this.lineno);
-      var next=Math.min(this.lexpos+8, this.lexdata.length);
+      let next=Math.min(this.lexpos+8, this.lexdata.length);
       console.log("  "+this.lexdata.slice(this.lexpos, next));
       throw new PUTLParseError("Parse error");
     }
      peek() {
-      var tok=this.next(true);
+      let tok=this.next(true);
       if (tok===undefined)
         return undefined;
       this.peeked_tokens.push(tok);
@@ -6334,40 +10571,46 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     }
      peek_i(i) {
       while (this.peeked_tokens.length<=i) {
-        var t=this.peek();
+        let t=this.peek();
         if (t===undefined)
           return undefined;
       }
       return this.peeked_tokens[i];
     }
      at_end() {
-      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length===0;
     }
      next(ignore_peek) {
       if (ignore_peek!==true&&this.peeked_tokens.length>0) {
-          var tok=this.peeked_tokens[0];
+          let tok=this.peeked_tokens[0];
+          if (this.print_debug) {
+              console.log("PEEK_SHIFTING", ""+tok);
+          }
           this.peeked_tokens.shift();
+          if (this.print_tokens) {
+              console.log(tok.toString());
+          }
           return tok;
       }
       if (this.lexpos>=this.lexdata.length)
         return undefined;
-      var ts=this.tokdef;
-      var tlen=ts.length;
-      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
-      var results=[];
-      for (var i=0; i<tlen; i++) {
-          var t=ts[i];
+      let ts=this.tokdef;
+      let tlen=ts.length;
+      let lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      let results=[];
+      for (let i=0; i<tlen; i++) {
+          let t=ts[i];
           if (t.re===undefined)
             continue;
-          var res=t.re.exec(lexdata);
+          let res=t.re.exec(lexdata);
           if (res!==null&&res!==undefined&&res.index===0) {
               results.push([t, res]);
           }
       }
-      var max_res=0;
-      var theres=undefined;
-      for (var i=0; i<results.length; i++) {
-          var res=results[i];
+      let max_res=0;
+      let theres=undefined;
+      for (let i=0; i<results.length; i++) {
+          let res=results[i];
           if (res[1][0].length>max_res) {
               theres = res;
               max_res = res[1][0].length;
@@ -6377,15 +10620,21 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
           this.error();
           return ;
       }
-      var def=theres[0];
-      var lexlen=max_res;
-      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+      let def=theres[0];
+      let lexlen=max_res;
+      let tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
       this.lexpos+=max_res;
       if (def.func) {
           tok = def.func(tok);
           if (tok===undefined) {
-              return this.next();
+              return this.next(ignore_peek);
           }
+      }
+      if (this.print_tokens) {
+          console.log(tok.toString());
+      }
+      if (!ignore_peek&&this.print_debug) {
+          console.log("CONSUME", tok.toString(), "\n"+getTraceBack());
       }
       return tok;
     }
@@ -6393,6 +10642,45 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
   _ESClass.register(lexer);
   _es6_module.add_class(lexer);
   lexer = _es6_module.add_export('lexer', lexer);
+  function getTraceBack(limit, start) {
+    try {
+      throw new Error();
+    }
+    catch (error) {
+        let stack=error.stack.split("\n");
+        stack = stack.slice(1, stack.length);
+        if (start===undefined) {
+            start = 0;
+        }
+        for (let i=0; i<stack.length; i++) {
+            let l=stack[i];
+            let j=l.length-1;
+            while (j>0&&l[j]!=="/") {
+              j--;
+            }
+            let k=j;
+            while (k>=0&&l[k]!=="(") {
+              k--;
+            }
+            let func=l.slice(0, k).trim();
+            let file=l.slice(j+1, l.length-1);
+            l = `  ${func} (${file})`;
+            if (l.search(/parseutil\.js/)>=0) {
+                start = Math.max(start, i);
+            }
+            stack[i] = l;
+        }
+        if (limit!==undefined) {
+            stack.length = Math.min(stack.length, limit);
+        }
+        if (start!==undefined) {
+            stack = stack.slice(start, stack.length);
+        }
+        stack = stack.join("\n");
+        return stack;
+    }
+  }
+  getTraceBack = _es6_module.add_export('getTraceBack', getTraceBack);
   class parser  {
      constructor(lexer, errfunc) {
       this.lexer = lexer;
@@ -6410,7 +10698,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
         err_on_unconsumed = true;
       if (data!==undefined)
         this.lexer.input(data);
-      var ret=this.start(this);
+      let ret=this.start(this);
       if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
           this.error(undefined, "parser did not consume entire input");
       }
@@ -6420,18 +10708,19 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.lexer.input(data);
     }
      error(tok, msg) {
-      if (msg==undefined)
+      if (msg===undefined)
         msg = "";
-      if (tok==undefined)
-        var estr="Parse error at end of input: "+msg;
+      let estr;
+      if (tok===undefined)
+        estr = "Parse error at end of input: "+msg;
       else 
         estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
-      var buf="1| ";
-      var ld=this.lexer.lexdata;
-      var l=1;
-      for (var i=0; i<ld.length; i++) {
-          var c=ld[i];
-          if (c=='\n') {
+      let buf="1| ";
+      let ld=this.lexer.lexdata;
+      let l=1;
+      for (let i=0; i<ld.length; i++) {
+          let c=ld[i];
+          if (c==='\n') {
               l++;
               buf+="\n"+l+"| ";
           }
@@ -6449,13 +10738,13 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       throw new PUTLParseError(estr);
     }
      peek() {
-      var tok=this.lexer.peek();
-      if (tok!=undefined)
+      let tok=this.lexer.peek();
+      if (tok!==undefined)
         tok.parser = this;
       return tok;
     }
      peek_i(i) {
-      var tok=this.lexer.peek_i(i);
+      let tok=this.lexer.peek_i(i);
       if (tok!==undefined)
         tok.parser = this;
       return tok;
@@ -6464,13 +10753,13 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       return this.peek_i(0);
     }
      next() {
-      var tok=this.lexer.next();
+      let tok=this.lexer.next();
       if (tok!==undefined)
         tok.parser = this;
       return tok;
     }
      optional(type) {
-      var tok=this.peek_i(0);
+      let tok=this.peek_i(0);
       if (tok&&tok.type===type) {
           this.next();
           return true;
@@ -6481,10 +10770,10 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       return this.lexer.at_end();
     }
      expect(type, msg) {
-      var tok=this.next();
-      if (msg==undefined)
+      let tok=this.next();
+      if (msg===undefined)
         msg = type;
-      if (tok==undefined||tok.type!=type) {
+      if (tok===undefined||tok.type!=type) {
           this.error(tok, "Expected "+msg+", not "+tok.type);
       }
       return tok.value;
@@ -6494,22 +10783,22 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
   _es6_module.add_class(parser);
   parser = _es6_module.add_export('parser', parser);
   function test_parser() {
-    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
-    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    let basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    let reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
     function tk(name, re, func) {
       return new tokdef(name, re, func);
     }
-    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+    let tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
       if (reserved_tokens.has(t.value)) {
           t.type = t.value.toUpperCase();
       }
       return t;
     }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
-      var js="";
-      var lexer=t.lexer;
+      let js="";
+      let lexer=t.lexer;
       while (lexer.lexpos<lexer.lexdata.length) {
-        var c=lexer.lexdata[lexer.lexpos];
-        if (c=="\n")
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
           break;
         js+=c;
         lexer.lexpos++;
@@ -6524,26 +10813,26 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       t.lexer.lineno+=1;
     }), tk("SPACE", / |\t/, function (t) {
     })];
-    for (var rt in reserved_tokens) {
+    for (let rt in reserved_tokens) {
         tokens.push(tk(rt.toUpperCase()));
     }
     function errfunc(lexer) {
       return true;
     }
-    var lex=new lexer(tokens, errfunc);
+    let lex=new lexer(tokens, errfunc);
     console.log("Testing lexical scanner...");
     lex.input(a);
-    var tok;
+    let tok;
     while (tok = lex.next()) {
       console.log(tok.toString());
     }
-    var parser=new parser(lex);
+    let parser=new parser(lex);
     parser.input(a);
     function p_Array(p) {
       p.expect("ARRAY");
       p.expect("LPARAM");
-      var arraytype=p_Type(p);
-      var itername="";
+      let arraytype=p_Type(p);
+      let itername="";
       if (p.optional("COMMA")) {
           itername = arraytype;
           arraytype = p_Type(p);
@@ -6554,8 +10843,8 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       iname: itername}}
     }
     function p_Type(p) {
-      var tok=p.peek();
-      if (tok.type=="ID") {
+      let tok=p.peek();
+      if (tok.type==="ID") {
           p.next();
           return {type: "struct", 
        data: "\""+tok.value+"\""}
@@ -6566,7 +10855,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
           return {type: tok.type.toLowerCase()}
       }
       else 
-        if (tok.type=="ARRAY") {
+        if (tok.type==="ARRAY") {
           return p_Array(p);
       }
       else {
@@ -6574,20 +10863,20 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       }
     }
     function p_Field(p) {
-      var field={}
+      let field={}
       console.log("-----", p.peek().type);
       field.name = p.expect("ID", "struct field name");
       p.expect("COLON");
       field.type = p_Type(p);
       field.set = undefined;
       field.get = undefined;
-      var tok=p.peek();
-      if (tok.type=="JSCRIPT") {
+      let tok=p.peek();
+      if (tok.type==="JSCRIPT") {
           field.get = tok.value;
           p.next();
       }
       tok = p.peek();
-      if (tok.type=="JSCRIPT") {
+      if (tok.type==="JSCRIPT") {
           field.set = tok.value;
           p.next();
       }
@@ -6595,7 +10884,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       return field;
     }
     function p_Struct(p) {
-      var st={}
+      let st={}
       st.name = p.expect("ID", "struct name");
       st.fields = [];
       p.expect("OPEN");
@@ -6613,19 +10902,58 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       }
       return st;
     }
-    var ret=p_Struct(parser);
+    let ret=p_Struct(parser);
     console.log(JSON.stringify(ret));
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/parseutil.js');
 
 
-es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/config.js"], function _simple_events_module(_es6_module) {
+es6_module_define('simple_events', ["./util.js", "../config/config.js", "./vectormath.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var cconst=es6_import_item(_es6_module, '../config/config.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   let modalstack=[];
   modalstack = _es6_module.add_export('modalstack', modalstack);
   let singleMouseCBs={}
+  function debugDomEvents() {
+    let cbsymbol=Symbol("event-callback");
+    let thsymbol=Symbol("debug-info");
+    let idgen=0;
+    function init(et) {
+      if (!et[thsymbol]) {
+          et[thsymbol] = idgen++;
+      }
+    }
+    function getkey(et, type, options) {
+      init(et);
+      return ""+et[thsymbol]+":"+type+":"+JSON.stringify(options);
+    }
+    let addEventListener=EventTarget.prototype.addEventListener;
+    let removeEventListener=EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.addEventListener = function (type, cb, options) {
+      init(this);
+      if (!cb[cbsymbol]) {
+          cb[cbsymbol] = new Set();
+      }
+      let key=getkey(this, type, options);
+      cb[cbsymbol].add(key);
+      return addEventListener.call(this, type, cb, options);
+    }
+    EventTarget.prototype.removeEventListener = function (type, cb, options) {
+      init(this);
+      if (!cb[cbsymbol]) {
+          console.error("Invalid callback in removeEventListener for", type, this, cb);
+          return ;
+      }
+      let key=getkey(this, type, options);
+      if (!cb[cbsymbol].has(key)) {
+          console.error("Callback not in removeEventListener;", type, this, cb);
+          return ;
+      }
+      cb[cbsymbol].delete(key);
+      return removeEventListener.call(this, type, cb, options);
+    }
+  }
   function singletonMouseEvents() {
     let keys=["mousedown", "mouseup", "mousemove"];
     for (let k of keys) {
@@ -6824,7 +11152,11 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
   function eventWasTouch(e) {
     let ret=e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents;
     ret = ret||e.was_touch;
+    ret = ret||__instance_of(e, TouchEvent);
     ret = ret||e.touches!==undefined;
+    if (__instance_of(e, PointerEvent)) {
+        ret = ret||(e.pointerType==="pen"||e.pointerType==="touch");
+    }
     return ret;
   }
   eventWasTouch = _es6_module.add_export('eventWasTouch', eventWasTouch);
@@ -6878,14 +11210,29 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
     return rec(document.body);
   }
   window._findScreen = findScreen;
-  function pushModalLight(obj, autoStopPropagation) {
+  let ContextAreaClass;
+  function _setModalAreaClass(cls) {
+    ContextAreaClass = cls;
+  }
+  _setModalAreaClass = _es6_module.add_export('_setModalAreaClass', _setModalAreaClass);
+  function pushPointerModal(obj, elem, pointerId, autoStopPropagation) {
     if (autoStopPropagation===undefined) {
         autoStopPropagation = true;
     }
-    if (cconst.DEBUG.modalEvents) {
-        console.warn("pushModalLight");
+    return pushModalLight(obj, autoStopPropagation, elem, pointerId);
+  }
+  pushPointerModal = _es6_module.add_export('pushPointerModal', pushPointerModal);
+  function pushModalLight(obj, autoStopPropagation, elem, pointerId) {
+    if (autoStopPropagation===undefined) {
+        autoStopPropagation = true;
     }
-    let keys=new Set(["keydown", "keyup", "keypress", "mousedown", "mouseup", "touchstart", "touchend", "touchcancel", "mousewheel", "mousemove", "mouseover", "mouseout", "mouseenter", "mouseleave", "dragstart", "drag", "dragend", "dragexit", "dragleave", "dragover", "dragenter", "drop", "pointerdown", "pointermove", "pointerup", "pointercancel"]);
+    let keys;
+    if (pointerId===undefined) {
+        keys = new Set(["keydown", "keyup", "keypress", "mousedown", "mouseup", "touchstart", "touchend", "touchcancel", "mousewheel", "mousemove", "mouseover", "mouseout", "mouseenter", "mouseleave", "dragstart", "drag", "dragend", "dragexit", "dragleave", "dragover", "dragenter", "drop", "pointerdown", "pointermove", "pointerup", "pointercancel", "pointerstart", "pointerend", "pointerleave", "pointerexit", "pointerenter", "pointerover"]);
+    }
+    else {
+      keys = new Set(["keydown", "keyup", "keypress", "mousewheel"]);
+    }
     let ret={keys: keys, 
     handlers: {}, 
     last_mpos: [0, 0]}
@@ -7007,7 +11354,75 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
             window.addEventListener(k, ret.handlers[k], settings);
         }
     }
+    if (pointerId!==undefined) {
+        ret.pointer = {elem: elem, 
+      pointerId: pointerId};
+        function make_pointer(k) {
+          let k2="on_"+k;
+          ret.pointer[k] = function (e) {
+            if (obj[k2]!==undefined) {
+                obj[k2](e);
+            }
+            if (autoStopPropagation) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+          }
+        }
+        make_pointer("pointerdown");
+        make_pointer("pointermove");
+        make_pointer("pointerup");
+        make_pointer("pointerstart");
+        make_pointer("pointerend");
+        make_pointer("pointerleave");
+        make_pointer("pointerenter");
+        make_pointer("pointerout");
+        make_pointer("pointerover");
+        make_pointer("pointerexit");
+        make_pointer("pointercancel");
+        for (let k in ret.pointer) {
+            if (k!=="elem"&&k!=="pointerId") {
+                elem.addEventListener(k, ret.pointer[k]);
+            }
+        }
+        try {
+          elem.setPointerCapture(pointerId);
+        }
+        catch (error) {
+            util.print_stack(error);
+            console.log("attempting fallback");
+            for (let k in ret.pointer) {
+                if (k!=="elem"&&k!=="pointerId") {
+                    elem.removeEventListener(k, ret.pointer[k]);
+                }
+            }
+            delete ret.pointer;
+            modalstack.push(ret);
+            popModalLight(ret);
+            for (let k in obj) {
+                if (k==="pointercancel"||k==="pointerend"||k==="pointerstart") {
+                    continue;
+                }
+                if (k.startsWith("pointer")) {
+                    let k2=k.replace(/pointer/, "mouse");
+                    if (k2 in obj) {
+                        console.warn("warning, existing mouse handler", k2);
+                        continue;
+                    }
+                    let v=obj[k];
+                    obj[k] = undefined;
+                    obj[k2] = v;
+                }
+            }
+            console.log(obj);
+            return pushModalLight(obj, autoStopPropagation);
+        }
+    }
     modalstack.push(ret);
+    ContextAreaClass.lock();
+    if (cconst.DEBUG.modalEvents) {
+        console.warn("pushModalLight", ret.pointer ? "(pointer events)" : "");
+    }
     return ret;
   }
   pushModalLight = _es6_module.add_export('pushModalLight', pushModalLight);
@@ -7064,8 +11479,23 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
     }
     state.handlers = {}
     modalstack.remove(state);
+    ContextAreaClass.unlock();
     if (cconst.DEBUG.modalEvents) {
-        console.warn("popModalLight", modalstack);
+        console.warn("popModalLight", modalstack, state.pointer ? "(pointer events)" : "");
+    }
+    if (state.pointer) {
+        let elem=state.pointer.elem;
+        try {
+          elem.releasePointerCapture(state.pointer.pointerId);
+        }
+        catch (error) {
+            util.print_stack(error);
+        }
+        for (let k in state.pointer) {
+            if (k!=="elem"&&k!=="pointerId") {
+                elem.removeEventListener(k, state.pointer[k]);
+            }
+        }
     }
   }
   popModalLight = _es6_module.add_export('popModalLight', popModalLight);
@@ -7207,7 +11637,6 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
               ok = false;
           }
           if (ok) {
-              console.log("handling hotkey", hk, this);
               try {
                 hk.exec(ctx);
               }
@@ -7232,7 +11661,7 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/simple_events.js');
 
 
-es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], function _solver_module(_es6_module) {
+es6_module_define('solver', ["./util.js", "./math.js", "./vectormath.js"], function _solver_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
   var util=es6_import(_es6_module, './util.js');
@@ -7285,6 +11714,7 @@ es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], funct
       this.gk = 0.99;
       this.simple = false;
       this.randCons = false;
+      this.threshold = 0.01;
     }
      add(con) {
       this.constraints.push(con);
@@ -7367,7 +11797,7 @@ es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], funct
           if (printError) {
               console.warn("average error:", (err/this.constraints.length).toFixed(4));
           }
-          if (err<0.01/this.constraints.length) {
+          if (err<this.threshold/this.constraints.length) {
               break;
           }
       }
@@ -7380,3631 +11810,10 @@ es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], funct
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/solver.js');
 
 
-es6_module_define('struct', ["./nstructjs.js"], function _struct_module(_es6_module) {
-  es6_import(_es6_module, './nstructjs.js');
-  let nstructjs=window.nstructjs;
-  nstructjs = _es6_module.add_export('nstructjs', nstructjs);
-  _es6_module.set_default_export(undefined, Object.assign({setEndian: function setEndian(mode) {
-      nstructjs.STRUCT_ENDIAN = mode;
-    }}, nstructjs));
+es6_module_define('struct', ["./nstructjs_es6.js"], function _struct_module(_es6_module) {
+  var nstructjs=es6_import(_es6_module, './nstructjs_es6.js');
+  nstructjs;
+  _es6_module.set_default_export('nstructjs', nstructjs);
   
-  delete window.nstructjs;
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/struct.js');
-
-
-es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
-  var util=es6_import(_es6_module, './util.js');
-  var nstructjs=es6_import_item(_es6_module, './struct.js', 'default');
-  const EulerOrders={XYZ: 0, 
-   XZY: 1, 
-   YXZ: 2, 
-   YZX: 3, 
-   ZXY: 4, 
-   ZYX: 5}
-  _es6_module.add_export('EulerOrders', EulerOrders);
-  window.makeCompiledVectormathCode = function (mode) {
-    if (mode===undefined) {
-        mode = "es";
-    }
-    let s="";
-    let es6exports=mode==="es";
-    function doExports(name) {
-      if (es6exports) {
-          return "export";
-      }
-      else {
-        return `var ${name} = exports.${name} =`;
-      }
-    }
-    let classes=[Vector2, Vector3, Vector4, a];
-    let lens={Vector2: 2, 
-    Vector3: 3, 
-    Vector4: 4, 
-    Quat: 4}
-    let modecode="";
-    let nstructjscode=`
-  let g = typeof window !== "undefined" ? window : "undefined";
-  
-  g = g || (typeof global !== "undefined" ? global : "undefined");
-  g = g || (typeof self !== "undefined" ? self : "undefined");
-  g = g || (typeof globals !== "undefined" ? globals : "undefined");
-
-  if (typeof nstructjs === "undefined") {
-    //add nstructjs stub
-    g.nstructjs = {
-      register : function() {}
-    }
-  }
-  `;
-    if (mode!=="rjs") {
-        if (mode==="commonjs") {
-            modecode = `if (typeof module !== "undefined" && typeof exports === "undefined") {
-      if (module.exports === undefined) {
-        module.exports = {};
-      }
-      
-      g.exports = module.exports;
-    } else if (typeof module === "undefined") {
-      g.exports = g.vectormath = {};
-    }\n`;
-        }
-        s+=`{
-      ${nstructjscode}
-    ${modecode}
-  }`;
-    }
-    s+=`
-class cachering extends Array {
-  constructor(func, size) {
-    super()
-
-    this.cur = 0;
-
-    for (var i=0; i<size; i++) {
-      this.push(func());
-    }
-  }
-
-  static fromConstructor(cls, size) {
-    var func = function() {
-      return new cls();
-    }
-
-    return new cachering(func, size);
-  }
-
-  next() {
-    var ret = this[this.cur];
-    this.cur = (this.cur+1)%this.length;
-
-    return ret;
-  }
-}
-`;
-    s+=`
-
-var M_SQRT2 = Math.sqrt(2.0);
-var FLT_EPSILON = 2.22e-16;  
-var sin=Math.sin, cos=Math.cos, abs=Math.abs, log=Math.log,
-    asin=Math.asin, exp=Math.exp, acos=Math.acos, fract=Math.fract,
-    sign=Math.sign, tent=Math.tent, atan2=Math.atan2, atan=Math.atan,
-    pow=Math.pow, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil,
-    min=Math.min, max=Math.max, PI=Math.PI, E=2.718281828459045;
-
-var DOT_NORM_SNAP_LIMIT = 0.00000000001;
-
-${doExports("BaseVector")} class BaseVector extends Array {
-  constructor() {
-    super();
-    
-    this.vec = undefined; //for compatibility with old files
-  }
-
-  copy() {
-    return new this.constructor(this);
-  }
-
-  load(data) {
-    throw new Error("Implement me!");
-  }
-  
-  vectorLength() {
-    return sqrt(this.dot(this));
-  }
-  
-  normalize() {
-    var l = this.vectorLength();
-    if (l > 0.00000001) {
-      this.mulScalar(1.0/l);
-    }
-    
-    return this;
-  }
-}
-  
-`;
-    function indent(s, pad) {
-      if (pad===undefined) {
-          pad = "  ";
-      }
-      let l=s.split("\n");
-      let s2="";
-      for (let l2 of l) {
-          s2+=pad+l2+"\n";
-      }
-      return s2;
-    }
-    let i=0;
-    for (let cls of classes) {
-        s+=doExports(cls.name)+" class "+cls.name+" extends BaseVector {\n";
-        let keys=Reflect.ownKeys(cls.prototype);
-        for (let k of keys) {
-            let v=cls.prototype[k];
-            if (typeof v!=="function") {
-                continue;
-            }
-            if (typeof k==="symbol") {
-                k = "  ["+k.toString()+"]";
-            }
-            v = (""+v).trim();
-            if (v.startsWith("function(")||v.startsWith("function (")) {
-                v = k+v.slice(8, v.length).trim();
-            }
-            else 
-              if (v.startsWith("function")) {
-                v = v.slice(8, v.length).trim();
-            }
-            if (v.endsWith(";}")) {
-                v = v.slice(0, v.length-1)+"\n  }\n";
-            }
-            let zero="";
-            let l=lens[cls.name];
-            for (let j=0; j<l; j++) {
-                if (j>0) {
-                    zero+=" = ";
-                }
-                zero+=`this[${j}]`;
-            }
-            zero+=" = 0.0";
-            if (k==="constructor") {
-                s+=`  constructor(data) {
-    super(${l});
-        
-    this.vec = undefined; //for compatibility with old files
-    
-    if (arguments.length > 1) {
-      throw new Error("unexpected argument");
-    }
-
-    //this.length = ${l};
-    ${zero};
-
-    if (data !== undefined) {
-      this.load(data);
-    }
-  }
-`;
-            }
-            else {
-              s+=indent(v);
-            }
-            s+="\n";
-            i++;
-        }
-        s+="}\n\n";
-        s+=`${cls.name}.STRUCT = \`${cls.STRUCT}\`;\n`;
-        s+=`nstructjs.register(${cls.name});\n\n`;
-    }
-    s+="\n\n"+(""+internal_matrix).trim()+"\n";
-    s+="\n"+doExports("Matrix4")+Matrix4;
-    s+=`\n  Matrix4.STRUCT = \`${Matrix4.STRUCT}\`;\n`;
-    s+="nstructjs.register(Matrix4)\n";
-    s+=`
-  var _quat_vs3_temps = cachering.fromConstructor(Vector3, 64);
-  var _v3nd4_n1_normalizedDot4 = new Vector3();
-  var _v3nd4_n2_normalizedDot4 = new Vector3();
-  var _v3nd_n1_normalizedDot = new Vector3();
-  var _v3nd_n2_normalizedDot = new Vector3();
-
-  var $_v3nd4_n1_normalizedDot4 = new Vector3();
-  var $_v3nd4_n2_normalizedDot4 = new Vector3();
-  var $_v3nd_n1_normalizedDot = new Vector3();
-  var $_v3nd_n2_normalizedDot = new Vector3();
-
-  var lookat_cache_vs3 = cachering.fromConstructor(Vector3, 64);
-  var lookat_cache_vs4 = cachering.fromConstructor(Vector4, 64);
-
-  var makenormalcache = cachering.fromConstructor(Vector3, 64);
-`;
-    if (mode==="rjs") {
-        s = `define([], function() {
-  "use strict";
-
-  let exports = {};
-
-  {
-    ${nstructjscode}
-  }
-  ${indent(s)}
-
-  return exports;
-});
-`;
-    }
-    return s;
-  }
-  var sin=Math.sin, cos=Math.cos, abs=Math.abs, log=Math.log, asin=Math.asin, exp=Math.exp, acos=Math.acos, fract=Math.fract, sign=Math.sign, tent=Math.tent, atan2=Math.atan2, atan=Math.atan, pow=Math.pow, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, min=Math.min, max=Math.max, PI=Math.PI, E=2.718281828459045;
-  var DOT_NORM_SNAP_LIMIT=1e-11;
-  var M_SQRT2=Math.sqrt(2.0);
-  var FLT_EPSILON=2.22e-16;
-  var basic_funcs={equals: [["b"], "this[X] === b[X]", "&&"], 
-   zero: [[], "0.0;"], 
-   negate: [[], "-this[X];"], 
-   combine: [["b", "u", "v"], "this[X]*u + this[X]*v;"], 
-   interp: [["b", "t"], "this[X] + (b[X] - this[X])*t;"], 
-   add: [["b"], "this[X] + b[X];"], 
-   addFac: [["b", "F"], "this[X] + b[X]*F;"], 
-   fract: [[], "Math.fract(this[X]);"], 
-   sub: [["b"], "this[X] - b[X];"], 
-   mul: [["b"], "this[X] * b[X];"], 
-   div: [["b"], "this[X] / b[X];"], 
-   mulScalar: [["b"], "this[X] * b;"], 
-   divScalar: [["b"], "this[X] / b;"], 
-   addScalar: [["b"], "this[X] + b;"], 
-   subScalar: [["b"], "this[X] - b;"], 
-   minScalar: [["b"], "Math.min(this[X], b);"], 
-   maxScalar: [["b"], "Math.max(this[X], b);"], 
-   ceil: [[], "Math.ceil(this[X])"], 
-   floor: [[], "Math.floor(this[X])"], 
-   abs: [[], "Math.abs(this[X])"], 
-   min: [["b"], "Math.min(this[X], b[X])"], 
-   max: [["b"], "Math.max(this[X], b[X])"], 
-   clamp: [["MIN", "MAX"], "min(max(this[X], MAX), MIN)"]}
-  function bounded_acos(fac) {
-    if (fac<=-1.0)
-      return Math.pi;
-    else 
-      if (fac>=1.0)
-      return 0.0;
-    else 
-      return Math.acos(fac);
-  }
-  function make_norm_safe_dot(cls) {
-    var _dot=cls.prototype.dot;
-    cls.prototype._dot = _dot;
-    cls.prototype.dot = function (b) {
-      var ret=_dot.call(this, b);
-      if (ret>=1.0-DOT_NORM_SNAP_LIMIT&&ret<=1.0+DOT_NORM_SNAP_LIMIT)
-        return 1.0;
-      if (ret>=-1.0-DOT_NORM_SNAP_LIMIT&&ret<=-1.0+DOT_NORM_SNAP_LIMIT)
-        return -1.0;
-      return ret;
-    }
-  }
-  function getBaseVector(parent) {
-    return class BaseVector extends parent {
-       constructor() {
-        super(...arguments);
-        this.vec = undefined;
-      }
-      static  inherit(cls, vectorsize) {
-        make_norm_safe_dot(cls);
-        var f;
-        var vectorDotDistance="f = function vectorDotDistance(b) {\n";
-        for (var i=0; i<vectorsize; i++) {
-            vectorDotDistance+="  let d"+i+" = this["+i+"]-b["+i+"];\n\n  ";
-        }
-        vectorDotDistance+="  return ";
-        for (var i=0; i<vectorsize; i++) {
-            if (i>0)
-              vectorDotDistance+=" + ";
-            vectorDotDistance+="d"+i+"*d"+i;
-        }
-        vectorDotDistance+=";\n";
-        vectorDotDistance+="};";
-        cls.prototype.vectorDotDistance = eval(vectorDotDistance);
-        var f;
-        var vectorDistance="f = function vectorDistance(b) {\n";
-        for (var i=0; i<vectorsize; i++) {
-            vectorDistance+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
-        }
-        vectorDistance+="  return Math.sqrt(";
-        for (var i=0; i<vectorsize; i++) {
-            if (i>0)
-              vectorDistance+=" + ";
-            vectorDistance+="d"+i+"*d"+i;
-        }
-        vectorDistance+=");\n";
-        vectorDistance+="};";
-        cls.prototype.vectorDistance = eval(vectorDistance);
-        var vectorDistanceSqr="f = function vectorDistanceSqr(b) {\n";
-        for (var i=0; i<vectorsize; i++) {
-            vectorDistanceSqr+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
-        }
-        vectorDistanceSqr+="  return (";
-        for (var i=0; i<vectorsize; i++) {
-            if (i>0)
-              vectorDistanceSqr+=" + ";
-            vectorDistanceSqr+="d"+i+"*d"+i;
-        }
-        vectorDistanceSqr+=");\n";
-        vectorDistanceSqr+="};";
-        cls.prototype.vectorDistanceSqr = eval(vectorDistanceSqr);
-        for (var k in basic_funcs) {
-            var func=basic_funcs[k];
-            var args=func[0];
-            var line=func[1];
-            var f;
-            var code="f = function "+k+"(";
-            for (var i=0; i<args.length; i++) {
-                if (i>0)
-                  code+=", ";
-                line = line.replace(args[i], args[i].toLowerCase());
-                code+=args[i].toLowerCase();
-            }
-            code+=") {\n";
-            if (func.length>2) {
-                code+="  return ";
-                for (var i=0; i<vectorsize; i++) {
-                    if (i>0)
-                      code+=func[2];
-                    code+="("+line.replace(/X/g, ""+i)+")";
-                }
-                code+=";\n";
-            }
-            else {
-              for (var i=0; i<vectorsize; i++) {
-                  var line2=line.replace(/X/g, ""+i);
-                  code+="  this["+i+"] = "+line2+";\n";
-              }
-              code+="  return this;\n";
-            }
-            code+="}\n";
-            var f=eval(code);
-            cls.prototype[k] = f;
-        }
-      }
-       copy() {
-        return new this.constructor(this);
-      }
-       load(data) {
-        throw new Error("Implement me!");
-      }
-       init_swizzle(size) {
-        var ret={};
-        var cls=size===4 ? Vector4 : (size===3 ? Vector3 : Vector2);
-        for (var k in cls.prototype) {
-            var v=cls.prototype[k];
-            if (typeof v!=="function"&&!(__instance_of(v, Function)))
-              continue;
-            ret[k] = v.bind(this);
-        }
-        return ret;
-      }
-       vectorLength() {
-        return sqrt(this.dot(this));
-      }
-       swapAxes(axis1, axis2) {
-        let t=this[axis1];
-        this[axis1] = this[axis2];
-        this[axis2] = t;
-        return this;
-      }
-       normalize() {
-        let l=this.vectorLength();
-        if (l>1e-08) {
-            this.mulScalar(1.0/l);
-        }
-        return this;
-      }
-    }
-    _ESClass.register(BaseVector);
-    _es6_module.add_class(BaseVector);
-  }
-  const BaseVector=getBaseVector(Array);
-  _es6_module.add_export('BaseVector', BaseVector);
-  const F64BaseVector=getBaseVector(Float64Array);
-  _es6_module.add_export('F64BaseVector', F64BaseVector);
-  const F32BaseVector=getBaseVector(Float32Array);
-  _es6_module.add_export('F32BaseVector', F32BaseVector);
-  function myclamp(f, a, b) {
-    return Math.min(Math.max(f, a), b);
-  }
-  class Vector4 extends BaseVector {
-     constructor(data) {
-      super(4);
-      if (arguments.length>1) {
-          throw new Error("unexpected argument");
-      }
-      this[0] = this[1] = this[2] = this[3] = 0.0;
-      if (data!==undefined) {
-          this.load(data);
-      }
-    }
-     toCSS() {
-      let r=~~(this[0]*255);
-      let g=~~(this[1]*255);
-      let b=~~(this[2]*255);
-      let a=this[3];
-      return `rgba(${r},${g},${b},${a})`;
-    }
-     loadXYZW(x, y, z, w) {
-      this[0] = x;
-      this[1] = y;
-      this[2] = z;
-      this[3] = w;
-      return this;
-    }
-     loadXYZ(x, y, z) {
-      this[0] = x;
-      this[1] = y;
-      this[2] = z;
-      return this;
-    }
-     load(data) {
-      if (data===undefined)
-        return this;
-      this[0] = data[0];
-      this[1] = data[1];
-      this[2] = data[2];
-      this[3] = data[3];
-      return this;
-    }
-     dot(b) {
-      return this[0]*b[0]+this[1]*b[1]+this[2]*b[2]+this[3]*b[3];
-    }
-     mulVecQuat(q) {
-      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
-      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
-      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
-      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
-      this[0] = t1;
-      this[1] = t2;
-      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
-      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
-      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
-      this[0] = t1;
-      this[1] = t2;
-      return this;
-    }
-     multVecMatrix(matrix) {
-      var x=this[0];
-      var y=this[1];
-      var z=this[2];
-      var w=this[3];
-      this[0] = w*matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21+z*matrix.$matrix.m31;
-      this[1] = w*matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22+z*matrix.$matrix.m32;
-      this[2] = w*matrix.$matrix.m43+x*matrix.$matrix.m13+y*matrix.$matrix.m23+z*matrix.$matrix.m33;
-      this[3] = w*matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24+z*matrix.$matrix.m34;
-      return this[3];
-    }
-     cross(v) {
-      var x=this[1]*v[2]-this[2]*v[1];
-      var y=this[2]*v[0]-this[0]*v[2];
-      var z=this[0]*v[1]-this[1]*v[0];
-      this[0] = x;
-      this[1] = y;
-      this[2] = z;
-      return this;
-    }
-     preNormalizedAngle(v2) {
-      let th=this.dot(v2)*0.99999;
-      return Math.acos(th);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      if (typeof this.vec!=="undefined") {
-          this.load(this.vec);
-          this.vec = undefined;
-      }
-    }
-  }
-  _ESClass.register(Vector4);
-  _es6_module.add_class(Vector4);
-  Vector4 = _es6_module.add_export('Vector4', Vector4);
-  
-  Vector4.STRUCT = `
-vec4 {
-  0 : float;
-  1 : float;
-  2 : float;
-  3 : float;
-}
-`;
-  nstructjs.manager.add_class(Vector4);
-  var _v3nd_n1_normalizedDot, _v3nd_n2_normalizedDot;
-  var _v3nd4_n1_normalizedDot4, _v3nd4_n2_normalizedDot4;
-  class Vector3 extends F64BaseVector {
-     constructor(data) {
-      super(3);
-      if (arguments.length>1) {
-          throw new Error("unexpected argument");
-      }
-      this[0] = this[1] = this[2] = 0.0;
-      if (data!==undefined) {
-          this.load(data);
-      }
-      if (this.constructor===Vector3) {
-          Object.preventExtensions(this);
-      }
-    }
-    static  normalizedDot4(v1, v2, v3, v4) {
-      $_v3nd4_n1_normalizedDot4.load(v2).sub(v1).normalize();
-      $_v3nd4_n2_normalizedDot4.load(v4).sub(v3).normalize();
-      return $_v3nd4_n1_normalizedDot4.dot($_v3nd4_n2_normalizedDot4);
-    }
-    static  normalizedDot3(v1, center, v2) {
-      $_v3nd4_n1_normalizedDot3.load(v1).sub(center).normalize();
-      $_v3nd4_n2_normalizedDot3.load(v2).sub(center).normalize();
-      return $_v3nd4_n1_normalizedDot3.dot($_v3nd4_n2_normalizedDot3);
-    }
-     toCSS() {
-      let r=~~(this[0]*255);
-      let g=~~(this[1]*255);
-      let b=~~(this[2]*255);
-      return `rgb(${r},${g},${b})`;
-    }
-     loadXYZ(x, y, z) {
-      this[0] = x;
-      this[1] = y;
-      this[2] = z;
-      return this;
-    }
-     toJSON() {
-      return [this[0], this[1], this[2]];
-    }
-     loadJSON(obj) {
-      return this.load(obj);
-    }
-     initVector3() {
-      this.length = 3;
-      this[0] = this[1] = this[2] = 0;
-      return this;
-    }
-     load(data) {
-      if (data===undefined)
-        return this;
-      this[0] = data[0];
-      this[1] = data[1];
-      this[2] = data[2];
-      return this;
-    }
-     dot(b) {
-      return this[0]*b[0]+this[1]*b[1]+this[2]*b[2];
-    }
-     normalizedDot(v) {
-      $_v3nd_n1_normalizedDot.load(this);
-      $_v3nd_n2_normalizedDot.load(v);
-      $_v3nd_n1_normalizedDot.normalize();
-      $_v3nd_n2_normalizedDot.normalize();
-      return $_v3nd_n1_normalizedDot.dot($_v3nd_n2_normalizedDot);
-    }
-     mulVecQuat(q) {
-      let t0=-q[1]*this[0]-q[2]*this[1]-q[3]*this[2];
-      let t1=q[0]*this[0]+q[2]*this[2]-q[3]*this[1];
-      let t2=q[0]*this[1]+q[3]*this[0]-q[1]*this[2];
-      this[2] = q[0]*this[2]+q[1]*this[1]-q[2]*this[0];
-      this[0] = t1;
-      this[1] = t2;
-      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+this[2]*q[2];
-      t2 = t0*-q[2]+this[1]*q[0]-this[2]*q[1]+this[0]*q[3];
-      this[2] = t0*-q[3]+this[2]*q[0]-this[0]*q[2]+this[1]*q[1];
-      this[0] = t1;
-      this[1] = t2;
-      return this;
-    }
-     multVecMatrix(matrix, ignore_w) {
-      if (ignore_w===undefined) {
-          ignore_w = false;
-      }
-      var x=this[0];
-      var y=this[1];
-      var z=this[2];
-      this[0] = matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21+z*matrix.$matrix.m31;
-      this[1] = matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22+z*matrix.$matrix.m32;
-      this[2] = matrix.$matrix.m43+x*matrix.$matrix.m13+y*matrix.$matrix.m23+z*matrix.$matrix.m33;
-      var w=matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24+z*matrix.$matrix.m34;
-      if (!ignore_w&&w!==1&&w!==0&&matrix.isPersp) {
-          this[0]/=w;
-          this[1]/=w;
-          this[2]/=w;
-      }
-      return w;
-    }
-     cross(v) {
-      var x=this[1]*v[2]-this[2]*v[1];
-      var y=this[2]*v[0]-this[0]*v[2];
-      var z=this[0]*v[1]-this[1]*v[0];
-      this[0] = x;
-      this[1] = y;
-      this[2] = z;
-      return this;
-    }
-     rot2d(A, axis) {
-      var x=this[0];
-      var y=this[1];
-      if (axis===1) {
-          this[0] = x*cos(A)+y*sin(A);
-          this[1] = y*cos(A)-x*sin(A);
-      }
-      else {
-        this[0] = x*cos(A)-y*sin(A);
-        this[1] = y*cos(A)+x*sin(A);
-      }
-      return this;
-    }
-     preNormalizedAngle(v2) {
-      let th=this.dot(v2)*0.99999;
-      return Math.acos(th);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      if (typeof this.vec!=="undefined") {
-          this.load(this.vec);
-          this.vec = undefined;
-      }
-    }
-  }
-  _ESClass.register(Vector3);
-  _es6_module.add_class(Vector3);
-  Vector3 = _es6_module.add_export('Vector3', Vector3);
-  Vector3.STRUCT = `
-vec3 {
-  0 : float;
-  1 : float;
-  2 : float;
-}
-`;
-  nstructjs.manager.add_class(Vector3);
-  class Vector2 extends BaseVector {
-     constructor(data) {
-      super(2);
-      if (arguments.length>1) {
-          throw new Error("unexpected argument");
-      }
-      this[0] = this[1] = 0.0;
-      if (data!==undefined) {
-          this.load(data);
-      }
-    }
-     initVector2(co) {
-      this.length = 2;
-      if (co!==undefined) {
-          this[0] = co[0];
-          this[1] = co[1];
-      }
-      else {
-        this[0] = this[1] = 0.0;
-      }
-      return this;
-    }
-     loadXY(x, y) {
-      this[0] = x;
-      this[1] = y;
-      return this;
-    }
-     toJSON() {
-      return [this[0], this[1]];
-    }
-     loadJSON(obj) {
-      return this.load(obj);
-    }
-     loadXY(x, y) {
-      this[0] = x;
-      this[1] = y;
-      return this;
-    }
-     load(data) {
-      if (data===undefined)
-        return this;
-      this[0] = data[0];
-      this[1] = data[1];
-      return this;
-    }
-     rot2d(A, axis) {
-      var x=this[0];
-      var y=this[1];
-      if (axis===1) {
-          this[0] = x*cos(A)+y*sin(A);
-          this[1] = y*cos(A)-x*sin(A);
-      }
-      else {
-        this[0] = x*cos(A)-y*sin(A);
-        this[1] = y*cos(A)+x*sin(A);
-      }
-      return this;
-    }
-     dot(b) {
-      return this[0]*b[0]+this[1]*b[1];
-    }
-     multVecMatrix(matrix) {
-      var x=this[0];
-      var y=this[1];
-      var w=1.0;
-      this[0] = w*matrix.$matrix.m41+x*matrix.$matrix.m11+y*matrix.$matrix.m21;
-      this[1] = w*matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22;
-      if (matrix.isPersp) {
-          let w2=w*matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24;
-          if (w2!==0.0) {
-              this[0]/=w2;
-              this[1]/=w2;
-          }
-      }
-      return this;
-    }
-     mulVecQuat(q) {
-      let t0=-q[1]*this[0]-q[2]*this[1];
-      let t1=q[0]*this[0]-q[3]*this[1];
-      let t2=q[0]*this[1]+q[3]*this[0];
-      let z=q[1]*this[1]-q[2]*this[0];
-      this[0] = t1;
-      this[1] = t2;
-      t1 = t0*-q[1]+this[0]*q[0]-this[1]*q[3]+z*q[2];
-      t2 = t0*-q[2]+this[1]*q[0]-z*q[1]+this[0]*q[3];
-      this[0] = t1;
-      this[1] = t2;
-      return this;
-    }
-     vectorLengthSqr() {
-      return this.dot(this);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      if (typeof this.vec!==undefined) {
-          this.load(this.vec);
-          this.vec = undefined;
-      }
-    }
-  }
-  _ESClass.register(Vector2);
-  _es6_module.add_class(Vector2);
-  Vector2 = _es6_module.add_export('Vector2', Vector2);
-  
-  Vector2.STRUCT = `
-vec2 {
-  0 : float;
-  1 : float;
-}
-`;
-  nstructjs.manager.add_class(Vector2);
-  let _quat_vs3_temps=util.cachering.fromConstructor(Vector3, 64);
-  class Quat extends Vector4 {
-     makeUnitQuat() {
-      this[0] = 1.0;
-      this[1] = this[2] = this[3] = 0.0;
-    }
-     isZero() {
-      return (this[0]===0&&this[1]===0&&this[2]===0&&this[3]===0);
-    }
-     mulQuat(qt) {
-      var a=this[0]*qt[0]-this[1]*qt[1]-this[2]*qt[2]-this[3]*qt[3];
-      var b=this[0]*qt[1]+this[1]*qt[0]+this[2]*qt[3]-this[3]*qt[2];
-      var c=this[0]*qt[2]+this[2]*qt[0]+this[3]*qt[1]-this[1]*qt[3];
-      this[3] = this[0]*qt[3]+this[3]*qt[0]+this[1]*qt[2]-this[2]*qt[1];
-      this[0] = a;
-      this[1] = b;
-      this[2] = c;
-    }
-     conjugate() {
-      this[1] = -this[1];
-      this[2] = -this[2];
-      this[3] = -this[3];
-    }
-     dotWithQuat(q2) {
-      return this[0]*q2[0]+this[1]*q2[1]+this[2]*q2[2]+this[3]*q2[3];
-    }
-     invert() {
-      var f=this.dot(this);
-      if (f===0.0)
-        return ;
-      conjugate_qt(q);
-      this.mulscalar(1.0/f);
-    }
-     sub(q2) {
-      var nq2=new Quat();
-      nq2[0] = -q2[0];
-      nq2[1] = q2[1];
-      nq2[2] = q2[2];
-      nq2[3] = q2[3];
-      this.mul(nq2);
-    }
-     mulScalarWithFactor(fac) {
-      var angle=fac*bounded_acos(this[0]);
-      var co=Math.cos(angle);
-      var si=Math.sin(angle);
-      this[0] = co;
-      var last3=Vector3([this[1], this[2], this[3]]);
-      last3.normalize();
-      last3.mulScalar(si);
-      this[1] = last3[0];
-      this[2] = last3[1];
-      this[3] = last3[2];
-      return this;
-    }
-     toMatrix(m) {
-      if (m===undefined) {
-          m = new Matrix4();
-      }
-      var q0=M_SQRT2*this[0];
-      var q1=M_SQRT2*this[1];
-      var q2=M_SQRT2*this[2];
-      var q3=M_SQRT2*this[3];
-      var qda=q0*q1;
-      var qdb=q0*q2;
-      var qdc=q0*q3;
-      var qaa=q1*q1;
-      var qab=q1*q2;
-      var qac=q1*q3;
-      var qbb=q2*q2;
-      var qbc=q2*q3;
-      var qcc=q3*q3;
-      m.$matrix.m11 = (1.0-qbb-qcc);
-      m.$matrix.m12 = (qdc+qab);
-      m.$matrix.m13 = (-qdb+qac);
-      m.$matrix.m14 = 0.0;
-      m.$matrix.m21 = (-qdc+qab);
-      m.$matrix.m22 = (1.0-qaa-qcc);
-      m.$matrix.m23 = (qda+qbc);
-      m.$matrix.m24 = 0.0;
-      m.$matrix.m31 = (qdb+qac);
-      m.$matrix.m32 = (-qda+qbc);
-      m.$matrix.m33 = (1.0-qaa-qbb);
-      m.$matrix.m34 = 0.0;
-      m.$matrix.m41 = m.$matrix.m42 = m.$matrix.m43 = 0.0;
-      m.$matrix.m44 = 1.0;
-      return m;
-    }
-     matrixToQuat(wmat) {
-      var mat=temp_mats.next();
-      mat.load(wmat);
-      mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
-      mat.$matrix.m44 = 1.0;
-      var r1=new Vector3([mat.$matrix.m11, mat.$matrix.m12, mat.$matrix.m13]);
-      var r2=new Vector3([mat.$matrix.m21, mat.$matrix.m22, mat.$matrix.m23]);
-      var r3=new Vector3([mat.$matrix.m31, mat.$matrix.m32, mat.$matrix.m33]);
-      r1.normalize();
-      r2.normalize();
-      r3.normalize();
-      mat.$matrix.m11 = r1[0];
-      mat.$matrix.m12 = r1[1];
-      mat.$matrix.m13 = r1[2];
-      mat.$matrix.m21 = r2[0];
-      mat.$matrix.m22 = r2[1];
-      mat.$matrix.m23 = r2[2];
-      mat.$matrix.m31 = r3[0];
-      mat.$matrix.m32 = r3[1];
-      mat.$matrix.m33 = r3[2];
-      var tr=0.25*(1.0+mat.$matrix.m11+mat.$matrix.m22+mat.$matrix.m33);
-      var s=0;
-      if (tr>FLT_EPSILON) {
-          s = Math.sqrt(tr);
-          this[0] = s;
-          s = 1.0/(4.0*s);
-          this[1] = ((mat.$matrix.m23-mat.$matrix.m32)*s);
-          this[2] = ((mat.$matrix.m31-mat.$matrix.m13)*s);
-          this[3] = ((mat.$matrix.m12-mat.$matrix.m21)*s);
-      }
-      else {
-        if (mat.$matrix.m11>mat.$matrix.m22&&mat.$matrix.m11>mat.$matrix.m33) {
-            s = 2.0*Math.sqrt(1.0+mat.$matrix.m11-mat.$matrix.m22-mat.$matrix.m33);
-            this[1] = (0.25*s);
-            s = 1.0/s;
-            this[0] = ((mat.$matrix.m32-mat.$matrix.m23)*s);
-            this[2] = ((mat.$matrix.m21+mat.$matrix.m12)*s);
-            this[3] = ((mat.$matrix.m31+mat.$matrix.m13)*s);
-        }
-        else 
-          if (mat.$matrix.m22>mat.$matrix.m33) {
-            s = 2.0*Math.sqrt(1.0+mat.$matrix.m22-mat.$matrix.m11-mat.$matrix.m33);
-            this[2] = (0.25*s);
-            s = 1.0/s;
-            this[0] = ((mat.$matrix.m31-mat.$matrix.m13)*s);
-            this[1] = ((mat.$matrix.m21+mat.$matrix.m12)*s);
-            this[3] = ((mat.$matrix.m32+mat.$matrix.m23)*s);
-        }
-        else {
-          s = 2.0*Math.sqrt(1.0+mat.$matrix.m33-mat.$matrix.m11-mat.$matrix.m22);
-          this[3] = (0.25*s);
-          s = 1.0/s;
-          this[0] = ((mat.$matrix.m21-mat.$matrix.m12)*s);
-          this[1] = ((mat.$matrix.m31+mat.$matrix.m13)*s);
-          this[2] = ((mat.$matrix.m32+mat.$matrix.m23)*s);
-        }
-      }
-      this.normalize();
-    }
-     normalize() {
-      var len=Math.sqrt(this.dot(this));
-      if (len!==0.0) {
-          this.mulScalar(1.0/len);
-      }
-      else {
-        this[1] = 1.0;
-        this[0] = this[2] = this[3] = 0.0;
-      }
-      return this;
-    }
-     axisAngleToQuat(axis, angle) {
-      let nor=_quat_vs3_temps.next().load(axis);
-      nor.normalize();
-      if (nor.dot(nor)!==0.0) {
-          var phi=angle/2.0;
-          var si=Math.sin(phi);
-          this[0] = Math.cos(phi);
-          this[1] = nor[0]*si;
-          this[2] = nor[1]*si;
-          this[3] = nor[2]*si;
-      }
-      else {
-        this.makeUnitQuat();
-      }
-      return this;
-    }
-     rotationBetweenVecs(v1, v2, fac=1.0) {
-      v1 = new Vector3(v1);
-      v2 = new Vector3(v2);
-      v1.normalize();
-      v2.normalize();
-      if (Math.abs(v1.dot(v2))>0.9999) {
-          this.makeUnitQuat();
-          return this;
-      }
-      let axis=new Vector3(v1);
-      axis.cross(v2);
-      let angle=v1.preNormalizedAngle(v2)*fac;
-      this.axisAngleToQuat(axis, angle);
-      return this;
-    }
-     quatInterp(quat2, t) {
-      let quat=new Quat();
-      let cosom=this[0]*quat2[0]+this[1]*quat2[1]+this[2]*quat2[2]+this[3]*quat2[3];
-      if (cosom<0.0) {
-          cosom = -cosom;
-          quat[0] = -this[0];
-          quat[1] = -this[1];
-          quat[2] = -this[2];
-          quat[3] = -this[3];
-      }
-      else {
-        quat[0] = this[0];
-        quat[1] = this[1];
-        quat[2] = this[2];
-        quat[3] = this[3];
-      }
-      let omega, sinom, sc1, sc2;
-      if ((1.0-cosom)>0.0001) {
-          omega = Math.acos(cosom);
-          sinom = Math.sin(omega);
-          sc1 = Math.sin((1.0-t)*omega)/sinom;
-          sc2 = Math.sin(t*omega)/sinom;
-      }
-      else {
-        sc1 = 1.0-t;
-        sc2 = t;
-      }
-      this[0] = sc1*quat[0]+sc2*quat2[0];
-      this[1] = sc1*quat[1]+sc2*quat2[1];
-      this[2] = sc1*quat[2]+sc2*quat2[2];
-      this[3] = sc1*quat[3]+sc2*quat2[3];
-      return this;
-    }
-  }
-  _ESClass.register(Quat);
-  _es6_module.add_class(Quat);
-  Quat = _es6_module.add_export('Quat', Quat);
-  
-  Quat.STRUCT = nstructjs.inherit(Quat, Vector4, 'quat')+`
-}
-`;
-  nstructjs.register(Quat);
-  _v3nd4_n1_normalizedDot4 = new Vector3();
-  _v3nd4_n2_normalizedDot4 = new Vector3();
-  _v3nd_n1_normalizedDot = new Vector3();
-  _v3nd_n2_normalizedDot = new Vector3();
-  BaseVector.inherit(Vector4, 4);
-  F64BaseVector.inherit(Vector3, 3);
-  BaseVector.inherit(Vector2, 2);
-  lookat_cache_vs3 = util.cachering.fromConstructor(Vector3, 64);
-  lookat_cache_vs4 = util.cachering.fromConstructor(Vector4, 64);
-  makenormalcache = util.cachering.fromConstructor(Vector3, 64);
-  var $_v3nd_n1_normalizedDot=new Vector3();
-  var $_v3nd_n2_normalizedDot=new Vector3();
-  var $_v3nd4_n1_normalizedDot4=new Vector3();
-  var $_v3nd4_n2_normalizedDot4=new Vector3();
-  var $_v3nd4_n1_normalizedDot3=new Vector3();
-  var $_v3nd4_n2_normalizedDot3=new Vector3();
-  var M_SQRT2=Math.sqrt(2.0);
-  var FLT_EPSILON=2.22e-16;
-  class internal_matrix  {
-     constructor() {
-      this.m11 = 1.0;
-      this.m12 = 0.0;
-      this.m13 = 0.0;
-      this.m14 = 0.0;
-      this.m21 = 0.0;
-      this.m22 = 1.0;
-      this.m23 = 0.0;
-      this.m24 = 0.0;
-      this.m31 = 0.0;
-      this.m32 = 0.0;
-      this.m33 = 1.0;
-      this.m34 = 0.0;
-      this.m41 = 0.0;
-      this.m42 = 0.0;
-      this.m43 = 0.0;
-      this.m44 = 1.0;
-    }
-  }
-  _ESClass.register(internal_matrix);
-  _es6_module.add_class(internal_matrix);
-  var lookat_cache_vs3;
-  var lookat_cache_vs4;
-  var lookat_cache_ms;
-  var euler_rotate_mats;
-  var makenormalcache;
-  var temp_mats;
-  let preMultTemp;
-  class Matrix4  {
-     constructor(m) {
-      this.$matrix = new internal_matrix();
-      this.isPersp = false;
-      if (typeof m==='object') {
-          if ("length" in m&&m.length>=16) {
-              this.load(m);
-          }
-          else 
-            if (__instance_of(m, Matrix4)) {
-              this.load(m);
-          }
-      }
-    }
-    static  fromJSON() {
-      var mat=new Matrix4();
-      mat.load(json.items);
-      mat.isPersp = json.isPersp;
-      return mat;
-    }
-     clone() {
-      return new Matrix4(this);
-    }
-     addToHashDigest(hash) {
-      let m=this.$matrix;
-      hash.add(m.m11);
-      hash.add(m.m12);
-      hash.add(m.m13);
-      hash.add(m.m14);
-      hash.add(m.m21);
-      hash.add(m.m22);
-      hash.add(m.m23);
-      hash.add(m.m24);
-      hash.add(m.m31);
-      hash.add(m.m32);
-      hash.add(m.m33);
-      hash.add(m.m34);
-      hash.add(m.m41);
-      hash.add(m.m42);
-      hash.add(m.m43);
-      hash.add(m.m44);
-      return this;
-    }
-     equals(m) {
-      let m1=this.$matrix;
-      let m2=m.$matrix;
-      let ok=1;
-      ok = ok&&m1.m11===m2.m11;
-      ok = ok&&m1.m12===m2.m12;
-      ok = ok&&m1.m13===m2.m13;
-      ok = ok&&m1.m14===m2.m14;
-      ok = ok&&m1.m21===m2.m21;
-      ok = ok&&m1.m22===m2.m22;
-      ok = ok&&m1.m23===m2.m23;
-      ok = ok&&m1.m24===m2.m24;
-      ok = ok&&m1.m31===m2.m31;
-      ok = ok&&m1.m32===m2.m32;
-      ok = ok&&m1.m33===m2.m33;
-      ok = ok&&m1.m34===m2.m34;
-      ok = ok&&m1.m41===m2.m41;
-      ok = ok&&m1.m42===m2.m42;
-      ok = ok&&m1.m43===m2.m43;
-      ok = ok&&m1.m44===m2.m44;
-      return ok;
-    }
-     loadColumn(i, vec) {
-      let m=this.$matrix;
-      let have4=vec.length>3;
-      switch (i) {
-        case 0:
-          m.m11 = vec[0];
-          m.m21 = vec[1];
-          m.m31 = vec[2];
-          if (have4) {
-              m.m41 = vec[3];
-          }
-          break;
-        case 1:
-          m.m12 = vec[0];
-          m.m22 = vec[1];
-          m.m32 = vec[2];
-          if (have4) {
-              m.m42 = vec[3];
-          }
-          break;
-        case 2:
-          m.m13 = vec[0];
-          m.m23 = vec[1];
-          m.m33 = vec[2];
-          if (have4) {
-              m.m43 = vec[3];
-          }
-          break;
-        case 3:
-          m.m14 = vec[0];
-          m.m24 = vec[1];
-          m.m34 = vec[2];
-          if (have4) {
-              m.m44 = vec[3];
-          }
-          break;
-      }
-      return this;
-    }
-     copyColumnTo(i, vec) {
-      let m=this.$matrix;
-      let have4=vec.length>3;
-      switch (i) {
-        case 0:
-          vec[0] = m.m11;
-          vec[1] = m.m21;
-          vec[2] = m.m31;
-          if (have4) {
-              vec[3] = m.m41;
-          }
-          break;
-        case 1:
-          vec[0] = m.m12;
-          vec[1] = m.m22;
-          vec[2] = m.m32;
-          if (have4) {
-              vec[3] = m.m42;
-          }
-          break;
-        case 2:
-          vec[0] = m.m13;
-          vec[1] = m.m23;
-          vec[2] = m.m33;
-          if (have4) {
-              vec[3] = m.m43;
-          }
-          break;
-        case 3:
-          vec[0] = m.m14;
-          vec[1] = m.m24;
-          vec[2] = m.m34;
-          if (have4) {
-              vec[3] = m.m44;
-          }
-          break;
-      }
-      return vec;
-    }
-     copyColumn(i) {
-      return this.copyColumnTo(i, new Vector3());
-    }
-     load() {
-      if (arguments.length===1&&typeof arguments[0]==='object') {
-          var matrix;
-          if (__instance_of(arguments[0], Matrix4)) {
-              matrix = arguments[0].$matrix;
-              this.isPersp = arguments[0].isPersp;
-              this.$matrix.m11 = matrix.m11;
-              this.$matrix.m12 = matrix.m12;
-              this.$matrix.m13 = matrix.m13;
-              this.$matrix.m14 = matrix.m14;
-              this.$matrix.m21 = matrix.m21;
-              this.$matrix.m22 = matrix.m22;
-              this.$matrix.m23 = matrix.m23;
-              this.$matrix.m24 = matrix.m24;
-              this.$matrix.m31 = matrix.m31;
-              this.$matrix.m32 = matrix.m32;
-              this.$matrix.m33 = matrix.m33;
-              this.$matrix.m34 = matrix.m34;
-              this.$matrix.m41 = matrix.m41;
-              this.$matrix.m42 = matrix.m42;
-              this.$matrix.m43 = matrix.m43;
-              this.$matrix.m44 = matrix.m44;
-              return this;
-          }
-          else 
-            matrix = arguments[0];
-          if ("length" in matrix&&matrix.length>=16) {
-              this.$matrix.m11 = matrix[0];
-              this.$matrix.m12 = matrix[1];
-              this.$matrix.m13 = matrix[2];
-              this.$matrix.m14 = matrix[3];
-              this.$matrix.m21 = matrix[4];
-              this.$matrix.m22 = matrix[5];
-              this.$matrix.m23 = matrix[6];
-              this.$matrix.m24 = matrix[7];
-              this.$matrix.m31 = matrix[8];
-              this.$matrix.m32 = matrix[9];
-              this.$matrix.m33 = matrix[10];
-              this.$matrix.m34 = matrix[11];
-              this.$matrix.m41 = matrix[12];
-              this.$matrix.m42 = matrix[13];
-              this.$matrix.m43 = matrix[14];
-              this.$matrix.m44 = matrix[15];
-              return this;
-          }
-      }
-      this.makeIdentity();
-      return this;
-    }
-     toJSON() {
-      return {isPersp: this.isPersp, 
-     items: this.getAsArray()}
-    }
-     getAsArray() {
-      return [this.$matrix.m11, this.$matrix.m12, this.$matrix.m13, this.$matrix.m14, this.$matrix.m21, this.$matrix.m22, this.$matrix.m23, this.$matrix.m24, this.$matrix.m31, this.$matrix.m32, this.$matrix.m33, this.$matrix.m34, this.$matrix.m41, this.$matrix.m42, this.$matrix.m43, this.$matrix.m44];
-    }
-     getAsFloat32Array() {
-      return new Float32Array(this.getAsArray());
-    }
-     setUniform(ctx, loc, transpose) {
-      if (Matrix4.setUniformArray===undefined) {
-          Matrix4.setUniformWebGLArray = new Float32Array(16);
-          Matrix4.setUniformArray = new Array(16);
-      }
-      Matrix4.setUniformArray[0] = this.$matrix.m11;
-      Matrix4.setUniformArray[1] = this.$matrix.m12;
-      Matrix4.setUniformArray[2] = this.$matrix.m13;
-      Matrix4.setUniformArray[3] = this.$matrix.m14;
-      Matrix4.setUniformArray[4] = this.$matrix.m21;
-      Matrix4.setUniformArray[5] = this.$matrix.m22;
-      Matrix4.setUniformArray[6] = this.$matrix.m23;
-      Matrix4.setUniformArray[7] = this.$matrix.m24;
-      Matrix4.setUniformArray[8] = this.$matrix.m31;
-      Matrix4.setUniformArray[9] = this.$matrix.m32;
-      Matrix4.setUniformArray[10] = this.$matrix.m33;
-      Matrix4.setUniformArray[11] = this.$matrix.m34;
-      Matrix4.setUniformArray[12] = this.$matrix.m41;
-      Matrix4.setUniformArray[13] = this.$matrix.m42;
-      Matrix4.setUniformArray[14] = this.$matrix.m43;
-      Matrix4.setUniformArray[15] = this.$matrix.m44;
-      Matrix4.setUniformWebGLArray.set(Matrix4.setUniformArray);
-      ctx.uniformMatrix4fv(loc, transpose, Matrix4.setUniformWebGLArray);
-      return this;
-    }
-     makeIdentity() {
-      this.$matrix.m11 = 1;
-      this.$matrix.m12 = 0;
-      this.$matrix.m13 = 0;
-      this.$matrix.m14 = 0;
-      this.$matrix.m21 = 0;
-      this.$matrix.m22 = 1;
-      this.$matrix.m23 = 0;
-      this.$matrix.m24 = 0;
-      this.$matrix.m31 = 0;
-      this.$matrix.m32 = 0;
-      this.$matrix.m33 = 1;
-      this.$matrix.m34 = 0;
-      this.$matrix.m41 = 0;
-      this.$matrix.m42 = 0;
-      this.$matrix.m43 = 0;
-      this.$matrix.m44 = 1;
-      this.isPersp = false;
-      return this;
-    }
-     transpose() {
-      var tmp=this.$matrix.m12;
-      this.$matrix.m12 = this.$matrix.m21;
-      this.$matrix.m21 = tmp;
-      tmp = this.$matrix.m13;
-      this.$matrix.m13 = this.$matrix.m31;
-      this.$matrix.m31 = tmp;
-      tmp = this.$matrix.m14;
-      this.$matrix.m14 = this.$matrix.m41;
-      this.$matrix.m41 = tmp;
-      tmp = this.$matrix.m23;
-      this.$matrix.m23 = this.$matrix.m32;
-      this.$matrix.m32 = tmp;
-      tmp = this.$matrix.m24;
-      this.$matrix.m24 = this.$matrix.m42;
-      this.$matrix.m42 = tmp;
-      tmp = this.$matrix.m34;
-      this.$matrix.m34 = this.$matrix.m43;
-      this.$matrix.m43 = tmp;
-      return this;
-    }
-     determinant() {
-      return this._determinant4x4();
-    }
-     invert() {
-      var det=this._determinant4x4();
-      if (Math.abs(det)<1e-08)
-        return null;
-      this._makeAdjoint();
-      this.$matrix.m11/=det;
-      this.$matrix.m12/=det;
-      this.$matrix.m13/=det;
-      this.$matrix.m14/=det;
-      this.$matrix.m21/=det;
-      this.$matrix.m22/=det;
-      this.$matrix.m23/=det;
-      this.$matrix.m24/=det;
-      this.$matrix.m31/=det;
-      this.$matrix.m32/=det;
-      this.$matrix.m33/=det;
-      this.$matrix.m34/=det;
-      this.$matrix.m41/=det;
-      this.$matrix.m42/=det;
-      this.$matrix.m43/=det;
-      this.$matrix.m44/=det;
-      return this;
-    }
-     translate(x, y, z) {
-      if (typeof x==='object'&&"length" in x) {
-          var t=x;
-          x = t[0];
-          y = t[1];
-          z = t[2];
-      }
-      x = x===undefined ? 0 : x;
-      y = y===undefined ? 0 : y;
-      z = z===undefined ? 0 : z;
-      var matrix=temp_mats.next().makeIdentity();
-      matrix.$matrix.m41 = x;
-      matrix.$matrix.m42 = y;
-      matrix.$matrix.m43 = z;
-      this.multiply(matrix);
-      return this;
-    }
-     preTranslate(x, y, z) {
-      if (typeof x==='object'&&"length" in x) {
-          var t=x;
-          x = t[0];
-          y = t[1];
-          z = t[2];
-      }
-      x = x===undefined ? 0 : x;
-      y = y===undefined ? 0 : y;
-      z = z===undefined ? 0 : z;
-      var matrix=temp_mats.next().makeIdentity();
-      matrix.$matrix.m41 = x;
-      matrix.$matrix.m42 = y;
-      matrix.$matrix.m43 = z;
-      this.preMultiply(matrix);
-      return this;
-    }
-     scale(x, y, z, w=1.0) {
-      if (typeof x==='object'&&"length" in x) {
-          var t=x;
-          x = t[0];
-          y = t[1];
-          z = t[2];
-      }
-      else {
-        if (x===undefined)
-          x = 1;
-        if (z===undefined) {
-            if (y===undefined) {
-                y = x;
-                z = x;
-            }
-            else {
-              z = x;
-            }
-        }
-        else 
-          if (y===undefined) {
-            y = x;
-        }
-      }
-      var matrix=temp_mats.next().makeIdentity();
-      matrix.$matrix.m11 = x;
-      matrix.$matrix.m22 = y;
-      matrix.$matrix.m33 = z;
-      matrix.$matrix.m44 = w;
-      this.multiply(matrix);
-      return this;
-    }
-     preScale(x, y, z, w=1.0) {
-      let mat=temp_mats.next().makeIdentity();
-      mat.scale(x, y, z, w);
-      this.preMultiply(mat);
-      return this;
-    }
-     euler_rotate_order(x, y, z, order=EulerOrders.XYZ) {
-      if (y===undefined) {
-          y = 0.0;
-      }
-      if (z===undefined) {
-          z = 0.0;
-      }
-      x = -x;
-      y = -y;
-      z = -z;
-      let xmat=euler_rotate_mats.next().makeIdentity();
-      let m=xmat.$matrix;
-      let c=Math.cos(x), s=Math.sin(x);
-      m.m22 = c;
-      m.m23 = s;
-      m.m32 = -s;
-      m.m33 = c;
-      let ymat=euler_rotate_mats.next().makeIdentity();
-      c = Math.cos(y);
-      s = Math.sin(y);
-      m = ymat.$matrix;
-      m.m11 = c;
-      m.m13 = -s;
-      m.m31 = s;
-      m.m33 = c;
-      let zmat=euler_rotate_mats.next().makeIdentity();
-      c = Math.cos(z);
-      s = Math.sin(z);
-      m = zmat.$matrix;
-      m.m11 = c;
-      m.m12 = s;
-      m.m21 = -s;
-      m.m22 = c;
-      let a, b;
-      switch (order) {
-        case EulerOrders.XYZ:
-          a = xmat;
-          b = ymat;
-          c = zmat;
-          break;
-        case EulerOrders.XZY:
-          a = xmat;
-          b = zmat;
-          c = ymat;
-          break;
-        case EulerOrders.YXZ:
-          a = ymat;
-          b = xmat;
-          c = zmat;
-          break;
-        case EulerOrders.YZX:
-          a = ymat;
-          b = zmat;
-          c = xmat;
-          break;
-        case EulerOrders.ZXY:
-          a = zmat;
-          b = xmat;
-          c = ymat;
-          break;
-        case EulerOrders.ZYX:
-          a = zmat;
-          b = ymat;
-          c = xmat;
-          break;
-      }
-      b.preMultiply(c);
-      b.multiply(a);
-      this.preMultiply(b);
-      return this;
-    }
-     euler_rotate(x, y, z) {
-      if (y===undefined) {
-          y = 0.0;
-      }
-      if (z===undefined) {
-          z = 0.0;
-      }
-      window.Matrix4 = Matrix4;
-      var xmat=euler_rotate_mats.next().makeIdentity();
-      var m=xmat.$matrix;
-      var c=Math.cos(x), s=Math.sin(x);
-      m.m22 = c;
-      m.m23 = s;
-      m.m32 = -s;
-      m.m33 = c;
-      var ymat=euler_rotate_mats.next().makeIdentity();
-      c = Math.cos(y);
-      s = Math.sin(y);
-      var m=ymat.$matrix;
-      m.m11 = c;
-      m.m13 = -s;
-      m.m31 = s;
-      m.m33 = c;
-      ymat.multiply(xmat);
-      var zmat=euler_rotate_mats.next().makeIdentity();
-      c = Math.cos(z);
-      s = Math.sin(z);
-      var m=zmat.$matrix;
-      m.m11 = c;
-      m.m12 = s;
-      m.m21 = -s;
-      m.m22 = c;
-      zmat.multiply(ymat);
-      this.preMultiply(zmat);
-      return this;
-    }
-     toString() {
-      var s="";
-      var m=this.$matrix;
-      function dec(d) {
-        var ret=d.toFixed(3);
-        if (ret[0]!=="-")
-          ret = " "+ret;
-        return ret;
-      }
-      s = dec(m.m11)+", "+dec(m.m12)+", "+dec(m.m13)+", "+dec(m.m14)+"\n";
-      s+=dec(m.m21)+", "+dec(m.m22)+", "+dec(m.m23)+", "+dec(m.m24)+"\n";
-      s+=dec(m.m31)+", "+dec(m.m32)+", "+dec(m.m33)+", "+dec(m.m34)+"\n";
-      s+=dec(m.m41)+", "+dec(m.m42)+", "+dec(m.m43)+", "+dec(m.m44)+"\n";
-      return s;
-    }
-     rotate(angle, x, y, z) {
-      if (typeof x==='object'&&"length" in x) {
-          var t=x;
-          x = t[0];
-          y = t[1];
-          z = t[2];
-      }
-      else {
-        if (arguments.length===1) {
-            x = y = 0;
-            z = 1;
-        }
-        else 
-          if (arguments.length===3) {
-            this.rotate(angle, 1, 0, 0);
-            this.rotate(x, 0, 1, 0);
-            this.rotate(y, 0, 0, 1);
-            return ;
-        }
-      }
-      angle/=2;
-      var sinA=Math.sin(angle);
-      var cosA=Math.cos(angle);
-      var sinA2=sinA*sinA;
-      var len=Math.sqrt(x*x+y*y+z*z);
-      if (len===0) {
-          x = 0;
-          y = 0;
-          z = 1;
-      }
-      else 
-        if (len!==1) {
-          x/=len;
-          y/=len;
-          z/=len;
-      }
-      var mat=temp_mats.next().makeIdentity();
-      if (x===1&&y===0&&z===0) {
-          mat.$matrix.m11 = 1;
-          mat.$matrix.m12 = 0;
-          mat.$matrix.m13 = 0;
-          mat.$matrix.m21 = 0;
-          mat.$matrix.m22 = 1-2*sinA2;
-          mat.$matrix.m23 = 2*sinA*cosA;
-          mat.$matrix.m31 = 0;
-          mat.$matrix.m32 = -2*sinA*cosA;
-          mat.$matrix.m33 = 1-2*sinA2;
-          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
-          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
-          mat.$matrix.m44 = 1;
-      }
-      else 
-        if (x===0&&y===1&&z===0) {
-          mat.$matrix.m11 = 1-2*sinA2;
-          mat.$matrix.m12 = 0;
-          mat.$matrix.m13 = -2*sinA*cosA;
-          mat.$matrix.m21 = 0;
-          mat.$matrix.m22 = 1;
-          mat.$matrix.m23 = 0;
-          mat.$matrix.m31 = 2*sinA*cosA;
-          mat.$matrix.m32 = 0;
-          mat.$matrix.m33 = 1-2*sinA2;
-          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
-          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
-          mat.$matrix.m44 = 1;
-      }
-      else 
-        if (x===0&&y===0&&z===1) {
-          mat.$matrix.m11 = 1-2*sinA2;
-          mat.$matrix.m12 = 2*sinA*cosA;
-          mat.$matrix.m13 = 0;
-          mat.$matrix.m21 = -2*sinA*cosA;
-          mat.$matrix.m22 = 1-2*sinA2;
-          mat.$matrix.m23 = 0;
-          mat.$matrix.m31 = 0;
-          mat.$matrix.m32 = 0;
-          mat.$matrix.m33 = 1;
-          mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
-          mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
-          mat.$matrix.m44 = 1;
-      }
-      else {
-        var x2=x*x;
-        var y2=y*y;
-        var z2=z*z;
-        mat.$matrix.m11 = 1-2*(y2+z2)*sinA2;
-        mat.$matrix.m12 = 2*(x*y*sinA2+z*sinA*cosA);
-        mat.$matrix.m13 = 2*(x*z*sinA2-y*sinA*cosA);
-        mat.$matrix.m21 = 2*(y*x*sinA2-z*sinA*cosA);
-        mat.$matrix.m22 = 1-2*(z2+x2)*sinA2;
-        mat.$matrix.m23 = 2*(y*z*sinA2+x*sinA*cosA);
-        mat.$matrix.m31 = 2*(z*x*sinA2+y*sinA*cosA);
-        mat.$matrix.m32 = 2*(z*y*sinA2-x*sinA*cosA);
-        mat.$matrix.m33 = 1-2*(x2+y2)*sinA2;
-        mat.$matrix.m14 = mat.$matrix.m24 = mat.$matrix.m34 = 0;
-        mat.$matrix.m41 = mat.$matrix.m42 = mat.$matrix.m43 = 0;
-        mat.$matrix.m44 = 1;
-      }
-      this.multiply(mat);
-      return this;
-    }
-     normalize() {
-      let m=this.$matrix;
-      let v1=new Vector4([m.m11, m.m12, m.m13, m.m14]);
-      let v2=new Vector4([m.m21, m.m22, m.m23, m.m24]);
-      let v3=new Vector4([m.m31, m.m32, m.m33, m.m34]);
-      let v4=new Vector4([m.m41, m.m42, m.m43, m.m44]);
-      v1.normalize();
-      v2.normalize();
-      v3.normalize();
-      let flat=new Array().concat(v1).concat(v2).concat(v3).concat(v4);
-      this.load(flat);
-      return this;
-    }
-     clearTranslation(set_w_to_one=false) {
-      let m=this.$matrix;
-      m.m41 = m.m42 = m.m43 = 0.0;
-      if (set_w_to_one) {
-          m.m44 = 1.0;
-      }
-      return this;
-    }
-     setTranslation(x, y, z, resetW=true) {
-      if (typeof x==="object") {
-          y = x[1];
-          z = x[2];
-          x = x[0];
-      }
-      let m=this.$matrix;
-      m.m41 = x;
-      m.m42 = y;
-      m.m43 = z;
-      if (resetW) {
-          m.m44 = 1.0;
-      }
-      return this;
-    }
-     makeNormalMatrix(normal, up=undefined) {
-      if (normal===undefined) {
-          throw new Error("normal cannot be undefined");
-      }
-      let n=makenormalcache.next().load(normal).normalize();
-      if (up===undefined) {
-          up = makenormalcache.next().zero();
-          if (Math.abs(n[2])>0.95) {
-              up[1] = 1.0;
-          }
-          else {
-            up[2] = 1.0;
-          }
-      }
-      up = makenormalcache.next().load(up);
-      up.normalize();
-      if (up.dot(normal)>0.99) {
-          this.makeIdentity();
-          return this;
-      }
-      else 
-        if (up.dot(normal)<-0.99) {
-          this.makeIdentity();
-          this.scale(1.0, 1.0, -1.0);
-          return this;
-      }
-      let x=makenormalcache.next();
-      let y=makenormalcache.next();
-      x.load(n).cross(up).normalize();
-      y.load(x).cross(n).normalize();
-      this.makeIdentity();
-      let m=this.$matrix;
-      m.m11 = x[0];
-      m.m12 = x[1];
-      m.m13 = x[2];
-      m.m21 = y[0];
-      m.m22 = y[1];
-      m.m23 = y[2];
-      m.m31 = n[0];
-      m.m32 = n[1];
-      m.m33 = n[2];
-      m.m44 = 1.0;
-      return this;
-    }
-     preMultiply(mat) {
-      preMultTemp.load(mat);
-      preMultTemp.multiply(this);
-      this.load(preMultTemp);
-      return this;
-    }
-     multiply(mat) {
-      let mm=this.$matrix;
-      let mm2=mat.$matrix;
-      let m11=(mm2.m11*mm.m11+mm2.m12*mm.m21+mm2.m13*mm.m31+mm2.m14*mm.m41);
-      let m12=(mm2.m11*mm.m12+mm2.m12*mm.m22+mm2.m13*mm.m32+mm2.m14*mm.m42);
-      let m13=(mm2.m11*mm.m13+mm2.m12*mm.m23+mm2.m13*mm.m33+mm2.m14*mm.m43);
-      let m14=(mm2.m11*mm.m14+mm2.m12*mm.m24+mm2.m13*mm.m34+mm2.m14*mm.m44);
-      let m21=(mm2.m21*mm.m11+mm2.m22*mm.m21+mm2.m23*mm.m31+mm2.m24*mm.m41);
-      let m22=(mm2.m21*mm.m12+mm2.m22*mm.m22+mm2.m23*mm.m32+mm2.m24*mm.m42);
-      let m23=(mm2.m21*mm.m13+mm2.m22*mm.m23+mm2.m23*mm.m33+mm2.m24*mm.m43);
-      let m24=(mm2.m21*mm.m14+mm2.m22*mm.m24+mm2.m23*mm.m34+mm2.m24*mm.m44);
-      let m31=(mm2.m31*mm.m11+mm2.m32*mm.m21+mm2.m33*mm.m31+mm2.m34*mm.m41);
-      let m32=(mm2.m31*mm.m12+mm2.m32*mm.m22+mm2.m33*mm.m32+mm2.m34*mm.m42);
-      let m33=(mm2.m31*mm.m13+mm2.m32*mm.m23+mm2.m33*mm.m33+mm2.m34*mm.m43);
-      let m34=(mm2.m31*mm.m14+mm2.m32*mm.m24+mm2.m33*mm.m34+mm2.m34*mm.m44);
-      let m41=(mm2.m41*mm.m11+mm2.m42*mm.m21+mm2.m43*mm.m31+mm2.m44*mm.m41);
-      let m42=(mm2.m41*mm.m12+mm2.m42*mm.m22+mm2.m43*mm.m32+mm2.m44*mm.m42);
-      let m43=(mm2.m41*mm.m13+mm2.m42*mm.m23+mm2.m43*mm.m33+mm2.m44*mm.m43);
-      let m44=(mm2.m41*mm.m14+mm2.m42*mm.m24+mm2.m43*mm.m34+mm2.m44*mm.m44);
-      mm.m11 = m11;
-      mm.m12 = m12;
-      mm.m13 = m13;
-      mm.m14 = m14;
-      mm.m21 = m21;
-      mm.m22 = m22;
-      mm.m23 = m23;
-      mm.m24 = m24;
-      mm.m31 = m31;
-      mm.m32 = m32;
-      mm.m33 = m33;
-      mm.m34 = m34;
-      mm.m41 = m41;
-      mm.m42 = m42;
-      mm.m43 = m43;
-      mm.m44 = m44;
-      return this;
-    }
-     divide(divisor) {
-      this.$matrix.m11/=divisor;
-      this.$matrix.m12/=divisor;
-      this.$matrix.m13/=divisor;
-      this.$matrix.m14/=divisor;
-      this.$matrix.m21/=divisor;
-      this.$matrix.m22/=divisor;
-      this.$matrix.m23/=divisor;
-      this.$matrix.m24/=divisor;
-      this.$matrix.m31/=divisor;
-      this.$matrix.m32/=divisor;
-      this.$matrix.m33/=divisor;
-      this.$matrix.m34/=divisor;
-      this.$matrix.m41/=divisor;
-      this.$matrix.m42/=divisor;
-      this.$matrix.m43/=divisor;
-      this.$matrix.m44/=divisor;
-      return this;
-    }
-     ortho(left, right, bottom, top, near, far) {
-      console.warn("Matrix4.ortho() is deprecated, use .orthographic() instead");
-      var tx=(left+right)/(left-right);
-      var ty=(top+bottom)/(top-bottom);
-      var tz=(far+near)/(far-near);
-      var matrix=temp_mats.next().makeIdentity();
-      matrix.$matrix.m11 = 2/(left-right);
-      matrix.$matrix.m12 = 0;
-      matrix.$matrix.m13 = 0;
-      matrix.$matrix.m14 = 0;
-      matrix.$matrix.m21 = 0;
-      matrix.$matrix.m22 = 2/(top-bottom);
-      matrix.$matrix.m23 = 0;
-      matrix.$matrix.m24 = 0;
-      matrix.$matrix.m31 = 0;
-      matrix.$matrix.m32 = 0;
-      matrix.$matrix.m33 = -2/(far-near);
-      matrix.$matrix.m34 = 0;
-      matrix.$matrix.m41 = tx;
-      matrix.$matrix.m42 = ty;
-      matrix.$matrix.m43 = tz;
-      matrix.$matrix.m44 = 1;
-      this.multiply(matrix);
-      return this;
-    }
-     frustum(left, right, bottom, top, near, far) {
-      var matrix=temp_mats.next().makeIdentity();
-      var A=(right+left)/(right-left);
-      var B=(top+bottom)/(top-bottom);
-      var C=-(far+near)/(far-near);
-      var D=-(2*far*near)/(far-near);
-      matrix.$matrix.m11 = (2*near)/(right-left);
-      matrix.$matrix.m12 = 0;
-      matrix.$matrix.m13 = 0;
-      matrix.$matrix.m14 = 0;
-      matrix.$matrix.m21 = 0;
-      matrix.$matrix.m22 = 2*near/(top-bottom);
-      matrix.$matrix.m23 = 0;
-      matrix.$matrix.m24 = 0;
-      matrix.$matrix.m31 = A;
-      matrix.$matrix.m32 = B;
-      matrix.$matrix.m33 = C;
-      matrix.$matrix.m34 = -1;
-      matrix.$matrix.m41 = 0;
-      matrix.$matrix.m42 = 0;
-      matrix.$matrix.m43 = D;
-      matrix.$matrix.m44 = 0;
-      this.isPersp = true;
-      this.multiply(matrix);
-      return this;
-    }
-     orthographic(scale, aspect, near, far) {
-      let mat=temp_mats.next().makeIdentity();
-      let zscale=far-near;
-      mat.scale(2.0/aspect, 2.0, -1.0/scale/zscale, 1.0/scale);
-      mat.translate(0.0, 0.0, 0.5*zscale-near);
-      this.isPersp = true;
-      this.multiply(mat);
-      return mat;
-    }
-     perspective(fovy, aspect, zNear, zFar) {
-      var top=Math.tan(fovy*Math.PI/360)*zNear;
-      var bottom=-top;
-      var left=aspect*bottom;
-      var right=aspect*top;
-      this.frustum(left, right, bottom, top, zNear, zFar);
-      return this;
-    }
-     lookat(pos, target, up) {
-      var matrix=lookat_cache_ms.next();
-      matrix.makeIdentity();
-      var vec=lookat_cache_vs3.next().load(pos).sub(target);
-      var len=vec.vectorLength();
-      vec.normalize();
-      var zvec=vec;
-      var yvec=lookat_cache_vs3.next().load(up).normalize();
-      var xvec=lookat_cache_vs3.next().load(yvec).cross(zvec).normalize();
-      let mm=matrix.$matrix;
-      mm.m11 = xvec[0];
-      mm.m12 = yvec[0];
-      mm.m13 = zvec[0];
-      mm.m14 = 0;
-      mm.m21 = xvec[1];
-      mm.m22 = yvec[1];
-      mm.m23 = zvec[1];
-      mm.m24 = 0;
-      mm.m31 = xvec[2];
-      mm.m32 = yvec[2];
-      mm.m33 = zvec[2];
-      mm.m11 = xvec[0];
-      mm.m12 = xvec[1];
-      mm.m13 = xvec[2];
-      mm.m14 = 0;
-      mm.m21 = yvec[0];
-      mm.m22 = yvec[1];
-      mm.m23 = yvec[2];
-      mm.m24 = 0;
-      mm.m31 = zvec[0];
-      mm.m32 = zvec[1];
-      mm.m33 = zvec[2];
-      mm.m34 = 0;
-      mm.m41 = pos[0];
-      mm.m42 = pos[1];
-      mm.m43 = pos[2];
-      mm.m44 = 1;
-      this.multiply(matrix);
-      return this;
-    }
-     makeRotationOnly() {
-      var m=this.$matrix;
-      m.m41 = m.m42 = m.m43 = 0.0;
-      m.m44 = 1.0;
-      let l1=Math.sqrt(m.m11*m.m11+m.m12*m.m12+m.m13*m.m13);
-      let l2=Math.sqrt(m.m21*m.m21+m.m22*m.m22+m.m23*m.m23);
-      let l3=Math.sqrt(m.m31*m.m31+m.m32*m.m32+m.m33*m.m33);
-      if (l1) {
-          m.m11/=l1;
-          m.m12/=l1;
-          m.m13/=l1;
-      }
-      if (l2) {
-          m.m21/=l2;
-          m.m22/=l2;
-          m.m23/=l2;
-      }
-      if (l3) {
-          m.m31/=l3;
-          m.m32/=l3;
-          m.m33/=l3;
-      }
-      return this;
-    }
-     alignAxis(axis, vec) {
-      vec = new Vector3(vec);
-      vec.normalize();
-      let mat=this.inputs.transformMatrix.getValue();
-      let m=mat.$matrix;
-      let mat2=new Matrix4(mat);
-      let loc=new Vector3(), scale=new Vector3(), rot=new Vector3();
-      mat2.decompose(loc, rot, scale);
-      mat2.makeRotationOnly();
-      let axes=mat2.getAsVecs();
-      let axis2=(axis+1)%3;
-      let axis3=(axis+2)%3;
-      axes[axis].load(vec);
-      axes[axis2].cross(axes[axis]).cross(axes[axis]);
-      axes[axis3].load(axes[axis]).cross(axes[axis2]);
-      axes[0][3] = 1.0;
-      axes[1][3] = 1.0;
-      axes[2][3] = 1.0;
-      axes[0].normalize();
-      axes[1].normalize();
-      axes[2].normalize();
-      this.loadFromVecs(axes);
-      this.scale(scale[0], scale[1], scale[2]);
-      m.m41 = loc[0];
-      m.m42 = loc[1];
-      m.m43 = loc[2];
-      return this;
-    }
-     decompose(_translate, _rotate, _scale, _skew, _perspective, order=EulerOrders.XYZ) {
-      if (this.$matrix.m44===0)
-        return false;
-      let mat=temp_mats.next().load(this);
-      let m=mat.$matrix;
-      let t=_translate, r=_rotate, s=_scale;
-      if (t) {
-          t[0] = m.m41;
-          t[1] = m.m42;
-          t[2] = m.m43;
-      }
-      let l1=Math.sqrt(m.m11*m.m11+m.m12*m.m12+m.m13*m.m13);
-      let l2=Math.sqrt(m.m21*m.m21+m.m22*m.m22+m.m23*m.m23);
-      let l3=Math.sqrt(m.m31*m.m31+m.m32*m.m32+m.m33*m.m33);
-      if (l1) {
-          m.m11/=l1;
-          m.m12/=l1;
-          m.m13/=l1;
-      }
-      if (l2) {
-          m.m21/=l2;
-          m.m22/=l2;
-          m.m23/=l2;
-      }
-      if (l3) {
-          m.m31/=l3;
-          m.m32/=l3;
-          m.m33/=l3;
-      }
-      if (s) {
-          s[0] = l1;
-          s[1] = l2;
-          s[2] = l3;
-      }
-      if (r) {
-          let clamp=myclamp;
-          let rmat=temp_mats.next().load(this);
-          rmat.normalize();
-          m = rmat.$matrix;
-          let m11=m.m11, m12=m.m12, m13=m.m13, m14=m.m14;
-          let m21=m.m21, m22=m.m22, m23=m.m23, m24=m.m24;
-          let m31=m.m31, m32=m.m32, m33=m.m33, m34=m.m34;
-          if (order===EulerOrders.XYZ) {
-              r[1] = Math.asin(clamp(m13, -1, 1));
-              if (Math.abs(m13)<0.9999999) {
-                  r[0] = Math.atan2(-m23, m33);
-                  r[2] = Math.atan2(-m12, m11);
-              }
-              else {
-                r[0] = Math.atan2(m32, m22);
-                r[2] = 0;
-              }
-          }
-          else 
-            if (order===EulerOrders.YXZ) {
-              r[0] = Math.asin(-clamp(m23, -1, 1));
-              if (Math.abs(m23)<0.9999999) {
-                  r[1] = Math.atan2(m13, m33);
-                  r[2] = Math.atan2(m21, m22);
-              }
-              else {
-                r[1] = Math.atan2(-m31, m11);
-                r[2] = 0;
-              }
-          }
-          else 
-            if (order===EulerOrders.ZXY) {
-              r[0] = Math.asin(clamp(m32, -1, 1));
-              if (Math.abs(m32)<0.9999999) {
-                  r[1] = Math.atan2(-m31, m33);
-                  r[2] = Math.atan2(-m12, m22);
-              }
-              else {
-                r[1] = 0;
-                r[2] = Math.atan2(m21, m11);
-              }
-          }
-          else 
-            if (order===EulerOrders.ZYX) {
-              r[1] = Math.asin(-clamp(m31, -1, 1));
-              if (Math.abs(m31)<0.9999999) {
-                  r[0] = Math.atan2(m32, m33);
-                  r[2] = Math.atan2(m21, m11);
-              }
-              else {
-                r[0] = 0;
-                r[2] = Math.atan2(-m12, m22);
-              }
-          }
-          else 
-            if (order===EulerOrders.YZX) {
-              r[2] = Math.asin(clamp(m21, -1, 1));
-              if (Math.abs(m21)<0.9999999) {
-                  r[0] = Math.atan2(-m23, m22);
-                  r[1] = Math.atan2(-m31, m11);
-              }
-              else {
-                r[0] = 0;
-                r[1] = Math.atan2(m13, m33);
-              }
-          }
-          else 
-            if (order===EulerOrders.XZY) {
-              r[2] = Math.asin(-clamp(m12, -1, 1));
-              if (Math.abs(m12)<0.9999999) {
-                  r[0] = Math.atan2(m32, m22);
-                  r[1] = Math.atan2(m13, m11);
-              }
-              else {
-                r[0] = Math.atan2(-m23, m33);
-                r[1] = 0;
-              }
-          }
-          else {
-            console.warn('unsupported euler order:', order);
-          }
-      }
-    }
-     _determinant2x2(a, b, c, d) {
-      return a*d-b*c;
-    }
-     _determinant3x3(a1, a2, a3, b1, b2, b3, c1, c2, c3) {
-      return a1*this._determinant2x2(b2, b3, c2, c3)-b1*this._determinant2x2(a2, a3, c2, c3)+c1*this._determinant2x2(a2, a3, b2, b3);
-    }
-     determinant() {
-      return this._determinant4x4();
-    }
-     _determinant4x4() {
-      var a1=this.$matrix.m11;
-      var b1=this.$matrix.m12;
-      var c1=this.$matrix.m13;
-      var d1=this.$matrix.m14;
-      var a2=this.$matrix.m21;
-      var b2=this.$matrix.m22;
-      var c2=this.$matrix.m23;
-      var d2=this.$matrix.m24;
-      var a3=this.$matrix.m31;
-      var b3=this.$matrix.m32;
-      var c3=this.$matrix.m33;
-      var d3=this.$matrix.m34;
-      var a4=this.$matrix.m41;
-      var b4=this.$matrix.m42;
-      var c4=this.$matrix.m43;
-      var d4=this.$matrix.m44;
-      return a1*this._determinant3x3(b2, b3, b4, c2, c3, c4, d2, d3, d4)-b1*this._determinant3x3(a2, a3, a4, c2, c3, c4, d2, d3, d4)+c1*this._determinant3x3(a2, a3, a4, b2, b3, b4, d2, d3, d4)-d1*this._determinant3x3(a2, a3, a4, b2, b3, b4, c2, c3, c4);
-    }
-     _makeAdjoint() {
-      var a1=this.$matrix.m11;
-      var b1=this.$matrix.m12;
-      var c1=this.$matrix.m13;
-      var d1=this.$matrix.m14;
-      var a2=this.$matrix.m21;
-      var b2=this.$matrix.m22;
-      var c2=this.$matrix.m23;
-      var d2=this.$matrix.m24;
-      var a3=this.$matrix.m31;
-      var b3=this.$matrix.m32;
-      var c3=this.$matrix.m33;
-      var d3=this.$matrix.m34;
-      var a4=this.$matrix.m41;
-      var b4=this.$matrix.m42;
-      var c4=this.$matrix.m43;
-      var d4=this.$matrix.m44;
-      this.$matrix.m11 = this._determinant3x3(b2, b3, b4, c2, c3, c4, d2, d3, d4);
-      this.$matrix.m21 = -this._determinant3x3(a2, a3, a4, c2, c3, c4, d2, d3, d4);
-      this.$matrix.m31 = this._determinant3x3(a2, a3, a4, b2, b3, b4, d2, d3, d4);
-      this.$matrix.m41 = -this._determinant3x3(a2, a3, a4, b2, b3, b4, c2, c3, c4);
-      this.$matrix.m12 = -this._determinant3x3(b1, b3, b4, c1, c3, c4, d1, d3, d4);
-      this.$matrix.m22 = this._determinant3x3(a1, a3, a4, c1, c3, c4, d1, d3, d4);
-      this.$matrix.m32 = -this._determinant3x3(a1, a3, a4, b1, b3, b4, d1, d3, d4);
-      this.$matrix.m42 = this._determinant3x3(a1, a3, a4, b1, b3, b4, c1, c3, c4);
-      this.$matrix.m13 = this._determinant3x3(b1, b2, b4, c1, c2, c4, d1, d2, d4);
-      this.$matrix.m23 = -this._determinant3x3(a1, a2, a4, c1, c2, c4, d1, d2, d4);
-      this.$matrix.m33 = this._determinant3x3(a1, a2, a4, b1, b2, b4, d1, d2, d4);
-      this.$matrix.m43 = -this._determinant3x3(a1, a2, a4, b1, b2, b4, c1, c2, c4);
-      this.$matrix.m14 = -this._determinant3x3(b1, b2, b3, c1, c2, c3, d1, d2, d3);
-      this.$matrix.m24 = this._determinant3x3(a1, a2, a3, c1, c2, c3, d1, d2, d3);
-      this.$matrix.m34 = -this._determinant3x3(a1, a2, a3, b1, b2, b3, d1, d2, d3);
-      this.$matrix.m44 = this._determinant3x3(a1, a2, a3, b1, b2, b3, c1, c2, c3);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.load(this.mat);
-      this.__mat = this.mat;
-    }
-  }
-  _ESClass.register(Matrix4);
-  _es6_module.add_class(Matrix4);
-  Matrix4 = _es6_module.add_export('Matrix4', Matrix4);
-  Matrix4.STRUCT = `
-mat4 {
-  mat      : array(float) | this.getAsArray();
-  isPersp  : int          | this.isPersp;
-}
-`;
-  nstructjs.register(Matrix4);
-  preMultTemp = new Matrix4();
-  window.testmat = (x, y, z) =>    {
-    if (x===undefined) {
-        x = 0;
-    }
-    if (y===undefined) {
-        y = 0;
-    }
-    if (z===undefined) {
-        z = Math.PI*0.5;
-    }
-    let m1=new Matrix4();
-    m1.euler_rotate(x, y, z);
-    let t=[0, 0, 0], r=[0, 0, 0], s=[0, 0, 0];
-    m1.decompose(t, r, s);
-    window.console.log("\n");
-    window.console.log(t);
-    window.console.log(r);
-    window.console.log(s);
-    let mat=m1.clone();
-    mat.transpose();
-    mat.multiply(m1);
-    console.log(mat.toString());
-    return r;
-  }
-  lookat_cache_ms = util.cachering.fromConstructor(Matrix4, 64);
-  euler_rotate_mats = util.cachering.fromConstructor(Matrix4, 64);
-  temp_mats = util.cachering.fromConstructor(Matrix4, 64);
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/vectormath.js');
-
-
-es6_module_define('pathux', ["./widgets/ui_treeview.js", "./path-controller/util/html5_fileapi.js", "./path-controller/util/graphpack.js", "./widgets/ui_richedit.js", "./widgets/ui_numsliders.js", "./xmlpage/xmlpage.js", "./widgets/ui_listbox.js", "./config/const.js", "./widgets/ui_button.js", "./widgets/ui_lasttool.js", "./screen/ScreenArea.js", "./widgets/ui_widgets2.js", "./widgets/ui_menu.js", "./widgets/ui_curvewidget.js", "./core/units.js", "./core/ui_base.js", "./platforms/electron/electron_api.js", "./widgets/theme_editor.js", "./path-controller/util/polyfill.js", "./widgets/ui_textbox.js", "./widgets/ui_tabs.js", "./util/ScreenOverdraw.js", "./core/ui.js", "./widgets/ui_table.js", "./widgets/ui_widgets.js", "./widgets/ui_noteframe.js", "./widgets/ui_panel.js", "./path-controller/controller.js", "./platforms/platform.js", "./widgets/ui_progress.js", "./screen/FrameManager.js", "./core/ui_theme.js", "./widgets/ui_colorpicker2.js"], function _pathux_module(_es6_module) {
-  es6_import(_es6_module, './path-controller/util/polyfill.js');
-  var ___xmlpage_xmlpage_js=es6_import(_es6_module, './xmlpage/xmlpage.js');
-  for (let k in ___xmlpage_xmlpage_js) {
-      _es6_module.add_export(k, ___xmlpage_xmlpage_js[k], true);
-  }
-  var ___core_ui_base_js=es6_import(_es6_module, './core/ui_base.js');
-  for (let k in ___core_ui_base_js) {
-      _es6_module.add_export(k, ___core_ui_base_js[k], true);
-  }
-  var ___core_ui_js=es6_import(_es6_module, './core/ui.js');
-  for (let k in ___core_ui_js) {
-      _es6_module.add_export(k, ___core_ui_js[k], true);
-  }
-  var ___widgets_ui_widgets_js=es6_import(_es6_module, './widgets/ui_widgets.js');
-  for (let k in ___widgets_ui_widgets_js) {
-      _es6_module.add_export(k, ___widgets_ui_widgets_js[k], true);
-  }
-  var ___widgets_ui_widgets2_js=es6_import(_es6_module, './widgets/ui_widgets2.js');
-  for (let k in ___widgets_ui_widgets2_js) {
-      _es6_module.add_export(k, ___widgets_ui_widgets2_js[k], true);
-  }
-  var ___core_ui_theme_js=es6_import(_es6_module, './core/ui_theme.js');
-  for (let k in ___core_ui_theme_js) {
-      _es6_module.add_export(k, ___core_ui_theme_js[k], true);
-  }
-  var ___core_units_js=es6_import(_es6_module, './core/units.js');
-  for (let k in ___core_units_js) {
-      _es6_module.add_export(k, ___core_units_js[k], true);
-  }
-  var ___widgets_ui_button_js=es6_import(_es6_module, './widgets/ui_button.js');
-  for (let k in ___widgets_ui_button_js) {
-      _es6_module.add_export(k, ___widgets_ui_button_js[k], true);
-  }
-  var ___widgets_ui_richedit_js=es6_import(_es6_module, './widgets/ui_richedit.js');
-  for (let k in ___widgets_ui_richedit_js) {
-      _es6_module.add_export(k, ___widgets_ui_richedit_js[k], true);
-  }
-  var ___widgets_ui_curvewidget_js=es6_import(_es6_module, './widgets/ui_curvewidget.js');
-  for (let k in ___widgets_ui_curvewidget_js) {
-      _es6_module.add_export(k, ___widgets_ui_curvewidget_js[k], true);
-  }
-  var ___widgets_ui_panel_js=es6_import(_es6_module, './widgets/ui_panel.js');
-  for (let k in ___widgets_ui_panel_js) {
-      _es6_module.add_export(k, ___widgets_ui_panel_js[k], true);
-  }
-  var ___widgets_ui_colorpicker2_js=es6_import(_es6_module, './widgets/ui_colorpicker2.js');
-  for (let k in ___widgets_ui_colorpicker2_js) {
-      _es6_module.add_export(k, ___widgets_ui_colorpicker2_js[k], true);
-  }
-  var ___widgets_ui_tabs_js=es6_import(_es6_module, './widgets/ui_tabs.js');
-  for (let k in ___widgets_ui_tabs_js) {
-      _es6_module.add_export(k, ___widgets_ui_tabs_js[k], true);
-  }
-  var ___widgets_ui_listbox_js=es6_import(_es6_module, './widgets/ui_listbox.js');
-  for (let k in ___widgets_ui_listbox_js) {
-      _es6_module.add_export(k, ___widgets_ui_listbox_js[k], true);
-  }
-  var ___widgets_ui_menu_js=es6_import(_es6_module, './widgets/ui_menu.js');
-  for (let k in ___widgets_ui_menu_js) {
-      _es6_module.add_export(k, ___widgets_ui_menu_js[k], true);
-  }
-  var ___widgets_ui_progress_js=es6_import(_es6_module, './widgets/ui_progress.js');
-  for (let k in ___widgets_ui_progress_js) {
-      _es6_module.add_export(k, ___widgets_ui_progress_js[k], true);
-  }
-  var ___widgets_ui_table_js=es6_import(_es6_module, './widgets/ui_table.js');
-  for (let k in ___widgets_ui_table_js) {
-      _es6_module.add_export(k, ___widgets_ui_table_js[k], true);
-  }
-  var ___widgets_ui_noteframe_js=es6_import(_es6_module, './widgets/ui_noteframe.js');
-  for (let k in ___widgets_ui_noteframe_js) {
-      _es6_module.add_export(k, ___widgets_ui_noteframe_js[k], true);
-  }
-  var ___widgets_ui_numsliders_js=es6_import(_es6_module, './widgets/ui_numsliders.js');
-  for (let k in ___widgets_ui_numsliders_js) {
-      _es6_module.add_export(k, ___widgets_ui_numsliders_js[k], true);
-  }
-  var ___widgets_ui_lasttool_js=es6_import(_es6_module, './widgets/ui_lasttool.js');
-  for (let k in ___widgets_ui_lasttool_js) {
-      _es6_module.add_export(k, ___widgets_ui_lasttool_js[k], true);
-  }
-  var ___widgets_ui_textbox_js=es6_import(_es6_module, './widgets/ui_textbox.js');
-  for (let k in ___widgets_ui_textbox_js) {
-      _es6_module.add_export(k, ___widgets_ui_textbox_js[k], true);
-  }
-  var ___path_controller_util_graphpack_js=es6_import(_es6_module, './path-controller/util/graphpack.js');
-  for (let k in ___path_controller_util_graphpack_js) {
-      _es6_module.add_export(k, ___path_controller_util_graphpack_js[k], true);
-  }
-  var ___path_controller_util_html5_fileapi_js=es6_import(_es6_module, './path-controller/util/html5_fileapi.js');
-  for (let k in ___path_controller_util_html5_fileapi_js) {
-      _es6_module.add_export(k, ___path_controller_util_html5_fileapi_js[k], true);
-  }
-  var ___path_controller_controller_js=es6_import(_es6_module, './path-controller/controller.js');
-  for (let k in ___path_controller_controller_js) {
-      _es6_module.add_export(k, ___path_controller_controller_js[k], true);
-  }
-  var controller1=es6_import(_es6_module, './path-controller/controller.js');
-  const controller=controller1;
-  _es6_module.add_export('controller', controller);
-  var ui_noteframe=es6_import(_es6_module, './widgets/ui_noteframe.js');
-  controller1.setNotifier(ui_noteframe);
-  var platform1=es6_import(_es6_module, './platforms/platform.js');
-  const platform=platform1;
-  _es6_module.add_export('platform', platform);
-  var electron_api1=es6_import(_es6_module, './platforms/electron/electron_api.js');
-  const electron_api=electron_api1;
-  _es6_module.add_export('electron_api', electron_api);
-  var ___platforms_platform_js=es6_import(_es6_module, './platforms/platform.js');
-  for (let k in ___platforms_platform_js) {
-      _es6_module.add_export(k, ___platforms_platform_js[k], true);
-  }
-  var ___widgets_theme_editor_js=es6_import(_es6_module, './widgets/theme_editor.js');
-  for (let k in ___widgets_theme_editor_js) {
-      _es6_module.add_export(k, ___widgets_theme_editor_js[k], true);
-  }
-  var ___widgets_ui_treeview_js=es6_import(_es6_module, './widgets/ui_treeview.js');
-  for (let k in ___widgets_ui_treeview_js) {
-      _es6_module.add_export(k, ___widgets_ui_treeview_js[k], true);
-  }
-  var ___screen_FrameManager_js=es6_import(_es6_module, './screen/FrameManager.js');
-  for (let k in ___screen_FrameManager_js) {
-      _es6_module.add_export(k, ___screen_FrameManager_js[k], true);
-  }
-  var ___screen_ScreenArea_js=es6_import(_es6_module, './screen/ScreenArea.js');
-  for (let k in ___screen_ScreenArea_js) {
-      _es6_module.add_export(k, ___screen_ScreenArea_js[k], true);
-  }
-  var ___util_ScreenOverdraw_js=es6_import(_es6_module, './util/ScreenOverdraw.js');
-  for (let k in ___util_ScreenOverdraw_js) {
-      _es6_module.add_export(k, ___util_ScreenOverdraw_js[k], true);
-  }
-  var cconst1=es6_import_item(_es6_module, './config/const.js', 'default');
-  const cconst=cconst1;
-  _es6_module.add_export('cconst', cconst);
-}, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
-
-
-es6_module_define('electron_api', ["../../core/ui_base.js", "../platform_base.js", "../../util/util.js", "../../config/const.js", "../../widgets/ui_menu.js"], function _electron_api_module(_es6_module) {
-  "use strict";
-  function getElectronVersion() {
-    let key=navigator.userAgent;
-    let i=key.search("Electron");
-    key = key.slice(i+9, key.length);
-    i = key.search(/[ \t]/);
-    if (i>=0) {
-        key = key.slice(0, i);
-    }
-    key = key.trim();
-    key = key.split(".").map((f) =>      {
-      return parseInt(f);
-    });
-    return key;
-  }
-  function getElectron() {
-    return require('electron');
-  }
-  function myRequire(mod) {
-    return globalThis.require(mod);
-  }
-  var Menu=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'Menu');
-  var DropBox=es6_import_item(_es6_module, '../../widgets/ui_menu.js', 'DropBox');
-  var getIconManager=es6_import_item(_es6_module, '../../core/ui_base.js', 'getIconManager');
-  var cconst=es6_import_item(_es6_module, '../../config/const.js', 'default');
-  var util=es6_import(_es6_module, '../../util/util.js');
-  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
-  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
-  function getFilename(path) {
-    let filename=path.replace(/\\/g, "/");
-    let i=filename.length-1;
-    while (i>=0&&filename[i]!=="/") {
-      i--;
-    }
-    if (i>0) {
-        filename = filename.slice(i, filename.length).trim();
-    }
-    return filename;
-  }
-  let _menu_init=false;
-  let _init=false;
-  let mimemap={"js": "application/javascript", 
-   "json": "text/json", 
-   "png": "image/png", 
-   "svg": "image/svg+xml", 
-   "jpg": "image/jpeg", 
-   "txt": "text/plain", 
-   "html": "text/html", 
-   "css": "text/css", 
-   "ts": "application/typescript", 
-   "py": "application/python", 
-   "c": "application/c", 
-   "cpp": "application/cpp", 
-   "cc": "application/cpp", 
-   "h": "application/c", 
-   "hh": "application/cpp", 
-   "hpp": "application/cpp", 
-   "xml": "text/xml", 
-   "sh": "application/bash", 
-   "mjs": "application/javascript", 
-   "cjs": "application/javascript", 
-   "gif": "image/gif"}
-  let electron_menu_idgen=1;
-  let ipcRenderer;
-  class ElectronMenu extends Array {
-     constructor(args={}) {
-      super();
-      this._ipcId = electron_menu_idgen++;
-      for (let k in args) {
-          this[k] = args[k];
-      }
-    }
-     insert(i, item) {
-      this.length++;
-      let j=this.length-1;
-      while (j>i) {
-        this[j] = this[j-1];
-        j--;
-      }
-      this[i] = item;
-      return this;
-    }
-    static  setApplicationMenu(menu) {
-      initElectronIpc();
-      ipcRenderer.invoke("set-menu-bar", menu);
-    }
-     closePopup() {
-      ipcRenderer.invoke("close-menu", this._ipcId);
-    }
-     append(item) {
-      this.push(item);
-    }
-     popup(args) {
-      let $_t0goke=args, x=$_t0goke.x, y=$_t0goke.y, callback=$_t0goke.callback;
-      callback = wrapRemoteCallback("popup_menu_click", callback);
-      const $_t1cwus=require('electron'), ipcRenderer=$_t1cwus.ipcRenderer;
-      ipcRenderer.invoke("popup-menu", this, x, y, callback);
-    }
-  }
-  _ESClass.register(ElectronMenu);
-  _es6_module.add_class(ElectronMenu);
-  ElectronMenu = _es6_module.add_export('ElectronMenu', ElectronMenu);
-  let callbacks={}
-  let keybase=1;
-  function wrapRemoteCallback(key, callback) {
-    key = "remote_"+key+(keybase++);
-    callbacks[key] = callback;
-    return key;
-  }
-  wrapRemoteCallback = _es6_module.add_export('wrapRemoteCallback', wrapRemoteCallback);
-  let ipcInit=false;
-  function initElectronIpc() {
-    if (ipcInit) {
-        return ;
-    }
-    ipcInit = true;
-    ipcRenderer = require('electron').ipcRenderer;
-    ipcRenderer.on('invoke-menu-callback', (event, key, args) =>      {
-      callbacks[key].apply(undefined, args);
-    });
-  }
-  class ElectronMenuItem  {
-     constructor(args) {
-      for (let k in args) {
-          this[k] = args[k];
-      }
-      if (this.click) {
-          this.click = wrapRemoteCallback("menu_click", this.click);
-      }
-    }
-  }
-  _ESClass.register(ElectronMenuItem);
-  _es6_module.add_class(ElectronMenuItem);
-  ElectronMenuItem = _es6_module.add_export('ElectronMenuItem', ElectronMenuItem);
-  function patchDropBox() {
-    initElectronIpc();
-    DropBox.prototype._onpress = function _onpress(e) {
-      if (this._menu!==undefined) {
-          this._menu.close();
-          this._menu = undefined;
-          this._pressed = false;
-          this._redraw();
-          return ;
-      }
-      this._build_menu();
-      let emenu=buildElectronMenu(this._menu);
-      this._menu.close = () =>        {
-        emenu.closePopup();
-      }
-      if (this._menu===undefined) {
-          return ;
-      }
-      this._menu._dropbox = this;
-      this.dom._background = this.getDefault("BoxDepressed");
-      this._background = this.getDefault("BoxDepressed");
-      this._redraw();
-      this._pressed = true;
-      this.setCSS();
-      let onclose=this._menu.onclose;
-      this._menu.onclose = () =>        {
-        this._pressed = false;
-        this._redraw();
-        let menu=this._menu;
-        if (menu) {
-            this._menu = undefined;
-            menu._dropbox = undefined;
-        }
-        if (onclose) {
-            onclose.call(menu);
-        }
-      }
-      let menu=this._menu;
-      let screen=this.getScreen();
-      let dpi=this.getDPI();
-      let x=e.x, y=e.y;
-      let rects=this.dom.getClientRects();
-      x = rects[0].x;
-      y = rects[0].y+Math.ceil(rects[0].height);
-      x = ~~x;
-      y = ~~y;
-      emenu.popup({x: x, 
-     y: y, 
-     callback: () =>          {
-          if (this._menu) {
-              this._menu.onclose();
-          }
-        }});
-    }
-  }
-  let on_tick=() =>    {
-    let nativeTheme=getElectron().remote.nativeTheme;
-    let mode=nativeTheme.shouldUseDarkColors ? "dark" : "light";
-    if (mode!==cconst.colorSchemeType) {
-        nativeTheme.themeSource = cconst.colorSchemeType;
-    }
-  }
-  function checkInit() {
-    if (window.haveElectron&&!_init) {
-        _init = true;
-        patchDropBox();
-        setInterval(on_tick, 350);
-    }
-  }
-  checkInit = _es6_module.add_export('checkInit', checkInit);
-  let iconcache={}
-  iconcache = _es6_module.add_export('iconcache', iconcache);
-  function makeIconKey(icon, iconsheet, invertColors) {
-    return ""+icon+":"+iconsheet+":"+invertColors;
-  }
-  function getNativeIcon(icon, iconsheet, invertColors, size) {
-    if (iconsheet===undefined) {
-        iconsheet = 0;
-    }
-    if (invertColors===undefined) {
-        invertColors = false;
-    }
-    if (size===undefined) {
-        size = 16;
-    }
-    let icongen;
-    try {
-      icongen = myRequire("./icogen.js");
-    }
-    catch (error) {
-        icongen = myRequire("./icogen.cjs");
-    }
-    window.icongen = icongen;
-    let nativeImage=getElectron().nativeImage;
-    let manager=getIconManager();
-    let sheet=manager.findSheet(iconsheet);
-    let images=[];
-    let sizes=icongen.GetRequiredICOImageSizes();
-    if (1) {
-        let iconsheet=manager.findClosestSheet(size);
-        let tilesize=manager.getTileSize(iconsheet);
-        let canvas=document.createElement("canvas");
-        let g=canvas.getContext("2d");
-        canvas.width = canvas.height = size;
-        if (invertColors) {
-            g.filter = "invert(100%)";
-        }
-        let scale=size/tilesize;
-        g.scale(scale, scale);
-        manager.canvasDraw({getDPI: () =>            {
-            return 1.0;
-          }}, canvas, g, icon, 0, 0, iconsheet);
-        let header="data:image/png;base64,";
-        let data=canvas.toDataURL();
-        data = data.slice(header.length, data.length);
-        data = Buffer.from(data, "base64");
-        myRequire("fs").writeFileSync("./myicon2.png", data);
-        images.push(data);
-    }
-    return "myicon2.png";
-    return icon;
-    return undefined;
-    window._icon = icon;
-    return icon;
-  }
-  getNativeIcon = _es6_module.add_export('getNativeIcon', getNativeIcon);
-  let map={CTRL: "Control", 
-   ALT: "Alt", 
-   SHIFT: "Shift", 
-   COMMAND: "Command"}
-  function buildElectronHotkey(hk) {
-    hk = hk.trim().replace(/[ \t-]+/g, "+");
-    for (let k in map) {
-        hk = hk.replace(k, map[k]);
-    }
-    return hk;
-  }
-  buildElectronHotkey = _es6_module.add_export('buildElectronHotkey', buildElectronHotkey);
-  function buildElectronMenu(menu) {
-    let electron=getElectron().remote;
-    initElectronIpc();
-    let emenu=new ElectronMenu();
-    let buildItem=(item) =>      {
-      if (item._isMenu) {
-          let menu2=item._menu;
-          return new ElectronMenuItem({submenu: buildElectronMenu(item._menu), 
-       label: menu2.getAttribute("title")});
-      }
-      let hotkey=item.hotkey;
-      let icon=item.icon;
-      let label=""+item.label;
-      if (hotkey&&typeof hotkey!=="string") {
-          hotkey = buildElectronHotkey(hotkey);
-      }
-      else {
-        hotkey = ""+hotkey;
-      }
-      if (icon<0) {
-          icon = undefined;
-      }
-      let args={id: ""+item._id, 
-     label: label, 
-     accelerator: hotkey, 
-     icon: icon ? getNativeIcon(icon) : undefined, 
-     click: function () {
-          menu.onselect(item._id);
-        }, 
-     registerAccelerator: false}
-      return new ElectronMenuItem(args);
-    }
-    for (let item of menu.items) {
-        emenu.append(buildItem(item));
-    }
-    return emenu;
-  }
-  buildElectronMenu = _es6_module.add_export('buildElectronMenu', buildElectronMenu);
-  function initMenuBar(menuEditor, override) {
-    if (override===undefined) {
-        override = false;
-    }
-    checkInit();
-    if (!window.haveElectron) {
-        return ;
-    }
-    if (_menu_init&&!override) {
-        return ;
-    }
-    _menu_init = true;
-    let electron=getElectron().remote;
-    let menu=new ElectronMenu();
-    let _roles=new Set(["undo", "redo", "cut", "copy", "paste", "delete", "about", "quit", "open", "save", "load", "paste", "cut", "zoom"]);
-    let roles={}
-    for (let k of _roles) {
-        roles[k] = k;
-    }
-    roles = Object.assign(roles, {"select all": "selectAll", 
-    "file": "fileMenu", 
-    "edit": "editMenu", 
-    "view": "viewMenu", 
-    "app": "appMenu", 
-    "help": "help", 
-    "zoom in": "zoomIn", 
-    "zoom out": "zoomOut"});
-    let header=menuEditor.header;
-    for (let dbox of header.traverse(DropBox)) {
-        dbox._build_menu();
-        dbox.update();
-        dbox._build_menu();
-        let menu2=dbox._menu;
-        menu2.ctx = dbox.ctx;
-        menu2._init();
-        menu2.update();
-        let title=dbox._genLabel();
-        let args={label: title, 
-      tooltip: dbox.description, 
-      submenu: buildElectronMenu(menu2)};
-        menu.insert(0, new ElectronMenuItem(args));
-    }
-    ElectronMenu.setApplicationMenu(menu);
-  }
-  initMenuBar = _es6_module.add_export('initMenuBar', initMenuBar);
-  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
-  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
-  class platform extends PlatformAPI {
-    static  showOpenDialog(title, args=new FileDialogArgs()) {
-      const $_t2rurj=require('electron').remote, dialog=$_t2rurj.dialog;
-      console.log(args.filters);
-      let eargs={defaultPath: args.defaultPath, 
-     filters: this._sanitizeFilters(args.filters??[]), 
-     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
-      if (args.multi) {
-          eargs.properties.push("multiSelections");
-      }
-      if (!args.addToRecentList) {
-          eargs.properties.push("dontAddToRecent");
-      }
-      initElectronIpc();
-      return new Promise((accept, reject) =>        {
-        ipcRenderer.invoke('show-open-dialog', eargs, wrapRemoteCallback("open-dialog", (ret) =>          {
-          if (ret.canceled||ret.cancelled) {
-              reject("cancel");
-          }
-          else {
-            accept(ret.filePaths.map((f) =>              {
-              return new FilePath(f, getFilename(f));
-            }));
-          }
-        }), wrapRemoteCallback("show-open-dialog", (error) =>          {
-          reject(error);
-        }));
-      });
-    }
-    static  _sanitizeFilters(filters) {
-      let filters2=[];
-      for (let filter of filters) {
-          if (Array.isArray(filter)) {
-              let ext=filter[0];
-              filter = {extensions: filter};
-              ext = ext.replace(/\./g, "").trim().toLowerCase();
-              if (ext in mimemap) {
-                  filter.mime = mimemap[ext];
-              }
-              filter.name = ext;
-          }
-          console.log(filter.extensions);
-          filter.extensions = filter.extensions.map((f) =>            {
-            return f.startsWith(".") ? f.slice(1, f.length) : f;
-          });
-          filters2.push(filter);
-      }
-      return filters2;
-    }
-    static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
-      const $_t3fgwb=require('electron').remote, dialog=$_t3fgwb.dialog;
-      console.log(args.filters);
-      let eargs={defaultPath: args.defaultPath, 
-     filters: this._sanitizeFilters(args.filters??[]), 
-     properties: ["openFile", "showHiddenFiles", "createDirectory"]};
-      if (args.multi) {
-          eargs.properties.push("multiSelections");
-      }
-      if (!args.addToRecentList) {
-          eargs.properties.push("dontAddToRecent");
-      }
-      return new Promise((accept, reject) =>        {
-        initElectronIpc();
-        let onthen=(ret) =>          {
-          if (ret.canceled) {
-              reject("cancel");
-          }
-          else {
-            let path=ret.filePath;
-            let filedata=filedata_cb();
-            if (__instance_of(filedata, ArrayBuffer)) {
-                filedata = new Uint8Array(filedata);
-            }
-            require('fs').writeFileSync(path, filedata);
-            console.log("saved file", filedata);
-            accept(new FilePath(path, getFilename(path)));
-          }
-        }
-        let oncatch=(error) =>          {
-          reject(error);
-        }
-        ipcRenderer.invoke('show-save-dialog', eargs, wrapRemoteCallback('dialog', onthen), wrapRemoteCallback('dialog', oncatch));
-      });
-    }
-    static  readFile(path, mime) {
-      return new Promise((accept, reject) =>        {
-        let fs=require('fs');
-        if (isMimeText(mime)) {
-            accept(fs.readFileSync(path.data, "utf8"));
-        }
-        else {
-          accept(fs.readFileSync(path.data).buffer);
-        }
-      });
-    }
-    static  writeFile(data, handle, mime) {
-      return new Promise((accept, reject) =>        {
-        let fs=require('fs');
-        fs.writeFileSync(handle.data, data);
-        accept(handle);
-      });
-    }
-  }
-  _ESClass.register(platform);
-  _es6_module.add_class(platform);
-  platform = _es6_module.add_export('platform', platform);
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/electron_api.js');
-
-
-es6_module_define('icogen', [], function _icogen_module(_es6_module) {
-  "use strict";
-  if (window.haveElectron) {
-      let fs=require("fs");
-      let path=require("path");
-      let pngjsNozlib=require("pngjs-nozlib");
-      let png=require("pngjs");
-      const REQUIRED_IMAGE_SIZES=[16, 24, 32, 48, 64, 128, 256];
-      const DEFAULT_FILE_NAME='app';
-      const FILE_EXTENSION='.ico';
-      const HEADER_SIZE=6;
-      const DIRECTORY_SIZE=16;
-      const BITMAPINFOHEADER_SIZE=40;
-      const BI_RGB=0;
-      const convertPNGtoDIB=(src, width, height, bpp) =>        {
-        const cols=width*bpp;
-        const rows=height*cols;
-        const rowEnd=rows-cols;
-        const dest=Buffer.alloc(src.length);
-        for (let row=0; row<rows; row+=cols) {
-            for (let col=0; col<cols; col+=bpp) {
-                let pos=row+col;
-                const r=src.readUInt8(pos);
-                const g=src.readUInt8(pos+1);
-                const b=src.readUInt8(pos+2);
-                const a=src.readUInt8(pos+3);
-                pos = rowEnd-row+col;
-                dest.writeUInt8(b, pos);
-                dest.writeUInt8(g, pos+1);
-                dest.writeUInt8(r, pos+2);
-                dest.writeUInt8(a, pos+3);
-            }
-        }
-        return dest;
-      };
-      const createBitmapInfoHeader=(png, compression) =>        {
-        const b=Buffer.alloc(BITMAPINFOHEADER_SIZE);
-        b.writeUInt32LE(BITMAPINFOHEADER_SIZE, 0);
-        b.writeInt32LE(png.width, 4);
-        b.writeInt32LE(png.height*2, 8);
-        b.writeUInt16LE(1, 12);
-        b.writeUInt16LE(png.bpp*8, 14);
-        b.writeUInt32LE(compression, 16);
-        b.writeUInt32LE(png.data.length, 20);
-        b.writeInt32LE(0, 24);
-        b.writeInt32LE(0, 28);
-        b.writeUInt32LE(0, 32);
-        b.writeUInt32LE(0, 36);
-        return b;
-      };
-      const createDirectory=(png, offset) =>        {
-        const b=Buffer.alloc(DIRECTORY_SIZE);
-        const size=png.data.length+BITMAPINFOHEADER_SIZE;
-        const width=256<=png.width ? 0 : png.width;
-        const height=256<=png.height ? 0 : png.height;
-        const bpp=png.bpp*8;
-        b.writeUInt8(width, 0);
-        b.writeUInt8(height, 1);
-        b.writeUInt8(0, 2);
-        b.writeUInt8(0, 3);
-        b.writeUInt16LE(1, 4);
-        b.writeUInt16LE(bpp, 6);
-        b.writeUInt32LE(size, 8);
-        b.writeUInt32LE(offset, 12);
-        return b;
-      };
-      const createFileHeader=(count) =>        {
-        const b=Buffer.alloc(HEADER_SIZE);
-        b.writeUInt16LE(0, 0);
-        b.writeUInt16LE(1, 2);
-        b.writeUInt16LE(count, 4);
-        return b;
-      };
-      const checkOptions=(options) =>        {
-        if (options) {
-            return {name: typeof options.name==='string'&&options.name!=='' ? options.name : DEFAULT_FILE_NAME, 
-        sizes: Array.isArray(options.sizes) ? options.sizes : REQUIRED_IMAGE_SIZES}
-        }
-        else {
-          return {name: DEFAULT_FILE_NAME, 
-       sizes: REQUIRED_IMAGE_SIZES}
-        }
-      };
-      const GetRequiredICOImageSizes=() =>        {
-        return REQUIRED_IMAGE_SIZES;
-      };
-      let stream=require("stream");
-      class WriteStream extends stream.Writable {
-         constructor() {
-          super();
-          this.data = [];
-        }
-         _write(chunk, encoding, cb) {
-          let buf=chunk;
-          if (!(__instance_of(buf, Buffer))) {
-              Buffer.from(chunk, encoding);
-          }
-          for (let i=0; i<buf.length; i++) {
-              this.data.push(buf[i]);
-          }
-          cb(null);
-        }
-         end() {
-          this.data = Buffer.from(this.data);
-          super.end();
-        }
-      }
-      _ESClass.register(WriteStream);
-      _es6_module.add_class(WriteStream);
-      exports.GetRequiredICOImageSizes = GetRequiredICOImageSizes;
-      const GenerateICO=(images, logger) =>        {
-        if (logger===undefined) {
-            logger = console;
-        }
-        logger.log('ICO:');
-        const stream=new WriteStream();
-        stream.write(createFileHeader(images.length), 'binary');
-        let pngs=[];
-        for (let image of images) {
-            pngs.push(pngjsNozlib.PNG.sync.read(image));
-        }
-        let offset=HEADER_SIZE+DIRECTORY_SIZE*images.length;
-        pngs.forEach((png) =>          {
-          const directory=createDirectory(png, offset);
-          stream.write(directory, 'binary');
-          offset+=png.data.length+BITMAPINFOHEADER_SIZE;
-        });
-        pngs.forEach((png) =>          {
-          const header=createBitmapInfoHeader(png, BI_RGB);
-          stream.write(header, 'binary');
-          const dib=convertPNGtoDIB(png.data, png.width, png.height, png.bpp);
-          stream.write(dib, 'binary');
-        });
-        stream.end();
-        return stream.data;
-      };
-      exports.GenerateICO = GenerateICO;
-      let _default=GenerateICO;
-      exports.default = _default;
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/electron/icogen.js');
-
-
-es6_module_define('platform', [], function _platform_module(_es6_module) {
-  let promise;
-  if (window.haveElectron) {
-      promise = _es_dynamic_import(_es6_module, './electron/electron_api.js');
-  }
-  else {
-    promise = _es_dynamic_import(_es6_module, './web/web_api.js');
-  }
-  var platform;
-  platform = _es6_module.add_export('platform', platform);
-  promise.then((module) =>    {
-    platform = module.platform;
-  });
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform.js');
-
-
-es6_module_define('platform_base', [], function _platform_base_module(_es6_module) {
-  const mimeMap={".js": "application/javascript", 
-   ".json": "text/json", 
-   ".html": "text/html", 
-   ".txt": "text/plain", 
-   ".jpg": "image/jpeg", 
-   ".png": "image/png", 
-   ".tiff": "image/tiff", 
-   ".gif": "image/gif", 
-   ".bmp": "image/bitmap", 
-   ".tga": "image/targa", 
-   ".svg": "image/svg+xml", 
-   ".xml": "text/xml"}
-  _es6_module.add_export('mimeMap', mimeMap);
-  var textMimes=new Set(["application/javascript", "application/x-javscript", "image/svg+xml", "application/xml"]);
-  textMimes = _es6_module.add_export('textMimes', textMimes);
-  function isMimeText(mime) {
-    if (!mime) {
-        return false;
-    }
-    if (mime.startsWith("text")) {
-        return true;
-    }
-    return textMimes.has(mime);
-  }
-  isMimeText = _es6_module.add_export('isMimeText', isMimeText);
-  function getExtension(path) {
-    if (!path) {
-        return "";
-    }
-    let i=path.length;
-    while (i>0&&path[i]!==".") {
-      i--;
-    }
-    return path.slice(i, path.length).trim().toLowerCase();
-  }
-  getExtension = _es6_module.add_export('getExtension', getExtension);
-  function getMime(path) {
-    let ext=getExtension(path);
-    if (ext in mimeMap) {
-        return mimeMap[ext];
-    }
-    return "application/x-octet-stream";
-  }
-  getMime = _es6_module.add_export('getMime', getMime);
-  class PlatformAPI  {
-    static  writeFile(data, handle, mime) {
-      throw new Error("implement me");
-    }
-    static  resolveURL(path, base=location.href) {
-      base = base.trim();
-      if (path.startsWith("./")) {
-          path = path.slice(2, path.length).trim();
-      }
-      while (path.startsWith("/")) {
-        path = path.slice(1, path.length).trim();
-      }
-      while (base.endsWith("/")) {
-        base = base.slice(0, base.length-1).trim();
-      }
-      let exts=["html", "txt", "js", "php", "cgi"];
-      for (let ext of exts) {
-          ext = "."+ext;
-          if (base.endsWith(ext)) {
-              let i=base.length-1;
-              while (i>0&&base[i]!=="/") {
-                i--;
-              }
-              base = base.slice(0, i).trim();
-          }
-      }
-      while (base.endsWith("/")) {
-        base = base.slice(0, base.length-1).trim();
-      }
-      path = (base+"/"+path).split("/");
-      let path2=[];
-      for (let i=0; i<path.length; i++) {
-          if (path[i]==="..") {
-              path2.pop();
-          }
-          else {
-            path2.push(path[i]);
-          }
-      }
-      return path2.join("/");
-    }
-    static  showOpenDialog(title, args=new FileDialogArgs()) {
-      throw new Error("implement me");
-    }
-    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
-      throw new Error("implement me");
-    }
-    static  readFile(path, mime) {
-      throw new Error("implement me");
-    }
-  }
-  _ESClass.register(PlatformAPI);
-  _es6_module.add_class(PlatformAPI);
-  PlatformAPI = _es6_module.add_export('PlatformAPI', PlatformAPI);
-  class FileDialogArgs  {
-     constructor() {
-      this.multi = false;
-      this.addToRecentList = false;
-      this.filters = [];
-    }
-  }
-  _ESClass.register(FileDialogArgs);
-  _es6_module.add_class(FileDialogArgs);
-  FileDialogArgs = _es6_module.add_export('FileDialogArgs', FileDialogArgs);
-  class FilePath  {
-     constructor(data, filename="unnamed") {
-      this.data = data;
-      this.filename = filename;
-    }
-  }
-  _ESClass.register(FilePath);
-  _es6_module.add_class(FilePath);
-  FilePath = _es6_module.add_export('FilePath', FilePath);
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/platform_base.js');
-
-
-es6_module_define('web_api', ["../../path-controller/util/html5_fileapi.js", "../platform_base.js"], function _web_api_module(_es6_module) {
-  var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
-  var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
-  var saveFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'saveFile');
-  var loadFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'loadFile');
-  var FileDialogArgs=es6_import_item(_es6_module, '../platform_base.js', 'FileDialogArgs');
-  var FilePath=es6_import_item(_es6_module, '../platform_base.js', 'FilePath');
-  var mimeMap=es6_import_item(_es6_module, '../platform_base.js', 'mimeMap');
-  function getWebFilters(filters) {
-    if (filters===undefined) {
-        filters = [];
-    }
-    let types=[];
-    for (let item of filters) {
-        let mime=item.mime;
-        let exts=[];
-        for (let ext of item.extensions) {
-            ext = "."+ext;
-            if (ext.toLowerCase() in mimeMap) {
-                mime = mime!==undefined ? mime : mimeMap[ext.toLowerCase()];
-            }
-            exts.push(ext);
-        }
-        if (!mime) {
-            mime = "application/x-octet-stream";
-        }
-        types.push({description: item.name, 
-      accept: {[mime]: exts}});
-    }
-    return types;
-  }
-  getWebFilters = _es6_module.add_export('getWebFilters', getWebFilters);
-  class platform extends PlatformAPI {
-    static  showOpenDialog(title, args=new FileDialogArgs()) {
-      let types=getWebFilters(args.filters);
-      return new Promise((accept, reject) =>        {
-        window.showOpenFilePicker({multiple: args.multi, 
-      types: types}).then((arg) =>          {
-          let paths=[];
-          for (let file of arg) {
-              paths.push(new FilePath(file, file.name));
-          }
-          accept(paths);
-        });
-      });
-    }
-    static  writeFile(data, handle, mime) {
-      handle = handle.data;
-      return handle.createWritable().then((file) =>        {
-        file.write(data);
-        file.close();
-      });
-    }
-    static  showSaveDialog(title, savedata_cb, args=new FileDialogArgs()) {
-      if (!window.showSaveFilePicker) {
-          return this.showSaveDialog_old(...arguments);
-      }
-      let types=getWebFilters(args.filters);
-      return new Promise((accept, reject) =>        {
-        let fname;
-        let saveHandle=window.showSaveFilePicker({types: types});
-        let handle;
-        saveHandle.then((handle1) =>          {
-          handle = handle1;
-          fname = handle.name;
-          console.log("saveHandle", handle);
-          return handle.createWritable();
-        }).then((file) =>          {
-          let savedata=savedata_cb();
-          if (__instance_of(savedata, Uint8Array)||__instance_of(savedata, DataView)) {
-              savedata = savedata.buffer;
-          }
-          file.write(savedata);
-          file.close();
-          let path=new FilePath(handle, fname);
-          accept(path);
-        });
-      });
-    }
-    static  showSaveDialog_old(title, savedata, args=new FileDialogArgs()) {
-      let exts=[];
-      for (let list of args.filters) {
-          if (!Array.isArray(list)&&list.filters) {
-              list = list.filters;
-          }
-          for (let ext of list) {
-              exts.push(ext);
-          }
-      }
-      return new Promise((accept, reject) =>        {
-        saveFile(savedata);
-        window.setTimeout(() =>          {
-          accept("undefined");
-        });
-      });
-    }
-    static  readFile(path, mime="") {
-      if (mime==="") {
-          mime = path.filename;
-          let i=mime.length-1;
-          while (i>0&&mime[i]!==".") {
-            i--;
-          }
-          mime = mime.slice(i, mime.length).trim().toLowerCase();
-          if (mime in mimeMap) {
-              mime = mimeMap[mime];
-          }
-      }
-      return new Promise((accept, reject) =>        {
-        path.data.getFile().then((file) =>          {
-          console.log("file!", file);
-          let promise;
-          if (isMimeText(mime)) {
-              promise = file.text();
-          }
-          else {
-            promise = file.arrayBuffer();
-          }
-          promise.then((data) =>            {
-            accept(data);
-          });
-        });
-      });
-      return new Promise((accept, reject) =>        {
-        let data=path.data;
-        if (isMimeText(mime)) {
-            let s='';
-            data = new Uint8Array(data);
-            for (let i=0; i<data.length; i++) {
-                s+=String.fromCharCode(data[i]);
-            }
-            data = s;
-        }
-        accept(data);
-      });
-    }
-  }
-  _ESClass.register(platform);
-  _es6_module.add_class(platform);
-  platform = _es6_module.add_export('platform', platform);
-}, '/dev/fairmotion/src/path.ux/scripts/platforms/web/web_api.js');
-
-
-es6_module_define('AreaDocker', ["../config/const.js", "../core/ui_base.js", "../path-controller/util/struct.js", "./ScreenArea.js", "../widgets/ui_menu.js", "../core/ui.js", "./area_wrangler.js", "../path-controller/util/util.js"], function _AreaDocker_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
-  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var Area=es6_import_item(_es6_module, './ScreenArea.js', 'Area');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
-  var getAreaIntName=es6_import_item(_es6_module, './area_wrangler.js', 'getAreaIntName');
-  var setAreaTypes=es6_import_item(_es6_module, './area_wrangler.js', 'setAreaTypes');
-  var AreaWrangler=es6_import_item(_es6_module, './area_wrangler.js', 'AreaWrangler');
-  var areaclasses=es6_import_item(_es6_module, './area_wrangler.js', 'areaclasses');
-  let ignore=0;
-  window.testSnapScreenVerts = function (arg) {
-    let screen=CTX.screen;
-    screen.unlisten();
-    screen.on_resize([screen.size[0]-75, screen.size[1]], screen.size);
-    screen.on_resize = screen.updateSize = () =>      {    }
-    let p=CTX.propsbar;
-    p.pos[0]+=50;
-    p.owning_sarea.loadFromPosSize();
-    screen.regenBorders();
-    screen.size[0] = window.innerWidth-5;
-    screen.snapScreenVerts(arg);
-  }
-  class AreaDocker extends Container {
-     constructor() {
-      super();
-      this.tbar = this.tabs();
-      this.tbar.enableDrag();
-      this.tbar.addEventListener("dragstart", (e) =>        {
-        console.log("drag start", e);
-        let name=this.tbar.tbar.tabs.active.name;
-        let id=this.tbar.tbar.tabs.active._id;
-        let sarea=this.getArea().owning_sarea;
-        let area=this.getArea();
-        this.ctx.screen.dragArea = [area, sarea];
-        e.dataTransfer.setData("area", name+"|"+this._id);
-        e.preventDefault();
-      });
-      this.tbar.addEventListener("dragover", (e) =>        {
-        console.log("drag over");
-        console.log(e.dataTransfer.getData("area"));
-        let data=e.dataTransfer.getData("area");
-        if (!data) {
-            return ;
-        }
-        let $_t0rrig=this.ctx.screen.dragArea, area=$_t0rrig[0], sarea=$_t0rrig[1];
-        if (!area||this.getArea()===area) {
-            return ;
-        }
-        if (area.constructor.define().areaname in this.getArea().owning_sarea.editormap) {
-            return ;
-        }
-        this.ctx.screen.dragArea[1] = this.getArea().owning_sarea;
-        try {
-          sarea.removeChild(area);
-        }
-        catch (error) {
-            util.print_stack(error);
-        }
-        this.getArea().owning_sarea.appendChild(area);
-        this.rebuild();
-        e.preventDefault();
-      });
-      this.tbar.addEventListener("dragexit", (e) =>        {
-        console.log("drag exit");
-        console.log(e.dataTransfer.getData("area"));
-        if (this.tbar.__fake) {
-            this.tbar.removeTab(this.tbar.__fake);
-            this.tbar.__fake = undefined;
-        }
-      });
-      this.tbar.addEventListener("drop", (e) =>        {
-        console.log("drop event", e);
-        console.log(e.dataTransfer.getData("area"));
-      });
-      this.tbar.addEventListener("dragend", (e) =>        {
-        console.log("drag end event", e);
-        console.log(e.dataTransfer.getData("area"));
-      });
-      this.tbar.onchange = (tab) =>        {
-        if (ignore) {
-            return ;
-        }
-        if (!tab||!this.getArea()||!this.getArea().parentWidget) {
-            return ;
-        }
-        if (tab.id==="add") {
-            this.addTabMenu(tab);
-            return ;
-        }
-        console.warn("CHANGE AREA", tab.id, this.id);
-        let sarea=this.getArea().parentWidget;
-        if (!sarea) {
-            return ;
-        }
-        for (let area of sarea.editors) {
-            if (area._id===tab.id&&area!==sarea.area) {
-                let ud=saveUIData(this.tbar, "tabs");
-                sarea.switch_editor(area.constructor);
-                area._init();
-                area.flushUpdate();
-                if (area.switcher) {
-                    ignore++;
-                    area.switcher.update();
-                    area.switcher.tbar.setActive(area._id);
-                    try {
-                      loadUIData(sarea.area.switcher.tbar, ud);
-                    }
-                    finally {
-                        ignore = Math.max(ignore-1, 0);
-                      }
-                    area.switcher.rebuild();
-                }
-            }
-        }
-      };
-    }
-     addTabMenu(tab) {
-      console.log("Add Tab!");
-      let rect=tab.getClientRects()[0];
-      let mpos=this.ctx.screen.mpos;
-      let menu=UIBase.createElement("menu-x");
-      menu.closeOnMouseUp = false;
-      menu.ctx = this.ctx;
-      menu._init();
-      let prop=Area.makeAreasEnum();
-      let sarea=this.getArea().parentWidget;
-      if (!sarea) {
-          return ;
-      }
-      for (let k in Object.assign({}, prop.values)) {
-          let ok=true;
-          for (let area of sarea.editors) {
-              if (area.constructor.define().uiname===k) {
-                  ok = false;
-              }
-          }
-          if (!ok) {
-              continue;
-          }
-          let icon=prop.iconmap[k];
-          menu.addItemExtra(k, prop.values[k], undefined, icon);
-      }
-      console.log(mpos[0], mpos[1], rect.x, rect.y);
-      menu.onselect = (val) =>        {
-        console.log("menu select", val, this.getArea().parentWidget);
-        let sarea=this.getArea().parentWidget;
-        if (sarea) {
-            let cls=areaclasses[val];
-            ignore++;
-            let area, ud;
-            try {
-              ud = saveUIData(this.tbar, "tab");
-              sarea.switchEditor(cls);
-              console.log("switching", cls);
-              area = sarea.area;
-              area._init();
-            }
-            catch (error) {
-                util.print_stack(error);
-                throw error;
-            }
-            finally {
-                ignore = Math.max(ignore-1, 0);
-              }
-            console.log("AREA", area.switcher, area);
-            if (area.switcher) {
-                ignore++;
-                try {
-                  area.parentWidget = sarea;
-                  area.owning_sarea = sarea;
-                  area.switcher.parentWidget = area;
-                  area.switcher.ctx = area.ctx;
-                  area.switcher._init();
-                  area.switcher.update();
-                  console.log("loading data", ud);
-                  loadUIData(area.switcher.tbar, ud);
-                  area.switcher.rebuild();
-                  area.flushUpdate();
-                }
-                catch (error) {
-                    throw error;
-                }
-                finally {
-                    ignore = Math.max(ignore-1, 0);
-                  }
-            }
-        }
-      };
-      startMenu(menu, mpos[0], rect.y, false, 0);
-    }
-     getArea() {
-      let p=this;
-      while (p&&!(__instance_of(p, Area))) {
-        p = p.parentWidget;
-      }
-      return p;
-    }
-     _hash() {
-      let area=this.getArea();
-      if (!area)
-        return ;
-      let sarea=area.parentWidget;
-      if (!sarea) {
-          return ;
-      }
-      let hash="";
-      for (let area2 of sarea.editors) {
-          hash+=area2.tagName+":";
-      }
-      return hash+(sarea.area ? sarea.area.tagName : "");
-    }
-     rebuild() {
-      console.log("rebuild");
-      if (!this.getArea()||!this.getArea().parentWidget) {
-          this._last_hash = undefined;
-          this.tbar.clear();
-          return ;
-      }
-      ignore++;
-      let ud=saveUIData(this.tbar, "tbar");
-      this.tbar.clear();
-      let sarea=this.getArea().parentWidget;
-      for (let area of sarea.editors) {
-          let uiname=area.constructor.define().uiname;
-          let tab=this.tbar.tab(uiname, area._id);
-      }
-      let tab=this.tbar.icontab(Icons.SMALL_PLUS, "add", "Add Editor", false);
-      loadUIData(this.tbar, ud);
-      let tc=this.tbar.getTabCount();
-      this.tbar.moveTab(tab, tc-1);
-      ignore = Math.max(ignore-1, 0);
-    }
-     update() {
-      super.update();
-      if (!this.ctx)
-        return ;
-      let area=this.getArea();
-      if (!area)
-        return ;
-      let sarea=area.parentWidget;
-      if (!sarea)
-        return ;
-      let hash=this._hash();
-      if (hash!==this._last_hash) {
-          this._last_hash = hash;
-          this.rebuild();
-      }
-      if (this.isDead()||!this.getArea()) {
-          ignore++;
-          this.tbar.setActive(this.getArea()._id);
-          ignore--;
-      }
-    }
-     init() {
-      super.init();
-    }
-    static  define() {
-      return {tagname: "area-docker-x"}
-    }
-  }
-  _ESClass.register(AreaDocker);
-  _es6_module.add_class(AreaDocker);
-  AreaDocker = _es6_module.add_export('AreaDocker', AreaDocker);
-  UIBase.internalRegister(AreaDocker);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
-
-
-es6_module_define('area_wrangler', ["../path-controller/util/vectormath.js", "./FrameManager_mesh.js", "../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../core/ui.js", "../widgets/ui_noteframe.js", "../core/ui_base.js", "../path-controller/util/struct.js"], function _area_wrangler_module(_es6_module) {
-  let _ScreenArea=undefined;
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
-  var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
-  es6_import(_es6_module, '../path-controller/util/struct.js');
-  let UIBase=ui_base.UIBase;
-  let Vector2=vectormath.Vector2;
-  let ScreenClass=undefined;
-  var snap=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snap');
-  var snapi=es6_import_item(_es6_module, './FrameManager_mesh.js', 'snapi');
-  function setScreenClass(cls) {
-    ScreenClass = cls;
-  }
-  setScreenClass = _es6_module.add_export('setScreenClass', setScreenClass);
-  function getAreaIntName(name) {
-    let hash=0;
-    for (let i=0; i<name.length; i++) {
-        let c=name.charCodeAt(i);
-        if (i%2===0) {
-            hash+=c<<8;
-            hash*=13;
-            hash = hash&((1<<15)-1);
-        }
-        else {
-          hash+=c;
-        }
-    }
-    return hash;
-  }
-  getAreaIntName = _es6_module.add_export('getAreaIntName', getAreaIntName);
-  window.getAreaIntName = getAreaIntName;
-  var AreaTypes={TEST_CANVAS_EDITOR: 0}
-  AreaTypes = _es6_module.add_export('AreaTypes', AreaTypes);
-  function setAreaTypes(def) {
-    for (let k in AreaTypes) {
-        delete AreaTypes[k];
-    }
-    for (let k in def) {
-        AreaTypes[k] = def[k];
-    }
-  }
-  setAreaTypes = _es6_module.add_export('setAreaTypes', setAreaTypes);
-  let areaclasses={}
-  areaclasses = _es6_module.add_export('areaclasses', areaclasses);
-  class AreaWrangler  {
-     constructor() {
-      this.stacks = {};
-      this.lasts = {};
-      this.lastArea = undefined;
-      this.stack = [];
-      this.idgen = 0;
-      this._last_screen_id = undefined;
-    }
-     _checkWrangler(ctx) {
-      if (ctx===undefined) {
-          return true;
-      }
-      if (this._last_screen_id===undefined) {
-          this._last_screen_id = ctx.screen._id;
-          return true;
-      }
-      if (ctx.screen._id!==this._last_screen_id) {
-          this.reset();
-          this._last_screen_id = ctx.screen._id;
-          console.warn("contextWrangler detected a new screen; new file?");
-          return false;
-      }
-      return true;
-    }
-     reset() {
-      this.stacks = {};
-      this.lasts = {};
-      this.lastArea = undefined;
-      this.stack = [];
-      this._last_screen_id = undefined;
-      return this;
-    }
-     push(type, area, pushLastRef=true) {
-      if (!(type.name in this.stacks)) {
-          this.stacks[type.name] = [];
-      }
-      this.stacks[type.name].push(this.lasts[type.name]);
-      if (pushLastRef||this.lasts[type.name]===undefined) {
-          this.lasts[type.name] = area;
-          this.lastArea = area;
-      }
-      this.stacks[type.name].push(area);
-      this.stack.push(area);
-    }
-     updateLastRef(type, area) {
-      this.lasts[type.name] = area;
-      this.lastArea = area;
-    }
-     pop(type, area) {
-      if (!(type.name in this.stacks)) {
-          console.warn("pop_ctx_area called in error");
-          return ;
-      }
-      if (this.stacks[type.name].length>0) {
-          this.stacks[type.name].pop();
-          let last=this.stacks[type.name].pop();
-          if (last&&last.isConnected) {
-              this.lasts[type.name] = last;
-          }
-      }
-      else {
-        console.error("pop_ctx_area called in error");
-      }
-      if (this.stack.length>0) {
-          this.stack.pop();
-      }
-    }
-     getLastArea(type) {
-      if (type===undefined) {
-          if (this.stack.length>0) {
-              return this.stack[this.stack.length-1];
-          }
-          else {
-            return this.lastArea;
-          }
-      }
-      else {
-        if (type.name in this.stacks) {
-            let stack=this.stacks[type.name];
-            if (stack.length>0) {
-                return stack[stack.length-1];
-            }
-        }
-        return this.lasts[type.name];
-      }
-    }
-  }
-  _ESClass.register(AreaWrangler);
-  _es6_module.add_class(AreaWrangler);
-  AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
-}, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
 

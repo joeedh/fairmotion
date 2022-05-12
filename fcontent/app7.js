@@ -1,5 +1,6027 @@
 
-es6_module_define('spline', ["./spline_types.js", "../path.ux/scripts/config/const.js", "../wasm/native_api.js", "../core/lib_api.js", "../editors/viewport/view2d_editor.js", "../core/toolops_api.js", "./spline_element_array.js", "../path.ux/scripts/pathux.js", "../core/eventdag.js", "../config/config.js", "./solver_new.js", "./solver.js", "./spline_multires.js", "../core/struct.js", "./spline_query.js", "./spline_draw.js", "../editors/viewport/selectmode.js", "./spline_math.js", "./spline_strokegroup.js"], function _spline_module(_es6_module) {
+es6_module_define('bspline', [], function _bspline_module(_es6_module) {
+  var _bspline=undefined;
+  var _i=0;
+  var IW=_i++;
+  var IDV1=_i++;
+  var IDV2=_i++;
+  var IDV3=_i++;
+  var IDV4=_i++;
+  var ITOT=_i;
+  function Table(size, start, end, ds) {
+    this.start = start;
+    this.end = end;
+    this.ds = ds;
+    this.size = size;
+    this.t = new Float64Array(size*ITOT);
+    this.w = new Array(size);
+    this.dv = new Array(size);
+    this.dv2 = new Array(size);
+    this.dv3 = new Array(size);
+    this.dv4 = new Array(size);
+    this.start = start;
+    this.end = end;
+    this.ds = ds;
+    this.ds2 = ds*ds;
+    this.ds3 = ds*ds*ds;
+    this.ds4 = ds*ds*ds*ds;
+    this.ds5 = ds*ds*ds*ds*ds;
+    this.ds6 = ds*ds*ds*ds*ds*ds;
+    this.ds7 = ds*ds*ds*ds*ds*ds*ds;
+    this.ds8 = ds*ds*ds*ds*ds*ds*ds*ds;
+    this.ds9 = ds*ds*ds*ds*ds*ds*ds*ds*ds;
+  }
+  Table = _es6_module.add_export('Table', Table);
+  var cache={}
+  window.NO_CACHE = false;
+  var uniform_vec=new Array(1024);
+  for (var i=0; i<uniform_vec.length; i++) {
+      uniform_vec[i] = i;
+  }
+  class BasisCache  {
+     constructor(knots) {
+      this.size = undefined;
+      this.recalc = 1;
+      this.tables = [];
+      this.dpad = 1;
+      if (knots!=undefined) {
+          this.gen(knots);
+      }
+    }
+     gen(ks, degree) {
+      if (NO_CACHE) {
+          this.recalc = 1;
+          return ;
+      }
+      this.tables = [];
+      var start_time=time_ms();
+      console.log("start generating tables");
+      var sz=14;
+      if (degree<3)
+        sz = 128;
+      else 
+        if (degree<4)
+        sz = 40;
+      this.size = sz;
+      this.degree = degree;
+      var dpad=this.dpad;
+      for (var i=-degree-dpad; i<ks.length+degree+dpad; i++) {
+          var j1=Math.max(0, i-degree-dpad);
+          var j2=Math.min(ks.length-1, i+degree+dpad);
+          if (i==-degree-dpad)
+            j1 = 0;
+          var tstart=ks[j1];
+          var tend=ks[j2];
+          var ds=(tend-tstart)/(this.size-1.0);
+          var table=new Table(this.size, tstart, tend, ds);
+          this.tables.push(table);
+      }
+      this.recalc = 0;
+      if (ks.length==0)
+        return ;
+      var start=ks[0], end=ks[ks.length-1];
+      var s=start, steps=this.size, ds=(end-start)/(steps-1.0);
+      this.start = start;
+      this.end = end;
+      var df=1e-05;
+      var lastk=ks[ks.length-1];
+      var dpad=this.dpad;
+      for (var j=-degree-dpad; j<ks.length+degree+dpad; j++) {
+          var j1=Math.min(Math.max(j+degree+dpad, 0), this.tables.length-1);
+          var table=this.tables[j1];
+          start = table.start, end = table.end, ds = table.ds;
+          var ac=0.0;
+          for (var i=0, s2=start; i<steps; i++, s2+=ds) {
+              var s=s2;
+              s = min(lastk-1e-08, s);
+              var table=this.tables[j+degree+dpad];
+              var dv, dv2, dv3, dv4;
+              dv = dv2 = dv3 = dv4 = 0.0;
+              var w=table.w[i] = basis(s, j, degree, ks);
+              table.t[ac++] = w;
+              var s2=s;
+              var dv=basis_dv(s2, j, degree, ks, 1);
+              table.t[ac++] = dv;
+              if (this.degree>2) {
+                  dv2 = basis_dv(s, j, degree, ks, 2);
+                  table.t[ac++] = dv2;
+              }
+              else {
+                ac++;
+              }
+              if (this.degree>3) {
+                  dv3 = basis_dv(s, j, degree, ks, 3);
+                  table.t[ac++] = dv3;
+              }
+              else {
+                ac++;
+              }
+              if (this.degree>4) {
+                  dv4 = basis_dv(s, j, degree, ks, 4);
+                  table.t[ac++] = dv4;
+              }
+              else {
+                ac++;
+              }
+              table.dv[i] = dv;
+              table.dv2[i] = dv2;
+              table.dv3[i] = dv3;
+              table.dv4[i] = dv4;
+          }
+      }
+    }
+     update() {
+      this.recalc = 1;
+    }
+     basis(s, j, n, ks, no_cache) {
+      var origs=s;
+      if (NO_CACHE||(no_cache!==undefined&&no_cache)) {
+          return basis(s, j, n, ks, true);
+      }
+      if (this.recalc) {
+          this.gen(ks, n);
+      }
+      j = min(max(j+n+this.dpad, 0), this.tables.length-1);
+      var table=this.tables[j];
+      var start=table.start, end=table.end, ds=table.ds;
+      if (s<start||s>=end)
+        return 0.0;
+      var div=(end-start);
+      var tsize=this.size;
+      s = (s-start)/div;
+      s = min(max(s, 0.0), 1.0)*(tsize-1.0);
+      var t=s;
+      s = floor(s);
+      s = min(max(s, 0.0), tsize-1);
+      t-=s;
+      var s2=min(s+1, tsize);
+      var ac1=s*ITOT;
+      var ac2=s2*ITOT;
+      var tb=table.t;
+      var w1, w2, dv1a, dv2a, dv3a, dv4a, dv1b, dv2b, dv3b, dv4b;
+      var w1=table.w[s], dv1a=table.dv[s], dv2a=table.dv2[s], dv3a=table.dv3[s], dv4a=table.dv4[s];
+      var w2=table.w[s2], dv1b=table.dv[s2], dv2b=table.dv2[s2], dv3b=table.dv3[s2], dv4b=table.dv4[s2];
+      var t2=1.0-t;
+      var t3=t;
+      t*=ds;
+      t2*=-ds;
+      var eps=1e-06;
+      t3 = (t3*(1.0-eps*2.0))+eps;
+      s = t3*ds;
+      var s2=s*s, s3=s*s*s, s4=s2*s2, s5=s4*s, s6=s3*s3, s7=s6*s, s8=s7*s;
+      var ds2=ds*ds, ds3=ds*ds*ds, ds4=ds3*ds, ds5=ds4*ds, ds6=ds5*ds, ds7=ds6*ds, ds8=ds7*ds;
+      var polynomial=((((dv3a*s3+6*w1+3*dv2a*s2+6*dv1a*s)*ds5+3*(2*ds3*dv3a+ds3*dv3b+20*ds2*dv2a-14*ds2*dv2b+90*ds*dv1a+78*ds*dv1b+168*w1-168*w2)*s5)*ds-(4*ds3*dv3a+3*ds3*dv3b+45*ds2*dv2a-39*ds2*dv2b+216*ds*dv1a+204*ds*dv1b+420*w1-420*w2)*s6)*ds+((dv3a+dv3b)*ds3+120*(w1-w2)+12*(dv2a-dv2b)*ds2+60*(dv1a+dv1b)*ds)*s7-((4*dv3a+dv3b)*ds3+210*(w1-w2)+15*(2*dv2a-dv2b)*ds2+30*(4*dv1a+3*dv1b)*ds)*ds3*s4)/(6*ds7);
+      if (isNaN(polynomial)) {
+          return 0;
+      }
+      return polynomial;
+    }
+  }
+  _ESClass.register(BasisCache);
+  _es6_module.add_class(BasisCache);
+  BasisCache = _es6_module.add_export('BasisCache', BasisCache);
+  var basis_dv_cache=new cachering(function () {
+    var ret=new Array(32);
+    for (var i=0; i<ret.length; i++) {
+        ret[i] = 0.0;
+    }
+    ret.j = undefined;
+    ret.n = undefined;
+    ret.init = function (j, n) {
+      this.j = j;
+      this.n = n;
+      for (var i=0; i<this.length; i++) {
+          this[i] = 0;
+      }
+    }
+    return ret;
+  }, 64);
+  function basis_dv(s, j, n, ks, dvn) {
+    if (dvn==undefined)
+      dvn = 1;
+    return compiled_basis_dv(s, j, n, ks, dvn);
+    if (dvn==0) {
+        return basis(s, j, n, ks);
+    }
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = min(max(j1, 0.0), klen-1);
+    j2 = min(max(j2, 0.0), klen-1);
+    jn = min(max(jn, 0.0), klen-1);
+    jn1 = min(max(jn1, 0.0), klen-1);
+    if (n<1) {
+        return 0;
+    }
+    else 
+      if (0&&n<=1) {
+        var j3=min(max(j+2, 0.0), klen-1);
+        var j4=min(max(j+3, 0.0), klen-1);
+        var ret=0.0;
+        if (s>=ks[j1]&&s<ks[j2])
+          ret = 1.0/(ks[j2]-ks[j1]);
+        else 
+          if (s>=ks[j2]&&s<ks[j3])
+          ret = -1.0/(ks[j3]-ks[j2]);
+        return ret;
+    }
+    else {
+      var kj1=ks[j1];
+      var kj2=ks[j2];
+      var kjn=ks[jn]+1e-10;
+      var kjn1=ks[jn1]+1e-10;
+      var div=((kj1-kjn)*(kj2-kjn1));
+      if (div==0.0) {
+          div = 0.0;
+      }
+      var lastdv=basis_dv(s, j, n-1, ks, dvn-1);
+      var ret=((kj1-s)*basis_dv(s, j, n-1, ks, dvn)-dvn*basis_dv(s, j, n-1, ks, dvn-1))*(kj2-kjn1);
+      ret-=((kjn1-s)*basis_dv(s, j+1, n-1, ks, dvn)-dvn*basis_dv(s, j+1, n-1, ks, dvn-1))*(kj1-kjn);
+      if (div!=0.0)
+        ret/=div;
+      else 
+        ret/=0.0001;
+      return ret;
+    }
+  }
+  basis_dv = _es6_module.add_export('basis_dv', basis_dv);
+  var min=Math.min, max=Math.max;
+  let dtmp=new Array(64);
+  let ktmp=new Array(64);
+  function deBoor(k, x, knots, controls, degree) {
+    let p=degree;
+    let t=knots;
+    let c=controls;
+    let d=dtmp;
+    for (let j=0; j<p+1; j++) {
+        let j2=Math.min(Math.max(j+k-p, 0), knots.length-1);
+        d[j] = c[j2];
+    }
+    for (let r=1; r<p+1; r++) {
+        for (let j=p; j>r-1; j--) {
+            let alpha=(x-t[j+k-p])/(t[j+1+k-r]-t[j+k-p]);
+            d[j] = (1.0-alpha)*d[j-1]+alpha*d[j];
+        }
+    }
+    return d[p];
+  }
+  deBoor = _es6_module.add_export('deBoor', deBoor);
+  function basis(s, j, n, ks, no_cache) {
+    if (no_cache===undefined) {
+        no_cache = false;
+    }
+    return compiled_basis(s, j, n, ks);
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = min(max(j1, 0.0), klen-1);
+    j2 = min(max(j2, 0.0), klen-1);
+    jn = min(max(jn, 0.0), klen-1);
+    jn1 = min(max(jn1, 0.0), klen-1);
+    if (n===0) {
+        return s>=ks[j1]&&s<ks[j2];
+    }
+    else {
+      var A=s-ks[j1];
+      var div=ks[jn]-ks[j1];
+      div+=1e-05;
+      A = (A/div)*basis(s, j, n-1, ks);
+      var B=ks[jn1]-s;
+      div = ks[jn1]-ks[j2];
+      div+=1e-05;
+      B = (B/div)*basis(s, j+1, n-1, ks);
+      return A+B;
+    }
+  }
+  basis = _es6_module.add_export('basis', basis);
+  function uniform_basis_intern(s, j, n) {
+    var ret=basis(s, j, n, uniform_vec);
+    if (n==0) {
+        return (s>=j&&s<j+1) ? 1.0 : 0.0;
+    }
+    else {
+      var A=(s-j)/n;
+      var B=(n+j+1-s)/n;
+      return uniform_basis(s, j, n-1)*A+uniform_basis(s, j+1, n-1)*B;
+    }
+  }
+  uniform_basis_intern = _es6_module.add_export('uniform_basis_intern', uniform_basis_intern);
+  function get_hash(h) {
+    return cache[h];
+  }
+  function set_hash(h, val) {
+    cache[h] = val;
+  }
+  function uniform_basis(s, j, n, len) {
+    uniform_vec.length = len===undefined ? 1024 : len;
+    return basis(s, j, n, uniform_vec);
+    var hash=s+j*100.0+n*10000.0;
+    var ret=get_hash(hash);
+    if (ret==undefined) {
+        ret = uniform_basis_intern(s, j, n);
+        set_hash(hash, ret);
+    }
+    return ret;
+  }
+  uniform_basis = _es6_module.add_export('uniform_basis', uniform_basis);
+  var toHash2_stack=new Array(4096);
+  var toHash2_stack_2=new Float64Array(4096);
+  var toHash2_stack_3=new Float64Array(4096);
+  var _str_prejit=new Array(4096);
+  var strpre=8;
+  var RNDLEN=1024;
+  var rndtab=new Float64Array(RNDLEN);
+  for (var i=0; i<rndtab.length; i++) {
+      rndtab[i] = Math.random()*0.99999999;
+  }
+  function precheck(key) {
+    var s1="";
+    var seed=key.length%RNDLEN;
+    seed = floor(rndtab[seed]*RNDLEN);
+    var klen=key.length;
+    for (var i=0; i<strpre; i++) {
+        s1+=key[floor(rndtab[seed]*klen)];
+        seed = (seed+1)%RNDLEN;
+    }
+    return s1;
+  }
+  var _vbuf=new Uint8Array(8);
+  var _view=new DataView(_vbuf.buffer);
+  var _fview=new Float32Array(_vbuf.buffer);
+  var _iview=new Int32Array(_vbuf.buffer);
+  var _sview=new Int16Array(_vbuf.buffer);
+  function pack_float(f) {
+    var s="";
+    _fview[0] = f;
+    for (var i=0; i<4; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_int(f) {
+    var s="";
+    _iview[0] = f;
+    for (var i=0; i<4; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_short(f) {
+    var s="";
+    _sview[0] = f;
+    for (var i=0; i<2; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_byte(f) {
+    return String.fromCharCode(f);
+  }
+  var tiny_strpool={}
+  var tiny_strpool_idgen=1;
+  function pack_str(f) {
+    var ret="";
+    if (!(f in tiny_strpool)) {
+        tiny_strpool[f] = tiny_strpool_idgen++;
+    }
+    return pack_short(tiny_strpool[f]);
+  }
+  var tiny_strpool2={}
+  var tiny_strpool_idgen2=1;
+  function pack_op(f) {
+    var ret="";
+    if (!(f in tiny_strpool2)) {
+        tiny_strpool2[f] = tiny_strpool_idgen2++;
+    }
+    return pack_byte(tiny_strpool2[f]);
+  }
+  window.pack_float = pack_float;
+  window.precheck = precheck;
+  var _str_prehash={}
+  var _str_idhash=window._str_idhash = {}
+  var _str_idhash_rev=window._str_idhash_rev = {}
+  var _str_idgen=0;
+  function spool(hash) {
+    if (hash in _str_idhash) {
+        return _str_idhash[hash];
+    }
+    else {
+      var ret=_str_idgen++;
+      _str_idhash[hash] = ret;
+      _str_idhash_rev[ret] = hash;
+      return ret;
+    }
+  }
+  function spool_len(id) {
+    return _str_idhash_rev[id].length;
+  }
+  window.tot_symcls = 0.0;
+  var KILL_ZEROS=true;
+  class symcls  {
+     constructor(name_or_value, op) {
+      this._id = tot_symcls++;
+      this._last_h = undefined;
+      this.value = undefined;
+      this.name = "";
+      this.a = this.b = undefined;
+      this.use_parens = false;
+      this.op = undefined;
+      this.parent = undefined;
+      this._toString = undefined;
+      this.is_func = false;
+      this._hash = this._toString = undefined;
+      this.key = this.tag = undefined;
+      this._done = this._visit = false;
+      this.id = undefined;
+      this.ins = this.ins_ids = undefined;
+      this.is_tag = this.is_root = undefined;
+      if (typeof name_or_value=="number"||typeof name_or_value=="boolean") {
+          this.value = name_or_value;
+      }
+      else 
+        if (typeof name_or_value=="string"||__instance_of(name_or_value, String)) {
+          this.name = name_or_value;
+      }
+    }
+     binop(b, op) {
+      if (typeof b=="string"||typeof b=="number"||typeof b=="boolean") {
+          b = new symcls(b);
+      }
+      var ret=new symcls();
+      var a=this;
+      if (a.value!=undefined&&b.value!=undefined&&a.a==undefined&&b.a==undefined) {
+          ret.value = eval(a.value+" "+op+" "+b.value);
+          return ret;
+      }
+      ret.use_parens = true;
+      ret.op = op;
+      if (KILL_ZEROS&&a.value!=undefined&&a.value==0.0&&(op=="*"||op=="/")) {
+          return sym(0);
+      }
+      else 
+        if (KILL_ZEROS&&b.value!=undefined&&b.value==0.0&&(op=="*")) {
+          return sym(0);
+      }
+      else 
+        if (KILL_ZEROS&&this.a==undefined&&this.value==0.0&&op=="+") {
+          return b.copy();
+      }
+      else 
+        if (KILL_ZEROS&&b.a==undefined&&b.value==0.0&&(op=="+"||op=="-")) {
+          return this.copy();
+      }
+      else 
+        if (this.value==1.0&&op=="*"&&this.a==undefined) {
+          return b.copy();
+      }
+      else 
+        if (b.value==1.0&&(op=="*"||op=="/")&&b.a==undefined) {
+          return this.copy();
+      }
+      if (this.b!=undefined&&this.b.value!=undefined&&b.value!=undefined&&op=="+") {
+          ret = this.copy();
+          ret.b.value = this.b.value+b.value;
+          return ret;
+      }
+      ret.a = a.copy();
+      ret.b = b.copy();
+      ret.a.parent = ret;
+      ret.b.parent = ret;
+      return ret;
+    }
+     hash() {
+      if (this._hash==undefined) {
+          this._hash = spool(this.toHash());
+      }
+      return this._hash;
+    }
+     index(arg1) {
+      if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+          arg1 = sym(arg1);
+      }
+      else {
+        arg1 = arg1.copy();
+      }
+      var ret=sym();
+      ret.op = "i";
+      ret.a = this.copy();
+      ret.b = arg1;
+      return ret;
+    }
+     func(fname, arg1) {
+      if (typeof fname=="string"||__instance_of(fname, String)) {
+          fname = sym(fname);
+      }
+      var ret=sym();
+      if (arg1==undefined) {
+          ret.a = fname.copy();
+          ret.b = this.copy();
+          ret.op = "c";
+      }
+      else {
+        if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+            arg1 = sym(arg1);
+        }
+        ret.a = this.copy();
+        ret.b = arg1.copy();
+        ret.op = fname;
+      }
+      ret.is_func = true;
+      return ret;
+    }
+     copy(copy_strcache) {
+      var ret=new symcls();
+      ret.name = this.name;
+      ret.value = this.value;
+      ret.use_parens = this.use_parens;
+      ret.op = this.op;
+      ret.is_func = this.is_func;
+      if (copy_strcache) {
+          ret._toString = this._toString;
+          ret._hash = this._hash;
+      }
+      else {
+        ret._hash = ret._toString = undefined;
+      }
+      if (this.a!=undefined) {
+          ret.a = this.a.copy(copy_strcache);
+          ret.b = this.b.copy(copy_strcache);
+          ret.a.parent = ret;
+          ret.b.parent = ret;
+      }
+      return ret;
+    }
+     negate() {
+      return this.binop(-1.0, "*");
+    }
+     add(b) {
+      return this.binop(b, "+");
+    }
+     sub(b) {
+      return this.binop(b, "-");
+    }
+     mul(b) {
+      return this.binop(b, "*");
+    }
+     div(b) {
+      return this.binop(b, "/");
+    }
+     pow(b) {
+      return this.binop(b, "p");
+    }
+     clear_toString() {
+      this._toString = undefined;
+      this._hash = undefined;
+      this._last_h = undefined;
+      if (this.a!=undefined) {
+      }
+    }
+     toHash2() {
+      var stack=toHash2_stack, stack2=toHash2_stack_2, top=0;
+      var stack3=toHash2_stack_3;
+      stack[top] = this;
+      stack2[top] = 0;
+      stack3[top] = 0;
+      var ret="";
+      var _i=0;
+      while (top>=0) {
+        if (_i>100000) {
+            console.log("infinite loop!");
+            break;
+        }
+        var item=stack[top];
+        var stage=stack2[top];
+        var start=stack3[top];
+        top--;
+        if (stage==0) {
+            ret+=item.name+"|";
+            ret+=(item.value!=undefined ? item.value : "")+"|";
+            ret+=item.is_func+"|";
+        }
+        if (item.a!=undefined&&stage==0) {
+            ret+=item.op+"$";
+            top++;
+            stack[top] = item;
+            stack2[top] = 1;
+            stack3[top] = start;
+            top++;
+            stack[top] = item.a;
+            stack2[top] = 0;
+            stack3[top] = ret.length;
+        }
+        else 
+          if (item.b!=undefined&&stage==1) {
+            ret+="$";
+            top++;
+            stack[top] = item.b;
+            stack2[top] = 0;
+            stack3[top] = ret.length;
+        }
+      }
+      return ret;
+    }
+     toHash3() {
+      var ret="";
+      if (this._last_h!=undefined) {
+          return this._last_h;
+      }
+      ret+=pack_str(this.name);
+      ret+=this.value!=undefined ? pack_short(this.value*15000) : "";
+      ret+=pack_byte(this.is_func);
+      if (this.a!=undefined) {
+          ret+=pack_op(this.op);
+          ret+=this.a.toHash3();
+          ret+=this.b.toHash3();
+      }
+      this._last_h = ret;
+      return ret;
+    }
+     toHash() {
+      return this.toHash3();
+      var ret="";
+      if (this._last_h!=undefined) {
+      }
+      ret+=this.name+"|";
+      ret+=(this.value!=undefined ? this.value : "")+"|";
+      ret+=this.is_func+"|";
+      if (this.a!=undefined) {
+          ret+=this.op+"$";
+          ret+=this.a.toHash()+"$";
+          ret+=this.b.toHash()+"$";
+      }
+      this._last_h = ret;
+      return ret;
+    }
+     toString() {
+      if (this._toString!=undefined) {
+          return this._toString;
+      }
+      var use_parens=this.use_parens;
+      var use_parens=use_parens&&!(this.parent!=undefined&&(this.parent.op=="i"||this.parent.op=="c"||this.parent.op.length>2));
+      use_parens = use_parens&&!(this.value!=undefined&&this.a==undefined);
+      use_parens = use_parens&&!(this.name!=undefined&&this.name!=""&&this.a==undefined);
+      var s=use_parens ? "(" : "";
+      if (this.a!=undefined&&this.op=="i") {
+          return ""+this.a+"["+this.b+"]";
+      }
+      else 
+        if (this.a!=undefined&&this.is_func&&this.op!="c") {
+          s+=""+this.op+"("+this.a+", "+this.b+")";
+      }
+      else 
+        if (this.a!=undefined&&this.is_func&&this.op=="c") {
+          s+=""+this.a+"("+this.b+")";
+      }
+      else 
+        if (this.a!=undefined&&this.op!="p") {
+          s+=""+this.a+" "+this.op+" "+this.b;
+      }
+      else 
+        if (this.a!=undefined&&this.op=="p") {
+          return "pow("+this.a+", "+this.b+")";
+      }
+      else 
+        if (this.value!=undefined&&this.a==undefined) {
+          s+=""+this.value;
+      }
+      else 
+        if (this.name!=undefined&&this.name!="") {
+          s+=this.name;
+      }
+      else {
+        s+="{ERROR!}";
+      }
+      s+=use_parens ? ")" : "";
+      this._toString = s;
+      return s;
+    }
+  }
+  _ESClass.register(symcls);
+  _es6_module.add_class(symcls);
+  symcls = _es6_module.add_export('symcls', symcls);
+  function sym(name_or_value) {
+    return new symcls(name_or_value);
+  }
+  sym = _es6_module.add_export('sym', sym);
+  function recurse2_a(n, root, map, haskeys, map2, subpart_i, symtags) {
+    function recurse2(n, root) {
+      var key=n.hash();
+      if (map.has(key)) {
+          n.tag = symtags.get(map2.get(key));
+          n.tag.key = key;
+          n.tag.is_tag = true;
+          n.key = key;
+          if (root!=undefined&&n!==root) {
+              if (!haskeys.has(root.key)) {
+                  haskeys.set(root.key, new hashtable());
+              }
+              haskeys.get(root.key).set(key, 1);
+          }
+      }
+      if (n.a!=undefined) {
+          recurse2(n.a, root);
+          recurse2(n.b, root);
+      }
+      return n;
+    }
+    return recurse2(n, root);
+  }
+  function optimize(tree) {
+    tot_symcls = 0;
+    var start_tree=tree.copy(true);
+    function output() {
+      console.log.apply(console, arguments);
+    }
+    function optimize_pass(tree, subpart_start_i) {
+      if (subpart_start_i==undefined)
+        subpart_start_i = 0;
+      var subpart_i=subpart_start_i;
+      var totstep=8;
+      var curstage=1;
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var symtags=new hashtable();
+      var map=new hashtable();
+      var mapcount=new hashtable();
+      function recurse(n, depth) {
+        if (depth==undefined)
+          depth = 0;
+        if (n.a==undefined)
+          return ;
+        var hash;
+        if (n.a!=undefined) {
+            var str=n.toHash();
+            if (str.length<25) {
+                return ;
+            }
+        }
+        if (depth>3) {
+            hash = hash==undefined ? n.hash() : hash;
+            map.set(hash, n.copy());
+            if (!mapcount.has(hash)) {
+                mapcount.set(hash, 0);
+            }
+            mapcount.set(hash, mapcount.get(hash)+1);
+        }
+        if (n.a!=undefined) {
+            recurse(n.a, depth+1);
+        }
+        if (n.b!=undefined) {
+            recurse(n.b, depth+1);
+        }
+      }
+      recurse(tree);
+      var keys=map.keys();
+      keys.sort(function (a, b) {
+        return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
+      });
+      var map2=new hashtable();
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var keys3=[];
+      var i2=0;
+      var max_si=0;
+      function next() {
+        for (var i=0; i<keys.length; i++) {
+            if (mapcount.get(keys[i])<3) {
+                map.remove(keys[i]);
+                continue;
+            }
+            map2.set(keys[i], i2++);
+            max_si = max(map2.get(keys[i]), max_si);
+            symtags.set(i2-1, sym("SUBPART"+((i2-1)+subpart_i)));
+        }
+      }
+      next();
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      keys = undefined;
+      var haskeys=new hashtable();
+      tree = recurse2_a(tree, undefined, map, haskeys, map2, subpart_i, symtags);
+      var keys3=map2.keys();
+      keys3.sort(function (a, b) {
+        return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
+      });
+      function recurse3(n, key) {
+        if (n.a!=undefined) {
+            if (n.a.tag!=undefined&&!n.a.is_tag&&n.a.key==key) {
+                n.a.parent = undefined;
+                n.a = n.a.tag;
+                n.clear_toString();
+            }
+            else {
+              recurse3(n.a, key);
+            }
+            if (n.b.tag!=undefined&&!n.b.is_tag&&n.b.key==key) {
+                n.b.parent = undefined;
+                n.b = n.b.tag;
+                n.clear_toString();
+            }
+            else {
+              recurse3(n.b, key);
+            }
+        }
+        return n;
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      for (var i=0; i<keys3.length; i++) {
+          tree = recurse3(tree, keys3[i]);
+      }
+      var exists=new hashtable();
+      function recurse4(n, key) {
+        if (n.is_tag) {
+            exists.set(n.key, true);
+        }
+        if (n.is_tag&&n.key!=undefined&&n.key==key)
+          return true;
+        if (n.a!=undefined) {
+            if (recurse4(n.a, key))
+              return true;
+            if (recurse4(n.b, key))
+              return true;
+        }
+        return false;
+      }
+      recurse4(tree);
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      keys3.sort(function (a, b) {
+        return -map2.get(a)+map2.get(b);
+      });
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      output(keys3.length);
+      var last_time2=time_ms();
+      var haskeys=new hashtable();
+      window.haskeys = haskeys;
+      for (var i=0; i<keys3.length; i++) {
+          if (time_ms()-last_time2>500) {
+              output("optimizing key", i+1, "of", keys3.length);
+              last_time2 = time_ms();
+          }
+          var n=map.get(keys3[i]);
+          var last_time=time_ms();
+          for (var j=0; j<keys3.length; j++) {
+              if (i==j)
+                continue;
+              if (time_ms()-last_time>500) {
+                  output("  subkey part 1:", j+1, "of", keys3.length+", for", i+1);
+                  last_time = time_ms();
+              }
+              recurse2_a(n, n, map, haskeys, map2, subpart_i, symtags);
+          }
+          for (var j=0; j<keys3.length; j++) {
+              var key=keys3[j];
+              if (i==j)
+                continue;
+              if (time_ms()-last_time>500) {
+                  output("  subkey part 2", j+1, "of", keys3.length+", for", i+1);
+                  last_time = time_ms();
+              }
+              if (haskeys.get(n.key)==undefined||!(haskeys.get(n.key).has(key)))
+                continue;
+              recurse3(n, keys3[j]);
+              recurse4(n, keys3[j]);
+              n.clear_toString();
+          }
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      function tag(n, root) {
+        if (n!=root&&n.is_tag) {
+            var k=n.key;
+            if (k==root.key) {
+                output("Cycle!", k, root.key);
+                throw RuntimeError("Cycle! "+k+", "+root.key);
+                return ;
+            }
+            root.ins.set(n.key, 1);
+            var id=map2.get(n.key);
+            root.ins_ids.set(id, id);
+        }
+        if (n.a!=undefined) {
+            tag(n.a, root);
+            tag(n.b, root);
+        }
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var dag=[];
+      window.dag = dag;
+      function visit_n(k) {
+        var n2=map.get(k);
+        if (!n2._done) {
+            dagsort(n2);
+        }
+      }
+      function dagsort(n) {
+        if (n._done) {
+            return ;
+        }
+        if (n._visit) {
+            throw new Error("CYCLE!", n, n._visit);
+        }
+        if (n.is_root) {
+            n._visit = true;
+            n.ins.forEach(visit_n, this);
+            n._visit = false;
+            dag.push(n);
+            n._done = true;
+        }
+        if (n.a!=undefined) {
+            dagsort(n.a);
+            dagsort(n.b);
+        }
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          n.is_root = true;
+          n.ins = new hashtable();
+          n.ins_ids = new hashtable();
+          n.id = map2.get(keys3[i]);
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          n._visit = n._done = false;
+          n.key = keys3[i];
+          tag(n, n);
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          if (!n._done) {
+              dagsort(n);
+          }
+      }
+      var i1=0;
+      var header="";
+      for (var i=0; i<dag.length; i++) {
+          var n=dag[i];
+          var key=n.key;
+          if (subpart_i>0||i>0)
+            header+=", ";
+          n.clear_toString();
+          header+="\n    ";
+          header+="SUBPART"+map2.get(key)+" = "+""+n;
+      }
+      header+="\n";
+      var finals=header+""+tree;
+      output("finished!");
+      return [tree, finals, header, max_si];
+    }
+    var si=0;
+    var header2="";
+    var r=optimize_pass(tree, si);
+    if (i>0&&header2.trim()!=""&&header2.trim()[header2.length-1]!=",")
+      header2+=", ";
+    header2+=r[2];
+    tree = r[0].copy();
+    si+=r[3]+1;
+    header2 = header2.trim();
+    if (header2.trim()!="")
+      header2 = "var "+header2+";\n";
+    var final2=header2+"\n  return "+tree+";\n";
+    var ret=undefined, func;
+    var code1="ret = function(s, j, n, ks, dvn) {"+final2+"};";
+    code1 = splitline(code1);
+    eval(code1);
+    func = ret;
+    var func2=undefined;
+    var code2="ret = function(s, j, n, ks, dvn) {return "+(""+start_tree)+";};";
+    code2 = splitline(code2);
+    func = ret;
+    eval(code2);
+    return [func, func2, code1, code2, tree];
+  }
+  optimize = _es6_module.add_export('optimize', optimize);
+  function get_cache(k, v) {
+    var ret;
+    try {
+      ret = JSON.parse(myLocalStorage["_store_"+k]);
+    }
+    catch (error) {
+        print_stack(error);
+        return undefined;
+    }
+    if (ret=="undefined") {
+        return undefined;
+    }
+  }
+  get_cache = _es6_module.add_export('get_cache', get_cache);
+  window.get_cache = get_cache;
+  function store_cache(k, v) {
+    myLocalStorage["_store_"+k] = JSON.stringify(v);
+  }
+  store_cache = _es6_module.add_export('store_cache', store_cache);
+  window.store_cache = store_cache;
+  window.test_sym = function test_sym() {
+    var x=sym("x");
+    x = x.binop(2, "*");
+    var degree=2, klen=10, j=2;
+    var dvn=1;
+    KILL_ZEROS = false;
+    var tree=gen_basis_dv_code(j, degree, klen, dvn);
+    var start_tree=tree.copy();
+    KILL_ZEROS = true;
+    tree = gen_basis_dv_code(j, degree, klen, dvn);
+    window.tree_func = optimize(tree);
+    var skey=""+j+"|"+degree+"|"+klen+"|"+dvn;
+    store_cache(skey, tree_func[2]);
+    var tst=new Float32Array(10);
+    for (var i=0; i<tst.length; i++) {
+        tst[i] = i;
+    }
+    var finals=tree_func[2];
+    console.log("ratio: ", finals.replace(" ", "").replace("\n", "").length/(""+start_tree).replace(" ", "").replace("\n", "").length);
+    window.test = function (s, j) {
+      console.log("testing...");
+      if (j==undefined)
+        j = 3.0;
+      var func=window.tree_func[0];
+      var func2=basis_dv;
+      var time1=0;
+      var time2=0;
+      var steps=250, steps2=10;
+      for (var si=0; si<steps2; si++) {
+          var start_time=time_ms();
+          for (var i=0; i<steps; i++) {
+              var r1=func(s+i*0.0001, j, degree, tst);
+          }
+          time1+=(time_ms()-start_time);
+          var start_time=time_ms();
+          for (var i=0; i<steps; i++) {
+              var r2=func2(s+i*0.0001, j, degree, tst, dvn);
+          }
+          time2+=(time_ms()-start_time);
+      }
+      time1 = time1.toFixed(2)+"ms";
+      time2 = time2.toFixed(2)+"ms";
+      console.log(r1, r2, time1, time2);
+      
+    }
+    var dv_test=""+tree;
+    var dv_test2="";
+    var ci=0;
+    var set={"(": 0, 
+    ")": 0, 
+    "+": 0, 
+    "/": 0, 
+    "*": 0}
+    for (var i=0; i<dv_test.length; i++, ci++) {
+        if (ci>79&&(dv_test[i] in set)) {
+            dv_test2+="\n";
+            ci = 0.0;
+        }
+        dv_test2+=dv_test[i];
+    }
+    dv_test = dv_test2;
+  }
+  window.sym = sym;
+  function splitline(dv_test) {
+    var dv_test2="";
+    var ci=0;
+    var set={"(": 0, 
+    ")": 0, 
+    "+": 0, 
+    "/": 0, 
+    "*": 0}
+    for (var i=0; i<dv_test.length; i++, ci++) {
+        if (ci>79&&(dv_test[i] in set)) {
+            dv_test2+="\n";
+            ci = 0.0;
+        }
+        dv_test2+=dv_test[i];
+    }
+    return dv_test2;
+  }
+  window.splitline = splitline;
+  function gen_basis_code(j, n, klen, gen_reduce) {
+    var s=sym("s");
+    j = sym("j");
+    var ks=sym("ks");
+    return basis_sym_general(s, j, n, ks, gen_reduce);
+  }
+  gen_basis_code = _es6_module.add_export('gen_basis_code', gen_basis_code);
+  function make_cache_table(maxknotsize, make_dvs) {
+    var basis_caches1=new Array(12);
+    for (var i=0; i<basis_caches1.length; i++) {
+        var arr=new Array(maxknotsize);
+        basis_caches1[i] = arr;
+        for (var j=1; j<arr.length; j++) {
+            arr[j] = new Array(j);
+            if (make_dvs) {
+                var arr2=arr[j];
+                for (var k=0; k<arr2.length; k++) {
+                    arr2[k] = new Array(5);
+                }
+            }
+        }
+    }
+    return basis_caches1;
+  }
+  const basis_caches=make_cache_table(256, false);
+  _es6_module.add_export('basis_caches', basis_caches);
+  const basis_caches_dv=make_cache_table(256, true);
+  _es6_module.add_export('basis_caches_dv', basis_caches_dv);
+  const DV_JADD=0.0;
+  _es6_module.add_export('DV_JADD', DV_JADD);
+  window.load_seven = function () {
+    for (var k in basis_json) {
+        var k1=k;
+        k = k.split("|");
+        if (k.length<4)
+          continue;
+        console.log(k);
+        if (k[1]==="7") {
+            console.log("found!", k);
+            var hash=""+0+"|"+7+"|"+2+"|"+k[3];
+            myLocalStorage[hash] = basis_json[k1];
+            var ret;
+            console.log(hash, eval(basis_json[k1]));
+        }
+    }
+  }
+  window.save_local_storage = function () {
+    var ret=JSON.stringify(myLocalStorage);
+    var blob=new Blob([ret], {type: "application/binary"});
+    var url=URL.createObjectURL(blob);
+    console.log(url);
+    window.open(url);
+    return url;
+  }
+  function add_to_table_dv(j, n, klen, dvn, table) {
+    var hash=""+0+"|"+n+"|"+2+"|"+dvn;
+    var s=myLocalStorage[hash];
+    if (s==undefined||s=="undefined") {
+        var tree=gen_basis_dv_code(j, n, klen, dvn);
+        s = optimize(tree)[2];
+        console.log("storing basis function. . .");
+        myLocalStorage[hash] = s;
+    }
+    var ret;
+    eval(s);
+    table[n][2][0][dvn] = ret;
+    return ret;
+  }
+  var zero=function (a, b, c, d, e) {
+    return 0.0;
+  }
+  function get_basis_dv_func(j, n, klen, dvn) {
+    if (dvn<=0) {
+        return zero;
+    }
+    var ret=basis_caches_dv[n][2][0][dvn];
+    if (ret==undefined) {
+        ret = add_to_table_dv(0, n, klen, dvn, basis_caches_dv);
+    }
+    return ret;
+  }
+  get_basis_dv_func = _es6_module.add_export('get_basis_dv_func', get_basis_dv_func);
+  window.get_basis_dv_func = get_basis_dv_func;
+  function compiled_basis_dv(s, j, n, ks, dvn) {
+    var func=get_basis_dv_func(j, n, ks.length, dvn);
+    return func(s, j, n, ks, dvn);
+  }
+  compiled_basis_dv = _es6_module.add_export('compiled_basis_dv', compiled_basis_dv);
+  function gen_basis_dv_code(j, degree, klen, dv, gen_reduce) {
+    var s=sym("s");
+    var n=degree;
+    j = sym("j");
+    var ks=new Array(klen);
+    for (var i=0; i<klen; i++) {
+        ks[i] = gen_reduce ? sym("k"+(i+1)) : sym("ks").index(j);
+    }
+    ks = sym("ks");
+    return basis_dv_sym(s, j, degree, ks, dv, gen_reduce);
+  }
+  gen_basis_dv_code = _es6_module.add_export('gen_basis_dv_code', gen_basis_dv_code);
+  function get_basis_func(j, n, klen) {
+    var KLEN=5;
+    var ret=basis_caches[n][KLEN][j];
+    if (ret===undefined) {
+        var hash="bs:"+n;
+        var s=myLocalStorage[hash];
+        if (s===undefined||s==="undefined") {
+            console.log("storing basis function. . .");
+            var tree=gen_basis_code(j, n, klen);
+            s = optimize(tree)[2];
+            myLocalStorage[hash] = s;
+        }
+        eval(s);
+        basis_caches[n][KLEN][j] = ret;
+    }
+    return ret;
+  }
+  get_basis_func = _es6_module.add_export('get_basis_func', get_basis_func);
+  function compiled_basis(s, j, n, ks) {
+    var func=get_basis_func(j, n, ks.length);
+    return func(s, j, n, ks);
+  }
+  compiled_basis = _es6_module.add_export('compiled_basis', compiled_basis);
+  window._sym_eps1 = 1e-09;
+  window._sym_eps2 = 1e-06;
+  window._sym_do_clamping = true;
+  window._sym_more_symbolic = false;
+  function basis_sym(s, j, n, ks, gen_reduce) {
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = _sym_do_clamping ? min(max(j1, 0.0), klen-1) : j1;
+    j2 = _sym_do_clamping ? min(max(j2, 0.0), klen-1) : j2;
+    jn = _sym_do_clamping ? min(max(jn, 0.0), klen-1) : jn;
+    jn1 = _sym_do_clamping ? min(max(jn1, 0.0), klen-1) : jn1;
+    if (n==0) {
+        return sym("(s >= ks["+j1+"] && s < ks["+j2+"])");
+    }
+    else {
+      var A=s.sub(ks[j1]);
+      var div=ks[jn].sub(ks[j1]);
+      var cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!=0.0)
+        div = div.add(_sym_eps1);
+      A = A.mul(basis_sym(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
+      var B=ks[jn1].sub(s);
+      div = ks[jn1].sub(ks[j2]);
+      var cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!=0.0)
+        div = div.add(_sym_eps1);
+      B = B.mul(basis_sym(s, j+1, n-1, ks, gen_reduce)).div(div).mul(cancelB);
+      return A.add(B);
+    }
+  }
+  basis_sym = _es6_module.add_export('basis_sym', basis_sym);
+  function basis_sym_general(s, j, n, ks, gen_reduce) {
+    var j1, j2, jn1, kn2;
+    if (_sym_do_clamping) {
+        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    }
+    else {
+      j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
+    }
+    if (_sym_more_symbolic&&n==1) {
+        return sym("lin("+j1+","+j2+","+jn1+")");
+    }
+    else 
+      if (_sym_more_symbolic&&n==0) {
+        return j1.func("step", j2);
+    }
+    if (n==0) {
+        var r1=s.binop(ks.index(j1), ">=");
+        var r2=s.binop(ks.index(j2), "<");
+        return r1.binop(r2, "&&");
+        var r1=s.sub(ks.index(j1));
+        var r2=ks.index(j2).sub(s);
+        var r1=s.sub(ks.index(j1));
+        var r2=ks.index(j2).sub(s);
+        var eps1=1e-06;
+        r1 = r1.add(eps1);
+        r2 = r2.add(eps1);
+        r1 = r1.div(r1.func("abs")).mul(0.5).add(0.5-eps1);
+        r2 = r2.div(r2.func("abs")).mul(0.5).add(0.5+eps1);
+    }
+    else {
+      var A=s.sub(ks.index(j1));
+      var div=ks.index(jn).sub(ks.index(j1));
+      var cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!=undefined)
+        div = div.add(_sym_eps1);
+      A = A.mul(basis_sym_general(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
+      var B=ks.index(jn1).sub(s);
+      div = ks.index(jn1).sub(ks.index(j2));
+      var cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!=undefined)
+        div = div.add(_sym_eps1);
+      B = B.mul(basis_sym_general(s, j.add(1), n-1, ks, gen_reduce)).div(div).mul(cancelB);
+      return A.add(B);
+    }
+  }
+  basis_sym_general = _es6_module.add_export('basis_sym_general', basis_sym_general);
+  function basis_dv_sym(s, j, n, ks, dvn, gen_reduce) {
+    if (dvn==0) {
+        return basis_sym_general(s, j, n, ks, gen_reduce);
+    }
+    var j1, j2, jn, jn1, j3, j4;
+    if (_sym_do_clamping) {
+        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j3=j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j4=j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    }
+    else {
+      j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
+      j3 = j.add(2), j4 = j.add(3);
+    }
+    if (n<1) {
+        return sym(0);
+    }
+    else 
+      if (n<=1) {
+        var div1="(0.000+(ks["+j3+"])-(ks["+j2+"]))";
+        var div2="(0.000+(ks["+j2+"])-(ks["+j1+"]))";
+        var b="(s >= ks["+j2+"] && s < ks["+j3+"]) ? (-1.0/"+div1+") : 0.0";
+        var s="(s >= ks["+j1+"] && s < ks["+j2+"]) ? (1.0/"+div2+") : ("+b+")";
+        return sym("("+s+")");
+        var r1=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        var r2=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        var ret=r1.sub(r2);
+        var div1=ks.index(j2).sub(ks.index(j1));
+        var div3=div1.add(div1.binop("0.0", "=="));
+        var div2=ks.index(j3).sub(ks.index(j2));
+        var div4=div2.add(div2.binop("0.0", "=="));
+        var cancel=div2.binop("0.0", "==").mul(div1.binop("0.0", "=="));
+        var r1=sym(1.0).div(div3).mul(div1.binop("0.0", "!="));
+        var r2=sym(-1.0).div(div4).mul(div2.binop("0.0", "!="));
+        var a=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        var b=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        return r1.mul(a).add(r2.mul(b));
+        var ret=0.0;
+        if (s>=ks[j1]&&s<ks[j2])
+          ret = 1.0/(ks[j2]-ks[j1]);
+        else 
+          if (s>=ks[j2]&&s<ks[j3])
+          ret = -1.0/(ks[j3]-ks[j2]);
+    }
+    else {
+      var kj1=ks.index(j1);
+      var kj2=ks.index(j2);
+      var kjn=ks.index(jn);
+      var kjn1=ks.index(jn1);
+      kjn.add(_sym_eps2);
+      if (!_sym_more_symbolic) {
+          kj1 = kj1.sub(_sym_eps2);
+          kj2 = kj2.sub(_sym_eps2);
+          kjn = kjn.add(_sym_eps2);
+          kjn1 = kjn1.add(_sym_eps2);
+      }
+      var div=kj1.sub(kjn).mul(kj2.sub(kjn1));
+      var cancel=div.func("abs").binop(0.0001, ">=");
+      if (!_sym_more_symbolic) {
+          div = div.add(0.0);
+      }
+      var ret=(kj1.sub(s).mul(basis_dv_sym(s, j, n-1, ks, dvn, gen_reduce)).sub(basis_dv_sym(s, j, n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      ret = ret.mul(kj2.sub(kjn1));
+      var ret2=(kjn1.sub(s).mul(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn)).sub(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      ret2 = ret2.mul(kj1.sub(kjn));
+      ret = ret.sub(ret2).div(div);
+      return ret;
+    }
+  }
+  basis_dv_sym = _es6_module.add_export('basis_dv_sym', basis_dv_sym);
+  var _jit=[0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905, 0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158, 0.8813679129816592, 0.1114522460848093, 0.6895110581535846, 0.6958548363763839, 0.3031193600036204, 0.37011902872473, 0.2962806692812592, 0.028554908465594053, 0.823489741422236, 0.46635359339416027, 0.32072878000326455, 0.790815538726747, 0.24832243379205465, 0.4548102973494679, 0.17482145293615758, 0.12876217160373926, 0.47663668682798743, 0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465, 0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474, 0.5500841496977955, 0.056078286841511726, 0.2025157359894365, 0.3545380241703242, 0.37520054122433066, 0.9240472037345171, 0.5759296049363911, 0.23126523662358522, 0.8160425815731287, 0.2655198322609067, 0.5174507955089211, 0.5305957165546715, 0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697, 0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936, 0.2482534891460091, 0.9248246876522899, 0.5719250738620758, 0.8759879691060632, 0.014760041143745184, 0.27814899617806077, 0.8179157497361302, 0.8425747095607221, 0.5784667218104005, 0.8781018694862723, 0.25768745923414826, 0.12491370760835707, 0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821, 0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208, 0.26263241469860077, 0.16050022304989398, 0.7419972626958042, 0.10826557059772313, 0.15192136517725885, 0.08435141341760755, 0.8828735174611211, 0.9579186830669641, 0.4730489938519895, 0.13362190243788064, 0.3206780105829239, 0.5988038030918688, 0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996, 0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383, 0.31904217251576483, 0.285037521738559, 0.25403662770986557, 0.20903456234373152, 0.8835178036242723, 0.8222054259385914, 0.5918245937209576];
+  window._jit = _jit;
+  window._jit_cur = 0;
+}, '/dev/fairmotion/src/curve/bspline.js');
+
+
+es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermite.js", "../config/config.js"], function _spline_math_module(_es6_module) {
+  "USE_PREPROCESSOR";
+  "use strict";
+  var config=es6_import(_es6_module, '../config/config.js');
+  var FEPS=1e-18;
+  var PI=Math.PI;
+  var sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
+  var cos=Math.cos, pow=Math.pow, abs=Math.abs;
+  var SPI2=Math.sqrt(PI/2);
+  var math=es6_import(_es6_module, './spline_math_hermite.js');
+  var spiraltheta=math.spiraltheta;
+  spiraltheta = _es6_module.add_export('spiraltheta', spiraltheta);
+  var spiralcurvature=math.spiralcurvature;
+  spiralcurvature = _es6_module.add_export('spiralcurvature', spiralcurvature);
+  var spiralcurvature_dv=math.spiralcurvature_dv;
+  spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
+  var approx=math.approx;
+  approx = _es6_module.add_export('approx', approx);
+  var INT_STEPS=math.INT_STEPS;
+  INT_STEPS = _es6_module.add_export('INT_STEPS', INT_STEPS);
+  var ORDER=math.ORDER;
+  ORDER = _es6_module.add_export('ORDER', ORDER);
+  var DISABLE_SOLVE=es6_import_item(_es6_module, '../config/config.js', 'DISABLE_SOLVE');
+  function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
+    if (DISABLE_SOLVE||window.DISABLE_SOLVE)
+      return ;
+    if (window.common!==undefined&&window.common.naclModule!==undefined) {
+        var draw_id=window.push_solve(spline);
+        return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
+    }
+    else {
+      return math.do_solve.apply(this, arguments);
+    }
+  }
+  var native_api=es6_import(_es6_module, '../wasm/native_api.js');
+  function do_solve() {
+    if (DISABLE_SOLVE||window.DISABLE_SOLVE)
+      return ;
+    if (config.USE_NACL) {
+        return do_solve_nacl.apply(this, arguments);
+    }
+    else 
+      if (!DEBUG.no_native&&config.USE_WASM&&native_api.isReady()) {
+        return native_api.do_solve.apply(this, arguments);
+    }
+    else {
+      return math.do_solve.apply(this, arguments);
+    }
+  }
+  do_solve = _es6_module.add_export('do_solve', do_solve);
+  const KSCALE=ORDER+1;
+  _es6_module.add_export('KSCALE', KSCALE);
+  const KANGLE=ORDER+2;
+  _es6_module.add_export('KANGLE', KANGLE);
+  const KSTARTX=ORDER+3;
+  _es6_module.add_export('KSTARTX', KSTARTX);
+  const KSTARTY=ORDER+4;
+  _es6_module.add_export('KSTARTY', KSTARTY);
+  const KSTARTZ=ORDER+5;
+  _es6_module.add_export('KSTARTZ', KSTARTZ);
+  const KV1X=ORDER+6;
+  _es6_module.add_export('KV1X', KV1X);
+  const KV1Y=ORDER+7;
+  _es6_module.add_export('KV1Y', KV1Y);
+  const KV2X=ORDER+8;
+  _es6_module.add_export('KV2X', KV2X);
+  const KV2Y=ORDER+9;
+  _es6_module.add_export('KV2Y', KV2Y);
+  const KTOTKS=ORDER+10;
+  _es6_module.add_export('KTOTKS', KTOTKS);
+  const eval_curve_vs=cachering.fromConstructor(Vector3, 64);
+  const eval_ret_vs=cachering.fromConstructor(Vector2, 256);
+  function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
+    if (native_api.isReady()&&!(window.DEBUG.no_native||window.DEBUG.no_nativeEval)) {
+        return native_api.evalCurve(seg, s, v1, v2, ks, angle_only, no_update);
+    }
+    if (order===undefined)
+      order = ORDER;
+    s*=0.99999999;
+    var eps=1e-09;
+    var ang, scale, start;
+    if (!no_update) {
+        var start=approx(-0.5+eps, ks, order);
+        var end=approx(0.5-eps, ks, order);
+        end.sub(start);
+        var a1=atan2(end[0], end[1]);
+        var vec=eval_curve_vs.next();
+        vec.load(v2).sub(v1);
+        var a2=atan2(vec[0], vec[1]);
+        ang = a2-a1;
+        scale = vec.vectorLength()/end.vectorLength();
+        ks[KSCALE] = scale;
+        ks[KANGLE] = ang;
+        ks[KSTARTX] = start[0];
+        ks[KSTARTY] = start[1];
+    }
+    else {
+      ang = ks[KANGLE];
+      scale = ks[KSCALE];
+      start[0] = ks[KSTARTX];
+      start[1] = ks[KSTARTY];
+    }
+    if (!angle_only) {
+        var co=approx(s, ks, order);
+        co.sub(start).rot2d(-ang).mulScalar(scale).add(v1);
+        return eval_ret_vs.next().load(co);
+    }
+  }
+  eval_curve = _es6_module.add_export('eval_curve', eval_curve);
+  
+}, '/dev/fairmotion/src/curve/spline_math.js');
+
+
+es6_module_define('spline_math_hermite', ["../core/toolops_api.js", "./spline_base.js", "./solver.js", "../path.ux/scripts/util/vectormath.js"], function _spline_math_hermite_module(_es6_module) {
+  "USE_PREPROCESSOR";
+  "use strict";
+  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
+  var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
+  var solver=es6_import_item(_es6_module, './solver.js', 'solver');
+  var constraint=es6_import_item(_es6_module, './solver.js', 'constraint');
+  var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
+  var FEPS=1e-18;
+  var PI=Math.PI;
+  var sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
+  var cos=Math.cos, pow=Math.pow, abs=Math.abs;
+  var SPI2=Math.sqrt(PI/2);
+  var INCREMENTAL=true;
+  var ORDER=4;
+  ORDER = _es6_module.add_export('ORDER', ORDER);
+  var KSCALE=ORDER+1;
+  KSCALE = _es6_module.add_export('KSCALE', KSCALE);
+  var KANGLE=ORDER+2;
+  KANGLE = _es6_module.add_export('KANGLE', KANGLE);
+  var KSTARTX=ORDER+3;
+  KSTARTX = _es6_module.add_export('KSTARTX', KSTARTX);
+  var KSTARTY=ORDER+4;
+  KSTARTY = _es6_module.add_export('KSTARTY', KSTARTY);
+  var KSTARTZ=ORDER+5;
+  KSTARTZ = _es6_module.add_export('KSTARTZ', KSTARTZ);
+  window.KSCALE = KSCALE;
+  var KTOTKS=ORDER+6;
+  KTOTKS = _es6_module.add_export('KTOTKS', KTOTKS);
+  var INT_STEPS=4;
+  INT_STEPS = _es6_module.add_export('INT_STEPS', INT_STEPS);
+  function set_int_steps(steps) {
+    INT_STEPS = steps;
+  }
+  set_int_steps = _es6_module.add_export('set_int_steps', set_int_steps);
+  function get_int_steps(steps) {
+    return INT_STEPS;
+  }
+  get_int_steps = _es6_module.add_export('get_int_steps', get_int_steps);
+  var _approx_cache_vs=cachering.fromConstructor(Vector3, 32);
+  var mmax=Math.max, mmin=Math.min;
+  var mfloor=Math.floor, mceil=Math.ceil, abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos;
+  var polytheta_spower=function polytheta_spower(s, ks, order) {
+    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+    switch (order) {
+      case 2:
+        var k1=ks[0], k2=ks[1];
+        return (-((s-2)*k1-k2*s)*s)/2.0;
+      case 4:
+        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+        return (((((3*s-4)*dv1_k2-6*(s-2)*k2)*s+(3*s2-8*s+6)*dv1_k1)*s+6*(s3-2*s2+2)*k1)*s)/12;
+      case 6:
+        var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+        return (-((((60*dv1_k2*s2-168*dv1_k2*s+120*dv1_k2-10*dv2_k2*s2+24*dv2_k2*s-15*dv2_k2-120*k2*s2+360*k2*s-300*k2)*s+(10*s3-36*s2+45*s-20)*dv2_k1)*s+12*(5*s4-16*s3+15*s2-5)*dv1_k1)*s+60*(2*s5-6*s4+5*s3-2)*k1)*s)/120;
+    }
+  }
+  var polycurvature_spower=function polycurvature_spower(s, ks, order) {
+    var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+    switch (order) {
+      case 2:
+        var k1=ks[0], k2=ks[1];
+        return -((s-1)*k1-k2*s);
+      case 4:
+        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+        return (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1;
+      case 6:
+        return (-((((((s-1)*dv2_k1-dv2_k2*s)*(s-1)+2*(3*s-4)*dv1_k2*s)*s+2*(3*s+1)*(s-1)*(s-1)*dv1_k1)*(s-1)-2*(6*s2-15*s+10)*k2*s2)*s+2*(6*s2+3*s+1)*(s-1)*(s-1)*(s-1)*k1))/2.0;
+    }
+  }
+  var polycurvature_dv_spower=function polycurvature_spower(s, ks, order) {
+    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+    switch (order) {
+      case 2:
+        var k1=ks[0], k2=ks[1];
+        return -(k1-k2);
+      case 4:
+        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+        return (6*(k1-k2)*(s-1)+(3*s-2)*dv1_k2)*s+(3*s-1)*(s-1)*dv1_k1;
+      case 6:
+        var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+        return (-(((2*(30*(k1-k2)*(s-1)*(s-1)+(5*s-6)*(3*s-2)*dv1_k2)-(5*s-3)*(s-1)*dv2_k2)*s+(5*s-2)*(s-1)*(s-1)*dv2_k1)*s+2*(5*s+1)*(3*s-1)*(s-1)*(s-1)*dv1_k1))/2.0;
+    }
+  }
+  var spower_funcs=[polytheta_spower, polycurvature_spower, polycurvature_dv_spower];
+  spower_funcs = _es6_module.add_export('spower_funcs', spower_funcs);
+  var approx_ret_cache=cachering.fromConstructor(Vector3, 42);
+  var abs=Math.abs;
+  var mmax=Math.max, mmin=Math.min;
+  es6_import(_es6_module, '../path.ux/scripts/util/vectormath.js');
+  var acache=[new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  var acur=0;
+  var eval_curve_vs=cachering.fromConstructor(Vector2, 64);
+  var _eval_start=new Vector2();
+  function approx(s1, ks, order, dis, steps) {
+    s1*=1.0-1e-07;
+    if (steps==undefined)
+      steps = INT_STEPS;
+    var s=0, ds=s1/steps;
+    var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
+    var ret=approx_ret_cache.next();
+    ret[0] = ret[1] = 0.0;
+    var x=0, y=0;
+    var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+    for (var i=0; i<steps; i++) {
+        var st=s+0.5;
+        var s2=st*st, s3=st*st*st, s4=s2*s2, s5=s4*st, s6=s5*st, s7=s6*st, s8=s7*st, s9=s8*st, s10=s9*st;
+        var th=(((((3*st-4)*dv1_k2-6*(st-2)*k2)*st+(3*s2-8*st+6)*dv1_k1)*st+6*(s3-2*s2+2)*k1)*st)/12;
+        var dx=sin(th), dy=cos(th);
+        var kt=(((st-1)*dv1_k1+dv1_k2*st)*(st-1)-(2*st-3)*k2*st)*st+(2*st+1)*(st-1)*(st-1)*k1;
+        var dkt=(6*(k1-k2)*(st-1)+(3*st-2)*dv1_k2)*st+(3*st-1)*(st-1)*dv1_k1;
+        var dk2t=(6*(k1-k2)*((st+0.0001)-1)+(3*(st+0.0001)-2)*dv1_k2)*(st+0.0001)+(3*(st+0.0001)-1)*((st+0.0001)-1)*dv1_k1;
+        dk2t = (dk2t-dkt)/(0.0001);
+        var kt2=kt*kt, kt3=kt*kt*kt;
+        x+=((5*(4*((dy*dkt-kt2*dx)*ds2+3*(dy*kt*ds+2*dx))+((dk2t-kt3)*dy-3*dkt*kt*dx)*ds3)-(((4*dk2t-kt3)*kt+3*dkt*dkt)*dx+6*dy*dkt*kt2)*ds4)*ds)/120;
+        y+=(-(5*(4*((dy*kt2+dkt*dx)*ds2-3*(2*dy-kt*dx*ds))+((dk2t-kt3)*dx+3*dy*dkt*kt)*ds3)+(((4*dk2t-kt3)*kt+3*dkt*dkt)*dy-6*dkt*kt2*dx)*ds4)*ds)/120;
+        s+=ds;
+    }
+    ret[0] = x;
+    ret[1] = y;
+    return ret;
+  }
+  approx = _es6_module.add_export('approx', approx);
+  var spiraltheta=polytheta_spower;
+  spiraltheta = _es6_module.add_export('spiraltheta', spiraltheta);
+  var spiralcurvature=polycurvature_spower;
+  spiralcurvature = _es6_module.add_export('spiralcurvature', spiralcurvature);
+  var spiralcurvature_dv=polycurvature_dv_spower;
+  spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
+  var ORDER=4;
+  ORDER = _es6_module.add_export('ORDER', ORDER);
+  const con_cache={list: [], 
+   used: 0}
+  function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
+    var slv=new solver();
+    con_cache.used = 0;
+    if (order===undefined)
+      order = ORDER;
+    if (gk===undefined)
+      gk = 1.0;
+    var UPDATE=SplineFlags.UPDATE;
+    for (let seg of spline.segments) {
+        let ok=(seg.v1.flag&SplineFlags.UPDATE)&&(seg.v2.flag&SplineFlags.UPDATE);
+        for (let i=0; !ok&&i<2; i++) {
+            let v=i ? seg.v2 : seg.v1;
+            for (let seg2 of v.segments) {
+                let ok2=(seg2.v1.flag&SplineFlags.UPDATE)&&(seg2.v2.flag&SplineFlags.UPDATE);
+                if (ok2) {
+                    ok = true;
+                    break;
+                }
+            }
+        }
+        if (ok) {
+            for (var j=0; j<KTOTKS; j++) {
+                seg._last_ks[j] = seg.ks[j];
+            }
+            seg.flag|=SplineFlags.TEMP_TAG;
+        }
+        else {
+          seg.flag&=~SplineFlags.TEMP_TAG;
+        }
+    }
+    function hard_tan_c(params) {
+      var seg=params[0], tan=params[1], s=params[2];
+      var dv=seg.derivative(s, order, undefined, true);
+      dv.normalize();
+      var a1=Math.atan2(tan[0], tan[1]);
+      var a2=Math.atan2(dv[0], dv[1]);
+      var diff=Math.abs(a1-a2);
+      return abs(dv.vectorDistance(tan));
+    }
+    function tan_c(params) {
+      var seg1=params[0], seg2=params[1];
+      var v, s1=0, s2=0;
+      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+        v = seg1.v1;
+      else 
+        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        v = seg1.v2;
+      else 
+        console.trace("EVIL INCARNATE!");
+      var eps=0.0001;
+      s1 = v==seg1.v1 ? eps : 1.0-eps;
+      s2 = v==seg2.v1 ? eps : 1.0-eps;
+      var t1=seg1.derivative(s1, order, undefined, true);
+      var t2=seg2.derivative(s2, order, undefined, true);
+      t1.normalize();
+      t2.normalize();
+      if (seg1.v1.eid==seg2.v1.eid||seg1.v2.eid==seg2.v2.eid) {
+          t1.negate();
+      }
+      var d=t1.dot(t2);
+      d = mmax(mmin(d, 1.0), -1.0);
+      return acos(d);
+      var ret=abs(t1.vectorDistance(t2));
+      return ret;
+    }
+    function handle_curv_c(params) {
+      if (order<4)
+        return 0;
+      var seg1=params[0], seg2=params[1];
+      var h1=params[2], h2=params[3];
+      var len1=seg1.ks[KSCALE]-h1.vectorDistance(seg1.handle_vertex(h1));
+      var len2=seg2.ks[KSCALE]-h2.vectorDistance(seg2.handle_vertex(h2));
+      var k1i=h1==seg1.h1 ? 1 : order-2;
+      var k2i=h2==seg2.h1 ? 1 : order-2;
+      var k1=(len1!=0.0 ? 1.0/len1 : 0.0)*seg1.ks[KSCALE];
+      var k2=(len2!=0.0 ? 1.0/len2 : 0.0)*seg2.ks[KSCALE];
+      var s1=seg1.ks[k1i]<0.0 ? -1 : 1;
+      var s2=seg2.ks[k2i]<0.0 ? -1 : 1;
+      if (isNaN(k1)||isNaN(k2)) {
+          console.log("NaN 2!");
+          return 0;
+      }
+      console.log(k1, k2);
+      if (abs(seg1.ks[k1i])<k1)
+        seg1.ks[k1i] = k1*s1;
+      if (abs(seg2.ks[k2i])<k2)
+        seg2.ks[k2i] = k2*s2;
+      return 0;
+    }
+    function copy_c(params) {
+      var v=params[1], seg=params[0];
+      var s1=v===seg.v1 ? 0 : order-1;
+      var s2=v===seg.v1 ? order-1 : 0;
+      seg.ks[s1]+=(seg.ks[s2]-seg.ks[s1])*gk*0.5;
+      return 0.0;
+    }
+    function get_ratio(seg1, seg2) {
+      var ratio=seg1.ks[KSCALE]/seg2.ks[KSCALE];
+      if (seg2.ks[KSCALE]==0.0) {
+          return 100000.0;
+      }
+      if (ratio>1.0)
+        ratio = 1.0/ratio;
+      if (isNaN(ratio)) {
+          console.log("NaN 3!");
+          ratio = 0.5;
+      }
+      return Math.pow(ratio, 2.0);
+    }
+    function curv_c_spower(params) {
+      var seg1=params[0], seg2=params[1];
+      var v, s1, s2;
+      seg1.evaluate(0.5);
+      seg2.evaluate(0.5);
+      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+        v = seg1.v1;
+      else 
+        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        v = seg1.v2;
+      else 
+        console.trace("EVIL INCARNATE!");
+      var ratio=get_ratio(seg1, seg2);
+      var mfac=ratio*gk*0.7;
+      var s1=v===seg1.v1 ? 0 : order-1;
+      var s2=v===seg2.v1 ? 0 : order-1;
+      var sz1=seg1.ks[KSCALE];
+      var sz2=seg2.ks[KSCALE];
+      var k2sign=s1==s2 ? -1.0 : 1.0;
+      var ret=0.0;
+      for (var i=0; i<1; i++) {
+          var s1=v===seg1.v1 ? i : order-1-i;
+          var s2=v===seg2.v1 ? i : order-1-i;
+          var k1=seg1.ks[s1]/sz1;
+          var k2=k2sign*seg2.ks[s2]/sz2;
+          var goalk=(k1+k2)*0.5;
+          ret+=abs(k1-goalk)+abs(k2-goalk);
+          seg1.ks[s1]+=(goalk*sz1-seg1.ks[s1])*mfac;
+          seg2.ks[s2]+=(k2sign*goalk*sz2-seg2.ks[s2])*mfac;
+      }
+      return ret*5.0;
+    }
+    function curv_c_spower_basic(params) {
+      var seg1=params[0], seg2=params[1];
+      var v, s1=0, s2=0;
+      seg1.evaluate(0.5);
+      seg2.evaluate(0.5);
+      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+        v = seg1.v1;
+      else 
+        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        v = seg1.v2;
+      else 
+        console.trace("EVIL INCARNATE!");
+      var ratio=get_ratio(seg1, seg2);
+      var mfac=ratio*gk*0.7;
+      var s1=v===seg1.v1 ? 0 : order-1;
+      var s2=v===seg2.v1 ? 0 : order-1;
+      var sz1=seg1.ks[KSCALE];
+      var sz2=seg2.ks[KSCALE];
+      var k2sign=s1==s2 ? -1.0 : 1.0;
+      var ret=0.0;
+      var len=Math.floor(order/2);
+      for (var i=0; i<1; i++) {
+          var s1=v===seg1.v1 ? i : order-1-i;
+          var s2=v===seg2.v1 ? i : order-1-i;
+          var k1=seg1.ks[s1]/sz1;
+          var k2=k2sign*seg2.ks[s2]/sz2;
+          var goalk=(k1+k2)*0.5;
+          ret+=abs(k1-goalk)+abs(k2-goalk);
+          if (i==0) {
+              seg1.ks[s1]+=(goalk*sz1-seg1.ks[s1])*mfac;
+              seg2.ks[s2]+=(k2sign*goalk*sz2-seg2.ks[s2])*mfac;
+          }
+          else 
+            if (i==1) {
+              seg1.ks[s1] = seg1.ks[order-1]-seg1.ks[0];
+              seg2.ks[s2] = seg2.ks[order-1]-seg2.ks[0];
+          }
+          else {
+            seg1.ks[s1] = seg2.ks[s2] = 0.0;
+          }
+      }
+      return ret;
+    }
+    var curv_c=do_basic ? curv_c_spower_basic : curv_c_spower;
+    for (let h of spline.handles) {
+        var seg=h.owning_segment;
+        var v=seg.handle_vertex(h);
+        let bad=!h.use;
+        bad = bad||seg.v1.vectorDistance(seg.v2)<2;
+        bad = bad||!((v.flag)&SplineFlags.UPDATE);
+        bad = bad||!h.owning_vertex;
+        if (bad) {
+            continue;
+        }
+        var tan1=new Vector3(h).sub(seg.handle_vertex(h)).normalize();
+        if (h===seg.h2)
+          tan1.negate();
+        if (isNaN(tan1.dot(tan1))||tan1.dot(tan1)===0.0) {
+            console.log("NaN 4!");
+            continue;
+        }
+        var s=h===seg.h1 ? 0 : 1;
+        var do_tan=!((h.flag)&SplineFlags.BREAK_TANGENTS);
+        do_tan = do_tan&&!(h.flag&SplineFlags.AUTO_PAIRED_HANDLE);
+        if (do_tan) {
+            var tc=new constraint("hard_tan_c", 0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
+            tc.k2 = 1.0;
+            if (update_verts)
+              update_verts.add(h);
+            slv.add(tc);
+        }
+        if (h.hpair===undefined)
+          continue;
+        var ss1=seg, h2=h.hpair, ss2=h2.owning_segment;
+        if ((h.flag&SplineFlags.AUTO_PAIRED_HANDLE)&&!((seg.handle_vertex(h).flag&SplineFlags.BREAK_TANGENTS))) {
+            var tc=new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
+            tc.k2 = 0.8;
+            if (update_verts)
+              update_verts.add(h);
+            slv.add(tc);
+        }
+        var cc=new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
+        slv.add(cc);
+        var cc=new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
+        slv.add(cc);
+        if (update_verts)
+          update_verts.add(h);
+    }
+    var limits={v_curve_limit: 12, 
+    v_tan_limit: 1}
+    var manual_w=0.08;
+    var manual_w_2=0.6;
+    for (let v of spline.verts) {
+        let bad=!(v.flag&SplineFlags.UPDATE);
+        bad = bad||!(v.flag&SplineFlags.USE_HANDLES);
+        bad = bad||(v.segments.length!==1);
+        if (bad) {
+            continue;
+        }
+        let ss1=v.segments[0];
+        let h=ss1.handle(v);
+        let tan=new Vector3(h).sub(v).normalize();
+        let s=v===ss1.v1 ? 0.0 : 1.0;
+        if (v===ss1.v2) {
+            tan.negate();
+        }
+        let tc=new constraint("hard_tan_c", manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+        tc.k2 = manual_w_2;
+        slv.add(tc);
+        if (update_verts)
+          update_verts.add(v);
+    }
+    for (let v of spline.verts) {
+        let bad=!(v.flag&SplineFlags.UPDATE);
+        bad = bad||(v.segments.length!==2);
+        if (bad) {
+            continue;
+        }
+        let ss1=v.segments[0], ss2=v.segments[1];
+        for (let j=0; j<v.segments.length; j++) {
+            let seg=v.segments[j];
+            if (seg.v1.vectorDistance(seg.v2)<2) {
+                bad = true;
+            }
+        }
+        if (bad) {
+            continue;
+        }
+        let mindis=Math.min(ss1.other_vert(v).vectorDistance(v), ss2.other_vert(v).vectorDistance(v));
+        let maxdis=Math.max(ss1.other_vert(v).vectorDistance(v), ss2.other_vert(v).vectorDistance(v));
+        if (bad&&DEBUG.degenerate_geometry) {
+            console.log("Ignoring!");
+        }
+        if (!(v.flag&(SplineFlags.BREAK_TANGENTS|SplineFlags.USE_HANDLES))) {
+            let tc=new constraint("tan_c", 0.5, [ss2.ks], order, tan_c, [ss1, ss2]);
+            tc.k2 = 0.8;
+            slv.add(tc);
+            tc = new constraint("tan_c", 0.5, [ss1.ks], order, tan_c, [ss2, ss1]);
+            tc.k2 = 0.8;
+            slv.add(tc);
+            if (update_verts)
+              update_verts.add(v);
+        }
+        else 
+          if (!(v.flag&SplineFlags.BREAK_TANGENTS)) {
+            let h=ss1.handle(v);
+            let tan=new Vector3(h).sub(v).normalize();
+            let s=v===ss1.v1 ? 0.0 : 1.0;
+            if (v===ss1.v2) {
+                tan.negate();
+            }
+            let tc=new constraint("hard_tan_c", manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+            tc.k2 = manual_w_2;
+            slv.add(tc);
+            h = ss2.handle(v);
+            tan = new Vector3(h).sub(v).normalize();
+            s = v===ss2.v1 ? 0.0 : 1.0;
+            if (v===ss2.v2) {
+                tan.negate();
+            }
+            tc = new constraint("hard_tan_c", manual_w, [ss2.ks], order, hard_tan_c, [ss2, tan, s]);
+            tc.k2 = manual_w_2;
+            slv.add(tc);
+            if (update_verts)
+              update_verts.add(v);
+        }
+        else {
+          continue;
+        }
+        if (v.flag&SplineFlags.BREAK_CURVATURES)
+          continue;
+        if (v.flag&SplineFlags.USE_HANDLES)
+          continue;
+        if (mindis==0.0) {
+            bad = true;
+        }
+        else {
+          bad = bad||maxdis/mindis>9.0;
+        }
+        if (bad)
+          continue;
+        let cc=new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2]);
+        slv.add(cc);
+        cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss2, ss1]);
+        slv.add(cc);
+        if (update_verts)
+          update_verts.add(v);
+    }
+    return slv;
+  }
+  build_solver = _es6_module.add_export('build_solver', build_solver);
+  function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
+    if (order===undefined) {
+        order = ORDER;
+    }
+    if (goal_order===undefined) {
+        goal_order = ORDER;
+    }
+    if (steps===undefined) {
+        steps = 65;
+    }
+    if (gk===undefined) {
+        gk = 1.0;
+    }
+    if (do_basic===undefined) {
+        do_basic = false;
+    }
+    let start_time=time_ms();
+    window._SOLVING = true;
+    let slv=build_solver(spline, order, goal_order, gk, do_basic);
+    let totsteps=slv.solve(steps, gk, order==ORDER, slv.edge_segs);
+    for (let v of spline.verts) {
+        v.flag&=~SplineFlags.UPDATE;
+    }
+    window._SOLVING = false;
+    for (let i=0; i<spline.segments.length; i++) {
+        let seg=spline.segments[i];
+        seg.evaluate(0.5, undefined, undefined, undefined, true);
+    }
+    let end_time=time_ms()-start_time;
+    if (end_time>50)
+      console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
+  }
+  function solve_pre(spline) {
+    for (let i=0; i<3; i++) {
+        spline.propagate_update_flags();
+    }
+    for (let seg of spline.segments) {
+        seg.updateCoincident();
+        if (!(seg.v1.flag&SplineFlags.UPDATE)||!(seg.v2.flag&SplineFlags.UPDATE))
+          continue;
+        for (let i=0; i<seg.ks.length; i++) {
+            seg.ks[i] = 0.0;
+        }
+        seg.evaluate(0.5);
+    }
+  }
+  solve_pre = _es6_module.add_export('solve_pre', solve_pre);
+  function do_solve(splineflags, spline, steps, gk) {
+    solve_pre(spline);
+    spline.resolve = 0;
+    solve_intern(spline, ORDER, undefined, 65, 1, 0);
+    for (var i=0; i<spline.segments.length; i++) {
+        var seg=spline.segments[i];
+        seg.evaluate(0.5, undefined, undefined, undefined, true);
+        for (var j=0; j<seg.ks.length; j++) {
+            if (isNaN(seg.ks[j])) {
+                console.log("NaN!");
+                seg.ks[j] = 0;
+            }
+        }
+        if (g_app_state.modalstate!=ModalStates.TRANSFROMING) {
+            if ((seg.v1.flag&SplineFlags.UPDATE)||(seg.v2.flag&SplineFlags.UPDATE))
+              seg.update_aabb();
+        }
+    }
+    for (var f of spline.faces) {
+        for (var path of f.paths) {
+            for (var l of path) {
+                if (l.v.flag&SplineFlags.UPDATE)
+                  f.flag|=SplineFlags.UPDATE_AABB;
+            }
+        }
+    }
+    if (!spline.is_anim_path) {
+        for (var i=0; i<spline.handles.length; i++) {
+            var h=spline.handles[i];
+            h.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+        }
+        for (var i=0; i<spline.verts.length; i++) {
+            var v=spline.verts[i];
+            v.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+        }
+    }
+    if (spline.on_resolve!=undefined) {
+        spline.on_resolve();
+        spline.on_resolve = undefined;
+    }
+  }
+  do_solve = _es6_module.add_export('do_solve', do_solve);
+}, '/dev/fairmotion/src/curve/spline_math_hermite.js');
+
+
+es6_module_define('spline_element_array', ["./spline_types.js", "../core/eventdag.js", "../core/struct.js"], function _spline_element_array_module(_es6_module) {
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
+  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
+  var CustomDataLayer=es6_import_item(_es6_module, './spline_types.js', 'CustomDataLayer');
+  var CustomData=es6_import_item(_es6_module, './spline_types.js', 'CustomData');
+  var CustomDataSet=es6_import_item(_es6_module, './spline_types.js', 'CustomDataSet');
+  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
+  var SplineLayerFlags={HIDE: 2, 
+   CAN_SELECT: 4, 
+   MASK: 8}
+  SplineLayerFlags = _es6_module.add_export('SplineLayerFlags', SplineLayerFlags);
+  class SplineLayer extends set {
+    
+    
+    
+     constructor(elements=undefined) {
+      super(elements);
+      this.id = -1;
+      this.order = 0;
+      this.flag = 0;
+      this.name = "unnamed";
+    }
+     copyStructure() {
+      let ret=new SplineLayer();
+      ret.id = this.id;
+      ret.order = this.order;
+      ret.flag = this.flag;
+      ret.name = ""+this.name;
+      return ret;
+    }
+     add(e) {
+      if (e==undefined) {
+          console.trace("WARNING: e was undefined in SplineLayer.add");
+          return ;
+      }
+      super.add(e);
+      e.layers[this.id] = 1;
+    }
+     remove(e) {
+      super.remove(e);
+      delete e.layers[this.id];
+    }
+     _to_EIDs() {
+      var ret=[];
+      for (var e of this) {
+          ret.push(e.eid);
+      }
+      return ret;
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new SplineLayer();
+      reader(ret);
+      return ret;
+    }
+     afterSTRUCT(spline) {
+      if (this.eids===undefined)
+        return ;
+      var corrupted=false;
+      for (var eid of this.eids) {
+          var e=spline.eidmap[eid];
+          if (e===undefined) {
+              corrupted = true;
+              continue;
+          }
+          this.add(e);
+      }
+      if (corrupted) {
+          console.trace("Warning: corrupted layerset!", this, spline, "<==");
+      }
+      delete this.eids;
+    }
+  }
+  _ESClass.register(SplineLayer);
+  _es6_module.add_class(SplineLayer);
+  SplineLayer = _es6_module.add_export('SplineLayer', SplineLayer);
+  SplineLayer.STRUCT = `
+SplineLayer {
+  id    : int;
+  order : int;
+  flag  : int;
+  eids  : array(int) | obj._to_EIDs();
+  name  : string;
+}
+`;
+  class SplineLayerSet extends Array {
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.active = undefined;
+      this.namemap = {};
+      this.idmap = {};
+      this.idgen = new SDIDGen();
+      this._active = undefined;
+      this.flag = 0;
+    }
+     copyStructure() {
+      let ret=new SplineLayerSet();
+      ret.idgen = this.idgen.copy();
+      ret.flag = this.flag;
+      for (let layer of this) {
+          let layer2=layer.copyStructure();
+          ret.namemap[layer2.name] = layer2;
+          ret.idmap[layer2.id] = layer2;
+          if (layer===this.active) {
+              ret.active = layer2;
+          }
+          super.push.call(ret, layer2);
+      }
+      return ret;
+    }
+     rename(id, oldname, newname, validate=false) {
+      let layer=this.idmap[id];
+      if (layer===undefined) {
+          console.warn("Unknown layer at id", id);
+          return ;
+      }
+      if (layer.name!=old_name) {
+          console.warn("old layer name doesn't match");
+      }
+      if (validate) {
+          newname = this.validate_name(newname);
+      }
+      delete this.namemap[layer.name];
+      layer.name = newname;
+      this.namemap[newname] = layer;
+      return true;
+    }
+     get(id) {
+      if (id==undefined) {
+          throw new Error("id cannot be undefined");
+      }
+      if (!(id in this.idmap)) {
+          console.log("WARNING: layer ", id, "not in spline layerset!", this);
+          return undefined;
+      }
+      return this.idmap[id];
+    }
+    get  active() {
+      if (this._active==undefined) {
+          this._active = this[0];
+      }
+      return this._active;
+    }
+    set  active(val) {
+      this._active = val;
+    }
+     new_layer() {
+      var ret=new SplineLayer();
+      ret.name = this.new_name();
+      ret.id = this.idgen.gen_id();
+      this.push(ret);
+      return ret;
+    }
+     new_name() {
+      var name="Layer", i=1;
+      while ((name+" "+i) in this.namemap) {
+        i++;
+      }
+      return name+" "+i;
+    }
+     validate_name(name) {
+      if (!(name in this.namemap))
+        return name;
+      var i=1;
+      while ((name+" "+i) in this.namemap) {
+        i++;
+      }
+      return name+" "+i;
+    }
+     push(layer) {
+      layer.name = this.validate_name(layer.name);
+      this.namemap[layer.name] = layer;
+      this.idmap[layer.id] = layer;
+      super.push(layer);
+      this.update_orders();
+      if (this.active==undefined)
+        this.active = layer;
+    }
+     insert(i, layer) {
+      layer.name = this.validate_name(layer.name);
+      this.namemap[layer.name] = layer;
+      this.idmap[layer.id] = layer;
+      super.insert(i, layer);
+      this.update_orders();
+    }
+     change_layer_order(layer, new_i) {
+      var start=this.indexOf(layer);
+      if (start==undefined) {
+          console.trace("Evil error in change_layer_order!", layer, new_i);
+          return ;
+      }
+      if (new_i==start)
+        return ;
+      var min=Math.min(new_i, start), max=Math.max(new_i, start);
+      var diff=max-min;
+      let idx=start;
+      if (start>new_i) {
+          for (var i=0; i<diff; i++) {
+              if (idx<1)
+                break;
+              var t=this[idx];
+              this[idx] = this[idx-1];
+              this[idx-1] = t;
+              idx--;
+          }
+      }
+      else {
+        for (var i=0; i<diff; i++) {
+            if (idx>=this.length-1)
+              break;
+            var t=this[idx];
+            this[idx] = this[idx+1];
+            this[idx+1] = t;
+            idx++;
+        }
+      }
+      this.update_orders();
+    }
+     update_orders() {
+      for (var i=0; i<this.length; i++) {
+          this[i].order = i;
+      }
+    }
+     _new_active(i) {
+      if (this.length==0) {
+          console.log("WARNING: no layers left, adding a layer!");
+          this.new_layer();
+          return ;
+      }
+      i = Math.min(Math.max(0, i), this.length-1);
+      this.active = this[i];
+    }
+     remove(layer) {
+      var i=this.indexOf(layer);
+      super.remove(layer);
+      delete this.namemap[layer.name];
+      delete this.idmap[layer.id];
+      if (layer==this.active)
+        this._new_active(i);
+      this.update_orders();
+    }
+     pop_i(i) {
+      var layer=this[i];
+      super.pop_i(i);
+      delete this.namemap[layer.name];
+      delete this.idmap[layer.id];
+      if (layer==this.active)
+        this._new_active(i);
+      this.update_orders();
+    }
+     pop() {
+      var layer=super.pop();
+      delete this.namemap[layer.name];
+      delete this.idmap[layer.id];
+      if (layer==this.active)
+        this._new_active(this.length-1);
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new SplineLayerSet();
+      reader(ret);
+      for (var i=0; i<ret._layers.length; i++) {
+          if (!ret._layers[i].name) {
+              console.log("Layer name corruption detected");
+              ret._layers[i].name = "Layer "+(i+1);
+          }
+          ret._layers[i].order = i;
+          ret.push(ret._layers[i]);
+      }
+      ret.active = ret.idmap[ret.active];
+      delete ret._layers;
+      return ret;
+    }
+     afterSTRUCT(spline) {
+      for (var layer of this) {
+          layer.afterSTRUCT(spline);
+      }
+    }
+  }
+  _ESClass.register(SplineLayerSet);
+  _es6_module.add_class(SplineLayerSet);
+  SplineLayerSet = _es6_module.add_export('SplineLayerSet', SplineLayerSet);
+  SplineLayerSet.STRUCT = `
+  SplineLayerSet {
+    idgen  : SDIDGen;
+    active : int | obj.active != undefined ? obj.active.id : -1;
+    flag   : int;
+    _layers : array(SplineLayer) | obj;
+  }
+`;
+  class IterCache  {
+     constructor(callback, count=8) {
+      this.stack = [];
+      this.free = [];
+      this.cache = [];
+      this.callback = callback;
+      for (var i=0; i<count; i++) {
+          this.cache.push(callback());
+          this.free.push(this.cache[this.cache.length-1]);
+      }
+    }
+     push() {
+      if (this.free.length==0) {
+          console.log("Error in IterCache!");
+          return this.callback();
+      }
+      for (var i=0; i<this.stack.length; i++) {
+          var iter=this.stack[i];
+          if (iter.is_done()) {
+              this.stack.remove(iter);
+              i--;
+              this.free.push(iter);
+          }
+      }
+      var iter=this.free.pop();
+      this.stack.push(iter);
+      return iter;
+    }
+     pop() {
+      this.free.push(this.stack.pop());
+    }
+    static  fromConstructor(cls, count) {
+      return new IterCache(function () {
+        return new cls();
+      }, count);
+    }
+  }
+  _ESClass.register(IterCache);
+  _es6_module.add_class(IterCache);
+  IterCache = _es6_module.add_export('IterCache', IterCache);
+  class EditableIter  {
+    
+    
+     constructor(list, layerset, all_layers) {
+      this.init(list, layerset, all_layers);
+    }
+     init(list, layerset, all_layers) {
+      this.list = list;
+      this.layerset = layerset;
+      this.all_layers = all_layers;
+      this.i = 0;
+      this.ret = {done: false, 
+     value: undefined};
+      return this;
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+     reset() {
+      this.ret.done = false;
+      this.ret.value = undefined;
+      this.i = 0;
+      return this;
+    }
+     next() {
+      let actlayer=this.layerset.active.id;
+      while (this.i<this.list.length) {
+        let e=this.list[this.i];
+        let ok=!e.hidden;
+        ok = ok&&(this.all_layers||actlayer in e.layers);
+        if (ok)
+          break;
+        this.i++;
+      }
+      if (this.i>=this.list.length) {
+          this.ret.done = true;
+          this.ret.value = undefined;
+          return this.ret;
+      }
+      this.i++;
+      this.ret.done = false;
+      this.ret.value = this.list[this.i-1];
+      return this.ret;
+    }
+  }
+  _ESClass.register(EditableIter);
+  _es6_module.add_class(EditableIter);
+  EditableIter = _es6_module.add_export('EditableIter', EditableIter);
+  class SelectedEditableIter  {
+    
+    
+     constructor(selset, layerset) {
+      this.ret = {done: false, 
+     value: undefined};
+      this._c = 0;
+      if (selset!=undefined) {
+          this.init(selset, layerset);
+      }
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+     reset() {
+      return this.init(this.set, this.layerset);
+    }
+     init(selset, layerset) {
+      this.set = selset;
+      this.iter = undefined;
+      this.ret.done = false;
+      this.layerset = layerset;
+      this._c = 0;
+      return this;
+    }
+     is_done() {
+      return this.iter==undefined;
+    }
+     next() {
+      if (this.iter==undefined) {
+          this.iter = this.set[Symbol.iterator]();
+          this.ret.done = false;
+      }
+      if (this._c++>100000) {
+          console.log("infinite loop detected 2!");
+          this.ret.done = true;
+          this.ret.value = undefined;
+          return this.ret;
+      }
+      var actlayer=this.layerset.active.id;
+      function visible(e) {
+        return !e.hidden&&actlayer in e.layers;
+      }
+      var ret=undefined;
+      var good=false;
+      var c=0;
+      var iter=this.iter;
+      do {
+        ret = iter.next();
+        if (ret.done)
+          break;
+        var e=ret.value;
+        good = visible(e);
+        if (e.type==SplineTypes.HANDLE) {
+            good = good||visible(e.owning_segment);
+        }
+        if (good) {
+            this.ret.value = e;
+            break;
+        }
+        ret = iter.next();
+        if (c++>100000) {
+            console.log("Infinite loop detected!!", ret, iter);
+            break;
+        }
+      } while (!good);
+      
+      if (good==false) {
+          this.ret.done = true;
+          this.ret.value = undefined;
+          this.iter = undefined;
+      }
+      return this.ret;
+    }
+  }
+  _ESClass.register(SelectedEditableIter);
+  _es6_module.add_class(SelectedEditableIter);
+  SelectedEditableIter = _es6_module.add_export('SelectedEditableIter', SelectedEditableIter);
+  class SelectedEditableAllLayersIter  {
+    
+    
+     constructor(selset, layerset) {
+      this.ret = {done: false, 
+     value: undefined};
+      this._c = 0;
+      if (selset!=undefined) {
+          this.init(selset, layerset);
+      }
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+     reset() {
+      return this.init(this.set, this.layerset);
+    }
+     init(selset, layerset) {
+      this.set = selset;
+      this.iter = undefined;
+      this.ret.done = false;
+      this.layerset = layerset;
+      this._c = 0;
+      return this;
+    }
+     is_done() {
+      return this.iter==undefined;
+    }
+     next() {
+      if (this.iter==undefined) {
+          this.iter = this.set[Symbol.iterator]();
+          this.ret.done = false;
+      }
+      if (this._c++>100000) {
+          console.log("infinite loop detected 2!");
+          this.ret.done = true;
+          this.ret.value = undefined;
+          return this.ret;
+      }
+      var actlayer=this.layerset.active.id;
+      function visible(e) {
+        return !e.hidden;
+      }
+      var ret=undefined;
+      var good=false;
+      var c=0;
+      var iter=this.iter;
+      do {
+        ret = iter.next();
+        if (ret.done)
+          break;
+        var e=ret.value;
+        good = visible(e);
+        if (e.type==SplineTypes.HANDLE) {
+            good = good||visible(e.owning_segment);
+        }
+        if (good) {
+            this.ret.value = e;
+            break;
+        }
+        ret = iter.next();
+        if (c++>100000) {
+            console.log("Infinite loop detected!!", ret, iter);
+            break;
+        }
+      } while (!good);
+      
+      if (good===false) {
+          this.ret.done = true;
+          this.ret.value = undefined;
+          this.iter = undefined;
+      }
+      return this.ret;
+    }
+  }
+  _ESClass.register(SelectedEditableAllLayersIter);
+  _es6_module.add_class(SelectedEditableAllLayersIter);
+  SelectedEditableAllLayersIter = _es6_module.add_export('SelectedEditableAllLayersIter', SelectedEditableAllLayersIter);
+  class ElementArraySet extends set {
+     constructor(arg) {
+      super(arg);
+      this.layerset = undefined;
+    }
+     editable(ctx) {
+      if (ctx===undefined) {
+          console.warn("Missing ctx in editable() iterator!");
+      }
+      let ignore_layers=ctx!==undefined ? ctx.edit_all_layers : false;
+      return ignore_layers ? new SelectedEditableAllLayersIter(this, this.layerset) : new SelectedEditableIter(this, this.layerset);
+    }
+  }
+  _ESClass.register(ElementArraySet);
+  _es6_module.add_class(ElementArraySet);
+  ElementArraySet = _es6_module.add_export('ElementArraySet', ElementArraySet);
+  class ElementArray extends Array {
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor(type, idgen, idmap, global_sel, layerset, spline) {
+      super();
+      this.layerset = layerset;
+      this.cdata = new CustomData(this);
+      this.type = type;
+      this.spline = spline;
+      this.idgen = idgen;
+      this.idmap = idmap;
+      this.local_idmap = {};
+      this.global_sel = global_sel;
+      this.on_select = undefined;
+      this.select_listeners = new EventDispatcher("select");
+      this.selected = new ElementArraySet();
+      this.selected.layerset = layerset;
+      this.active = undefined;
+      this.highlight = undefined;
+    }
+     editable(ctx) {
+      if (ctx===undefined) {
+          throw new Error("Missing ctx argument");
+      }
+      return new EditableIter(this, this.layerset, ctx.edit_all_layers);
+    }
+    get  visible() {
+      let this2=this;
+      return (function* () {
+        let layerset=this2.layerset;
+        for (let e of this2) {
+            let bad=e.flag&(SplineFlags.HIDE|SplineFlags.NO_RENDER);
+            let ok=false;
+            let found=false;
+            for (let k in e.layers) {
+                found = true;
+                let l=layerset.idmap[k];
+                if (!(l.flag&SplineLayerFlags.HIDE)) {
+                    ok = true;
+                }
+            }
+            if (ok||!found) {
+                yield e;
+            }
+        }
+      })();
+    }
+     dag_get_datapath() {
+      var tname;
+      switch (this.type) {
+        case SplineTypes.VERTEX:
+          tname = "verts";
+          break;
+        case SplineTypes.HANDLE:
+          tname = "handles";
+          break;
+        case SplineTypes.SEGMENT:
+          tname = "segments";
+          break;
+        case SplineTypes.FACE:
+          tname = "faces";
+          break;
+      }
+      var suffix="."+tname;
+      var name="drawspline";
+      for (var i=0; i<this.cdata.layers.length; i++) {
+          if (this.cdata.layers[i].name==="TimeDataLayer")
+            name = "pathspline";
+      }
+      return "frameset."+name+suffix;
+    }
+     remove_undefineds() {
+      for (var i=0; i<this.length; i++) {
+          if (this[i]==undefined) {
+              this.pop_i(this[i]);
+              i--;
+          }
+      }
+    }
+     swap(a, b) {
+      if (a==undefined||b==undefined) {
+          console.trace("Warning, undefined in ElementArray.swap(): a, b:", a, b);
+          return ;
+      }
+      var i1=this.indexOf(a), i2=this.indexOf(b);
+      if (i1<0||i2<0) {
+          console.log(i1, i2, a, b);
+          throw new Error("Elements not in list");
+      }
+      this[i2] = a;
+      this[i1] = b;
+    }
+     on_layer_add(layer, i) {
+      for (var e of this) {
+          e.cdata.on_add(layercls, i);
+      }
+    }
+     on_layer_del(layer, i) {
+      for (var e of this) {
+          e.cdata.on_del(layercls, i);
+      }
+    }
+     push(e, custom_eid=undefined, add_to_layerset=true) {
+      if (e.cdata===undefined||e.cdata.length!==this.cdata.layers.length) {
+          e.cdata = this.cdata.gen_edata();
+      }
+      if (custom_eid===undefined) {
+          e.eid = this.idgen.gen_id();
+      }
+      else {
+        e.eid = custom_eid;
+      }
+      this.idmap[e.eid] = e;
+      this.local_idmap[e.eid] = e;
+      GArray.prototype.push.call(this, e);
+      if (e.flag&SplineFlags.SELECT) {
+          e.flag&=~SplineFlags.SELECT;
+          this.setselect(e, true);
+      }
+      if (add_to_layerset) {
+          this.layerset.active.add(e);
+          e.layers[this.layerset.active.id] = 1;
+      }
+    }
+     onDestroy() {
+      for (let e of this) {
+          e.onDestroy();
+      }
+    }
+     remove(e, soft_error=false) {
+      e.onDestroy();
+      var idx=this.indexOf(e);
+      if (idx<0) {
+          throw new Error("Element not in list");
+      }
+      if (this.active===e) {
+          this.active = undefined;
+      }
+      if (this.selected.has(e))
+        this.setselect(e, false);
+      delete this.idmap[e.eid];
+      delete this.local_idmap[e.eid];
+      this[idx] = this[this.length-1];
+      this.length--;
+      for (var k in e.layers) {
+          var layer=this.layerset.idmap[k];
+          if (layer!=undefined) {
+              layer.remove(e);
+          }
+          else {
+            console.trace("Failed to find layer "+k+"!", e, this, this.layerset);
+          }
+      }
+    }
+     setselect(e, state) {
+      if (e.type!==this.type) {
+          console.trace("Warning: bad element fed to ElementArray! Got ", e.type, " but expected", this.type);
+          return ;
+      }
+      let selchange=0;
+      if (state&&!(e.flag&SplineFlags.SELECT)) {
+          this.dag_update("on_select_add", this.type);
+          selchange = 1;
+      }
+      else 
+        if (!state&&(e.flag&SplineFlags.SELECT)) {
+          this.dag_update("on_select_sub", this.type);
+          selchange = 1;
+      }
+      if (selchange) {
+          this.dag_update("on_select_change", this.type);
+      }
+      var changed=!!(e.flag&SplineFlags.SELECT)!=!!state;
+      if (state) {
+          if (this.active===undefined)
+            this.active = e;
+          this.global_sel.add(e);
+          this.selected.add(e);
+          e.flag|=SplineFlags.SELECT;
+      }
+      else {
+        if (this.active===e) {
+            this.active = undefined;
+        }
+        this.global_sel.remove(e);
+        this.selected.remove(e);
+        e.flag&=~SplineFlags.SELECT;
+      }
+      if (changed&&this.on_select!==undefined) {
+          this.on_select(e, state);
+          this.select_listeners.fire(e, state);
+      }
+    }
+     clear_selection() {
+      for (var i=0; i<this.length; i++) {
+          this.setselect(this[i], false);
+      }
+    }
+     select_all() {
+      for (var i=0; i<this.length; i++) {
+          this.setselect(this[i], true);
+      }
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new ElementArray();
+      reader(ret);
+      ret.cdata.owner = ret;
+      var active=ret.active;
+      ret.active = undefined;
+      for (var i=0; i<ret.arr.length; i++) {
+          GArray.prototype.push.call(ret, ret.arr[i]);
+          if (ret.arr[i].eid==active) {
+              ret.active = ret.arr[i];
+          }
+      }
+      delete ret.arr;
+      return ret;
+    }
+     afterSTRUCT(type, idgen, idmap, global_sel, layerset, spline) {
+      this.type = type;
+      this.idgen = idgen;
+      this.idmap = idmap;
+      this.global_sel = global_sel;
+      this.local_idmap = {};
+      this.layerset = layerset;
+      this.spline = spline;
+      var selected=new ElementArraySet();
+      selected.layerset = layerset;
+      for (var i=0; i<this.selected.length; i++) {
+          var eid=this.selected[i];
+          if (!(eid in idmap)) {
+              console.log("WARNING: afterSTRUCT: eid", eid, "not in eidmap!", Object.keys(idmap));
+              continue;
+          }
+          selected.add(idmap[this.selected[i]]);
+      }
+      this.selected = selected;
+      for (var e of this) {
+          this.local_idmap[e.eid] = e;
+          if (e.cdata===undefined) {
+              e.cdata = this.cdata.gen_edata();
+          }
+      }
+      this.cdata.afterSTRUCT(this, this.cdata);
+    }
+    static  nodedef() {
+      return {inputs: {}, 
+     outputs: {on_select_add: 0, 
+      on_select_sub: 0, 
+      on_select_change: 0}}
+    }
+  }
+  _ESClass.register(ElementArray);
+  _es6_module.add_class(ElementArray);
+  ElementArray = _es6_module.add_export('ElementArray', ElementArray);
+  mixin(ElementArray, DataPathNode);
+  ElementArray.STRUCT = `
+  ElementArray {
+    arr      : array(abstract(SplineElement)) | obj;
+    selected : iter(e, int) | e.eid;
+    active   : int | obj.active != undefined ? obj.active.eid : -1;
+    cdata    : CustomData;
+  }
+`;
+}, '/dev/fairmotion/src/curve/spline_element_array.js');
+
+
+es6_module_define('spline_base', ["../core/struct.js", "../util/mathlib.js", "../core/eventdag.js", "../core/toolprops.js"], function _spline_base_module(_es6_module) {
+  var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
+  var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
+  var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  es6_import(_es6_module, '../util/mathlib.js');
+  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
+  const MaterialFlags={SELECT: 1, 
+   MASK_TO_FACE: 2}
+  _es6_module.add_export('MaterialFlags', MaterialFlags);
+  const RecalcFlags={DRAWSORT: 1, 
+   SOLVE: 2, 
+   ALL: 1|2}
+  _es6_module.add_export('RecalcFlags', RecalcFlags);
+  const SplineFlags={SELECT: 1, 
+   BREAK_TANGENTS: 2, 
+   USE_HANDLES: 4, 
+   UPDATE: 8, 
+   TEMP_TAG: 16, 
+   BREAK_CURVATURES: 32, 
+   HIDE: 64, 
+   FRAME_DIRTY: 128, 
+   PINNED: 256, 
+   NO_RENDER: 512, 
+   AUTO_PAIRED_HANDLE: 1<<10, 
+   UPDATE_AABB: 1<<11, 
+   DRAW_TEMP: 1<<12, 
+   GHOST: 1<<13, 
+   UI_SELECT: 1<<14, 
+   FIXED_KS: 1<<21, 
+   REDRAW_PRE: 1<<22, 
+   REDRAW: 1<<23, 
+   COINCIDENT: 1<<24}
+  _es6_module.add_export('SplineFlags', SplineFlags);
+  const SplineTypes={VERTEX: 1, 
+   HANDLE: 2, 
+   SEGMENT: 4, 
+   LOOP: 8, 
+   FACE: 16, 
+   ALL: 31}
+  _es6_module.add_export('SplineTypes', SplineTypes);
+  const ClosestModes={CLOSEST: 0, 
+   START: 1, 
+   END: 2, 
+   ALL: 3}
+  _es6_module.add_export('ClosestModes', ClosestModes);
+  const IsectModes={CLOSEST: 0, 
+   START: 1, 
+   END: 2, 
+   ENDSTART: 3}
+  _es6_module.add_export('IsectModes', IsectModes);
+  class empty_class  {
+    static  fromSTRUCT(reader) {
+      var ret=new empty_class();
+      reader(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(empty_class);
+  _es6_module.add_class(empty_class);
+  empty_class = _es6_module.add_export('empty_class', empty_class);
+  empty_class.STRUCT = `
+  empty_class {
+  }
+`;
+  let _gtl_co=new Vector2();
+  let _gtl_vec=new Vector2();
+  class CustomDataLayer  {
+     constructor() {
+      this.shared = undefined;
+    }
+     segment_split(old_segment, old_v1, old_v2, new_segments) {
+
+    }
+     update(owner) {
+
+    }
+     post_solve(owner) {
+
+    }
+     interp(srcs, ws) {
+
+    }
+     copy(src) {
+
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+     curve_effect(owner) {
+
+    }
+    static  define() {
+      return {typeName: undefined, 
+     hasCurveEffect: false, 
+     sharedClass: empty_class}
+    }
+    static  _getDef() {
+      if (this.__define&&this.__define.clsname===this.name) {
+          return this.__define;
+      }
+      if (this.define===super.define) {
+          throw new Error("define() for customdatalayer doesn't exist!!!");
+      }
+      let def=this.define();
+      def.clsname = this.name;
+      if (!def.sharedClass)
+        def.sharedClass = empty_class;
+      this.__define = def;
+      return def;
+    }
+  }
+  _ESClass.register(CustomDataLayer);
+  _es6_module.add_class(CustomDataLayer);
+  CustomDataLayer = _es6_module.add_export('CustomDataLayer', CustomDataLayer);
+  CustomDataLayer.STRUCT = `
+  CustomDataLayer {
+  }
+`;
+  class CustomData  {
+    
+    
+     constructor(owner, layer_add_callback, layer_del_callback) {
+      this.owner = owner;
+      this.callbacks = {on_add: layer_add_callback, 
+     on_del: layer_del_callback};
+      this.layers = [];
+      this.shared_data = [];
+      this.startmap = {};
+    }
+     load_layout(src) {
+      for (var i=0; i<src.layers.length; i++) {
+          this.layers.push(src.layers[i]);
+      }
+      for (var k in src.startmap) {
+          this.startmap[k] = src.startmap[k];
+      }
+    }
+     add_layer(cls, name=cls._getDef().typeName) {
+      var templ=cls;
+      var i=this.get_layer(templ._getDef().typeName);
+      if (i!==undefined) {
+          var n=this.num_layers(templ._getDef().typeName);
+          i+=n;
+          this.layers.insert(i, templ);
+      }
+      else {
+        i = this.layers.length;
+        this.startmap[templ._getDef().typeName] = i;
+        this.layers.push(templ);
+      }
+      var scls=templ._getDef().sharedClass;
+      scls = scls==undefined ? empty_class : scls;
+      var shared=new scls;
+      this.shared_data.push(shared);
+      for (var e of this.owner) {
+          e.cdata.on_add(templ, i, shared);
+      }
+      if (this.callbacks.on_add!==undefined)
+        this.callbacks.on_add(templ, i, shared);
+    }
+     gen_edata() {
+      var ret=new CustomDataSet();
+      for (var i=0; i<this.layers.length; i++) {
+          var layer=new this.layers[i]();
+          layer.shared = this.shared_data[i];
+          ret.push(layer);
+      }
+      return ret;
+    }
+     get_shared(type) {
+      return this.shared_data[this.get_layer_i(type, 0)];
+    }
+     get_layer_i(type, i=0) {
+      if (!(type in this.startmap))
+        return -1;
+      return this.startmap[type]+i;
+    }
+     has_layer(type) {
+      return type in this.startmap;
+    }
+     get_layer(type, i=0) {
+      return this.layers[this.startmap[type]+i];
+    }
+     num_layers(type) {
+      var i=this.get_layer_i(type, 0);
+      if (i===undefined||i===-1)
+        return 0;
+      while (i<this.layers.length&&this.layers[i++].type===type) {
+        ;      }
+      return i;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      for (var i=0; i<this.layers.length; i++) {
+          this.layers[i] = this.layers[i].constructor;
+          var l=this.layers[i];
+          var typename=l._getDef().typeName;
+          if (!(typename in this.startmap)) {
+              this.startmap[typename] = i;
+          }
+      }
+      if (this.shared_data.length!==this.layers.length) {
+          for (var i=0; i<this.layers.length; i++) {
+              var layer=this.layers[i];
+              var scls=layer._getDef().sharedClass;
+              scls = scls===undefined ? empty_class : scls;
+              var shared=new scls;
+              if (this.shared_data.length>i)
+                this.shared_data[i] = shared;
+              else 
+                this.shared_data.push(shared);
+          }
+      }
+    }
+     afterSTRUCT(element_array, cdata) {
+      for (var e of element_array) {
+          var i=0;
+          for (var layer of e.cdata) {
+              layer.shared = cdata.shared_data[i];
+              i++;
+          }
+      }
+    }
+  }
+  _ESClass.register(CustomData);
+  _es6_module.add_class(CustomData);
+  CustomData = _es6_module.add_export('CustomData', CustomData);
+  CustomData.STRUCT = `
+  CustomData {
+    layers      : array(e, abstract(CustomDataLayer)) | new e();
+    shared_data : array(abstract(Object));
+  }
+`;
+  var $srcs2_RDor_interp;
+  class CustomDataSet extends Array {
+     constructor() {
+      super();
+    }
+     on_add(cls, i, shared) {
+      var layer=new cls();
+      layer.shared = shared;
+      this.insert(i, layer);
+    }
+     get_layer(cls) {
+      for (var i=0; i<this.length; i++) {
+          if (this[i].constructor===cls)
+            return this[i];
+      }
+    }
+     on_del(cls, i) {
+      this.pop_u(i);
+    }
+     get_data(layout, layer_name) {
+
+    }
+     on_segment_split(old_segment, old_v1, old_v2, new_segments) {
+
+    }
+     interp(srcs, ws) {
+      while ($srcs2_RDor_interp.length<srcs.length) {
+        $srcs2_RDor_interp.push(0);
+      }
+      $srcs2_RDor_interp.length = srcs.length;
+      for (var i=0; i<this.length; i++) {
+          for (var j=0; j<srcs.length; j++) {
+              $srcs2_RDor_interp[j] = srcs[j][i];
+          }
+          this[i].interp($srcs2_RDor_interp, ws);
+      }
+    }
+     copy(src) {
+      for (var i=0; i<this.length; i++) {
+          this[i].copy(src);
+      }
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      for (var i=0; i<this.arr.length; i++) {
+          this.push(this.arr[i]);
+      }
+      delete this.arr;
+    }
+  }
+  var $srcs2_RDor_interp=[];
+  _ESClass.register(CustomDataSet);
+  _es6_module.add_class(CustomDataSet);
+  CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
+  CustomDataSet.STRUCT = `
+  CustomDataSet {
+    arr : iter(abstract(CustomDataLayer)) | obj;
+  }
+`;
+  class SplineElement extends DataPathNode {
+    
+    
+    
+    
+    
+    
+     constructor(type) {
+      super();
+      this.type = type;
+      this.cdata = new CustomDataSet();
+      this.masklayer = 1;
+      this.layers = {};
+    }
+     onDestroy() {
+
+    }
+     has_layer() {
+      for (var k in this.layers) {
+          return true;
+      }
+      return false;
+    }
+     dag_get_datapath() {
+      let suffix;
+      switch (this.type) {
+        case SplineTypes.VERTEX:
+          suffix = ".verts";
+          break;
+        case SplineTypes.HANDLE:
+          suffix = ".handles";
+          break;
+        case SplineTypes.SEGMENT:
+          suffix = ".segments";
+          break;
+        case SplineTypes.LOOP:
+          suffix = ".loops";
+          break;
+        case SplineTypes.FACE:
+          suffix = ".faces";
+          break;
+      }
+      suffix+="["+this.eid+"]";
+      let name="drawspline";
+      for (var i=0; i<this.cdata.length; i++) {
+          if (this.cdata[i].constructor.name==="TimeDataLayer")
+            name = "pathspline";
+      }
+      return "frameset."+name+suffix;
+    }
+     in_layer(layer) {
+      return layer!==undefined&&layer.id in this.layers;
+    }
+    get  aabb() {
+      console.trace("Implement Me!");
+    }
+     sethide(state) {
+      if (state)
+        this.flag|=SplineFlags.HIDE;
+      else 
+        this.flag&=~SplineFlags.HIDE;
+    }
+    set  hidden(state) {
+      if (state)
+        this.flag|=SplineFlags.HIDE;
+      else 
+        this.flag&=~SplineFlags.HIDE;
+    }
+    get  hidden() {
+      return !!(this.flag&SplineFlags.HIDE);
+    }
+     valueOf() {
+      return this.eid;
+    }
+     [Symbol.keystr]() {
+      return ""+this.eid;
+    }
+     post_solve() {
+      for (var i=0; i<this.cdata.length; i++) {
+          this.cdata[i].post_solve(this);
+      }
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+    static  nodedef() {
+      return {name: "SplineElement", 
+     uiName: "SplineElement", 
+     outputs: {depend: undefined, 
+      on_select: 0.0, 
+      eid: 0.0}}
+    }
+  }
+  _ESClass.register(SplineElement);
+  _es6_module.add_class(SplineElement);
+  SplineElement = _es6_module.add_export('SplineElement', SplineElement);
+  SplineElement.STRUCT = `
+SplineElement {
+  eid        : int;
+  flag       : int;
+  type       : int;
+  cdata      : CustomDataSet;
+}
+`;
+  var derivative_cache_vs=cachering.fromConstructor(Vector3, 64);
+  var closest_point_ret_cache_vs=cachering.fromConstructor(Vector3, 256);
+  var closest_point_ret_cache=new cachering(function () {
+    return [0, 0];
+  }, 256);
+  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
+  let _gtl_ret_cache=cachering.fromConstructor(Vector3, 64);
+  let _gtl_arr=[0, 0];
+  var flip_wrapper_cache;
+  var $flip_out_wX3r__get_nextprev;
+  class CurveEffect  {
+     constructor() {
+      this.child = undefined;
+      this.prior = undefined;
+    }
+     rescale(ceff, width) {
+      if (this.prior!=undefined)
+        return this.prior.rescale(ceff, width);
+      return width;
+    }
+    get  reversed() {
+      return flip_wrapper_cache.next().bind(this);
+    }
+     set_parent(p) {
+      this.prior = p;
+      p.child = this;
+    }
+     _get_nextprev(donext, _flip_out) {
+      var i=0, p=this;
+      while (p.prior!=undefined) {
+        p = p.prior;
+        i++;
+      }
+      p = p._get_nextprev(donext, $flip_out_wX3r__get_nextprev);
+      var flip=$flip_out_wX3r__get_nextprev[0];
+      if (p==undefined) {
+          return undefined;
+      }
+      while (i>0) {
+        p = p.child;
+        i--;
+      }
+      if (p==undefined) {
+          console.log("EVIL! no MultiResEffector!", this);
+          return undefined;
+      }
+      if (flip)
+        p = p.reversed;
+      return p;
+    }
+    get  next() {
+      return this._get_nextprev(1);
+    }
+    get  prev() {
+      return this._get_nextprev(0);
+    }
+     evaluate(s) {
+      if (this.prior!=undefined) {
+          return this.prior.evaluate(s);
+      }
+    }
+     derivative(s) {
+      var df=0.001;
+      var a, b;
+      if (s<0.5) {
+          a = this.evaluate(s);
+          b = this.evaluate(s+df);
+      }
+      else {
+        a = this.evaluate(s-df);
+        b = this.evaluate(s);
+      }
+      b.sub(a).mulScalar(1.0/df);
+      return b;
+    }
+     derivative2(s, funcs) {
+      var df=0.001;
+      var a, b;
+      if (s<0.5) {
+          a = this.derivative(s);
+          b = this.derivative(s+df);
+      }
+      else {
+        a = this.derivative(s-df);
+        b = this.derivative(s);
+      }
+      b.sub(a).mulScalar(1.0/df);
+      return b;
+    }
+     curvature(s, prior) {
+      var dv1=this.derivative(s);
+      var dv2=this.derivative(s);
+      return (dv2[0]*dv1[1]-dv2[1]*dv1[0])/Math.pow(dv1[0]*dv1[0]+dv1[1]*dv1[1], 3.0/2.0);
+    }
+     closest_point(p, mode, fast=false) {
+      var minret=undefined, mindis=1e+18, maxdis=0;
+      var p2=closest_point_cache_vs.next().zero();
+      for (var i=0; i<p.length; i++) {
+          p2[i] = p[i];
+      }
+      p = p2;
+      if (mode==undefined)
+        mode = 0;
+      var steps=5, s=0, ds=1.0/(steps);
+      var n=closest_point_cache_vs.next();
+      var n1=closest_point_cache_vs.next(), n2=closest_point_cache_vs.next();
+      var n3=closest_point_cache_vs.next(), n4=closest_point_cache_vs.next();
+      if (mode==ClosestModes.ALL)
+        minret = [];
+      for (var i=0; i<steps; i++, s+=ds) {
+          var start=s-1e-05, end=s+ds+1e-05;
+          start = Math.min(Math.max(start, 0.0), 1.0);
+          end = Math.min(Math.max(end, 0.0), 1.0);
+          var mid=(start+end)*0.5;
+          var bad=false;
+          var angle_limit=fast ? 0.65 : 0.2;
+          var steps=fast ? 5 : 20;
+          for (var j=0; j<steps; j++) {
+              mid = (start+end)*0.5;
+              var co=this.evaluate(mid);
+              var sco=this.evaluate(start);
+              var eco=this.evaluate(end);
+              var d1=this.normal(start).normalize();
+              var d2=this.normal(end).normalize();
+              var dm=this.normal(mid).normalize();
+              n1.load(sco).sub(p).normalize();
+              n2.load(eco).sub(p).normalize();
+              n.load(co).sub(p).normalize();
+              if (n1.dot(d1)<0.0)
+                d1.negate();
+              if (n2.dot(d2)<0.0)
+                d2.negate();
+              if (n.dot(dm)<0)
+                dm.negate();
+              var mang=acos(n.normalizedDot(dm));
+              if (mang<0.001)
+                break;
+              var ang1=acos(n1.normalizedDot(d1));
+              var ang2=acos(n2.normalizedDot(d2));
+              var w1=n1.cross(d1)[2]<0.0;
+              var w2=n2.cross(d2)[2]<0.0;
+              var wm=n.cross(dm)[2]<0.0;
+              if (isNaN(mang)) {
+                  console.log(p, co, mid, dm);
+              }
+              if (j==0&&w1==w2) {
+                  bad = true;
+                  break;
+              }
+              else 
+                if (w1==w2) {
+              }
+              if (w1==w2) {
+                  var dis1, dis2;
+                  dis1 = ang1, dis2 = ang2;
+                  if (dis2<dis1) {
+                      start = mid;
+                  }
+                  else 
+                    if (dis1<dis2) {
+                      end = mid;
+                  }
+                  else {
+                    break;
+                  }
+              }
+              else 
+                if (wm==w1) {
+                  start = mid;
+              }
+              else {
+                end = mid;
+              }
+          }
+          if (bad)
+            continue;
+          var co=this.evaluate(mid);
+          n1.load(this.normal(mid)).normalize();
+          n2.load(co).sub(p).normalize();
+          if (n2.dot(n1)<0) {
+              n2.negate();
+          }
+          var angle=acos(Math.min(Math.max(n1.dot(n2), -1), 1));
+          if (angle>angle_limit)
+            continue;
+          if (mode!=ClosestModes.ALL&&minret==undefined) {
+              var minret=closest_point_ret_cache.next();
+              minret[0] = minret[1] = undefined;
+          }
+          var dis=co.vectorDistance(p);
+          if (mode==ClosestModes.CLOSEST) {
+              if (dis<mindis) {
+                  minret[0] = closest_point_cache_vs.next().load(co);
+                  minret[1] = mid;
+                  mindis = dis;
+              }
+          }
+          else 
+            if (mode==ClosestModes.START) {
+              if (mid<mindis) {
+                  minret[0] = closest_point_cache_vs.next().load(co);
+                  minret[1] = mid;
+                  mindis = mid;
+              }
+          }
+          else 
+            if (mode==ClosestModes.END) {
+              if (mid>maxdis) {
+                  minret[0] = closest_point_cache_vs.next().load(co);
+                  minret[1] = mid;
+                  maxdis = mid;
+              }
+          }
+          else 
+            if (mode==ClosestModes.ALL) {
+              var ret=closest_point_ret_cache.next();
+              ret[0] = closest_point_cache_vs.next().load(co);
+              ret[1] = mid;
+              minret.push(ret);
+          }
+      }
+      if (minret==undefined&&mode==ClosestModes.CLOSEST) {
+          var v1=this.evaluate(0), v2=this.evaluate(1);
+          var dis1=v1.vectorDistance(p), dis2=v2.vectorDistance(p);
+          minret = closest_point_ret_cache.next();
+          minret[0] = closest_point_cache_vs.next().load(dis1<dis2 ? v1 : v2);
+          minret[1] = dis1<dis2 ? 0.0 : 1.0;
+      }
+      else 
+        if (minret==undefined&&mode==ClosestModes.START) {
+          minret = closest_point_ret_cache.next();
+          minret[0] = closest_point_cache_vs.next().load(this.v1);
+          minret[1] = 0.0;
+      }
+      if (minret==undefined&&mode==ClosestModes.END) {
+          minret = closest_point_ret_cache.next();
+          minret[0] = closest_point_cache_vs.next().load(this.v2);
+          minret[1] = 1.0;
+      }
+      return minret;
+    }
+     normal(s) {
+      var ret=this.derivative(s);
+      var t=ret[0];
+      ret[0] = -ret[1];
+      ret[1] = t;
+      ret.normalize();
+      return ret;
+    }
+     global_to_local(p, no_effects=false, fixed_s=undefined) {
+      let ret_cache=_gtl_ret_cache;
+      let arr=_gtl_arr;
+      let co;
+      if (fixed_s!=undefined) {
+          arr[0] = this.evaluate(fixed_s);
+          arr[1] = fixed_s;
+          co = arr;
+      }
+      else {
+        co = this.closest_point(p);
+      }
+      let _co=_gtl_co;
+      let _vec=_gtl_vec;
+      var s, t, a=0.0;
+      if (co===undefined) {
+          co = _co;
+          if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
+              co.load(this.v1);
+              s = 0;
+              t = p.vectorDistance(this.v1);
+          }
+          else {
+            co.load(this.v2);
+            s = 1.0;
+            t = p.vectorDistance(this.v2);
+          }
+      }
+      else {
+        s = co.s;
+        co = co.co;
+        t = p.vectorDistance(co)*0.15;
+      }
+      var n1=this.normal(s).normalize();
+      var n2=_vec.zero().load(p).sub(co).normalize();
+      n1[2] = n2[2] = 0.0;
+      a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
+      var dot=n1.dot(n2);
+      co.sub(p);
+      co[2] = 0.0;
+      t = co.vectorLength();
+      if (dot<0.0) {
+          t = -t;
+          a = 2.0*Math.PI-a;
+      }
+      var ret=ret_cache.next();
+      ret[0] = s;
+      ret[1] = t;
+      ret[2] = a;
+      return ret;
+    }
+     local_to_global(p) {
+      var s=p[0], t=p[1], a=p[2];
+      var co=this.evaluate(s);
+      var no=this.normal(s).normalize();
+      no.mulScalar(t);
+      no.rot2d(a);
+      co.add(no);
+      return co;
+    }
+  }
+  var $flip_out_wX3r__get_nextprev=[0];
+  _ESClass.register(CurveEffect);
+  _es6_module.add_class(CurveEffect);
+  CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
+  class FlipWrapper extends CurveEffect {
+    
+     constructor() {
+      super();
+      this.eff = undefined;
+      this.depth = 0;
+    }
+     rescale(eff, width) {
+      return this.eff.rescale(eff, width);
+    }
+    get  reversed() {
+      return this.eff;
+    }
+     bind(eff) {
+      this.eff = eff;
+      return this;
+    }
+    get  next() {
+      return this.eff.next;
+    }
+    get  prev() {
+      return this.eff.prev;
+    }
+     push(s) {
+      if (this.depth==0) {
+          s = 1.0-s;
+      }
+      this.depth++;
+      return s;
+    }
+     pop(value) {
+      this.depth--;
+      return value;
+    }
+     evaluate(s) {
+      s = this.push(s);
+      return this.pop(this.eff.evaluate(s));
+    }
+     derivative(s) {
+      s = this.push(s);
+      return this.pop(this.eff.derivative(s));
+    }
+     normal(s) {
+      s = this.push(s);
+      return this.pop(this.eff.normal(s));
+    }
+     curvature(s) {
+      s = this.push(s);
+      return this.pop(this.eff.curvature(s));
+    }
+  }
+  _ESClass.register(FlipWrapper);
+  _es6_module.add_class(FlipWrapper);
+  FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
+  flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
+}, '/dev/fairmotion/src/curve/spline_base.js');
+
+
+es6_module_define('spline_types', ["./spline_math.js", "../util/bezier.js", "../core/struct.js", "../config/config.js", "../core/toolprops_iter.js", "./spline_base", "../core/toolprops.js", "../path.ux/scripts/pathux.js", "../core/eventdag.js", "./spline_multires.js", "./spline_base.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "../wasm/native_api.js", "./bspline.js"], function _spline_types_module(_es6_module) {
+  "use strict";
+  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
+  var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+  var bspline=es6_import(_es6_module, './bspline.js');
+  var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
+  var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
+  var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var math=es6_import(_es6_module, '../util/mathlib.js');
+  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
+  var NodeBase=es6_import_item(_es6_module, '../core/eventdag.js', 'NodeBase');
+  var abs=Math.abs, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, PI=Math.PI, sqrt=Math.sqrt, pow=Math.pow, log=Math.log;
+  var ___spline_base=es6_import(_es6_module, './spline_base');
+  for (let k in ___spline_base) {
+      _es6_module.add_export(k, ___spline_base[k], true);
+  }
+  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
+  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
+  var ensure_multires=es6_import_item(_es6_module, './spline_multires.js', 'ensure_multires');
+  var decompose_id=es6_import_item(_es6_module, './spline_multires.js', 'decompose_id');
+  var compose_id=es6_import_item(_es6_module, './spline_multires.js', 'compose_id');
+  var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
+  var ClosestModes=es6_import_item(_es6_module, './spline_base.js', 'ClosestModes');
+  var IsectModes=es6_import_item(_es6_module, './spline_base.js', 'IsectModes');
+  var RecalcFlags=es6_import_item(_es6_module, './spline_base.js', 'RecalcFlags');
+  var MaterialFlags=es6_import_item(_es6_module, './spline_base.js', 'MaterialFlags');
+  var CustomDataLayer=es6_import_item(_es6_module, './spline_base.js', 'CustomDataLayer');
+  var CustomData=es6_import_item(_es6_module, './spline_base.js', 'CustomData');
+  var CustomDataSet=es6_import_item(_es6_module, './spline_base.js', 'CustomDataSet');
+  var SplineElement=es6_import_item(_es6_module, './spline_base.js', 'SplineElement');
+  var CurveEffect=es6_import_item(_es6_module, './spline_base.js', 'CurveEffect');
+  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
+  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
+  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
+  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
+  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
+  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
+  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
+  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
+  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
+  var eval_curve=es6_import_item(_es6_module, './spline_math.js', 'eval_curve');
+  var spiraltheta=es6_import_item(_es6_module, './spline_math.js', 'spiraltheta');
+  var spiralcurvature=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature');
+  var spiralcurvature_dv=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature_dv');
+  let eval_ret_vs=cachering.fromConstructor(Vector2, 512);
+  let evaluateSide_rets=cachering.fromConstructor(Vector2, 512);
+  var bez3=es6_import_item(_es6_module, '../util/bezier.js', 'bez3');
+  var bez4=es6_import_item(_es6_module, '../util/bezier.js', 'bez4');
+  let _seg_aabb_ret=[new Vector3(), new Vector3()];
+  class SplineVertex extends SplineElement {
+    
+    
+    
+    
+    
+     constructor(co) {
+      super(SplineTypes.VERTEX);
+      Vector2.prototype.initVector2.apply(this, arguments);
+      this._no_warning = false;
+      if (co!==undefined) {
+          this[0] = co[0];
+          this[1] = co[1];
+      }
+      this.type = SplineTypes.VERTEX;
+      this.flag = SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
+      this.segments = [];
+      this.eid = 0;
+      this.frames = {};
+      this.hpair = undefined;
+    }
+    get  2() {
+      return 0.0;
+    }
+    set  2(val) {
+      console.warn("Attempt to set [2] in SplineVertex!");
+    }
+    get  width() {
+      if (this.type!==SplineTypes.VERTEX) {
+          console.warn("Dynamic vertex width not supported for handle vertices");
+          return 0.0;
+      }
+      if (!this.segments)
+        return 0.0;
+      let tot=0.0;
+      let sum=0.0;
+      for (let s of this.segments) {
+          tot++;
+          sum+=this===s.v1 ? s.w1 : s.w2;
+      }
+      return tot ? sum/tot : 0.0;
+    }
+    set  width(w) {
+      if (this.type!==SplineTypes.VERTEX) {
+          console.warn("Dynamic vertex width not supported for handle vertices");
+          return ;
+      }
+      if (!this.segments)
+        return ;
+      let old=this.width;
+      if (w===0.0) {
+          console.warn("Cannot set width to zero");
+          return ;
+      }
+      if (isNaN(old)||old===0.0) {
+          console.warn("Corrupted width data; fixing...");
+          for (let s of this.segments) {
+              if (isNaN(s.w1)||s.w1===0.0)
+                s.w1 = w;
+              if (isNaN(s.w2)||s.w2===0.0)
+                s.w2 = w;
+              s.mat.update();
+          }
+          return ;
+      }
+      let ratio=w/old;
+      for (let s of this.segments) {
+          if (this===s.v1)
+            s.w1*=ratio;
+          else 
+            if (this===s.v2)
+            s.w2*=ratio;
+          else 
+            throw new Error("spline mesh integrity error");
+          s.mat.update();
+      }
+      if (this.segments.length===2) {
+          let s1=this.segments[0];
+          let s2=this.segments[1];
+          let w1=this===s1.v1 ? s1.w1 : s1.w2;
+          let w2=this===s2.v1 ? s2.w1 : s2.w2;
+          let w=(w1+w2)*0.5;
+          s1.setVertWidth(this, w);
+          s2.setVertWidth(this, w);
+      }
+    }
+    get  shift() {
+      if (!this.segments)
+        return ;
+      if (this.segments.length!==2) {
+          return 0.0;
+      }
+      let tot=0.0;
+      let sum=0.0;
+      if (this.segments.length===2) {
+          let s1=this.segments[0];
+          let s2=this.segments[1];
+          let shift1=this===s1.v1 ? s1.shift1 : s1.shift2;
+          let shift2=this===s2.v1 ? s2.shift1 : s2.shift2;
+          if ((this===s1.v1)===(this===s2.v1)) {
+              sum = shift1-shift2;
+          }
+          else {
+            sum = shift1+shift2;
+          }
+          tot = 2.0;
+      }
+      else {
+        for (let s of this.segments) {
+            tot++;
+            sum+=this===s.v1 ? -s.shift1 : s.shift2;
+        }
+      }
+      return tot ? sum/tot : 0.0;
+    }
+    set  shift(w) {
+      if (!this.segments||this.segments.length!==2)
+        return ;
+      let tot=0.0;
+      let sum=0.0;
+      let old=this.shift;
+      let df=w-old;
+      if (this.segments.length===2) {
+          let s1=this.segments[0];
+          let s2=this.segments[1];
+          let shift1=this===s1.v1 ? s1.shift1 : s1.shift2;
+          let shift2=this===s2.v1 ? s2.shift1 : s2.shift2;
+          if ((this===s1.v1)===(this===s2.v1)) {
+              shift1+=df;
+              shift2-=df;
+          }
+          else {
+            shift1+=df;
+            shift2+=df;
+          }
+          if (this===s1.v1)
+            s1.shift1 = shift1;
+          else 
+            s1.shift2 = shift1;
+          if (this===s2.v1)
+            s2.shift1 = shift2;
+          else 
+            s2.shift2 = shift2;
+          s1.mat.update();
+          s2.mat.update();
+      }
+      else {
+        for (let s of this.segments) {
+            if (this===s.v1) {
+                s.shift1+=df;
+            }
+            else {
+              s.shift2+=df;
+            }
+            s.mat.update();
+        }
+      }
+    }
+    set  __shift(w) {
+      if (!this.segments)
+        return ;
+      let old=this.shift;
+      let df=w-old;
+      for (let s of this.segments) {
+          if (this===s.v1) {
+              s.shift1-=df;
+          }
+          else {
+            s.shift2+=df;
+          }
+          s.mat.update();
+      }
+    }
+    static  nodedef() {
+      return {name: "SplineVertex", 
+     uiName: "SplineVertex", 
+     inputs: {}, 
+     outputs: NodeBase.Inherit()}
+    }
+    get  aabb() {
+      let ret=_seg_aabb_ret;
+      ret[0].load(this);
+      ret[1].load(this);
+      return ret;
+    }
+     sethide(state) {
+      if (state)
+        this.flag|=SplineFlags.HIDE;
+      else 
+        this.flag&=~SplineFlags.HIDE;
+      if (this.type===SplineTypes.HANDLE)
+        return ;
+      if (state) {
+          for (var i=0; i<this.segments.length; i++) {
+              this.segments[i].sethide(true);
+          }
+      }
+      else {
+        for (var i=0; i<this.segments.length; i++) {
+            this.segments[i].sethide(false);
+        }
+      }
+    }
+    get  hidden() {
+      if (this.type===SplineTypes.VERTEX) {
+          return !!(this.flag&SplineFlags.HIDE);
+      }
+      else {
+        var s=this.owning_segment;
+        return (this.flag&SplineFlags.HIDE)||!this.use||s.v1.hidden||s.v2.hidden;
+      }
+    }
+    get  owning_segment() {
+      return this.segments[0];
+    }
+    get  owning_vertex() {
+      return this.owning_segment.handle_vertex(this);
+    }
+    get  use() {
+      if (this.type!==SplineTypes.HANDLE)
+        return true;
+      var s=this.owning_segment;
+      if (s===undefined) {
+          console.warn("Corrupted handle detected", this.eid);
+          return false;
+      }
+      var v=s.handle_vertex(this);
+      var ret=v!==undefined&&(v.segments!==undefined&&v.segments.length>2||(v.flag&SplineFlags.USE_HANDLES));
+      return ret;
+    }
+    set  hidden(value) {
+      if (value)
+        this.flag|=SplineFlags.HIDE;
+      else 
+        this.flag&=~SplineFlags.HIDE;
+    }
+    get  valence() {
+      return this.segments.length;
+    }
+     other_segment(s) {
+      if (s===this.segments[0])
+        s = this.segments[1];
+      else 
+        if (s===this.segments[1])
+        s = this.segments[0];
+      if (!s) {
+          throw new Error("bad segment in SplineVertex.prototype.other_segment()");
+      }
+      if (s.v1!==this&&s.v2!==this) {
+          throw new Error("mesh integrity error");
+      }
+      return s;
+    }
+     toJSON() {
+      var ret={};
+      ret.frame = this.frame;
+      ret.segments = [];
+      ret[0] = this[0];
+      ret[1] = this[1];
+      ret.frames = this.frames;
+      ret.length = 3;
+      for (var i=0; i<this.segments.length; i++) {
+          if (this.segments[i]!==undefined)
+            ret.segments.push(this.segments[i].eid);
+      }
+      ret.flag = this.flag;
+      ret.eid = this.eid;
+      return ret;
+    }
+     loadSTRUCT(reader) {
+      this._no_warning = true;
+      reader(this);
+      super.loadSTRUCT(reader);
+      this._no_warning = false;
+      this.load(this.co);
+      delete this.co;
+      for (let axis=0; axis<2; axis++) {
+          if (isNaN(this[axis])) {
+              console.warn("NaN vertex", this.eid);
+              this[axis] = 0;
+          }
+      }
+      return this;
+    }
+  }
+  _ESClass.register(SplineVertex);
+  _es6_module.add_class(SplineVertex);
+  SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
+  
+  SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement)+`
+  co       : vec2          | this;
+  segments : array(e, int) | e.eid;
+  hpair    : int           | this.hpair != undefined? this.hpair.eid : -1;
+}
+`;
+  mixin(SplineVertex, Vector2);
+  class ClosestPointRecord  {
+    
+    
+    
+     constructor() {
+      this.s = 0;
+      this.co = new Vector2();
+      this.sign = 1.0;
+    }
+     reset() {
+      this.sign = this.s = undefined;
+      return this;
+    }
+  }
+  _ESClass.register(ClosestPointRecord);
+  _es6_module.add_class(ClosestPointRecord);
+  ClosestPointRecord = _es6_module.add_export('ClosestPointRecord', ClosestPointRecord);
+  var derivative_cache_vs=cachering.fromConstructor(Vector3, 64);
+  var closest_point_ret_cache_vs=cachering.fromConstructor(Vector3, 256);
+  var closest_point_ret_cache=cachering.fromConstructor(ClosestPointRecord, 256);
+  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 512);
+  class EffectWrapper extends CurveEffect {
+    
+     constructor(owner) {
+      super();
+      this.seg = owner;
+    }
+     rescale(ceff, width) {
+      while (ceff.prior!==undefined) {
+        ceff = ceff.prior;
+      }
+      var seg1=this.seg;
+      var seg2=ceff.seg;
+      var l1=seg1.length, l2=seg2.length;
+      width = (width*l2)/l1;
+      return width;
+    }
+     _get_nextprev(donext, flip_out) {
+      var seg1=this.seg;
+      var v=donext ? seg1.v2 : seg1.v1;
+      if (v.segments.length!==2)
+        return undefined;
+      var seg2=v.other_segment(seg1);
+      flip_out[0] = (donext&&seg2.v1===v)||(!donext&&seg2.v2===v);
+      return seg2._evalwrap;
+    }
+     evaluate(s) {
+      return this.seg.evaluate(s, undefined, undefined, undefined, true);
+    }
+     derivative(s) {
+      return this.seg.derivative(s, undefined, undefined, true);
+    }
+  }
+  _ESClass.register(EffectWrapper);
+  _es6_module.add_class(EffectWrapper);
+  EffectWrapper = _es6_module.add_export('EffectWrapper', EffectWrapper);
+  let intersect_rets=new cachering(() =>    {
+    return {co: new Vector2(), 
+    targetS: 0, 
+    sourceS: 0}
+  }, 512);
+  let __static_minmax=new MinMax(2);
+  let __angle_temp=cachering.fromConstructor(Vector2, 64);
+  let bstmp1=new Array(32);
+  let bstmp2=new Array(32);
+  let bstmp3=new Array(32);
+  let bstmpb=[0, 0];
+  let shiftout=[0];
+  class SplineSegment extends SplineElement {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor(v1, v2) {
+      super(SplineTypes.SEGMENT);
+      this._evalwrap = new EffectWrapper(this);
+      this.l = undefined;
+      this.w1 = 1.0;
+      this.w2 = 1.0;
+      this.shift1 = 0.0;
+      this.shift2 = 0.0;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.topoid = -1;
+      this.stringid = -1;
+      this.has_multires = false;
+      this.mat = new Material();
+      this.mat.update = this._material_update.bind(this);
+      this.z = this.finalz = 5;
+      this._aabb = [new Vector3(), new Vector3()];
+      this.h1 = this.h2 = undefined;
+      this.type = SplineTypes.SEGMENT;
+      this.flag = 0;
+      this.eid = 0;
+      this.ks = new Array(KTOTKS);
+      this._last_ks = new Array(KTOTKS);
+      for (var i=0; i<this.ks.length; i++) {
+          this.ks[i] = 0;
+          this._last_ks[i] = 0;
+      }
+    }
+     onDestroy() {
+      native_api.onSegmentDestroy(this);
+    }
+     sinangle(v) {
+      if (v.segments.length===2) {
+          let s1=this;
+          let s2=v.other_segment(s1);
+          let t1=__angle_temp.next();
+          let t2=__angle_temp.next();
+          let v1=s1.other_vert(v);
+          let v2=s2.other_vert(v);
+          t1.load(v1).sub(v);
+          t2.load(v2).sub(v);
+          if (t1.dot(t1)<1e-05||t2.dot(t2)<1e-05) {
+              return 0.0;
+          }
+          t1.normalize();
+          t2.normalize();
+          let th=-(t1[0]*t2[1]-t1[1]*t2[0]);
+          let eps=0.0001;
+          th = th*(1.0-eps*2.0)+eps*Math.sign(th);
+          return th;
+      }
+      return 0.0;
+    }
+     shift(s) {
+      this.width(s, shiftout);
+      return shiftout[0];
+      s = s*s*(3.0-2.0*s);
+      let ret=this.shift1+(this.shift2-this.shift1)*s;
+      return ret;
+    }
+     dshift(s) {
+      let df=0.0001;
+      let a=this.shift(s-df);
+      let b=this.shift(s+df);
+      return (b-a)/(2.0*df);
+    }
+     dwidth(s) {
+      let df=0.0001;
+      let a=this.width(s-df);
+      let b=this.width(s+df);
+      return (b-a)/(2.0*df);
+    }
+     setVertWidth(v, w) {
+      if (w===undefined||isNaN(w)) {
+          console.warn("Got bad width data", w);
+      }
+      if (v===this.v1) {
+          this.w1 = w;
+      }
+      else 
+        if (v===this.v2) {
+          this.w2 = w;
+      }
+      else {
+        console.log(this, v, "bleh");
+        throw new Error("vertex not in edge "+v);
+      }
+    }
+     widthFunction(s) {
+      return s;
+    }
+     width(s, outShift) {
+      let seg=this;
+      let v;
+      let len;
+      function walk() {
+        let lastv=v;
+        if (v.segments.length===2) {
+            seg = v.other_segment(seg);
+            v = seg.other_vert(v);
+        }
+        len = seg.length;
+        len = Math.max(len, 0.0001);
+        bstmpb[0] = (v===seg.v1 ? seg.w1 : seg.w2)*seg.mat.linewidth;
+        bstmpb[1] = v===seg.v1 ? seg.shift1 : seg.shift2;
+        return bstmpb;
+      }
+      v = this.v1;
+      seg = this;
+      let l0b, l0, l1, l2, l3, l4, l5, l6, l7, l8;
+      l3 = Math.max(seg.length, 0.0001);
+      l4 = l3;
+      let w3=this.w1*this.mat.linewidth;
+      let s3=this.shift1;
+      let $_t0tcbe=walk(), w2=$_t0tcbe[0], s2=$_t0tcbe[1];
+      l2 = len;
+      let $_t1lvaa=walk(), w1=$_t1lvaa[0], s1=$_t1lvaa[1];
+      l1 = len;
+      let $_t2unmp=walk(), w0=$_t2unmp[0], s0=$_t2unmp[1];
+      l0 = len;
+      let $_t3rfwa=walk(), w0b=$_t3rfwa[0], s0b=$_t3rfwa[1];
+      l0b = len;
+      seg = this;
+      v = this.v2;
+      let w4=this.w2*this.mat.linewidth;
+      let s4=this.shift2;
+      let $_t4agsn=walk(), w5=$_t4agsn[0], s5=$_t4agsn[1];
+      l5 = len;
+      let $_t5fdhw=walk(), w6=$_t5fdhw[0], s6=$_t5fdhw[1];
+      l6 = len;
+      let $_t6bocj=walk(), w7=$_t6bocj[0], s7=$_t6bocj[1];
+      l7 = len;
+      let $_t7ekib=walk(), w8=$_t7ekib[0], s8=$_t7ekib[1];
+      l8 = len;
+      seg = this;
+      let ks=bstmp1;
+      let ws=bstmp2;
+      let ss=bstmp3;
+      bstmp1.length = 5;
+      bstmp2.length = 5;
+      ks[0] = -l0-l1-l2;
+      ks[1] = -l1-l2;
+      ks[2] = -l2;
+      ks[3] = 0;
+      ks[4] = l4;
+      ks[5] = l4+l5;
+      ks[6] = l4+l5+l6;
+      ks[7] = l4+l5+l6+l7;
+      ws[0] = w2;
+      ws[1] = w3;
+      ws[2] = w4;
+      ws[3] = w5;
+      ws[4] = w6;
+      ws[5] = w7;
+      ws[6] = w8;
+      ss[0] = s2;
+      ss[1] = s3;
+      ss[2] = s4;
+      ss[3] = s5;
+      ss[4] = s6;
+      ss[5] = s7;
+      ss[6] = s8;
+      if (l4===0.0) {
+          return 0.0;
+      }
+      s*=l4;
+      if (outShift) {
+          outShift[0] = bspline.deBoor(3, s, ks, ss, 3);
+      }
+      return bspline.deBoor(3, s, ks, ws, 3);
+    }
+     _material_update() {
+      this.flag|=SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
+      this.v1.flag|=SplineFlags.UPDATE;
+      this.v2.flag|=SplineFlags.UPDATE;
+    }
+    get  aabb() {
+      if (this.flag&SplineFlags.UPDATE_AABB)
+        this.update_aabb();
+      return this._aabb;
+    }
+    set  aabb(val) {
+      this._aabb = val;
+    }
+     _update_has_multires() {
+      this.has_multires = false;
+      for (var i=0; i<this.cdata.length; i++) {
+          if (__instance_of(this.cdata[i], MultiResLayer)) {
+              this.has_multires = true;
+              break;
+          }
+      }
+    }
+     update_aabb(steps=8) {
+      this._update_has_multires();
+      this.flag&=~SplineFlags.UPDATE_AABB;
+      var min=this._aabb[0], max=this._aabb[1];
+      let minmax=__static_minmax;
+      minmax.reset();
+      min.zero();
+      max.zero();
+      var co=this.evaluate(0);
+      minmax.minmax(co);
+      var ds=1.0/(steps-1);
+      for (let i=0, s=0; i<steps; i++, s+=ds) {
+          var co=this.evaluate(s*0.999999999);
+          minmax.minmax(co);
+      }
+      min.load(minmax.min);
+      max.load(minmax.max);
+    }
+     intersect(seg, side1=false, side2=false, mode=IsectModes.CLOSEST) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return undefined;
+      }
+      let steps=5;
+      let lastco=undefined, lastno;
+      let p1=new Vector2();
+      let p2=new Vector2();
+      let p3=new Vector2();
+      let p4=new Vector2();
+      let mindis=undefined;
+      let minret=new Vector2();
+      let mins, mins2;
+      let s=0, ds=1.0/(steps-1);
+      for (let i=0; i<steps; i++, s+=ds) {
+          let s1=s, s2=s+ds;
+          let co1=this.evaluateSide(s1, side1);
+          let co2=this.evaluateSide(s2, side1);
+          let cl1=seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+          let cl2=seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
+          let p1=cl1.co;
+          let p2=cl2.co;
+          if (cl1.sign!==cl2.sign) {
+              for (let bi=0; bi<2; bi++) {
+                  let s3=(s1+s)*0.5;
+                  let s4=(s2+s)*0.5;
+                  for (let j=0; j<2; j++) {
+                      let s5=j ? s4 : s3;
+                      let co3=this.evaluateSide(s5, side1);
+                      let cl3=seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
+                      if (cl3.sign!==cl1.sign) {
+                          s2 = s5;
+                          break;
+                      }
+                      else 
+                        if (cl3.sign!==cl2.sign) {
+                          s1 = s5;
+                          break;
+                      }
+                  }
+                  s = (s1+s2)*0.5;
+              }
+              co1 = this.evaluateSide(s1, side1);
+              cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+              let dis1;
+              if (mode===IsectModes.START) {
+                  dis1 = cl1.s;
+              }
+              else 
+                if (mode===IsectModes.END) {
+                  dis1 = 1.0-cl1.s;
+              }
+              else 
+                if (mode===IsectModes.ENDSTART) {
+                  dis1 = 1.0-Math.abs(cl1.s-0.5)*2.0;
+              }
+              else {
+                dis1 = co1.vectorDistance(cl1.co);
+              }
+              if (mindis===undefined||dis1<mindis) {
+                  minret.load(co1);
+                  mins = cl1.s;
+                  mins2 = s1;
+                  mindis = dis1;
+              }
+          }
+      }
+      if (mindis!==undefined) {
+          let ret=intersect_rets.next();
+          ret.co.load(minret);
+          ret.targetS = mins;
+          ret.sourceS = mins2;
+          return ret;
+      }
+      return undefined;
+    }
+     closest_point(p, mode, fast=false, widthSide=undefined) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return undefined;
+      }
+      var minret=undefined, mindis=1e+18, maxdis=0;
+      var p2=closest_point_cache_vs.next().zero();
+      for (var i=0; i<p.length; i++) {
+          p2[i] = p[i];
+      }
+      p = p2;
+      if (mode===undefined)
+        mode = 0;
+      var steps=5, s=0, ds=1.0/(steps);
+      var n=closest_point_cache_vs.next();
+      var n1=closest_point_cache_vs.next(), n2=closest_point_cache_vs.next();
+      var n3=closest_point_cache_vs.next(), n4=closest_point_cache_vs.next();
+      if (mode===ClosestModes.ALL)
+        minret = [];
+      let d1=closest_point_cache_vs.next();
+      let d2=closest_point_cache_vs.next();
+      let dm=closest_point_cache_vs.next();
+      for (var i=0; i<steps; i++, s+=ds) {
+          var start=s-1e-05, end=s+ds+1e-05;
+          start = Math.min(Math.max(start, 0.0), 1.0);
+          end = Math.min(Math.max(end, 0.0), 1.0);
+          var mid=(start+end)*0.5;
+          var bad=false;
+          var angle_limit=fast ? 0.65 : 0.2;
+          var steps=fast ? 5 : 20;
+          for (var j=0; j<steps; j++) {
+              mid = (start+end)*0.5;
+              let co, sco, eco;
+              if (widthSide!==undefined) {
+                  co = this.evaluateSide(start, widthSide, undefined, d1);
+                  sco = this.evaluateSide(mid, widthSide, undefined, dm);
+                  eco = this.evaluateSide(end, widthSide, undefined, d2);
+                  d1.normalize();
+                  d2.normalize();
+                  dm.normalize();
+              }
+              else {
+                co = this.evaluate(mid, undefined, undefined, undefined, true);
+                sco = this.evaluate(start, undefined, undefined, undefined, true);
+                eco = this.evaluate(end, undefined, undefined, undefined, true);
+                d1.load(this.normal(start, true).normalize());
+                dm.load(this.normal(mid, true).normalize());
+                d2.load(this.normal(end, true).normalize());
+              }
+              sco[2] = eco[2] = co[2] = 0.0;
+              n1.load(sco).sub(p).normalize();
+              n2.load(eco).sub(p).normalize();
+              n.load(co).sub(p);
+              n[2] = 0.0;
+              n.normalize();
+              if (n1.dot(d1)<0.0)
+                d1.negate();
+              if (n2.dot(d2)<0.0)
+                d2.negate();
+              if (n.dot(dm)<0)
+                dm.negate();
+              var mang=acos(n.normalizedDot(dm));
+              if (mang<0.001)
+                break;
+              var ang1=acos(n1.normalizedDot(d1));
+              var ang2=acos(n2.normalizedDot(d2));
+              var w1=n1.cross(d1)[2]<0.0;
+              var w2=n2.cross(d2)[2]<0.0;
+              var wm=n.cross(dm)[2]<0.0;
+              if (isNaN(mang)) {
+                  if (!window.__adssad)
+                    window.__adssad = 0;
+                  if (time_ms()-window.__adssad>500) {
+                      console.warn("NaN!", p, co, mid, dm, n, mang);
+                      window.__adssad = time_ms();
+                      mang = 0.0;
+                      n.zero();
+                  }
+              }
+              if (j===0&&w1===w2) {
+                  bad = true;
+                  break;
+              }
+              else 
+                if (w1===w2) {
+              }
+              if (w1===w2) {
+                  var dis1, dis2;
+                  dis1 = ang1, dis2 = ang2;
+                  if (dis2<dis1) {
+                      start = mid;
+                  }
+                  else 
+                    if (dis1<dis2) {
+                      end = mid;
+                  }
+                  else {
+                    break;
+                  }
+              }
+              else 
+                if (wm===w1) {
+                  start = mid;
+              }
+              else {
+                end = mid;
+              }
+          }
+          if (bad)
+            continue;
+          let co;
+          if (widthSide) {
+              co = this.evaluateSide(mid, widthSide, undefined, n1);
+              n1.normalize();
+          }
+          else {
+            co = this.evaluate(mid, undefined, undefined, undefined, true);
+            n1.load(this.normal(mid, true)).normalize();
+          }
+          n2.load(co).sub(p).normalize();
+          let sign=1.0;
+          if (n2.dot(n1)<0) {
+              sign = -1.0;
+              n2.negate();
+          }
+          var angle=acos(Math.min(Math.max(n1.dot(n2), -1), 1));
+          if (angle>angle_limit)
+            continue;
+          if (mode!==ClosestModes.ALL&&minret===undefined) {
+              minret = closest_point_ret_cache.next().reset();
+          }
+          var dis=co.vectorDistance(p);
+          if (mode===ClosestModes.CLOSEST) {
+              if (dis<mindis) {
+                  minret.co.load(co);
+                  minret.s = mid;
+                  minret.sign = sign;
+                  mindis = dis;
+              }
+          }
+          else 
+            if (mode===ClosestModes.START) {
+              if (mid<mindis) {
+                  minret.co.load(co);
+                  minret.s = mid;
+                  minret.sign = sign;
+                  mindis = mid;
+              }
+          }
+          else 
+            if (mode===ClosestModes.END) {
+              if (mid>maxdis) {
+                  minret.co.load(co);
+                  minret.s = mid;
+                  minret.sign = sign;
+                  maxdis = mid;
+              }
+          }
+          else 
+            if (mode===ClosestModes.ALL) {
+              let ret=closest_point_ret_cache.next().reset();
+              ret.co.load(co);
+              ret.s = mid;
+              ret.sign = sign;
+              minret.push(ret);
+          }
+      }
+      if (minret===undefined&&mode===ClosestModes.CLOSEST) {
+          var dis1=this.v1.vectorDistance(p), dis2=this.v2.vectorDistance(p);
+          minret = closest_point_ret_cache.next().reset();
+          minret.co.load(dis1<dis2 ? this.v1 : this.v2);
+          minret.s = dis1<dis2 ? 0.0 : 1.0;
+          minret.sign = 1.0;
+      }
+      else 
+        if (minret===undefined&&mode===ClosestModes.START) {
+          minret = closest_point_ret_cache.next();
+          minret.co.load(this.v1);
+          minret.s = 0.0;
+          minret.sign = 1.0;
+      }
+      if (minret===undefined&&mode===ClosestModes.END) {
+          minret = closest_point_ret_cache.next();
+          minret.co.load(this.v2);
+          minret.s = 1.0;
+          minret.sign = 1.0;
+      }
+      return minret;
+    }
+     normal(s, no_effects=!ENABLE_MULTIRES) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return derivative_cache_vs.next().zero();
+      }
+      var ret=this.derivative(s, undefined, undefined, no_effects);
+      var t=ret[0];
+      ret[0] = -ret[1];
+      ret[1] = t;
+      ret.normalize();
+      return ret;
+    }
+     ends(v) {
+      if (v===this.v1)
+        return 0.0;
+      if (v===this.v2)
+        return 1.0;
+    }
+     handle(v) {
+      if (v===this.v1)
+        return this.h1;
+      if (v===this.v2)
+        return this.h2;
+    }
+     handle_vertex(h) {
+      if (h===this.h1)
+        return this.v1;
+      if (h===this.h2)
+        return this.v2;
+    }
+    get  is_line() {
+      var r1=(this.v1.flag&SplineFlags.BREAK_TANGENTS);
+      var r2=(this.v2.flag&SplineFlags.BREAK_TANGENTS);
+      return r1&&r2;
+    }
+    get  renderable() {
+      return !(this.flag&SplineFlags.NO_RENDER);
+    }
+    set  renderable(val) {
+      if (!val)
+        this.flag|=SplineFlags.NO_RENDER;
+      else 
+        this.flag&=~SplineFlags.NO_RENDER;
+    }
+     update_handle(h) {
+      var ov=this.handle_vertex(h);
+      if (h.hpair!==undefined) {
+          var seg=h.hpair.owning_segment;
+          var v=this.handle_vertex(h);
+          var len=h.hpair.vectorDistance(v);
+          h.hpair.load(h).sub(v).negate().normalize().mulScalar(len).add(v);
+          seg.update();
+          return h.hpair;
+      }
+      else 
+        if (ov.segments.length===2&&h.use&&!(ov.flag&SplineFlags.BREAK_TANGENTS)) {
+          var h2=h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
+          var hv=h2.owning_segment.handle_vertex(h2), len=h2.vectorDistance(hv);
+          h2.load(h).sub(hv).negate().normalize().mulScalar(len).add(hv);
+          h2.owning_segment.update();
+          return h2;
+      }
+    }
+     other_handle(h_or_v) {
+      if (h_or_v===this.v1)
+        return this.h2;
+      if (h_or_v===this.v2)
+        return this.h1;
+      if (h_or_v===this.h1)
+        return this.h2;
+      if (h_or_v===this.h2)
+        return this.h1;
+    }
+    get  length() {
+      return this.ks[KSCALE];
+    }
+     toJSON() {
+      var ret={};
+      ret.frames = this.frames;
+      ret.ks = [];
+      for (var i=0; i<this.ks.length; i++) {
+          ret.ks.push(this.ks[i]);
+      }
+      ret.v1 = this.v1.eid;
+      ret.v2 = this.v2.eid;
+      ret.h1 = this.h1!==undefined ? this.h1.eid : -1;
+      ret.h2 = this.h2!==undefined ? this.h2.eid : -1;
+      ret.eid = this.eid;
+      ret.flag = this.flag;
+      return ret;
+    }
+     curvature(s, order, override_scale) {
+      if (order===undefined)
+        order = ORDER;
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return 0.0;
+      }
+      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
+      var k=spiralcurvature(s, this.ks, order);
+      return k/(1e-07+this.ks[KSCALE]);
+    }
+     curvature_dv(s, order, override_scale) {
+      if (order===undefined)
+        order = ORDER;
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return 0.0;
+      }
+      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
+      var k=spiralcurvature_dv(s, this.ks, order);
+      return k/(1e-05+this.ks[KSCALE]);
+    }
+     derivative(s, order, no_update_curve, no_effects) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return derivative_cache_vs.next().zero();
+      }
+      if (order===undefined)
+        order = ORDER;
+      var ret=derivative_cache_vs.next().zero();
+      var ks=this.ks;
+      if (!no_update_curve)
+        eval_curve(this, 0.5, this.v1, this.v2, ks, order, 1);
+      var th=spiraltheta(s, ks, order);
+      var k=spiralcurvature(s, ks, order);
+      var ang=ks[KANGLE];
+      ret[0] = sin(th+ang)*ks[KSCALE];
+      ret[1] = cos(th+ang)*ks[KSCALE];
+      if (ret.length>2)
+        ret[2] = 0.0;
+      return ret;
+    }
+     theta(s, order, no_effects) {
+      if (order===undefined)
+        order = ORDER;
+      return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
+    }
+     offset_eval(s, offset, order, no_update) {
+      if (order===undefined)
+        order = ORDER;
+      var ret=this.evaluate(s, order, undefined, no_update);
+      if (offset===0.0)
+        return ret;
+      var tan=this.derivative(s, order, no_update);
+      var t=tan[0];
+      tan[0] = -tan[1];
+      tan[1] = t;
+      tan.normalize().mulScalar(offset);
+      ret.add(tan);
+      return ret;
+    }
+     curvatureSide(s, side, no_out) {
+      let df=0.0001;
+      let dv0=this.evaluateSide(s, side);
+      let dv1=this.evaluateSide(s+df, side);
+      let dv2=this.evaluateSide(s+df*2, side);
+      dv2.sub(dv1).mulScalar(1.0/df);
+      dv1.sub(dv0).mulScalar(1.0/df);
+      dv2.sub(dv1).mulScalar(1.0/df);
+      let k=(dv1[0]*dv2[1]-dv1[1]*dv2[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
+      if (no_out) {
+          dv1.normalize();
+          let t=dv1[0];
+          dv1[0] = -dv1[1];
+          dv1[1] = t;
+          no_out[0] = dv1[0];
+          no_out[1] = dv1[1];
+      }
+      return k;
+    }
+     evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
+      s = Math.min(Math.max(s, 0.02), 0.98);
+      if (this.flag&SplineFlags.COINCIDENT) {
+          if (dv_out) {
+              dv_out[0] = dv_out[1] = 0.0;
+          }
+          if (normal_out) {
+              normal_out[0] = normal_out[1] = 0.0;
+          }
+          if (lw_dlw_out) {
+              lw_dlw_out[0] = lw_dlw_out[1] = 0.0;
+          }
+          return evaluateSide_rets.next().load(this.v1);
+      }
+      side = side ? 1.0 : -1.0;
+      let co=evaluateSide_rets.next().load(this.evaluate(s));
+      let dv=this.derivative(s);
+      let shift=this.shift(s)*side;
+      let dshift=this.dshift(s)*side;
+      let lw=this.width(s)*side;
+      let dlw=this.dwidth(s)*side;
+      dlw = dlw*shift+dlw+dshift*lw;
+      lw = lw+lw*shift;
+      let dx=-dv[1]*lw*0.5/this.length;
+      let dy=dv[0]*lw*0.5/this.length;
+      if (normal_out) {
+          normal_out[0] = dx;
+          normal_out[1] = dy;
+      }
+      if (lw_dlw_out) {
+          lw_dlw_out[0] = lw;
+          lw_dlw_out[1] = dlw;
+      }
+      if (dv_out) {
+          let seglen=this.length;
+          let k=-seglen*this.curvature(s);
+          let dx2=(-0.5*(dlw*dv[1]+dv[0]*k*lw-2*dv[0]*seglen))/seglen;
+          let dy2=(0.5*(dlw*dv[0]-dv[1]*k*lw+2*dv[1]*seglen))/seglen;
+          dv_out[0] = dx2;
+          dv_out[1] = dy2;
+      }
+      co[0]+=dx;
+      co[1]+=dy;
+      return co;
+    }
+     evaluate(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return eval_ret_vs.next().load(this.v1);
+      }
+      if (no_effects) {
+          if (order===undefined)
+            order = ORDER;
+          s = (s+1e-08)*(1.0-2e-08);
+          s-=0.5;
+          var co=eval_curve(this, s, this.v1, this.v2, this.ks, order, undefined, no_update);
+          return eval_ret_vs.next().load(co);
+      }
+      else {
+        var wrap=this._evalwrap;
+        var last=wrap;
+        for (var i=0; i<this.cdata.length; i++) {
+            if (this.cdata[i].constructor._getDef().hasCurveEffect) {
+                var eff=this.cdata[i].curve_effect(this);
+                eff.set_parent(last);
+                last = eff;
+            }
+        }
+        return eval_ret_vs.next().load(last.evaluate(s));
+      }
+    }
+     post_solve() {
+      super.post_solve();
+    }
+     updateCoincident() {
+      if (this.v1.vectorDistance(this.v2)<0.001) {
+          this.flag|=SplineFlags.COINCIDENT;
+      }
+      else {
+        this.flag&=~SplineFlags.COINCIDENT;
+      }
+    }
+     update() {
+      this.updateCoincident();
+      this._update_has_multires();
+      this.flag|=SplineFlags.UPDATE|SplineFlags.UPDATE_AABB;
+      this.h1.flag|=SplineFlags.UPDATE;
+      this.h2.flag|=SplineFlags.UPDATE;
+      for (var i=0; i<this.cdata.length; i++) {
+          this.cdata[i].update(this);
+      }
+      var l=this.l;
+      if (l==undefined)
+        return ;
+      var c=0;
+      do {
+        if (c++>10000) {
+            console.log("Infinte loop detected!");
+            break;
+        }
+        l.f.update();
+        l = l.radial_next;
+      } while (l!=undefined&&l!=this.l);
+      
+    }
+     global_to_local(s, fixed_s=undefined) {
+      return this._evalwrap.global_to_local(s, fixed_s);
+    }
+     local_to_global(p) {
+      return this._evalwrap.local_to_global(p);
+    }
+     shared_vert(s) {
+      if (this.v1===s.v1||this.v1===s.v2)
+        return this.v1;
+      if (this.v2===s.v1||this.v2===s.v2)
+        return this.v2;
+    }
+     other_vert(v) {
+      if (v===this.v1)
+        return this.v2;
+      if (v===this.v2)
+        return this.v1;
+      console.log(this.v1.eid, this.v2.eid, v ? v.eid : v, this.eid, v);
+      throw new Error("vertex not in segment: "+(v ? v.eid : v));
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      this.flag&=~(SplineFlags.UPDATE|SplineFlags.REDRAW);
+      this.mat.update = this._material_update.bind(this);
+    }
+  }
+  _ESClass.register(SplineSegment);
+  _es6_module.add_class(SplineSegment);
+  SplineSegment = _es6_module.add_export('SplineSegment', SplineSegment);
+  SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement)+`
+  ks       : array(float);
+  
+  v1       : int | obj.v1.eid;
+  v2       : int | obj.v2.eid;
+  
+  h1       : int | obj.h1 != undefined ? obj.h1.eid : -1;
+  h2       : int | obj.h2 != undefined ? obj.h2.eid : -1;
+  
+  w1       : float;
+  w2       : float;
+  
+  shift1   : float;
+  shift2   : float;
+  
+  l        : int | obj.l != undefined  ? obj.l.eid : -1;
+  
+  mat      : Material;
+
+  aabb     : array(vec3);
+  z        : float;
+  finalz   : float;
+  has_multires : int;
+  
+  topoid   : int;
+  stringid : int;
+}
+`;
+  class SplineLoop extends SplineElement {
+     constructor(f, s, v) {
+      super(SplineTypes.LOOP);
+      this.f = f, this.s = s, this.v = v;
+      this.next = this.prev = undefined;
+      this.radial_next = this.radial_prev = undefined;
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new SplineLoop();
+      reader(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(SplineLoop);
+  _es6_module.add_class(SplineLoop);
+  SplineLoop = _es6_module.add_export('SplineLoop', SplineLoop);
+  SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement)+`
+    f    : int | obj.f.eid;
+    s    : int | obj.s.eid;
+    v    : int | obj.v.eid;
+    next : int | obj.next.eid;
+    prev : int | obj.prev.eid;
+    radial_next : int | obj.radial_next != undefined ? obj.radial_next.eid : -1;
+    radial_prev : int | obj.radial_prev != undefined ? obj.radial_prev.eid : -1;
+  }
+`;
+  class SplineLoopPathIter  {
+    
+     constructor(path) {
+      this.path = path;
+      this.ret = {done: false, 
+     value: undefined};
+      this.l = path!=undefined ? path.l : undefined;
+    }
+     init(path) {
+      this.path = path;
+      this.l = path.l;
+      this.ret.done = false;
+      this.ret.value = undefined;
+      return this;
+    }
+     next() {
+      var ret=this.ret;
+      if (this.l==undefined) {
+          ret.done = true;
+          ret.value = undefined;
+          return ret;
+      }
+      ret.value = this.l;
+      this.l = this.l.next;
+      if (this.l===this.path.l)
+        this.l = undefined;
+      return ret;
+    }
+     reset() {
+      this.l = this.path.l;
+      this.ret.done = false;
+      this.ret.value = undefined;
+    }
+  }
+  _ESClass.register(SplineLoopPathIter);
+  _es6_module.add_class(SplineLoopPathIter);
+  var $cent_RRRU_update_winding;
+  class SplineLoopPath  {
+    
+     constructor(l, f) {
+      this.l = l;
+      this.f = f;
+      this.totvert = undefined;
+      this.winding = 0;
+    }
+     [Symbol.iterator]() {
+      if (this.itercache===undefined) {
+          this.itercache = cachering.fromConstructor(SplineLoopPathIter, 4);
+      }
+      return this.itercache.next().init(this);
+    }
+     update_winding() {
+      $cent_RRRU_update_winding.zero();
+      for (var l of this) {
+          $cent_RRRU_update_winding.add(l.v);
+      }
+      $cent_RRRU_update_winding.mulScalar(1.0/this.totvert);
+      var wsum=0;
+      for (var l of this) {
+          wsum+=math.winding(l.v, l.next.v, $cent_RRRU_update_winding) ? 1 : -1;
+      }
+      this.winding = wsum>=0;
+    }
+     asArray() {
+      var l=this.l;
+      var ret=[];
+      do {
+        ret.push(l);
+        l = l.next;
+      } while (l!==this.l);
+      
+      return ret;
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new SplineLoopPath();
+      reader(ret);
+      var l=ret.l = ret.loops[0];
+      l.p = ret;
+      for (var i=1; i<ret.loops.length; i++) {
+          l.next = ret.loops[i];
+          ret.loops[i].prev = l;
+          ret.loops[i].p = ret;
+          l = ret.loops[i];
+      }
+      ret.loops[0].prev = ret.loops[ret.loops.length-1];
+      ret.loops[ret.loops.length-1].next = ret.loops[0];
+      delete ret.loops;
+      return ret;
+    }
+  }
+  var $cent_RRRU_update_winding=new Vector3();
+  _ESClass.register(SplineLoopPath);
+  _es6_module.add_class(SplineLoopPath);
+  SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
+  SplineLoopPath.STRUCT = ` 
+  SplineLoopPath {
+    totvert : int;
+    loops   : array(SplineLoop) | obj.asArray();
+    winding : int;
+  }
+`;
+  var $minmax_hmRk_update_aabb;
+  class SplineFace extends SplineElement {
+    
+    
+    
+     constructor() {
+      super(SplineTypes.FACE);
+      this.z = this.finalz = 0;
+      this.mat = new Material();
+      this.paths = new GArray();
+      this.flag|=SplineFlags.UPDATE_AABB;
+      this._aabb = [new Vector3(), new Vector3()];
+      var this2=this;
+      this.mat.update = this._mat_update.bind(this);
+    }
+     _mat_update() {
+      this.flag|=SplineFlags.REDRAW;
+    }
+     update() {
+      this.flag|=SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
+    }
+     update_aabb() {
+      this.flag&=~SplineFlags.UPDATE_AABB;
+      $minmax_hmRk_update_aabb.reset();
+      for (var path of this.paths) {
+          for (var l of path) {
+              $minmax_hmRk_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_hmRk_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_hmRk_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_hmRk_update_aabb.minmax(l.s.aabb[1]);
+          }
+      }
+      this._aabb[0].load($minmax_hmRk_update_aabb.min);
+      this._aabb[1].load($minmax_hmRk_update_aabb.max);
+    }
+    get  aabb() {
+      if (this.flag&SplineFlags.UPDATE_AABB)
+        this.update_aabb();
+      return this._aabb;
+    }
+    set  aabb(val) {
+      this._aabb = val;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      this.flag|=SplineFlags.UPDATE_AABB;
+      this.mat.update = this._mat_update.bind(this);
+    }
+  }
+  var $minmax_hmRk_update_aabb=new MinMax(3);
+  _ESClass.register(SplineFace);
+  _es6_module.add_class(SplineFace);
+  SplineFace = _es6_module.add_export('SplineFace', SplineFace);
+  SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement)+`
+    paths  : array(SplineLoopPath);
+    mat    : Material;
+    aabb   : array(vec3);
+    z      : float;
+    finalz : float;
+  }
+`;
+  class Material  {
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      this.fillcolor = new Vector4([0, 0, 0, 1]);
+      this.strokecolor = new Vector4([0, 0, 0, 1]);
+      this.strokecolor2 = new Vector4([0, 0, 0, 1]);
+      this.linewidth = 2.0;
+      this.linewidth2 = 0.0;
+      this.flag = 0;
+      this.opacity = 1.0;
+      this.fill_over_stroke = false;
+      this.blur = 0.0;
+    }
+     update() {
+      throw new Error("override me! should have happened in splinesegment or splineface constructors!");
+    }
+     equals(is_stroke, mat) {
+      var color1=is_stroke ? this.strokecolor : this.fillcolor;
+      var color2=is_stroke ? mat.strokecolor : mat.fillcolor;
+      for (var i=0; i<4; i++) {
+          if (color1[i]!=color2[i])
+            return false;
+      }
+      if (this.flag!=mat.flag)
+        return false;
+      if (this.opacity!=mat.opacity)
+        return false;
+      if (this.blur!=mat.blur)
+        return false;
+      if (is_stroke&&this.linewidth!=mat.linewidth)
+        return false;
+      return true;
+    }
+     load(mat) {
+      for (var i=0; i<4; i++) {
+          this.fillcolor[i] = mat.fillcolor[i];
+          this.strokecolor[i] = mat.strokecolor[i];
+          this.strokecolor2[i] = mat.strokecolor2[i];
+      }
+      this.opacity = mat.opacity;
+      this.linewidth = mat.linewidth;
+      this.fill_over_stroke = mat.fill_over_stroke;
+      this.blur = mat.blur;
+      this.linewidth2 = mat.linewidth2;
+      this.flag = mat.flag;
+      return this;
+    }
+    get  css_fillcolor() {
+      var r=Math.floor(this.fillcolor[0]*255);
+      var g=Math.floor(this.fillcolor[1]*255);
+      var b=Math.floor(this.fillcolor[2]*255);
+      return "rgba("+r+","+g+","+b+","+this.fillcolor[3]+")";
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      this.fillcolor = new Vector4(this.fillcolor);
+      if (isNaN(this.fillcolor[3])) {
+          this.fillcolor[3] = 1.0;
+      }
+      this.strokecolor = new Vector4(this.strokecolor);
+      if (isNaN(this.strokecolor[3])) {
+          this.strokecolor[3] = 1.0;
+      }
+    }
+  }
+  _ESClass.register(Material);
+  _es6_module.add_class(Material);
+  Material = _es6_module.add_export('Material', Material);
+  Material.STRUCT = `
+  Material {
+    fillcolor        : vec4;
+    strokecolor      : vec4;
+    strokecolor2     : vec4;
+    opacity          : float;
+    fill_over_stroke : int;
+    linewidth        : float;
+    linewidth2       : float;
+    blur             : float;
+    flag             : int;
+  }
+`;
+  var ToolIter=es6_import_item(_es6_module, '../core/toolprops_iter.js', 'ToolIter');
+  var TPropIterable=es6_import_item(_es6_module, '../core/toolprops_iter.js', 'TPropIterable');
+  class ElementRefIter extends ToolIter {
+    
+     constructor() {
+      super();
+      this.ret = {done: false, 
+     value: undefined};
+      this.spline = this.ctx = this.iter = undefined;
+    }
+     init(eset) {
+      this.ret.done = false;
+      this.nextitem = undefined;
+      this.eset = eset;
+      this.ctx = eset!=undefined ? eset.ctx : undefined;
+      this.spline = this.ctx!=undefined ? this.ctx.spline : undefined;
+      return this;
+    }
+     spawn() {
+      var ret=new ElementRefIter();
+      ret.init(this.eset);
+      return ret;
+    }
+     next() {
+      var ret=this.ret;
+      if (this.spline==undefined)
+        this.spline = this.ctx.spline;
+      if (this.iter==undefined)
+        this.iter = set.prototype[Symbol.iterator].call(this.eset);
+      var spline=this.spline;
+      var next, e=undefined;
+      do {
+        var next=this.iter.next();
+        if (next.done)
+          break;
+        e = spline.eidmap[next.value];
+        if (e==undefined) {
+            console.log("Warning, bad eid", next.value);
+        }
+      } while (next.done!=true&&e==undefined);
+      
+      if (e==undefined||next.done==true) {
+          this.spline = undefined;
+          this.iter = undefined;
+          ret.done = true;
+          ret.value = undefined;
+      }
+      else {
+        ret.value = e;
+      }
+      return ret;
+    }
+     reset() {
+      this.i = 0;
+      this.ret.done = false;
+      this.spline = undefined;
+      this.iter = undefined;
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new ElementRefIter();
+      reader(ret);
+      for (var i=0; i<ret.saved_items.length; i++) {
+          ret.add(ret.saved_items[i]);
+      }
+      delete ret.saved_items;
+      return ret;
+    }
+  }
+  _ESClass.register(ElementRefIter);
+  _es6_module.add_class(ElementRefIter);
+  ElementRefIter = _es6_module.add_export('ElementRefIter', ElementRefIter);
+  ElementRefIter.STRUCT = `
+  ElementRefIter {
+    mask        : int;
+    saved_items : iter(int) | obj;
+  }
+`;
+  class ElementRefSet extends set {
+     constructor(mask) {
+      super();
+      this.mask = mask==undefined ? SplineTypes.ALL : mask;
+    }
+     add(item) {
+      var start_item=item;
+      if (!(typeof item=="number"||__instance_of(item, Number)))
+        item = item.eid;
+      if (item==undefined) {
+          console.trace("ERROR in ElementRefSet!!", start_item);
+          return ;
+      }
+      set.prototype.add.call(this, item);
+    }
+     copy() {
+      var ret=new ElementRefSet(this.mask);
+      for (var eid of set.prototype[Symbol.iterator].call(this)) {
+          ret.add(eid);
+      }
+      return ret;
+    }
+     [Symbol.iterator]() {
+      if (this.itercaches==undefined) {
+          this.itercaches = cachering.fromConstructor(ElementRefIter, 8);
+      }
+      return this.itercaches.next().init(this);
+    }
+  }
+  _ESClass.register(ElementRefSet);
+  _es6_module.add_class(ElementRefSet);
+  ElementRefSet = _es6_module.add_export('ElementRefSet', ElementRefSet);
+  
+  mixin(ElementRefSet, TPropIterable);
+  var native_api=es6_import(_es6_module, '../wasm/native_api.js');
+}, '/dev/fairmotion/src/curve/spline_types.js');
+
+
+es6_module_define('spline_query', ["./spline_base.js", "./spline_multires.js", "../path.ux/scripts/util/math.js", "../editors/viewport/selectmode.js"], function _spline_query_module(_es6_module) {
+  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
+  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
+  var compose_id=es6_import_item(_es6_module, './spline_multires.js', 'compose_id');
+  var decompose_id=es6_import_item(_es6_module, './spline_multires.js', 'decompose_id');
+  var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
+  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
+  var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
+  var math=es6_import(_es6_module, '../path.ux/scripts/util/math.js');
+  var sqrt=Math.sqrt;
+  let findnearest_segment_tmp=new Vector2();
+  let _mpos_fn_v=new Vector2();
+  let _v_fn_v=new Vector2();
+  class SplineQuery  {
+     constructor(spline) {
+      this.spline = spline;
+    }
+     findnearest(editor, mpos, selectmask, limit, ignore_layers) {
+      if (limit===undefined)
+        limit = 15;
+      var dis=1e+18;
+      var data=undefined;
+      if (selectmask&SelMask.VERTEX) {
+          var ret=this.findnearest_vert(editor, mpos, limit, undefined, ignore_layers);
+          if (ret!==undefined&&ret[1]<dis) {
+              data = ret;
+              dis = ret[1];
+          }
+      }
+      if (selectmask&SelMask.HANDLE) {
+          var ret=this.findnearest_vert(editor, mpos, limit, true, ignore_layers);
+          if (ret!==undefined&&ret[1]<dis) {
+              data = ret;
+              dis = ret[1];
+          }
+      }
+      if (selectmask&SelMask.SEGMENT) {
+          var ret=this.findnearest_segment(editor, mpos, limit, ignore_layers);
+          if (ret!==undefined&&ret[1]<dis) {
+              data = ret;
+              dis = ret[1];
+          }
+      }
+      if (selectmask&SelMask.FACE) {
+          var ret=this.findnearest_face(editor, mpos, limit, ignore_layers);
+          if (ret!==undefined&&ret[1]<dis) {
+              data = ret;
+              dis = ret[1];
+          }
+      }
+      return data;
+    }
+     findnearest_segment(editor, mpos, limit, ignore_layers) {
+      var spline=this.spline;
+      var actlayer=spline.layerset.active;
+      var sret=undefined, mindis=limit;
+      mpos = findnearest_segment_tmp.load(mpos);
+      editor.unproject(mpos);
+      for (var seg of spline.segments) {
+          var ret=seg.closest_point(mpos, undefined, true);
+          if (ret===undefined)
+            continue;
+          let s=ret.s;
+          ret = ret.co;
+          if (seg.hidden||seg.v1.hidden||seg.v2.hidden)
+            continue;
+          if (!ignore_layers&&!seg.in_layer(actlayer))
+            continue;
+          var dis=sqrt((ret[0]-mpos[0])*(ret[0]-mpos[0])+(ret[1]-mpos[1])*(ret[1]-mpos[1]));
+          let width=seg.width(s)*0.5;
+          dis = Math.max(dis-width, 0.0);
+          if (dis<mindis) {
+              sret = seg;
+              mindis = dis;
+          }
+      }
+      if (sret!==undefined)
+        return [sret, mindis, SelMask.SEGMENT];
+    }
+     findnearest_face(editor, mpos, limit, ignore_layers) {
+      let spline=this.spline, actlayer=spline.layerset.active;
+      let mindis=0, closest=undefined;
+      let p=new Vector2([5000, 5001]);
+      mpos = new Vector2(mpos);
+      editor.unproject(mpos);
+      p.add(mpos);
+      for (let f of spline.faces) {
+          if ((!ignore_layers&&!f.in_layer(actlayer))||f.hidden)
+            continue;
+          let sum=0;
+          for (let list of f.paths) {
+              for (let l of list) {
+                  let v1=l.v, v2=l.next.v;
+                  let steps=4;
+                  let s=0.0, ds=1.0/(steps-1);
+                  let lastco=undefined;
+                  for (let i=0; i<steps; i++, s+=ds) {
+                      let co=l.s.evaluate(s);
+                      if (lastco) {
+                          if (math.line_line_cross(lastco, co, mpos, p)) {
+                              sum+=1;
+                          }
+                      }
+                      lastco = co;
+                  }
+              }
+          }
+          if (sum%2!==1) {
+              continue;
+          }
+          let dist=-f.finalz+(f.flag&SplineFlags.SELECT)*1000;
+          if (!closest||dist<mindis) {
+              closest = f;
+              mindis = dist;
+          }
+      }
+      if (closest!==undefined) {
+          return [closest, mindis, SelMask.FACE];
+      }
+    }
+     findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {
+      var spline=this.spline;
+      var actlayer=spline.layerset.active;
+      if (limit===undefined)
+        limit = 15;
+      var min=1e+17;
+      var ret=undefined;
+      let _mpos=_mpos_fn_v;
+      let _v=_v_fn_v;
+      mpos = _mpos.load(mpos);
+      var list=do_handles ? spline.handles : spline.verts;
+      for (var v of list) {
+          if (v.hidden)
+            continue;
+          if (!ignore_layers&&!v.in_layer(actlayer))
+            continue;
+          var co=v;
+          _v.load(co);
+          editor.project(_v);
+          var dis=_v.vectorDistance(mpos);
+          if (dis<limit&&dis<min) {
+              min = dis;
+              ret = v;
+          }
+      }
+      if (ret!=undefined) {
+          return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
+      }
+    }
+  }
+  _ESClass.register(SplineQuery);
+  _es6_module.add_class(SplineQuery);
+  SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
+}, '/dev/fairmotion/src/curve/spline_query.js');
+
+
+es6_module_define('spline_draw', ["../util/vectormath.js", "../core/animdata.js", "../config/config.js", "./spline_draw_sort.js", "./spline_draw_new.js", "./spline_types.js", "../util/mathlib.js", "./spline_element_array.js", "../editors/viewport/view2d_editor.js", "./spline_draw_sort", "./spline_math.js", "../editors/viewport/selectmode.js"], function _spline_draw_module(_es6_module) {
+  var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
+  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
+  var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
+  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
+  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
+  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
+  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
+  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
+  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
+  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
+  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
+  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
+  var get_vtime=es6_import_item(_es6_module, '../core/animdata.js', 'get_vtime');
+  let spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
+  let spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
+  let PI=Math.PI;
+  let pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
+  const DRAW_MAXCURVELEN=10000;
+  _es6_module.add_export('DRAW_MAXCURVELEN', DRAW_MAXCURVELEN);
+  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
+  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
+  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
+  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
+  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
+  var SplineLoop=es6_import_item(_es6_module, './spline_types.js', 'SplineLoop');
+  var SplineLoopPath=es6_import_item(_es6_module, './spline_types.js', 'SplineLoopPath');
+  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
+  var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
+  var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
+  var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
+  var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
+  const ColorFlags={SELECT: 1, 
+   ACTIVE: 2, 
+   HIGHLIGHT: 4}
+  _es6_module.add_export('ColorFlags', ColorFlags);
+  const FlagMap={UNSELECT: 0, 
+   SELECT: ColorFlags.SELECT, 
+   ACTIVE: ColorFlags.ACTIVE, 
+   HIGHLIGHT: ColorFlags.HIGHLIGHT, 
+   SELECT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE, 
+   SELECT_HIGHLIGHT: ColorFlags.SELECT|ColorFlags.HIGHLIGHT, 
+   HIGHLIGHT_ACTIVE: ColorFlags.HIGHLIGHT|ColorFlags.ACTIVE, 
+   SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE|ColorFlags.HIGHLIGHT}
+  _es6_module.add_export('FlagMap', FlagMap);
+  function mix(a, b, t) {
+    let ret=[0, 0, 0];
+    for (let i=0; i<3; i++) {
+        ret[i] = a[i]+(b[i]-a[i])*t;
+    }
+    return ret;
+  }
+  const ElementColor={UNSELECT: [1, 0.133, 0.07], 
+   SELECT: [1, 0.6, 0.26], 
+   HIGHLIGHT: [1, 0.93, 0.4], 
+   ACTIVE: [0.3, 0.4, 1.0], 
+   SELECT_ACTIVE: mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7), 
+   SELECT_HIGHLIGHT: [1, 1, 0.8], 
+   HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
+   SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
+  _es6_module.add_export('ElementColor', ElementColor);
+  const HandleColor={UNSELECT: [0.2, 0.7, 0.07], 
+   SELECT: [0.1, 1, 0.26], 
+   HIGHLIGHT: [0.2, 0.93, 0.4], 
+   ACTIVE: [0.1, 1, 0.75], 
+   SELECT_ACTIVE: mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7), 
+   SELECT_HIGHLIGHT: [1, 1, 0.8], 
+   HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
+   SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
+  _es6_module.add_export('HandleColor', HandleColor);
+  HandleColor.SELECT_ACTIVE = mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5);
+  HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.5);
+  HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
+  HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
+  function rgb2css(color) {
+    let r=color[0], g=color[1], b=color[2];
+    return "rgb("+(~~(r*255))+","+(~~(g*255))+","+(~~(b*255))+")";
+  }
+  const element_colormap=new Array(8);
+  _es6_module.add_export('element_colormap', element_colormap);
+  for (let k in ElementColor) {
+      let f=FlagMap[k];
+      element_colormap[f] = rgb2css(ElementColor[k]);
+  }
+  const handle_colormap=new Array(8);
+  _es6_module.add_export('handle_colormap', handle_colormap);
+  for (let k in HandleColor) {
+      let f=FlagMap[k];
+      handle_colormap[f] = rgb2css(HandleColor[k]);
+  }
+  function get_element_flag(e, list) {
+    let f=0;
+    f|=e.flag&SplineFlags.SELECT ? ColorFlags.SELECT : 0;
+    f|=e===list.highlight ? ColorFlags.HIGHLIGHT : 0;
+    f|=e===list.active ? ColorFlags.ACTIVE : 0;
+    return f;
+  }
+  function get_element_color(e, list) {
+    if (e.type==SplineTypes.HANDLE)
+      return handle_colormap[get_element_flag(e, list)];
+    else 
+      return element_colormap[get_element_flag(e, list)];
+  }
+  get_element_color = _es6_module.add_export('get_element_color', get_element_color);
+  const VERT_SIZE=3.0;
+  const SMALL_VERT_SIZE=1.0;
+  var SplineDrawer=es6_import_item(_es6_module, './spline_draw_new.js', 'SplineDrawer');
+  var redo_draw_sort=es6_import_item(_es6_module, './spline_draw_sort.js', 'redo_draw_sort');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var ___spline_draw_sort=es6_import(_es6_module, './spline_draw_sort');
+  for (let k in ___spline_draw_sort) {
+      _es6_module.add_export(k, ___spline_draw_sort[k], true);
+  }
+  function draw_curve_normals(spline, g, zoom) {
+    for (let seg of spline.segments) {
+        if (seg.v1.hidden||seg.v2.hidden)
+          continue;
+        let length=seg.ks[KSCALE];
+        if (length<=0||isNaN(length))
+          continue;
+        if (length>DRAW_MAXCURVELEN)
+          length = DRAW_MAXCURVELEN;
+        let ls=0.0, dls=5/zoom;
+        for (ls = 0; ls<length; ls+=dls) {
+            let s=ls/length;
+            if (s>1.0)
+              continue;
+            let co=seg.evaluate(s);
+            let n=seg.normal(s).normalize();
+            let k=seg.curvature(s);
+            n.mulScalar(k*(window._d!=undefined ? window._d : 1000)/zoom);
+            g.lineWidth = 1;
+            g.strokeColor = "%2233bb";
+            g.beginPath();
+            g.moveTo(co[0], co[1]);
+            g.lineTo(co[0]+n[0], co[1]+n[1]);
+            g.stroke();
+        }
+    }
+  }
+  draw_curve_normals = _es6_module.add_export('draw_curve_normals', draw_curve_normals);
+  function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
+    spline.canvas = g;
+    if (spline.drawlist===undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
+        redo_draw_sort(spline);
+    }
+    if (spline.drawer===undefined) {
+        spline.drawer = new SplineDrawer(spline);
+    }
+    let zoom=editor.zoom;
+    zoom = matrix.m11;
+    if (isNaN(zoom)) {
+        zoom = 1.0;
+    }
+    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers, editor.draw_stroke_debug);
+    let promise=spline.drawer.draw(editor.drawg);
+    let actlayer=spline.layerset.active;
+    if (!only_render&&draw_normals)
+      draw_curve_normals(spline, g, zoom);
+    let r=[[0, 0], [0, 0]];
+    for (let s of spline.segments) {
+        s.flag&=~SplineFlags.DRAW_TEMP;
+    }
+    for (let f of spline.faces) {
+        f.flag&=~SplineFlags.DRAW_TEMP;
+    }
+    let vert_size=editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
+    if (only_render)
+      return promise;
+    let tmp1=new Vector2();
+    let tmp2=new Vector2();
+    let last_clr=undefined;
+    g.beginPath();
+    if (selectmode&SelMask.SEGMENT) {
+        let dv=new Vector2();
+        for (let seg of spline.segments) {
+            let skip=(!ignore_layers&&!seg.in_layer(actlayer));
+            skip = skip||(seg.flag&SplineFlags.HIDE);
+            skip = skip||(!(seg.flag&SplineFlags.SELECT)&&seg!==spline.segments.active&&seg!==spline.segments.highlight);
+            if (skip) {
+                continue;
+            }
+            let steps=seg.length/24;
+            steps = Math.min(Math.max(steps, 3), 64);
+            steps = isNaN(steps) ? 3 : steps;
+            let s=0, ds=1.0/(steps-1);
+            g.beginPath();
+            for (let side=0; side<2; side++) {
+                let lastp=undefined;
+                for (let i=0; i<steps; i++, s+=ds) {
+                    let p=seg.evaluateSide(s, side, dv);
+                    tmp1.load(p).multVecMatrix(matrix);
+                    if (side===0&&i===0) {
+                        g.moveTo(tmp1[0], tmp1[1]);
+                    }
+                    else {
+                      g.lineTo(tmp1[0], tmp1[1]);
+                    }
+                    lastp = p;
+                }
+                s-=ds;
+                ds*=-1;
+            }
+            let clr=get_element_color(seg, spline.segments);
+            g.fillStyle = clr;
+            g.fill();
+        }
+    }
+    g.beginPath();
+    if (selectmode&SelMask.HANDLE) {
+        let w=vert_size*g.canvas.dpi_scale/zoom;
+        for (let v of spline.handles) {
+            let clr=get_element_color(v, spline.handles);
+            if (!ignore_layers&&!v.owning_segment.in_layer(actlayer))
+              continue;
+            if (v.owning_segment!==undefined&&(v.owning_segment.flag&SplineFlags.HIDE))
+              continue;
+            if (v.owning_vertex!==undefined&&(v.owning_vertex.flag&SplineFlags.HIDE))
+              continue;
+            if (!v.use)
+              continue;
+            if ((v.flag&SplineFlags.AUTO_PAIRED_HANDLE)&&v.hpair!==undefined&&(v.segments.length>2)) {
+                continue;
+            }
+            if (v.flag&SplineFlags.HIDE)
+              continue;
+            tmp1.load(v).multVecMatrix(matrix);
+            g.beginPath();
+            if (clr!==last_clr)
+              g.fillStyle = clr;
+            last_clr = clr;
+            g.rect(tmp1[0]-w, tmp1[1]-w, w*2, w*2);
+            g.fill();
+            g.beginPath();
+            g.lineWidth = 1;
+            let ov=v.owning_segment.handle_vertex(v);
+            tmp2.load(ov).multVecMatrix(matrix);
+            g.moveTo(tmp1[0], tmp1[1]);
+            g.lineTo(tmp2[0], tmp2[1]);
+            g.stroke();
+        }
+    }
+    if (selectmode&SelMask.VERTEX) {
+        let w=vert_size*g.canvas.dpi_scale/zoom;
+        for (let i=0; i<spline.verts.length; i++) {
+            let v=spline.verts[i];
+            let clr=get_element_color(v, spline.verts);
+            if (!ignore_layers&&!v.in_layer(actlayer))
+              continue;
+            if (v.flag&SplineFlags.HIDE)
+              continue;
+            let co=tmp1.load(v);
+            co.multVecMatrix(matrix);
+            if (draw_time_helpers) {
+                let time=get_vtime(v);
+                if (curtime===time) {
+                    g.beginPath();
+                    g.fillStyle = "#33ffaa";
+                    g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
+                    g.fill();
+                    g.fillStyle = clr;
+                }
+            }
+            g.beginPath();
+            if (clr!==last_clr)
+              g.fillStyle = clr;
+            last_clr = clr;
+            g.rect(co[0]-w, co[1]-w, w*2, w*2);
+            g.fill();
+        }
+    }
+    if (spline.transforming&&spline.proportional) {
+        g.beginPath();
+        g.arc(spline.trans_cent[0], spline.trans_cent[1], spline.prop_radius, -PI, PI);
+        g.stroke();
+    }
+    return promise;
+  }
+  draw_spline = _es6_module.add_export('draw_spline', draw_spline);
+  let __margin=new Vector2([15, 15]);
+  let __aabb=[new Vector2(), new Vector2()];
+  function redraw_element(e, view2d) {
+    let margin=__margin;
+    let aabb=__aabb;
+    e.flag|=SplineFlags.REDRAW;
+    margin[0] = margin[1] = 15.0;
+    if (view2d!==undefined)
+      margin.mulScalar(1.0/view2d.zoom);
+    let e_aabb=e.aabb;
+    aabb[0].load(e_aabb[0]);
+    aabb[1].load(e_aabb[1]);
+    aabb[0].sub(margin);
+    aabb[1].add(margin);
+    window.redraw_viewport(aabb[0], aabb[1]);
+  }
+  redraw_element = _es6_module.add_export('redraw_element', redraw_element);
+}, '/dev/fairmotion/src/curve/spline_draw.js');
+
+
+es6_module_define('spline_draw_sort', ["../editors/viewport/view2d_editor.js", "../config/config.js", "../core/evillog.js", "./spline_element_array.js", "./spline_multires.js", "./spline_math.js", "../core/animdata.js", "../editors/viewport/selectmode.js", "./spline_types.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
+  var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
+  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
+  var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
+  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
+  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
+  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
+  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
+  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
+  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
+  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
+  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
+  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
+  var get_vtime=es6_import_item(_es6_module, '../core/animdata.js', 'get_vtime');
+  var iterpoints=es6_import_item(_es6_module, './spline_multires.js', 'iterpoints');
+  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
+  var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
+  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
+  var evillog=es6_import_item(_es6_module, '../core/evillog.js', 'evillog');
+  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
+  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
+  var PI=Math.PI;
+  var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
+  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
+  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
+  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
+  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
+  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
+  var SplineLoop=es6_import_item(_es6_module, './spline_types.js', 'SplineLoop');
+  var SplineLoopPath=es6_import_item(_es6_module, './spline_types.js', 'SplineLoopPath');
+  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
+  var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
+  var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
+  var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
+  var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
+  function calc_string_ids(spline, startid) {
+    if (startid===undefined) {
+        startid = 0;
+    }
+    for (let group of spline.drawStrokeGroups) {
+        for (let seg of group.segments) {
+            seg.stringid = startid+seg.id;
+        }
+    }
+  }
+  calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
+  const _sort_layer_segments_lists=new cachering(function () {
+    return [];
+  }, 2);
+  function sort_layer_segments(layer, spline) {
+    const lists=_sort_layer_segments_lists;
+    var list=lists.next();
+    list.length = 0;
+    var visit={}
+    var layerid=layer.id;
+    var topogroup_idgen=0;
+    function recurse(seg) {
+      if (seg.eid in visit) {
+          return ;
+      }
+      visit[seg.eid] = 1;
+      seg.topoid = topogroup_idgen;
+      for (var i=0; i<2; i++) {
+          var v=i ? seg.v2 : seg.v1;
+          if (v.segments.length!==2)
+            continue;
+          for (var j=0; j<v.segments.length; j++) {
+              var s2=v.segments[j];
+              if (!(s2.eid in visit)) {
+                  recurse(s2);
+              }
+          }
+      }
+      if (!s.hidden||(s.flag&SplineFlags.GHOST))
+        list.push(seg);
+    }
+    if (1) {
+        for (var s of layer) {
+            if (s.type!==SplineTypes.SEGMENT)
+              continue;
+            if (!(layerid in s.layers))
+              continue;
+            if (s.v1.segments.length===2&&s.v2.segments.length===2)
+              continue;
+            if (!(s.eid in visit)) {
+                topogroup_idgen++;
+                recurse(s);
+            }
+        }
+        for (var s of layer) {
+            if (s.type!==SplineTypes.SEGMENT)
+              continue;
+            if (!(layerid in s.layers))
+              continue;
+            if (!(s.eid in visit)) {
+                topogroup_idgen++;
+                recurse(s);
+            }
+        }
+    }
+    return list;
+  }
+  sort_layer_segments = _es6_module.add_export('sort_layer_segments', sort_layer_segments);
+  function redo_draw_sort(spline) {
+    spline.redoSegGroups();
+    var min_z=100000000000000.0;
+    var max_z=-100000000000000.0;
+    var layerset=spline.layerset;
+    if (_DEBUG.drawsort) {
+        console.log("start sort");
+    }
+    var time=time_ms();
+    let gmap=new Map();
+    let gsmap=new Map();
+    let gi=0;
+    let gmaxz=new Map();
+    for (let g of spline.drawStrokeGroups) {
+        let maxz=-1e+17;
+        for (let seg of g.segments) {
+            if (seg===undefined) {
+                evillog("Missing segment in draw stroke group! patching. . .");
+                let lst=[];
+                for (let seg2 of g.segments) {
+                    if (seg2) {
+                        lst.push(seg2);
+                    }
+                }
+                g.segments.length = 0;
+                for (let seg2 of lst) {
+                    g.segments.push(seg2);
+                }
+                break;
+            }
+        }
+        for (let seg of g.segments) {
+            gsmap.set(seg, g);
+            gmap.set(seg, gi);
+            maxz = Math.max(maxz, seg.z);
+        }
+        for (let seg of g.segments) {
+            gmaxz.set(seg, maxz);
+        }
+        gmap.set(g, gi);
+        gi++;
+    }
+    for (let seg of spline.segments) {
+        seg.updateCoincident();
+    }
+    for (var f of spline.faces) {
+        if (f.hidden&&!(f.flag&SplineFlags.GHOST))
+          continue;
+        if (isNaN(f.z))
+          f.z = 0;
+        max_z = Math.max(max_z, f.z+1);
+        min_z = Math.min(min_z, f.z);
+    }
+    for (var s of spline.segments) {
+        if (s.hidden&&!(s.flag&SplineFlags.GHOST))
+          continue;
+        if (isNaN(s.z))
+          s.z = 0;
+        max_z = Math.max(max_z, s.z+2);
+        min_z = Math.min(min_z, s.z);
+    }
+    function calc_z(e, check_face) {
+      if (check_face===undefined) {
+          check_face = true;
+      }
+      if (isNaN(e.z)) {
+          e.z = 0;
+      }
+      if (check_face&&e.type===SplineTypes.SEGMENT&&e.l!==undefined) {
+          let l=e.l;
+          let _i=0;
+          let f_max_z=calc_z(e, false);
+          do {
+            if (_i++>1000) {
+                console.trace("infinite loop!");
+                break;
+            }
+            var fz=calc_z(l.f);
+            f_max_z = f_max_z===undefined ? fz : Math.max(f_max_z, fz);
+            l = l.radial_next;
+          } while (l!==e.l);
+          
+          return f_max_z+1;
+      }
+      var layer=0;
+      for (var k in e.layers) {
+          layer = k;
+          break;
+      }
+      if (!(layer in layerset.idmap)) {
+          console.log("Bad layer!", layer);
+          return -1;
+      }
+      let z=gmaxz.get(e)||e.z;
+      layer = layerset.idmap[layer];
+      return layer.order*(max_z-min_z)+(z-min_z);
+    }
+    function get_layer(e) {
+      for (var k in e.layers) {
+          return k;
+      }
+      return undefined;
+    }
+    var dl=spline.drawlist = [];
+    var ll=spline.draw_layerlist = [];
+    spline._layer_maxz = max_z;
+    for (var f of spline.faces) {
+        f.finalz = -1;
+        if (f.hidden&&!(f.flag&SplineFlags.GHOST))
+          continue;
+        dl.push(f);
+    }
+    var visit={}
+    for (var i=0; i<spline.layerset.length; i++) {
+        var layer=spline.layerset[i];
+        var elist=sort_layer_segments(layer, spline);
+        for (var j=0; j<elist.length; j++) {
+            var s=elist[j];
+            if (!(s.eid in visit))
+              dl.push(elist[j]);
+            visit[s.eid] = 1;
+        }
+    }
+    for (var s of spline.segments) {
+        s.finalz = -1;
+        if (s.hidden&&!(s.flag&SplineFlags.GHOST))
+          continue;
+        if (!(s.eid in visit)) {
+            dl.push(s);
+        }
+    }
+    var zs={}
+    for (var e of dl) {
+        zs[e.eid] = calc_z(e);
+    }
+    if (!spline.is_anim_path) {
+        dl.sort(function (a, b) {
+          return zs[a.eid]-zs[b.eid];
+        });
+    }
+    for (var i=0; i<dl.length; i++) {
+        var lk=undefined;
+        for (var k in dl[i].layers) {
+            lk = k;
+            break;
+        }
+        ll.push(lk);
+    }
+    let visit2=new Set();
+    let list2=[];
+    for (let item of spline.drawlist) {
+        if (item.type===SplineTypes.SEGMENT) {
+            let g=gsmap.get(item);
+            if (!g) {
+                continue;
+            }
+            if (visit2.has(g))
+              continue;
+            visit2.add(g);
+            list2.push(g);
+            for (let seg of g.segments) {
+                for (let i=0; i<2; i++) {
+                    let v=i ? seg.v2 : seg.v1;
+                    if (v.segments.length>2&&!visit2.has(v)) {
+                        visit2.add(v);
+                        list2.push(v);
+                    }
+                }
+            }
+        }
+        else {
+          list2.push(item);
+        }
+        spline.drawlist = list2;
+    }
+    for (var i=0; i<spline.drawlist.length; i++) {
+        if (spline.drawlist[i]===undefined) {
+            let j=i;
+            console.warn("corrupted drawlist; fixing...");
+            while (j<spline.drawlist.length) {
+              spline.drawlist[j] = spline.drawlist[j+1];
+              j++;
+            }
+            spline.drawlist.length--;
+            i--;
+        }
+        spline.drawlist[i].finalz = i;
+    }
+    calc_string_ids(spline, spline.segments.length);
+    spline.recalc&=~RecalcFlags.DRAWSORT;
+    if (_DEBUG.drawsort) {
+        console.log("time taken:"+(time_ms()-time).toFixed(2)+"ms");
+    }
+  }
+  redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
+}, '/dev/fairmotion/src/curve/spline_draw_sort.js');
+
+
+es6_module_define('spline', ["./solver_new.js", "../path.ux/scripts/config/const.js", "./spline_element_array.js", "./spline_multires.js", "./spline_draw.js", "../config/config.js", "../core/toolops_api.js", "./spline_math.js", "./solver.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "../wasm/native_api.js", "../core/eventdag.js", "./spline_strokegroup.js", "../path.ux/scripts/pathux.js", "../core/struct.js", "../editors/viewport/selectmode.js", "../core/lib_api.js", "./spline_query.js"], function _spline_module(_es6_module) {
   "use strict";
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   const MMLEN=8;
@@ -143,6 +6165,7 @@ es6_module_define('spline', ["./spline_types.js", "../path.ux/scripts/config/con
     
     
     
+    
      constructor(name=undefined) {
       super(DataTypes.SPLINE, name);
       this.updateGen = 0;
@@ -199,7 +6222,8 @@ es6_module_define('spline', ["./spline_types.js", "../path.ux/scripts/config/con
      defaultName: "Spline", 
      uiName: "Spline", 
      typeIndex: 6, 
-     linkOrder: 3}
+     linkOrder: 3, 
+     accessorName: "splines"}
     }
      dag_get_datapath() {
       if (this.is_anim_path||(this.verts.cdata.layers.length>0&&this.verts.cdata.layers[0].name==="TimeDataLayer"))
@@ -2099,7 +8123,7 @@ es6_module_define('solver', [], function _solver_module(_es6_module) {
 }, '/dev/fairmotion/src/curve/solver.js');
 
 
-es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_table.js", "../core/struct.js"], function _spline_multires_module(_es6_module) {
+es6_module_define('spline_multires', ["../core/struct.js", "./spline_base.js", "../util/binomial_table.js"], function _spline_multires_module(_es6_module) {
   "use strict";
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -2151,7 +8175,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
   var _format=["TX", "TY", "TVX", "TVY", "TSEG", "TS", "TT", "TA", "TFLAG", "TID", "TLEVEL", "TSUPPORT", "TBASIS", "TDEGREE", "TNEXT"];
   _format = _es6_module.add_export('_format', _format);
   var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
-  var $p_n9ko_recalc_offset;
+  var $p_6bs1_recalc_offset;
   class BoundPoint  {
     
      constructor() {
@@ -2179,9 +8203,9 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       var co=seg._evalwrap.evaluate(this.s);
       this.offset[0] = this[0]-co[0];
       this.offset[1] = this[1]-co[1];
-      $p_n9ko_recalc_offset[0] = this[0];
-      $p_n9ko_recalc_offset[1] = this[1];
-      var sta=seg._evalwrap.global_to_local($p_n9ko_recalc_offset, undefined, this.s);
+      $p_6bs1_recalc_offset[0] = this[0];
+      $p_6bs1_recalc_offset[1] = this[1];
+      var sta=seg._evalwrap.global_to_local($p_6bs1_recalc_offset, undefined, this.s);
       this.t = sta[1];
       this.a = sta[2];
     }
@@ -2272,7 +8296,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       return this.data[this.i+TNEXT];
     }
   }
-  var $p_n9ko_recalc_offset=new Vector3([0, 0, 0]);
+  var $p_6bs1_recalc_offset=new Vector3([0, 0, 0]);
   _ESClass.register(BoundPoint);
   _es6_module.add_class(BoundPoint);
   BoundPoint = _es6_module.add_export('BoundPoint', BoundPoint);
@@ -2372,8 +8396,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       t = 0.0;
     return t;
   }
-  var $sum_5hyE_evaluate;
-  var $ks_TCI9_evaluate;
+  var $sum_MrcN_evaluate;
+  var $ks_eG3y_evaluate;
   class MultiResEffector extends CurveEffect {
      constructor(owner) {
       super();
@@ -2387,18 +8411,18 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       n.normalize();
       n.mulScalar(10.0);
       var co=this.prior.evaluate(s);
-      $sum_5hyE_evaluate.zero();
+      $sum_MrcN_evaluate.zero();
       var i=0;
       for (var p in this.mr.points(0)) {
-          $ks_TCI9_evaluate[i] = p.s;
+          $ks_eG3y_evaluate[i] = p.s;
           i++;
       }
       for (var p in this.mr.points(0)) {
           var w=crappybasis(s, p.s, p.support, p.degree);
           if (isNaN(w))
             continue;
-          $sum_5hyE_evaluate[0]+=p.offset[0]*w;
-          $sum_5hyE_evaluate[1]+=p.offset[1]*w;
+          $sum_MrcN_evaluate[0]+=p.offset[0]*w;
+          $sum_MrcN_evaluate[1]+=p.offset[1]*w;
       }
       for (var i=0; i<2; i++) {
           var next=i ? this.next : this.prev;
@@ -2419,17 +8443,17 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
                     s2 = -next.rescale(this, 1.0-s);
                   }
                   var w=crappybasis(s2, ps, support, p.degree);
-                  $sum_5hyE_evaluate[0]+=p.offset[0]*w;
-                  $sum_5hyE_evaluate[1]+=p.offset[1]*w;
+                  $sum_MrcN_evaluate[0]+=p.offset[0]*w;
+                  $sum_MrcN_evaluate[1]+=p.offset[1]*w;
               }
           }
       }
-      co.add($sum_5hyE_evaluate);
+      co.add($sum_MrcN_evaluate);
       return co;
     }
   }
-  var $sum_5hyE_evaluate=new Vector3();
-  var $ks_TCI9_evaluate=new Array(2000);
+  var $sum_MrcN_evaluate=new Vector3();
+  var $ks_eG3y_evaluate=new Array(2000);
   _ESClass.register(MultiResEffector);
   _es6_module.add_class(MultiResEffector);
   MultiResEffector = _es6_module.add_export('MultiResEffector', MultiResEffector);
@@ -2451,8 +8475,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     active : double | obj.active == undefined ? -1 : obj.active;
   }
 `;
-  var $_co_ko5f_add_point;
-  var $sta_hQq3_recalc_worldcos_level;
+  var $_co_KyTt_add_point;
+  var $sta_tGia_recalc_worldcos_level;
   class MultiResLayer extends CustomDataLayer {
      constructor(size=16) {
       super(this);
@@ -2541,7 +8565,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
      points(level) {
       return this.points_iter_cache.next().cache_init(this, level);
     }
-     add_point(level, co=$_co_ko5f_add_point) {
+     add_point(level, co=$_co_KyTt_add_point) {
       this._freecur+=TTOT-(this._freecur%TTOT);
       var i=this._freecur;
       if (this._freecur+TTOT>=this._size) {
@@ -2596,11 +8620,11 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     }
      recalc_worldcos_level(seg, level) {
       for (var p in this.points(level)) {
-          $sta_hQq3_recalc_worldcos_level[0] = p.s;
-          $sta_hQq3_recalc_worldcos_level[1] = p.t;
-          $sta_hQq3_recalc_worldcos_level[2] = p.a;
-          var co=seg._evalwrap.local_to_global($sta_hQq3_recalc_worldcos_level);
-          var co2=seg._evalwrap.evaluate($sta_hQq3_recalc_worldcos_level[0]);
+          $sta_tGia_recalc_worldcos_level[0] = p.s;
+          $sta_tGia_recalc_worldcos_level[1] = p.t;
+          $sta_tGia_recalc_worldcos_level[2] = p.a;
+          var co=seg._evalwrap.local_to_global($sta_tGia_recalc_worldcos_level);
+          var co2=seg._evalwrap.evaluate($sta_tGia_recalc_worldcos_level[0]);
           p[0] = co[0];
           p[1] = co[1];
           p.offset[0] = co[0]-co2[0];
@@ -2632,8 +8656,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
      sharedClass: MultiResGlobal}
     }
   }
-  var $_co_ko5f_add_point=[0, 0];
-  var $sta_hQq3_recalc_worldcos_level=[0, 0, 0];
+  var $_co_KyTt_add_point=[0, 0];
+  var $sta_tGia_recalc_worldcos_level=[0, 0, 0];
   _ESClass.register(MultiResLayer);
   _es6_module.add_class(MultiResLayer);
   MultiResLayer = _es6_module.add_export('MultiResLayer', MultiResLayer);
@@ -2699,14 +8723,14 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     return index+eid*mul;
   }
   compose_id = _es6_module.add_export('compose_id', compose_id);
-  var $ret_293G_decompose_id=[0, 0];
+  var $ret_n51P_decompose_id=[0, 0];
   function decompose_id(id) {
     var mul=(1<<24);
     var eid=Math.floor(id/mul);
     id-=eid*mul;
-    $ret_293G_decompose_id[0] = eid;
-    $ret_293G_decompose_id[1] = id;
-    return $ret_293G_decompose_id;
+    $ret_n51P_decompose_id[0] = eid;
+    $ret_n51P_decompose_id[1] = id;
+    return $ret_n51P_decompose_id;
   }
   decompose_id = _es6_module.add_export('decompose_id', decompose_id);
   var _test_id_start=0;
@@ -2806,7 +8830,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
 }, '/dev/fairmotion/src/curve/spline_multires.js');
 
 
-es6_module_define('spline_strokegroup', ["../path.ux/scripts/pathux.js", "./spline_element_array.js", "./spline_types.js"], function _spline_strokegroup_module(_es6_module) {
+es6_module_define('spline_strokegroup', ["./spline_element_array.js", "../path.ux/scripts/pathux.js", "./spline_types.js"], function _spline_strokegroup_module(_es6_module) {
   "use strict";
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
@@ -3067,7 +9091,7 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
-  var $tan_eM8h_solve=new Vector3();
+  var $tan_lLfg_solve=new Vector3();
   function solve(spline, order, steps, gk, do_inc, edge_segs) {
     var pairs=[];
     var CBREAK=SplineFlags.BREAK_CURVATURES;
@@ -3206,11 +9230,11 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
               }
               else {
                 var h=seg1.handle(v);
-                $tan_eM8h_solve.load(h).sub(v).normalize();
+                $tan_lLfg_solve.load(h).sub(v).normalize();
                 if (v==seg1.v2)
-                  $tan_eM8h_solve.negate();
+                  $tan_lLfg_solve.negate();
                 var ta=seg1.derivative(s1, order).normalize();
-                var _d=Math.min(Math.max(ta.dot($tan_eM8h_solve), -1.0), 1.0);
+                var _d=Math.min(Math.max(ta.dot($tan_lLfg_solve), -1.0), 1.0);
                 var r=acos(_d);
                 
               }
@@ -3237,7 +9261,7 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
                       }
                       else {
                         var ta=seg1.derivative(s1, order).normalize();
-                        var _d=Math.min(Math.max(ta.dot($tan_eM8h_solve), -1.0), 1.0);
+                        var _d=Math.min(Math.max(ta.dot($tan_lLfg_solve), -1.0), 1.0);
                         var r2=acos(_d);
                         
                       }
@@ -3536,7 +9560,7 @@ VectorVertex {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
 
 
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "../util/mathlib.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../config/config.js", "../util/mathlib.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4545,7 +10569,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js",
       this.need_aabb = false;
       this.matrix = draw ? draw.matrix||this.matrix : this.matrix;
       let matrix=this.matrix;
-      let $_t0kvvj=this.aabb, min=$_t0kvvj[0], max=$_t0kvvj[1];
+      let $_t0kdic=this.aabb, min=$_t0kdic[0], max=$_t0kdic[1];
       min.zero().addScalar(1e+17);
       max.zero().addScalar(-1e+17);
       let ok=false;
@@ -4591,7 +10615,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js",
           }
       }
       let mat=matrix.$matrix;
-      let $_t1tnqm=this.off, offx=$_t1tnqm[0], offy=$_t1tnqm[1];
+      let $_t1gibk=this.off, offx=$_t1gibk[0], offy=$_t1gibk[1];
       g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41+offx, mat.m42+offy);
       let curi=0;
       let paths=this.paths;
@@ -4986,7 +11010,7 @@ es6_module_define('vectordraw_stub', ["../util/mathlib.js", "./vectordraw_base.j
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
 
 
-es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["./vectordraw_base.js", "../config/config.js", "../util/mathlib.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -5889,7 +11913,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw
 }, '/dev/fairmotion/src/vectordraw/vectordraw_skia_simple.js');
 
 
-es6_module_define('vectordraw_svg', ["../config/config.js", "../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -6464,3918 +12488,4 @@ es6_module_define('vectordraw_svg', ["../config/config.js", "../util/mathlib.js"
 
 es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
-
-
-es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js", "./vectordraw_jobs_base.js", "../../platforms/platform.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
-  "use strict";
-  var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
-  let MS=MESSAGES;
-  let Debug=0;
-  let freeze_while_drawing=false;
-  var platform=es6_import(_es6_module, '../../platforms/platform.js');
-  var config=es6_import(_es6_module, '../config/config.js');
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  var keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'keymap');
-  let MAX_THREADS=platform.app.numberOfCPUs()+1;
-  MAX_THREADS = Math.max(MAX_THREADS, 2);
-  if (config.HTML5_APP_MODE||config.NO_RENDER_WORKERS) {
-      MAX_THREADS = 1;
-  }
-  window.MAX_THREADS = MAX_THREADS;
-  class Thread  {
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor(worker, id, manager) {
-      this.id = id;
-      this.manager = manager;
-      this.worker = worker;
-      this.dead = false;
-      this.queue = [];
-      this.ready = false;
-      this.lock = 0;
-      this.owner = undefined;
-      this.msgstate = undefined;
-      worker.onmessage = this.onmessage.bind(this);
-      this.ondone = null;
-      this.callbacks = {};
-      this.ownerid_msgid_map = {};
-      this.msgid_ownerid_map = {};
-      this.cancelset = new Set();
-      this.freezelvl = 0;
-    }
-     cancelRenderJob(ownerid) {
-      if (this.cancelset.has(ownerid)) {
-          return ;
-      }
-      if (ownerid in this.ownerid_msgid_map) {
-          if (Debug)
-            console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-          this.freezelvl--;
-          let oldid=this.msgid_ownerid_map[ownerid];
-          this.postMessage(MS.CANCEL_JOB, oldid);
-          delete this.ownerid_msgid_map[ownerid];
-          delete this.msgid_ownerid_map[oldid];
-      }
-      else {
-        if (Debug)
-          console.log("Bad owner id", ownerid);
-      }
-    }
-     postRenderJob(ownerid, commands, datablocks) {
-      let id=this.manager._rthread_idgen++;
-      if (Debug)
-        console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-      this.freezelvl++;
-      this.ownerid_msgid_map[ownerid] = id;
-      this.msgid_ownerid_map[id] = ownerid;
-      this.postMessage(MS.NEW_JOB, id, undefined);
-      this.postMessage(MS.SET_COMMANDS, id, [commands.buffer]);
-      if (datablocks!==undefined) {
-          for (let block of datablocks) {
-              this.postMessage(MS.ADD_DATABLOCK, id, [block]);
-          }
-      }
-      return new Promise((accept, reject) =>        {
-        let callback=(data) =>          {
-          accept(data);
-        }
-        this.callbacks[id] = callback;
-        this.postMessage(MS.RUN, id);
-      });
-    }
-     clearOutstandingJobs() {
-      this.freezelvl = 0;
-      this.postMessage(MS.CLEAR_QUEUE, 0);
-      this.callback = {};
-      this.msgid_ownerid_map = {};
-      this.ownerid_msgid_map = {};
-    }
-     onmessage(e) {
-      switch (e.data.type) {
-        case MS.WORKER_READY:
-          console.log("%c Vectordraw worker ready", "color: blue");
-          this.ready = true;
-          this.manager.has_ready_thread = true;
-          break;
-        case MS.RESULT:
-          let id=e.data.msgid;
-          if (!(id in this.callbacks)) {
-              if (Debug)
-                console.warn("Renderthread callback not found for: ", id);
-              return ;
-          }
-          let ownerid=this.msgid_ownerid_map[id];
-          if (ownerid===undefined) {
-              if (Debug)
-                console.log("failed to find owner for", id, this);
-              return ;
-          }
-          delete this.ownerid_msgid_map[ownerid];
-          delete this.msgid_ownerid_map[id];
-          let cb=this.callbacks[id];
-          delete this.callbacks[id];
-          this.freezelvl--;
-          if (Debug)
-            console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-          if (Debug)
-            console.log(cb, e.data.data[0]);
-          cb(e.data.data[0]);
-          if (this.freezelvl<=0) {
-              this.manager.on_thread_done(this);
-              this.freezelvl = 0;
-          }
-          break;
-      }
-      if (Debug)
-        console.log("event message in main thread", e);
-    }
-     tryLock(owner) {
-      if (this.lock===0||this.owner===owner) {
-          return true;
-      }
-      return false;
-    }
-     tryUnlock(owner) {
-      if (this.lock===0||this.owner!==owner) {
-          return false;
-      }
-      this.owner = undefined;
-      this.lock = 0;
-      return true;
-    }
-     postMessage(type, msgid, transfers) {
-      this.worker.postMessage({type: type, 
-     msgid: msgid, 
-     data: transfers}, transfers);
-    }
-     close() {
-      if (this.worker!==undefined) {
-          this.worker.terminate();
-          this.worker = undefined;
-      }
-      else {
-        console.warn("Worker already killed once", this.id);
-      }
-    }
-  }
-  _ESClass.register(Thread);
-  _es6_module.add_class(Thread);
-  Thread = _es6_module.add_export('Thread', Thread);
-  class ThreadManager  {
-    
-    
-    
-    
-     constructor() {
-      this.threads = [];
-      this.drawing = false;
-      this.thread_idmap = {};
-      this._idgen = 0;
-      this._rthread_idgen = 0;
-      this.max_threads = MAX_THREADS;
-      this.start_time = undefined;
-      window.setInterval(() =>        {
-        if (this.drawing&&time_ms()-this.start_time>750) {
-            console.log("Draw timed out; aborting draw freeze");
-            this.endDrawing();
-        }
-        return ;
-      }, 750);
-    }
-     setMaxThreads(n) {
-      if (n===undefined||typeof n!="number"||n<0) {
-          throw new Error("n must be a number");
-      }
-      this.max_threads = n;
-      while (this.threads.length>n) {
-        let thread=this.threads.pop();
-        thread.worker.terminate();
-      }
-      while (this.threads.length<n) {
-        if (config.HAVE_SKIA) {
-            this.spawnThread("vectordraw_skia_worker.js");
-        }
-        else {
-          this.spawnThread("vectordraw_canvas2d_worker.js");
-        }
-      }
-    }
-     startDrawing() {
-      this.drawing = true;
-      this.start_time = time_ms();
-      if (freeze_while_drawing) {
-          console.log("%cFreeze Drawing", "color : orange;");
-          window._block_drawing = true;
-      }
-    }
-     endDrawing() {
-      this.drawing = false;
-      if (freeze_while_drawing) {
-          console.log("%cUnfreeze Drawing", "color : orange;");
-          window._block_drawing = false;
-      }
-    }
-     spawnThread(source) {
-      let worker=new Worker(source);
-      let thread=new Thread(worker, this._idgen++, this);
-      this.thread_idmap[thread.id] = thread;
-      this.threads.push(thread);
-      return thread;
-    }
-     endThread(thread) {
-      if (thread.worker===undefined) {
-          console.warn("Double call to ThreadManager.endThread()");
-          return ;
-      }
-      this.threads.remove(thread);
-      delete this.thread_idmap[thread.id];
-      thread.close();
-    }
-     getRandomThread() {
-      while (1) {
-        let ri=~~(Math.random()*this.threads.length*0.99999);
-        if (this.threads[ri].ready)
-          return this.threads[ri];
-      }
-    }
-     postRenderJob(ownerid, commands, datablocks) {
-      if (!this.drawing&&freeze_while_drawing) {
-          this.startDrawing();
-      }
-      let thread;
-      if (this.threads.length===0) {
-          thread = this.spawnThread("vectordraw_canvas2d_worker.js");
-          thread.ready = true;
-          for (let i=0; i<this.max_threads-1; i++) {
-              if (config.HAVE_SKIA) {
-                  this.spawnThread("vectordraw_skia_worker.js");
-              }
-              else {
-                this.spawnThread("vectordraw_canvas2d_worker.js");
-              }
-          }
-      }
-      else {
-        thread = this.getRandomThread();
-      }
-      let ret=thread.postRenderJob(ownerid, commands, datablocks);
-      return ret;
-    }
-     on_thread_done(thread) {
-      let ok=true;
-      for (let thread2 of this.threads) {
-          if (thread2.freezelvl>0) {
-              ok = false;
-              break;
-          }
-      }
-      if (ok) {
-          if (Debug)
-            console.warn("thread done");
-          window._all_draw_jobs_done();
-          if (this.drawing&&freeze_while_drawing) {
-              this.endDrawing();
-          }
-          this.checkMemory();
-      }
-    }
-     checkMemory() {
-      let promise=platform.app.getProcessMemoryPromise();
-      if (!promise)
-        return ;
-      promise.then((memory) =>        {      });
-    }
-     cancelAllJobs() {
-      for (let thread of this.threads) {
-          thread.clearOutstandingJobs();
-          this.on_thread_done(thread);
-      }
-    }
-     cancelRenderJob(ownerid) {
-      for (let thread of this.threads) {
-          if (ownerid in thread.ownerid_msgid_map) {
-              thread.cancelRenderJob(ownerid);
-          }
-      }
-    }
-  }
-  _ESClass.register(ThreadManager);
-  _es6_module.add_class(ThreadManager);
-  ThreadManager = _es6_module.add_export('ThreadManager', ThreadManager);
-  var manager=new ThreadManager();
-  manager = _es6_module.add_export('manager', manager);
-  function test() {
-    let thread=manager.spawnThread("vectordraw_canvas2d_worker.js");
-    thread.postMessage("yay", [new ArrayBuffer(512)]);
-    return thread;
-  }
-  test = _es6_module.add_export('test', test);
-}, '/dev/fairmotion/src/vectordraw/vectordraw_jobs.js');
-
-
-es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_module(_es6_module) {
-  var OPCODES={LINESTYLE: 0, 
-   LINEWIDTH: 1, 
-   FILLSTYLE: 2, 
-   BEGINPATH: 3, 
-   CLOSEPATH: 4, 
-   MOVETO: 5, 
-   LINETO: 6, 
-   RECT: 7, 
-   ARC: 8, 
-   CUBIC: 9, 
-   QUADRATIC: 10, 
-   STROKE: 11, 
-   FILL: 12, 
-   SAVE: 13, 
-   RESTORE: 14, 
-   TRANSLATE: 15, 
-   ROTATE: 16, 
-   SCALE: 17, 
-   SETBLUR: 18, 
-   SETCOMPOSITE: 19, 
-   CLIP: 20, 
-   DRAWIMAGE: 21, 
-   PUTIMAGE: 22, 
-   SETTRANSFORM: 23}
-  OPCODES = _es6_module.add_export('OPCODES', OPCODES);
-  var MESSAGES={NEW_JOB: 0, 
-   ADD_DATABLOCK: 1, 
-   SET_COMMANDS: 2, 
-   RUN: 3, 
-   ERROR: 10, 
-   RESULT: 11, 
-   ACK: 12, 
-   CLEAR_QUEUE: 13, 
-   CANCEL_JOB: 14, 
-   WORKER_READY: 15}
-  MESSAGES = _es6_module.add_export('MESSAGES', MESSAGES);
-  var CompositeModes={"source-over": 0, 
-   "source-atop": 1}
-  CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
-}, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
-
-
-es6_module_define('vectordraw', ["./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_base.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_stub.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
-  "use strict";
-  var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
-  var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
-  var StubCanvasDraw2D=es6_import_item(_es6_module, './vectordraw_stub.js', 'StubCanvasDraw2D');
-  var StubCanvasPath=es6_import_item(_es6_module, './vectordraw_stub.js', 'StubCanvasPath');
-  var SVGDraw2D=es6_import_item(_es6_module, './vectordraw_svg.js', 'SVGDraw2D');
-  var SVGPath=es6_import_item(_es6_module, './vectordraw_svg.js', 'SVGPath');
-  let _ex_VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
-  _es6_module.add_export('VectorFlags', _ex_VectorFlags, true);
-  var SimpleCanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d_simple.js', 'SimpleCanvasPath');
-  var SimpleCanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d_simple.js', 'SimpleCanvasDraw2D');
-  var Path2DPath=es6_import_item(_es6_module, './vectordraw_canvas2d_path2d.js', 'Path2DPath');
-  var CanvasPath2D=es6_import_item(_es6_module, './vectordraw_canvas2d_path2d.js', 'CanvasPath2D');
-  var SimpleSkiaDraw2D=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'SimpleSkiaDraw2D');
-  var SimpleSkiaPath=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'SimpleSkiaPath');
-  var loadCanvasKit=es6_import_item(_es6_module, './vectordraw_skia_simple.js', 'loadCanvasKit');
-  let Canvas=CanvasDraw2D;
-  Canvas = _es6_module.add_export('Canvas', Canvas);
-  let Path=CanvasPath;
-  Path = _es6_module.add_export('Path', Path);
-}, '/dev/fairmotion/src/vectordraw/vectordraw.js');
-
-
-es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
-  "use strict";
-}, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-
-
-es6_module_define('webgl', ["../path.ux/scripts/pathux.js"], function _webgl_module(_es6_module) {
-  "use strict";
-  var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
-  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
-  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
-  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
-  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
-  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
-  let STRUCT=nstructjs.STRUCT;
-  const constmap={}
-  _es6_module.add_export('constmap', constmap);
-  let TEXTURE_2D=3553;
-  class IntUniform  {
-     constructor(val) {
-      this.val = val;
-    }
-  }
-  _ESClass.register(IntUniform);
-  _es6_module.add_class(IntUniform);
-  IntUniform = _es6_module.add_export('IntUniform', IntUniform);
-  function initDebugGL(gl) {
-    let addfuncs={}
-    let makeDebugFunc=(k, k2) =>      {
-      return function () {
-        let ret=this[k2].apply(this, arguments);
-        let err=this.getError();
-        if (err!==0) {
-            console.warn("gl."+k+":", constmap[err]);
-        }
-        return ret;
-      }
-    }
-    for (let k in gl) {
-        let v=gl[k];
-        if (k!=="getError"&&typeof v==="function") {
-            let k2="_"+k;
-            addfuncs[k2] = v;
-            gl[k] = makeDebugFunc(k, k2);
-        }
-    }
-    for (let k in addfuncs) {
-        gl[k] = addfuncs[k];
-    }
-    return gl;
-  }
-  initDebugGL = _es6_module.add_export('initDebugGL', initDebugGL);
-  let _gl=undefined;
-  function addFastParameterGet(gl) {
-    let map={}
-    gl._getParameter = gl.getParameter;
-    gl._enable = gl.enable;
-    gl._disable = gl.disable;
-    gl._viewport = gl.viewport;
-    gl._scissor = gl.scissor;
-    gl._depthMask = gl.depthMask;
-    let validkeys=new Set([gl.DEPTH_TEST, gl.MAX_VERTEX_ATTRIBS, gl.DEPTH_WRITEMASK, gl.SCISSOR_BOX, gl.VIEWPORT]);
-    gl.depthMask = function (mask) {
-      mask = !!mask;
-      if (mask!==map[gl.DEPTH_WRITEMASK]) {
-          map[gl.DEPTH_WRITEMASK] = mask;
-          gl._depthMask(mask);
-      }
-    }
-    gl.viewport = function (x, y, w, h) {
-      if (map[gl.VIEWPORT]===undefined) {
-          map[gl.VIEWPORT] = [x, y, w, h];
-      }
-      else {
-        let box=map[gl.VIEWPORT];
-        box[0] = x;
-        box[1] = y;
-        box[2] = w;
-        box[3] = h;
-      }
-      return gl._viewport(x, y, w, h);
-    }
-    gl.scissor = function (x, y, w, h) {
-      if (map[gl.SCISSOR_BOX]===undefined) {
-          map[gl.SCISSOR_BOX] = [x, y, w, h];
-      }
-      else {
-        let box=map[gl.SCISSOR_BOX];
-        box[0] = x;
-        box[1] = y;
-        box[2] = w;
-        box[3] = h;
-      }
-      return gl._scissor(x, y, w, h);
-    }
-    gl.enable = function (p) {
-      if (p in map&&map[p]) {
-          return ;
-      }
-      map[p] = true;
-      return gl._enable(p);
-    }
-    gl.disable = function (p) {
-      if (p in map&&!map[p]) {
-          return ;
-      }
-      map[p] = false;
-      gl._disable(p);
-    }
-    gl.getParameter = function (p) {
-      if (p!==undefined&&!validkeys.has(p)) {
-          return gl._getParameter(p);
-      }
-      if (p in map) {
-          return map[p];
-      }
-      map[p] = this._getParameter(p);
-      if (map[p]&&Array.isArray(map[p])) {
-          let cpy=[];
-          for (let item of map[p]) {
-              cpy.push(item);
-          }
-          map[p] = cpy;
-      }
-      return map[p];
-    }
-  }
-  addFastParameterGet = _es6_module.add_export('addFastParameterGet', addFastParameterGet);
-  function onContextLost(e) {
-    for (let k in shapes) {
-        shapes[k].onContextLost(e);
-    }
-  }
-  onContextLost = _es6_module.add_export('onContextLost', onContextLost);
-  function init_webgl(canvas, params) {
-    if (params===undefined) {
-        params = {};
-    }
-    if (_gl!==undefined) {
-        return _gl;
-    }
-    let webgl2=params.webgl2!==undefined ? params.webgl2 : true;
-    let gl;
-    if (webgl2) {
-        gl = canvas.getContext("webgl2", params);
-        gl.color_buffer_float = gl.getExtension("EXT_color_buffer_float");
-    }
-    else {
-      gl = canvas.getContext("webgl", params);
-      if (!gl.RGBA32F) {
-          gl.RGBA32F = gl.RGBA;
-          gl.RGBA8UI = gl.RGBA;
-      }
-      gl.getExtension("EXT_frag_depth");
-      gl.color_buffer_float = gl.getExtension("WEBGL_color_buffer_float");
-      gl.texture_float = gl.getExtension("OES_texture_float");
-    }
-    canvas.addEventListener("webglcontextlost", function (event) {
-      event.preventDefault();
-    }, false);
-    canvas.addEventListener("webglcontextrestored", onContextLost, false);
-    addFastParameterGet(gl);
-    _gl = gl;
-    gl.haveWebGL2 = webgl2;
-    for (let k in gl) {
-        let v=gl[k];
-        if (typeof v=="number"||typeof v=="string") {
-            constmap[v] = k;
-        }
-    }
-    window._constmap = constmap;
-    gl.texture_float = gl.getExtension("OES_texture_float_linear");
-    gl.float_blend = gl.getExtension("EXT_float_blend");
-    gl.getExtension("OES_standard_derivatives");
-    gl.getExtension("ANGLE_instanced_arrays");
-    gl.getExtension("WEBGL_lose_context");
-    gl.draw_buffers = gl.getExtension("WEBGL_draw_buffers");
-    gl.depth_texture = gl.getExtension("WEBGL_depth_texture");
-    gl.shadercache = {}
-    if (DEBUG.gl) {
-        initDebugGL(gl);
-    }
-    return gl;
-  }
-  init_webgl = _es6_module.add_export('init_webgl', init_webgl);
-  function format_lines(script) {
-    var i=1;
-    var lines=script.split("\n");
-    var maxcol=Math.ceil(Math.log(lines.length)/Math.log(10))+1;
-    var s="";
-    for (var line of lines) {
-        s+=""+i+":";
-        while (s.length<maxcol) {
-          s+=" ";
-        }
-        s+=line+"\n";
-        i++;
-    }
-    return s;
-  }
-  function hashShader(sdef) {
-    let hash;
-    let clean={vertex: sdef.vertex, 
-    fragment: sdef.fragment, 
-    uniforms: sdef.uniforms, 
-    attributes: sdef.attributes}
-    let ret=JSON.stringify(clean);
-    sdef.__hash = ret;
-    return ret;
-  }
-  hashShader = _es6_module.add_export('hashShader', hashShader);
-  function getShader(gl, shaderdef) {
-    if (gl.shadercache===undefined) {
-        gl.shadercache = {};
-    }
-    let hash=shaderdef.__hash!==undefined ? shaderdef.__hash : hashShader(shaderdef);
-    if (hash in gl.shadercache) {
-        return gl.shadercache[hash];
-    }
-    let shader=new ShaderProgram(gl, shaderdef.vertex, shaderdef.fragment, shaderdef.attributes);
-    if (shaderdef.uniforms)
-      shader.uniforms = shaderdef.uniforms;
-    gl.shadercache[hash] = shader;
-    return shader;
-  }
-  getShader = _es6_module.add_export('getShader', getShader);
-  function loadShader(ctx, shaderId) {
-    var shaderScript=document.getElementById(shaderId);
-    if (!shaderScript) {
-        shaderScript = {text: shaderId, 
-      type: undefined};
-        if (shaderId.trim().toLowerCase().startsWith("//vertex")) {
-            shaderScript.type = "x-shader/x-vertex";
-        }
-        else 
-          if (shaderId.trim().toLowerCase().startsWith("//fragment")) {
-            shaderScript.type = "x-shader/x-fragment";
-        }
-        else {
-          console.trace();
-          console.log("Invalid shader type");
-          console.log("================");
-          console.log(format_lines(shaderScript));
-          console.log("================");
-          throw new Error("Invalid shader type for shader script;\n script must start with //vertex or //fragment");
-        }
-    }
-    if (shaderScript.type=="x-shader/x-vertex")
-      var shaderType=ctx.VERTEX_SHADER;
-    else 
-      if (shaderScript.type=="x-shader/x-fragment")
-      var shaderType=ctx.FRAGMENT_SHADER;
-    else {
-      log("*** Error: shader script '"+shaderId+"' of undefined type '"+shaderScript.type+"'");
-      return null;
-    }
-    if (ctx==undefined||ctx==null||ctx.createShader==undefined)
-      console.trace();
-    var shader=ctx.createShader(shaderType);
-    ctx.shaderSource(shader, shaderScript.text);
-    ctx.compileShader(shader);
-    var compiled=ctx.getShaderParameter(shader, ctx.COMPILE_STATUS);
-    if (!compiled&&!ctx.isContextLost()) {
-        var error=ctx.getShaderInfoLog(shader);
-        console.log(format_lines(shaderScript.text));
-        console.log("\nError compiling shader: ", error);
-        ctx.deleteShader(shader);
-        return null;
-    }
-    return shader;
-  }
-  var _safe_arrays=[0, 0, new Float32Array(2), new Float32Array(3), new Float32Array(4)];
-  let use_ml_array=false;
-  use_ml_array = _es6_module.add_export('use_ml_array', use_ml_array);
-  class ShaderProgram  {
-     constructor(gl, vertex, fragment, attributes) {
-      this.vertexSource = vertex;
-      this.fragmentSource = fragment;
-      this.attrs = [];
-      this.multilayer_programs = {};
-      for (var a of attributes) {
-          this.attrs.push(a);
-      }
-      this.defines = {};
-      this._use_def_shaders = true;
-      this._def_shaders = {};
-      this.multilayer_attrs = {};
-      this.rebuild = 1;
-      this.uniformlocs = {};
-      this.attrlocs = {};
-      this.uniform_defaults = {};
-      this.uniforms = {};
-      this.gl = gl;
-    }
-    static  insertDefine(define, code) {
-      code = code.trim().split("\n");
-      if (code.length>3) {
-          code = code.slice(0, 3).concat([define]).concat(code.slice(3, code.length));
-      }
-      else {
-        code = code.concat([define]);
-      }
-      return code.join("\n")+"\n";
-    }
-    static  _use_ml_array() {
-      return use_ml_array;
-    }
-    static  multilayerAttrSize(attr) {
-      return attr.toUpperCase()+"_SIZE";
-    }
-    static  multilayerGet(attr, i) {
-      if (this._use_ml_array()) {
-          return `${attr}_layers[${i}]`;
-      }
-      else {
-        return `get_${attr}_layer(i)`;
-      }
-    }
-    static  maxMultilayer() {
-      return 8;
-    }
-    static  multilayerAttrDeclare(attr, type, is_fragment, is_glsl_300) {
-      let keyword, keyword2;
-      if (is_fragment) {
-          keyword = is_glsl_300 ? 'in' : "attribute";
-          keyword2 = is_glsl_300 ? 'in' : "varying";
-      }
-      else {
-        keyword = is_glsl_300 ? 'in' : "attribute";
-        keyword2 = is_glsl_300 ? 'out' : "varying";
-      }
-      let size=this.multilayerAttrSize(attr);
-      if (this._use_ml_array()) {
-          let ret=`
-#ifndef ${size}_DECLARE
-#define ${size} 1
-#endif
-
-//${size}_DECLARE
-#define ${attr} ${attr}_layers[0]\n`;
-          if (!is_fragment) {
-              ret+=`${keyword} ${type} ${attr}_layers[${size}];\n`;
-          }
-          ret+=`${keyword2} ${type} v${attr}_layers[${size}];\n`;
-          return ret;
-      }
-      let ret=`
-#ifndef ${size}_DECLARE
-#define ${size} 1
-#endif
-//${size}_DECLARE\n`;
-      if (!is_fragment) {
-          ret+=`${keyword} ${type} ${attr};\n`;
-      }
-      ret+=`    
-${keyword2} ${type} v${attr};
-    `;
-      let func=`
-${type} get_${attr}_layer(int i) {
-  switch (i) {
-    case 0:
-      return ${attr}
-
-    `;
-      for (let i=0; i<this.maxMultilayer(); i++) {
-          ret+=`
-      #if ${size} > ${i+1}\n`;
-          if (!is_fragment) {
-              ret+=`${keyword} ${type} ${attr}_${i+2};\n`;
-          }
-          ret+=`${keyword2} ${type} v${attr}_${i+2};
-      #endif
-      `;
-          if (i===0) {
-              continue;
-          }
-          func+=`
-    case ${i}:
-#if ${size} > ${i+1} 
-      return ${attr}_${i+2};
-      break;
-#endif
-      `;
-      }
-      func+='  }\n}\n';
-      return ret;
-    }
-    static  multiLayerAttrKey(attr, i, use_glsl300) {
-      if (!this._use_ml_array()) {
-          return i ? `${attr}_${i}` : attr;
-      }
-      else {
-        return `${attr}_layers[${i}]`;
-      }
-    }
-    static  multilayerVertexCode(attr) {
-      let size=this.multilayerAttrSize(attr);
-      let ret=`
-
-v${attr} = ${attr};
-#if ${size} > 1
-
-    `;
-      for (let i=1; i<this.maxMultilayer; i++) {
-          if (this._use_ml_array()) {
-              ret+=`
-#if ${size} >= ${i}
-  v${attr}_layers[{i}] = ${attr}_layers[${i}];
-#endif
-      `;
-          }
-          else {
-            ret+=`
-#if ${size} >= ${i}
-  v${attr}_${i+2} = ${attr}_${i+2};
-#endif
-      `;
-          }
-      }
-      ret+='#endif\n';
-      return ret;
-    }
-     setAttributeLayerCount(attr, n) {
-      if (n<=1&&attr in this.multilayer_attrs) {
-          delete this.multilayer_attrs[attr];
-      }
-      else {
-        this.multilayer_attrs[attr] = n;
-      }
-      return this;
-    }
-     init(gl) {
-      this.gl = gl;
-      this.rebuild = false;
-      let vshader=this.vertexSource, fshader=this.fragmentSource;
-      if (!this._use_def_shaders) {
-          let defs='';
-          for (let k in this.defines) {
-              let v=this.defines[k];
-              if (v===undefined||v===null||v==="") {
-                  defs+=`#define ${k}\n`;
-              }
-              else {
-                defs+=`#define ${k} ${v}\n`;
-              }
-          }
-          if (defs!=='') {
-              vshader = this.constructor.insertDefine(defs, vshader);
-              fshader = this.constructor.insertDefine(defs, fshader);
-              this._vertexSource = vshader;
-              this._fragmentSource = fshader;
-          }
-      }
-      function loadShader(shaderType, code) {
-        var shader=gl.createShader(shaderType);
-        gl.shaderSource(shader, code);
-        gl.compileShader(shader);
-        let compiled=gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-        if (!compiled&&!gl.isContextLost()) {
-            var error=gl.getShaderInfoLog(shader);
-            console.log(format_lines(code));
-            console.log("\nError compiling shader: ", error);
-            gl.deleteShader(shader);
-            return null;
-        }
-        return shader;
-      }
-      let vertexShader=loadShader(gl.VERTEX_SHADER, vshader);
-      let fragmentShader=loadShader(gl.FRAGMENT_SHADER, fshader);
-      let program=gl.createProgram();
-      gl.attachShader(program, vertexShader);
-      gl.attachShader(program, fragmentShader);
-      let attribs=this.attrs;
-      let li=0;
-      for (let i=0; i<attribs.length; ++i) {
-          let attr=attribs[i];
-          if (attr in this.multilayer_attrs) {
-              let count=this.multilayer_attrs[attr];
-              for (let j=0; j<count; j++) {
-                  let key=this.constructor.multiLayerAttrKey(attr, j, gl.haveWebGL2);
-                  gl.bindAttribLocation(program, li++, key);
-              }
-          }
-          else {
-            gl.bindAttribLocation(program, li++, attribs[i]);
-          }
-      }
-      gl.linkProgram(program);
-      let linked=gl.getProgramParameter(program, gl.LINK_STATUS);
-      if (!linked&&!gl.isContextLost()) {
-          let error=gl.getProgramInfoLog(program);
-          console.log("\nVERTEX:\n"+format_lines(vshader));
-          console.log("\nFRAGMENT\n:"+format_lines(fshader));
-          console.log("Error in program linking:"+error);
-          gl.deleteProgram(program);
-          return null;
-      }
-      this.program = program;
-      this.gl = gl;
-      this.vertexShader = vertexShader;
-      this.fragmentShader = fragmentShader;
-      this.attrlocs = {};
-      this.uniformlocs = {};
-      this.uniforms = {};
-      for (var i=0; i<attribs.length; i++) {
-          this.attrlocs[attribs[i]] = i;
-      }
-    }
-    static  load_shader(scriptid, attrs) {
-      var script=document.getElementById(scriptid);
-      var text=script.text;
-      var ret=new ShaderProgram(undefined, undefined, undefined, ["position", "normal", "uv", "color", "id"]);
-      var lowertext=text.toLowerCase();
-      var vshader=text.slice(0, lowertext.search("//fragment"));
-      var fshader=text.slice(lowertext.search("//fragment"), text.length);
-      ret.vertexSource = vshader;
-      ret.fragmentSource = fshader;
-      ret.ready = true;
-      ret.promise = new Promise(function (accept, reject) {
-        accept(ret);
-      });
-      ret.then = function () {
-        return this.promise.then.apply(this.promise, arguments);
-      };
-      return ret;
-    }
-     on_gl_lost(newgl) {
-      this.rebuild = 1;
-      this.gl = newgl;
-      this.program = undefined;
-      this.uniformlocs = {};
-    }
-     destroy(gl) {
-      if (gl&&this.program) {
-          gl.deleteProgram(this.program);
-          this.uniforms = {};
-          this.program = undefined;
-      }
-    }
-     uniformloc(name) {
-      if (this.uniformlocs[name]==undefined) {
-          this.uniformlocs[name] = this.gl.getUniformLocation(this.program, name);
-      }
-      return this.uniformlocs[name];
-    }
-     attrloc(name) {
-      return this.attrLocation(name);
-    }
-     attrLoc(name) {
-      if (!(name in this.attrlocs)) {
-          this.attrlocs[name] = this.gl.getAttribLocation(this.program, name);
-      }
-      return this.attrlocs[name];
-    }
-     calcDefKey(extraDefines) {
-      let key="";
-      for (let i=0; i<2; i++) {
-          let defs=i ? extraDefines : this.defines;
-          if (!defs) {
-              continue;
-          }
-          for (let k in defs) {
-              let v=defs[k];
-              key+=k;
-              if (v!==null&&v!==undefined&&v!=="") {
-                  key+=":"+v;
-              }
-          }
-      }
-      return key;
-    }
-     bindMultiLayer(gl, uniforms, attrsizes, attributes) {
-      let key="";
-      for (let k in attrsizes) {
-          key+=k+":"+attrsizes[k]+":";
-      }
-      if (key in this.multilayer_programs) {
-          let shader=this.multilayer_programs[key];
-          shader.defines = this.defines;
-          return shader.bind(gl, uniforms, attributes);
-      }
-      let shader=this.copy();
-      for (let k in attrsizes) {
-          let i=attrsizes[k];
-          if (i>1) {
-              shader.multilayer_attrs[k] = i;
-          }
-          let size=this.constructor.multilayerAttrSize(k);
-          let define=`#define ${size} ${i}`;
-          shader.vertexSource = shader.vertexSource.replace("//"+size+"_DECLARE", define);
-          shader.fragmentSource = shader.fragmentSource.replace("//"+size+"_DECLARE", define);
-      }
-      this.multilayer_programs[key] = shader;
-      return shader.bind(gl, uniforms, attributes);
-    }
-     copy() {
-      let ret=new ShaderProgram(this.gl, this.vertexSource, this.fragmentSource, this.attrs);
-      ret.uniforms = this.uniforms;
-      ret.defines = Object.assign({}, this.defines);
-      return ret;
-    }
-     bind(gl, uniforms, attributes) {
-      this.gl = gl;
-      let defines=undefined;
-      if (attributes&&this._use_def_shaders) {
-          for (let k in attributes) {
-              let key="HAVE_"+k.toUpperCase();
-              if (!defines) {
-                  defines = {};
-              }
-              defines[key] = null;
-          }
-      }
-      if (this._use_def_shaders) {
-          let key=this.calcDefKey(defines);
-          if (key!=="") {
-              if (!(key in this._def_shaders)) {
-                  let shader=this.copy();
-                  if (defines) {
-                      for (let k in defines) {
-                          shader.defines[k] = defines[k];
-                      }
-                  }
-                  shader._use_def_shaders = false;
-                  this._def_shaders[key] = shader;
-              }
-              return this._def_shaders[key].bind(gl, uniforms);
-          }
-      }
-      if (this.rebuild) {
-          this.init(gl);
-          if (this.rebuild)
-            return false;
-      }
-      if (!this.program) {
-          return false;
-      }
-      function setv(dst, src, n) {
-        for (var i=0; i<n; i++) {
-            dst[i] = src[i];
-        }
-      }
-      let slot_i=0;
-      gl.useProgram(this.program);
-      this.gl = gl;
-      for (var i=0; i<2; i++) {
-          var us=i ? uniforms : this.uniforms;
-          if (uniforms===undefined) {
-              continue;
-          }
-          for (var k in us) {
-              var v=us[k];
-              var loc=this.uniformloc(k);
-              if (loc===undefined) {
-                  continue;
-              }
-              if (__instance_of(v, IntUniform)) {
-                  gl.uniform1i(loc, v.val);
-              }
-              else 
-                if (__instance_of(v, Texture)) {
-                  let slot=v.texture_slot;
-                  if (slot===undefined) {
-                      slot = slot_i++;
-                  }
-                  v.bind(gl, this.uniformloc(k), slot);
-              }
-              else 
-                if (__instance_of(v, Array)||__instance_of(v, Float32Array)||__instance_of(v, Float64Array)) {
-                  switch (v.length) {
-                    case 2:
-                      var arr=_safe_arrays[2];
-                      setv(arr, v, 2);
-                      gl.uniform2fv(loc, arr);
-                      break;
-                    case 3:
-                      var arr=_safe_arrays[3];
-                      setv(arr, v, 3);
-                      gl.uniform3fv(loc, arr);
-                      break;
-                    case 4:
-                      var arr=_safe_arrays[4];
-                      setv(arr, v, 4);
-                      gl.uniform4fv(loc, arr);
-                      break;
-                    default:
-                      console.log(v);
-                      throw new Error("invalid array");
-                      break;
-                  }
-              }
-              else 
-                if (__instance_of(v, Matrix4)) {
-                  v.setUniform(gl, loc);
-              }
-              else 
-                if (typeof v=="number") {
-                  gl.uniform1f(loc, v);
-              }
-              else 
-                if (v!==undefined&&v!==null) {
-                  console.warn("Invalid uniform", k, v);
-                  throw new Error("Invalid uniform");
-              }
-          }
-      }
-      return this;
-    }
-  }
-  _ESClass.register(ShaderProgram);
-  _es6_module.add_class(ShaderProgram);
-  ShaderProgram = _es6_module.add_export('ShaderProgram', ShaderProgram);
-  window._ShaderProgram = ShaderProgram;
-  const GL_ARRAY_BUFFER=34962;
-  const GL_ELEMENT_ARRAY_BUFFER=34963;
-  class VBO  {
-     constructor(gl, vbo, size=-1, bufferType=GL_ARRAY_BUFFER) {
-      this.gl = gl;
-      this.vbo = vbo;
-      this.size = size;
-      this.bufferType = bufferType;
-      this.ready = false;
-      this.lastData = undefined;
-      this.dead = false;
-      this.drawhint = undefined;
-      this.lastData = undefined;
-    }
-     get(gl) {
-      if (this.dead) {
-          throw new Error("vbo is dead");
-      }
-      if (gl!==undefined&&gl!==this.gl) {
-          this.ready = false;
-          this.gl = gl;
-          this.vbo = gl.createBuffer();
-          console.warn("context loss detected");
-      }
-      if (!this.ready) {
-          console.warn("buffer was not ready; forgot to call .uploadData?");
-      }
-      if (!this.vbo) {
-          throw new Error("webgl error");
-      }
-      return this.vbo;
-    }
-     checkContextLoss(gl) {
-      if (gl!==undefined&&gl!==this.gl) {
-          this.ready = false;
-          this.gl = gl;
-          this.vbo = gl.createBuffer();
-          console.warn("context loss detected");
-          if (this.lastData!==undefined) {
-              this.uploadData(gl, this.lastData, this.bufferType, this.drawhint);
-          }
-      }
-    }
-     reset(gl) {
-      if (this.dead) {
-          this.dead = false;
-          this.gl = gl;
-          this.vbo = gl.createBuffer();
-          console.log("vbo creation");
-      }
-      this.ready = false;
-      this.lastData = undefined;
-      return this;
-    }
-     destroy(gl) {
-      if (this.dead) {
-          console.warn("tried to kill vbo twice");
-          return ;
-      }
-      this.ready = false;
-      gl.deleteBuffer(this.vbo);
-      this.vbo = undefined;
-      this.lastData = undefined;
-      this.gl = undefined;
-      this.dead = true;
-    }
-     uploadData(gl, dataF32, target=this.bufferType, drawhint=gl.STATIC_DRAW) {
-      if (gl!==this.gl) {
-          this.gl = gl;
-          this.vbo = gl.createBuffer();
-          this.size = -1;
-          console.warn("Restoring VBO after context loss");
-      }
-      let useSub=this.size===dataF32.length&&this.vbo;
-      this.lastData = dataF32;
-      this.size = dataF32.length;
-      this.drawhint = drawhint;
-      gl.bindBuffer(target, this.vbo);
-      if (useSub) {
-          gl.bufferSubData(target, 0, dataF32);
-      }
-      else {
-        if (DEBUG.simplemesh) {
-            console.warn("bufferData");
-        }
-        gl.bufferData(target, dataF32, drawhint);
-      }
-      this.ready = true;
-    }
-  }
-  _ESClass.register(VBO);
-  _es6_module.add_class(VBO);
-  VBO = _es6_module.add_export('VBO', VBO);
-  class RenderBuffer  {
-     constructor() {
-      this._layers = {};
-    }
-     get(gl, name, bufferType=gl.ARRAY_BUFFER) {
-      if (this[name]!==undefined) {
-          return this[name];
-      }
-      let buf=gl.createBuffer();
-      let vbo=new VBO(gl, buf, undefined, bufferType);
-      this._layers[name] = vbo;
-      this[name] = vbo;
-      return vbo;
-    }
-    get  buffers() {
-      let this2=this;
-      return (function* () {
-        for (let k in this2._layers) {
-            yield this2._layers[k];
-        }
-      })();
-    }
-     reset(gl) {
-      for (let vbo of this.buffers) {
-          vbo.reset(gl);
-      }
-    }
-     destroy(gl, name) {
-      if (name===undefined) {
-          for (let k in this._layers) {
-              this._layers[k].destroy(gl);
-              delete this._layers[name];
-              delete this[name];
-          }
-      }
-      else {
-        if (this._layers[name]===undefined) {
-            console.trace("WARNING: gl buffer not in RenderBuffer!", name, gl);
-            return ;
-        }
-        this._layers[name].destroy(gl);
-        delete this._layers[name];
-        delete this[name];
-      }
-    }
-  }
-  _ESClass.register(RenderBuffer);
-  _es6_module.add_class(RenderBuffer);
-  RenderBuffer = _es6_module.add_export('RenderBuffer', RenderBuffer);
-  class Texture  {
-     constructor(texture_slot, texture, target=3553) {
-      this.texture = texture;
-      this.texture_slot = texture_slot;
-      this.target = target;
-      this.createParams = {target: TEXTURE_2D};
-      this.createParamsList = [TEXTURE_2D];
-      this._params = {};
-    }
-    static  unbindAllTextures(gl) {
-      for (let i=gl.TEXTURE0; i<gl.TEXTURE0+31; i++) {
-          gl.activeTexture(i);
-          gl.bindTexture(gl.TEXTURE_2D, null);
-      }
-    }
-     texParameteri(gl, target, param, value) {
-      this._params[param] = value;
-      gl.texParameteri(target, param, value);
-      return this;
-    }
-     getParameter(gl, param) {
-      return this._params[param];
-    }
-     _texImage2D1(gl, target, level, internalformat, format, type, source) {
-      gl.bindTexture(target, this.texture);
-      gl.texImage2D(target, level, internalformat, format, type, source);
-      gl.getError();
-      this.createParams = {target: target, 
-     level: level, 
-     internalformat: internalformat, 
-     format: format, 
-     type: type, 
-     source: source};
-      this.createParamsList = [target, level, internalformat, format, type, source];
-      if (__instance_of(source, Image)||__instance_of(source, ImageData)) {
-          this.createParams.width = source.width;
-          this.createParams.height = source.height;
-      }
-      return this;
-    }
-     _texImage2D2(gl, target, level, internalformat, width, height, border, format, type, source) {
-      gl.bindTexture(target, this.texture);
-      gl.getError();
-      gl.texImage2D(target, level, internalformat, width, height, border, format, type, source);
-      this.createParams = {target: target, 
-     level: level, 
-     internalformat: internalformat, 
-     format: format, 
-     type: type, 
-     source: source, 
-     width: width, 
-     height: height, 
-     border: border};
-      this.createParamsList = [target, level, internalformat, format, type, source, width, height, border];
-      gl.getError();
-      return this;
-    }
-     texImage2D() {
-      if (arguments.length===7) {
-          return this._texImage2D1(...arguments);
-      }
-      else {
-        return this._texImage2D2(...arguments);
-      }
-    }
-     copy(gl, copy_data=false) {
-      let tex=new Texture();
-      tex.texture = gl.createTexture();
-      tex.createParams = Object.assign({}, this.createParams);
-      tex.createParamsList = this.createParamsList.concat([]);
-      tex.texture_slot = this.texture_slot;
-      gl.bindTexture(this.createParams.target, tex.texture);
-      if (!copy_data) {
-          let p=this.createParams;
-          tex.texImage2D(p.target, p.level, p.internalformat, p.format, p.type, null);
-          gl.getError();
-      }
-      else {
-        this.copyTexTo(gl, tex);
-      }
-      for (let k in this._params) {
-          let key=parseInt(k);
-          let val=this._params[key];
-          gl.texParameteri(this.createParams.target, key, val);
-          gl.getError();
-      }
-      return tex;
-    }
-     copyTexTo(gl, b) {
-      if (this.texture===undefined) {
-          return ;
-      }
-      let p=this.createParams;
-      gl.bindTexture(p.target, b.texture);
-      b.texImage2D(gl, p.target, p.level, p.internalformat, p.width, p.height, p.border, p.format, p.type, this.texture);
-      gl.getError();
-      return this;
-    }
-     destroy(gl) {
-      gl.deleteTexture(this.texture);
-    }
-     load(gl, width, height, data, target=gl.TEXTURE_2D) {
-      if (!this.texture) {
-          this.texture = gl.createTexture();
-      }
-      gl.bindTexture(target, this.texture);
-      if (__instance_of(data, Float32Array)) {
-          gl.texImage2D(target, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
-      }
-      else {
-        gl.texImage2D(target, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-      }
-      gl.getError();
-      Texture.defaultParams(gl, this, target);
-      gl.getError();
-      return this;
-    }
-     initEmpty(gl, target, width, height, format=gl.RGBA, type=gl.FLOAT) {
-      this.target = target;
-      if (!this.texture) {
-          this.texture = gl.createTexture();
-          Texture.defaultParams(gl, this.texture, target);
-      }
-      gl.bindTexture(this.texture);
-      gl.texImage2D(this.target, 0, format, width, height, 0, format, type, null);
-      return this;
-    }
-    static  load(gl, width, height, data, target=gl.TEXTURE_2D) {
-      return new Texture(0).load(...arguments);
-    }
-    static  defaultParams(gl, tex, target=gl.TEXTURE_2D) {
-      if (!(__instance_of(tex, Texture))) {
-          console.warn("Depracated call to Texture.defaultParams with 'tex' a raw WebGLTexture instance instance of wrapper webgl.Texture object");
-          tex = new Texture(undefined, tex);
-      }
-      gl.bindTexture(target, tex.texture);
-      tex.texParameteri(gl, target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      tex.texParameteri(gl, target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      tex.texParameteri(gl, target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      tex.texParameteri(gl, target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    }
-     bind(gl, uniformloc, slot=this.texture_slot) {
-      gl.activeTexture(gl.TEXTURE0+slot);
-      gl.bindTexture(this.target, this.texture);
-      gl.uniform1i(uniformloc, slot);
-    }
-  }
-  _ESClass.register(Texture);
-  _es6_module.add_class(Texture);
-  Texture = _es6_module.add_export('Texture', Texture);
-  class CubeTexture extends Texture {
-     constructor(texture_slot, texture) {
-      super();
-      this.texture = texture;
-      this.texture_slot = texture_slot;
-    }
-     bind(gl, uniformloc, slot=this.texture_slot) {
-      gl.activeTexture(gl.TEXTURE0+slot);
-      gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.texture);
-      gl.uniform1i(uniformloc, slot);
-    }
-  }
-  _ESClass.register(CubeTexture);
-  _es6_module.add_class(CubeTexture);
-  CubeTexture = _es6_module.add_export('CubeTexture', CubeTexture);
-  class DrawMats  {
-     constructor() {
-      this.isPerspective = true;
-      this.cameramat = new Matrix4();
-      this.persmat = new Matrix4();
-      this.rendermat = new Matrix4();
-      this.normalmat = new Matrix4();
-      this.icameramat = new Matrix4();
-      this.ipersmat = new Matrix4();
-      this.irendermat = new Matrix4();
-      this.inormalmat = new Matrix4();
-    }
-     regen_mats(aspect=this.aspect) {
-      this.aspect = aspect;
-      this.rendermat.load(this.persmat).multiply(this.cameramat);
-      this.normalmat.load(this.cameramat).makeRotationOnly();
-      this.icameramat.load(this.cameramat).invert();
-      this.ipersmat.load(this.persmat).invert();
-      this.irendermat.load(this.rendermat).invert();
-      this.inormalmat.load(this.normalmat).invert();
-      return this;
-    }
-     toJSON() {
-      return {cameramat: this.cameramat.getAsArray(), 
-     persmat: this.persmat.getAsArray(), 
-     rendermat: this.rendermat.getAsArray(), 
-     normalmat: this.normalmat.getAsArray(), 
-     isPerspective: this.isPerspective, 
-     icameramat: this.icameramat.getAsArray(), 
-     ipersmat: this.ipersmat.getAsArray(), 
-     irendermat: this.irendermat.getAsArray(), 
-     inormalmat: this.inormalmat.getAsArray()}
-    }
-     loadJSON(obj) {
-      this.cameramat.load(obj.cameramat);
-      this.persmat.load(obj.persmat);
-      this.rendermat.load(obj.rendermat);
-      this.normalmat.load(obj.normalmat);
-      this.isPerspective = obj.isPerspective;
-      this.icameramat.load(obj.icameramat);
-      this.ipersmat.load(obj.ipersmat);
-      this.irendermat.load(obj.irendermat);
-      this.inormalmat.load(obj.inormalmat);
-      return this;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(DrawMats);
-  _es6_module.add_class(DrawMats);
-  DrawMats = _es6_module.add_export('DrawMats', DrawMats);
-  DrawMats.STRUCT = `
-DrawMats {
-  cameramat     : mat4;
-  persmat       : mat4;
-  rendermat     : mat4;
-  normalmat     : mat4;
-  icameramat    : mat4;
-  ipersmat      : mat4;
-  irendermat    : mat4;
-  inormalmat    : mat4;
-  isPerspective : int;
-}
-`;
-  nstructjs.manager.add_class(DrawMats);
-  class Camera extends DrawMats {
-     constructor() {
-      super();
-      this.isPerspective = true;
-      this.fovy = 35;
-      this.aspect = 1.0;
-      this.pos = new Vector3([0, 0, 5]);
-      this.target = new Vector3();
-      this.orbitTarget = new Vector3();
-      this.up = new Vector3([1, 3, 0]);
-      this.up.normalize();
-      this.near = 0.25;
-      this.far = 10000.0;
-    }
-     generateUpdateHash(objectMatrix=undefined) {
-      let mul=1<<18;
-      let ret=0;
-      function add(val) {
-        val = (val*mul)&((1<<31)-1);
-        ret = (ret^val)&((1<<31)-1);
-      }
-      add(this.near);
-      add(this.far);
-      add(this.fovy);
-      add(this.aspect);
-      add(this.isPerspective);
-      add(this.pos[0]);
-      add(this.pos[1]);
-      add(this.pos[2]);
-      add(this.target[0]);
-      add(this.target[1]);
-      add(this.target[2]);
-      add(this.up[0]);
-      add(this.up[1]);
-      add(this.up[2]);
-      if (objectMatrix!==undefined) {
-          let m=objectMatrix.$matrix;
-          add(m.m11);
-          add(m.m12);
-          add(m.m13);
-          add(m.m21);
-          add(m.m22);
-          add(m.m23);
-          add(m.m31);
-          add(m.m32);
-          add(m.m33);
-      }
-      return ret;
-    }
-     load(b) {
-      this.isPerspective = b.isPerspective;
-      this.fovy = b.fovy;
-      this.aspect = b.aspect;
-      this.pos.load(b.pos);
-      this.orbitTarget.load(b.orbitTarget);
-      this.target.load(b.target);
-      this.up.load(b.up);
-      this.near = b.near;
-      this.far = b.far;
-      this.regen_mats(this.aspect);
-      return this;
-    }
-     copy() {
-      let ret=new Camera();
-      ret.isPerspective = this.isPerspective;
-      ret.fovy = this.fovy;
-      ret.aspect = this.aspect;
-      ret.pos.load(this.pos);
-      ret.target.load(this.target);
-      ret.orbitTarget.load(this.orbitTarget);
-      ret.up.load(this.up);
-      ret.near = this.near;
-      ret.far = this.far;
-      ret.regen_mats(ret.aspect);
-      return ret;
-    }
-     reset() {
-      this.pos = new Vector3([0, 0, 5]);
-      this.target = new Vector3();
-      this.up = new Vector3([1, 3, 0]);
-      this.up.normalize();
-      this.regen_mats(this.aspect);
-      window.redraw_all();
-      return this;
-    }
-     toJSON() {
-      var ret=super.toJSON();
-      ret.fovy = this.fovy;
-      ret.near = this.near;
-      ret.far = this.far;
-      ret.aspect = this.aspect;
-      ret.target = this.target.slice(0);
-      ret.pos = this.pos.slice(0);
-      ret.up = this.up.slice(0);
-      return ret;
-    }
-     loadJSON(obj) {
-      super.loadJSON(obj);
-      this.fovy = obj.fovy;
-      this.near = obj.near;
-      this.far = obj.far;
-      this.aspect = obj.aspect;
-      this.target.load(obj.target);
-      this.pos.load(obj.pos);
-      this.up.load(obj.up);
-      return this;
-    }
-     regen_mats(aspect=this.aspect) {
-      this.aspect = aspect;
-      this.persmat.makeIdentity();
-      if (this.isPerspective) {
-          this.persmat.perspective(this.fovy, aspect, this.near, this.far);
-      }
-      else {
-        this.persmat.isPersp = true;
-        let scale=1.0/this.pos.vectorDistance(this.target);
-        this.persmat.makeIdentity();
-        this.persmat.orthographic(scale, aspect, this.near, this.far);
-      }
-      this.cameramat.makeIdentity();
-      this.cameramat.lookat(this.pos, this.target, this.up);
-      this.cameramat.invert();
-      this.rendermat.load(this.persmat).multiply(this.cameramat);
-      super.regen_mats(aspect);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(Camera);
-  _es6_module.add_class(Camera);
-  Camera = _es6_module.add_export('Camera', Camera);
-  Camera.STRUCT = STRUCT.inherit(Camera, DrawMats)+`
-  fovy          : float;
-  aspect        : float;
-  target        : vec3;
-  orbitTarget   : vec3;
-  pos           : vec3;
-  up            : vec3;
-  near          : float;
-  far           : float;
-  isPerspective : bool;
-}
-`;
-  nstructjs.manager.add_class(Camera);
-}, '/dev/fairmotion/src/webgl/webgl.js');
-
-
-es6_module_define('fbo', ["./simplemesh.js", "../path.ux/scripts/pathux.js", "./webgl.js"], function _fbo_module(_es6_module) {
-  var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
-  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
-  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
-  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
-  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
-  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
-  var simplemesh=es6_import(_es6_module, './simplemesh.js');
-  var webgl=es6_import(_es6_module, './webgl.js');
-  var Texture=es6_import_item(_es6_module, './webgl.js', 'Texture');
-  let DEPTH24_STENCIL8=35056;
-  let RGBA32F=34836;
-  let FLOAT=5126;
-  let fbo_idgen=1;
-  class FBO  {
-     constructor(gl, width=512, height=512) {
-      this.target = gl!==undefined ? gl.TEXTURE_2D : 3553;
-      this.type = FLOAT;
-      this.gl = gl;
-      this.fbo = undefined;
-      this.regen = true;
-      this.id = "fbo"+(fbo_idgen++);
-      this.deleteColor = false;
-      this.deleteDepth = false;
-      this.width = ~~width;
-      this.height = ~~height;
-      this.texColor = undefined;
-      this.texDepth = undefined;
-      this._last_viewport = undefined;
-      this._last_scissor = undefined;
-    }
-     bind(gl) {
-      this._last_viewport = gl.getParameter(gl.VIEWPORT);
-      this._last_scissor = gl.getParameter(gl.SCISSOR_BOX);
-      gl = this.gl = gl===undefined ? this.gl : gl;
-      if (this.regen) {
-          this.create(gl);
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      gl.viewport(0, 0, this.size[0], this.size[1]);
-      gl.scissor(0, 0, this.size[0], this.size[1]);
-    }
-     drawQuadScaled(gl, width=this.width, height=this.height, tex=this.texColor, value_scale=1.0, depth=this.texDepth) {
-      let quad=this._getQuad(gl, width, height);
-      quad.program = this.blitshader;
-      quad.uniforms.rgba = tex;
-      quad.uniforms.depth = depth;
-      quad.uniforms.valueScale = value_scale;
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      this.smesh.draw(gl);
-    }
-     drawQuad(gl, width=this.width, height=this.height, tex=this.texColor, depth=this.texDepth, program=undefined, uniforms=undefined) {
-      let quad=this._getQuad(gl, width, height, program);
-      if (program) {
-          quad.program = program;
-      }
-      else {
-        quad.program = this.blitshader;
-      }
-      quad.uniforms.rgba = tex;
-      quad.uniforms.depth = depth;
-      quad.uniforms.valueScale = 1.0;
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      gl.disable(gl.CULL_FACE);
-      this.smesh.draw(gl, uniforms);
-    }
-     _getQuad(gl, width, height, program) {
-      width = ~~width;
-      height = ~~height;
-      if (this.smesh===undefined||this.size[0]!==width||this.size[1]!==height) {
-          let lf=simplemesh.LayerTypes;
-          this.smesh = new simplemesh.SimpleMesh(lf.LOC|lf.UV);
-          let quad=this.smesh.quad([-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]);
-          quad.uvs([0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]);
-      }
-      if (program) {
-          this.smesh.program = program;
-      }
-      else {
-        this.smesh.program = this.blitshader = webgl.getShader(gl, getBlitShaderCode(gl));
-      }
-      return this.smesh;
-    }
-     update(gl, width, height) {
-      width = ~~width;
-      height = ~~height;
-      if (width!==this.width||height!==this.height) {
-          this.width = width;
-          this.height = height;
-          this.regen = true;
-      }
-      if (this.regen) {
-          this.create(gl);
-      }
-    }
-     create(gl) {
-      console.warn("Creating new fbo", this.width, this.height, this.id);
-      this.regen = false;
-      if (!this.texColor) {
-          this.deleteColor = true;
-          this.texColor = new Texture();
-          this.texColor.initEmpty(gl, gl.TEXTURE_2D, this.width, this.height, gl.RGBA, this.type);
-      }
-      if (!this.texDepth) {
-          this.deleteDepth = true;
-          this.texDepth = new Texture();
-          this.texDepth.initEmpty(gl, gl.TEXTURE_2D, this.width, this.height, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8);
-      }
-      let fbo=gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture, 0);
-    }
-     unbind(gl) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      let sb=this._last_scissor;
-      let vb=this._last_viewport;
-      if (!vb) {
-          return ;
-      }
-      gl.scissor(sb[0], sb[1], sb[2], sb[3]);
-      gl.viewport(vb[0], vb[1], vb[2], vb[3]);
-    }
-     destroy() {
-      if (this.fbo!==undefined) {
-          this.gl.deleteFramebuffer(this.fbo);
-          if (this.deleteColor&&this.texColor) {
-              this.gl.deleteTexture(this.texColor.texture);
-              this.texColor = undefined;
-          }
-          if (this.deleteDepth&&this.texDepth) {
-              this.gl.deleteTexture(this.texDepth.texture);
-              this.texDepth = undefined;
-          }
-          this.regen = true;
-          this.fbo = undefined;
-      }
-    }
-  }
-  _ESClass.register(FBO);
-  _es6_module.add_class(FBO);
-  FBO = _es6_module.add_export('FBO', FBO);
-  class oldFBO  {
-     constructor(gl, width=512, height=512) {
-      this.target = gl!==undefined ? gl.TEXTURE_2D : 3553;
-      this.layer = undefined;
-      this.ctype = RGBA32F;
-      this.dtype = DEPTH24_STENCIL8;
-      this.etype = FLOAT;
-      this.gl = gl;
-      this.fbo = undefined;
-      this.regen = true;
-      this.size = new Vector2([width, height]);
-      this.texDepth = undefined;
-      this.texColor = undefined;
-    }
-     getBlitShader(gl) {
-      return webgl.getShader(gl, getBlitShaderCode(gl));
-    }
-     copy(copy_buffers=false) {
-      let ret=new FBO();
-      ret.size = new Vector2(this.size);
-      ret.gl = this.gl;
-      if (!copy_buffers||!this.gl||!this.fbo) {
-          return ret;
-      }
-      ret.create(this.gl);
-      let gl=this.gl;
-      return ret;
-    }
-     create(gl, texColor=undefined, texDepth=undefined) {
-      console.warn("fbo create");
-      if (this.fbo&&this.gl) {
-          this.destroy();
-      }
-      this.regen = 0;
-      gl = this.gl = gl===undefined ? this.gl : gl;
-      this.size[0] = ~~this.size[0];
-      this.size[1] = ~~this.size[1];
-      this.fbo = gl.createFramebuffer();
-      this.texColor = texColor;
-      this.texDepth = texDepth;
-      let haveColor=!!this.texColor;
-      let haveDepth=!!this.texDepth;
-      if (!this.texDepth)
-        this.texDepth = new webgl.Texture(undefined, gl.createTexture());
-      if (!this.texColor)
-        this.texColor = new webgl.Texture(undefined, gl.createTexture());
-      let target=this.target;
-      let layer=this.layer;
-      function texParams(target, tex) {
-        gl.bindTexture(target, tex.texture);
-        tex.texParameteri(gl, target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        tex.texParameteri(gl, target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        tex.texParameteri(gl, target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        tex.texParameteri(gl, target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        if (target!==gl.TEXTURE_2D) {
-            tex.texParameteri(gl, target, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
-        }
-      }
-      if (!haveDepth) {
-          texParams(this.target, this.texDepth);
-          if (gl.haveWebGL2) {
-              this.texDepth.texParameteri(gl, this.target, gl.TEXTURE_COMPARE_MODE, gl.NONE);
-          }
-      }
-      if (!haveColor) {
-          texParams(this.target, this.texColor);
-      }
-      let initTex=(tex, dtype, dtype2, dtype3) =>        {
-        if (this.target!==gl.TEXTURE_2D)
-          return ;
-        if (gl.haveWebGL2) {
-            tex.texImage2D(gl, this.target, 0, dtype, this.size[0], this.size[1], 0, dtype2, dtype3, null);
-        }
-        else {
-          tex.texImage2D(gl, this.target, 0, dtype, this.size[0], this.size[1], 0, dtype2, dtype3, null);
-        }
-      };
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      let dtype=this.dtype;
-      let dtype2=gl.DEPTH_STENCIL;
-      let dtype3=gl.UNSIGNED_INT_24_8;
-      gl.bindTexture(this.target, this.texDepth.texture);
-      if (!haveDepth) {
-          initTex(this.texDepth, dtype, dtype2, dtype3);
-      }
-      let ctype=this.ctype;
-      let ctype2=gl.RGBA, ctype3=this.etype;
-      gl.bindTexture(target, this.texColor.texture);
-      if (!haveColor) {
-          initTex(this.texColor, ctype, ctype2, ctype3);
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      if (this.target===gl.TEXTURE_2D) {
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture, 0);
-      }
-      else {
-        let target2=target;
-        if (target===gl.TEXTURE_CUBE_MAP) {
-            target2 = layer;
-        }
-        if (DEBUG.fbo) {
-            console.log("TARGET2", target2);
-        }
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, target2, this.texColor.texture, 0);
-        if (target===gl.TEXTURE_2D) {
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture, 0);
-        }
-        else {
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture, 0);
-        }
-      }
-      let errret=gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-      if (DEBUG.fbo) {
-          console.log("FBO STATUS:", errret, webgl.constmap[errret]);
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    }
-     setTexColor(gl, tex) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      this.texColor = tex;
-      if (this.target===gl.TEXTURE_2D) {
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
-      }
-      let errret=gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-      if (DEBUG.fbo) {
-          console.log("FBO STATUS:", errret, webgl.constmap[errret]);
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    }
-     bind(gl) {
-      this._last_viewport = gl.getParameter(gl.VIEWPORT);
-      gl = this.gl = gl===undefined ? this.gl : gl;
-      if (this.regen) {
-          this.create(gl);
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      gl.viewport(0, 0, this.size[0], this.size[1]);
-    }
-     _getQuad(gl, width, height, program) {
-      width = ~~width;
-      height = ~~height;
-      if (this.smesh===undefined||this.size[0]!=width||this.size[1]!=height) {
-          let lf=simplemesh.LayerTypes;
-          this.smesh = new simplemesh.SimpleMesh(lf.LOC|lf.UV);
-          let quad=this.smesh.quad([-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]);
-          quad.uvs([0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]);
-      }
-      if (program) {
-          this.smesh.program = program;
-      }
-      else {
-        this.smesh.program = this.blitshader = webgl.getShader(gl, getBlitShaderCode(gl));
-      }
-      return this.smesh;
-    }
-     drawDepth(gl, width, height, tex) {
-      let quad=this._getQuad(gl, width, height);
-      quad.program = this.blitshader;
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      gl.disable(gl.CULL_FACE);
-      let dither=gl.getParameter(gl.DITHER);
-      gl.disable(gl.DITHER);
-      quad.draw(gl, {rgba: tex, 
-     depth: tex, 
-     size: [width, height], 
-     valueScale: 1.0});
-      if (dither) {
-          gl.enable(gl.DITHER);
-      }
-    }
-     drawQuadScaled(gl, width, height, tex=this.texColor, value_scale=1.0, depth=this.texDepth) {
-      let quad=this._getQuad(gl, width, height);
-      quad.program = this.blitshader;
-      quad.uniforms.rgba = tex;
-      quad.uniforms.depth = depth;
-      quad.uniforms.valueScale = value_scale;
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      this.smesh.draw(gl);
-    }
-     drawQuad(gl, width, height, tex=this.texColor, depth=this.texDepth, program=undefined, uniforms=undefined) {
-      let quad=this._getQuad(gl, width, height, program);
-      if (program) {
-          quad.program = program;
-      }
-      else {
-        quad.program = this.blitshader;
-      }
-      quad.uniforms.rgba = tex;
-      quad.uniforms.depth = depth;
-      quad.uniforms.valueScale = 1.0;
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      gl.disable(gl.CULL_FACE);
-      this.smesh.draw(gl, uniforms);
-    }
-     unbind(gl) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      let vb=this._last_viewport;
-      if (!vb) {
-          return ;
-      }
-      gl.viewport(vb[0], vb[1], vb[2], vb[3]);
-    }
-     destroy() {
-      if (this.fbo!==undefined) {
-          this.gl.deleteFramebuffer(this.fbo);
-          if (this.target===this.gl.TEXTURE_2D) {
-              this.gl.deleteTexture(this.texDepth.texture);
-              this.gl.deleteTexture(this.texColor.texture);
-          }
-          this.texDepth.texture = this.texColor.texture = undefined;
-          this.fbo = undefined;
-      }
-    }
-     update(gl, width, height) {
-      width = ~~width;
-      height = ~~height;
-      gl = this.gl = gl===undefined ? this.gl : gl;
-      if (width!==this.size[0]||height!==this.size[1]||gl!==this.gl) {
-          console.log("fbo update", width, height);
-          this.size[0] = width;
-          this.size[1] = height;
-          if (this.gl===undefined||gl===this.gl) {
-              this.destroy(gl);
-          }
-          this.texDepth = this.texColor = undefined;
-          this.create(gl);
-      }
-    }
-  }
-  _ESClass.register(oldFBO);
-  _es6_module.add_class(oldFBO);
-  oldFBO = _es6_module.add_export('oldFBO', oldFBO);
-  class FrameStage extends FBO {
-     constructor(shader, width=512, height=512) {
-      super(undefined, width, height);
-      this.shader = shader;
-    }
-     update(gl, width, height) {
-      if (gl===undefined||width===undefined||height===undefined) {
-          console.log("bad arguments to fbo.FrameStage.update()", arguments);
-          throw new Error("bad arguments to fbo.FrameStage.update()");
-      }
-      super.update(gl, width, height);
-    }
-  }
-  _ESClass.register(FrameStage);
-  _es6_module.add_class(FrameStage);
-  FrameStage = _es6_module.add_export('FrameStage', FrameStage);
-  let BlitShaderGLSL200={vertex: `
-precision mediump float;
-
-uniform sampler2D rgba;
-uniform sampler2D depth;
-
-attribute vec3 position;
-attribute vec2 uv;
-
-varying vec2 v_Uv;
-
-void main(void) {
-  gl_Position = vec4(position, 1.0);
-  v_Uv = uv;
-}
-    
-  `, 
-   fragment: `
-#extension GL_EXT_frag_depth : require
-
-precision mediump float;
-
-
-uniform sampler2D rgba;
-uniform sampler2D depth;
-uniform float valueScale;
-
-varying vec2 v_Uv;
-
-void main(void) {
-  vec4 color = texture2D(rgba, v_Uv);
-  gl_FragColor = vec4(color.rgb*valueScale, color.a);
-  gl_FragDepthEXT = texture2D(depth, v_Uv)[0];
-}
-
-  `, 
-   uniforms: {}, 
-   attributes: ["position", "uv"]}
-  BlitShaderGLSL200 = _es6_module.add_export('BlitShaderGLSL200', BlitShaderGLSL200);
-  let BlitShaderGLSL300={vertex: `#version 300 es
-precision mediump float;
-
-uniform sampler2D rgba;
-uniform sampler2D depth;
-
-in vec3 position;
-in vec2 uv;
-
-out vec2 v_Uv;
-
-void main(void) {
-  gl_Position = vec4(position, 1.0);
-  v_Uv = uv;
-}
-    
-  `, 
-   fragment: `#version 300 es
-
-precision mediump float;
-
-
-uniform sampler2D rgba;
-uniform sampler2D depth;
-uniform float valueScale;
-
-in vec2 v_Uv;
-out vec4 fragColor;
-
-void main(void) {
-  vec4 color = texture(rgba, v_Uv);
-  float d = texture(depth, v_Uv)[0];
-  
-  //color[0] = color[1] = color[2] = d*0.9;
-  
-  fragColor = vec4(color.rgb*valueScale, color.a);
-  
-  gl_FragDepth = texture(depth, v_Uv)[0];
-}
-
-  `, 
-   uniforms: {}, 
-   attributes: ["position", "uv"]}
-  BlitShaderGLSL300 = _es6_module.add_export('BlitShaderGLSL300', BlitShaderGLSL300);
-  class FramePipeline  {
-     constructor(width=512, height=512) {
-      this.stages = [new FrameStage()];
-      this.size = new Vector2([width, height]);
-      this.smesh = undefined;
-      this._texs = [new webgl.Texture(0), new webgl.Texture(1), new webgl.Texture(2), new webgl.Texture(3), new webgl.Texture(4), new webgl.Texture(5)];
-    }
-     destroy(gl) {
-      for (let stage of this.stages) {
-          stage.destroy(gl);
-      }
-      if (this.smesh!==undefined) {
-          this.smesh.destroy(gl);
-          this.smesh = undefined;
-      }
-      this.stages = undefined;
-    }
-     addStage(gl, shaderdef) {
-      let shader=webgl.getShader(gl, shaderdef);
-      let stage=new FrameStage(shader, this.size[0], this.size[1]);
-      this.stages.push(stage);
-      return stage;
-    }
-     getBlitShader(gl) {
-      return webgl.getShader(gl, getBlitShaderCode(gl));
-    }
-     draw(gl, drawfunc, width, height, drawmats) {
-      if (this.smesh===undefined||this.size[0]!=width||this.size[1]!=height) {
-          this.size[0] = width;
-          this.size[1] = height;
-          console.log("updateing framebuffer pipeline for new width/height");
-          let lf=simplemesh.LayerTypes;
-          this.smesh = new simplemesh.SimpleMesh(lf.LOC|lf.UV);
-          this.smesh.program = this.blitshader = webgl.getShader(gl, getBlitShaderCode(gl));
-          this.smesh.uniforms.iprojectionMatrix = drawmats.irendermat;
-          this.smesh.uniforms.projectionMatrix = drawmats.rendermat;
-          let quad=this.smesh.quad([-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]);
-          quad.uvs([0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]);
-      }
-      let stage=this.stages[0];
-      stage.update(gl, width, height);
-      stage.bind(gl);
-      gl.viewport(0, 0, this.size[0], this.size[1]);
-      gl.enable(gl.DEPTH_TEST);
-      gl.clearDepth(1000000.0);
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
-      gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-      drawfunc(gl);
-      let laststage=stage;
-      gl.depthMask(true);
-      gl.disable(gl.DEPTH_TEST);
-      for (let i=1; i<this.stages.length; i++) {
-          let stage=this.stages[i];
-          stage.update(gl, width, height);
-          this._texs[0].texture = laststage.texColor.texture;
-          stage.shader.uniforms.rgba = this._texs[0];
-          this._texs[1].texture = laststage.texDepth.texture;
-          stage.shader.uniforms.depth = this._texs[1];
-          stage.shader.uniforms.size = this.size;
-          this.smesh.program = stage.shader;
-          stage.bind(gl);
-          this.smesh.draw(gl);
-          laststage = stage;
-      }
-    }
-     drawFinal(gl, stage=undefined) {
-      if (stage===undefined) {
-          stage = this.stages[this.stages.length-1];
-      }
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.disable(gl.DEPTH_TEST);
-      gl.depthMask(1);
-      this.smesh.program = this.blitshader;
-      this.blitshader.uniforms.rgba = this._texs[0];
-      this.blitshader.uniforms.depth = this._texs[1];
-      this.blitshader.uniforms.size = this.size;
-      this._texs[0].texture = stage.texColor.texture;
-      this._texs[1].texture = stage.texDepth.texture;
-      this.smesh.draw(gl);
-    }
-  }
-  _ESClass.register(FramePipeline);
-  _es6_module.add_class(FramePipeline);
-  FramePipeline = _es6_module.add_export('FramePipeline', FramePipeline);
-  function getBlitShaderCode(gl) {
-    if (gl.haveWebGL2) {
-        return BlitShaderGLSL300;
-    }
-    else {
-      return BlitShaderGLSL200;
-    }
-  }
-  getBlitShaderCode = _es6_module.add_export('getBlitShaderCode', getBlitShaderCode);
-}, '/dev/fairmotion/src/webgl/fbo.js');
-
-
-es6_module_define('shaders', ["../path.ux/scripts/pathux.js", "./webgl.js"], function _shaders_module(_es6_module) {
-  var ShaderProgram=es6_import_item(_es6_module, './webgl.js', 'ShaderProgram');
-  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
-  const RectShader={vertex: `precision mediump float;
-uniform mat4 viewMatrix;
-
-attribute vec2 position;
-attribute vec2 uv;
-
-varying vec2 vUv;
-
-void main() {
-  vec4 p = viewMatrix * vec4(position, 0.0, 1.0);
-  gl_Position = p;
-  
-  vUv = uv; 
-}
-`, 
-   fragment: `precision mediump float;
-
-uniform mat4 viewMatrix;
-varying vec2 vUv;
-
-uniform sampler2D rgba;
-
-void main() {
-  vec4 color = texture2D(rgba, vUv); 
-  gl_FragColor = color;
-}
-`, 
-   attributes: ["position", "uv"], 
-   uniforms: {viewMatrix: new Matrix4()}}
-  _es6_module.add_export('RectShader', RectShader);
-  const ShaderDef=window._ShaderDef = {RectShader: RectShader}
-  _es6_module.add_export('ShaderDef', ShaderDef);
-  const Shaders=window._Shaders = {}
-  _es6_module.add_export('Shaders', Shaders);
-  function loadShader(gl, sdef) {
-    let sp=new ShaderProgram(gl, sdef.vertex, sdef.fragment, sdef.attributes);
-    sp.uniforms = sdef.uniforms||{}
-    sp.init(gl);
-    return sp;
-  }
-  loadShader = _es6_module.add_export('loadShader', loadShader);
-  function loadShaders(gl) {
-    for (let k in ShaderDef) {
-        let sdef=ShaderDef[k];
-        Shaders[k] = loadShader(gl, sdef);
-    }
-  }
-  loadShaders = _es6_module.add_export('loadShaders', loadShaders);
-}, '/dev/fairmotion/src/webgl/shaders.js');
-
-
-es6_module_define('simplemesh', ["./shaders.js", "./webgl.js", "../path.ux/scripts/pathux.js"], function _simplemesh_module(_es6_module) {
-  var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
-  var math=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'math');
-  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
-  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
-  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
-  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
-  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
-  var webgl=es6_import(_es6_module, './webgl.js');
-  var ShaderProgram=es6_import_item(_es6_module, './webgl.js', 'ShaderProgram');
-  var Shaders=es6_import_item(_es6_module, './shaders.js', 'Shaders');
-  var loadShader=es6_import_item(_es6_module, './shaders.js', 'loadShader');
-  var RenderBuffer=webgl.RenderBuffer;
-  const PrimitiveTypes={POINTS: 1, 
-   LINES: 2, 
-   TRIS: 4, 
-   ADVANCED_LINES: 8, 
-   ALL: 1|2|4|8}
-  _es6_module.add_export('PrimitiveTypes', PrimitiveTypes);
-  const LayerTypes={LOC: 1, 
-   UV: 2, 
-   COLOR: 4, 
-   NORMAL: 8, 
-   ID: 16, 
-   CUSTOM: 32, 
-   INDEX: 64}
-  _es6_module.add_export('LayerTypes', LayerTypes);
-  const LayerTypeNames={[LayerTypes.LOC]: "position", 
-   [LayerTypes.UV]: "uv", 
-   [LayerTypes.COLOR]: "color", 
-   [LayerTypes.ID]: "id", 
-   [LayerTypes.NORMAL]: "normal", 
-   [LayerTypes.CUSTOM]: "custom"}
-  _es6_module.add_export('LayerTypeNames', LayerTypeNames);
-  let _TypeSizes={LOC: 3, 
-   UV: 2, 
-   COLOR: 4, 
-   NORMAL: 3, 
-   ID: 1, 
-   CUSTOM: 4, 
-   INDEX: 1}
-  const TypeSizes={}
-  _es6_module.add_export('TypeSizes', TypeSizes);
-  for (var k in LayerTypes) {
-      TypeSizes[LayerTypes[k]] = TypeSizes[k] = _TypeSizes[k];
-  }
-  let line2_temp4s=util.cachering.fromConstructor(Vector4, 64);
-  let line2_stripuvs=[[1, 0], [-1, 0], [-1, 1], [1, 0], [-1, 1], [1, 1]];
-  function appendvec(a, b, n, defaultval) {
-    if (defaultval===undefined)
-      defaultval = 0.0;
-    for (var i=0; i<n; i++) {
-        let val=b[i];
-        a.push(val===undefined ? defaultval : val);
-    }
-  }
-  var _ids_arrs=[[0], [0], [0], [0]];
-  let zero=new Vector3();
-  function copyvec(a, b, starti, n, defaultval) {
-    if (defaultval===undefined)
-      defaultval = 0.0;
-    for (var i=starti; i<starti+n; i++) {
-        let val=b[i];
-        a[i] = val===undefined ? defaultval : val;
-    }
-  }
-  class TriEditor  {
-     constructor() {
-      this.mesh = undefined;
-      this.i = 0;
-    }
-     bind(mesh, i) {
-      this.mesh = mesh;
-      this.i = i;
-      return this;
-    }
-     colors(c1, c2, c3) {
-      let data=this.mesh.tri_colors;
-      let i=this.i*3;
-      data.copy(i, c1);
-      data.copy(i+1, c2);
-      data.copy(i+2, c3);
-      return this;
-    }
-     normals(n1, n2, n3) {
-      let data=this.mesh.tri_normals;
-      let i=this.i*3;
-      data.copy(i, n1);
-      data.copy(i+1, n2);
-      data.copy(i+2, n3);
-      return this;
-    }
-     custom(layeri, v1, v2, v3) {
-      let layer=this.mesh.layers.layers[layeri];
-      let i=this.i*3;
-      layer.copy(i, v1);
-      layer.copy(i+1, v2);
-      layer.copy(i+2, v3);
-      return this;
-    }
-     uvs(u1, u2, u3) {
-      let data=this.mesh.tri_uvs;
-      let i=this.i*3;
-      data.copy(i, u1);
-      data.copy(i+1, u2);
-      data.copy(i+2, u3);
-      return this;
-    }
-     ids(i1, i2, i3) {
-      if (i1===undefined||i2===undefined||i3===undefined) {
-          throw new Error("i1/i2/i3 cannot be undefined");
-      }
-      let data=this.mesh.tri_ids;
-      let i=this.i*3;
-      _ids_arrs[0][0] = i1;
-      i1 = _ids_arrs[0];
-      _ids_arrs[1][0] = i2;
-      i2 = _ids_arrs[1];
-      _ids_arrs[2][0] = i3;
-      i3 = _ids_arrs[2];
-      data.copy(i, i1);
-      data.copy(i+1, i2);
-      data.copy(i+2, i3);
-      return this;
-    }
-  }
-  _ESClass.register(TriEditor);
-  _es6_module.add_class(TriEditor);
-  TriEditor = _es6_module.add_export('TriEditor', TriEditor);
-  class QuadEditor  {
-     constructor() {
-      this.t1 = new TriEditor();
-      this.t2 = new TriEditor();
-    }
-     bind(mesh, i, i2) {
-      this.t1.bind(mesh, i);
-      this.t2.bind(mesh, i2);
-      return this;
-    }
-     custom(layeri, v1, v2, v3, v4) {
-      this.t1.custom(layeri, v1, v2, v3);
-      this.t2.custom(layeri, v1, v3, v4);
-      return this;
-    }
-     uvs(u1, u2, u3, u4) {
-      this.t1.uvs(u1, u2, u3);
-      this.t2.uvs(u1, u3, u4);
-      return this;
-    }
-     colors(u1, u2, u3, u4) {
-      this.t1.colors(u1, u2, u3);
-      this.t2.colors(u1, u3, u4);
-      return this;
-    }
-     normals(u1, u2, u3, u4) {
-      this.t1.normals(u1, u2, u3);
-      this.t2.normals(u1, u3, u4);
-      return this;
-    }
-     ids(u1, u2, u3, u4) {
-      this.t1.ids(u1, u2, u3);
-      this.t2.ids(u1, u3, u4);
-      return this;
-    }
-  }
-  _ESClass.register(QuadEditor);
-  _es6_module.add_class(QuadEditor);
-  QuadEditor = _es6_module.add_export('QuadEditor', QuadEditor);
-  class LineEditor  {
-     constructor() {
-      this.mesh = undefined;
-      this.i = 0;
-    }
-     bind(mesh, i) {
-      this.mesh = mesh;
-      this.i = i;
-      return this;
-    }
-     colors(c1, c2) {
-      let data=this.mesh.line_colors;
-      let i=this.i*2;
-      data.copy(i, c1);
-      data.copy(i+1, c2);
-      return this;
-    }
-     normals(c1, c2) {
-      let data=this.mesh.line_normals;
-      let i=this.i*2;
-      data.copy(i, c1);
-      data.copy(i+1, c2);
-      return this;
-    }
-     uvs(c1, c2) {
-      let data=this.mesh.line_uvs;
-      let i=this.i*2;
-      data.copy(i, c1);
-      data.copy(i+1, c2);
-      return this;
-    }
-     ids(i1, i2) {
-      if (i1===undefined||i2===undefined) {
-          throw new Error("i1 i2 cannot be undefined");
-      }
-      let data=this.mesh.line_ids;
-      let i=this.i*2;
-      _ids_arrs[0][0] = i1;
-      _ids_arrs[1][0] = i2;
-      data.copy(i, _ids_arrs[0]);
-      data.copy(i+1, _ids_arrs[1]);
-      return this;
-    }
-  }
-  _ESClass.register(LineEditor);
-  _es6_module.add_class(LineEditor);
-  LineEditor = _es6_module.add_export('LineEditor', LineEditor);
-  class DummyEditor  {
-     colors() {
-      return this;
-    }
-     ids() {
-      return this;
-    }
-     normals() {
-      return this;
-    }
-     custom() {
-      return this;
-    }
-     tangent() {
-      return this;
-    }
-     uvs() {
-      return this;
-    }
-  }
-  _ESClass.register(DummyEditor);
-  _es6_module.add_class(DummyEditor);
-  let dummyeditor=new DummyEditor();
-  class LineEditor2  {
-     constructor() {
-      this.mesh = undefined;
-      this.i = 0;
-    }
-     bind(mesh, i) {
-      this.mesh = mesh;
-      this.i = i;
-      return this;
-    }
-     custom(layeri, c1, c2) {
-      let data=this.mesh.layers.layers[layeri];
-      let i=this.i*6;
-      data.copy(i+0, c1);
-      data.copy(i+1, c1);
-      data.copy(i+2, c2);
-      data.copy(i+3, c1);
-      data.copy(i+4, c2);
-      data.copy(i+5, c2);
-      return this;
-    }
-     colors(c1, c2) {
-      let data=this.mesh.line_colors2;
-      let i=this.i*6;
-      data.copy(i+0, c1);
-      data.copy(i+1, c1);
-      data.copy(i+2, c2);
-      data.copy(i+3, c1);
-      data.copy(i+4, c2);
-      data.copy(i+5, c2);
-      return this;
-    }
-     normals(c1, c2) {
-      let data=this.mesh.line_normals2;
-      let i=this.i*6;
-      data.copy(i+0, c1);
-      data.copy(i+1, c1);
-      data.copy(i+2, c2);
-      data.copy(i+3, c1);
-      data.copy(i+4, c2);
-      data.copy(i+5, c2);
-      return this;
-    }
-     uvs(c1, c2) {
-      let data=this.mesh.line_uvs2;
-      let i=this.i*6;
-      data.copy(i+0, c1);
-      data.copy(i+1, c1);
-      data.copy(i+2, c2);
-      data.copy(i+3, c1);
-      data.copy(i+4, c2);
-      data.copy(i+5, c2);
-      return this;
-    }
-     ids(i1, i2) {
-      if (i1===undefined||i2===undefined) {
-          throw new Error("i1 i2 cannot be undefined");
-      }
-      let data=this.mesh.line_ids2;
-      let i=this.i*6;
-      let c1=_ids_arrs[0];
-      let c2=_ids_arrs[1];
-      c1[0] = i1;
-      c2[0] = i2;
-      data.copy(i+0, c1);
-      data.copy(i+1, c1);
-      data.copy(i+2, c2);
-      data.copy(i+3, c1);
-      data.copy(i+4, c2);
-      data.copy(i+5, c2);
-      return this;
-    }
-  }
-  _ESClass.register(LineEditor2);
-  _es6_module.add_class(LineEditor2);
-  LineEditor2 = _es6_module.add_export('LineEditor2', LineEditor2);
-  class PointEditor  {
-     constructor() {
-      this.mesh = undefined;
-      this.i = 0;
-    }
-     bind(mesh, i) {
-      this.mesh = mesh;
-      this.i = i;
-      return this;
-    }
-     colors(c1) {
-      let data=this.mesh.point_colors;
-      let i=this.i;
-      data.copy(i, c1);
-      return this;
-    }
-     normals(c1) {
-      let data=this.mesh.point_normals;
-      let i=this.i;
-      data.copy(i, c1);
-      return this;
-    }
-     uvs(c1) {
-      let data=this.mesh.point_uvs;
-      let i=this.i;
-      data.copy(i, c1);
-      return this;
-    }
-     ids(i1) {
-      if (i1===undefined) {
-          throw new Error("i1 cannot be undefined");
-      }
-      let data=this.mesh.point_ids;
-      let i=this.i;
-      _ids_arrs[0][0] = i1;
-      i1 = _ids_arrs[0];
-      data.copy(i, _ids_arrs[0]);
-      return this;
-    }
-  }
-  _ESClass.register(PointEditor);
-  _es6_module.add_class(PointEditor);
-  PointEditor = _es6_module.add_export('PointEditor', PointEditor);
-  const glTypeSizes={5126: 4, 
-   5120: 1, 
-   5121: 1, 
-   5123: 2, 
-   5122: 2, 
-   5124: 4, 
-   5125: 4}
-  _es6_module.add_export('glTypeSizes', glTypeSizes);
-  const glTypeArrays={5126: Float32Array, 
-   5120: Int8Array, 
-   5121: Uint8Array, 
-   5122: Int16Array, 
-   5123: Uint16Array, 
-   5124: Int32Array, 
-   5125: Uint32Array}
-  _es6_module.add_export('glTypeArrays', glTypeArrays);
-  const glTypeArrayMuls={5126: 1, 
-   5120: 127, 
-   5121: 255, 
-   5123: 65535, 
-   5122: 32767, 
-   5124: 1, 
-   5125: 1}
-  _es6_module.add_export('glTypeArrayMuls', glTypeArrayMuls);
-  const glSizes={FLOAT: 5126, 
-   BYTE: 5120, 
-   UNSIGNED_BYTE: 5121, 
-   SHORT: 5122, 
-   UNSIGNED_SHORT: 5123, 
-   INT: 5124, 
-   UNSIGNED_INT: 5125}
-  const glRanges={[glSizes.FLOAT]: [-1e+17, 1e+17], 
-   [glSizes.UNSIGNED_SHORT]: [0, 65535], 
-   [glSizes.SHORT]: [-32767, 32767], 
-   [glSizes.BYTE]: [-127, 127], 
-   [glSizes.UNSIGNED_BYTE]: [0, 255], 
-   [glSizes.UNSIGNED_INT]: [0, (1<<32)-1], 
-   [glSizes.INT]: [-((1<<31)-1), (1<<31)-1]}
-  window.glRanges = glRanges;
-  let dmap=new WeakSet();
-  function debugproxy(data, min, max, isint) {
-    if (min===undefined) {
-        min = -1e+17;
-    }
-    if (max===undefined) {
-        max = 1e+17;
-    }
-    if (dmap.has(data)) {
-        data.debug.min = min;
-        data.isint = isint;
-        data.debug.max = max;
-        return data.debug.proxy;
-    }
-    dmap.add(data);
-    function validate(target, prop) {
-      if (typeof prop==="string") {
-          prop = parseFloat(prop);
-      }
-      let bad=prop!==~~prop;
-      bad = bad||isNaN(prop)||!isFinite(prop);
-      bad = bad||prop<0||prop>=data.length;
-      if (bad) {
-          console.log(target, prop);
-          throw new Error("bad prop "+prop);
-      }
-      return prop;
-    }
-    let debug={min: min, 
-    max: max, 
-    isint: isint}
-    let proxy=new Proxy(data, {get: function get(target, prop, rc) {
-        prop = validate(target, prop);
-        return target[prop];
-      }, 
-    set: function set(target, prop, val) {
-        prop = validate(target, prop);
-        let bad=typeof val!=="number";
-        bad = bad||val<debug.min||val>debug.max;
-        bad = bad||isNaN(val)||!isFinite(val);
-        bad = bad||(1&&val!==~~val);
-        if (bad) {
-            console.log(val, target, prop, debug.min, debug.max);
-            throw new Error("bad value "+val);
-        }
-        target[prop] = val;
-        return true;
-      }});
-    data.debug = debug;
-    data.debug.proxy = proxy;
-    return proxy;
-  }
-  window.debugproxy = debugproxy;
-  const GL_ARRAY_BUFFER=34962;
-  const GL_ELEMENT_ARRAY_BUFFER=34963;
-  const GL_STATIC_DRAW=35044;
-  class GeoLayer extends Array {
-     constructor(size, name, primflag, type, idx) {
-      super();
-      this.index = undefined;
-      this.glSize = 5126;
-      this.glSizeMul = 1.0;
-      this.glReady = false;
-      this.type = type;
-      this.data = [];
-      this._useTypedData = false;
-      this.dataUsed = 0;
-      this.data_f32 = [];
-      this.f32Ready = false;
-      this.normalized = false;
-      this.bufferType = GL_ARRAY_BUFFER;
-      this.bufferHint = GL_STATIC_DRAW;
-      this.size = size;
-      this.name = name;
-      this.primflag = primflag;
-      this.bufferKey = undefined;
-      this.idx = idx;
-      this.id = undefined;
-    }
-     _getWriteData() {
-      return this._useTypedData ? this.data_f32 : this.data;
-    }
-     setGLSize(size) {
-      this.glSize = size;
-      this.glSizeMul = glTypeArrayMuls[size];
-      return this;
-    }
-     setNormalized(state) {
-      this.normalized = !!state;
-      return this;
-    }
-     reset() {
-      this.glReady = false;
-      this.dataUsed = 0;
-      return this;
-    }
-     extend(data) {
-      if (this._useTypedData&&this.dataUsed>=this.data_f32.length) {
-          if (DEBUG.simplemesh) {
-              console.warn("Resizing simplemesh attribute after conversion to a typed array");
-          }
-          this._useTypedData = false;
-          this.data = new Array(this.data_f32.length);
-          let a=this.data;
-          let b=this.data_f32;
-          for (let i=0; i<a.length; i++) {
-              a[i] = b[i];
-          }
-          this.data_f32 = [];
-      }
-      let bad=isNaN(this.dataUsed)||this.dataUsed!==~~this.dataUsed||this.dataUsed<0;
-      bad = bad||isNaN(this.size)||isNaN(this.data.length)||this.size<=0||this.data.length<0;
-      if (bad) {
-          throw new Error("dataUsed NaN error "+this.dataUsed);
-      }
-      let size=this.size;
-      let starti=this.dataUsed;
-      this.f32Ready = this._useTypedData;
-      this.dataUsed+=size;
-      if (!this._useTypedData&&this.dataUsed>this.data.length) {
-          this.data.length = ~~(this.dataUsed*1.5);
-      }
-      if (data!==undefined) {
-          this.copy(~~(starti/this.size), data, 1);
-      }
-      return this;
-    }
-     setCount(count, dirty=false) {
-      if (isNaN(count)) {
-          throw new Error("count was NaN");
-      }
-      count*=this.size;
-      if (dirty) {
-          this.glReady = false;
-      }
-      this.dataUsed = count;
-      let data=this._useTypedData ? this.data_f32 : this.data;
-      if (this.dataUsed!==data.length) {
-          if (!this._useTypedData) {
-              if (this.data.length<this.dataUsed) {
-                  this.data.length = this.dataUsed;
-                  this.glReady = false;
-              }
-              this.f32Ready = false;
-          }
-          else {
-            if (window.DEBUG&&window.DEBUG.simplemesh) {
-                console.log("simpleisland is converting back to simple array", count, this.data_f32.length, this.dataUsed);
-            }
-            let len=this.dataUsed;
-            this.data = new Array(len);
-            let a=this.data;
-            let b=this.data_f32;
-            for (let i=0; i<b.length; i++) {
-                a[i] = b[i];
-            }
-            this.data.length = this.dataUsed;
-            this.glReady = false;
-            this._useTypedData = false;
-            this.f32Ready = false;
-          }
-      }
-    }
-     _copy2Typed(data1, data2, n, mul, start) {
-      for (let i=0; i<n; i++) {
-          data1[start++] = ~~(data2[i]*mul);
-      }
-    }
-     _copy2(data1, data2, n, mul, start) {
-      for (let i=0; i<n; i++) {
-          data1[start++] = ~~(data2[i]*mul);
-      }
-    }
-     _copy_int(i, data, n=1) {
-      let tot=n*this.size;
-      this.f32Ready = false;
-      i*=this.size;
-      let thisdata;
-      let mul=this.glSizeMul;
-      if (this._useTypedData) {
-          thisdata = this.data_f32;
-      }
-      else {
-        thisdata = this.data;
-      }
-      if (DEBUG.simplemesh) {
-          let range=glRanges[this.glSize];
-          thisdata = debugproxy(thisdata, range[0], range[1], this.glSize!==glSizes.FLOAT);
-      }
-      if (this._useTypedData) {
-          this._copy2Typed(thisdata, data, tot, mul, i);
-      }
-      else {
-        this._copy2(thisdata, data, tot, mul, i);
-      }
-      return this;
-    }
-     copy(i, data, n=1) {
-      if (this.glSizeMul!==1) {
-          return this._copy_int(i, data, n);
-      }
-      let tot=n*this.size;
-      this.f32Ready = this._useTypedData;
-      i*=this.size;
-      let thisdata;
-      if (this._useTypedData) {
-          thisdata = this.data_f32;
-      }
-      else {
-        thisdata = this.data;
-      }
-      if (i>=this.dataUsed) {
-          throw new Error("eek!");
-          return ;
-      }
-      if (isNaN(i)) {
-          throw new Error("NaN!");
-      }
-      let di=0;
-      let end=i+tot;
-      while (i<end) {
-        thisdata[i] = data[di];
-        di++;
-        i++;
-      }
-      return this;
-    }
-     [Symbol.keystr]() {
-      return ""+this.id;
-    }
-  }
-  _ESClass.register(GeoLayer);
-  _es6_module.add_class(GeoLayer);
-  GeoLayer = _es6_module.add_export('GeoLayer', GeoLayer);
-  class GeoLayerMeta  {
-     constructor(primflag, type, attrsizes) {
-      this.type = type;
-      this.primflag = primflag;
-      this.layers = [];
-      this.normalized = false;
-      this.attrsizes = attrsizes;
-    }
-     add(layer) {
-      this.layers.push(layer);
-      if (this.attrsizes[LayerTypeNames[layer.type]]===undefined) {
-          this.attrsizes[LayerTypeNames[layer.type]] = 0;
-      }
-      else {
-        this.attrsizes[LayerTypeNames[layer.type]]++;
-      }
-    }
-  }
-  _ESClass.register(GeoLayerMeta);
-  _es6_module.add_class(GeoLayerMeta);
-  GeoLayerMeta = _es6_module.add_export('GeoLayerMeta', GeoLayerMeta);
-  function get_meta_mask(primflag, type) {
-    return type|(primflag<<16);
-  }
-  let _debug_idgen=0;
-  class GeoLayerManager  {
-     constructor() {
-      this.layers = [];
-      this.has_multilayers = false;
-      this._debug_id = _debug_idgen++;
-      this.layer_meta = new Map();
-      this.layer_idgen = new util.IDGen();
-      this.attrsizes = new Map();
-    }
-     reset() {
-      for (let /*unprocessed ExpandNode*/[key, meta] of this.layer_meta) {
-          for (let l of meta.layers) {
-              l.reset();
-          }
-      }
-      return this;
-    }
-     copy() {
-      let ret=new GeoLayerManager();
-      ret.layer_idgen = this.layer_idgen.copy();
-      ret.has_multilayers = this.has_multilayers;
-      for (let key of this.layer_meta.keys()) {
-          let meta=this.layer_meta.get(key);
-          let meta2=ret.get_meta(meta.primflag, meta.type);
-          for (let layer of meta.layers) {
-              let layer2=new GeoLayer(layer.size, layer.name, layer.primflag, layer.type, layer.idx);
-              layer2.data.length = layer.data.length;
-              layer2.dataUsed = layer.dataUsed;
-              layer2._useTypedData = layer._useTypedData;
-              layer2.glSize = layer.glSize;
-              layer2.glSizeMul = layer.glSizeMul;
-              layer2.id = layer.id;
-              layer2.index = layer.index;
-              layer2.bufferKey = layer.bufferKey;
-              layer2.normalized = layer.normalized;
-              let a=layer.data;
-              let b=layer2.data;
-              let len=layer.dataUsed;
-              if (layer._useTypedData) {
-                  layer2.data_f32 = layer.data_f32.slice(0, layer.data_f32.length);
-              }
-              else {
-                layer2.data = layer.data.slice(0, layer.data.length);
-              }
-              meta2.layers.push(layer2);
-              ret.layers.push(layer2);
-          }
-      }
-      return ret;
-    }
-     get_meta(primflag, type) {
-      let mask=get_meta_mask(primflag, type);
-      if (!this.layer_meta.has(mask)) {
-          let attrsizes={};
-          this.attrsizes.set(primflag, attrsizes);
-          this.layer_meta.set(mask, new GeoLayerMeta(primflag, type, attrsizes));
-      }
-      return this.layer_meta.get(mask);
-    }
-     [Symbol.iterator]() {
-      return this.layers[Symbol.iterator]();
-    }
-     extend(primflag, type, data, count) {
-      let meta=this.get_meta(primflag, type);
-      for (let i=0; i<meta.layers.length; i++) {
-          meta.layers[i].extend(data, count);
-      }
-      return this;
-    }
-     layerCount(primflag, type) {
-      return this.get_meta(primflag, type).layers.length;
-    }
-     pushLayer(name, primflag, type, size) {
-      let meta=this.get_meta(primflag, type);
-      let idx=meta.layers.length;
-      let layer=new GeoLayer(size, name, primflag, type, idx);
-      layer.id = this.layer_idgen.next();
-      layer.index = this.layers.length;
-      layer.primflag = primflag;
-      layer.bufferKey = layer.name+":"+layer.id;
-      this.layers.push(layer);
-      meta.add(layer);
-      layer.normalized = meta.normalized;
-      return layer;
-    }
-     get(name, primflag, type, size, idx=undefined) {
-      if (size===undefined) {
-          size = TypeSizes[type];
-      }
-      if (idx>0) {
-          this.has_multilayers = true;
-      }
-      let meta=this.get_meta(primflag, type);
-      if (type===LayerTypes.CUSTOM) {
-          for (let layer of meta.layers) {
-              if (layer.name===name) {
-                  return layer;
-              }
-          }
-      }
-      else {
-        idx = idx===undefined ? 0 : idx;
-        if (idx<meta.layers.length) {
-            return meta.layers[idx];
-        }
-      }
-      return this.pushLayer(name, primflag, type, size, idx);
-    }
-  }
-  _ESClass.register(GeoLayerManager);
-  _es6_module.add_class(GeoLayerManager);
-  GeoLayerManager = _es6_module.add_export('GeoLayerManager', GeoLayerManager);
-  var _default_uv=[0, 0];
-  var _default_color=[0, 0, 0, 1];
-  var _default_normal=[0, 0, 1];
-  var _default_id=[-1];
-  class SimpleIsland  {
-     constructor(mesh) {
-      let lay=this.layers = new GeoLayerManager();
-      this._glAttrs = {};
-      this.primflag = undefined;
-      this.mesh = mesh;
-      this.makeBufferAliases();
-      this.totpoint = 0;
-      this.totline = 0;
-      this.tottri = 0;
-      this.totline_tristrip = 0;
-      this.indexedMode = undefined;
-      this.layerflag = undefined;
-      this.regen = 1;
-      this._regen_all = 0;
-      this.tri_editors = util.cachering.fromConstructor(TriEditor, 32, true);
-      this.quad_editors = util.cachering.fromConstructor(QuadEditor, 32, true);
-      this.line_editors = util.cachering.fromConstructor(LineEditor, 32, true);
-      this.point_editors = util.cachering.fromConstructor(PointEditor, 32, true);
-      this.tristrip_line_editors = util.cachering.fromConstructor(LineEditor2, 32, true);
-      this.buffer = new RenderBuffer();
-      this.program = undefined;
-      this.textures = [];
-      this.uniforms = {};
-      this._uniforms_temp = {};
-    }
-     reset(gl) {
-      this.layers.reset();
-      this.buffer.reset(gl);
-      this.tottri = this.totline = this.totpoint = this.totline_tristrip = 0;
-      this.regen = 1;
-    }
-     getIndexedMode() {
-      if (this.indexedMode!==undefined) {
-          return this.indexedMode;
-      }
-      else {
-        return this.mesh.indexedMode;
-      }
-    }
-     setPrimitiveCount(primtype, tot) {
-      switch (primtype) {
-        case PrimitiveTypes.TRIS:
-          this.tottri = tot;
-          tot*=3;
-          break;
-        case PrimitiveTypes.LINES:
-          this.totline = tot;
-          tot*=2;
-          break;
-        case PrimitiveTypes.ADVANCED_LINES:
-          this.totline_tristrip = tot;
-          tot*=6;
-          break;
-        case PrimitiveTypes.POINTS:
-          this.totpoint = tot;
-          break;
-      }
-      let lf=this.layerflag ? this.layerflag : this.mesh.layerflag;
-      for (let layer of this.layers.layers) {
-          if (layer.primflag!==primtype||!(layer.type&lf)) {
-              continue;
-          }
-          layer.setCount(tot);
-      }
-      return this;
-    }
-     makeBufferAliases() {
-      let lay=this.layers;
-      let pflag=PrimitiveTypes.TRIS;
-      this.tri_cos = lay.get("tri_cos", pflag, LayerTypes.LOC);
-      this.tri_normals = lay.get("tri_normals", pflag, LayerTypes.NORMAL).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.tri_uvs = lay.get("tri_uvs", pflag, LayerTypes.UV).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.tri_colors = lay.get("tri_colors", pflag, LayerTypes.COLOR).setGLSize(glSizes.UNSIGNED_BYTE).setNormalized(true);
-      this.tri_ids = lay.get("tri_ids", pflag, LayerTypes.ID);
-      pflag = PrimitiveTypes.LINES;
-      this.line_cos = lay.get("line_cos", pflag, LayerTypes.LOC);
-      this.line_normals = lay.get("line_normals", pflag, LayerTypes.NORMAL).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.line_uvs = lay.get("line_uvs", pflag, LayerTypes.UV).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.line_colors = lay.get("line_colors", pflag, LayerTypes.COLOR).setGLSize(glSizes.UNSIGNED_BYTE).setNormalized(true);
-      this.line_ids = lay.get("line_ids", pflag, LayerTypes.ID);
-      pflag = PrimitiveTypes.POINTS;
-      this.point_cos = lay.get("point_cos", pflag, LayerTypes.LOC);
-      this.point_normals = lay.get("point_normals", pflag, LayerTypes.NORMAL).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.point_uvs = lay.get("point_uvs", pflag, LayerTypes.UV).setGLSize(glSizes.SHORT).setNormalized(true);
-      this.point_colors = lay.get("point_colors", pflag, LayerTypes.COLOR).setGLSize(glSizes.UNSIGNED_BYTE).setNormalized(true);
-      this.point_ids = lay.get("point_ids", pflag, LayerTypes.ID);
-      if (this.primflag&PrimitiveTypes.ADVANCED_LINES) {
-          pflag = PrimitiveTypes.ADVANCED_LINES;
-          this.line_cos2 = lay.get("line_cos2", pflag, LayerTypes.LOC);
-          this.line_normals2 = lay.get("line_normals2", pflag, LayerTypes.NORMAL).setGLSize(glSizes.SHORT).setNormalized(true);
-          this.line_uvs2 = lay.get("line_uvs2", pflag, LayerTypes.UV).setGLSize(glSizes.SHORT).setNormalized(true);
-          this.line_colors2 = lay.get("line_colors2", pflag, LayerTypes.COLOR).setGLSize(glSizes.UNSIGNED_BYTE).setNormalized(true);
-          this.line_ids2 = lay.get("line_ids2", pflag, LayerTypes.ID);
-          this.line_stripuvs = this.getDataLayer(PrimitiveTypes.ADVANCED_LINES, LayerTypes.CUSTOM, 2, "_strip_uv");
-          this.line_stripdirs = this.getDataLayer(PrimitiveTypes.ADVANCED_LINES, LayerTypes.CUSTOM, 4, "_strip_dir");
-          this.line_stripdirs.normalized = false;
-      }
-    }
-     copy() {
-      let ret=new SimpleIsland();
-      ret.primflag = this.primflag;
-      ret.layerflag = this.layerflag;
-      ret.totline = this.totline;
-      ret.tottri = this.tottri;
-      ret.totpoint = this.totpoint;
-      for (let k in this.uniforms) {
-          ret.uniforms[k] = this.uniforms[k];
-      }
-      for (let tex of this.textures) {
-          ret.textures.push(tex);
-      }
-      ret.program = this.program;
-      ret.layers = this.layers.copy();
-      ret.regen = 1;
-      ret.makeBufferAliases();
-      return ret;
-    }
-     glFlagUploadAll(primflag=PrimitiveTypes.ALL) {
-      this._regen_all|=primflag;
-    }
-     point(v1) {
-      this.point_cos.extend(v1);
-      this._newElem(PrimitiveTypes.POINTS, 1);
-      this.totpoint++;
-      return this.point_editors.next().bind(this, this.totpoint-1);
-    }
-     smoothline(v1, v2, w1=2, w2=2) {
-      let dv=0.0;
-      for (let i=0; i<3; i++) {
-          dv+=(v1[i]-v2[i])*(v1[i]-v2[i]);
-      }
-      if (!this.line_cos2) {
-          this.regen = true;
-          this.primflag|=PrimitiveTypes.ADVANCED_LINES;
-          if (this.layerflag!==undefined) {
-              this.layerflag|=LayerTypes.CUSTOM;
-          }
-          else {
-            this.mesh.layerflag|=LayerTypes.CUSTOM;
-          }
-          this.makeBufferAliases();
-      }
-      let li=this.line_cos2.dataUsed;
-      this.line_cos2.extend(v1);
-      this.line_cos2.extend(v1);
-      this.line_cos2.extend(v2);
-      this.line_cos2.extend(v1);
-      this.line_cos2.extend(v2);
-      this.line_cos2.extend(v2);
-      let data=this.line_cos2._getWriteData();
-      if (dv===0.0) {
-          while (li<this.line_cos2.dataUsed) {
-            data[li++]+=Math.random()*0.001;
-          }
-      }
-      this._newElem(PrimitiveTypes.ADVANCED_LINES, 6);
-      let i=this.totline_tristrip*6;
-      this.line_stripuvs.copy(i, line2_stripuvs[0]);
-      this.line_stripuvs.copy(i+1, line2_stripuvs[1]);
-      this.line_stripuvs.copy(i+2, line2_stripuvs[2]);
-      this.line_stripuvs.copy(i+3, line2_stripuvs[3]);
-      this.line_stripuvs.copy(i+4, line2_stripuvs[4]);
-      this.line_stripuvs.copy(i+5, line2_stripuvs[5]);
-      let d=line2_temp4s.next().load(v2).sub(v1);
-      d[3] = 0.0;
-      d.normalize();
-      d[3] = w1;
-      this.line_stripdirs.copy(i, d);
-      this.line_stripdirs.copy(i+1, d);
-      d[3] = w2;
-      this.line_stripdirs.copy(i+2, d);
-      d[3] = w1;
-      this.line_stripdirs.copy(i+3, d);
-      d[3] = w2;
-      this.line_stripdirs.copy(i+4, d);
-      this.line_stripdirs.copy(i+5, d);
-      this.totline_tristrip++;
-      return this.tristrip_line_editors.next().bind(this, this.totline_tristrip-1);
-    }
-     line(v1, v2) {
-      this.line_cos.extend(v1);
-      this.line_cos.extend(v2);
-      this._newElem(PrimitiveTypes.LINES, 2);
-      this.totline++;
-      return this.line_editors.next().bind(this, this.totline-1);
-    }
-     _newElem(primtype, primcount) {
-      let layerflag=this.layerflag===undefined ? this.mesh.layerflag : this.layerflag;
-      let meta=this.layers.get_meta(primtype, LayerTypes.LOC);
-      let start=meta.layers[0].dataUsed/meta.layers[0].size;
-      for (let j=0; j<primcount; j++) {
-          if (layerflag&LayerTypes.UV) {
-              this.layers.extend(primtype, LayerTypes.UV, _default_uv);
-          }
-          if (layerflag&LayerTypes.CUSTOM) {
-              this.layers.extend(primtype, LayerTypes.CUSTOM, _default_uv);
-          }
-          if (layerflag&LayerTypes.COLOR) {
-              this.layers.extend(primtype, LayerTypes.COLOR, _default_color);
-          }
-          if (layerflag&LayerTypes.NORMAL) {
-              this.layers.extend(primtype, LayerTypes.NORMAL, _default_normal);
-          }
-          if (layerflag&LayerTypes.ID) {
-              this.layers.extend(primtype, LayerTypes.ID, _default_id);
-          }
-      }
-      return start;
-    }
-     tri(v1, v2, v3) {
-      this.tri_cos.extend(v1);
-      this.tri_cos.extend(v2);
-      this.tri_cos.extend(v3);
-      this._newElem(PrimitiveTypes.TRIS, 3);
-      this.tottri++;
-      return this.tri_editors.next().bind(this, this.tottri-1);
-    }
-     quad(v1, v2, v3, v4) {
-      let i=this.tottri;
-      this.tri(v1, v2, v3);
-      this.tri(v1, v3, v4);
-      return this.quad_editors.next().bind(this, i, i+1);
-    }
-     destroy(gl) {
-      this.buffer.destroy(gl);
-      this.regen = true;
-    }
-     gen_buffers(gl) {
-      let layerflag=this.layerflag===undefined ? this.mesh.layerflag : this.layerflag;
-      let allflag=this._regen_all;
-      this._regen_all = 0;
-      for (let layer of this.layers) {
-          if (layer.dataUsed===0) {
-              continue;
-          }
-          if (layer._useTypedData&&!layer.f32Ready) {
-              layer.f32Ready = true;
-          }
-          if (!layer.f32Ready) {
-              layer.f32Ready = true;
-              let typedarray=glTypeArrays[layer.glSize];
-              if (!layer.data_f32||layer.data_f32.length!==layer.dataUsed) {
-                  if (DEBUG.simplemesh) {
-                      console.warn("new layer data", layer.data_f32, layer);
-                  }
-                  layer.data_f32 = new typedarray(layer.dataUsed);
-              }
-              let a=layer.data;
-              let b=layer.data_f32;
-              let count=layer.dataUsed;
-              layer.data.length = layer.dataUsed;
-              layer.data_f32.set(layer.data);
-              layer._useTypedData = true;
-              layer.data = [];
-              layer.glReady = false;
-          }
-          if (layer.glReady&&layer.dataUsed!==layer.data_f32.length) {
-              throw new Error("simplemesh error");
-          }
-      }
-      for (let layer of this.layers) {
-          if (layer.glReady&&!(allflag&layer.primflag)) {
-              continue;
-          }
-          if (layer.dataUsed===0||!(layer.type&layerflag)) {
-              continue;
-          }
-          if (layer.type!==LayerTypes.CUSTOM) {
-              this._glAttrs[LayerTypeNames[layer.type]] = 1;
-          }
-          let vbo=this.buffer.get(gl, layer.bufferKey, layer.bufferType);
-          vbo.uploadData(gl, layer.data_f32, layer.bufferType, layer.bufferHint);
-          layer.glReady = true;
-      }
-    }
-     getIndexBuffer(ptype) {
-      let key="";
-      switch (ptype) {
-        case PrimitiveTypes.TRIS:
-          key = "tri";
-          break;
-        case PrimitiveTypes.LINES:
-          key = "line";
-          break;
-        case PrimitiveTypes.POINTS:
-          key = "point";
-          break;
-      }
-      key+="_indices";
-      if (!this[key]) {
-          let layer=this[key] = this.layers.get(key, ptype, LayerTypes.INDEX);
-          layer.size = 1;
-          layer.glSizeMul = 1;
-          layer.glSize = glSizes.UNSIGNED_SHORT;
-          layer.normalized = false;
-          layer.bufferType = GL_ELEMENT_ARRAY_BUFFER;
-      }
-      return this[key];
-    }
-     _draw_tris(gl, uniforms, params, program) {
-      if (this.tottri) {
-          this.bindArrays(gl, uniforms, program, "tri", PrimitiveTypes.TRIS);
-          if (this.getIndexedMode()) {
-              let idx=this.getIndexBuffer(PrimitiveTypes.TRIS);
-              if (!idx) {
-                  console.warn("Missing index layer", this);
-                  return ;
-              }
-              let vbo=this.buffer.get(gl, idx.bufferKey, idx.bufferType);
-              let buf=vbo.get(gl);
-              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
-              gl.drawElements(gl.TRIANGLES, this.tottri*3, gl.UNSIGNED_SHORT, 0);
-              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-          }
-          else {
-            gl.drawArrays(gl.TRIANGLES, 0, this.tottri*3);
-          }
-      }
-    }
-     _draw_line_tristrips(gl, uniforms, params, program) {
-      let attrs=this._glAttrs;
-      if (this.totline_tristrip) {
-          if (!program._smoothline) {
-              let uniforms2=Object.assign({}, uniforms);
-              let attributes=new Set(program.attrs);
-              attributes.add("_strip_dir");
-              attributes.add("_strip_uv");
-              let vertex=program.vertexSource;
-              let fragment=program.fragmentSource;
-              vertex = ShaderProgram.insertDefine(`
-#ifndef SMOOTH_LINE
-#define SMOOTH_LINE
-#endif
-        `, vertex);
-              fragment = ShaderProgram.insertDefine(`
-#ifndef SMOOTH_LINE
-#define SMOOTH_LINE
-#endif
-        `, fragment);
-              let sdef={vertex: vertex, 
-         fragment: fragment, 
-         uniforms: uniforms2, 
-         attributes: attributes};
-              program._smoothline = loadShader(gl, sdef);
-          }
-          program = program._smoothline;
-          program.bind(gl, uniforms, attrs);
-          this.bindArrays(gl, uniforms, program, "line2", PrimitiveTypes.ADVANCED_LINES);
-          gl.drawArrays(gl.TRIANGLES, 0, this.totline_tristrip*6);
-      }
-    }
-     flagRecalc() {
-      for (let layer of this.layers) {
-          layer.f32Ready = false;
-      }
-      this.regen = true;
-      return this;
-    }
-     bindArrays(gl, uniforms, program, key, primflag) {
-      program = program===undefined ? this.program : program;
-      program = program===undefined ? this.mesh.program : program;
-      let layerflag=this.layerflag===undefined ? this.mesh.layerflag : this.layerflag;
-      if (!program||!program.program) {
-          return ;
-      }
-      let maxattrib=gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
-      for (let i=0; i<maxattrib; i++) {
-          gl.disableVertexAttribArray(i);
-      }
-      let li=0;
-      let layer=this.layers.get_meta(primflag, LayerTypes.LOC).layers[0];
-      if (layer.dataUsed===0) {
-          return ;
-      }
-      let buf=this.buffer.get(gl, layer.bufferKey, layer.bufferType).get(gl);
-      let btype=gl.ARRAY_BUFFER;
-      if (this.getIndexedMode()) {
-      }
-      gl.bindBuffer(btype, buf);
-      gl.vertexAttribPointer(0, layer.size, layer.glSize, false, 0, 0);
-      gl.enableVertexAttribArray(0);
-      let bindArray=(name, type) =>        {
-        if (!(layerflag&type)||(type&LayerTypes.INDEX)) {
-            return ;
-        }
-        let meta=this.layers.get_meta(primflag, type);
-        if (!meta.layers.length) {
-            li++;
-            return ;
-        }
-        else {
-          for (let i=0; i<meta.layers.length; i++) {
-              let layer=meta.layers[i];
-              let count;
-              let mli=i;
-              if (layer.dataUsed===0) {
-                  continue;
-              }
-              if (type===LayerTypes.CUSTOM) {
-                  name = layer.name;
-                  count = 0;
-                  for (let j=0; j<meta.layers.length; j++) {
-                      if (j===i) {
-                          break;
-                      }
-                      if (meta.layers[j].type===LayerTypes.CUSTOM&&meta.layers[j].name===name) {
-                          count++;
-                      }
-                  }
-                  mli = count;
-              }
-              let key=ShaderProgram.multiLayerAttrKey(name, mli, gl.haveWebGL2);
-              let vbo=this.buffer.get(gl, layer.bufferKey, layer.bufferType);
-              let buf=vbo.get(gl);
-              li = program.attrLoc(key);
-              if (li<0) {
-                  continue;
-              }
-              gl.enableVertexAttribArray(li);
-              gl.bindBuffer(btype, buf);
-              gl.vertexAttribPointer(li, layer.size, layer.glSize, layer.normalized, 0, 0);
-          }
-        }
-      };
-      bindArray("normal", LayerTypes.NORMAL);
-      bindArray("uv", LayerTypes.UV);
-      bindArray("color", LayerTypes.COLOR);
-      bindArray("id", LayerTypes.ID);
-      bindArray("custom", LayerTypes.CUSTOM);
-    }
-     addDataLayer(primflag, type, size=TypeSizes[type], name=LayerTypeNames[type]) {
-      this._glAttrs[name] = 1;
-      return this.layers.pushLayer(name, primflag, type, size);
-    }
-     getDataLayer(primflag, type, size=TypeSizes[type], name=LayerTypeNames[type]) {
-      this._glAttrs[name] = 1;
-      return this.layers.get(name, primflag, type, size);
-    }
-     _draw_points(gl, uniforms, params, program) {
-      if (this.totpoint>0) {
-          this.bindArrays(gl, uniforms, program, "point", PrimitiveTypes.POINTS);
-          gl.drawArrays(gl.POINTS, 0, this.totpoint);
-      }
-      else {
-        console.log("no geometry");
-      }
-    }
-     _draw_lines(gl, uniforms, params, program) {
-      if (this.totline===0) {
-          return ;
-      }
-      if (this.getIndexedMode()) {
-          let idx=this.getIndexBuffer(PrimitiveTypes.LINES);
-          this.bindArrays(gl, uniforms, program, "tris", PrimitiveTypes.TRIS);
-          if (!idx) {
-              console.warn("Missing index layer", this);
-              return ;
-          }
-          let vbo=this.buffer.get(gl, idx.bufferKey, idx.bufferType);
-          let buf=vbo.get(gl);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
-          gl.drawElements(gl.LINES, this.totline*2, gl.UNSIGNED_SHORT, 0);
-      }
-      else {
-        this.bindArrays(gl, uniforms, program, "line", PrimitiveTypes.LINES);
-        gl.drawArrays(gl.LINES, 0, this.totline*2);
-      }
-    }
-     onContextLost(e) {
-      this.regen = 1;
-    }
-     draw(gl, uniforms, params, program_override=undefined) {
-      this.gl = gl;
-      let program=this.program===undefined ? this.mesh.program : this.program;
-      let primflag=this.primflag===undefined ? this.mesh.primflag : this.primflag;
-      if (program_override!==undefined) {
-          program = program_override;
-      }
-      if (this.regen) {
-          this.regen = 0;
-          this.gen_buffers(gl);
-      }
-      if (uniforms===undefined) {
-          for (let k in this._uniforms_temp) {
-              delete this._uniforms_temp[k];
-          }
-          uniforms = this._uniforms_temp;
-      }
-      for (let k in this.uniforms) {
-          if (!(k in uniforms)) {
-              uniforms[k] = this.uniforms[k];
-          }
-      }
-      for (let k in this.mesh.uniforms) {
-          if (!(k in uniforms)) {
-              uniforms[k] = this.mesh.uniforms[k];
-          }
-      }
-      if (program===undefined)
-        program = gl.simple_shader;
-      let attrs=this._glAttrs;
-      if (!this.layers.has_multilayers) {
-          program.bind(gl, uniforms, attrs);
-      }
-      if (this.tottri&&(primflag&PrimitiveTypes.TRIS)) {
-          if (this.layers.has_multilayers) {
-              program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.TRIS), attrs);
-          }
-          this._draw_tris(gl, uniforms, params, program);
-      }
-      if (this.totline&&(primflag&PrimitiveTypes.LINES)) {
-          if (this.layers.has_multilayers) {
-              program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.LINES), attrs);
-          }
-          this._draw_lines(gl, uniforms, params, program);
-      }
-      if (this.totpoint&&(primflag&PrimitiveTypes.POINTS)) {
-          if (this.layers.has_multilayers) {
-              program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.POINTS), attrs);
-          }
-          this._draw_points(gl, uniforms, params, program);
-      }
-      if (this.totline_tristrip&&(primflag&PrimitiveTypes.ADVANCED_LINES)) {
-          if (this.layers.has_multilayers) {
-              program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.ADVANCED_LINES), attrs);
-          }
-          this._draw_line_tristrips(gl, uniforms, params, program);
-      }
-    }
-  }
-  _ESClass.register(SimpleIsland);
-  _es6_module.add_class(SimpleIsland);
-  SimpleIsland = _es6_module.add_export('SimpleIsland', SimpleIsland);
-  class SimpleMesh  {
-     constructor(layerflag=LayerTypes.LOC|LayerTypes.NORMAL|LayerTypes.UV) {
-      this.layerflag = layerflag;
-      this.primflag = PrimitiveTypes.ALL;
-      this.indexedMode = false;
-      this.gl = undefined;
-      this.islands = [];
-      this.uniforms = {};
-      this.add_island();
-      this.island = this.islands[0];
-    }
-     reset(gl) {
-      for (let island of this.islands) {
-          island.reset(gl);
-      }
-    }
-     flagRecalc() {
-      for (let island of this.islands) {
-          island.flagRecalc();
-      }
-    }
-     getDataLayer(primflag, type, size=TypeSizes[type], name=LayerTypeNames[type]) {
-      let ret;
-      for (let island of this.islands) {
-          let ret2=island.getDataLayer(primflag, type, size, name);
-          if (island===this.island) {
-              ret = ret2;
-          }
-      }
-      return ret;
-    }
-     addDataLayer(primflag, type, size=TypeSizes[type], name=LayerTypeNames[type]) {
-      let ret;
-      for (let island of this.islands) {
-          let ret2=island.addDataLayer(primflag, type, size, name);
-          if (island===this.island) {
-              ret = ret2;
-          }
-      }
-      return ret;
-    }
-     copy() {
-      let ret=new SimpleMesh();
-      ret.primflag = this.primflag;
-      ret.layerflag = this.layerflag;
-      for (let k in this.uniforms) {
-          ret.uniforms[k] = this.uniforms[k];
-      }
-      for (let island of this.islands) {
-          let island2=island.copy();
-          island2.mesh = ret;
-          ret.islands.push(island2);
-          if (island===this.island) {
-              ret.island = island2;
-          }
-      }
-      return ret;
-    }
-     add_island() {
-      let island=new SimpleIsland(this);
-      this.island = island;
-      this.islands.push(island);
-      return island;
-    }
-     destroy(gl=this.gl) {
-      if (!gl) {
-          console.warn("failed to destroy a mesh");
-          return ;
-      }
-      for (var island of this.islands) {
-          island.destroy(gl);
-      }
-    }
-     tri(v1, v2, v3) {
-      return this.island.tri(v1, v2, v3);
-    }
-     quad(v1, v2, v3, v4) {
-      return this.island.quad(v1, v2, v3, v4);
-    }
-     line(v1, v2) {
-      return this.island.line(v1, v2);
-    }
-     point(v1) {
-      return this.island.point(v1);
-    }
-     smoothline(v1, v2) {
-      return this.island.smoothline(v1, v2);
-    }
-     drawLines(gl, uniforms, program_override=undefined) {
-      for (let island of this.islands) {
-          let primflag=island.primflag;
-          island.primflag = PrimitiveTypes.LINES|PrimitiveTypes.ADVANCED_LINES;
-          island.draw(gl, uniforms, undefined, program_override);
-          island.primflag = primflag;
-      }
-    }
-     draw(gl, uniforms, program_override=undefined) {
-      this.gl = gl;
-      for (var island of this.islands) {
-          island.draw(gl, uniforms, undefined, program_override);
-      }
-    }
-  }
-  _ESClass.register(SimpleMesh);
-  _es6_module.add_class(SimpleMesh);
-  SimpleMesh = _es6_module.add_export('SimpleMesh', SimpleMesh);
-  let IDMap=util.IDMap;
-  class ChunkedSimpleMesh extends SimpleMesh {
-     constructor(layerflag=LayerTypes.LOC|LayerTypes.NORMAL|LayerTypes.UV, chunksize=2048) {
-      super(layerflag);
-      this.chunksize = chunksize;
-      this.islands = [];
-      this.uniforms = {};
-      this.primflag = PrimitiveTypes.TRIS;
-      this.island = undefined;
-      this.quad_editors = util.cachering.fromConstructor(QuadEditor, 32, true);
-      this.freelist = [];
-      this.freeset = new Set();
-      this.delset = undefined;
-      this.chunkmap = new IDMap();
-      this.idmap = new IDMap();
-      this.idgen = 0;
-    }
-     reset(gl) {
-      this.chunkmap = new IDMap();
-      this.idmap = new IDMap();
-      this.freelist.length = 0;
-      this.freeset = new Set();
-      this.delset = undefined;
-      for (let island of this.islands) {
-          island.reset(gl);
-      }
-    }
-     free(id) {
-      let chunk=this.chunkmap.get(id);
-      if (chunk===undefined||this.freeset.has(id)) {
-          return ;
-      }
-      this.freelist.push(chunk);
-      this.freelist.push(id);
-      this.freeset.add(id);
-      let island=this.islands[chunk];
-      let i=this.idmap.get(id);
-      island.point_cos.copy(i, zero);
-      island.line_cos.copy(i*2, zero);
-      island.line_cos.copy(i*2+1, zero);
-      island.tri_cos.copy(i*3, zero);
-      island.tri_cos.copy(i*3+1, zero);
-      island.tri_cos.copy(i*3+2, zero);
-      island.flagRecalc();
-    }
-     get_chunk(id) {
-      if (id>1<<18&&__instance_of(this.idmap, IDMap)) {
-          let idmap=new Map();
-          for (let /*unprocessed ExpandNode*/[k, v] of this.idmap) {
-              idmap.set(k, v);
-          }
-          this.idmap = idmap;
-          let chunkmap=new Map();
-          for (let /*unprocessed ExpandNode*/[k, v] of this.chunkmap) {
-              chunkmap.set(k, v);
-          }
-          this.chunkmap = chunkmap;
-      }
-      if (this.chunkmap.has(id)) {
-          return this.islands[this.chunkmap.get(id)];
-      }
-      if (this.freelist.length>0) {
-          let id2=this.freelist.pop();
-          let chunk=this.freelist.pop();
-          this.chunkmap.set(id, chunk);
-          this.idmap.set(id, id2);
-          return this.islands[chunk];
-      }
-      let chunki=this.islands.length;
-      let chunk=this.add_island();
-      chunk.primflag = this.primflag;
-      for (let i=0; i<this.chunksize; i++) {
-          this.freelist.push(chunki);
-          this.freelist.push(this.chunksize-i-1);
-          chunk.tri(zero, zero, zero);
-      }
-      return this.get_chunk(id);
-    }
-     onContextLost(e) {
-      for (var island of this.islands) {
-          island.onContextLost(e);
-      }
-    }
-     destroy(gl) {
-      for (var island of this.islands) {
-          island.destroy(gl);
-      }
-      this.regen = 1;
-      this.chunkmap = new IDMap();
-      this.idmap = new IDMap();
-      this.freelist.length = 0;
-      this.islands.length = 0;
-      this.add_island();
-    }
-     tri(id, v1, v2, v3) {
-      if (0) {
-          function isvec(v) {
-            if (!v) {
-                return false;
-            }
-            let ret=typeof v.length==="number";
-            ret = ret&&v.length>=3;
-            ret = ret&&typeof v[0]==="number";
-            ret = ret&&typeof v[1]==="number";
-            ret = ret&&typeof v[2]==="number";
-            return ret;
-          }
-          let bad=typeof id!=="number";
-          bad = bad||Math.floor(id)!==id;
-          bad = bad||!isvec(v1);
-          bad = bad||!isvec(v2);
-          bad = bad||!isvec(v3);
-          if (bad) {
-              throw new Error("bad parameters");
-          }
-      }
-      let chunk=this.get_chunk(id);
-      let itri=this.idmap.get(id);
-      chunk.flagRecalc();
-      chunk.glFlagUploadAll(PrimitiveTypes.TRIS);
-      let tri_cos=chunk.tri_cos;
-      let i=itri*9;
-      if (tri_cos.dataUsed<i+9) {
-          chunk.regen = 1;
-          return chunk.tri(v1, v2, v3);
-      }
-      else {
-        tri_cos.glReady = false;
-        tri_cos = tri_cos._getWriteData();
-        tri_cos[i++] = v1[0];
-        tri_cos[i++] = v1[1];
-        tri_cos[i++] = v1[2];
-        tri_cos[i++] = v2[0];
-        tri_cos[i++] = v2[1];
-        tri_cos[i++] = v2[2];
-        tri_cos[i++] = v3[0];
-        tri_cos[i++] = v3[1];
-        tri_cos[i++] = v3[2];
-        if (i>tri_cos.length) {
-            console.log(i, tri_cos.length, tri_cos);
-            throw new Error("range error");
-        }
-      }
-      chunk.regen = 1;
-      return chunk.tri_editors.next().bind(chunk, itri);
-    }
-     quad(id, v1, v2, v3, v4) {
-      throw new Error("unsupported for chunked meshes");
-    }
-     smoothline(id, v1, v2) {
-      let chunk=this.get_chunk(id);
-      let iline=this.idmap.get(id);
-      chunk.flagRecalc();
-      chunk.glFlagUploadAll(PrimitiveTypes.ADVANCED_LINES);
-      if (!chunk.line_cos2) {
-          chunk.primflag|=PrimitiveTypes.ADVANCED_LINES;
-          this.layerflag|=LayerTypes.CUSTOM;
-          chunk.makeBufferAliases();
-      }
-      let line_cos=chunk.line_cos2;
-      let i=iline*18;
-      if (line_cos.dataUsed<i+18) {
-          let ret=chunk.smoothline(v1, v2);
-          iline = ret.i;
-          this.idmap.set(id, iline);
-          return ret;
-      }
-      else {
-        line_cos = line_cos._getWriteData();
-        line_cos[i++] = v1[0];
-        line_cos[i++] = v1[1];
-        line_cos[i++] = v1[2];
-        line_cos[i++] = v1[0];
-        line_cos[i++] = v1[1];
-        line_cos[i++] = v1[2];
-        line_cos[i++] = v2[0];
-        line_cos[i++] = v2[1];
-        line_cos[i++] = v2[2];
-        line_cos[i++] = v1[0];
-        line_cos[i++] = v1[1];
-        line_cos[i++] = v1[2];
-        line_cos[i++] = v2[0];
-        line_cos[i++] = v2[1];
-        line_cos[i++] = v2[2];
-        line_cos[i++] = v2[0];
-        line_cos[i++] = v2[1];
-        line_cos[i++] = v2[2];
-        if (i>line_cos.length) {
-            console.log(i, line_cos.length, line_cos);
-            throw new Error("range error");
-        }
-      }
-      chunk.regen = 1;
-      return chunk.tristrip_line_editors.next().bind(chunk, iline);
-    }
-     line(id, v1, v2) {
-      let chunk=this.get_chunk(id);
-      let iline=this.idmap.get(id);
-      chunk.flagRecalc();
-      chunk.glFlagUploadAll(PrimitiveTypes.LINES);
-      let line_cos=chunk.line_cos;
-      let i=iline*6;
-      if (line_cos.dataUsed<i+6) {
-          chunk.line(v1, v2);
-      }
-      else {
-        line_cos = line_cos._getWriteData();
-        line_cos[i++] = v1[0];
-        line_cos[i++] = v1[1];
-        line_cos[i++] = v1[2];
-        line_cos[i++] = v2[0];
-        line_cos[i++] = v2[1];
-        line_cos[i++] = v2[2];
-        if (i>line_cos.length) {
-            console.log(i, line_cos.length, line_cos);
-            throw new Error("range error");
-        }
-      }
-      chunk.regen = 1;
-      return chunk.line_editors.next().bind(chunk, iline);
-    }
-     point(id, v1) {
-      let chunk=this.get_chunk(id);
-      let ipoint=this.idmap.get(id);
-      chunk.flagRecalc();
-      chunk.glFlagUploadAll(PrimitiveTypes.POINTS);
-      let point_cos=chunk.point_cos;
-      let i=ipoint*3;
-      if (point_cos.dataUsed<i+3) {
-          chunk.point(v1);
-      }
-      else {
-        point_cos = point_cos._getWriteData();
-        point_cos[i++] = v1[0];
-        point_cos[i++] = v1[1];
-        point_cos[i++] = v1[2];
-        if (i>point_cos.length) {
-            console.log(i, point_cos.length, point_cos);
-            throw new Error("range error");
-        }
-      }
-      chunk.regen = 1;
-      return chunk.point_editors.next().bind(chunk, ipoint);
-    }
-     draw(gl, uniforms, program_override=undefined) {
-      this.gl = gl;
-      for (var island of this.islands) {
-          island.draw(gl, uniforms, undefined, program_override);
-      }
-    }
-  }
-  _ESClass.register(ChunkedSimpleMesh);
-  _es6_module.add_class(ChunkedSimpleMesh);
-  ChunkedSimpleMesh = _es6_module.add_export('ChunkedSimpleMesh', ChunkedSimpleMesh);
-}, '/dev/fairmotion/src/webgl/simplemesh.js');
 

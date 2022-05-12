@@ -79,7 +79,7 @@ var _rootpath_src="";
 var _is_cyclic=false;
 var _post_primary_load=false;
 var _es6_module_resort=false;
-var _es6_module_verbose=0;
+var _es6_module_verbose=1;
 var _debug_modules=0;
 function debug() {
   if (!_debug_modules)
@@ -257,7 +257,7 @@ function sort_modules() {
     }
     if (mod.path in localvisit) {
         _is_cyclic = true;
-        debug("Cycle!", path);
+        console.log("Cycle!", mod.path, path);
         if (!allow_cycles) {
             throw new Error("module cycle! "+JSON.stringify(path));
         }
@@ -530,7 +530,7 @@ function es6_import(_es6_module, name) {
   if (mod!==undefined) {
       mod.links.push(_es6_module);
   }
-  if (mod!=undefined&&_es6_module.depends.indexOf(mod)<0) {
+  if (mod!==undefined&&_es6_module.depends.indexOf(mod)<0) {
       debug("updating dependencies");
       _es6_module_resort = true;
       _es6_module.depends.push(mod);
@@ -540,7 +540,7 @@ function es6_import(_es6_module, name) {
         console.log("cannot import module", name, mod);
       throw new ModuleLoadError("Cannot import module "+name);
   }
-  return mod.default_export!==undefined ? mod.default_export : mod.exports;
+  return mod.exports;
 }
 function es6_import_item(_es6_module, modname, name) {
   var mod=_es6_get_module(modname);
@@ -1080,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local", "./config_local.js", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "../path.ux/scripts/config/const.js", "./config_local"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1237,13 +1237,16 @@ es6_module_define('const', ["../config/config.js"], function _const_module(_es6_
   if (!RELEASE&&!("M" in window)&&!("O" in window)) {
       Object.defineProperty(window, "G", {get: function () {
           return g_app_state;
-        }});
+        }, 
+     configurable: true});
       Object.defineProperty(window, "V2D", {get: function () {
           return g_app_state.active_view2d;
-        }});
+        }, 
+     configurable: true});
       Object.defineProperty(window, "API", {get: function () {
           return g_app_state.api;
-        }});
+        }, 
+     configurable: true});
   }
 }, '/dev/fairmotion/src/core/const.js');
 
@@ -1318,8 +1321,9 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
    colorSchemeType: "light", 
    docManualPath: "../simple_docsys/doc_build/", 
    useNumSliderTextboxes: true, 
-   numSliderArrowLimit: 6, 
+   numSliderArrowLimit: 3, 
    simpleNumSliders: false, 
+   menusCanPopupAbove: false, 
    menu_close_time: 500, 
    doubleClickTime: 500, 
    doubleClickHoldTime: 750, 
@@ -1328,7 +1332,7 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
     areaContextPushes: false, 
     allBordersMovable: false, 
     doOnce: false, 
-    modalEvents: true, 
+    modalEvents: false, 
     areaConstraintSolver: false, 
     datapaths: false, 
     domEvents: false, 
@@ -1342,16 +1346,18 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
    autoSizeUpdate: true, 
    showPathsInToolTips: true, 
    enableThemeAutoUpdate: true, 
+   useNativeToolTips: false, 
    loadConstants: function (args) {
       for (let k in args) {
           if (k==="loadConstants")
             continue;
           this[k] = args[k];
       }
+      console.error("CC", ctrlconfig);
       ctrlconfig.setConfig(this);
     }}
   exports;
-  exports = _es6_module.set_default_export('exports', exports);
+  _es6_module.set_default_export('exports', exports);
   
   window.DEBUG = exports.DEBUG;
   let cfg=document.getElementById("pathux-config");
@@ -1374,7 +1380,7 @@ es6_module_define('config', [], function _config_module(_es6_module) {
   }
   setConfig = _es6_module.add_export('setConfig', setConfig);
   config;
-  config = _es6_module.set_default_export('config', config);
+  _es6_module.set_default_export('config', config);
   
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/config/config.js');
 
@@ -1528,20 +1534,50 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
       })();
   }
   if (Array.prototype.set===undefined) {
-      Array.prototype.set = function set(array, src, dst, count) {
+      Array.prototype.set = function set(array) {
+        if (arguments.length===0) {
+            return ;
+        }
+        let src, dst, count;
+        if (arguments.length===0) {
+            src = 0;
+            dst = 0;
+            count = array.length;
+        }
+        else 
+          if (arguments.length===1) {
+            count = array.length;
+            src = arguments[1];
+            dst = 0;
+        }
+        else 
+          if (arguments.length===2) {
+            src = arguments[1];
+            count = arguments[2];
+        }
+        else 
+          if (arguments.length===3) {
+            src = arguments[1];
+            dst = arguments[2];
+            count = arguments[3];
+        }
         src = src===undefined ? 0 : src;
         dst = dst===undefined ? 0 : dst;
         count = count===undefined ? array.length : count;
         if (count<0) {
             throw new RangeError("Count must be >= zero");
         }
-        let len=Math.min(this.length-dst, array.length-src);
-        len = Math.min(len, count);
+        let len=Math.min(src+count, array.length)-src;
+        if (dst+len>this.length) {
+            this.length = dst+len;
+        }
         for (let i=0; i<len; i++) {
             this[dst+i] = array[src+i];
         }
         return this;
       };
+      Object.defineProperty(Array.prototype, "set", {enumerable: false, 
+     configurable: true});
       if (Float64Array.prototype.set===undefined) {
           Float64Array.prototype.set = Array.prototype.set;
           Float32Array.prototype.set = Array.prototype.set;
@@ -1558,6 +1594,8 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
           return !func(item);
         });
       };
+      Object.defineProperty(Array.prototype, "reject", {enumerable: false, 
+     configurable: true});
   }
   if (window.Symbol==undefined) {
       window.Symbol = {iterator: "$__iterator__$", 
@@ -1566,23 +1604,6 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   else 
     if (Symbol.keystr===undefined) {
       Symbol.keystr = Symbol("keystr");
-  }
-  window.list = function list(iter) {
-    var ret=[];
-    if (typeof iter=="string") {
-        iter = new String();
-    }
-    if (Symbol.iterator in iter) {
-        for (var item of iter) {
-            ret.push(item);
-        }
-    }
-    else {
-      iter.forEach(function (item) {
-        ret.push(item);
-      }, this);
-    }
-    return ret;
   }
   if (Math.fract===undefined) {
       Math.fract = function fract(f) {
@@ -1599,7 +1620,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
         return (f>0.0)*2.0-1.0;
       };
   }
-  if (Array.prototype.pop_i==undefined) {
+  if (Array.prototype.pop_i===undefined) {
       Array.prototype.pop_i = function (idx) {
         if (idx<0||idx>=this.length) {
             throw new Error("Index out of range");
@@ -1610,6 +1631,8 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
         }
         this.length-=1;
       };
+      Object.defineProperty(Array.prototype, "pop_i", {enumerable: false, 
+     configurable: true});
   }
   if (Array.prototype.remove===undefined) {
       Array.prototype.remove = function (item, suppress_error) {
@@ -1623,6 +1646,8 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
         }
         this.pop_i(i);
       };
+      Object.defineProperty(Array.prototype, "remove", {enumerable: false, 
+     configurable: true});
   }
   if (String.prototype.contains===undefined) {
       String.prototype.contains = function (substr) {
@@ -1644,7 +1669,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/polyfill.js');
 
-es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["../extern/lz-string/lz-string.js", "./mobile-detect.js", "./polyfill.js", "./struct.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -1789,6 +1814,10 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
       this.cur = 0;
       this.used = 0;
       this.sum = 0;
+    }
+     reset() {
+      this.cur = this.used = this.sum = 0.0;
+      return this;
     }
      add(val) {
       if (this.used<this.length) {
@@ -2010,6 +2039,26 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
     return ret;
   }
   list = _es6_module.add_export('list', list);
+  function count(iterable, searchItem) {
+    if (searchItem===undefined) {
+        searchItem = undefined;
+    }
+    let count=0;
+    if (searchItem!==undefined) {
+        for (let item of iterable) {
+            if (item===searchItem) {
+                count++;
+            }
+        }
+    }
+    else {
+      for (let item of iterable) {
+          count++;
+      }
+    }
+    return count;
+  }
+  count = _es6_module.add_export('count', count);
   function getAllKeys(obj) {
     let keys=new Set();
     if (typeof obj!=="object"&&typeof obj!=="function") {
@@ -2128,7 +2177,7 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
   }
   merge = _es6_module.add_export('merge', merge);
   
-  let debug_cacherings=false;
+  const debug_cacherings=false;
   if (debug_cacherings) {
       window._cacherings = [];
       window._clear_all_cacherings = function (kill_all) {
@@ -2223,7 +2272,7 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
       if (debug_cacherings) {
           this.gen++;
       }
-      var ret=this[this.cur];
+      let ret=this[this.cur];
       this.cur = (this.cur+1)%this.length;
       return ret;
     }
@@ -2286,6 +2335,9 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
               }
           }
       }
+    }
+    get  size() {
+      return this.length;
     }
      [Symbol.iterator]() {
       return new SetIter(this);
@@ -2363,9 +2415,6 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
         this.items.push(item);
       }
       this.length++;
-    }
-    get  size() {
-      return this.length;
     }
      delete(item, ignore_existence=true) {
       this.remove(item, ignore_existence);
@@ -2530,6 +2579,18 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
       }
       this.__cur = v;
     }
+    get  _cur() {
+      return this.cur;
+    }
+    set  _cur(v) {
+      window.console.warn("Deprecated use of IDGen._cur");
+      this.cur = v;
+    }
+    static  fromJSON(obj) {
+      let ret=new IDGen();
+      ret.cur = obj.cur===undefined ? obj._cur : obj.cur;
+      return ret;
+    }
      next() {
       return this.cur++;
     }
@@ -2543,18 +2604,6 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
     }
      toJSON() {
       return {cur: this.cur}
-    }
-    static  fromJSON(obj) {
-      let ret=new IDGen();
-      ret.cur = obj.cur===undefined ? obj._cur : obj.cur;
-      return ret;
-    }
-    set  _cur(v) {
-      window.console.warn("Deprecated use of IDGen._cur");
-      this.cur = v;
-    }
-    get  _cur() {
-      return this.cur;
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -2570,81 +2619,14 @@ IDGen {
 `;
   nstructjs.register(IDGen);
   function get_callstack(err) {
-    var callstack=[];
-    var isCallstackPopulated=false;
-    var err_was_undefined=err==undefined;
-    if (err==undefined) {
-        try {
-          _idontexist.idontexist+=0;
-        }
-        catch (err1) {
-            err = err1;
-        }
-    }
-    if (err!=undefined) {
-        if (err.stack) {
-            var lines=err.stack.split('\n');
-            var len=lines.length;
-            for (var i=0; i<len; i++) {
-                if (1) {
-                    lines[i] = lines[i].replace(/@http\:\/\/.*\//, "|");
-                    var l=lines[i].split("|");
-                    lines[i] = l[1]+": "+l[0];
-                    lines[i] = lines[i].trim();
-                    callstack.push(lines[i]);
-                }
-            }
-            if (err_was_undefined) {
-            }
-            isCallstackPopulated = true;
-        }
-        else 
-          if (window.opera&&e.message) {
-            var lines=err.message.split('\n');
-            var len=lines.length;
-            for (var i=0; i<len; i++) {
-                if (lines[i].match(/^\s*[A-Za-z0-9\-_\$]+\(/)) {
-                    var entry=lines[i];
-                    if (lines[i+1]) {
-                        entry+=' at '+lines[i+1];
-                        i++;
-                    }
-                    callstack.push(entry);
-                }
-            }
-            if (err_was_undefined) {
-                callstack.shift();
-            }
-            isCallstackPopulated = true;
-        }
-    }
-    var limit=24;
-    if (!isCallstackPopulated) {
-        var currentFunction=arguments.callee.caller;
-        var i=0;
-        while (currentFunction&&i<24) {
-          var fn=currentFunction.toString();
-          var fname=fn.substring(fn.indexOf("function")+8, fn.indexOf(''))||'anonymous';
-          callstack.push(fname);
-          currentFunction = currentFunction.caller;
-          i++;
-        }
-    }
-    return callstack;
+    return (""+err.stack).split("\n");
   }
   function print_stack(err) {
-    console.log(err.stack);
-    return ;
-    try {
-      var cs=get_callstack(err);
+    if (!err) {
+        window.console.trace();
     }
-    catch (err2) {
-        console.log("Could not fetch call stack.");
-        return ;
-    }
-    console.log("Callstack:");
-    for (var i=0; i<cs.length; i++) {
-        console.log(cs[i]);
+    else {
+      window.console.log(err.stack);
     }
   }
   print_stack = _es6_module.add_export('print_stack', print_stack);
@@ -2679,6 +2661,13 @@ IDGen {
     }
      random() {
       return this.extract_number()/(1<<30);
+    }
+     nrandom(n=3) {
+      let ret=0.0;
+      for (let i=0; i<n; i++) {
+          ret+=this.random();
+      }
+      return ret/n;
     }
      seed(seed) {
       seed = ~~(seed*8192);
@@ -2898,6 +2887,12 @@ IDGen {
      add(v) {
       if (typeof v==="string") {
           v = strhash(v);
+      }
+      if (typeof v==="object"&&Array.isArray(v)) {
+          for (let i=0; i<v.length; i++) {
+              this.add(v[i]);
+          }
+          return this;
       }
       if (v>=-5&&v<=5) {
           v*=32;
@@ -3506,6 +3501,252 @@ IDGen {
   _ESClass.register(ArrayPool);
   _es6_module.add_class(ArrayPool);
   ArrayPool = _es6_module.add_export('ArrayPool', ArrayPool);
+  class DivLogger  {
+     constructor(elemId, maxLines=16) {
+      this.elemId = elemId;
+      this.elem = undefined;
+      this.lines = new Array();
+      this.maxLines = maxLines;
+    }
+     push(line) {
+      if (this.lines.length>this.maxLines) {
+          this.lines.shift();
+          this.lines.push(line);
+      }
+      else {
+        this.lines.push(line);
+      }
+      this.update();
+    }
+     update() {
+      let buf=this.lines.join(`<br>`);
+      buf = buf.replace(/[ \t]/g, "&nbsp;");
+      if (!this.elem) {
+          this.elem = document.getElementById(this.elemId);
+      }
+      this.elem.innerHTML = buf;
+    }
+     toString(obj, depth=0) {
+      let s='';
+      let tab='';
+      for (let i=0; i<depth; i++) {
+          tab+='$TAB';
+      }
+      if (typeof obj==="symbol") {
+          return `[${obj.description}]`;
+      }
+      const DEPTH_LIMIT=1;
+      const CHAR_LIMIT=100;
+      if (typeof obj==="object"&&Array.isArray(obj)) {
+          s = "[$NL";
+          for (let i=0; i<obj.length; i++) {
+              let v=obj[i];
+              if (depth>=DEPTH_LIMIT) {
+                  v = typeof v;
+              }
+              else {
+                v = this.toString(v, depth+1);
+              }
+              s+=tab+"$TAB";
+              s+=v+(i!==obj.length-1 ? "," : "")+"$NL";
+          }
+          let keys=Reflect.ownKeys(obj);
+          for (let i=0; i<keys.length; i++) {
+              let k=keys[i];
+              let n;
+              let k2=this.toString(k);
+              if (typeof k!=="symbol"&&!isNaN(n = parseInt(k))) {
+                  if (n>=0&&n<obj.length) {
+                      continue;
+                  }
+              }
+              let v;
+              try {
+                v = obj[k];
+              }
+              catch (error) {
+                  v = "(error)";
+              }
+              s+=tab+`$TAB${k2} : ${v}`;
+              if (i<keys.length-1) {
+                  s+=",";
+              }
+              if (!s.endsWith("$NL")&&!s.endsWith("\n")) {
+                  s+="$NL";
+              }
+          }
+          s+="$TAB]$NL";
+          if (s.length<CHAR_LIMIT) {
+              s = s.replace(/\$NL/g, "");
+              s = s.replace(/(\$TAB)+/g, " ");
+          }
+          else {
+            s = s.replace(/\$NL/g, "\n");
+            s = s.replace(/\$TAB/g, "  ");
+          }
+      }
+      else 
+        if (typeof obj==="object") {
+          s = '{$NL';
+          let keys=Reflect.ownKeys(obj);
+          for (let i=0; i<keys.length; i++) {
+              let k=keys[i];
+              let k2=this.toString(k);
+              let v;
+              try {
+                v = obj[k];
+              }
+              catch (error) {
+                  v = '(error)';
+              }
+              if (depth>=DEPTH_LIMIT) {
+                  v = typeof v;
+              }
+              else {
+                v = this.toString(v, depth+1);
+              }
+              s+=tab+`$TAB${k2} : ${v}`;
+              if (i<keys.length-1) {
+                  s+=",";
+              }
+              if (!s.endsWith("$NL")&&!s.endsWith("\n")) {
+                  s+="$NL";
+              }
+          }
+          s+=tab+"}$NL";
+          if (s.length<CHAR_LIMIT) {
+              s = s.replace(/\$NL/g, "");
+              s = s.replace(/(\$TAB)+/g, " ");
+          }
+          else {
+            s = s.replace(/\$NL/g, "\n");
+            s = s.replace(/\$TAB/g, "  ");
+          }
+      }
+      else 
+        if (typeof obj==="undefined") {
+          s = 'undefined';
+      }
+      else 
+        if (typeof obj==="function") {
+          s = 'function '+obj.name;
+      }
+      else {
+        s = ""+obj;
+      }
+      return s;
+    }
+  }
+  _ESClass.register(DivLogger);
+  _es6_module.add_class(DivLogger);
+  DivLogger = _es6_module.add_export('DivLogger', DivLogger);
+  const PendingTimeoutPromises=new Set();
+  _es6_module.add_export('PendingTimeoutPromises', PendingTimeoutPromises);
+  class TimeoutPromise  {
+     constructor(callback, timeout=3000, silent=false) {
+      if (!callback) {
+          return ;
+      }
+      this.silent = silent;
+      this.timeout = timeout;
+      let accept2=this._accept2.bind(this);
+      let reject2=this._reject2.bind(this);
+      this.time = time_ms();
+      this.rejected = false;
+      this._promise = new Promise((accept, reject) =>        {
+        this._accept = accept;
+        this._reject = reject;
+        callback(accept2, reject2);
+      });
+      PendingTimeoutPromises.add(this);
+    }
+     _accept2(val) {
+      if (this.bad) {
+          if (!this.silent) {
+              this._reject(new Error("Timeout"));
+          }
+      }
+      else {
+        return this._accept(val);
+      }
+    }
+    static  wrapPromise(promise, timeout=3000, callback) {
+      let p=new TimeoutPromise();
+      p._promise = promise;
+      p._accept = callback;
+      p._reject = function (error) {
+        throw error;
+      };
+      p.then((val) =>        {
+        p._accept2(val);
+      }).catch((error) =>        {
+        p._reject2(error);
+      });
+      return p;
+    }
+     _reject2(error) {
+      this._reject(error);
+    }
+     then(callback) {
+      let cb=(val) =>        {
+        let ret=callback(val);
+        if (__instance_of(ret, Promise)) {
+            ret = TimeoutPromise.wrapPromise(ret, this.timeout, callback);
+        }
+        return ret;
+      };
+      this._promise.then(cb);
+      return this;
+    }
+     catch(callback) {
+      this._promise.catch(callback);
+      return this;
+    }
+     finally(callback) {
+      this._promise.catch(callback);
+      return this;
+    }
+    get  bad() {
+      return time_ms()-this.time>this.timeout;
+    }
+  }
+  _ESClass.register(TimeoutPromise);
+  _es6_module.add_class(TimeoutPromise);
+  TimeoutPromise = _es6_module.add_export('TimeoutPromise', TimeoutPromise);
+  window.setInterval(() =>    {
+    let bad=[];
+    for (let promise of PendingTimeoutPromises) {
+        if (promise.bad) {
+            bad.push(promise);
+        }
+    }
+    for (let promise of bad) {
+        PendingTimeoutPromises.delete(promise);
+    }
+    for (let promise of bad) {
+        try {
+          promise._reject(new Error("Timeout"));
+        }
+        catch (error) {
+            print_stack(error);
+        }
+    }
+  }, 250);
+  var lzstring=es6_import_item(_es6_module, '../extern/lz-string/lz-string.js', 'default');
+  function compress(data) {
+    return lzstring.compressToUint8Array(data);
+  }
+  compress = _es6_module.add_export('compress', compress);
+  function decompress(data) {
+    if (__instance_of(data, DataView)) {
+        data = data.buffer;
+    }
+    if (__instance_of(data, ArrayBuffer)) {
+        data = new Uint8Array(data);
+    }
+    return lzstring.decompressFromUint8Array(data);
+  }
+  decompress = _es6_module.add_export('decompress', decompress);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/util.js');
 
 es6_module_define('util', ["../path-controller/util/util.js"], function _util_module(_es6_module) {
@@ -3516,7 +3757,7 @@ es6_module_define('util', ["../path-controller/util/util.js"], function _util_mo
 }, '/dev/fairmotion/src/path.ux/scripts/util/util.js');
 
 
-    var totfile=11, fname="app";
+    var totfile=12, fname="app";
     for (var i=0; i<totfile; i++) {
       var path = "./fcontent/"+fname+i+".js";
       var node = document.createElement("script")

@@ -3620,13 +3620,6 @@ Object.defineProperty(window, "CTX", {get: function () {
     return g_app_state.ctx;
   }});
 document.body.style["margin"] = document.body.style["padding"] = "0px";
-window.moduleDidLoad = function moduleDidLoad() {
-  console.log("-------Loaded NACL module!----------");
-  common.hideModule();
-};
-window.handleMessage = function handleMessage(message) {
-  console.log("NACL message!", message, message.data);
-};
 class MyLocalStorage_LS  {
    set(key, val) {
     localStorage[key] = val;
@@ -3725,15 +3718,14 @@ window.startup_intern = function startup() {
     return false;
   }
   if (window.g_app_state===undefined) {
-      console.log(_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports);
-      let $_t0hupn=_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports, register_toolops=$_t0hupn.register_toolops;
+      console.log(_es6_get_module(_rootpath_src+"src/core/data_api/data_api.js").exports);
+      let $_t0hnpt=_es6_get_module(_rootpath_src+"src/core/data_api/data_api.js").exports, register_toolops=$_t0hnpt.register_toolops;
       register_toolops();
       startup_report("parsing serialization scripts...");
       init_struct_packer();
       startup_report("loading icons and theme...");
       init_pathux();
       startup_report("initializing data api...");
-      init_data_api();
       let body=document.body;
       window.g_app_state = new AppState(undefined, undefined, undefined);
       let w=window.innerWidth, h=window.innerHeight;
@@ -3749,7 +3741,7 @@ window.startup_intern = function startup() {
 };
 function init_pathux() {
   let ui_base=_es6_get_module("ui_base", true).exports;
-  let $_t1joma=ui_base, iconmanager=$_t1joma.iconmanager, setTheme=$_t1joma.setTheme, setIconMap=$_t1joma.setIconMap;
+  let $_t1bokf=ui_base, iconmanager=$_t1bokf.iconmanager, setTheme=$_t1bokf.setTheme, setIconMap=$_t1bokf.setIconMap;
   let theme=_es6_get_module(_rootpath_src+"src/editors/theme.js").exports.theme;
   let config=_es6_get_module(_rootpath_src+"src/config/config.js").exports;
   let cconst=_es6_get_module(_rootpath_src+"src/path.ux/scripts/config/const.js").default_export;
@@ -9792,16 +9784,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_RFun=new GArray();
+var $lst_5_Qa=new GArray();
 function cached_list(iter) {
-  $lst_RFun.reset();
+  $lst_5_Qa.reset();
   var i=0;
   for (var item of iter) {
-      $lst_RFun.push(item);
+      $lst_5_Qa.push(item);
       i++;
   }
-  $lst_RFun.length = i;
-  return $lst_RFun;
+  $lst_5_Qa.length = i;
+  return $lst_5_Qa;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -11065,7 +11057,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
 }, '/dev/fairmotion/src/util/strutils.js');
 
 
-es6_module_define('lib_api', ["./struct.js", "./toolprops_iter.js", "../graph/graph.js"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["./struct.js", "../graph/graph.js", "./toolprops_iter.js"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   const DataTypes={}
@@ -11222,6 +11214,23 @@ dataref {
       this.idgen = new EIDGen();
       this._destroyed = undefined;
       this.lib_anim_idgen = new EIDGen();
+      for (let cls of BlockClasses) {
+          let def=cls.blockDefine();
+          let name=this.constructor.getAccessorKey(cls);
+          let typeId=def.typeIndex;
+          for (let k in BlockTypeMap) {
+              if (BlockTypeMap[k]===cls) {
+                  typeId = k;
+              }
+          }
+          Object.defineProperty(this, name, {get: function get() {
+              return this.get_datalist(typeId);
+            }});
+      }
+    }
+    static  getAccessorKey(cls) {
+      let def=cls.blockDefine();
+      return def.accessorName||def.typeName.toLowerCase();
     }
      clear() {
       this.on_destroy();
@@ -11270,15 +11279,6 @@ dataref {
         dl = this.datalists.get(typeid);
       }
       return dl;
-    }
-    get  images() {
-      return this.get_datalist(DataTypes.IMAGE);
-    }
-    get  scenes() {
-      return this.get_datalist(DataTypes.SCENE);
-    }
-    get  framesets() {
-      return this.get_datalist(DataTypes.FRAMESET);
     }
      kill_datablock(block) {
       block.unlink();
@@ -11437,6 +11437,7 @@ DataLib {
       return {typeName: "", 
      defaultName: "", 
      uiName: "", 
+     accessorName: undefined, 
      flag: 0, 
      icon: -1, 
      linkOrder: undefined, 
@@ -11675,7 +11676,7 @@ DataLib {
 }, '/dev/fairmotion/src/core/lib_api.js');
 
 
-es6_module_define('lib_api_typedefine', ["./imageblock.js", "./frameset.js", "../curve/spline.js", "../scene/scene.js", "./lib_api.js"], function _lib_api_typedefine_module(_es6_module) {
+es6_module_define('lib_api_typedefine', ["./frameset.js", "../scene/scene.js", "../curve/spline.js", "./lib_api.js", "./imageblock.js"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, '../scene/scene.js', 'Scene');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
@@ -11684,7 +11685,7 @@ es6_module_define('lib_api_typedefine', ["./imageblock.js", "./frameset.js", "..
 }, '/dev/fairmotion/src/core/lib_api_typedefine.js');
 
 
-es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.ux/scripts/util/vectormath.js"], function _mathlib_module(_es6_module) {
+es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/struct.js", "./vectormath.js"], function _mathlib_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './vectormath.js');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -11759,12 +11760,12 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_Aj7Y_get_rect_points=new Array(4);
-  var $_cs8_Z6RI_get_rect_points=new Array(8);
+  var $_cs4_qq4h_get_rect_points=new Array(4);
+  var $_cs8_KU1Y_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_Aj7Y_get_rect_points;
+        cs = $_cs4_qq4h_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -11772,7 +11773,7 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_Z6RI_get_rect_points;
+        cs = $_cs8_KU1Y_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11809,15 +11810,15 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_i0Wk_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_FzcV_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_i0Wk_simple_tri_aabb_isect[0] = v1;
-    $vs_i0Wk_simple_tri_aabb_isect[1] = v2;
-    $vs_i0Wk_simple_tri_aabb_isect[2] = v3;
+    $vs_FzcV_simple_tri_aabb_isect[0] = v1;
+    $vs_FzcV_simple_tri_aabb_isect[1] = v2;
+    $vs_FzcV_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_i0Wk_simple_tri_aabb_isect[j][i]<min[i]||$vs_i0Wk_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_FzcV_simple_tri_aabb_isect[j][i]<min[i]||$vs_FzcV_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -11951,42 +11952,42 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_OMQv_aabb_isect_line_2d=new Vector2();
-  var $ssize_DRFC_aabb_isect_line_2d=new Vector2();
-  var $sv1_Xkdk_aabb_isect_line_2d=new Vector2();
-  var $ps_qLiU_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_0D2X_aabb_isect_line_2d=[0, 0];
-  var $smax_3F3e_aabb_isect_line_2d=new Vector2();
-  var $sv2_T1rI_aabb_isect_line_2d=new Vector2();
-  var $l2_s29U_aabb_isect_line_2d=[0, 0];
+  var $smin_8Wgc_aabb_isect_line_2d=new Vector2();
+  var $ssize_ptVS_aabb_isect_line_2d=new Vector2();
+  var $sv1_kP3o_aabb_isect_line_2d=new Vector2();
+  var $ps_eK86_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_yQxt_aabb_isect_line_2d=[0, 0];
+  var $smax_gj0I_aabb_isect_line_2d=new Vector2();
+  var $sv2_fXaD_aabb_isect_line_2d=new Vector2();
+  var $l2_kusK_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_OMQv_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_3F3e_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_8Wgc_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_gj0I_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_3F3e_aabb_isect_line_2d.sub($smin_OMQv_aabb_isect_line_2d);
-    $ssize_DRFC_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_OMQv_aabb_isect_line_2d, $smax_3F3e_aabb_isect_line_2d, min, $ssize_DRFC_aabb_isect_line_2d))
+    $smax_gj0I_aabb_isect_line_2d.sub($smin_8Wgc_aabb_isect_line_2d);
+    $ssize_ptVS_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_8Wgc_aabb_isect_line_2d, $smax_gj0I_aabb_isect_line_2d, min, $ssize_ptVS_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_DRFC_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_ptVS_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_DRFC_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_ptVS_aabb_isect_line_2d))
           return true;
     }
-    $ps_qLiU_aabb_isect_line_2d[0] = min;
-    $ps_qLiU_aabb_isect_line_2d[1][0] = min[0];
-    $ps_qLiU_aabb_isect_line_2d[1][1] = max[1];
-    $ps_qLiU_aabb_isect_line_2d[2] = max;
-    $ps_qLiU_aabb_isect_line_2d[3][0] = max[0];
-    $ps_qLiU_aabb_isect_line_2d[3][1] = min[1];
-    $l1_0D2X_aabb_isect_line_2d[0] = v1;
-    $l1_0D2X_aabb_isect_line_2d[1] = v2;
+    $ps_eK86_aabb_isect_line_2d[0] = min;
+    $ps_eK86_aabb_isect_line_2d[1][0] = min[0];
+    $ps_eK86_aabb_isect_line_2d[1][1] = max[1];
+    $ps_eK86_aabb_isect_line_2d[2] = max;
+    $ps_eK86_aabb_isect_line_2d[3][0] = max[0];
+    $ps_eK86_aabb_isect_line_2d[3][1] = min[1];
+    $l1_yQxt_aabb_isect_line_2d[0] = v1;
+    $l1_yQxt_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_qLiU_aabb_isect_line_2d[i], b=$ps_qLiU_aabb_isect_line_2d[(i+1)%4];
-        $l2_s29U_aabb_isect_line_2d[0] = a;
-        $l2_s29U_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_0D2X_aabb_isect_line_2d, $l2_s29U_aabb_isect_line_2d))
+        var a=$ps_eK86_aabb_isect_line_2d[i], b=$ps_eK86_aabb_isect_line_2d[(i+1)%4];
+        $l2_kusK_aabb_isect_line_2d[0] = a;
+        $l2_kusK_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_yQxt_aabb_isect_line_2d, $l2_kusK_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -12101,25 +12102,25 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_y4i2_normal_tri=new Vector3();
-  var $e3_xhps_normal_tri=new Vector3();
-  var $e2_Yehu_normal_tri=new Vector3();
+  var $e1_IpZz_normal_tri=new Vector3();
+  var $e3_fk22_normal_tri=new Vector3();
+  var $e2_iNTS_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    VSUB($e1_y4i2_normal_tri, v2, v1);
-    VSUB($e2_Yehu_normal_tri, v3, v1);
-    VCROSS($e3_xhps_normal_tri, $e1_y4i2_normal_tri, $e2_Yehu_normal_tri);
-    VNORMALIZE($e3_xhps_normal_tri);
-    return $e3_xhps_normal_tri;
+    VSUB($e1_IpZz_normal_tri, v2, v1);
+    VSUB($e2_iNTS_normal_tri, v3, v1);
+    VCROSS($e3_fk22_normal_tri, $e1_IpZz_normal_tri, $e2_iNTS_normal_tri);
+    VNORMALIZE($e3_fk22_normal_tri);
+    return $e3_fk22_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_IPI2_normal_quad=new Vector3();
+  var $n2_GDux_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    VLOAD($n2_IPI2_normal_quad, n);
+    VLOAD($n2_GDux_normal_quad, n);
     n = normal_tri(v1, v3, v4);
-    VADD($n2_IPI2_normal_quad, $n2_IPI2_normal_quad, n);
-    VNORMALIZE($n2_IPI2_normal_quad);
-    return $n2_IPI2_normal_quad;
+    VADD($n2_GDux_normal_quad, $n2_GDux_normal_quad, n);
+    VNORMALIZE($n2_GDux_normal_quad);
+    return $n2_GDux_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var lis_rets3=cachering.fromConstructor(Vector3, 64);
@@ -12486,9 +12487,9 @@ es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.u
         }
     }
   }
-  var $_cent_CDAN=new Vector3();
+  var $_cent_cu78=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_CDAN.zero();
+    var cent=$_cent_cu78.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {

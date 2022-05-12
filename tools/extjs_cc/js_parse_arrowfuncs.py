@@ -1,7 +1,7 @@
 import re
 
 wsline = {' ', '\t', '\r', '\n', '\v'}
-id_re = re.compile(r'[a-zA-Z$_]+[a-zA-Z_$0-9]*')
+id_re = re.compile(r'[a-z#A-Z$_]+[a-zA-Z_$0-9]*')
 comma_re = re.compile(r'[,]')
 lparen_re = re.compile(r'\(')
 rparen_re = re.compile(r'\)')
@@ -44,9 +44,12 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
     
   def reget(pattern, required=True):
     skip_ws()
+
+    #print("TEXT:", lexdata[_p[0]:_p[0]+55])
+
     m = pattern.search(lexdata[_p[0]:])
     bad = m is None or m.start() != 0
-    
+
     if bad and required:
       raise ValidateException()
     elif bad:
@@ -114,7 +117,7 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
       
       id_with_default_and_types()
       c = peek()
-        
+
     rparen()
     typedef(False)
     arrow()
@@ -126,9 +129,14 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
     raise ValidateException()
     
   return _p[0]
-  
+
+_tst = [0]
 def lex_arrow(lexdata, lexpos, lookahead_limit=256):
-  #return arrow_validate(lexdata, lexpos)
+  global _tst
+
+  _tst[0] += 1
+  #if _tst[0] >= 1:
+  #  return arrow_validate(lexdata, lexpos, 256)
   
   try:
     i = arrow_validate(lexdata, lexpos, lookahead_limit)

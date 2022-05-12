@@ -1266,8 +1266,6 @@ export class SplineFrameSet extends DataBlock {
     let tiled = !!editor.draw_tiled;
     let cls = tiled ? SimpleCanvasDraw2D : Canvas;
 
-    console.warn(this.spline.drawer);
-
     if (this.spline.drawer === undefined) {
       this.spline.drawer = new SplineDrawer(this.spline, new cls());
     } else if (this.spline.drawer.drawer.constructor !== cls) {

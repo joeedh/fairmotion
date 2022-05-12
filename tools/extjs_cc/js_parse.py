@@ -447,10 +447,12 @@ def p_bracketed_statementlist(p):
     set_parse_globals(p)
 
     p[0] = p[2]
+    p[0].force_block = True
     
 def p_statement(p):
   ''' statement : function
                 | class
+                | interface
                 | typed_class
                 | enum
                 | if
@@ -1440,6 +1442,76 @@ def p_enum_member(p):
         p[0] = AssignNode(p[1], p[3])
 
 
+def p_iface_extends(p):
+  '''iface_extends : EXTENDS id
+                   | iface_extends COMMA id
+                   |
+  '''
+  if len(p) == 3:
+    p[0] = [p[2]]
+  elif len(p) == 4:
+    p[0] = p[1]
+    p[0].append(p[3])
+  else:
+    p[0] = []
+
+def p_iface_method(p):
+  ''' iface_method : push_scope id template_opt LPAREN funcdeflist RPAREN func_type_opt SEMI
+  '''
+
+  set_parse_globals(p)
+
+  name = p[2].val
+
+  p[0] = FunctionNode(p[2], glob.g_line)
+  p[0].add(p[5])
+  p[0].add(StatementList())
+  p[0].is_native = True
+
+  if p[7] != None:
+    p[0].type = p[7]
+    if type(p[0].type) == str:
+      p[0].type = TypeRefNode(p[0].type)
+
+  if p[3] != None:
+    p[0].template = p[3]
+
+  pop_scope()
+
+def p_iface_item(p):
+  '''
+    iface_item : typescript_class_property
+               | iface_method
+
+  '''
+  p[0] = p[1]
+
+def p_iface_body(p):
+  '''iface_body : iface_item
+                | iface_body iface_item
+                |
+  '''
+  if len(p) == 2:
+    p[0] = StatementList()
+    p[0].add(p[1])
+  elif len(p) == 3:
+    p[0] = p[1]
+    p[0].add(p[2])
+  else:
+    p[0] = StatementList()
+
+def p_iface_tail(p):
+  '''iface_tail : LBRACKET iface_body RBRACKET'''
+  p[0] = p[2]
+
+#flow-style interface
+def p_interface(p):
+  '''interface : INTERFACE id iface_extends iface_tail'''
+  #ignore for now
+
+  p[0] = VarDeclNode(IdentNode("undefined"), name=p[2])
+  p[0].modifiers.add("local")
+
 #page 239 of january2014 draft harmony spec (page 257 as chrome sees it)
 def p_class(p):
   '''class : CLASS id template_opt class_tail'''
@@ -1606,7 +1678,11 @@ def p_property_id(p):
                   | DELETE
                   | FOR
                   | WHILE
+                  | CATCH
+                  | TRY
+                  | THROW
                   | DO
+                  | FINALLY
                   | NUMBER
                   | IF
                   | ENUM
@@ -2148,6 +2224,7 @@ def p_expr_for_arraylit(p):
 def p_arraylist(p):
   '''arraylist : expr_for_arraylit
                | arraylist expr_for_arraylit
+               | arraylist arrow_function
                | arraylist COMMA
   '''
   
@@ -2205,6 +2282,11 @@ def p_objlit_key(p):
     r'''
       objlit_key : id_str_or_num
                  | ID_COLON
+                 | NEW
+                 | CATCH
+                 | TRY
+                 | FINALLY
+                 | THROW
                  | LSBRACKET expr RSBRACKET
                  | CLASS_PROP_PRE objlit_key
     '''
@@ -2562,6 +2644,16 @@ def p_id_colon(p):
     '''id_colon : ID_COLON'''
     p[0] = IdentNode(p[1])
 
+def p_member_name(p):
+  '''member_name : ID
+                 | NEW
+                 | TRY
+                 | DELETE
+                 | FINALLY
+                 | THROW
+                 | CATCH'''
+  p[0] = IdentNode(p[1])
+
 def p_expr(p):
     '''expr : NUMBER
             | strlit
@@ -2585,6 +2677,7 @@ def p_expr(p):
             | expr RRSHIFT expr
             | expr COND_DOT expr
             | expr DOT expr
+            | expr DOT member_name
             | expr DOT DELETE
             | expr DOT DEFAULT
             | expr LAND expr
@@ -3145,6 +3238,7 @@ def p_export_decl(p):
                  | EXPORT var_decl SEMI
                  | EXPORT function
                  | EXPORT class
+                 | EXPORT interface
                  | EXPORT enum
                  | EXPORT DEFAULT function
                  | EXPORT DEFAULT enum
@@ -3362,6 +3456,7 @@ def p_id(p):
          | STATIC
          | CATCH
          | GLOBAL
+         | CHAR
          | AWAIT
          | FROM
          | ENUM

@@ -14,6 +14,7 @@ export function profile_report() {}
 *
 * */
 window.STRUCT_ENDIAN = false;
+console.log(nstructjs)
 nstructjs.setEndian(false);
 
 export class arraybufferCompat extends Array {

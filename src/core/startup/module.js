@@ -30,7 +30,7 @@ var _rootpath_src = "";
 var _is_cyclic = false;
 var _post_primary_load = false;
 var _es6_module_resort = false;
-var _es6_module_verbose = 0;
+var _es6_module_verbose = 1;
 var _debug_modules = 0;
 
 function debug() {
@@ -285,7 +285,7 @@ function sort_modules() {
     if (mod.path in localvisit) { //mod.flag > 1) {
       _is_cyclic = true;
 
-      debug("Cycle!", path);
+      console.log("Cycle!", mod.path, path);
       if (!allow_cycles) {
         throw new Error("module cycle! " + JSON.stringify(path));
       }
@@ -378,7 +378,7 @@ function _load_module_cyclic(mod, visitmap, modstack) {
       _load_module_cyclic(mod, visitmap, modstack);
     }
 
-    return mod.exports; //mod.default_export !== undefined ? mod.default_export : mod.exports;
+    return mod.exports;
   }
 
   window.es6_import_item = function es6_import_item(_es6_module, modname, name) {
@@ -648,7 +648,7 @@ function es6_import(_es6_module, name) {
   }
   
   //add to active module's dependencies, if necassary
-  if (mod != undefined && _es6_module.depends.indexOf(mod) < 0) {
+  if (mod !== undefined && _es6_module.depends.indexOf(mod) < 0) {
     debug("updating dependencies");
     _es6_module_resort = true;
     _es6_module.depends.push(mod);
@@ -659,7 +659,7 @@ function es6_import(_es6_module, name) {
     throw new ModuleLoadError("Cannot import module " + name);
   }
   
-  return mod.default_export !== undefined ? mod.default_export : mod.exports;
+  return mod.exports;
 }
 
 function es6_import_item(_es6_module, modname, name) {

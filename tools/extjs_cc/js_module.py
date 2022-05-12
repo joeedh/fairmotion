@@ -37,9 +37,9 @@ def module_transform(node, typespace):
     n.parent.remove(n)
     
     is_const = False
-    if type(n[0]) == VarDeclNode and "const" in n[0].modifiers:
+
+    if len(n) > 0 and type(n[0]) == VarDeclNode and "const" in n[0].modifiers:
       is_const = True
-      print("const export!")
 
     if n.name is not None: #can happen with default exports
         for n2 in n[:]:
@@ -67,7 +67,6 @@ def module_transform(node, typespace):
             _es6_module.set_default_export(undefined, $n);
           """, [n[0]])
 
-    print(n)
     n.parent.insert(pi, n2)
 
   def get_module_ident(name):
@@ -76,8 +75,6 @@ def module_transform(node, typespace):
   def exportfromvisit(n):
     name = get_module_ident(n.name.val)
 
-    print(n[0])
-    
     if len(n) > 0 and n[0].val == "*":
       n2 = js_parse("""
         import * as _$s1 from '$s2';
@@ -104,7 +101,6 @@ def module_transform(node, typespace):
         n2.add(n3)
     
     n.parent.replace(n, n2)
-  #print(node)
 
   #ahem.  if I do this one first, I can use  import statements in it :)
   #. . .also, how cool, it captures the dependencies, too
@@ -240,9 +236,7 @@ def module_transform(node, typespace):
     
   header = "es6_module_define('"+fname+"', "+deps+", function " + safe_fname + "(_es6_module) {"
   header += "}, '"+path+"');";
-  
-  #print(header)
-  
+
   node2 = js_parse(header)
   
   func = node2[0][1][2]
@@ -266,7 +260,6 @@ def module_transform(node, typespace):
             n.replace(n[1], n2)
 
         n[1].insert(0, param)
-        print(str(n))
 
 
   traverse(node, FuncCallNode, dynvisit)

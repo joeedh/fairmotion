@@ -451,5 +451,3 @@ ToolStack.STRUCT = `
     undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
   }
 `
-
-import {AppState} from "./AppState.js";

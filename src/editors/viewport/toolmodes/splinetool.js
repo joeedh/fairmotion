@@ -2,7 +2,6 @@
 
 import {UIBase} from "../../../path.ux/scripts/core/ui_base.js";
 
-import {FullContext} from "../../../core/context.js";
 import {ExtrudeVertOp} from '../spline_createops.js';
 import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
 import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';

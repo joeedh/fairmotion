@@ -30,13 +30,13 @@ res = [
 'signed', 'variable', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from',
-'await', "enum"
+'await', "enum", 'interface'
 ]
 
 special_ids = [
     'set', 'get', 'static', 'function', 'for', 'if', 'while', 'do',
     'eval', 'struct', 'enum'
-];
+]
 
 """
 reserved tokens following these rules
@@ -227,13 +227,15 @@ def t_LPAREN(t):
     lexdata = t.lexer.lexer.lexdata
   else:
     lexdata = t.lexer.lexdata
-    
+
   lexpos = t.lexpos
   arrowi = lex_arrow(lexdata, lexpos)
   if arrowi >= 0:
     #print("found an arrow func!")
     t.type = "ARROW_PRE"
-    
+
+  #print(t.type)
+
   return t
   
 t_RPAREN  = r'\)'

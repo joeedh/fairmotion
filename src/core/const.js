@@ -28,7 +28,7 @@ window.g_app_version = 0.053;
 
 window.UNIT_TESTER = false;
 window.FEATURES = {
-  save_toolstack : false //(RELEASE ? false : true)
+  save_toolstack: false //(RELEASE ? false : true)
 }
 
 //need a struct to contain constants I'm not compiling in with the preprocessor
@@ -45,13 +45,19 @@ var $_mh = undefined;
 
 //debug globals
 if (!RELEASE && !("M" in window) && !("O" in window)) {
-  Object.defineProperty(window, "G", {get : function() {
-    return g_app_state;
-  }});
-  Object.defineProperty(window, "V2D", {get : function() {
-    return g_app_state.active_view2d;
-  }});
-  Object.defineProperty(window, "API", {get : function() {
-    return g_app_state.api;
-  }});
+  Object.defineProperty(window, "G", {
+    get            : function () {
+      return g_app_state;
+    }, configurable: true
+  });
+  Object.defineProperty(window, "V2D", {
+    get            : function () {
+      return g_app_state.active_view2d;
+    }, configurable: true
+  });
+  Object.defineProperty(window, "API", {
+    get            : function () {
+      return g_app_state.api;
+    }, configurable: true
+  });
 }

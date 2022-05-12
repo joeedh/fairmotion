@@ -341,9 +341,9 @@ export class View2DHandler extends Editor {
     this.on_mousemove = Editor.wrapContextEvent(this.on_mousemove.bind(this));
     this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
 
-    this.addEventListener("mousedown", this.on_mousedown.bind(this));
-    this.addEventListener("mousemove", this.on_mousemove.bind(this));
-    this.addEventListener("mouseup", this.on_mouseup.bind(this));
+    this.addEventListener("pointerdown", this.on_mousedown.bind(this));
+    this.addEventListener("pointermove", this.on_mousemove.bind(this));
+    this.addEventListener("pointerup", this.on_mouseup.bind(this));
 
     this.addEventListener("mousewheel", this.on_mousewheel.bind(this));
 

@@ -209,7 +209,7 @@ class JSTypeSpace:
     e = min(srcnode.line + 15, len(lines)-1)
     ls = ""
     for i in range(s, e):
-        ls += str(i) + ": " + lines[i] + "\n"
+        ls += str(i + 1) + ": " + lines[i] + "\n"
 
     sys.stderr.write("\n%s\n%s:(%s): error: %s\n"%(ls, srcnode.file, srcnode.line+1, msg))
     if srcnode.line >= 0 and srcnode.line < len(glob.g_lines):

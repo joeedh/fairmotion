@@ -435,5 +435,3 @@ export class Editor extends Area {
 Editor.STRUCT = STRUCT.inherit(Editor, Area) + `
 }
 `;
-
-import {FullContext} from "../core/context.js";

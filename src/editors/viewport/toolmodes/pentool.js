@@ -1,6 +1,6 @@
 "use strict";
 
-import {FullContext} from "../../../core/context.js";
+//import {FullContext} from "../../../core/context.js";
 
 import {SplineTypes, SplineFlags, SplineVertex,
   SplineSegment, SplineFace} from '../../../curve/spline_types.js';

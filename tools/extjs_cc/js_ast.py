@@ -1717,7 +1717,7 @@ class SwitchNode(Node):
 class CaseNode(Node):
   def __init__(self, expr):
     super(CaseNode, self).__init__()
-    
+
     if expr != "default":
       self.add(expr)   
   
@@ -1735,7 +1735,7 @@ class CaseNode(Node):
     s += cs[0].gen_js(tlevel)
     
     s += self.s(":\n") + cs[1].gen_js(tlevel)
-    
+
     return s
     
 class DefaultCaseNode(CaseNode):

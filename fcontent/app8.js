@@ -1,5 +1,5 @@
 
-es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/scripts/util/simple_events.js", "../../platforms/platform.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../config/config.js", "../../platforms/platform.js", "../path.ux/scripts/util/simple_events.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
   let MS=MESSAGES;
@@ -356,7 +356,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
 
 
-es6_module_define('vectordraw', ["./vectordraw_canvas2d_simple.js", "./vectordraw_stub.js", "./vectordraw_canvas2d.js", "./vectordraw_skia_simple.js", "./vectordraw_base.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_path2d.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_stub.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_base.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -1618,7 +1618,7 @@ DrawMats {
 }, '/dev/fairmotion/src/webgl/webgl.js');
 
 
-es6_module_define('fbo', ["../path.ux/scripts/pathux.js", "./simplemesh.js", "./webgl.js"], function _fbo_module(_es6_module) {
+es6_module_define('fbo', ["./webgl.js", "../path.ux/scripts/pathux.js", "./simplemesh.js"], function _fbo_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
@@ -2194,7 +2194,7 @@ void main(void) {
 }, '/dev/fairmotion/src/webgl/fbo.js');
 
 
-es6_module_define('shaders', ["../path.ux/scripts/pathux.js", "./webgl.js"], function _shaders_module(_es6_module) {
+es6_module_define('shaders', ["./webgl.js", "../path.ux/scripts/pathux.js"], function _shaders_module(_es6_module) {
   var ShaderProgram=es6_import_item(_es6_module, './webgl.js', 'ShaderProgram');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
   const RectShader={vertex: `precision mediump float;
@@ -2248,7 +2248,7 @@ void main() {
 }, '/dev/fairmotion/src/webgl/shaders.js');
 
 
-es6_module_define('simplemesh', ["./webgl.js", "../path.ux/scripts/pathux.js", "./shaders.js"], function _simplemesh_module(_es6_module) {
+es6_module_define('simplemesh', ["../path.ux/scripts/pathux.js", "./shaders.js", "./webgl.js"], function _simplemesh_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var math=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'math');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');

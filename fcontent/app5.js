@@ -2180,7 +2180,7 @@ mat4 {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/vectormath.js');
 
 
-es6_module_define('pathux', ["./core/ui.js", "./screen/FrameManager.js", "./widgets/ui_curvewidget.js", "./widgets/ui_button.js", "./widgets/ui_numsliders.js", "./path-controller/controller.js", "./config/const.js", "./widgets/ui_textbox.js", "./xmlpage/xmlpage.js", "./widgets/ui_listbox.js", "./path-controller/util/polyfill.js", "./screen/ScreenArea.js", "./widgets/ui_richedit.js", "./widgets/ui_lasttool.js", "./widgets/theme_editor.js", "./widgets/ui_tabs.js", "./widgets/ui_noteframe.js", "./widgets/ui_panel.js", "./platforms/platform.js", "./util/ScreenOverdraw.js", "./widgets/ui_widgets.js", "./core/ui_theme.js", "./platforms/electron/electron_api.js", "./path-controller/util/html5_fileapi.js", "./widgets/ui_widgets2.js", "./simple/simple.js", "./core/ui_base.js", "./widgets/ui_treeview.js", "./widgets/ui_colorpicker2.js", "./widgets/ui_table.js", "./core/units.js", "./path-controller/util/graphpack.js", "./widgets/ui_menu.js", "./widgets/ui_progress.js"], function _pathux_module(_es6_module) {
+es6_module_define('pathux', ["./widgets/ui_textbox.js", "./widgets/ui_treeview.js", "./core/ui.js", "./core/ui_theme.js", "./path-controller/util/polyfill.js", "./path-controller/controller.js", "./widgets/ui_tabs.js", "./platforms/platform.js", "./platforms/electron/electron_api.js", "./path-controller/util/graphpack.js", "./widgets/ui_button.js", "./widgets/ui_noteframe.js", "./widgets/ui_menu.js", "./config/const.js", "./widgets/ui_widgets2.js", "./widgets/ui_widgets.js", "./core/ui_base.js", "./widgets/ui_curvewidget.js", "./path-controller/util/html5_fileapi.js", "./widgets/theme_editor.js", "./screen/FrameManager.js", "./widgets/ui_progress.js", "./widgets/ui_richedit.js", "./xmlpage/xmlpage.js", "./platforms/platform_base.js", "./core/units.js", "./screen/ScreenArea.js", "./widgets/ui_table.js", "./simple/simple.js", "./widgets/ui_listbox.js", "./widgets/ui_numsliders.js", "./widgets/ui_lasttool.js", "./widgets/ui_colorpicker2.js", "./util/ScreenOverdraw.js", "./widgets/ui_panel.js"], function _pathux_module(_es6_module) {
   es6_import(_es6_module, './path-controller/util/polyfill.js');
   var ___xmlpage_xmlpage_js=es6_import(_es6_module, './xmlpage/xmlpage.js');
   for (let k in ___xmlpage_xmlpage_js) {
@@ -2278,21 +2278,28 @@ es6_module_define('pathux', ["./core/ui.js", "./screen/FrameManager.js", "./widg
   for (let k in ___path_controller_controller_js) {
       _es6_module.add_export(k, ___path_controller_controller_js[k], true);
   }
-  var controller1=es6_import(_es6_module, './path-controller/controller.js');
-  const controller=controller1;
-  _es6_module.add_export('controller', controller);
+  var controller=es6_import(_es6_module, './path-controller/controller.js');
+  controller = _es6_module.add_export('controller', controller);
   var ui_noteframe=es6_import(_es6_module, './widgets/ui_noteframe.js');
-  controller1.setNotifier(ui_noteframe);
-  var platform1=es6_import(_es6_module, './platforms/platform.js');
-  const platform=platform1;
-  _es6_module.add_export('platform', platform);
-  var electron_api1=es6_import(_es6_module, './platforms/electron/electron_api.js');
-  const electron_api=electron_api1;
-  _es6_module.add_export('electron_api', electron_api);
-  var ___platforms_platform_js=es6_import(_es6_module, './platforms/platform.js');
-  for (let k in ___platforms_platform_js) {
-      _es6_module.add_export(k, ___platforms_platform_js[k], true);
-  }
+  controller.setNotifier(ui_noteframe);
+  let _ex_PlatformAPI=es6_import_item(_es6_module, './platforms/platform_base.js', 'PlatformAPI');
+  _es6_module.add_export('PlatformAPI', _ex_PlatformAPI, true);
+  let _ex_getMime=es6_import_item(_es6_module, './platforms/platform_base.js', 'getMime');
+  _es6_module.add_export('getMime', _ex_getMime, true);
+  let _ex_isMimeText=es6_import_item(_es6_module, './platforms/platform_base.js', 'isMimeText');
+  _es6_module.add_export('isMimeText', _ex_isMimeText, true);
+  let _ex_mimeMap=es6_import_item(_es6_module, './platforms/platform_base.js', 'mimeMap');
+  _es6_module.add_export('mimeMap', _ex_mimeMap, true);
+  let _ex_textMimes=es6_import_item(_es6_module, './platforms/platform_base.js', 'textMimes');
+  _es6_module.add_export('textMimes', _ex_textMimes, true);
+  let _ex_FileDialogArgs=es6_import_item(_es6_module, './platforms/platform_base.js', 'FileDialogArgs');
+  _es6_module.add_export('FileDialogArgs', _ex_FileDialogArgs, true);
+  let _ex_FilePath=es6_import_item(_es6_module, './platforms/platform_base.js', 'FilePath');
+  _es6_module.add_export('FilePath', _ex_FilePath, true);
+  var platform=es6_import(_es6_module, './platforms/platform.js');
+  platform = _es6_module.add_export('platform', platform);
+  var electron_api=es6_import(_es6_module, './platforms/electron/electron_api.js');
+  electron_api = _es6_module.add_export('electron_api', electron_api);
   var ___widgets_theme_editor_js=es6_import(_es6_module, './widgets/theme_editor.js');
   for (let k in ___widgets_theme_editor_js) {
       _es6_module.add_export(k, ___widgets_theme_editor_js[k], true);
@@ -2313,16 +2320,14 @@ es6_module_define('pathux', ["./core/ui.js", "./screen/FrameManager.js", "./widg
   for (let k in ___util_ScreenOverdraw_js) {
       _es6_module.add_export(k, ___util_ScreenOverdraw_js[k], true);
   }
-  var cconst1=es6_import_item(_es6_module, './config/const.js', 'default');
-  const cconst=cconst1;
-  _es6_module.add_export('cconst', cconst);
-  var simple1=es6_import(_es6_module, './simple/simple.js');
-  const simple=simple1;
-  _es6_module.add_export('simple', simple);
+  var cconst=es6_import_item(_es6_module, './config/const.js', 'default');
+  cconst = _es6_module.add_export('cconst', cconst);
+  var simple=es6_import(_es6_module, './simple/simple.js');
+  simple = _es6_module.add_export('simple', simple);
 }, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
 
 
-es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_menu.js", "../../core/ui_base.js", "../platform_base.js", "../../util/util.js"], function _electron_api_module(_es6_module) {
+es6_module_define('electron_api', ["../../core/ui_base.js", "../../config/const.js", "../../util/util.js", "../../widgets/ui_menu.js", "../platform_base.js"], function _electron_api_module(_es6_module) {
   "use strict";
   function getElectronVersion() {
     let key=navigator.userAgent;
@@ -2357,6 +2362,9 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
     while (i>=0&&filename[i]!=="/") {
       i--;
     }
+    if (filename[i]==="/") {
+        i++;
+    }
     if (i>0) {
         filename = filename.slice(i, filename.length).trim();
     }
@@ -2364,27 +2372,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
   }
   let _menu_init=false;
   let _init=false;
-  let mimemap={"js": "application/javascript", 
-   "json": "text/json", 
-   "png": "image/png", 
-   "svg": "image/svg+xml", 
-   "jpg": "image/jpeg", 
-   "txt": "text/plain", 
-   "html": "text/html", 
-   "css": "text/css", 
-   "ts": "application/typescript", 
-   "py": "application/python", 
-   "c": "application/c", 
-   "cpp": "application/cpp", 
-   "cc": "application/cpp", 
-   "h": "application/c", 
-   "hh": "application/cpp", 
-   "hpp": "application/cpp", 
-   "xml": "text/xml", 
-   "sh": "application/bash", 
-   "mjs": "application/javascript", 
-   "cjs": "application/javascript", 
-   "gif": "image/gif"}
+  var mimeMap=es6_import_item(_es6_module, '../platform_base.js', 'mimeMap');
   let electron_menu_idgen=1;
   let ipcRenderer;
   class ElectronMenu extends Array {
@@ -2416,9 +2404,9 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
       this.push(item);
     }
      popup(args) {
-      let $_t0ekeg=args, x=$_t0ekeg.x, y=$_t0ekeg.y, callback=$_t0ekeg.callback;
+      let $_t0lccd=args, x=$_t0lccd.x, y=$_t0lccd.y, callback=$_t0lccd.callback;
       callback = wrapRemoteCallback("popup_menu_click", callback);
-      const $_t1lcjf=require('electron'), ipcRenderer=$_t1lcjf.ipcRenderer;
+      const $_t1pptf=require('electron'), ipcRenderer=$_t1pptf.ipcRenderer;
       ipcRenderer.invoke("popup-menu", this, x, y, callback);
     }
   }
@@ -2682,7 +2670,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
   var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
   class platform extends PlatformAPI {
     static  showOpenDialog(title, args=new FileDialogArgs()) {
-      const $_t2hafh=require('electron').remote, dialog=$_t2hafh.dialog;
+      const $_t2rfpu=require('electron').remote, dialog=$_t2rfpu.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -2716,8 +2704,8 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
               let ext=filter[0];
               filter = {extensions: filter};
               ext = ext.replace(/\./g, "").trim().toLowerCase();
-              if (ext in mimemap) {
-                  filter.mime = mimemap[ext];
+              if (ext in mimeMap) {
+                  filter.mime = mimeMap[ext];
               }
               filter.name = ext;
           }
@@ -2730,7 +2718,7 @@ es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_me
       return filters2;
     }
     static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
-      const $_t3ilpq=require('electron').remote, dialog=$_t3ilpq.dialog;
+      const $_t3hmpw=require('electron').remote, dialog=$_t3hmpw.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -2948,7 +2936,11 @@ es6_module_define('platform', [], function _platform_module(_es6_module) {
   });
   function getPlatformAsync() {
     if (promise) {
-        return promise;
+        return new Promise((accept, reject) =>          {
+          promise.then((mod) =>            {
+            accept(mod.platform);
+          });
+        });
     }
     return new Promise((accept, reject) =>      {
       accept(platform);
@@ -2970,7 +2962,24 @@ es6_module_define('platform_base', [], function _platform_base_module(_es6_modul
    ".bmp": "image/bitmap", 
    ".tga": "image/targa", 
    ".svg": "image/svg+xml", 
-   ".xml": "text/xml"}
+   ".xml": "text/xml", 
+   ".webp": "image/webp", 
+   "svg": "image/svg+xml", 
+   "txt": "text/plain", 
+   "html": "text/html", 
+   "css": "text/css", 
+   "ts": "application/typescript", 
+   "py": "application/python", 
+   "c": "application/c", 
+   "cpp": "application/cpp", 
+   "cc": "application/cpp", 
+   "h": "application/c", 
+   "hh": "application/cpp", 
+   "hpp": "application/cpp", 
+   "sh": "application/bash", 
+   "mjs": "application/javascript", 
+   "cjs": "application/javascript", 
+   "gif": "image/gif"}
   _es6_module.add_export('mimeMap', mimeMap);
   var textMimes=new Set(["application/javascript", "application/x-javscript", "image/svg+xml", "application/xml"]);
   textMimes = _es6_module.add_export('textMimes', textMimes);
@@ -3079,7 +3088,7 @@ es6_module_define('platform_base', [], function _platform_base_module(_es6_modul
 }, '/dev/fairmotion/src/path.ux/scripts/platforms/platform_base.js');
 
 
-es6_module_define('web_api', ["../platform_base.js", "../../path-controller/util/html5_fileapi.js"], function _web_api_module(_es6_module) {
+es6_module_define('web_api', ["../../path-controller/util/html5_fileapi.js", "../platform_base.js"], function _web_api_module(_es6_module) {
   var PlatformAPI=es6_import_item(_es6_module, '../platform_base.js', 'PlatformAPI');
   var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
   var saveFile=es6_import_item(_es6_module, '../../path-controller/util/html5_fileapi.js', 'saveFile');
@@ -3233,7 +3242,7 @@ es6_module_define('web_api', ["../platform_base.js", "../../path-controller/util
 }, '/dev/fairmotion/src/path.ux/scripts/platforms/web/web_api.js');
 
 
-es6_module_define('AreaDocker', ["../config/const.js", "../core/ui.js", "../widgets/ui_menu.js", "../path-controller/util/util.js", "./ScreenArea.js", "./area_wrangler.js", "../path-controller/util/struct.js", "../core/ui_base.js", "../path-controller/util/vectormath.js"], function _AreaDocker_module(_es6_module) {
+es6_module_define('AreaDocker', ["../path-controller/util/util.js", "../config/const.js", "../core/ui.js", "../path-controller/util/struct.js", "./ScreenArea.js", "../path-controller/util/vectormath.js", "./area_wrangler.js", "../core/ui_base.js", "../widgets/ui_menu.js"], function _AreaDocker_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
   var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
@@ -3597,7 +3606,7 @@ es6_module_define('AreaDocker', ["../config/const.js", "../core/ui.js", "../widg
 }, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
 
 
-es6_module_define('area_wrangler', ["../path-controller/util/simple_events.js", "../core/ui_consts.js", "../path-controller/util/struct.js", "../path-controller/util/util.js"], function _area_wrangler_module(_es6_module) {
+es6_module_define('area_wrangler', ["../core/ui_consts.js", "../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js"], function _area_wrangler_module(_es6_module) {
   var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
   var _setModalAreaClass=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', '_setModalAreaClass');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -3792,7 +3801,7 @@ es6_module_define('area_wrangler', ["../path-controller/util/simple_events.js", 
 }, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
 
 
-es6_module_define('FrameManager', ["./FrameManager_mesh.js", "../path-controller/controller.js", "./FrameManager_ops.js", "../widgets/ui_tabs.js", "../widgets/ui_table.js", "../widgets/ui_colorpicker2.js", "../util/ScreenOverdraw.js", "../path-controller/util/vectormath.js", "../path-controller/util/math.js", "../path-controller/util/simple_events.js", "../widgets/dragbox.js", "../widgets/ui_menu.js", "../widgets/ui_panel.js", "../config/const.js", "../widgets/ui_dialog.js", "../widgets/ui_treeview.js", "../widgets/ui_widgets.js", "./ScreenArea.js", "../widgets/ui_curvewidget.js", "../widgets/ui_widgets2.js", "../path-controller/util/util.js", "../path-controller/util/struct.js", "../widgets/ui_noteframe.js", "./AreaDocker.js", "../widgets/ui_listbox.js", "../widgets/ui_textbox.js", "../core/ui_base.js"], function _FrameManager_module(_es6_module) {
+es6_module_define('FrameManager', ["../widgets/ui_menu.js", "../widgets/ui_treeview.js", "./FrameManager_ops.js", "../path-controller/util/math.js", "../util/ScreenOverdraw.js", "../widgets/ui_curvewidget.js", "../widgets/ui_table.js", "../widgets/ui_widgets.js", "../widgets/ui_colorpicker2.js", "./FrameManager_mesh.js", "../widgets/ui_widgets2.js", "../core/ui_base.js", "../widgets/ui_tabs.js", "../widgets/ui_noteframe.js", "../path-controller/controller.js", "../widgets/ui_dialog.js", "./ScreenArea.js", "../path-controller/util/util.js", "../widgets/ui_panel.js", "../path-controller/util/vectormath.js", "../config/const.js", "./AreaDocker.js", "../widgets/ui_listbox.js", "../widgets/ui_textbox.js", "../path-controller/util/simple_events.js", "../widgets/dragbox.js", "../path-controller/util/struct.js"], function _FrameManager_module(_es6_module) {
   var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
   let _FrameManager=undefined;
   es6_import(_es6_module, '../widgets/dragbox.js');
@@ -6107,7 +6116,7 @@ pathux.Screen {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager.js');
 
 
-es6_module_define('FrameManager_mesh', ["../widgets/ui_menu.js", "../path-controller/util/struct.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "../config/const.js", "./FrameManager_ops.js", "../path-controller/util/vectormath.js"], function _FrameManager_mesh_module(_es6_module) {
+es6_module_define('FrameManager_mesh', ["../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "./FrameManager_ops.js", "../config/const.js", "../core/ui_base.js", "../widgets/ui_menu.js"], function _FrameManager_mesh_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var FrameManager_ops=es6_import(_es6_module, './FrameManager_ops.js');
@@ -6461,7 +6470,7 @@ pathux.ScreenVert {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_mesh.js');
 
 
-es6_module_define('FrameManager_ops', ["../config/const.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../widgets/ui_widgets2.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../util/simple_events.js"], function _FrameManager_ops_module(_es6_module) {
+es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", "../widgets/ui_widgets2.js", "../path-controller/toolsys/toolsys.js", "../util/simple_events.js", "../path-controller/util/util.js", "../core/ui_base.js", "../config/const.js"], function _FrameManager_ops_module(_es6_module) {
   "use strict";
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -7342,7 +7351,7 @@ es6_module_define('FrameManager_ops', ["../config/const.js", "../path-controller
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_ops.js');
 
 
-es6_module_define('ScreenArea', ["../path-controller/util/util.js", "../config/const.js", "./area_wrangler.js", "../widgets/ui_noteframe.js", "../path-controller/util/simple_events.js", "./FrameManager_mesh.js", "../path-controller/util/vectormath.js", "../path-controller/util/struct.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../core/ui.js"], function _ScreenArea_module(_es6_module) {
+es6_module_define('ScreenArea', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "./FrameManager_mesh.js", "../widgets/ui_noteframe.js", "../core/ui_base.js", "./area_wrangler.js", "../path-controller/util/struct.js", "../config/const.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/simple_events.js"], function _ScreenArea_module(_es6_module) {
   let _ScreenArea=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -8417,7 +8426,7 @@ pathux.ScreenArea {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
 
 
-es6_module_define('app', ["../path-controller/controller/context.js", "../path-controller/controller/controller.js", "../screen/area_wrangler.js", "./app_ops.js", "./menubar.js", "../screen/FrameManager.js", "../util/util.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "../core/ui_base.js", "../path-controller/curve/curve1d_bspline.js", "./file.js", "./editor.js", "./icons.js", "../widgets/ui_noteframe.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _app_module(_es6_module) {
+es6_module_define('app', ["./app_ops.js", "../path-controller/util/vectormath.js", "./file.js", "./editor.js", "../screen/area_wrangler.js", "../util/util.js", "../config/const.js", "../path-controller/util/simple_events.js", "./icons.js", "../path-controller/controller/context.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/struct.js", "../path-controller/controller/controller.js", "./menubar.js", "../core/ui_base.js", "../path-controller/curve/curve1d_bspline.js", "../screen/FrameManager.js", "../widgets/ui_noteframe.js"], function _app_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var Context=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'Context');
   var ContextOverlay=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'ContextOverlay');
@@ -8834,7 +8843,7 @@ es6_module_define('app', ["../path-controller/controller/context.js", "../path-c
 }, '/dev/fairmotion/src/path.ux/scripts/simple/app.js');
 
 
-es6_module_define('app_ops', ["../path-controller/toolsys/toolsys.js", "../widgets/ui_noteframe.js", "../path-controller/toolsys/toolprop.js", "../platforms/platform.js"], function _app_ops_module(_es6_module) {
+es6_module_define('app_ops', ["../widgets/ui_noteframe.js", "../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js", "../platforms/platform.js"], function _app_ops_module(_es6_module) {
   var platform=es6_import(_es6_module, '../platforms/platform.js');
   var ToolOp=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'UndoFlags');
@@ -8970,7 +8979,7 @@ es6_module_define('context_class', [], function _context_class_module(_es6_modul
 }, '/dev/fairmotion/src/path.ux/scripts/simple/context_class.js');
 
 
-es6_module_define('editor', ["../core/ui_base.js", "../core/ui.js", "../screen/ScreenArea.js", "../util/util.js", "../path-controller/controller.js"], function _editor_module(_es6_module) {
+es6_module_define('editor', ["../core/ui_base.js", "../core/ui.js", "../path-controller/controller.js", "../util/util.js", "../screen/ScreenArea.js"], function _editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var contextWrangler=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'contextWrangler');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
@@ -10249,7 +10258,7 @@ es6_module_define('iconsheet', [], function _iconsheet_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/simple/iconsheet.js');
 
 
-es6_module_define('menubar', ["../path-controller/controller.js", "./editor.js", "../screen/ScreenArea.js", "../core/ui_base.js"], function _menubar_module(_es6_module) {
+es6_module_define('menubar', ["../screen/ScreenArea.js", "../path-controller/controller.js", "./editor.js", "../core/ui_base.js"], function _menubar_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
@@ -10348,7 +10357,7 @@ es6_module_define('setup', [], function _setup_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/simple/setup.js');
 
 
-es6_module_define('simple', ["./file.js", "./app.js", "./setup.js", "./menubar.js", "./context_class.js", "../widgets/ui_menu.js", "./editor.js", "./icons.js", "./iconsheet.js"], function _simple_module(_es6_module) {
+es6_module_define('simple', ["./iconsheet.js", "./context_class.js", "./icons.js", "./editor.js", "./file.js", "../widgets/ui_menu.js", "./setup.js", "./menubar.js", "./app.js"], function _simple_module(_es6_module) {
   var app=es6_import(_es6_module, './app.js');
   var editor=es6_import(_es6_module, './editor.js');
   var ___app_js=es6_import(_es6_module, './app.js');
@@ -10573,7 +10582,7 @@ es6_module_define('graphpack', ["./solver.js", "./util.js", "./vectormath.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0agvk=params, v1=$_t0agvk[0], v2=$_t0agvk[1];
+      let $_t0lfki=params, v1=$_t0lfki[0], v2=$_t0lfki[1];
       if (disableEdges)
         return 0;
       return v1.absPos.vectorDistance(v2.absPos);
@@ -10597,7 +10606,7 @@ es6_module_define('graphpack', ["./solver.js", "./util.js", "./vectormath.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1viou=params, n1=$_t1viou[0], n2=$_t1viou[1];
+      let $_t1wdaa=params, n1=$_t1wdaa[0], n2=$_t1wdaa[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);
@@ -10779,7 +10788,7 @@ es6_module_define('nstructjs', ["../path-controller/util/nstructjs.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
 
 
-es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "../core/ui.js", "./math.js", "./vectormath.js", "./util.js"], function _ScreenOverdraw_module(_es6_module) {
+es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "../core/ui_base.js", "./util.js", "./math.js"], function _ScreenOverdraw_module(_es6_module) {
   "use strict";
   const SVG_URL='http://www.w3.org/2000/svg';
   _es6_module.add_export('SVG_URL', SVG_URL);
@@ -11173,7 +11182,7 @@ es6_module_define('vectormath', ["../path-controller/util/vectormath.js"], funct
 }, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
 
 
-es6_module_define('dragbox', ["../core/ui_theme.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../core/ui.js"], function _dragbox_module(_es6_module) {
+es6_module_define('dragbox', ["../core/ui_theme.js", "../path-controller/util/simple_events.js", "../core/ui.js", "../core/ui_base.js"], function _dragbox_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
@@ -11362,7 +11371,7 @@ es6_module_define('dragbox', ["../core/ui_theme.js", "../core/ui_base.js", "../p
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
 
 
-es6_module_define('theme_editor', ["../path-controller/util/struct.js", "../core/ui_theme.js", "../screen/ScreenArea.js", "../core/ui.js", "../core/ui_base.js"], function _theme_editor_module(_es6_module) {
+es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/util/struct.js", "../core/ui.js", "../screen/ScreenArea.js", "../core/ui_theme.js"], function _theme_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
@@ -11599,7 +11608,7 @@ es6_module_define('theme_editor', ["../path-controller/util/struct.js", "../core
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
 
 
-es6_module_define('ui_button', ["../path-controller/controller/controller.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../path-controller/controller/controller.js", "../config/const.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -12247,7 +12256,7 @@ es6_module_define('ui_button', ["../path-controller/controller/controller.js", "
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
 
 
-es6_module_define('ui_colorpicker', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js"], function _ui_colorpicker_module(_es6_module) {
+es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/util/events.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');

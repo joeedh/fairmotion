@@ -255,7 +255,7 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/core/jobs.js');
 
 
-es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], function _ajax_module(_es6_module) {
+es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   let profile_start=(name) =>    {  }
@@ -982,7 +982,7 @@ es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], functi
 }, '/dev/fairmotion/src/core/ajax.js');
 
 
-es6_module_define('raster', ["./icon.js", "../config/config.js"], function _raster_module(_es6_module) {
+es6_module_define('raster', ["../config/config.js", "./icon.js"], function _raster_module(_es6_module) {
   "use strict";
   var IconManager=es6_import_item(_es6_module, './icon.js', 'IconManager');
   var config=es6_import(_es6_module, '../config/config.js');
@@ -1016,7 +1016,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_Tbwd_viewport;
+  var $ret_9FH2_viewport;
   class RasterState  {
     
     
@@ -1050,10 +1050,10 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_Tbwd_viewport[0][0] = $ret_Tbwd_viewport[0][1] = 0.0;
-        $ret_Tbwd_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_Tbwd_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_Tbwd_viewport;
+        $ret_9FH2_viewport[0][0] = $ret_9FH2_viewport[0][1] = 0.0;
+        $ret_9FH2_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_9FH2_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_9FH2_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1118,14 +1118,14 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_Tbwd_viewport=[[0, 0], [0, 0]];
+  var $ret_9FH2_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
 
 
-es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../util/strutils.js", "./lib_api.js", "./struct.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["./struct.js", "./lib_api.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../util/strutils.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1173,9 +1173,12 @@ es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "../edi
                 if (p.endsWith(".tif"))
                 mimetype = "image/tiff";
           }
-          if (this.data!=undefined) {
+          if (this.data!==undefined) {
               img.src = strutils.encode_dataurl(mimetype, this.data);
           }
+          img.onload = () =>            {
+            window.redraw_viewport();
+          };
           this._dom = img;
       }
       return this._dom;
@@ -1202,7 +1205,7 @@ es6_module_define('imageblock', ["../editors/viewport/view2d_editor.js", "../edi
   Image = _es6_module.add_export('Image', Image);
   Image.STRUCT = STRUCT.inherit(Image, DataBlock)+`
   path  : string;
-  width : array(int);
+  size  : array(int);
   data  : arraybuffer | this._get_data();
 }
 `;
@@ -1240,7 +1243,7 @@ ImageUser {
 }, '/dev/fairmotion/src/core/imageblock.js');
 
 
-es6_module_define('image_ops', ["../core/frameset.js", "../core/toolops_api.js", "../core/toolprops.js", "../path.ux/scripts/util/struct.js", "../curve/spline_draw.js", "../core/fileapi/fileapi.js", "../curve/spline.js", "../core/struct.js", "../core/lib_api.js", "../core/imageblock.js", "../config/config.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../path.ux/scripts/util/struct.js", "../core/toolops_api.js", "../config/config.js", "../core/imageblock.js", "../curve/spline_draw.js", "../core/fileapi/fileapi.js", "../curve/spline.js", "../core/struct.js", "../core/lib_api.js", "../core/frameset.js", "../core/toolprops.js", "../path.ux/scripts/pathux.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1262,6 +1265,8 @@ es6_module_define('image_ops', ["../core/frameset.js", "../core/toolops_api.js",
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   es6_import(_es6_module, '../path.ux/scripts/util/struct.js');
   var redo_draw_sort=es6_import_item(_es6_module, '../curve/spline_draw.js', 'redo_draw_sort');
+  var platform=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'platform');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
   var config=es6_import(_es6_module, '../config/config.js');
   var html5_fileapi=es6_import(_es6_module, '../core/fileapi/fileapi.js');
   class LoadImageOp extends ToolOp {
@@ -1283,33 +1288,58 @@ es6_module_define('image_ops', ["../core/frameset.js", "../core/toolops_api.js",
       this.inputs.dest_datapath.setValue(datapath);
       this.inputs.name.setValue(name);
     }
-     start_modal(ctx) {
-      super.start_modal(ctx);
-      console.log("modal start!", ctx);
-      this.end_modal();
-      var this2=this;
-      if (config.USE_HTML5_FILEAPI) {
-          html5_fileapi.open_file(function (buffer, name) {
-            console.log("loaded image!", buffer, buffer.byteLength);
-            this2.inputs.imagedata.setValue(buffer);
-            this2.inputs.imagepath.setValue(name);
-            this2.exec(ctx);
-          }, this, false, "Images", ["png", "jpg", "bmp", "tiff", "gif", "tga", "targa", "ico", "exr"]);
-          return ;
-      }
+     modalStart(ctx) {
+      super.modalStart(ctx);
+      super.modalEnd(false);
+      let this2=this;
+      console.log("PLATFORM!", platform.platform);
+      platform.platform.showOpenDialog("Open Image", {multi: false, 
+     addToRecentList: false, 
+     filters: [{name: "Images", 
+      mime: "image", 
+      extensions: ["png", "jpg", "bmp", "tif", "tga", "svg", "webp"]}]}).then((files) =>        {
+        console.log("Files", files);
+        let file=files[0];
+        this.inputs.imagepath.setValue(""+file.filename);
+        let name=""+file.filename;
+        if (name.search("/")>=0) {
+            let i=name.length-1;
+            while (i>=0&&name[i]!=="/"&&name[i]!=="\\") {
+              i--;
+            }
+            if (name[i]==="/"||name[i]==="\\") {
+                i++;
+            }
+            name = name.slice(i, name.length).trim();
+        }
+        if (name.length===0) {
+            name = "unnamed";
+        }
+        this.inputs.name.setValue(""+file.filename);
+        platform.platform.readFile(file, "application/x-octet-stream").then((buf) =>          {
+          this.inputs.imagedata.setValue(buf);
+          this.exec(ctx);
+        });
+      }).catch((error) =>        {
+        ctx.error(error.message);
+      });
     }
      exec(ctx) {
       ctx = new Context();
-      var name=this.inputs.name.data.trim();
+      let name=this.inputs.name.data.trim();
       name = name==="" ? undefined : name;
-      var image=new Image(name);
+      let image=new Image(name);
       ctx.datalib.add(image);
       image.path = this.inputs.imagepath.data;
       image.data = this.inputs.imagedata.data;
       this.outputs.block.setValue(image);
-      var outpath=this.inputs.dest_datapath.data.trim();
+      let outpath=this.inputs.dest_datapath.data.trim();
       if (outpath!=="") {
-          ctx.api.setValue(ctx, outpath, image);
+          ctx.api.setValue(ctx, outpath+".image", image);
+          let scale=new Vector2(ctx.api.getValue(ctx, outpath+".scale"));
+          let avg=scale[0]*0.5+scale[1]*0.5;
+          scale[0] = scale[1] = avg;
+          ctx.api.setValue(ctx, outpath+".scale", scale);
       }
     }
   }
@@ -1319,7 +1349,7 @@ es6_module_define('image_ops', ["../core/frameset.js", "../core/toolops_api.js",
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["./keymap.js", "../datafiles/theme.js", "../util/strutils.js", "../editors/theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../config/config.js", "../path.ux/scripts/util/util.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["./keymap.js", "../config/config.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../datafiles/theme.js", "../editors/theme.js", "../util/strutils.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1831,7 +1861,7 @@ AppSettings {
 }, '/dev/fairmotion/src/core/UserSettings.js');
 
 
-es6_module_define('context', ["../editors/viewport/view2d.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/curve/CurveEditor.js", "../editors/console/console.js", "./lib_api.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/path-controller/controller/context.js", "../scene/scene.js", "../curve/spline.js", "../path.ux/scripts/pathux.js", "../editors/ops/ops_editor.js", "./frameset.js", "../editors/editor_base.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/pathux.js", "../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "../scene/scene.js", "../path.ux/scripts/path-controller/controller/context.js", "./lib_api.js", "./frameset.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../curve/spline.js", "../editors/ops/ops_editor.js", "../editors/editor_base.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
   var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
@@ -2060,7 +2090,7 @@ es6_module_define('context', ["../editors/viewport/view2d.js", "../editors/dopes
 }, '/dev/fairmotion/src/core/context.js');
 
 
-es6_module_define('toolstack', ["./const.js", "../path.ux/scripts/pathux.js", "./context.js", "./toolops_api.js", "./toolprops.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./context.js", "./toolprops.js", "../path.ux/scripts/pathux.js", "./toolops_api.js", "./const.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2391,8 +2421,12 @@ es6_module_define('toolstack', ["./const.js", "../path.ux/scripts/pathux.js", ".
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["../editors/curve/CurveEditor.js", "./toolprops.js", "./data_api/data_api_define.js", "../editors/ops/ops_editor.js", "../config/config.js", "./toolstack.js", "../editors/console/console.js", "./struct.js", "../util/strutils.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/material/MaterialEditor.js", "../editors/all.js", "./jobs.js", "./frameset.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/viewport/view2d.js", "./UserSettings.js", "./notifications.js", "./startup/startup_file_example.js", "../path.ux/scripts/core/ui_base.js", "./raster.js", "./toolops_api.js", "../path.ux/scripts/screen/ScreenArea.js", "./const.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "./lib_api.js", "../path.ux/scripts/util/util.js", "../editors/editor_base.js", "./ajax.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "../curve/spline_base.js", "../scene/scene.js", "./lib_utils.js", "../../platforms/platform.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/config/const.js", "../editors/theme.js", "./context.js", "./fileapi/fileapi.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["./raster.js", "../path.ux/scripts/config/const.js", "../editors/viewport/view2d_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "./startup/startup_file_example.js", "./const.js", "../editors/ops/ops_editor.js", "../config/config.js", "./lib_api.js", "../path.ux/scripts/pathux.js", "../editors/menubar/MenuBar.js", "../util/strutils.js", "../scene/scene.js", "./toolstack.js", "../path.ux/scripts/screen/ScreenArea.js", "./context.js", "../../platforms/platform.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/settings/SettingsEditor.js", "./jobs.js", "../curve/spline_base.js", "./startup/startup_file.js", "../editors/curve/CurveEditor.js", "./fileapi/fileapi.js", "./notifications.js", "./UserSettings.js", "../editors/console/console.js", "../editors/editor_base.js", "../editors/all.js", "../editors/viewport/view2d.js", "../path.ux/scripts/screen/FrameManager.js", "./lib_utils.js", "./struct.js", "../path.ux/scripts/util/util.js", "./frameset.js", "./toolops_api.js", "./data_api/data_api_define.js", "../editors/theme.js", "./ajax.js", "../editors/material/MaterialEditor.js", "./toolprops.js"], function _AppState_module(_es6_module) {
   "use strict";
+  var pathux_platform=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'platform');
+  pathux_platform.getPlatformAsync().then((mod) =>    {
+    pathux_platform.platform = mod;
+  });
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
   var electron_api=es6_import(_es6_module, '../path.ux/scripts/platforms/electron/electron_api.js');
@@ -4222,7 +4256,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
 }, '/dev/fairmotion/src/core/video.js');
 
 
-es6_module_define('fileapi', ["./fileapi_html5", "./fileapi_chrome", "../../config/config.js", "./fileapi_electron"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["./fileapi_electron", "../../config/config.js", "./fileapi_chrome", "./fileapi_html5"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -4491,7 +4525,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (thisvar==undefined)
       thisvar = this;
     let default_path=get_base_dir(g_app_state.filepath);
-    let $_t0rksk=require('electron'), ipcRenderer=$_t0rksk.ipcRenderer;
+    let $_t0lbgd=require('electron'), ipcRenderer=$_t0lbgd.ipcRenderer;
     let onthen=(e) =>      {
       if (e.cancelled) {
           return ;
@@ -4585,7 +4619,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (dialog===undefined) {
         dialog = require('electron').remote.dialog;
     }
-    let $_t1jupk=require('electron'), ipcRenderer=$_t1jupk.ipcRenderer;
+    let $_t1qugw=require('electron'), ipcRenderer=$_t1qugw.ipcRenderer;
     let onthen=(dialog_data) =>      {
       let canceled=dialog_data.canceled;
       let path=dialog_data.filePath;
@@ -4629,7 +4663,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
 
 
-es6_module_define('animdata', ["./lib_api.js", "./struct.js", "../curve/spline_base.js", "./eventdag.js", "./toolprops.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./struct.js", "./toolprops.js", "./lib_api.js", "../curve/spline_base.js", "./eventdag.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -4901,7 +4935,7 @@ es6_module_define('config_defines', [], function _config_defines_module(_es6_mod
 }, '/dev/fairmotion/src/config/config_defines.js');
 
 
-es6_module_define('svg_export', ["../vectordraw/vectordraw_svg.js", "../curve/spline_draw.js", "../curve/spline_base.js", "../curve/spline_draw_new.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../curve/spline_base.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_draw_new.js", "../curve/spline_draw.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -4987,7 +5021,7 @@ es6_module_define('simple_controller', ["../path-controller/controller/controlle
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
 
 
-es6_module_define('anim', ["../path-controller/util/util.js", "../path-controller/util/math.js", "../path-controller/curve/curve1d.js", "./ui_theme.js", "../path-controller/util/vectormath.js"], function _anim_module(_es6_module) {
+es6_module_define('anim', ["../path-controller/util/math.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/curve/curve1d.js"], function _anim_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
   var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
@@ -5389,7 +5423,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             chain2[i] = chain[i];
         }
         for (let i=0; i<chain2.length; i++) {
-            let $_t0fwac=chain2[i], cb=$_t0fwac[0], node=$_t0fwac[1], once=$_t0fwac[2];
+            let $_t0kijo=chain2[i], cb=$_t0kijo[0], node=$_t0kijo[1], once=$_t0kijo[2];
             if (node) {
                 let isDead=!node.isConnected;
                 if (__instance_of(node, UIBase)) {
@@ -6042,7 +6076,7 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
 
 
-es6_module_define('ui', ["../path-controller/toolsys/toolprop.js", "../path-controller/util/html5_fileapi.js", "../widgets/ui_menu.js", "../widgets/ui_widgets.js", "../path-controller/util/simple_events.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "./ui_base.js", "../core/units.js", "../path-controller/controller/controller_base.js", "./ui_theme.js", "../config/const.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/const.js", "./ui_theme.js", "../path-controller/toolsys/toolprop.js", "../core/units.js", "./ui_base.js", "../path-controller/util/util.js", "../widgets/ui_widgets.js", "../widgets/ui_menu.js", "../path-controller/util/simple_events.js", "../path-controller/util/html5_fileapi.js", "../path-controller/controller/controller_base.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var units=es6_import(_es6_module, '../core/units.js');
@@ -7771,7 +7805,7 @@ es6_module_define('ui', ["../path-controller/toolsys/toolprop.js", "../path-cont
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
 
 
-es6_module_define('ui_base', ["../path-controller/util/util.js", "../path-controller/controller/controller.js", "./anim.js", "../path-controller/util/simple_events.js", "./aspect.js", "./ui_consts.js", "../path-controller/util/vectormath.js", "./units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/math.js", "./theme.js", "../icon_enum.js", "./ui_theme.js", "../screen/area_wrangler.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["./ui_theme.js", "./units.js", "../util/colorutils.js", "../icon_enum.js", "../path-controller/controller/controller.js", "./theme.js", "../screen/area_wrangler.js", "../config/const.js", "../path-controller/util/simple_events.js", "./aspect.js", "./ui_consts.js", "../path-controller/util/math.js", "./anim.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _ui_base_module(_es6_module) {
   var contextWrangler=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'contextWrangler');
   let _ui_base=undefined;
   let TextBox=undefined;
@@ -8392,7 +8426,7 @@ ${selector}::-webkit-scrollbar-thumb {
         return ;
     }
     for (let item of new Set(setTimeoutQueue)) {
-        let $_t0knls=item, cb=$_t0knls.cb, timeout=$_t0knls.timeout, time=$_t0knls.time;
+        let $_t0djbb=item, cb=$_t0djbb.cb, timeout=$_t0djbb.timeout, time=$_t0djbb.time;
         if (util.time_ms()-time<timeout) {
             continue;
         }
@@ -9038,8 +9072,8 @@ ${selector}::-webkit-scrollbar-thumb {
         }
         return [i, p];
       };
-      let $_t1jcrd=getPos(this, p1), i1=$_t1jcrd[0], n1=$_t1jcrd[1];
-      let $_t2aqfb=getPos(b, p2), i2=$_t2aqfb[0], n2=$_t2aqfb[1];
+      let $_t1cdll=getPos(this, p1), i1=$_t1cdll[0], n1=$_t1cdll[1];
+      let $_t2djgd=getPos(b, p2), i2=$_t2djgd[0], n2=$_t2djgd[1];
       console.log("i1, i2, n1, n2", i1, i2, n1, n2);
       let tmp1=document.createElement("div");
       let tmp2=document.createElement("div");
@@ -9339,7 +9373,7 @@ ${selector}::-webkit-scrollbar-thumb {
       let path=[elem];
       let lastelem=elem;
       let i=0;
-      while (elem.shadow) {
+      while (elem&&elem.shadow) {
         if (i++>1000) {
             console.error("Infinite loop error");
             break;
@@ -10650,7 +10684,7 @@ es6_module_define('ui_consts', [], function _ui_consts_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_consts.js');
 
 
-es6_module_define('ui_save', ["../path-controller/util/parseutil.js", "../util/util.js", "../util/vectormath.js"], function _ui_save_module(_es6_module) {
+es6_module_define('ui_save', ["../util/vectormath.js", "../util/util.js", "../path-controller/util/parseutil.js"], function _ui_save_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -10832,388 +10866,4 @@ es6_module_define('ui_save', ["../path-controller/util/parseutil.js", "../util/u
   }
   loadUIData = _es6_module.add_export('loadUIData', loadUIData);
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_save.js');
-
-
-es6_module_define('ui_theme', ["../path-controller/util/util.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../config/const.js"], function _ui_theme_module(_es6_module) {
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  let compatMap={BoxMargin: "padding", 
-   BoxBG: "background", 
-   BoxRadius: "border-radius", 
-   background: "background-color", 
-   defaultWidth: "width", 
-   defaultHeight: "height", 
-   DefaultWidth: "width", 
-   DefaultHeight: "height", 
-   BoxBorder: "border-color", 
-   BoxLineWidth: "border-width", 
-   BoxSubBG: "background-color", 
-   BoxSub2BG: "background-color", 
-   DefaultPanelBG: "background-color", 
-   InnerPanelBG: "background-color", 
-   Background: "background-color", 
-   numslider_width: "width", 
-   numslider_height: "height"}
-  compatMap = _es6_module.add_export('compatMap', compatMap);
-  let ColorSchemeTypes={LIGHT: "light", 
-   DARK: "dark"}
-  ColorSchemeTypes = _es6_module.add_export('ColorSchemeTypes', ColorSchemeTypes);
-  function parsepx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  parsepx = _es6_module.add_export('parsepx', parsepx);
-  function color2css(c, alpha_override) {
-    let r=~~(c[0]*255);
-    let g=~~(c[1]*255);
-    let b=~~(c[2]*255);
-    let a=c.length<4 ? 1.0 : c[3];
-    a = alpha_override!==undefined ? alpha_override : a;
-    if (c.length===3&&alpha_override===undefined) {
-        return `rgb(${r},${g},${b})`;
-    }
-    else {
-      return `rgba(${r},${g},${b}, ${a})`;
-    }
-  }
-  color2css = _es6_module.add_export('color2css', color2css);
-  window.color2css = color2css;
-  let css2color_rets=util.cachering.fromConstructor(Vector4, 64);
-  let basic_colors={'white': [1, 1, 1], 
-   'grey': [0.5, 0.5, 0.5], 
-   'gray': [0.5, 0.5, 0.5], 
-   'black': [0, 0, 0], 
-   'red': [1, 0, 0], 
-   'yellow': [1, 1, 0], 
-   'green': [0, 1, 0], 
-   'teal': [0, 1, 1], 
-   'cyan': [0, 1, 1], 
-   'blue': [0, 0, 1], 
-   'orange': [1, 0.5, 0.25], 
-   'brown': [0.5, 0.4, 0.3], 
-   'purple': [1, 0, 1], 
-   'pink': [1, 0.5, 0.5]}
-  function color2web(color) {
-    function tostr(n) {
-      n = ~~(n*255);
-      let s=n.toString(16);
-      if (s.length>2) {
-          s = s.slice(0, 2);
-      }
-      while (s.length<2) {
-        s = "0"+s;
-      }
-      return s;
-    }
-    if (color.length===3||color[3]===1.0) {
-        let r=tostr(color[0]);
-        let g=tostr(color[1]);
-        let b=tostr(color[2]);
-        return "#"+r+g+b;
-    }
-    else {
-      let r=tostr(color[0]);
-      let g=tostr(color[1]);
-      let b=tostr(color[2]);
-      let a=tostr(color[3]);
-      return "#"+r+g+b+a;
-    }
-  }
-  color2web = _es6_module.add_export('color2web', color2web);
-  window.color2web = color2web;
-  function css2color(color) {
-    if (!color) {
-        return new Vector4([0, 0, 0, 1]);
-    }
-    color = (""+color).trim();
-    let ret=css2color_rets.next();
-    if (color[0]==="#") {
-        color = color.slice(1, color.length);
-        let parts=[];
-        for (let i=0; i<color.length>>1; i++) {
-            let part="0x"+color.slice(i*2, i*2+2);
-            parts.push(parseInt(part));
-        }
-        ret.zero();
-        let i;
-        for (i = 0; i<Math.min(parts.length, ret.length); i++) {
-            ret[i] = parts[i]/255.0;
-        }
-        if (i<4) {
-            ret[3] = 1.0;
-        }
-        return ret;
-    }
-    if (color in basic_colors) {
-        ret.load(basic_colors[color]);
-        ret[3] = 1.0;
-        return ret;
-    }
-    color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
-    for (let i=0; i<color.length; i++) {
-        ret[i] = parseFloat(color[i]);
-        if (i<3) {
-            ret[i]/=255;
-        }
-    }
-    if (color.length===3) {
-        color.push(1.0);
-    }
-    return ret;
-  }
-  css2color = _es6_module.add_export('css2color', css2color);
-  window.css2color = css2color;
-  function web2color(str) {
-    if (typeof str==="string"&&str.trim()[0]!=="#") {
-        str = "#"+str.trim();
-    }
-    return css2color(str);
-  }
-  web2color = _es6_module.add_export('web2color', web2color);
-  window.web2color = web2color;
-  let validate_pat=/\#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
-  function validateWebColor(str) {
-    if (typeof str!=="string"&&!(__instance_of(str, String)))
-      return false;
-    return str.trim().search(validate_pat)===0;
-  }
-  validateWebColor = _es6_module.add_export('validateWebColor', validateWebColor);
-  let num="(([0-9]+\.[0-9]+)|[0-9a-f]+)";
-  let validate_rgba=new RegExp(`rgba\\(${num},${num},${num},${num}\\)$`);
-  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num}\\)$`);
-  function validateCSSColor(color) {
-    if (color.toLowerCase() in basic_colors) {
-        return true;
-    }
-    let rgba=color.toLowerCase().replace(/[ \t]/g, "");
-    rgba = rgba.trim();
-    if (validate_rgba.test(rgba)||validate_rgb.exec(rgba)) {
-        return true;
-    }
-    return validateWebColor(color);
-  }
-  validateCSSColor = _es6_module.add_export('validateCSSColor', validateCSSColor);
-  window.validateCSSColor = validateCSSColor;
-  let theme={}
-  theme = _es6_module.add_export('theme', theme);
-  function invertTheme() {
-    cconst.colorSchemeType = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? ColorSchemeTypes.DARK : ColorSchemeTypes.LIGHT;
-    function inverted(color) {
-      if (Array.isArray(color)) {
-          for (let i=0; i<3; i++) {
-              color[i] = 1.0-color[i];
-          }
-          return color;
-      }
-      color = css2color(color);
-      return color2css(inverted(color));
-    }
-    let bg=document.body.style["background-color"];
-    bg = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? "rgb(200,200,200)" : "rgb(55, 55, 55)";
-    document.body.style["background-color"] = bg;
-    for (let style in theme) {
-        style = theme[style];
-        for (let k in style) {
-            let v=style[k];
-            if (__instance_of(v, CSSFont)) {
-                v.color = inverted(v.color);
-            }
-            else 
-              if (typeof v==="string") {
-                v = v.trim().toLowerCase();
-                let iscolor=v.search("rgb")>=0;
-                iscolor = iscolor||v in basic_colors;
-                iscolor = iscolor||validateWebColor(v);
-                if (iscolor) {
-                    style[k] = inverted(v);
-                }
-            }
-        }
-    }
-  }
-  invertTheme = _es6_module.add_export('invertTheme', invertTheme);
-  window.invertTheme = invertTheme;
-  function setColorSchemeType(mode) {
-    if (!!mode!==cconst.colorSchemeType) {
-        invertTheme();
-        cconst.colorSchemeType = mode;
-    }
-  }
-  setColorSchemeType = _es6_module.add_export('setColorSchemeType', setColorSchemeType);
-  window.validateWebColor = validateWebColor;
-  let _digest=new util.HashDigest();
-  class CSSFont  {
-     constructor(args={}) {
-      this._size = args.size ? args.size : 12;
-      this.font = args.font;
-      this.style = args.style!==undefined ? args.style : "normal";
-      this.weight = args.weight!==undefined ? args.weight : "normal";
-      this.variant = args.variant!==undefined ? args.variant : "normal";
-      this.color = args.color;
-    }
-     calcHashUpdate(digest=_digest.reset()) {
-      digest.add(this._size||0);
-      digest.add(this.font);
-      digest.add(this.style);
-      digest.add(this.weight);
-      digest.add(this.variant);
-      digest.add(this.color);
-      return digest.get();
-    }
-    set  size(val) {
-      this._size = val;
-    }
-    get  size() {
-      if (util.isMobile()) {
-          let mul=theme.base.mobileTextSizeMultiplier/visualViewport.scale;
-          if (mul) {
-              return this._size*mul;
-              
-          }
-      }
-      return this._size;
-    }
-     copyTo(b) {
-      b._size = this._size;
-      b.font = this.font;
-      b.style = this.style;
-      b.color = this.color;
-      b.variant = this.variant;
-      b.weight = this.weight;
-    }
-     copy() {
-      let ret=new CSSFont();
-      this.copyTo(ret);
-      return ret;
-    }
-     genCSS(size=this.size) {
-      return `${this.style} ${this.variant} ${this.weight} ${size}px ${this.font}`;
-    }
-     hash() {
-      return this.genKey();
-    }
-     genKey() {
-      let color=this.color;
-      if (typeof this.color==="object"||typeof this.color==="function") {
-          color = JSON.stringify(color);
-      }
-      return this.genCSS()+":"+this.size+":"+color;
-    }
-  }
-  _ESClass.register(CSSFont);
-  _es6_module.add_class(CSSFont);
-  CSSFont = _es6_module.add_export('CSSFont', CSSFont);
-  CSSFont.STRUCT = `
-CSSFont {
-  size     : float | obj._size;
-  font     : string | obj.font || "";
-  style    : string | obj.font || "";
-  color    : string | ""+obj.color;
-  variant  : string | obj.variant || "";
-  weight   : string | ""+obj.weight;
-}
-`;
-  nstructjs.register(CSSFont);
-  function exportTheme(theme1, addVarDecl) {
-    if (theme1===undefined) {
-        theme1 = theme;
-    }
-    if (addVarDecl===undefined) {
-        addVarDecl = true;
-    }
-    let sortkeys=(obj) =>      {
-      let keys=[];
-      for (let k in obj) {
-          keys.push(k);
-      }
-      keys.sort();
-      return keys;
-    }
-    let s=addVarDecl ? "var theme = {\n" : "{\n";
-    function writekey(v, indent) {
-      if (indent===undefined) {
-          indent = "";
-      }
-      if (typeof v==="string") {
-          if (v.search("\n")>=0) {
-              v = "`"+v+"`";
-          }
-          else {
-            v = "'"+v+"'";
-          }
-          return v;
-      }
-      else 
-        if (typeof v==="object") {
-          if (__instance_of(v, CSSFont)) {
-              return `new CSSFont({
-${indent}  font    : ${writekey(v.font)},
-${indent}  weight  : ${writekey(v.weight)},
-${indent}  variant : ${writekey(v.variant)},
-${indent}  style   : ${writekey(v.style)},
-${indent}  size    : ${writekey(v._size)},
-${indent}  color   : ${writekey(v.color)}
-${indent}})`;
-          }
-          else {
-            let s="{\n";
-            for (let k of sortkeys(v)) {
-                let v2=v[k];
-                if (k.search(" ")>=0||k.search("-")>=0) {
-                    k = "'"+k+"'";
-                }
-                s+=indent+"  "+k+" : "+writekey(v2, indent+"  ")+",\n";
-            }
-            s+=indent+"}";
-            return s;
-          }
-      }
-      else {
-        return ""+v;
-      }
-      return "error";
-    }
-    for (let k of sortkeys(theme1)) {
-        let k2=k;
-        if (k.search("-")>=0||k.search(" ")>=0) {
-            k2 = "'"+k+"'";
-        }
-        s+="  "+k2+": ";
-        let v=theme1[k];
-        if (typeof v!=="object"||__instance_of(v, CSSFont)) {
-            s+=writekey(v, "  ")+",\n";
-        }
-        else {
-          s+=" {\n";
-          let s2="";
-          let maxwid=0;
-          for (let k2 of sortkeys(v)) {
-              if (k2.search("-")>=0||k2.search(" ")>=0) {
-                  k2 = "'"+k2+"'";
-              }
-              maxwid = Math.max(maxwid, k2.length);
-          }
-          for (let k2 of sortkeys(v)) {
-              let v2=v[k2];
-              if (k2.search("-")>=0||k2.search(" ")>=0) {
-                  k2 = "'"+k2+"'";
-              }
-              let pad="";
-              for (let i=0; i<maxwid-k2.length; i++) {
-                  pad+=" ";
-              }
-              s2+="    "+k2+pad+": "+writekey(v2, "    ")+",\n";
-          }
-          s+=s2;
-          s+="  },\n\n";
-        }
-    }
-    s+="};\n";
-    return s;
-  }
-  exportTheme = _es6_module.add_export('exportTheme', exportTheme);
-  window._exportTheme = exportTheme;
-}, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
 

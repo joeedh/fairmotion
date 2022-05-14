@@ -1,4 +1,388 @@
 
+es6_module_define('ui_theme', ["../path-controller/util/vectormath.js", "../path-controller/util/struct.js", "../config/const.js", "../path-controller/util/util.js"], function _ui_theme_module(_es6_module) {
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  let compatMap={BoxMargin: "padding", 
+   BoxBG: "background", 
+   BoxRadius: "border-radius", 
+   background: "background-color", 
+   defaultWidth: "width", 
+   defaultHeight: "height", 
+   DefaultWidth: "width", 
+   DefaultHeight: "height", 
+   BoxBorder: "border-color", 
+   BoxLineWidth: "border-width", 
+   BoxSubBG: "background-color", 
+   BoxSub2BG: "background-color", 
+   DefaultPanelBG: "background-color", 
+   InnerPanelBG: "background-color", 
+   Background: "background-color", 
+   numslider_width: "width", 
+   numslider_height: "height"}
+  compatMap = _es6_module.add_export('compatMap', compatMap);
+  let ColorSchemeTypes={LIGHT: "light", 
+   DARK: "dark"}
+  ColorSchemeTypes = _es6_module.add_export('ColorSchemeTypes', ColorSchemeTypes);
+  function parsepx(css) {
+    return parseFloat(css.trim().replace("px", ""));
+  }
+  parsepx = _es6_module.add_export('parsepx', parsepx);
+  function color2css(c, alpha_override) {
+    let r=~~(c[0]*255);
+    let g=~~(c[1]*255);
+    let b=~~(c[2]*255);
+    let a=c.length<4 ? 1.0 : c[3];
+    a = alpha_override!==undefined ? alpha_override : a;
+    if (c.length===3&&alpha_override===undefined) {
+        return `rgb(${r},${g},${b})`;
+    }
+    else {
+      return `rgba(${r},${g},${b}, ${a})`;
+    }
+  }
+  color2css = _es6_module.add_export('color2css', color2css);
+  window.color2css = color2css;
+  let css2color_rets=util.cachering.fromConstructor(Vector4, 64);
+  let basic_colors={'white': [1, 1, 1], 
+   'grey': [0.5, 0.5, 0.5], 
+   'gray': [0.5, 0.5, 0.5], 
+   'black': [0, 0, 0], 
+   'red': [1, 0, 0], 
+   'yellow': [1, 1, 0], 
+   'green': [0, 1, 0], 
+   'teal': [0, 1, 1], 
+   'cyan': [0, 1, 1], 
+   'blue': [0, 0, 1], 
+   'orange': [1, 0.5, 0.25], 
+   'brown': [0.5, 0.4, 0.3], 
+   'purple': [1, 0, 1], 
+   'pink': [1, 0.5, 0.5]}
+  function color2web(color) {
+    function tostr(n) {
+      n = ~~(n*255);
+      let s=n.toString(16);
+      if (s.length>2) {
+          s = s.slice(0, 2);
+      }
+      while (s.length<2) {
+        s = "0"+s;
+      }
+      return s;
+    }
+    if (color.length===3||color[3]===1.0) {
+        let r=tostr(color[0]);
+        let g=tostr(color[1]);
+        let b=tostr(color[2]);
+        return "#"+r+g+b;
+    }
+    else {
+      let r=tostr(color[0]);
+      let g=tostr(color[1]);
+      let b=tostr(color[2]);
+      let a=tostr(color[3]);
+      return "#"+r+g+b+a;
+    }
+  }
+  color2web = _es6_module.add_export('color2web', color2web);
+  window.color2web = color2web;
+  function css2color(color) {
+    if (!color) {
+        return new Vector4([0, 0, 0, 1]);
+    }
+    color = (""+color).trim();
+    let ret=css2color_rets.next();
+    if (color[0]==="#") {
+        color = color.slice(1, color.length);
+        let parts=[];
+        for (let i=0; i<color.length>>1; i++) {
+            let part="0x"+color.slice(i*2, i*2+2);
+            parts.push(parseInt(part));
+        }
+        ret.zero();
+        let i;
+        for (i = 0; i<Math.min(parts.length, ret.length); i++) {
+            ret[i] = parts[i]/255.0;
+        }
+        if (i<4) {
+            ret[3] = 1.0;
+        }
+        return ret;
+    }
+    if (color in basic_colors) {
+        ret.load(basic_colors[color]);
+        ret[3] = 1.0;
+        return ret;
+    }
+    color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
+    for (let i=0; i<color.length; i++) {
+        ret[i] = parseFloat(color[i]);
+        if (i<3) {
+            ret[i]/=255;
+        }
+    }
+    if (color.length===3) {
+        color.push(1.0);
+    }
+    return ret;
+  }
+  css2color = _es6_module.add_export('css2color', css2color);
+  window.css2color = css2color;
+  function web2color(str) {
+    if (typeof str==="string"&&str.trim()[0]!=="#") {
+        str = "#"+str.trim();
+    }
+    return css2color(str);
+  }
+  web2color = _es6_module.add_export('web2color', web2color);
+  window.web2color = web2color;
+  let validate_pat=/\#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
+  function validateWebColor(str) {
+    if (typeof str!=="string"&&!(__instance_of(str, String)))
+      return false;
+    return str.trim().search(validate_pat)===0;
+  }
+  validateWebColor = _es6_module.add_export('validateWebColor', validateWebColor);
+  let num="(([0-9]+\.[0-9]+)|[0-9a-f]+)";
+  let validate_rgba=new RegExp(`rgba\\(${num},${num},${num},${num}\\)$`);
+  let validate_rgb=new RegExp(`rgb\\(${num},${num},${num}\\)$`);
+  function validateCSSColor(color) {
+    if (color.toLowerCase() in basic_colors) {
+        return true;
+    }
+    let rgba=color.toLowerCase().replace(/[ \t]/g, "");
+    rgba = rgba.trim();
+    if (validate_rgba.test(rgba)||validate_rgb.exec(rgba)) {
+        return true;
+    }
+    return validateWebColor(color);
+  }
+  validateCSSColor = _es6_module.add_export('validateCSSColor', validateCSSColor);
+  window.validateCSSColor = validateCSSColor;
+  let theme={}
+  theme = _es6_module.add_export('theme', theme);
+  function invertTheme() {
+    cconst.colorSchemeType = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? ColorSchemeTypes.DARK : ColorSchemeTypes.LIGHT;
+    function inverted(color) {
+      if (Array.isArray(color)) {
+          for (let i=0; i<3; i++) {
+              color[i] = 1.0-color[i];
+          }
+          return color;
+      }
+      color = css2color(color);
+      return color2css(inverted(color));
+    }
+    let bg=document.body.style["background-color"];
+    bg = cconst.colorSchemeType===ColorSchemeTypes.LIGHT ? "rgb(200,200,200)" : "rgb(55, 55, 55)";
+    document.body.style["background-color"] = bg;
+    for (let style in theme) {
+        style = theme[style];
+        for (let k in style) {
+            let v=style[k];
+            if (__instance_of(v, CSSFont)) {
+                v.color = inverted(v.color);
+            }
+            else 
+              if (typeof v==="string") {
+                v = v.trim().toLowerCase();
+                let iscolor=v.search("rgb")>=0;
+                iscolor = iscolor||v in basic_colors;
+                iscolor = iscolor||validateWebColor(v);
+                if (iscolor) {
+                    style[k] = inverted(v);
+                }
+            }
+        }
+    }
+  }
+  invertTheme = _es6_module.add_export('invertTheme', invertTheme);
+  window.invertTheme = invertTheme;
+  function setColorSchemeType(mode) {
+    if (!!mode!==cconst.colorSchemeType) {
+        invertTheme();
+        cconst.colorSchemeType = mode;
+    }
+  }
+  setColorSchemeType = _es6_module.add_export('setColorSchemeType', setColorSchemeType);
+  window.validateWebColor = validateWebColor;
+  let _digest=new util.HashDigest();
+  class CSSFont  {
+     constructor(args={}) {
+      this._size = args.size ? args.size : 12;
+      this.font = args.font;
+      this.style = args.style!==undefined ? args.style : "normal";
+      this.weight = args.weight!==undefined ? args.weight : "normal";
+      this.variant = args.variant!==undefined ? args.variant : "normal";
+      this.color = args.color;
+    }
+     calcHashUpdate(digest=_digest.reset()) {
+      digest.add(this._size||0);
+      digest.add(this.font);
+      digest.add(this.style);
+      digest.add(this.weight);
+      digest.add(this.variant);
+      digest.add(this.color);
+      return digest.get();
+    }
+    set  size(val) {
+      this._size = val;
+    }
+    get  size() {
+      if (util.isMobile()) {
+          let mul=theme.base.mobileTextSizeMultiplier/visualViewport.scale;
+          if (mul) {
+              return this._size*mul;
+              
+          }
+      }
+      return this._size;
+    }
+     copyTo(b) {
+      b._size = this._size;
+      b.font = this.font;
+      b.style = this.style;
+      b.color = this.color;
+      b.variant = this.variant;
+      b.weight = this.weight;
+    }
+     copy() {
+      let ret=new CSSFont();
+      this.copyTo(ret);
+      return ret;
+    }
+     genCSS(size=this.size) {
+      return `${this.style} ${this.variant} ${this.weight} ${size}px ${this.font}`;
+    }
+     hash() {
+      return this.genKey();
+    }
+     genKey() {
+      let color=this.color;
+      if (typeof this.color==="object"||typeof this.color==="function") {
+          color = JSON.stringify(color);
+      }
+      return this.genCSS()+":"+this.size+":"+color;
+    }
+  }
+  _ESClass.register(CSSFont);
+  _es6_module.add_class(CSSFont);
+  CSSFont = _es6_module.add_export('CSSFont', CSSFont);
+  CSSFont.STRUCT = `
+CSSFont {
+  size     : float | obj._size;
+  font     : string | obj.font || "";
+  style    : string | obj.font || "";
+  color    : string | ""+obj.color;
+  variant  : string | obj.variant || "";
+  weight   : string | ""+obj.weight;
+}
+`;
+  nstructjs.register(CSSFont);
+  function exportTheme(theme1, addVarDecl) {
+    if (theme1===undefined) {
+        theme1 = theme;
+    }
+    if (addVarDecl===undefined) {
+        addVarDecl = true;
+    }
+    let sortkeys=(obj) =>      {
+      let keys=[];
+      for (let k in obj) {
+          keys.push(k);
+      }
+      keys.sort();
+      return keys;
+    }
+    let s=addVarDecl ? "var theme = {\n" : "{\n";
+    function writekey(v, indent) {
+      if (indent===undefined) {
+          indent = "";
+      }
+      if (typeof v==="string") {
+          if (v.search("\n")>=0) {
+              v = "`"+v+"`";
+          }
+          else {
+            v = "'"+v+"'";
+          }
+          return v;
+      }
+      else 
+        if (typeof v==="object") {
+          if (__instance_of(v, CSSFont)) {
+              return `new CSSFont({
+${indent}  font    : ${writekey(v.font)},
+${indent}  weight  : ${writekey(v.weight)},
+${indent}  variant : ${writekey(v.variant)},
+${indent}  style   : ${writekey(v.style)},
+${indent}  size    : ${writekey(v._size)},
+${indent}  color   : ${writekey(v.color)}
+${indent}})`;
+          }
+          else {
+            let s="{\n";
+            for (let k of sortkeys(v)) {
+                let v2=v[k];
+                if (k.search(" ")>=0||k.search("-")>=0) {
+                    k = "'"+k+"'";
+                }
+                s+=indent+"  "+k+" : "+writekey(v2, indent+"  ")+",\n";
+            }
+            s+=indent+"}";
+            return s;
+          }
+      }
+      else {
+        return ""+v;
+      }
+      return "error";
+    }
+    for (let k of sortkeys(theme1)) {
+        let k2=k;
+        if (k.search("-")>=0||k.search(" ")>=0) {
+            k2 = "'"+k+"'";
+        }
+        s+="  "+k2+": ";
+        let v=theme1[k];
+        if (typeof v!=="object"||__instance_of(v, CSSFont)) {
+            s+=writekey(v, "  ")+",\n";
+        }
+        else {
+          s+=" {\n";
+          let s2="";
+          let maxwid=0;
+          for (let k2 of sortkeys(v)) {
+              if (k2.search("-")>=0||k2.search(" ")>=0) {
+                  k2 = "'"+k2+"'";
+              }
+              maxwid = Math.max(maxwid, k2.length);
+          }
+          for (let k2 of sortkeys(v)) {
+              let v2=v[k2];
+              if (k2.search("-")>=0||k2.search(" ")>=0) {
+                  k2 = "'"+k2+"'";
+              }
+              let pad="";
+              for (let i=0; i<maxwid-k2.length; i++) {
+                  pad+=" ";
+              }
+              s2+="    "+k2+pad+": "+writekey(v2, "    ")+",\n";
+          }
+          s+=s2;
+          s+="  },\n\n";
+        }
+    }
+    s+="};\n";
+    return s;
+  }
+  exportTheme = _es6_module.add_export('exportTheme', exportTheme);
+  window._exportTheme = exportTheme;
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
+
+
 es6_module_define('units', ["../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _units_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
@@ -477,7 +861,7 @@ es6_module_define('units', ["../path-controller/util/util.js", "../path-controll
 }, '/dev/fairmotion/src/path.ux/scripts/core/units.js');
 
 
-es6_module_define('docbrowser', ["../config/const.js", "../platforms/platform.js", "../core/ui_base.js", "../util/util.js", "../util/vectormath.js", "../path-controller/util/struct.js", "../path-controller/util/simple_events.js"], function _docbrowser_module(_es6_module) {
+es6_module_define('docbrowser', ["../path-controller/util/struct.js", "../util/util.js", "../config/const.js", "../platforms/platform.js", "../core/ui_base.js", "../util/vectormath.js", "../path-controller/util/simple_events.js"], function _docbrowser_module(_es6_module) {
   var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
   var cconst=es6_import(_es6_module, '../config/const.js');
@@ -2123,7 +2507,7 @@ es6_module_define('context', ["../util/util.js", "../config/config.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
 
 
-es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/toolsys.js", "../util/util.js", "../toolsys/toolprop.js", "./controller_abstract.js", "./controller_base.js", "./controller_ops.js", "../toolsys/toolpath.js", "../util/parseutil.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolpath.js", "./controller_abstract.js", "./controller_ops.js", "../util/util.js", "../util/parseutil.js", "../toolsys/toolsys.js", "../toolsys/toolprop_abstract.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -3417,7 +3801,7 @@ es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller.js');
 
 
-es6_module_define('controller_abstract', ["../util/util.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolsys.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
+es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "../util/util.js", "./controller_base.js", "../toolsys/toolsys.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
@@ -3700,7 +4084,7 @@ es6_module_define('controller_abstract', ["../util/util.js", "./controller_base.
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_abstract.js');
 
 
-es6_module_define('controller_base', ["../util/vectormath.js", "../util/util.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolprop.js"], function _controller_base_module(_es6_module) {
+es6_module_define('controller_base', ["../toolsys/toolprop.js", "../util/util.js", "../util/vectormath.js", "../toolsys/toolprop_abstract.js"], function _controller_base_module(_es6_module) {
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
@@ -4023,7 +4407,7 @@ es6_module_define('controller_base', ["../util/vectormath.js", "../util/util.js"
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
 
 
-es6_module_define('controller_ops', ["../toolsys/toolsys.js", "../toolsys/toolprop.js", "./controller_base.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../util/util.js", "../toolsys/toolsys.js", "./controller_base.js", "../toolsys/toolprop.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -4280,7 +4664,7 @@ es6_module_define('controller_ops', ["../toolsys/toolsys.js", "../toolsys/toolpr
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_ops.js');
 
 
-es6_module_define('controller', ["./controller/controller_abstract.js", "./controller/controller_base.js", "./util/vectormath.js", "./util/simple_events.js", "./util/graphpack.js", "./curve/curve1d.js", "./curve/curve1d_base.js", "./util/struct.js", "./controller/controller.js", "./toolsys/toolsys.js", "./toolsys/toolprop_abstract.js", "./util/math.js", "./util/parseutil.js", "./toolsys/toolprop.js", "./config/config.js", "./curve/curve1d_bspline.js", "./util/solver.js", "./util/util.js", "./util/html5_fileapi.js", "./extern/lz-string/lz-string.js", "./toolsys/toolpath.js", "./controller/controller_ops.js", "./controller/context.js", "./util/colorutils.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["./controller/controller_abstract.js", "./curve/curve1d_base.js", "./util/graphpack.js", "./extern/lz-string/lz-string.js", "./util/math.js", "./curve/curve1d_bspline.js", "./util/simple_events.js", "./util/html5_fileapi.js", "./config/config.js", "./util/colorutils.js", "./toolsys/toolprop.js", "./util/util.js", "./toolsys/toolpath.js", "./util/vectormath.js", "./toolsys/toolprop_abstract.js", "./controller/context.js", "./toolsys/toolsys.js", "./util/struct.js", "./controller/controller_ops.js", "./controller/controller_base.js", "./util/parseutil.js", "./util/solver.js", "./controller/controller.js", "./curve/curve1d.js"], function _controller_module(_es6_module) {
   var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
   for (let k in ___controller_context_js) {
       _es6_module.add_export(k, ___controller_context_js[k], true);
@@ -4374,7 +4758,7 @@ es6_module_define('controller', ["./controller/controller_abstract.js", "./contr
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller.js');
 
 
-es6_module_define('curve1d', ["./curve1d_bspline.js", "./curve1d_basic.js", "../util/struct.js", "./curve1d_base.js", "../util/vectormath.js", "../util/util.js", "../util/events.js", "./curve1d_anim.js"], function _curve1d_module(_es6_module) {
+es6_module_define('curve1d', ["../util/vectormath.js", "./curve1d_base.js", "./curve1d_anim.js", "./curve1d_basic.js", "../util/struct.js", "./curve1d_bspline.js", "../util/util.js", "../util/events.js"], function _curve1d_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -4666,7 +5050,7 @@ Curve1D {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d.js');
 
 
-es6_module_define('curve1d_anim', ["../util/struct.js", "./curve1d_base.js", "./ease.js", "../util/util.js"], function _curve1d_anim_module(_es6_module) {
+es6_module_define('curve1d_anim', ["../util/struct.js", "./ease.js", "./curve1d_base.js", "../util/util.js"], function _curve1d_anim_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
@@ -5209,7 +5593,7 @@ CurveTypeData {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_base.js');
 
 
-es6_module_define('curve1d_basic', ["./curve1d_base.js", "../util/vectormath.js", "../util/util.js", "../util/struct.js"], function _curve1d_basic_module(_es6_module) {
+es6_module_define('curve1d_basic', ["../util/struct.js", "../util/util.js", "./curve1d_base.js", "../util/vectormath.js"], function _curve1d_basic_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
   var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
@@ -5554,7 +5938,7 @@ es6_module_define('curve1d_basic', ["./curve1d_base.js", "../util/vectormath.js"
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_basic.js');
 
 
-es6_module_define('curve1d_bspline', ["../util/vectormath.js", "./curve1d_base.js", "../util/util.js", "../util/struct.js", "../config/config.js"], function _curve1d_bspline_module(_es6_module) {
+es6_module_define('curve1d_bspline', ["./curve1d_base.js", "../config/config.js", "../util/util.js", "../util/vectormath.js", "../util/struct.js"], function _curve1d_bspline_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var config=es6_import_item(_es6_module, '../config/config.js', 'default');
@@ -6661,7 +7045,7 @@ Curve1DPoint {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_bspline.js');
 
 
-es6_module_define('curve1d_utils', ["../toolsys/toolprop.js", "./curve1d_base.js"], function _curve1d_utils_module(_es6_module) {
+es6_module_define('curve1d_utils', ["./curve1d_base.js", "../toolsys/toolprop.js"], function _curve1d_utils_module(_es6_module) {
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
   function makeGenEnum() {
@@ -7338,7 +7722,7 @@ es6_module_define('test', [], function _test_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/extern/lz-string/test.js');
 
 
-es6_module_define('toolpath', ["./toolsys.js", "../util/util.js", "../util/parseutil.js", "../controller/controller_base.js"], function _toolpath_module(_es6_module) {
+es6_module_define('toolpath', ["../controller/controller_base.js", "../util/parseutil.js", "./toolsys.js", "../util/util.js"], function _toolpath_module(_es6_module) {
   var ToolClasses=es6_import_item(_es6_module, './toolsys.js', 'ToolClasses');
   var ToolOp=es6_import_item(_es6_module, './toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, './toolsys.js', 'ToolFlags');
@@ -7457,7 +7841,7 @@ es6_module_define('toolpath', ["./toolsys.js", "../util/util.js", "../util/parse
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolpath.js');
 
 
-es6_module_define('toolprop', ["../util/struct.js", "../../core/units.js", "../curve/curve1d.js", "../util/util.js", "../util/vectormath.js", "./toolprop_abstract.js"], function _toolprop_module(_es6_module) {
+es6_module_define('toolprop', ["../util/util.js", "./toolprop_abstract.js", "../util/struct.js", "../../core/units.js", "../curve/curve1d.js", "../util/vectormath.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -9081,7 +9465,8 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
    EDIT_AS_BASE_UNIT: 1<<13, 
    NO_UNDO: 1<<14, 
    USE_CUSTOM_PROP_GETTER: 1<<15, 
-   FORCE_ENUM_CHECKBOXES: 1<<16}
+   FORCE_ENUM_CHECKBOXES: 1<<16, 
+   NO_DEFAULT: 1<<17}
   _es6_module.add_export('PropFlags', PropFlags);
   class ToolPropertyIF  {
      constructor(type, subtype, apiname, uiname, description, flag, icon) {
@@ -9328,7 +9713,7 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
 
 
-es6_module_define('toolsys', ["../util/simple_events.js", "../util/events.js", "../controller/controller_base.js", "./toolprop.js", "../util/util.js", "../util/struct.js"], function _toolsys_module(_es6_module) {
+es6_module_define('toolsys', ["../controller/controller_base.js", "../util/simple_events.js", "../util/events.js", "./toolprop.js", "../util/struct.js", "../util/util.js"], function _toolsys_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var events=es6_import(_es6_module, '../util/events.js');
@@ -9446,6 +9831,9 @@ es6_module_define('toolsys', ["../util/simple_events.js", "../util/events.js", "
       return key;
     }
      has(cls, key, prop) {
+      if (prop.flag&PropFlags.NO_DEFAULT) {
+          return false;
+      }
       let obj=this._getAccessor(cls);
       key = this.constructor.getPropKey(cls, key, prop);
       return obj&&key in obj;
@@ -10557,7 +10945,7 @@ toolsys.ToolStack {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolsys.js');
 
 
-es6_module_define('colorutils', ["../util/util.js", "../util/vectormath.js"], function _colorutils_module(_es6_module) {
+es6_module_define('colorutils', ["../util/vectormath.js", "../util/util.js"], function _colorutils_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -10861,7 +11249,7 @@ es6_module_define('events', ["./util.js", "./simple_events.js"], function _event
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
 
 
-es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
+es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_module(_es6_module) {
   var vectormath=es6_import(_es6_module, './vectormath.js');
   var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
   var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
@@ -11325,7 +11713,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0fcvn=params, v1=$_t0fcvn[0], v2=$_t0fcvn[1], restlen=$_t0fcvn[2];
+      let $_t0qkuo=params, v1=$_t0qkuo[0], v2=$_t0qkuo[1], restlen=$_t0qkuo[2];
       if (disableEdges)
         return 0;
       return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
@@ -11349,7 +11737,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1hqpm=params, n1=$_t1hqpm[0], n2=$_t1hqpm[1];
+      let $_t1jjfv=params, n1=$_t1jjfv[0], n2=$_t1jjfv[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);

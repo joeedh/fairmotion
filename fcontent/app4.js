@@ -1,5 +1,5 @@
 
-es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_module(_es6_module) {
+es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, './util.js');
   var vectormath=es6_import(_es6_module, './vectormath.js');
@@ -430,7 +430,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     let p=dtvtmps.next().load(co);
     p.sub(v1);
     let planedis=-p.dot(no);
-    let $_t0ejjg=calc_projection_axes(no), axis=$_t0ejjg[0], axis2=$_t0ejjg[1];
+    let $_t0vnhm=calc_projection_axes(no), axis=$_t0vnhm[0], axis2=$_t0vnhm[1];
     let p1=dtvtmps.next();
     let p2=dtvtmps.next();
     let p3=dtvtmps.next();
@@ -629,7 +629,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
         lz = z1;
         return lx*lx+ly*ly+lz*lz;
     }
-    let d=lx*nx+ly*ny+lz*nz;
+{    let d=lx*nx+ly*ny+lz*nz;
     d = -d;
     lx+=nx*d;
     ly+=ny*d;
@@ -638,6 +638,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
         console.log("d", d.toFixed(6));
         console.log(lx*nx+ly*ny+lz*nz);
     }
+}
     let mul=((lx**2+ly**2)*nz**2+(lx*nx+ly*ny)**2)/((lx**2+ly**2)*nz**2);
     if (Math.random()>0.999) {
         console.log(mul.toFixed(4));
@@ -1366,7 +1367,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
   }
   let aabb_sphere_isect_vs=util.cachering.fromConstructor(Vector3, 64);
   function aabb_sphere_isect(p, r, min, max) {
-    let p1=aabb_sphere_isect_vs.next().load(p);
+{    let p1=aabb_sphere_isect_vs.next().load(p);
     let min1=aabb_sphere_isect_vs.next().load(min);
     let max1=aabb_sphere_isect_vs.next().load(max);
     if (p.length===2) {
@@ -1381,6 +1382,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     p = p1;
     min = min1;
     max = max1;
+}
     let cent=aabb_sphere_isect_vs.next().load(min).interp(max, 0.5);
     p.sub(cent);
     min.sub(cent);
@@ -1422,7 +1424,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
   aabb_sphere_isect = _es6_module.add_export('aabb_sphere_isect', aabb_sphere_isect);
   
   function aabb_sphere_dist(p, min, max) {
-    let p1=aabb_sphere_isect_vs.next().load(p);
+{    let p1=aabb_sphere_isect_vs.next().load(p);
     let min1=aabb_sphere_isect_vs.next().load(min);
     let max1=aabb_sphere_isect_vs.next().load(max);
     if (p.length===2) {
@@ -1437,6 +1439,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     p = p1;
     min = min1;
     max = max1;
+}
     let cent=aabb_sphere_isect_vs.next().load(min).interp(max, 0.5);
     p.sub(cent);
     min.sub(cent);
@@ -2270,7 +2273,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
   function lreport() {
   }
   function trilinear_v3(uvw, boxverts) {
-    let $_t1fwrj=uvw, u=$_t1fwrj[0], v=$_t1fwrj[1], w=$_t1fwrj[2];
+    let $_t1lkno=uvw, u=$_t1lkno[0], v=$_t1lkno[1], w=$_t1lkno[2];
     const a1x=boxverts[0][0], a1y=boxverts[0][1], a1z=boxverts[0][2];
     const b1x=boxverts[1][0]-a1x, b1y=boxverts[1][1]-a1y, b1z=boxverts[1][2]-a1z;
     const c1x=boxverts[2][0]-a1x, c1y=boxverts[2][1]-a1y, c1z=boxverts[2][2]-a1z;
@@ -2319,7 +2322,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     if (!boxfacecents) {
         boxfacecents = boxfaces_tmp;
         for (let i=0; i<6; i++) {
-            let $_t2iald=boxfaces_table[i], v1=$_t2iald[0], v2=$_t2iald[1], v3=$_t2iald[2], v4=$_t2iald[3];
+            let $_t2tcqm=boxfaces_table[i], v1=$_t2tcqm[0], v2=$_t2tcqm[1], v3=$_t2tcqm[2], v4=$_t2tcqm[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2330,7 +2333,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     if (!boxfacenormals) {
         boxfacenormals = boxfacenormals_tmp;
         for (let i=0; i<6; i++) {
-            let $_t3ldbw=boxfaces_table[i], v1=$_t3ldbw[0], v2=$_t3ldbw[1], v3=$_t3ldbw[2], v4=$_t3ldbw[3];
+            let $_t3pmdv=boxfaces_table[i], v1=$_t3pmdv[0], v2=$_t3pmdv[1], v3=$_t3pmdv[2], v4=$_t3pmdv[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2382,7 +2385,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
         let mini=undefined;
         let mindis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
         for (let i=0; i<8; i++) {
-            let $_t4smke=wtable[i], t1=$_t4smke[0], t2=$_t4smke[1], t3=$_t4smke[2];
+            let $_t4mcsc=wtable[i], t1=$_t4mcsc[0], t2=$_t4mcsc[1], t3=$_t4mcsc[2];
             let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
             let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
             let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -2417,7 +2420,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
             lreport("mindis:", (mindis**0.5).toFixed(3));
             break;
         }
-        let $_t5cmaf=wtable[mini], t1=$_t5cmaf[0], t2=$_t5cmaf[1], t3=$_t5cmaf[2];
+        let $_t5qeuc=wtable[mini], t1=$_t5qeuc[0], t2=$_t5qeuc[1], t3=$_t5qeuc[2];
         let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
         let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
         let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -5823,9 +5826,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               return recArray(t.data.type);
             case StructEnum.STRUCT:
             case StructEnum.TSTRUCT:
-              let st=srcSTRUCT.structs[t.data];
+{              let st=srcSTRUCT.structs[t.data];
               let cls=srcSTRUCT.struct_cls[st.name];
               return recStruct(st, cls);
+}
           }
         };
         recStruct = (st, cls) =>          {
@@ -6749,12 +6753,13 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     exports.writeJSON = writeJSON;
     exports.writeObject = writeObject;
     exports.write_scripts = write_scripts;
-    let glob=!((typeof window==="undefined"&&typeof self==="undefined")&&typeof global!=="undefined");
+{    let glob=!((typeof window==="undefined"&&typeof self==="undefined")&&typeof global!=="undefined");
     glob = glob||(typeof global!=="undefined"&&typeof global.require==="undefined");
     if (glob) {
         _nGlobal.nstructjs = module.exports;
         _nGlobal.module = undefined;
     }
+}
     return module.exports;
   })();
   if (typeof window==="undefined"&&typeof global!=="undefined"&&typeof module!=="undefined") {
@@ -9522,9 +9527,10 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
             return recArray(t.data.type);
           case StructEnum.STRUCT:
           case StructEnum.TSTRUCT:
-            let st=srcSTRUCT.structs[t.data];
+{            let st=srcSTRUCT.structs[t.data];
             let cls=srcSTRUCT.struct_cls[st.name];
             return recStruct(st, cls);
+}
         }
       };
       recStruct = (st, cls) =>        {
@@ -11661,7 +11667,7 @@ es6_module_define('simple_events', ["./util.js", "../config/config.js", "./vecto
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/simple_events.js');
 
 
-es6_module_define('solver', ["./util.js", "./math.js", "./vectormath.js"], function _solver_module(_es6_module) {
+es6_module_define('solver', ["./math.js", "./vectormath.js", "./util.js"], function _solver_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
   var util=es6_import(_es6_module, './util.js');

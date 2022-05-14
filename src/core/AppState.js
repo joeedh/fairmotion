@@ -1,5 +1,12 @@
 "use strict";
 
+/* extjs doesn't support dynamic binding, manually
+*  bind pathux.platform.platform*/
+import {platform as pathux_platform} from '../path.ux/scripts/pathux.js';
+pathux_platform.getPlatformAsync().then(mod => {
+  pathux_platform.platform = mod;
+});
+
 import '../editors/all.js';
 
 import * as platform from '../../platforms/platform.js';

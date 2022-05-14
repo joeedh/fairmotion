@@ -53,8 +53,12 @@ export class Image extends DataBlock {
           mimetype = "image/tiff";
       }
 
-      if (this.data != undefined) {
+      if (this.data !== undefined) {
         img.src = strutils.encode_dataurl(mimetype, this.data);
+      }
+
+      img.onload = () => {
+        window.redraw_viewport();
       }
 
       this._dom = img;
@@ -85,7 +89,7 @@ export class Image extends DataBlock {
 
 Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
   path  : string;
-  width : array(int);
+  size  : array(int);
   data  : arraybuffer | this._get_data();
 }
 `;

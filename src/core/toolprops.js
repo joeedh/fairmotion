@@ -2,8 +2,9 @@
 
 import {nstructjs} from '../path.ux/scripts/pathux.js';
 import {pack_int, pack_float, pack_static_string} from './ajax.js';
-import {setPropTypes, ToolProperty, FlagProperty} from '../path.ux/scripts/toolsys/toolprop.js';
+import {setPropTypes, ToolProperty, FlagProperty, PropFlags} from '../path.ux/scripts/toolsys/toolprop.js';
 import * as toolprop from '../path.ux/scripts/toolsys/toolprop.js';
+
 export {
   StringProperty, StringSetProperty, Vec2Property, Vec3Property, Vec4Property,
   Mat4Property, IntProperty, FloatProperty, BoolProperty, FlagProperty, EnumProperty,
@@ -13,64 +14,71 @@ export {
 import {DataBlock} from './lib_api.js';
 
 export let PropTypes = {
-  INT         : 1,
-  STRING      : 2,
-  BOOL        : 4,
-  ENUM        : 8,
-  FLAG        : 16,
-  FLOAT       : 32,
-  VEC2        : 64,
-  VEC3        : 128,
-  VEC4        : 256,
-  MATRIX4     : 512,
-  QUAT        : 1024,
-  PROPLIST    : 4096,
-  STRSET      : 1 << 13,
-  CURVE       : 1 << 14,
-  STRUCT      : 1 << 19, //internal type to data api
-  DATAREF     : 1 << 20,
-  DATAREFLIST : 1 << 21,
-  TRANSFORM   : 1 << 22, //ui-friendly matrix property
-  COLLECTION  : 1 << 23,
-  IMAGE       : 1 << 24, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER : 1 << 25,
-  ITER        : 1 << 28,
-  INTARRAY    : 1 << 29
+  INT        : 1,
+  STRING     : 2,
+  BOOL       : 4,
+  ENUM       : 8,
+  FLAG       : 16,
+  FLOAT      : 32,
+  VEC2       : 64,
+  VEC3       : 128,
+  VEC4       : 256,
+  MATRIX4    : 512,
+  QUAT       : 1024,
+  PROPLIST   : 4096,
+  STRSET     : 1<<13,
+  CURVE      : 1<<14,
+  STRUCT     : 1<<19, //internal type to data api
+  DATAREF    : 1<<20,
+  DATAREFLIST: 1<<21,
+  TRANSFORM  : 1<<22, //ui-friendly matrix property
+  COLLECTION : 1<<23,
+  IMAGE      : 1<<24, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER: 1<<25,
+  ITER       : 1<<28,
+  INTARRAY   : 1<<29
 };
 
 setPropTypes(PropTypes);
 
+/*
 export let TPropFlags = {
-  PRIVATE             : 2,
-  LABEL               : 4,
-  COLL_LOOSE_TYPE     : 8,
-  USE_UNDO            : 16, //use toolstack.exec_datapath instead of api.set_prop
-  UNDO_SIMPLE         : 32, //use simple undo implementation
-  USE_ICONS           : 64,
-  USE_CUSTOM_GETSET   : 128,
-  SAVE_LAST_VALUE     : 256,
+  PRIVATE          : 2,
+  LABEL            : 4,
+  COLL_LOOSE_TYPE  : 8,
+  UNDO_SIMPLE      : 32, //use simple undo implementation
+  USE_ICONS        : 64,
+  USE_CUSTOM_GETSET: 128,
+  SAVE_LAST_VALUE  : 256,
 
-  NEEDS_OWNING_OBJECT : 1<<13 //used by user_get_data, property needs 'this'
-};
+  NEEDS_OWNING_OBJECT: 1<<13, //used by user_get_data, property needs 'this'
+  NO_DEFAULT         : 1<<17,
+};*/
+
+let flagbase = 25;
+export const TPropFlags = Object.assign({
+  COLL_LOOSE_TYPE    : 1<<(flagbase++),
+  NEEDS_OWNING_OBJECT: 1<<(flagbase++),
+}, PropFlags);
 
 export const PropSubTypes = {
-  COLOR : 1
+  COLOR: 1
 };
 
-ToolProperty.prototype.set_data = function(d : number) {
+ToolProperty.prototype.set_data = function (d: number) {
   console.warn("deprectaed ToolProperty.prototype.set_data called!");
   return this.setValue(d);
 };
-ToolProperty.prototype.get_data = function(d) {
+ToolProperty.prototype.get_data = function (d) {
   console.warn("deprectaed ToolProperty.prototype.get_data called!");
   return this.getValue();
 };
-ToolProperty.prototype.get_value = function(d) {
+ToolProperty.prototype.get_value = function (d) {
   console.warn("deprectaed ToolProperty.prototype.get_value called!");
   return this.getValue();
 };
 
-ToolProperty.prototype.report = function() {
+ToolProperty.prototype.report = function () {
   let s = "";
   for (let a of arguments) {
     s += a + " ";
@@ -86,7 +94,7 @@ ToolProperty.prototype.report = function() {
 
 let propfire = ToolProperty.prototype._fire;
 
-ToolProperty.prototype._fire = function() {
+ToolProperty.prototype._fire = function () {
   propfire.apply(this, arguments);
 
   if (this.update) {
@@ -98,7 +106,7 @@ ToolProperty.prototype._fire = function() {
   }
 };
 
-ToolProperty.prototype.load_ui_data = function(prop) {
+ToolProperty.prototype.load_ui_data = function (prop) {
   this.uiname = prop.uiname;
   this.apiname = prop.apiname;
   this.description = prop.description;
@@ -114,7 +122,7 @@ ToolProperty.prototype.load_ui_data = function(prop) {
   this.expRate = prop.expRate;
 };
 
-ToolProperty.prototype._exec_listeners = function(data_api_owner) {
+ToolProperty.prototype._exec_listeners = function (data_api_owner) {
   for (let l of this.callbacks) {
     if (RELEASE) {
       try {
@@ -146,7 +154,7 @@ ToolProperty.prototype.add_listener = function add_listener(owner, callback) {
   cb.owner = owner;
 }
 
-ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
+ToolProperty.prototype.remove_listener = function (owner, silent_fail = false) {
   for (let cb of this.callbacks['change']) {
     if (cb.owner === owner) {
       this.off('change', cb);
@@ -154,7 +162,7 @@ ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
   }
 }
 
-FlagProperty.prototype.addIcons = function(iconmap : Object) {
+FlagProperty.prototype.addIcons = function (iconmap: Object) {
   this.iconmap = {};
 
   for (let k in iconmap) {
@@ -166,7 +174,7 @@ FlagProperty.prototype.addIcons = function(iconmap : Object) {
   }
 }
 
-ToolProperty.prototype.add_icons = function(iconmap : Object) {
+ToolProperty.prototype.add_icons = function (iconmap: Object) {
   return this.addIcons(iconmap);
 }
 
@@ -182,7 +190,7 @@ ToolProperty.prototype.add_icons = function(iconmap : Object) {
 
  returns final value that was set.
  */
-ToolProperty.prototype.userSetData = function(prop, val) {
+ToolProperty.prototype.userSetData = function (prop, val) {
   return val;
 };
 
@@ -195,21 +203,23 @@ ToolProperty.prototype.userSetData = function(prop, val) {
 
  prop is property definition.  val is current value fetched by the data api.
  */
-ToolProperty.prototype.userGetData = function(prop, val) {
+ToolProperty.prototype.userGetData = function (prop, val) {
   return val;
 };
 
 let _copyTo = ToolProperty.prototype.copyTo;
-ToolProperty.prototype.copyTo = function(b) {
+ToolProperty.prototype.copyTo = function (b) {
   _copyTo.call(this, b);
   b.userSetData = this.userSetData;
   b.userGetData = this.userGetData;
   return this;
 }
-ToolProperty.prototype.update = () => {};
-ToolProperty.prototype.api_update = () => {};
+ToolProperty.prototype.update = () => {
+};
+ToolProperty.prototype.api_update = () => {
+};
 
-for (let i=0; i<2; i++) {
+for (let i = 0; i < 2; i++) {
   let key = i ? "FlagProperty" : "EnumProperty";
 
   toolprop[key].prototype.setUINames = function (uinames) {
@@ -238,7 +248,7 @@ for (let i=0; i<2; i++) {
       return this._ui_key_names;
     },
 
-    set(val : Object) {
+    set(val: Object) {
       this._ui_key_names = val;
     }
   });
@@ -250,9 +260,9 @@ function isTypedArray(n) {
   }
 
   return (n instanceof Int8Array || n instanceof Uint8Array ||
-          n instanceof Uint8ClampedArray || n instanceof Int16Array ||
-          n instanceof Uint16Array || n instanceof Int32Array || n instanceof Uint32Array ||
-          n instanceof Float32Array || n instanceof Float64Array);
+    n instanceof Uint8ClampedArray || n instanceof Int16Array ||
+    n instanceof Uint16Array || n instanceof Int32Array || n instanceof Uint32Array ||
+    n instanceof Float32Array || n instanceof Float64Array);
 
 }
 
@@ -260,12 +270,15 @@ export class ArrayBufferProperty extends ToolProperty {
   constructor(data, apiname = "", uiname = apiname, description = "", flag = 0) {
     super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
 
+    this.flag |= TPropFlags.NO_DEFAULT;
+
     if (data !== undefined) {
       this.setValue(data);
     }
   }
 
   setValue(d) {
+    /* Detect undefined */
     if (d.constructor.name === "ArrayBuffer") {
       d = new Uint8Array(d, 0, d.byteLength);
     } else if (isTypedArray(d)) {
@@ -282,7 +295,7 @@ export class ArrayBufferProperty extends ToolProperty {
     return this.data;
   }
 
-  copyTo(dst : ArrayBufferProperty) {
+  copyTo(dst: ArrayBufferProperty) {
     super.copyTo(dst, false);
 
     if (this.data !== undefined)
@@ -380,11 +393,11 @@ IntArrayProperty.STRUCT = nstructjs.inherit(IntArrayProperty, ToolProperty) + `
 }`;
 
 export class DataRefProperty extends ToolProperty {
-  types : set;
+  types: set;
 
   //allowed_types can be either a datablock type,
   //or a set of allowed datablock types.
-  constructor(value: DataBlock, allowed_types: set<int>, apiname : string, uiname : string, description, flag) {
+  constructor(value: DataBlock, allowed_types: set<int>, apiname: string, uiname: string, description, flag) {
     super(PropTypes.DATAREF, apiname, uiname, description, flag);
 
     if (allowed_types === undefined)
@@ -470,7 +483,8 @@ export class DataRefProperty extends ToolProperty {
 DataRefProperty.STRUCT = nstructjs.inherit(DataRefProperty, ToolProperty) + `
   data  : DataRef | this.data === undefined ? new DataRef(-1) : this.data;
   types : iter(int);
-}`;;
+}`;
+;
 
 nstructjs.register(DataRefProperty);
 ToolProperty.register(DataRefProperty);
@@ -589,6 +603,7 @@ export class TransformProperty extends ToolProperty {
   }
 
 }
+
 TransformProperty.STRUCT = nstructjs.inherit(TransformProperty, ToolProperty) + `
   data : mat4;
 }`;
@@ -608,15 +623,16 @@ ToolProperty.register(TransformProperty);
 */
 
 import {ToolIter} from './toolprops_iter.js';
+
 export class type_filter_iter extends ToolIter {
-  ret : Object;
+  ret: Object;
 
   constructor(iter, typefilter, ctx) {
     //super(iter, typefilter);
     super(iter);
 
     this.types = typefilter;
-    this.ret = {done : false, value : undefined};
+    this.ret = {done: false, value: undefined};
     this.iter = iter;
     this._ctx = ctx;
   }
@@ -644,7 +660,7 @@ export class type_filter_iter extends ToolIter {
     let this2 = this;
 
     function has_type(obj) {
-      for (let i=0; i<tlen; i++) {
+      for (let i = 0; i < tlen; i++) {
         if (obj instanceof types[i]) return true;
       }
 
@@ -668,7 +684,7 @@ export class type_filter_iter extends ToolIter {
 }
 
 export class CollectionProperty extends ToolProperty {
-  constructor(data, filter_types: Array<Function>, apiname : string, uiname : string, description : string, flag : number) {
+  constructor(data, filter_types: Array<Function>, apiname: string, uiname: string, description: string, flag: number) {
     super(PropTypes.COLLECTION, apiname, uiname, description, flag);
 
     this.flag |= TPropFlags.COLL_LOOSE_TYPE;
@@ -727,7 +743,7 @@ export class CollectionProperty extends ToolProperty {
       return;
     }
 
-    if ("__tooliter__" in data && typeof  data.__tooliter__ === "function") {
+    if ("__tooliter__" in data && typeof data.__tooliter__ === "function") {
       this.setValue(data.__tooliter__(), owner, changed);
       return;
     } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {

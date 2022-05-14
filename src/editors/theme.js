@@ -83,6 +83,7 @@ export const theme = {
     'background-color'      : 'rgba(55, 55, 55, 1.0)',
     'border-color'          : 'rgba(196,196,196, 1)',
     'border-radius'         : 12,
+    'flex-grow'             : 'unset',
     'focus-border-color'    : 'rgba(55,155,255, 1)',
     'focus-border-width'    : 2,
     height                  : 24,
@@ -374,7 +375,7 @@ export const theme = {
       variant : 'normal',
       style   : 'normal',
       size    : 14,
-      color   : 'rgba(35, 35, 35, 1.0)'
+      color   : 'rgba(211,211,211, 1)'
     }),
   },
 
@@ -389,10 +390,10 @@ export const theme = {
   },
 
   menu:  {
-    MenuBG         : 'rgba(40,40,40, 1)',
-    MenuBorder     : '1px solid grey',
-    MenuHighlight  : 'rgba(171,171,171, 0.28922413793103446)',
-    MenuSeparator  : `
+    MenuBG          : 'rgba(40,40,40, 1)',
+    MenuBorder      : '1px solid grey',
+    MenuHighlight   : 'rgba(171,171,171, 0.28922413793103446)',
+    MenuSeparator   : `
       width : 100%;
       height : 2px;
       padding : 0px;
@@ -400,8 +401,8 @@ export const theme = {
       border : none;
       background-color : grey;
     `,
-    MenuSpacing    : 0,
-    MenuText       : new CSSFont({
+    MenuSpacing     : 0,
+    MenuText        : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
@@ -409,10 +410,16 @@ export const theme = {
       size    : 12,
       color   : 'rgba(238,238,238, 1)'
     }),
-    'border-color' : 'grey',
-    'border-radius': 0,
-    'border-style' : 'solid',
-    'border-width' : 1,
+    'border-color'  : 'grey',
+    'border-radius' : 0,
+    'border-style'  : 'solid',
+    'border-width'  : 1,
+    'box-shadow'    : '5px 5px 25px rgba(0,0,0,0.75)',
+    'item-radius'   : 0,
+    'padding-bottom': 0,
+    'padding-left'  : 0,
+    'padding-right' : 0,
+    'padding-top'   : 0,
   },
 
   noteframe:  {
@@ -427,7 +434,7 @@ export const theme = {
   },
 
   notification:  {
-    DefaultText  : new CSSFont({
+    DefaultText       : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
@@ -435,8 +442,13 @@ export const theme = {
       size    : 12,
       color   : 'rgba(255,255,255, 1)'
     }),
-    ProgressBar  : 'rgba(75, 175, 255, 1.0)',
-    ProgressBarBG: 'rgba(110, 110, 110, 1.0)',
+    ProgressBar       : 'rgba(75, 175, 255, 1.0)',
+    ProgressBarBG     : 'rgba(110, 110, 110, 1.0)',
+    'background-color': 'rgba(72,72,72,0)',
+    'border-color'    : 'grey',
+    'border-radius'   : 5,
+    'border-style'    : 'solid',
+    'border-width'    : 1,
   },
 
   numslider:  {
@@ -563,6 +575,7 @@ export const theme = {
     'border-radius'   : 8.76503417507447,
     'border-style'    : 'solid',
     'border-width'    : 1,
+    'flex-grow'       : 'unset',
     margin            : 2,
     oneAxisPadding    : 2,
     padding           : 1,
@@ -584,6 +597,7 @@ export const theme = {
       color   : 'rgba(215, 215, 215, 1.0)'
     }),
     'background-color': 'rgba(65,65,65, 1)',
+    'movable-tabs'    : 'true',
   },
 
   textbox:  {

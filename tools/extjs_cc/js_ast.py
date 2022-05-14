@@ -2722,11 +2722,11 @@ class ImportDeclNode(Node):
     self.import_all = False
     
     if bindname != None:
-      self.bindname = bindname;
+      self.bindname = bindname
     else:
       self.bindname = name
     
-    self.name = name;
+    self.name = name
     
   def extra_str(self):
     return str(self.name) + " as " + str(self.bindname)

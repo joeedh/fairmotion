@@ -5,7 +5,7 @@ from js_process_ast import *
 import sys
 
 def module_transform(node, typespace):
-  flatten_statementlists(node, typespace);
+  flatten_statementlists(node, typespace)
   
   depends = set()
   
@@ -21,13 +21,13 @@ def module_transform(node, typespace):
       return
       n2 = js_parse("""
         _es6_module.add_global('$s', $s);
-      """, [n.val, n.val]);
+      """, [n.val, n.val])
 
       insert_after(startn, n2)      
-      #startn.parent.insert(startn.parent.index(startn)+1, n2);
+      #startn.parent.insert(startn.parent.index(startn)+1, n2)
       
       for n2 in n[2:]:
-        varvisit(n2, startn);
+        varvisit(n2, startn)
   
   def exportvisit(n):
     if not at_root(n):
@@ -84,9 +84,9 @@ def module_transform(node, typespace):
         }
       """, [name, n.name.val])
     else:
-      n2 = StatementList();
+      n2 = StatementList()
       
-      depends.add(n.name.val);
+      depends.add(n.name.val)
       
       for id in n:
         name = id.gen_js(0)
@@ -96,20 +96,20 @@ def module_transform(node, typespace):
         
         _es6_module.add_export('$s1', _ex_$s1, true);
         
-        """, [name, n.name.val]);
+        """, [name, n.name.val])
         
         n2.add(n3)
     
     n.parent.replace(n, n2)
 
-  #ahem.  if I do this one first, I can use  import statements in it :)
+  #ahem.  if I do this one first, I can use import statements from it.
   #. . .also, how cool, it captures the dependencies, too
 
-  traverse(node, ExportFromNode, exportfromvisit, copy_children=True);
-  traverse(node, ExportNode, exportvisit, copy_children=True);
+  traverse(node, ExportFromNode, exportfromvisit, copy_children=True)
+  traverse(node, ExportNode, exportvisit, copy_children=True)
   
   #fetch explicit global variables
-  globals = [];
+  globals = []
   
   def kill_assignments(n):
     n.replace(n[0], ExprNode([]))
@@ -137,8 +137,8 @@ def module_transform(node, typespace):
   for c in node:
     if type(c) == VarDeclNode and "global" in c.modifiers:
       c2 = c.copy()
-      kill_assignments(c2);
-      global_to_var(c2);
+      kill_assignments(c2)
+      global_to_var(c2)
 
       globals.append(c2)
       transform_into_assignments(c, c.parent, c.parent.index(c))
@@ -157,10 +157,10 @@ def module_transform(node, typespace):
           
         n2 = js_parse("""
           $s = _es6_module.add_global('$s', $s);
-        """, [nname, nname, nname]);
+        """, [nname, nname, nname])
         n.parent.insert(n.parent.index(n)+1, n2)
       elif type(n) == VarDeclNode:
-        varvisit(n, n);
+        varvisit(n, n)
     
   def visit(n):
     if not at_root(n):
@@ -173,7 +173,7 @@ def module_transform(node, typespace):
     if len(n) == 1: #import module name
       n.parent.replace(n, js_parse("""
         es6_import(_es6_module, '$s');
-      """, [modname]));
+      """, [modname]))
     else:
       slist = StatementList()
       n.parent.replace(n, slist)
@@ -182,19 +182,19 @@ def module_transform(node, typespace):
         if n2.name == "*":
           n3 = js_parse("""
             var $s = es6_import(_es6_module, '$s');
-          """, [n2.bindname, modname]);
+          """, [n2.bindname, modname])
           
-          slist.add(n3);
+          slist.add(n3)
         elif hasattr(n2, "is_default_binding") and n2.is_default_binding:
           n3 = js_parse("""
           var $s = es6_import_item(_es6_module, '$s', 'default');
-          """, [n2.bindname, modname, n2.name]);
+          """, [n2.bindname, modname, n2.name])
           
           slist.add(n3)
         else:
           n3 = js_parse("""
           var $s = es6_import_item(_es6_module, '$s', '$s');
-          """, [n2.bindname, modname, n2.name]);
+          """, [n2.bindname, modname, n2.name])
           
           slist.add(n3)
   
@@ -208,7 +208,7 @@ def module_transform(node, typespace):
       _es6_module.add_class($s);
     """, [n.name])
 
-    insert_after(n, n2);
+    insert_after(n, n2)
     
   traverse(node, ClassNode, class_visit)
   flatten_statementlists(node, typespace)
@@ -226,16 +226,16 @@ def module_transform(node, typespace):
     fname = os.path.split(fname)[1]
   fname = fname.strip().replace("/", "").replace("\\", "").replace(".js", "")
   
-  safe_fname = "_" + fname.replace(" ", "_").replace(".", "_").replace("-", "_") + "_module";
+  safe_fname = "_" + fname.replace(" ", "_").replace(".", "_").replace("-", "_") + "_module"
   
-  path = os.path.abspath(glob.g_file);
-  path = path.replace(os.path.sep, "/");
+  path = os.path.abspath(glob.g_file)
+  path = path.replace(os.path.sep, "/")
   
   if ":" in path:
     path = path[path.find(":")+1:]
     
   header = "es6_module_define('"+fname+"', "+deps+", function " + safe_fname + "(_es6_module) {"
-  header += "}, '"+path+"');";
+  header += "}, '"+path+"');"
 
   node2 = js_parse(header)
   

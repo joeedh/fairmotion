@@ -591,7 +591,7 @@ def p_import_list(p):
 def p_import_spec(p):
   '''
       import_spec : import_bind
-                  | ID ID import_bind
+                  | import_bind ID import_bind
   '''
   set_parse_globals(p)
 
@@ -600,7 +600,7 @@ def p_import_spec(p):
     raiseSyntaxError(p[3], "Expected 'as'")
   
   if len(p) == 4:
-    n = ImportDeclNode(p[1], p[2])
+    n = ImportDeclNode(p[1], p[3])
   else:
     n = ImportDeclNode(p[1])
   

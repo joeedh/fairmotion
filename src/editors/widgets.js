@@ -130,12 +130,12 @@ export class ImageUserPanel extends Container {
     idbrowser.setAttribute("datapath", path + ".image");
     row.add(idbrowser);
     row.button("Open", () => {
-      let toolop = new LoadImageOp(this.getAttribute("datapath") + ".image");
+      let toolop = new LoadImageOp(this.getAttribute("datapath"));
       this.ctx.api.execTool(this.ctx, toolop);
     });
 
-    this.prop(path + ".off", PackFlags.NO_NUMSLIDER_TEXTBOX);
-    this.prop(path + ".scale", PackFlags.NO_NUMSLIDER_TEXTBOX);
+    this.prop(path + ".off"); //, PackFlags.NO_NUMSLIDER_TEXTBOX);
+    this.prop(path + ".scale"); //, PackFlags.NO_NUMSLIDER_TEXTBOX);
 
     this.setCSS();
   }

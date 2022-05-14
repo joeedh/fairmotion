@@ -110,7 +110,7 @@ export function makeAPI(api = new DataAPI()) {
       .icon(Icons.HALF_PIXEL_SIZE);
 
     View2DHandlerStruct.bool("draw_tiled", "draw_tiled", "Draw Tiles")
-      .on('change', function() {
+      .on('change', function () {
         redraw_viewport();
       });
 
@@ -216,11 +216,10 @@ export function makeAPI(api = new DataAPI()) {
     });
     View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls")
       .icon(Icons.ONLY_RENDER);
-    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function (old) {
-      return (function () {
+    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image")
+      .on("change", function () {
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+      });
     View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames({
       PROP_TRANSFORM: "Prop Transform"
     }).descriptions({
@@ -334,12 +333,39 @@ export function makeAPI(api = new DataAPI()) {
       });
   }
 
+  var ImageStruct = api.mapStruct(Image, true);
+
+  function api_define_Image(api) {
+    ImageStruct.string("path", "path", "Image Path");
+    ImageStruct.vec2("size", "size", "Size").readOnly();
+  }
+
   var ImageUserStruct = api.mapStruct(ImageUser, true);
 
   function api_define_ImageUser(api) {
-    ;
-    ImageUserStruct.vec2("off", "off", "Offset").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    ImageUserStruct.vec2("scale", "scale", "Scale").range(0.0001, 90).step(0.1).expRate(1.33).decimalPlaces(4);
+    function image_update() {
+      window.redraw_viewport();
+    }
+
+    ImageUserStruct.vec2("off", "off", "Offset")
+      .range(-10000, 10000)
+      .baseUnit("pixel").displayUnit("pixel")
+      .step(2)
+      .slideSpeed(3.0)
+      .expRate(1.75)
+      .decimalPlaces(1)
+      .on('change', image_update);
+
+    ImageUserStruct.vec2("scale", "scale", "Scale")
+      .range(0.0001, 90)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .slideSpeed(1.5)
+      .decimalPlaces(3)
+      .on('change', image_update);
+
+    ImageUserStruct.struct("image", "image", "image", ImageStruct);
   }
 
   var DopeSheetEditorStruct = api.mapStruct(DopeSheetEditor, true);
@@ -1360,6 +1386,7 @@ export function makeAPI(api = new DataAPI()) {
   api_define_View2DHandler(api);
   api_define_Material(api);
   api_define_ImageUser(api);
+  api_define_Image(api);
   api_define_DopeSheetEditor(api);
   api_define_CurveEditor(api);
   api_define_SplineFrameSet(api);

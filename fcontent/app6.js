@@ -1,4 +1,623 @@
 
+es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/util/events.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../path-controller/util/events.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
+  let rgb_to_hsv_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
+  function rgb_to_hsv(r, g, b) {
+    var computedH=0;
+    var computedS=0;
+    var computedV=0;
+    if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
+        throw new Error('Please enter numeric RGB values!');
+        return ;
+    }
+    var minRGB=Math.min(r, Math.min(g, b));
+    var maxRGB=Math.max(r, Math.max(g, b));
+    if (minRGB==maxRGB) {
+        computedV = minRGB;
+        let ret=rgb_to_hsv_rets.next();
+        ret[0] = 0, ret[1] = 0, ret[2] = computedV;
+        return ret;
+    }
+    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
+    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
+    computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
+    computedS = (maxRGB-minRGB)/maxRGB;
+    computedV = maxRGB;
+    let ret=rgb_to_hsv_rets.next();
+    ret[0] = computedH, ret[1] = computedS, ret[2] = computedV;
+    return ret;
+  }
+  rgb_to_hsv = _es6_module.add_export('rgb_to_hsv', rgb_to_hsv);
+  let hsv_to_rgb_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  function hsv_to_rgb(h, s, v) {
+    let c=0, m=0, x=0;
+    let ret=hsv_to_rgb_rets.next();
+    ret[0] = ret[1] = ret[2] = 0.0;
+    h*=360.0;
+    c = v*s;
+    x = c*(1.0-Math.abs(((h/60.0)%2)-1.0));
+    m = v-c;
+    let color;
+    function RgbF_Create(r, g, b) {
+      ret[0] = r;
+      ret[1] = g;
+      ret[2] = b;
+      return ret;
+    }
+    if (h>=0.0&&h<60.0) {
+        color = RgbF_Create(c+m, x+m, m);
+    }
+    else 
+      if (h>=60.0&&h<120.0) {
+        color = RgbF_Create(x+m, c+m, m);
+    }
+    else 
+      if (h>=120.0&&h<180.0) {
+        color = RgbF_Create(m, c+m, x+m);
+    }
+    else 
+      if (h>=180.0&&h<240.0) {
+        color = RgbF_Create(m, x+m, c+m);
+    }
+    else 
+      if (h>=240.0&&h<300.0) {
+        color = RgbF_Create(x+m, m, c+m);
+    }
+    else 
+      if (h>=300.0&&h<360.0) {
+        color = RgbF_Create(c+m, m, x+m);
+    }
+    else {
+      color = RgbF_Create(m, m, m);
+    }
+    return color;
+  }
+  hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  let UPW=1.25, VPW=0.75;
+  let sample_rets=new util.cachering(() =>    {
+    return [0, 0];
+  }, 64);
+  function inv_sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, UPW);
+    ret[1] = Math.pow(v, VPW);
+    return ret;
+  }
+  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
+  function sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, 1.0/UPW);
+    ret[1] = Math.pow(v, 1.0/VPW);
+    return ret;
+  }
+  sample = _es6_module.add_export('sample', sample);
+  let fieldrand=new util.MersenneRandom(0);
+  let fields={}
+  function getFieldImage(size, hsva) {
+    fieldrand.seed(0);
+    let hue=hsva[0];
+    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
+    let key=size+":"+hue.toFixed(4);
+    if (key in fields)
+      return fields[key];
+    let size2=128;
+    let image={width: size, 
+    height: size, 
+    image: new ImageData(size2, size2)}
+    let scale=size2/size;
+    let idata=image.image.data;
+    let dpi=this.getDPI();
+    let band=ui_base.IsMobile() ? 35 : 20;
+    let r2=Math.ceil(size*0.5), r1=r2-band*dpi;
+    let pad=5*dpi;
+    let px1=size*0.5-r1/Math.sqrt(2.0)+pad;
+    let py1=size*0.5-r1/Math.sqrt(2.0)+pad;
+    let pw=r1/Math.sqrt(2)*2-pad*2, ph=pw;
+    image.params = {r1: r1, 
+    r2: r2, 
+    box: {x: px1, 
+     y: py1, 
+     width: pw, 
+     height: ph}}
+    for (let i=0; i<size2*size2; i++) {
+        let x=i%size2, y = ~~(i/size2);
+        let idx=i*4;
+        let alpha=0.0;
+        let r=Math.sqrt((x-size2*0.5)**2+(y-size2*0.5)**2);
+        if (r<r2*scale&&r>r1*scale) {
+            let th=Math.atan2(y-size2*0.5, x-size2*0.5)/(2*Math.PI)+0.5;
+            let eps=0.001;
+            th = th*(1.0-eps*2)+eps;
+            let r=0, g=0, b=0;
+            if (th<1.0/6.0) {
+                r = 1.0;
+                g = th*6.0;
+            }
+            else 
+              if (th<2.0/6.0) {
+                th-=1.0/6.0;
+                r = 1.0-th*6.0;
+                g = 1.0;
+            }
+            else 
+              if (th<3.0/6.0) {
+                th-=2.0/6.0;
+                g = 1.0;
+                b = th*6.0;
+            }
+            else 
+              if (th<4.0/6.0) {
+                th-=3.0/6.0;
+                b = 1.0;
+                g = 1.0-th*6.0;
+            }
+            else 
+              if (th<5.0/6.0) {
+                th-=4.0/6.0;
+                r = th*6.0;
+                b = 1.0;
+            }
+            else 
+              if (th<6.0/6.0) {
+                th-=5.0/6.0;
+                r = 1.0;
+                b = 1.0-th*6.0;
+            }
+            r = r*255+(fieldrand.random()-0.5);
+            g = g*255+(fieldrand.random()-0.5);
+            b = b*255+(fieldrand.random()-0.5);
+            idata[idx] = r;
+            idata[idx+1] = g;
+            idata[idx+2] = b;
+            alpha = 1.0;
+        }
+        let px2=(px1+pw)*scale, py2=(py1+ph)*scale;
+        if (x>px1*scale&&y>py1*scale&&x<px2&&y<py2) {
+            let u=1.0-(x-px1*scale)/(px2-px1*scale);
+            let v=1.0-(y-py1*scale)/(py2-py1*scale);
+            u = Math.pow(u, UPW);
+            v = Math.pow(v, VPW);
+            let r=0, g=0, b=0;
+            r = hue_rgb[0]*(1.0-u)+u;
+            g = hue_rgb[1]*(1.0-u)+u;
+            b = hue_rgb[2]*(1.0-u)+u;
+            let fac=1.0;
+            idata[idx+0] = r*v*255+(fieldrand.random()-0.5)*fac;
+            idata[idx+1] = g*v*255+(fieldrand.random()-0.5)*fac;
+            idata[idx+2] = b*v*255+(fieldrand.random()-0.5)*fac;
+            alpha = 1.0;
+        }
+        idata[idx+3] = alpha*255;
+    }
+    let image2=document.createElement("canvas");
+    image2.width = size2;
+    image2.height = size2;
+    let g=image2.getContext("2d");
+    g.putImageData(image.image, 0, 0);
+    image.canvas = image2;
+    image.scale = size/size2;
+    fields[key] = image;
+    return image;
+  }
+  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
+  let _update_temp=new Vector4();
+  class SimpleBox  {
+     constructor(pos=[0, 0], size=[1, 1]) {
+      this.pos = new Vector2(pos);
+      this.size = new Vector2(size);
+      this.r = 0;
+    }
+  }
+  _ESClass.register(SimpleBox);
+  _es6_module.add_class(SimpleBox);
+  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
+  class ColorField extends UIBase {
+     constructor() {
+      super();
+      this.hsva = [0.05, 0.6, 0.15, 1.0];
+      this.rgba = new Vector4([0, 0, 0, 0]);
+      this._recalcRGBA();
+      this._last_dpi = undefined;
+      let canvas=this.canvas = document.createElement("canvas");
+      let g=this.g = canvas.getContext("2d");
+      this.shadow.appendChild(canvas);
+      let mx, my;
+      let do_mouse=(e) =>        {
+        let r=this.canvas.getClientRects()[0];
+        let dpi=this.getDPI();
+        mx = (e.pageX-r.x)*dpi;
+        my = (e.pageY-r.y)*dpi;
+      };
+      let do_touch=(e) =>        {
+        if (e.touches.length==0) {
+            mx = my = undefined;
+            return ;
+        }
+        let r=this.canvas.getClientRects()[0];
+        let dpi=this.getDPI();
+        let t=e.touches[0];
+        mx = (t.pageX-r.x)*dpi;
+        my = (t.pageY-r.y)*dpi;
+      };
+      this.canvas.addEventListener("mousedown", (e) =>        {
+        do_mouse(e);
+        return this.on_mousedown(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("mousemove", (e) =>        {
+        do_mouse(e);
+        return this.on_mousemove(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("mouseup", (e) =>        {
+        do_mouse(e);
+        return this.on_mouseup(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("touchstart", (e) =>        {
+        e.preventDefault();
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mousedown(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchmove", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mousemove(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchend", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mouseup(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchcancel", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mouseup(e, mx, my, 0);
+      });
+      this.updateCanvas(true);
+    }
+     pick_h(x, y) {
+      let field=this._field;
+      let size=field.width;
+      let dpi=this.getDPI();
+      if (field===undefined) {
+          console.error("no field in colorpicker");
+          return ;
+      }
+      let th=Math.atan2(y-size/2, x-size/2)/(2*Math.PI)+0.5;
+      this.hsva[0] = th;
+      this.update(true);
+      this._recalcRGBA();
+      if (this.onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
+      this.hsva[0] = h;
+      this.hsva[1] = s;
+      this.hsva[2] = v;
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
+      let ret=rgb_to_hsv(r, g, b);
+      this.hsva[0] = ret[0];
+      this.hsva[1] = ret[1];
+      this.hsva[2] = ret[2];
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     _recalcRGBA() {
+      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
+      this.rgba[0] = ret[0];
+      this.rgba[1] = ret[1];
+      this.rgba[2] = ret[2];
+      this.rgba[3] = this.hsva[3];
+      return this;
+    }
+     on_mousedown(e, x, y, button) {
+      if (button!=0)
+        return ;
+      let field=this._field;
+      if (field===undefined)
+        return ;
+      let size=field.width;
+      let dpi=this.getDPI();
+      let r=Math.sqrt((x-size/2)**2+(y-size/2)**2);
+      let pad=5*dpi;
+      let px1=field.params.box.x, py1=field.params.box.y, px2=px1+field.params.box.width, py2=py1+field.params.box.height;
+      px1-=pad*0.5;
+      py1-=pad*0.5;
+      px2+=pad*0.5;
+      py2+=pad*0.5;
+      if (r>field.params.r1-pad&&r<field.params.r2+pad) {
+          this.pick_h(x, y);
+          this._mode = "h";
+      }
+      else 
+        if (x>=px1&&x<=px2&&y>=py1&&y<=py2) {
+          this.pick_sv(x, y);
+          console.log("in box");
+          this._mode = "sv";
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(x, y);
+    }
+     pick_sv(x, y) {
+      let sv=this._sample_box(x, y);
+      this.hsva[1] = sv[0];
+      this.hsva[2] = sv[1];
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     _sample_box(x, y) {
+      let field=this._field;
+      if (field===undefined) {
+          return [-1, -1];
+      }
+      let px=field.params.box.x, py=field.params.box.y, pw=field.params.box.width, ph=field.params.box.height;
+      let u=(x-px)/pw;
+      let v=1.0-(y-py)/ph;
+      u = Math.min(Math.max(u, 0.0), 1.0);
+      v = Math.min(Math.max(v, 0.0), 1.0);
+      let ret=sample(u, 1.0-v);
+      u = ret[0], v = 1.0-ret[1];
+      return [u, v];
+    }
+     on_mousemove(e, x, y, button) {
+      if (this._mode=="h") {
+          this.pick_h(x, y);
+      }
+      else 
+        if (this._mode=="sv") {
+          this.pick_sv(x, y);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }
+     on_mouseup(e, x, y, button) {
+      this._mode = undefined;
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(x, y);
+    }
+     updateCanvas(force_update=false, _in_update=false) {
+      let canvas=this.canvas;
+      let update=force_update;
+      if (update) {
+          let size=this.getDefault("fieldsize");
+          let dpi=this.getDPI();
+          canvas.style["width"] = size+"px";
+          canvas.style["height"] = size+"px";
+          canvas.width = canvas.height = Math.ceil(size*dpi);
+          if (!_in_update)
+            this._redraw();
+          return true;
+      }
+    }
+     _redraw() {
+      let canvas=this.canvas, g=this.g;
+      let dpi=this.getDPI();
+      let size=canvas.width;
+      let field=this._field = getFieldImage(size, this.hsva);
+      let w=size, h=size*field.height/field.width;
+      g.clearRect(0, 0, w, h);
+      g.drawImage(field.canvas, 0, 0, field.width, field.height);
+      g.lineWidth = 2.0;
+      function circle(x, y, r) {
+        g.strokeStyle = "white";
+        g.beginPath();
+        g.arc(x, y, r, -Math.PI, Math.PI);
+        g.stroke();
+        g.strokeStyle = "grey";
+        g.beginPath();
+        g.arc(x, y, r-1, -Math.PI, Math.PI);
+        g.stroke();
+        g.fillStyle = "black";
+        g.beginPath();
+        g.arc(x, y, 2*dpi, -Math.PI, Math.PI);
+        g.fill();
+      }
+      let hsva=this.hsva;
+      let r=(field.params.r2-field.params.r1)*0.7;
+      let bandr=(field.params.r2+field.params.r1)*0.5;
+      let th=Math.fract(1.0-hsva[0]-0.25);
+      let x=Math.sin(th*Math.PI*2)*bandr+size/2;
+      let y=Math.cos(th*Math.PI*2)*bandr+size/2;
+      circle(x, y, r);
+      let u=this.hsva[1], v=1.0-this.hsva[2];
+      let ret=inv_sample(u, v);
+      u = ret[0], v = ret[1];
+      x = field.params.box.x+u*field.params.box.width;
+      y = field.params.box.y+v*field.params.box.height;
+      circle(x, y, r);
+    }
+     updateDPI(force_update=false, _in_update=false) {
+      let dpi=this.getDPI();
+      let update=force_update;
+      update = update||dpi!=this._last_dpi;
+      if (update) {
+          this._last_dpi = dpi;
+          this.updateCanvas(true);
+          if (!_in_update)
+            this._redraw();
+          return true;
+      }
+    }
+     update(force_update=false) {
+      super.update();
+      let redraw=false;
+      redraw = redraw||this.updateCanvas(force_update, true);
+      redraw = redraw||this.updateDPI(force_update, true);
+      if (redraw) {
+          this._redraw();
+      }
+    }
+    static  define() {
+      return {tagname: "colorfield0-x", 
+     style: "colorfield"}
+    }
+  }
+  _ESClass.register(ColorField);
+  _es6_module.add_class(ColorField);
+  ColorField = _es6_module.add_export('ColorField', ColorField);
+  UIBase.internalRegister(ColorField);
+  class ColorPicker extends ui.ColumnFrame {
+     constructor() {
+      super();
+      this.field = UIBase.createElement("colorfield-x");
+      this.field.setAttribute("class", "colorpicker");
+      this.field.onchange = (hsva, rgba) =>        {
+        if (this.onchange) {
+            this.onchange(hsva, rgba);
+        }
+        this._setDataPath();
+        this._setSliders();
+      };
+      let style=document.createElement("style");
+      style.textContent = `
+      .colorpicker {
+        background-color : ${ui_base.getDefault("InnerPanelBG")};
+      }
+    `;
+      this._style = style;
+      this.shadow.appendChild(style);
+      this.field.ctx = this.ctx;
+      this.shadow.appendChild(this.field);
+    }
+    static  setDefault(node) {
+      let tabs=node.tabs();
+      let tab=tabs.tab("HSV");
+      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
+      });
+      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
+      });
+      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
+      });
+      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
+      });
+      tab = tabs.tab("RGB");
+      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
+      });
+      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
+      });
+      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
+      });
+      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
+      });
+      node._setSliders();
+    }
+     _setSliders() {
+      if (this.h===undefined) {
+          console.warn("colorpicker ERROR");
+          return ;
+      }
+      let hsva=this.hsva;
+      this.h.setValue(hsva[0], false);
+      this.s.setValue(hsva[1], false);
+      this.v.setValue(hsva[2], false);
+      this.a.setValue(hsva[3], false);
+      let rgba=this.rgba;
+      this.r.setValue(rgba[0], false);
+      this.g.setValue(rgba[1], false);
+      this.b.setValue(rgba[2], false);
+      this.a2.setValue(rgba[3], false);
+    }
+    get  hsva() {
+      return this.field.hsva;
+    }
+    get  rgba() {
+      return this.field.rgba;
+    }
+     updateDataPath() {
+      if (!this.hasAttribute("datapath")) {
+          return ;
+      }
+      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
+      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+      if (val===undefined) {
+          this.internalDisabled = true;
+          return ;
+      }
+      this.internalDisabled = false;
+      _update_temp.load(val);
+      if (prop.type==PropTypes.VEC3) {
+          _update_temp[3] = 1.0;
+      }
+      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
+          console.log("VAL", val);
+          console.log("color changed!");
+          this.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3]);
+      }
+    }
+     update() {
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+      super.update();
+    }
+     _setDataPath() {
+      if (this.hasAttribute("datapath")) {
+          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.field.rgba);
+      }
+    }
+     setHSVA(h, s, v, a) {
+      this.field.setHSVA(h, s, v, a);
+      this._setDataPath();
+    }
+     setRGBA(r, g, b, a) {
+      this.field.setRGBA(r, g, b, a);
+      this._setDataPath();
+    }
+    static  define() {
+      return {tagname: "colorpicker0-x"}
+    }
+  }
+  _ESClass.register(ColorPicker);
+  _es6_module.add_class(ColorPicker);
+  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
+  UIBase.internalRegister(ColorPicker);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
+
+
 es6_module_define('ui_colorpicker2', ["../path-controller/util/events.js", "../config/const.js", "../path-controller/util/simple_events.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/colorutils.js", "../path-controller/util/util.js", "../screen/area_wrangler.js"], function _ui_colorpicker2_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -2113,7 +2732,7 @@ es6_module_define('ui_listbox', ["../path-controller/toolsys/toolprop.js", "../p
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
 
 
-es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/const.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "./ui_button.js", "../path-controller/util/events.js", "../path-controller/util/simple_events.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["../path-controller/util/events.js", "../path-controller/util/simple_events.js", "./ui_button.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../config/const.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -3315,7 +3934,7 @@ es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/cons
           let menu2=this.menu;
           while (menu2!==element.menu) {
             menu2 = menu2.parentMenu;
-            destroy = destroy&&menu2!==element.menu;
+            destroy = destroy&&(menu2===undefined||menu2!==element.menu);
           }
       }
       if (destroy) {
@@ -3376,7 +3995,7 @@ es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/cons
   _ESClass.register(MenuWrangler);
   _es6_module.add_class(MenuWrangler);
   MenuWrangler = _es6_module.add_export('MenuWrangler', MenuWrangler);
-  let menuWrangler=new MenuWrangler();
+  let menuWrangler=window._menuWrangler = new MenuWrangler();
   menuWrangler = _es6_module.add_export('menuWrangler', menuWrangler);
   let wrangerStarted=false;
   function startMenuEventWrangling(screen) {
@@ -3398,6 +4017,7 @@ es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/cons
     menuWrangler.startTimer();
   }
   startMenuEventWrangling = _es6_module.add_export('startMenuEventWrangling', startMenuEventWrangling);
+  window._startMenuEventWrangling = startMenuEventWrangling;
   function setWranglerScreen(screen) {
     startMenuEventWrangling(screen);
   }
@@ -3474,7 +4094,7 @@ es6_module_define('ui_menu', ["../path-controller/util/util.js", "../config/cons
       }
       else 
         if (typeof item==="object") {
-          let $_t0suqs=item, name=$_t0suqs.name, callback=$_t0suqs.callback, hotkey=$_t0suqs.hotkey, icon=$_t0suqs.icon, tooltip=$_t0suqs.tooltip;
+          let $_t0uboq=item, name=$_t0uboq.name, callback=$_t0uboq.callback, hotkey=$_t0uboq.hotkey, icon=$_t0uboq.icon, tooltip=$_t0uboq.tooltip;
           let id2=item.id!==undefined ? item.id : id++;
           if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
               hotkey = hotkey.buildString();
@@ -5136,7 +5756,7 @@ es6_module_define('ui_numsliders', ["../core/ui.js", "../path-controller/util/si
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
 
 
-es6_module_define('ui_panel', ["../core/ui.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "./ui_widgets.js", "../core/ui_base.js", "../path-controller/util/html5_fileapi.js", "../path-controller/util/vectormath.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/html5_fileapi.js", "./ui_widgets.js", "../core/ui.js"], function _ui_panel_module(_es6_module) {
   var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -5271,6 +5891,7 @@ es6_module_define('ui_panel', ["../core/ui.js", "../path-controller/toolsys/tool
       }
       iconcheck.overrideDefault("padding", 0);
       iconcheck.noMarginsOrPadding();
+      iconcheck.overrideDefault("highlight", {"background-color": iconcheck.getSubDefault("highlight", "background-color")});
       iconcheck.overrideDefault("background-color", "rgba(0,0,0,0)");
       iconcheck.overrideDefault("BoxDepressed", "rgba(0,0,0,0)");
       iconcheck.overrideDefault("border-color", "rgba(0,0,0,0)");
@@ -5289,7 +5910,6 @@ es6_module_define('ui_panel', ["../core/ui.js", "../path-controller/toolsys/tool
         e.preventDefault();
       };
       let label=this.__label = row.label(this.getAttribute("label"));
-      this.__label.overrideClass("panel");
       this.__label.font = "TitleText";
       label._updateFont();
       label.noMarginsOrPadding();
@@ -6098,7 +6718,7 @@ es6_module_define('ui_table', ["./ui_curvewidget.js", "../core/ui.js", "../path-
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
 
 
-es6_module_define('ui_tabs', ["../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/vectormath.js"], function _ui_tabs_module(_es6_module) {
+es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js"], function _ui_tabs_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -6427,7 +7047,7 @@ es6_module_define('ui_tabs', ["../core/ui_base.js", "../path-controller/util/eve
       this._last_style_key = undefined;
       canvas.style["width"] = "145px";
       canvas.style["height"] = "45px";
-      this.r = 8;
+      this.r = this.getDefault("TabBarRadius", undefined, 8);
       this.canvas = canvas;
       this.g = canvas.getContext("2d");
       this.canvas.style["touch-action"] = "none";
@@ -7010,8 +7630,8 @@ es6_module_define('ui_tabs', ["../core/ui_base.js", "../path-controller/util/eve
      setCSS() {
       super.setCSS(false);
       this.style["contain"] = "layout";
-      let r=this.getDefault("TabBarRadius");
-      r = r!==undefined ? r : 3;
+      this.r = this.getDefault("TabBarRadius", undefined, 8);
+      let r=this.r!==undefined ? this.r : 3;
       this.style["touch-action"] = "none";
       this.canvas.style["background-color"] = this.getDefault("TabInactive");
       this.canvas.style["border-radius"] = r+"px";
@@ -8073,7 +8693,7 @@ es6_module_define('ui_treeview', ["../core/ui.js", "../core/ui_base.js", "../pat
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_treeview.js');
 
 
-es6_module_define('ui_widgets', ["../core/units.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "../path-controller/controller/controller.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "./ui_textbox.js", "../path-controller/toolsys/toolsys.js", "./ui_button.js", "../path-controller/util/events.js"], function _ui_widgets_module(_es6_module) {
+es6_module_define('ui_widgets', ["../path-controller/util/events.js", "./ui_button.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolsys.js", "../path-controller/toolsys/toolprop.js", "../path-controller/controller/controller.js", "./ui_textbox.js", "../config/const.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../core/units.js", "../path-controller/util/util.js"], function _ui_widgets_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -8510,13 +9130,13 @@ es6_module_define('ui_widgets', ["../core/units.js", "../path-controller/util/ut
       this.noMarginsOrPadding();
       if (this._pressed&&this._draw_pressed) {
           def = (k) =>            {
-            return pstyle&&k in pstyle ? pstyle[k] : this.getDefault(k);
+            return this.getSubDefault("depressed", k);
           };
       }
       else 
         if (this._highlight) {
           def = (k) =>            {
-            return hstyle&&k in hstyle ? hstyle[k] : this.getDefault(k);
+            return this.getSubDefault("highlight", k);
           };
       }
       else {
@@ -10957,481 +11577,4 @@ es6_module_define('splinetool', ["../transform.js", "../selectmode.js", "../tran
 }`;
   ToolMode.register(SplineToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
-
-
-es6_module_define('toolmode', ["../../../core/keymap.js", "../../../core/eventdag.js", "../../../path.ux/scripts/pathux.js"], function _toolmode_module(_es6_module) {
-  var NodeBase=es6_import_item(_es6_module, '../../../core/eventdag.js', 'NodeBase');
-  var KeyMap=es6_import_item(_es6_module, '../../../core/keymap.js', 'KeyMap');
-  var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
-  const ToolModeFlags={}
-  _es6_module.add_export('ToolModeFlags', ToolModeFlags);
-  const ToolModes=[];
-  _es6_module.add_export('ToolModes', ToolModes);
-  ToolModes.map = {}
-  class ToolMode extends NodeBase {
-    
-     constructor() {
-      super();
-      this.ctx = undefined;
-      this.keymap = new KeyMap("view2d:"+this.constructor.name);
-    }
-     rightClickMenu(e, localX, localY, view2d) {
-
-    }
-     on_mousedown(e, localX, localY) {
-
-    }
-     on_mousemove(e, localX, localY) {
-
-    }
-     on_mouseup(e, localX, localY) {
-
-    }
-     do_select(event, mpos, view2d, do_multiple) {
-
-    }
-     do_alt_select(event, mpos, view2d) {
-
-    }
-     draw(view2d) {
-
-    }
-     onActive() {
-
-    }
-     onInactive() {
-
-    }
-     duplicate() {
-      return new this.constructor();
-    }
-    static  contextOverride() {
-
-    }
-    static  buildEditMenu(container) {
-
-    }
-    static  buildSideBar(container) {
-
-    }
-    static  buildHeader(container) {
-
-    }
-    static  buildProperties(container) {
-
-    }
-    static  defineAPI(api) {
-      let st=api.mapStruct(this, true);
-      st.string("name", "constructor.name", "Name", "Name");
-      return st;
-    }
-     on_tick() {
-      if (!this.ctx) {
-          return ;
-      }
-    }
-    static  register(cls) {
-      if (cls.toolDefine===this.toolDefine) {
-          throw new Error("you forgot to implement toolDefine()");
-      }
-      ToolModes.push(cls);
-      ToolModes.map[cls.toolDefine().name] = cls;
-      if (!cls.STRUCT) {
-          console.warn("auto-generating STRUCT data for "+cls.name);
-          cls.STRUCT = nstructjs.inherit(cls, ToolMode)+`\n}`;
-          cls.prototype.loadSTRUCT = function (reader) {
-            reader(this);
-          };
-      }
-      nstructjs.register(cls);
-    }
-    static  nodedef() {
-      let def=this.toolDefine();
-      return {name: def.name, 
-     uiName: def.uiName, 
-     flag: def.nodeFlag, 
-     icon: def.icon, 
-     inputs: def.nodeInputs, 
-     outputs: def.nodeOutputs}
-    }
-    static  toolDefine() {
-      return {name: "", 
-     uiName: "", 
-     flag: 0, 
-     icon: -1, 
-     nodeInputs: {}, 
-     nodeOutputs: {}, 
-     nodeFlag: 0}
-    }
-     getKeyMaps() {
-      return [this.keymap];
-    }
-     dataLink(scene, getblock, getblock_us) {
-
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(ToolMode);
-  _es6_module.add_class(ToolMode);
-  ToolMode = _es6_module.add_export('ToolMode', ToolMode);
-  ToolMode.STRUCT = `
-ToolMode {
-  
-}`;
-  function initToolModeAPI(api) {
-    for (let tool of ToolModes) {
-        tool.defineAPI(api);
-    }
-  }
-  initToolModeAPI = _es6_module.add_export('initToolModeAPI', initToolModeAPI);
-}, '/dev/fairmotion/src/editors/viewport/toolmodes/toolmode.js');
-
-
-es6_module_define('struct', ["../path.ux/scripts/pathux.js", "../util/parseutil.js", "./toolops_api.js"], function _struct_module(_es6_module) {
-  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
-  var PUTL=es6_import(_es6_module, '../util/parseutil.js');
-  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
-  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
-  var ToolOp=es6_import_item(_es6_module, './toolops_api.js', 'ToolOp');
-  let STRUCT=nstructjs.STRUCT;
-  STRUCT = _es6_module.add_export('STRUCT', STRUCT);
-  function profile_reset() {
-  }
-  profile_reset = _es6_module.add_export('profile_reset', profile_reset);
-  function profile_report() {
-  }
-  profile_report = _es6_module.add_export('profile_report', profile_report);
-  window.STRUCT_ENDIAN = false;
-  console.log(nstructjs);
-  nstructjs.setEndian(false);
-  class arraybufferCompat extends Array {
-     constructor() {
-      super();
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.length = 0;
-      let d=this._data;
-      for (let i=0; i<d.length; i++) {
-          this.push(d[i]);
-      }
-    }
-  }
-  _ESClass.register(arraybufferCompat);
-  _es6_module.add_class(arraybufferCompat);
-  arraybufferCompat = _es6_module.add_export('arraybufferCompat', arraybufferCompat);
-  arraybufferCompat.STRUCT = `arraybuffer {
-  _data : array(byte) | this ? this : [];
-}`;
-  nstructjs.register(arraybufferCompat);
-  nstructjs.setDebugMode(false);
-  window.istruct = nstructjs.manager;
-  function patch_dataref_type(buf) {
-    return buf.replace(/dataref\([a-zA-Z0-9_$]+\)/g, "dataref");
-  }
-  class Mat4Compat extends Matrix4 {
-     constructor() {
-      super();
-    }
-    static  fromSTRUCT(reader) {
-      let ret=new Matrix4();
-      reader(ret);
-      ret.$matrix = ret._matrix;
-      delete ret._matrix;
-      return ret;
-    }
-  }
-  _ESClass.register(Mat4Compat);
-  _es6_module.add_class(Mat4Compat);
-  Mat4Compat.STRUCT = `
-Mat4Compat {
-  _matrix : mat4_intern | obj.$matrix;
-}
-`;
-  class Mat4Intern  {
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(Mat4Intern);
-  _es6_module.add_class(Mat4Intern);
-  Mat4Intern = _es6_module.add_export('Mat4Intern', Mat4Intern);
-  Mat4Intern.STRUCT = `
-mat4_intern {
-  m11 : float;
-  m12 : float;
-  m13 : float;
-  m14 : float;
-  m21 : float;
-  m22 : float;
-  m23 : float;
-  m24 : float;
-  m31 : float;
-  m32 : float;
-  m33 : float;
-  m34 : float;
-  m41 : float;
-  m42 : float;
-  m43 : float;
-  m44 : float;
-}
-`;
-  let vecpatches=[];
-  function makeVecPatch(cls, size, name) {
-    let dummycls={fromSTRUCT: function fromSTRUCT(reader) {
-        let ret=new cls();
-        reader(ret);
-        return ret;
-      }, 
-    prototype: {}}
-    let s="_"+name+"{\n";
-    for (let i=0; i<size; i++) {
-        s+=`  ${i} : float;\n`;
-    }
-    s+="}\n";
-    dummycls.STRUCT = s;
-    dummycls._structName = dummycls.name = name;
-    vecpatches.push(dummycls);
-  }
-  makeVecPatch(Vector2, 2, "vec2");
-  makeVecPatch(Vector3, 3, "vec3");
-  makeVecPatch(Vector4, 4, "vec4");
-  makeVecPatch(Vector4, 4, "quat");
-  let _old=nstructjs.STRUCT.prototype.parse_structs;
-  nstructjs.STRUCT.prototype.parse_structs = function (buf, defined_classes) {
-    window._fstructs = buf;
-    buf = patch_dataref_type(buf);
-    let ret=_old.call(this, buf);
-    if (!this.structs.dataref) {
-        this.register(__dataref);
-    }
-    if (!this.structs.arraybuffer) {
-        this.register(arraybufferCompat);
-    }
-    if (!this.structs.mat4) {
-        console.warn("PATCHING MATRIX 4");
-        this.register(Mat4Intern);
-        this.register(Mat4Compat, "mat4");
-    }
-    for (let v of vecpatches) {
-        if (!this.structs[v._structName]) {
-            v.structName = v._structName;
-            this.register(v, v._structName);
-        }
-    }
-    return ret;
-  }
-  function gen_struct_str() {
-    return nstructjs.write_scripts(istruct);
-  }
-  gen_struct_str = _es6_module.add_export('gen_struct_str', gen_struct_str);
-  window.init_struct_packer = function () {
-    
-    init_toolop_structs();
-    var errs=[];
-    let buf="";
-    for (var cls of defined_classes) {
-        if (cls.STRUCT) {
-            cls.STRUCT = patch_dataref_type(cls.STRUCT);
-            buf+=cls.STRUCT+"\n";
-        }
-    }
-    window._struct_scripts = buf;
-    let isToolOp=(cls) =>      {
-      if (cls===ToolOp) {
-          return true;
-      }
-      if (cls.__proto__!==Object&&cls.__proto__!==Object.__proto__) {
-          return isToolOp(cls.__proto__);
-      }
-      return false;
-    }
-    for (var cls of defined_classes) {
-        if (cls.name=="Matrix4UI"||cls.name=="Matrix4"||cls.name=="Vector3"||cls.name=="Vector4"||cls.name=="Vector2") {
-            continue;
-        }
-        if (cls.STRUCT) {
-            cls.STRUCT = patch_dataref_type(cls.STRUCT);
-        }
-        try {
-          if (cls.STRUCT!==undefined&&!istruct.isRegistered(cls)&&!isToolOp(cls)) {
-              istruct.register(cls);
-          }
-        }
-        catch (err) {
-            if (__instance_of(err, PUTL.PUTLParseError)) {
-                console.log("cls.structName: ", cls.structName);
-                print_stack(err);
-                console.log("Error parsing struct: "+err.message);
-            }
-            else {
-              errs.push([err, cls]);
-            }
-        }
-    }
-    for (var i=0; i<errs.length; i++) {
-        let err=errs[i][0];
-        let cls=errs[i][1];
-        console.log(cls.STRUCT);
-        print_stack(err);
-        if (i===errs.length-1)
-          throw err;
-    }
-    nstructjs.validateStructs();
-    window.safe_global = {}
-    for (var k in window) {
-        if (k.search("bar")>=0||k=="localStorage"||(k.startsWith("on")&&k[2]!="l")) {
-            continue;
-        }
-        if (k.startsWith("webkit")) {
-            continue;
-        }
-        safe_global[k] = window[k];
-    }
-  }
-}, '/dev/fairmotion/src/core/struct.js');
-
-
-es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_module) {
-  "use strict";
-  var $rets_4wSZ_derivative;
-  var $rets_vfeB_normal;
-  class ClothoidInterface  {
-    static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
-
-    }
-    static  derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      b.sub(a).mulScalar(1.0/df);
-      return $rets_4wSZ_derivative.next().load(b);
-    }
-    static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      b.sub(a).mulScalar(1.0/df);
-      return $rets_vfeB_normal.next().load(b);
-    }
-    static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
-      return (dv1[0]*dv2[1]-dv2[1]*dv1[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
-    }
-    static  curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      return (b-a)/df;
-    }
-    static  curvature_dv2(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature_dv(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      return (b-a)/df;
-    }
-    static  closest_point(p1, p2, t1, t2, k1, k2, p, cdata) {
-
-    }
-    static  update(p1, p2, t1, t2, k1, k2, s, cdata) {
-
-    }
-  }
-  var $rets_4wSZ_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_vfeB_normal=cachering.fromConstructor(Vector2, 16);
-  _ESClass.register(ClothoidInterface);
-  _es6_module.add_class(ClothoidInterface);
-  var CurveInterfaces=es6_import_item(_es6_module, './curvebase.js', 'CurveInterfaces');
-  var CurveTypes=es6_import_item(_es6_module, './curvebase.js', 'CurveTypes');
-  CurveInterfaces[CurveTypes.CLOTHOID] = ClothoidInterface;
-}, '/dev/fairmotion/src/curve/curve.js');
-
-
-es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
-  var CurveTypes={CLOTHOID: 1}
-  CurveTypes = _es6_module.add_export('CurveTypes', CurveTypes);
-  var CurveFlags={SELECT: 1, 
-   UPDATE: 2}
-  CurveFlags = _es6_module.add_export('CurveFlags', CurveFlags);
-  var CurveInterfaces={}
-  CurveInterfaces = _es6_module.add_export('CurveInterfaces', CurveInterfaces);
-  class CurveData  {
-    
-    
-     constructor(type) {
-      this.type = type;
-      this.flag = 0;
-      this.length = 0;
-      this.cfi = CurveInterfaces[type];
-    }
-     update() {
-      this.flag|=CurveFlags.UPDATE;
-    }
-     copy() {
-      var ret=new CurveData(this.type);
-      ret.flag = this.flag;
-      ret.length = this.length;
-      ret.cfi = this.cfi;
-      ret.update();
-      return ret;
-    }
-  }
-  _ESClass.register(CurveData);
-  _es6_module.add_class(CurveData);
-  CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_Sfjo_derivative;
-  var $rets_KAFF_normal;
-  class CurveInterface  {
-    static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
-
-    }
-    static  derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      b.sub(a).mulScalar(1.0/df);
-      return $rets_Sfjo_derivative.next().load(b);
-    }
-    static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      b.sub(a).mulScalar(1.0/df);
-      return $rets_KAFF_normal.next().load(b);
-    }
-    static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
-      return (dv1[0]*dv2[1]-dv2[1]*dv1[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
-    }
-    static  curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      return (b-a)/df;
-    }
-    static  curvature_dv2(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature_dv(p1, p2, t1, t2, k1, k2, s+df, cdata);
-      return (b-a)/df;
-    }
-    static  closest_point(p1, p2, t1, t2, k1, k2, p, cdata) {
-
-    }
-    static  update(p1, p2, t1, t2, k1, k2, s, cdata) {
-
-    }
-  }
-  var $rets_Sfjo_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_KAFF_normal=cachering.fromConstructor(Vector2, 16);
-  _ESClass.register(CurveInterface);
-  _es6_module.add_class(CurveInterface);
-}, '/dev/fairmotion/src/curve/curvebase.js');
 

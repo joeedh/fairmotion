@@ -2421,7 +2421,7 @@ es6_module_define('toolstack', ["./context.js", "./toolprops.js", "../path.ux/sc
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["./raster.js", "../path.ux/scripts/config/const.js", "../editors/viewport/view2d_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "./startup/startup_file_example.js", "./const.js", "../editors/ops/ops_editor.js", "../config/config.js", "./lib_api.js", "../path.ux/scripts/pathux.js", "../editors/menubar/MenuBar.js", "../util/strutils.js", "../scene/scene.js", "./toolstack.js", "../path.ux/scripts/screen/ScreenArea.js", "./context.js", "../../platforms/platform.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/settings/SettingsEditor.js", "./jobs.js", "../curve/spline_base.js", "./startup/startup_file.js", "../editors/curve/CurveEditor.js", "./fileapi/fileapi.js", "./notifications.js", "./UserSettings.js", "../editors/console/console.js", "../editors/editor_base.js", "../editors/all.js", "../editors/viewport/view2d.js", "../path.ux/scripts/screen/FrameManager.js", "./lib_utils.js", "./struct.js", "../path.ux/scripts/util/util.js", "./frameset.js", "./toolops_api.js", "./data_api/data_api_define.js", "../editors/theme.js", "./ajax.js", "../editors/material/MaterialEditor.js", "./toolprops.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../editors/all.js", "./notifications.js", "../path.ux/scripts/util/util.js", "../editors/menubar/MenuBar.js", "../config/config.js", "./const.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/editor_base.js", "./jobs.js", "./lib_utils.js", "./lib_api.js", "../path.ux/scripts/core/ui_base.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../scene/scene.js", "./context.js", "./raster.js", "./ajax.js", "./fileapi/fileapi.js", "./toolprops.js", "../editors/viewport/view2d.js", "../editors/material/MaterialEditor.js", "../editors/ops/ops_editor.js", "../editors/theme.js", "../editors/dopesheet/DopeSheetEditor.js", "./startup/startup_file.js", "../path.ux/scripts/config/const.js", "../editors/viewport/view2d_ops.js", "./startup/startup_file_example.js", "./struct.js", "../curve/spline_base.js", "../path.ux/scripts/screen/ScreenArea.js", "./toolops_api.js", "../path.ux/scripts/pathux.js", "../util/strutils.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./toolstack.js", "./UserSettings.js", "../../platforms/platform.js", "./frameset.js", "./data_api/data_api_define.js", "../editors/console/console.js", "../editors/settings/SettingsEditor.js"], function _AppState_module(_es6_module) {
   "use strict";
   var pathux_platform=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'platform');
   pathux_platform.getPlatformAsync().then((mod) =>    {
@@ -2959,6 +2959,7 @@ es6_module_define('AppState', ["./raster.js", "../path.ux/scripts/config/const.j
       this.active_view2d = view2d;
       if (!screen.listening) {
           screen.listen();
+          screen.completeSetCSS();
       }
       this.toolstack = toolstack;
       this.screen.ctx = this.ctx = new FullContext();
@@ -3460,6 +3461,7 @@ es6_module_define('AppState', ["./raster.js", "../path.ux/scripts/config/const.j
         resetAreaStacks();
         if (!screen.listening) {
             screen.listen();
+            screen.completeSetCSS();
         }
         this2.size = size;
         for (let sa of screen.sareas) {
@@ -7805,7 +7807,7 @@ es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/con
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
 
 
-es6_module_define('ui_base', ["./ui_theme.js", "./units.js", "../util/colorutils.js", "../icon_enum.js", "../path-controller/controller/controller.js", "./theme.js", "../screen/area_wrangler.js", "../config/const.js", "../path-controller/util/simple_events.js", "./aspect.js", "./ui_consts.js", "../path-controller/util/math.js", "./anim.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["../path-controller/toolsys/toolprop.js", "./units.js", "../path-controller/util/math.js", "./ui_theme.js", "./anim.js", "../path-controller/controller/controller.js", "../config/const.js", "../util/colorutils.js", "../path-controller/util/vectormath.js", "../icon_enum.js", "./aspect.js", "../path-controller/util/util.js", "./ui_consts.js", "../screen/area_wrangler.js", "../path-controller/util/simple_events.js", "./theme.js"], function _ui_base_module(_es6_module) {
   var contextWrangler=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'contextWrangler');
   let _ui_base=undefined;
   let TextBox=undefined;
@@ -8418,6 +8420,7 @@ ${selector}::-webkit-scrollbar-thumb {
     _themeUpdateKey = calcThemeKey();
   }
   flagThemeUpdate = _es6_module.add_export('flagThemeUpdate', flagThemeUpdate);
+  window._flagThemeUpdate = flagThemeUpdate;
   let setTimeoutQueue=new Set();
   let haveTimeout=false;
   function timeout_cb() {
@@ -8426,7 +8429,7 @@ ${selector}::-webkit-scrollbar-thumb {
         return ;
     }
     for (let item of new Set(setTimeoutQueue)) {
-        let $_t0djbb=item, cb=$_t0djbb.cb, timeout=$_t0djbb.timeout, time=$_t0djbb.time;
+        let $_t0jsmk=item, cb=$_t0jsmk.cb, timeout=$_t0jsmk.timeout, time=$_t0jsmk.time;
         if (util.time_ms()-time<timeout) {
             continue;
         }
@@ -9072,8 +9075,8 @@ ${selector}::-webkit-scrollbar-thumb {
         }
         return [i, p];
       };
-      let $_t1cdll=getPos(this, p1), i1=$_t1cdll[0], n1=$_t1cdll[1];
-      let $_t2djgd=getPos(b, p2), i2=$_t2djgd[0], n2=$_t2djgd[1];
+      let $_t1bato=getPos(this, p1), i1=$_t1bato[0], n1=$_t1bato[1];
+      let $_t2ihrl=getPos(b, p2), i2=$_t2ihrl[0], n2=$_t2ihrl[1];
       console.log("i1, i2, n1, n2", i1, i2, n1, n2);
       let tmp1=document.createElement("div");
       let tmp2=document.createElement("div");
@@ -10097,6 +10100,8 @@ ${selector}::-webkit-scrollbar-thumb {
       return this.hasClassDefault(key);
     }
      getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined) {
+      if (subkey&&subkey in this.my_default_overrides) {
+      }
       if (!key) {
           return this.getDefault(subkey, undefined, defaultval);
       }

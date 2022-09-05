@@ -2491,7 +2491,7 @@ es6_module_define('ops_editor', ["../editor_base.js", "../../core/struct.js", ".
 }, '/dev/fairmotion/src/editors/ops/ops_editor.js');
 
 
-es6_module_define('SettingsEditor', ["../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/pathux.js"], function _SettingsEditor_module(_es6_module) {
+es6_module_define('SettingsEditor', ["../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/pathux.js", "../editor_base.js"], function _SettingsEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
@@ -2557,9 +2557,7 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/screen/ScreenArea.js
       row.button("Reload Defaults", () =>        {
         g_app_state.settings.reloadDefaultTheme();
         g_app_state.settings.save();
-        th.remove();
-        th = document.createElement("theme-editor-x");
-        tab.add(th);
+        th.build();
       });
       tab.add(th);
       window.th = th;

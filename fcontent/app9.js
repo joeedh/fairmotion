@@ -6265,7 +6265,7 @@ ConsoleCommand {
 
 es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_module(_es6_module) {
   var CSSFont=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'CSSFont');
-  const theme={base: {AreaHeaderBG: 'rgba(65, 65, 65, 1.0)', 
+  const theme={base: {AreaHeaderBG: 'rgba(38,38,38, 1)', 
     BasePackFlag: 0, 
     BoxDepressed: 'rgba(43,32,27, 0.7410558240167026)', 
     BoxDrawMargin: 2, 
@@ -6307,9 +6307,9 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      color: 'rgba(235, 235, 235, 1.0)'}), 
     ProgressBar: 'rgba(75, 175, 255, 1.0)', 
     ProgressBarBG: 'rgba(110, 110, 110, 1.0)', 
-    ScreenBorderInner: 'rgba(120, 120, 120, 1.0)', 
+    ScreenBorderInner: 'rgba(87,87,87, 1)', 
     ScreenBorderMousePadding: 5, 
-    ScreenBorderOuter: 'rgba(120, 120, 120, 1.0)', 
+    ScreenBorderOuter: 'rgba(87,87,87, 1)', 
     ScreenBorderWidth: 2, 
     TitleText: new CSSFont({font: 'sans-serif', 
      weight: 'normal', 
@@ -6322,10 +6322,11 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      variant: 'normal', 
      style: 'normal', 
      size: 12, 
-     color: 'rgba(35, 35, 35, 1.0)'}), 
+     color: 'rgba(218,218,218, 1)'}), 
     'background-color': 'rgba(55, 55, 55, 1.0)', 
     'border-color': 'rgba(196,196,196, 1)', 
     'border-radius': 12, 
+    'border-width': 0, 
     'flex-grow': 'unset', 
     'focus-border-color': 'rgba(55,155,255, 1)', 
     'focus-border-width': 2, 
@@ -6439,9 +6440,10 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     hueHeight: 32, 
     hueheight: 24, 
     width: 200}, 
-   colorpickerbutton: {defaultFont: 'LabelText', 
+   colorpickerbutton: {'border-radius': 10, 
+    defaultFont: 'LabelText', 
     height: 25, 
-    width: 100}, 
+    width: 75}, 
    console: {DefaultText: new CSSFont({font: 'monospace', 
      weight: 'normal', 
      variant: 'normal', 
@@ -6480,9 +6482,10 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     treeWidth: 100}, 
    dropbox: {BoxHighlight: 'rgba(155, 220, 255, 0.4)', 
     'border-width': 1, 
-    dropTextBG: 'rgba(38,22,15, 0)', 
+    dropTextBG: 'rgba(33,33,33, 0.7812501017252604)', 
     height: 19.508909279310238, 
-    padding: 4, 
+    margin: 2, 
+    padding: 0, 
     width: 32}, 
    iconbutton: {'background-color': 'rgba(118,118,118, 0.4461)', 
     'border-color': 'black', 
@@ -6518,29 +6521,29 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     'border-width': 1, 
     depressed: {'background-color': 'rgba(26,26,26, 1)', 
      'border-color': 'rgb(0,0,0)', 
-     'border-radius': 8, 
+     'border-radius': 5, 
      'border-style': 'solid', 
      'border-width': 1, 
      drawCheck: true, 
      height: 32, 
      'margin-bottom': 2, 
-     'margin-left': 2, 
+     'margin-left': 1, 
      'margin-right': 2, 
-     'margin-top': 1, 
+     'margin-top': 2, 
      padding: 2, 
      width: 32}, 
     drawCheck: true, 
     height: 32, 
     highlight: {'background-color': 'rgba(99,119,142, 1)', 
      'border-color': 'rgba(171,171,171, 1)', 
-     'border-radius': 8, 
+     'border-radius': 5, 
      'border-width': 1, 
      drawCheck: true, 
      height: 32, 
      'margin-bottom': 2, 
-     'margin-left': 2, 
+     'margin-left': 1, 
      'margin-right': 2, 
-     'margin-top': 1, 
+     'margin-top': 2, 
      padding: 2, 
      width: 32}, 
     'margin-bottom': 2, 
@@ -6554,7 +6557,9 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      variant: 'normal', 
      style: 'normal', 
      size: 14, 
-     color: 'rgba(211,211,211, 1)'})}, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    'border-radius': 0, 
+    'border-width': 0}, 
    listbox: {ListActive: 'rgba(49,39,35, 1)', 
     ListHighlight: 'rgba(55,112,226, 0.3637933139143319)', 
     'background-color': 'rgba(81,81,81, 1)', 
@@ -6617,9 +6622,9 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      style: 'normal', 
      size: 12, 
      color: 'white'}), 
-    'background-color': 'rgba(65,65,65, 1)', 
+    'background-color': 'rgba(122,122,122, 1)', 
     'border-color': 'black', 
-    'border-radius': 1, 
+    'border-radius': 8, 
     'border-style': 'solid', 
     'border-width': 1, 
     height: 22.76656831702612, 
@@ -6631,7 +6636,7 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
      variant: 'normal', 
      style: 'normal', 
      size: 14, 
-     color: undefined}), 
+     color: 'rgba(229,229,229, 1)'}), 
     'background-color': 'rgba(102,102,102, 1)', 
     'border-color': 'rgb(75, 75, 75)', 
     'border-radius': 5, 
@@ -6648,7 +6653,7 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     'border-width': 0, 
     margin: 0, 
     padding: 0}, 
-   panel: {HeaderBorderRadius: 5.829650280441558, 
+   panel: {HeaderBorderRadius: 10, 
     HeaderRadius: 5.829650280441558, 
     TitleBackground: 'rgba(126,178,237, 0.309051618904903)', 
     TitleBorder: 'rgba(136,136,136, 1)', 
@@ -6667,7 +6672,7 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     'margin-bottom-closed': 0, 
     'margin-left': 0, 
     'margin-right': 0, 
-    'margin-top': 0.2606556353343805, 
+    'margin-top': 4, 
     'margin-top-closed': 0, 
     'padding-bottom': undefined, 
     'padding-left': 0, 
@@ -6702,7 +6707,7 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
     padding: 1}, 
    tabs: {TabActive: 'rgba(86,86,86, 1)', 
     TabBarRadius: 6, 
-    TabHighlight: 'rgba(50, 50, 50, 0.2)', 
+    TabHighlight: 'rgba(74,74,74, 1)', 
     TabInactive: 'rgba(28,28,34, 1)', 
     TabStrokeStyle1: 'rgba(200, 200, 200, 1.0)', 
     TabStrokeStyle2: 'rgba(255, 255, 255, 1.0)', 
@@ -6743,7 +6748,7 @@ es6_module_define('theme', ["../path.ux/scripts/pathux.js"], function _theme_mod
 }, '/dev/fairmotion/src/editors/theme.js');
 
 
-es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_widgets.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../../platforms/platform.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../core/startup/startup_file.js"], function _MenuBar_module(_es6_module) {
+es6_module_define('MenuBar', ["../editor_base.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../../platforms/platform.js", "../../core/struct.js", "../../core/startup/startup_file.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_widgets.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MenuBar_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var AreaFlags=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'AreaFlags');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
@@ -6804,7 +6809,7 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_menu.js", "../ed
       }]];
       menudef.reverse();
       row.menu("&File", menudef);
-      this.genSessionMenu(row);
+      this.finishMenu(row);
       let notef=document.createElement("noteframe-x");
       notef.ctx = this.ctx;
       row._add(notef);
@@ -6813,7 +6818,7 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_menu.js", "../ed
           this.minSize[1] = this.maxSize[1] = 1;
       }
     }
-     buildEditMenu() {
+     buildEditMenu(flush=true) {
       console.warn("rebuilding edit menu");
       this.editMenuDef.length = 0;
       this.editMenuDef.push(["Undo", function () {
@@ -6831,30 +6836,36 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_menu.js", "../ed
       for (let item of ret) {
           this.editMenuDef.push(item);
       }
-      if (window.haveElectron) {
+      if (flush&&window.haveElectron) {
           electron_api.initMenuBar(this, true);
       }
     }
-     genSessionMenu(row) {
+     finishMenu(row) {
       function callback(entry) {
         console.log(entry);
-        if (entry.i==0) {
+        if (entry.i===0) {
             if (confirm("Settings will be cleared", "Clear Settings?")) {
                 console.log("clearing settings");
                 ctx.appstate.session.settings.reload_defaults();
             }
         }
         else 
-          if (entry.i==2) {
+          if (entry.i===2) {
             g_app_state.set_startup_file();
         }
         else 
-          if (entry.i==1) {
+          if (entry.i===1) {
             myLocalStorage.set("startup_file", startup_file);
         }
       }
-      row.dynamicMenu("&Edit", this.editMenuDef);
-      this.buildEditMenu();
+      try {
+        row.dynamicMenu("&Edit", this.editMenuDef);
+        this.buildEditMenu(false);
+      }
+      catch (error) {
+          console.error(error.stack);
+          console.error("Error building menu");
+      }
       row.menu("&Session", [["Save Default File", function () {
         platform.app.questionDialog("Erase default startup file?").then((val) =>          {
           if (val) {
@@ -6877,6 +6888,9 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_menu.js", "../ed
           }
         });
       }]]);
+      if (window.haveElectron) {
+          electron_api.initMenuBar(this, true);
+      }
     }
      update() {
       super.update();

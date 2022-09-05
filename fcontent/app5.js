@@ -11371,12 +11371,14 @@ es6_module_define('dragbox', ["../core/ui_theme.js", "../path-controller/util/si
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
 
 
-es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/util/struct.js", "../core/ui.js", "../screen/ScreenArea.js", "../core/ui_theme.js"], function _theme_editor_module(_es6_module) {
+es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../path-controller/util/struct.js", "../core/ui_theme.js", "../core/ui_base.js", "../core/ui.js"], function _theme_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var theme=es6_import_item(_es6_module, '../core/ui_base.js', 'theme');
   var flagThemeUpdate=es6_import_item(_es6_module, '../core/ui_base.js', 'flagThemeUpdate');
+  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var validateCSSColor=es6_import_item(_es6_module, '../core/ui_theme.js', 'validateCSSColor');
   var color2css=es6_import_item(_es6_module, '../core/ui_theme.js', 'color2css');
@@ -11395,10 +11397,70 @@ es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/uti
       super.init();
       this.build();
     }
-     doFolder(catkey, obj, container=this) {
+     doFolder(catkey, obj, container=this, panel=undefined, path=undefined) {
       let key=catkey.key;
-      let panel=container.panel(key, undefined, undefined, catkey.help);
-      panel.style["margin-left"] = "15px";
+      if (!path) {
+          path = [key];
+      }
+      if (!panel) {
+          panel = container.panel(key, undefined, undefined, catkey.help);
+          panel.style["margin-left"] = "15px";
+      }
+      let row2=panel.row();
+      let textbox=row2.textbox(undefined, "");
+      let callback=(id) =>        {
+        console.log("ID", id, obj, catkey);
+        console.log(textbox, textbox.text, textbox.value);
+        let propkey=(textbox.text||"").trim();
+        if (!propkey) {
+            console.error("Cannot have empty theme property name");
+            return ;
+        }
+        if (id==="FLOAT") {
+            obj[propkey] = 0.0;
+        }
+        else 
+          if (id==="SUBFOLDER") {
+            obj[propkey] = {test: 0};
+        }
+        else 
+          if (id==="COLOR") {
+            obj[propkey] = "grey";
+        }
+        else 
+          if (id==="FONT") {
+            obj[propkey] = new CSSFont();
+        }
+        else 
+          if (id==="STRING") {
+            obj[propkey] = "";
+        }
+        let uidata=saveUIData(panel, "theme-panel");
+        panel.clear();
+        this.doFolder(catkey, obj, container, panel, path);
+        loadUIData(panel, uidata);
+        panel.flushUpdate();
+        panel.flushSetCSS();
+        if (this.onchange) {
+            this.onchange(key, propkey, obj);
+        }
+      };
+      let menu=row2.menu("+", [{name: "Float", 
+     callback: () =>          {
+          return callback("FLOAT");
+        }}, {name: "Color", 
+     callback: () =>          {
+          return callback("COLOR");
+        }}, {name: "Subfolder", 
+     callback: () =>          {
+          return callback("SUBFOLDER");
+        }}, {name: "Font", 
+     callback: () =>          {
+          return callback("FONT");
+        }}, {name: "String", 
+     callback: () =>          {
+          return callback("STRING");
+        }}]);
       let row=panel.row();
       let col1=row.col();
       let col2=row.col();
@@ -11515,29 +11577,15 @@ es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/uti
         }
         else 
           if (typeof v==="object") {
-            let old={panel: panel, 
-        row: row, 
-        col1: col1, 
-        col2: col2};
-            let path2=path.slice(0, path.length);
-            path2.push(k);
-            panel = panel.panel(k);
-            row = panel.row();
-            col1 = row.col();
-            col2 = row.col();
-            for (let k2 in v) {
-                let v2=v[k2];
-                dokey(k2, v2, path2);
-            }
-            panel = old.panel;
-            row = old.row;
-            col1 = old.col1;
-            col2 = old.col2;
+            let catkey2=Object.assign({}, catkey);
+            catkey2.key = k;
+            let path2=path.concat(k);
+            this.doFolder(catkey2, v, panel, undefined, path2);
         }
       };
       for (let k in obj) {
           let v=obj[k];
-          dokey(k, v, [key]);
+          dokey(k, v, path);
       }
       if (!ok) {
           panel.remove();
@@ -11547,6 +11595,8 @@ es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/uti
       }
     }
      build() {
+      let uidata=saveUIData(this, "theme");
+      this.clear();
       let categories={};
       for (let k of Object.keys(theme)) {
           let catkey;
@@ -11599,6 +11649,16 @@ es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/uti
               panel.closed = true;
           }
       }
+      loadUIData(this, uidata);
+      for (let i=0; i<2; i++) {
+          this.flushSetCSS();
+          this.flushUpdate();
+      }
+      if (this.ctx&&this.ctx.screen) {
+          window.setTimeout(() =>            {
+            this.ctx.screen.completeSetCSS();
+          }, 100);
+      }
     }
   }
   _ESClass.register(ThemeEditor);
@@ -11608,7 +11668,7 @@ es6_module_define('theme_editor', ["../core/ui_base.js", "../path-controller/uti
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
 
 
-es6_module_define('ui_button', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../path-controller/controller/controller.js", "../config/const.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../path-controller/controller/controller.js", "../core/ui_base.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -11691,15 +11751,17 @@ es6_module_define('ui_button', ["../path-controller/util/vectormath.js", "../pat
               return ;
             this._redraw();
         }
-        e.preventDefault();
-        e.stopPropagation();
-        if (util.isMobile()||e.type==="pointerup"&&e.button) {
-            return ;
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (util.isMobile()||e.type==="pointerup"&&e.button) {
+                return ;
+            }
         }
         this._redraw();
         if (cconst.DEBUG.buttonEvents)
           console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        if (this.onclick&&e.pointerType!=="mouse") {
+        if (this.onclick&&e&&e.pointerType!=="mouse") {
             this.onclick(this);
         }
         this.undoBreakPoint();
@@ -12254,623 +12316,4 @@ es6_module_define('ui_button', ["../path-controller/util/vectormath.js", "../pat
   OldButton = _es6_module.add_export('OldButton', OldButton);
   UIBase.internalRegister(OldButton);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
-
-
-es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/util/events.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
-  let rgb_to_hsv_rets=new util.cachering(() =>    {
-    return [0, 0, 0];
-  }, 64);
-  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
-  function rgb_to_hsv(r, g, b) {
-    var computedH=0;
-    var computedS=0;
-    var computedV=0;
-    if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
-        throw new Error('Please enter numeric RGB values!');
-        return ;
-    }
-    var minRGB=Math.min(r, Math.min(g, b));
-    var maxRGB=Math.max(r, Math.max(g, b));
-    if (minRGB==maxRGB) {
-        computedV = minRGB;
-        let ret=rgb_to_hsv_rets.next();
-        ret[0] = 0, ret[1] = 0, ret[2] = computedV;
-        return ret;
-    }
-    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
-    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
-    computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
-    computedS = (maxRGB-minRGB)/maxRGB;
-    computedV = maxRGB;
-    let ret=rgb_to_hsv_rets.next();
-    ret[0] = computedH, ret[1] = computedS, ret[2] = computedV;
-    return ret;
-  }
-  rgb_to_hsv = _es6_module.add_export('rgb_to_hsv', rgb_to_hsv);
-  let hsv_to_rgb_rets=new util.cachering(() =>    {
-    return [0, 0, 0];
-  }, 64);
-  function hsv_to_rgb(h, s, v) {
-    let c=0, m=0, x=0;
-    let ret=hsv_to_rgb_rets.next();
-    ret[0] = ret[1] = ret[2] = 0.0;
-    h*=360.0;
-    c = v*s;
-    x = c*(1.0-Math.abs(((h/60.0)%2)-1.0));
-    m = v-c;
-    let color;
-    function RgbF_Create(r, g, b) {
-      ret[0] = r;
-      ret[1] = g;
-      ret[2] = b;
-      return ret;
-    }
-    if (h>=0.0&&h<60.0) {
-        color = RgbF_Create(c+m, x+m, m);
-    }
-    else 
-      if (h>=60.0&&h<120.0) {
-        color = RgbF_Create(x+m, c+m, m);
-    }
-    else 
-      if (h>=120.0&&h<180.0) {
-        color = RgbF_Create(m, c+m, x+m);
-    }
-    else 
-      if (h>=180.0&&h<240.0) {
-        color = RgbF_Create(m, x+m, c+m);
-    }
-    else 
-      if (h>=240.0&&h<300.0) {
-        color = RgbF_Create(x+m, m, c+m);
-    }
-    else 
-      if (h>=300.0&&h<360.0) {
-        color = RgbF_Create(c+m, m, x+m);
-    }
-    else {
-      color = RgbF_Create(m, m, m);
-    }
-    return color;
-  }
-  hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let UPW=1.25, VPW=0.75;
-  let sample_rets=new util.cachering(() =>    {
-    return [0, 0];
-  }, 64);
-  function inv_sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, UPW);
-    ret[1] = Math.pow(v, VPW);
-    return ret;
-  }
-  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
-  function sample(u, v) {
-    let ret=sample_rets.next();
-    ret[0] = Math.pow(u, 1.0/UPW);
-    ret[1] = Math.pow(v, 1.0/VPW);
-    return ret;
-  }
-  sample = _es6_module.add_export('sample', sample);
-  let fieldrand=new util.MersenneRandom(0);
-  let fields={}
-  function getFieldImage(size, hsva) {
-    fieldrand.seed(0);
-    let hue=hsva[0];
-    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
-    let key=size+":"+hue.toFixed(4);
-    if (key in fields)
-      return fields[key];
-    let size2=128;
-    let image={width: size, 
-    height: size, 
-    image: new ImageData(size2, size2)}
-    let scale=size2/size;
-    let idata=image.image.data;
-    let dpi=this.getDPI();
-    let band=ui_base.IsMobile() ? 35 : 20;
-    let r2=Math.ceil(size*0.5), r1=r2-band*dpi;
-    let pad=5*dpi;
-    let px1=size*0.5-r1/Math.sqrt(2.0)+pad;
-    let py1=size*0.5-r1/Math.sqrt(2.0)+pad;
-    let pw=r1/Math.sqrt(2)*2-pad*2, ph=pw;
-    image.params = {r1: r1, 
-    r2: r2, 
-    box: {x: px1, 
-     y: py1, 
-     width: pw, 
-     height: ph}}
-    for (let i=0; i<size2*size2; i++) {
-        let x=i%size2, y = ~~(i/size2);
-        let idx=i*4;
-        let alpha=0.0;
-        let r=Math.sqrt((x-size2*0.5)**2+(y-size2*0.5)**2);
-        if (r<r2*scale&&r>r1*scale) {
-            let th=Math.atan2(y-size2*0.5, x-size2*0.5)/(2*Math.PI)+0.5;
-            let eps=0.001;
-            th = th*(1.0-eps*2)+eps;
-            let r=0, g=0, b=0;
-            if (th<1.0/6.0) {
-                r = 1.0;
-                g = th*6.0;
-            }
-            else 
-              if (th<2.0/6.0) {
-                th-=1.0/6.0;
-                r = 1.0-th*6.0;
-                g = 1.0;
-            }
-            else 
-              if (th<3.0/6.0) {
-                th-=2.0/6.0;
-                g = 1.0;
-                b = th*6.0;
-            }
-            else 
-              if (th<4.0/6.0) {
-                th-=3.0/6.0;
-                b = 1.0;
-                g = 1.0-th*6.0;
-            }
-            else 
-              if (th<5.0/6.0) {
-                th-=4.0/6.0;
-                r = th*6.0;
-                b = 1.0;
-            }
-            else 
-              if (th<6.0/6.0) {
-                th-=5.0/6.0;
-                r = 1.0;
-                b = 1.0-th*6.0;
-            }
-            r = r*255+(fieldrand.random()-0.5);
-            g = g*255+(fieldrand.random()-0.5);
-            b = b*255+(fieldrand.random()-0.5);
-            idata[idx] = r;
-            idata[idx+1] = g;
-            idata[idx+2] = b;
-            alpha = 1.0;
-        }
-        let px2=(px1+pw)*scale, py2=(py1+ph)*scale;
-        if (x>px1*scale&&y>py1*scale&&x<px2&&y<py2) {
-            let u=1.0-(x-px1*scale)/(px2-px1*scale);
-            let v=1.0-(y-py1*scale)/(py2-py1*scale);
-            u = Math.pow(u, UPW);
-            v = Math.pow(v, VPW);
-            let r=0, g=0, b=0;
-            r = hue_rgb[0]*(1.0-u)+u;
-            g = hue_rgb[1]*(1.0-u)+u;
-            b = hue_rgb[2]*(1.0-u)+u;
-            let fac=1.0;
-            idata[idx+0] = r*v*255+(fieldrand.random()-0.5)*fac;
-            idata[idx+1] = g*v*255+(fieldrand.random()-0.5)*fac;
-            idata[idx+2] = b*v*255+(fieldrand.random()-0.5)*fac;
-            alpha = 1.0;
-        }
-        idata[idx+3] = alpha*255;
-    }
-    let image2=document.createElement("canvas");
-    image2.width = size2;
-    image2.height = size2;
-    let g=image2.getContext("2d");
-    g.putImageData(image.image, 0, 0);
-    image.canvas = image2;
-    image.scale = size/size2;
-    fields[key] = image;
-    return image;
-  }
-  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
-  let _update_temp=new Vector4();
-  class SimpleBox  {
-     constructor(pos=[0, 0], size=[1, 1]) {
-      this.pos = new Vector2(pos);
-      this.size = new Vector2(size);
-      this.r = 0;
-    }
-  }
-  _ESClass.register(SimpleBox);
-  _es6_module.add_class(SimpleBox);
-  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
-  class ColorField extends UIBase {
-     constructor() {
-      super();
-      this.hsva = [0.05, 0.6, 0.15, 1.0];
-      this.rgba = new Vector4([0, 0, 0, 0]);
-      this._recalcRGBA();
-      this._last_dpi = undefined;
-      let canvas=this.canvas = document.createElement("canvas");
-      let g=this.g = canvas.getContext("2d");
-      this.shadow.appendChild(canvas);
-      let mx, my;
-      let do_mouse=(e) =>        {
-        let r=this.canvas.getClientRects()[0];
-        let dpi=this.getDPI();
-        mx = (e.pageX-r.x)*dpi;
-        my = (e.pageY-r.y)*dpi;
-      };
-      let do_touch=(e) =>        {
-        if (e.touches.length==0) {
-            mx = my = undefined;
-            return ;
-        }
-        let r=this.canvas.getClientRects()[0];
-        let dpi=this.getDPI();
-        let t=e.touches[0];
-        mx = (t.pageX-r.x)*dpi;
-        my = (t.pageY-r.y)*dpi;
-      };
-      this.canvas.addEventListener("mousedown", (e) =>        {
-        do_mouse(e);
-        return this.on_mousedown(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("mousemove", (e) =>        {
-        do_mouse(e);
-        return this.on_mousemove(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("mouseup", (e) =>        {
-        do_mouse(e);
-        return this.on_mouseup(e, mx, my, e.button);
-      });
-      this.canvas.addEventListener("touchstart", (e) =>        {
-        e.preventDefault();
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mousedown(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchmove", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mousemove(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchend", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mouseup(e, mx, my, 0);
-      });
-      this.canvas.addEventListener("touchcancel", (e) =>        {
-        do_touch(e);
-        if (mx!==undefined)
-          return this.on_mouseup(e, mx, my, 0);
-      });
-      this.updateCanvas(true);
-    }
-     pick_h(x, y) {
-      let field=this._field;
-      let size=field.width;
-      let dpi=this.getDPI();
-      if (field===undefined) {
-          console.error("no field in colorpicker");
-          return ;
-      }
-      let th=Math.atan2(y-size/2, x-size/2)/(2*Math.PI)+0.5;
-      this.hsva[0] = th;
-      this.update(true);
-      this._recalcRGBA();
-      if (this.onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
-      this.hsva[0] = h;
-      this.hsva[1] = s;
-      this.hsva[2] = v;
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
-      let ret=rgb_to_hsv(r, g, b);
-      this.hsva[0] = ret[0];
-      this.hsva[1] = ret[1];
-      this.hsva[2] = ret[2];
-      this.hsva[3] = a;
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange&&fire_onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     _recalcRGBA() {
-      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
-      this.rgba[0] = ret[0];
-      this.rgba[1] = ret[1];
-      this.rgba[2] = ret[2];
-      this.rgba[3] = this.hsva[3];
-      return this;
-    }
-     on_mousedown(e, x, y, button) {
-      if (button!=0)
-        return ;
-      let field=this._field;
-      if (field===undefined)
-        return ;
-      let size=field.width;
-      let dpi=this.getDPI();
-      let r=Math.sqrt((x-size/2)**2+(y-size/2)**2);
-      let pad=5*dpi;
-      let px1=field.params.box.x, py1=field.params.box.y, px2=px1+field.params.box.width, py2=py1+field.params.box.height;
-      px1-=pad*0.5;
-      py1-=pad*0.5;
-      px2+=pad*0.5;
-      py2+=pad*0.5;
-      if (r>field.params.r1-pad&&r<field.params.r2+pad) {
-          this.pick_h(x, y);
-          this._mode = "h";
-      }
-      else 
-        if (x>=px1&&x<=px2&&y>=py1&&y<=py2) {
-          this.pick_sv(x, y);
-          console.log("in box");
-          this._mode = "sv";
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      console.log(x, y);
-    }
-     pick_sv(x, y) {
-      let sv=this._sample_box(x, y);
-      this.hsva[1] = sv[0];
-      this.hsva[2] = sv[1];
-      this._recalcRGBA();
-      this.update(true);
-      if (this.onchange) {
-          this.onchange(this.hsva, this.rgba);
-      }
-    }
-     _sample_box(x, y) {
-      let field=this._field;
-      if (field===undefined) {
-          return [-1, -1];
-      }
-      let px=field.params.box.x, py=field.params.box.y, pw=field.params.box.width, ph=field.params.box.height;
-      let u=(x-px)/pw;
-      let v=1.0-(y-py)/ph;
-      u = Math.min(Math.max(u, 0.0), 1.0);
-      v = Math.min(Math.max(v, 0.0), 1.0);
-      let ret=sample(u, 1.0-v);
-      u = ret[0], v = 1.0-ret[1];
-      return [u, v];
-    }
-     on_mousemove(e, x, y, button) {
-      if (this._mode=="h") {
-          this.pick_h(x, y);
-      }
-      else 
-        if (this._mode=="sv") {
-          this.pick_sv(x, y);
-      }
-      e.preventDefault();
-      e.stopPropagation();
-    }
-     on_mouseup(e, x, y, button) {
-      this._mode = undefined;
-      e.preventDefault();
-      e.stopPropagation();
-      console.log(x, y);
-    }
-     updateCanvas(force_update=false, _in_update=false) {
-      let canvas=this.canvas;
-      let update=force_update;
-      if (update) {
-          let size=this.getDefault("fieldsize");
-          let dpi=this.getDPI();
-          canvas.style["width"] = size+"px";
-          canvas.style["height"] = size+"px";
-          canvas.width = canvas.height = Math.ceil(size*dpi);
-          if (!_in_update)
-            this._redraw();
-          return true;
-      }
-    }
-     _redraw() {
-      let canvas=this.canvas, g=this.g;
-      let dpi=this.getDPI();
-      let size=canvas.width;
-      let field=this._field = getFieldImage(size, this.hsva);
-      let w=size, h=size*field.height/field.width;
-      g.clearRect(0, 0, w, h);
-      g.drawImage(field.canvas, 0, 0, field.width, field.height);
-      g.lineWidth = 2.0;
-      function circle(x, y, r) {
-        g.strokeStyle = "white";
-        g.beginPath();
-        g.arc(x, y, r, -Math.PI, Math.PI);
-        g.stroke();
-        g.strokeStyle = "grey";
-        g.beginPath();
-        g.arc(x, y, r-1, -Math.PI, Math.PI);
-        g.stroke();
-        g.fillStyle = "black";
-        g.beginPath();
-        g.arc(x, y, 2*dpi, -Math.PI, Math.PI);
-        g.fill();
-      }
-      let hsva=this.hsva;
-      let r=(field.params.r2-field.params.r1)*0.7;
-      let bandr=(field.params.r2+field.params.r1)*0.5;
-      let th=Math.fract(1.0-hsva[0]-0.25);
-      let x=Math.sin(th*Math.PI*2)*bandr+size/2;
-      let y=Math.cos(th*Math.PI*2)*bandr+size/2;
-      circle(x, y, r);
-      let u=this.hsva[1], v=1.0-this.hsva[2];
-      let ret=inv_sample(u, v);
-      u = ret[0], v = ret[1];
-      x = field.params.box.x+u*field.params.box.width;
-      y = field.params.box.y+v*field.params.box.height;
-      circle(x, y, r);
-    }
-     updateDPI(force_update=false, _in_update=false) {
-      let dpi=this.getDPI();
-      let update=force_update;
-      update = update||dpi!=this._last_dpi;
-      if (update) {
-          this._last_dpi = dpi;
-          this.updateCanvas(true);
-          if (!_in_update)
-            this._redraw();
-          return true;
-      }
-    }
-     update(force_update=false) {
-      super.update();
-      let redraw=false;
-      redraw = redraw||this.updateCanvas(force_update, true);
-      redraw = redraw||this.updateDPI(force_update, true);
-      if (redraw) {
-          this._redraw();
-      }
-    }
-    static  define() {
-      return {tagname: "colorfield0-x", 
-     style: "colorfield"}
-    }
-  }
-  _ESClass.register(ColorField);
-  _es6_module.add_class(ColorField);
-  ColorField = _es6_module.add_export('ColorField', ColorField);
-  UIBase.internalRegister(ColorField);
-  class ColorPicker extends ui.ColumnFrame {
-     constructor() {
-      super();
-      this.field = UIBase.createElement("colorfield-x");
-      this.field.setAttribute("class", "colorpicker");
-      this.field.onchange = (hsva, rgba) =>        {
-        if (this.onchange) {
-            this.onchange(hsva, rgba);
-        }
-        this._setDataPath();
-        this._setSliders();
-      };
-      let style=document.createElement("style");
-      style.textContent = `
-      .colorpicker {
-        background-color : ${ui_base.getDefault("InnerPanelBG")};
-      }
-    `;
-      this._style = style;
-      this.shadow.appendChild(style);
-      this.field.ctx = this.ctx;
-      this.shadow.appendChild(this.field);
-    }
-    static  setDefault(node) {
-      let tabs=node.tabs();
-      let tab=tabs.tab("HSV");
-      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
-      });
-      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
-      });
-      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
-      });
-      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let hsva=node.hsva;
-        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
-      });
-      tab = tabs.tab("RGB");
-      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
-      });
-      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
-      });
-      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
-      });
-      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
-        let rgba=node.rgba;
-        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
-      });
-      node._setSliders();
-    }
-     _setSliders() {
-      if (this.h===undefined) {
-          console.warn("colorpicker ERROR");
-          return ;
-      }
-      let hsva=this.hsva;
-      this.h.setValue(hsva[0], false);
-      this.s.setValue(hsva[1], false);
-      this.v.setValue(hsva[2], false);
-      this.a.setValue(hsva[3], false);
-      let rgba=this.rgba;
-      this.r.setValue(rgba[0], false);
-      this.g.setValue(rgba[1], false);
-      this.b.setValue(rgba[2], false);
-      this.a2.setValue(rgba[3], false);
-    }
-    get  hsva() {
-      return this.field.hsva;
-    }
-    get  rgba() {
-      return this.field.rgba;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      this.internalDisabled = false;
-      _update_temp.load(val);
-      if (prop.type==PropTypes.VEC3) {
-          _update_temp[3] = 1.0;
-      }
-      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
-          console.log("VAL", val);
-          console.log("color changed!");
-          this.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3]);
-      }
-    }
-     update() {
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-      super.update();
-    }
-     _setDataPath() {
-      if (this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.field.rgba);
-      }
-    }
-     setHSVA(h, s, v, a) {
-      this.field.setHSVA(h, s, v, a);
-      this._setDataPath();
-    }
-     setRGBA(r, g, b, a) {
-      this.field.setRGBA(r, g, b, a);
-      this._setDataPath();
-    }
-    static  define() {
-      return {tagname: "colorpicker0-x"}
-    }
-  }
-  _ESClass.register(ColorPicker);
-  _es6_module.add_class(ColorPicker);
-  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
-  UIBase.internalRegister(ColorPicker);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
 

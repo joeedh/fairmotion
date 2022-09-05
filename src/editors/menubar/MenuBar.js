@@ -102,7 +102,7 @@ export class MenuBar extends Editor {
       menu.addItem(name, id);
     }
 
-    menu.onselect = (id : string) => {
+    menu.onselect = (id: string) => {
       console.warn("recent files callback!", id);
       g_app_state.load_path(id);
     }
@@ -129,10 +129,10 @@ export class MenuBar extends Editor {
       SEP,
       ["New File", function () {
         platform.app.questionDialog("Create blank scene?\nAny unsaved changes\nwill be lost").then((val) => {
-           if (val) {
-             gen_default_file(g_app_state.screen.size);
-           }
-         });
+          if (val) {
+            gen_default_file(g_app_state.screen.size);
+          }
+        });
       }]
     ];
 
@@ -140,7 +140,7 @@ export class MenuBar extends Editor {
 
     row.menu("&File", menudef);
 
-    this.genSessionMenu(row);
+    this.finishMenu(row);
 
     let notef = document.createElement("noteframe-x");
     notef.ctx = this.ctx;
@@ -152,7 +152,7 @@ export class MenuBar extends Editor {
     }
   }
 
-  buildEditMenu() {
+  buildEditMenu(flush = true) {
     console.warn("rebuilding edit menu");
 
     this.editMenuDef.length = 0;
@@ -175,31 +175,35 @@ export class MenuBar extends Editor {
       this.editMenuDef.push(item);
     }
 
-    if (window.haveElectron) {
+    if (flush && window.haveElectron) {
       electron_api.initMenuBar(this, true);
     }
   }
 
-  genSessionMenu(row : RowFrame)
-  {
+  finishMenu(row: RowFrame) {
     function callback(entry) {
       console.log(entry);
-      if (entry.i == 0) {
+      if (entry.i === 0) {
         //note: this is an html5 function
         if (confirm("Settings will be cleared", "Clear Settings?")) {
           console.log("clearing settings");
 
           ctx.appstate.session.settings.reload_defaults();
         }
-      } else if (entry.i == 2) {
+      } else if (entry.i === 2) {
         g_app_state.set_startup_file();
-      } else if (entry.i == 1) {
+      } else if (entry.i === 1) {
         myLocalStorage.set("startup_file", startup_file);
       }
     }
 
-    row.dynamicMenu("&Edit", this.editMenuDef);
-    this.buildEditMenu();
+    try {
+      row.dynamicMenu("&Edit", this.editMenuDef);
+      this.buildEditMenu(false);
+    } catch (error) {
+      console.error(error.stack);
+      console.error("Error building menu");
+    }
 
     row.menu("&Session", [
       ["Save Default File", function () {
@@ -211,7 +215,7 @@ export class MenuBar extends Editor {
         });
       }],
 
-      ["Clear Default File", function() {
+      ["Clear Default File", function () {
         platform.app.questionDialog("Erase default startup file?").then((val) => {
           if (val) {
             myLocalStorage.set("startup_file", startup_file);
@@ -220,7 +224,7 @@ export class MenuBar extends Editor {
         });
       }, "ctrl-alt-u"
       ],
-      ["Reset Settings", function() {
+      ["Reset Settings", function () {
         platform.app.questionDialog("Settings will be cleared", "Clear Settings?").then((val) => {
           if (val) {
             console.log("clearing settings");
@@ -230,6 +234,10 @@ export class MenuBar extends Editor {
         });
       }]
     ]);
+
+    if (window.haveElectron) {
+      electron_api.initMenuBar(this, true);
+    }
   }
 
   update() {
@@ -255,23 +263,26 @@ export class MenuBar extends Editor {
     return 28;
   }
 
-  makeHeader(container : Container) {
+  makeHeader(container: Container) {
     //this.header = this.container.row();
     super.makeHeader(container, false);
   }
 
-  static define() { return {
-    tagname : "menubar-editor-x",
-    areaname : "menubar_editor",
-    uiname : "menu",
-    icon : Icons.MENU_EDITOR,
-    flag : AreaFlags.HIDDEN|AreaFlags.NO_SWITCHER
-  }}
+  static define() {
+    return {
+      tagname : "menubar-editor-x",
+      areaname: "menubar_editor",
+      uiname  : "menu",
+      icon    : Icons.MENU_EDITOR,
+      flag    : AreaFlags.HIDDEN | AreaFlags.NO_SWITCHER
+    }
+  }
 
   copy() {
     return document.createElement("menubar-editor-x");
   }
 }
+
 MenuBar.STRUCT = STRUCT.inherit(MenuBar, Editor) + `
 }
 `;

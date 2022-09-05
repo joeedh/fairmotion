@@ -8,7 +8,7 @@ import {CSSFont} from '../path.ux/scripts/pathux.js';
 
 export const theme = {
   base:  {
-    AreaHeaderBG            : 'rgba(65, 65, 65, 1.0)',
+    AreaHeaderBG            : 'rgba(38,38,38, 1)',
     BasePackFlag            : 0,
     BoxDepressed            : 'rgba(43,32,27, 0.7410558240167026)',
     BoxDrawMargin           : 2,
@@ -60,9 +60,9 @@ export const theme = {
     }),
     ProgressBar             : 'rgba(75, 175, 255, 1.0)',
     ProgressBarBG           : 'rgba(110, 110, 110, 1.0)',
-    ScreenBorderInner       : 'rgba(120, 120, 120, 1.0)',
+    ScreenBorderInner       : 'rgba(87,87,87, 1)',
     ScreenBorderMousePadding: 5,
-    ScreenBorderOuter       : 'rgba(120, 120, 120, 1.0)',
+    ScreenBorderOuter       : 'rgba(87,87,87, 1)',
     ScreenBorderWidth       : 2,
     TitleText               : new CSSFont({
       font    : 'sans-serif',
@@ -78,11 +78,12 @@ export const theme = {
       variant : 'normal',
       style   : 'normal',
       size    : 12,
-      color   : 'rgba(35, 35, 35, 1.0)'
+      color   : 'rgba(218,218,218, 1)'
     }),
     'background-color'      : 'rgba(55, 55, 55, 1.0)',
     'border-color'          : 'rgba(196,196,196, 1)',
     'border-radius'         : 12,
+    'border-width'          : 0,
     'flex-grow'             : 'unset',
     'focus-border-color'    : 'rgba(55,155,255, 1)',
     'focus-border-width'    : 2,
@@ -224,9 +225,10 @@ export const theme = {
   },
 
   colorpickerbutton:  {
-    defaultFont: 'LabelText',
-    height     : 25,
-    width      : 100,
+    'border-radius': 10,
+    defaultFont    : 'LabelText',
+    height         : 25,
+    width          : 75,
   },
 
   console:  {
@@ -283,9 +285,10 @@ export const theme = {
   dropbox:  {
     BoxHighlight  : 'rgba(155, 220, 255, 0.4)',
     'border-width': 1,
-    dropTextBG    : 'rgba(38,22,15, 0)',
+    dropTextBG    : 'rgba(33,33,33, 0.7812501017252604)',
     height        : 19.508909279310238,
-    padding       : 4,
+    margin        : 2,
+    padding       : 0,
     width         : 32,
   },
 
@@ -332,15 +335,15 @@ export const theme = {
     depressed         : {
       'background-color' : 'rgba(26,26,26, 1)',
       'border-color' : 'rgb(0,0,0)',
-      'border-radius' : 8,
+      'border-radius' : 5,
       'border-style' : 'solid',
       'border-width' : 1,
       drawCheck : true,
       height : 32,
       'margin-bottom' : 2,
-      'margin-left' : 2,
+      'margin-left' : 1,
       'margin-right' : 2,
-      'margin-top' : 1,
+      'margin-top' : 2,
       padding : 2,
       width : 32,
     },
@@ -349,14 +352,14 @@ export const theme = {
     highlight         : {
       'background-color' : 'rgba(99,119,142, 1)',
       'border-color' : 'rgba(171,171,171, 1)',
-      'border-radius' : 8,
+      'border-radius' : 5,
       'border-width' : 1,
       drawCheck : true,
       height : 32,
       'margin-bottom' : 2,
-      'margin-left' : 2,
+      'margin-left' : 1,
       'margin-right' : 2,
-      'margin-top' : 1,
+      'margin-top' : 2,
       padding : 2,
       width : 32,
     },
@@ -369,14 +372,16 @@ export const theme = {
   },
 
   label:  {
-    LabelText: new CSSFont({
+    LabelText      : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 14,
-      color   : 'rgba(211,211,211, 1)'
+      color   : 'rgba(35, 35, 35, 1.0)'
     }),
+    'border-radius': 0,
+    'border-width' : 0,
   },
 
   listbox:  {
@@ -460,9 +465,9 @@ export const theme = {
       size    : 12,
       color   : 'white'
     }),
-    'background-color': 'rgba(65,65,65, 1)',
+    'background-color': 'rgba(122,122,122, 1)',
     'border-color'    : 'black',
-    'border-radius'   : 1,
+    'border-radius'   : 8,
     'border-style'    : 'solid',
     'border-width'    : 1,
     height            : 22.76656831702612,
@@ -478,7 +483,7 @@ export const theme = {
       variant : 'normal',
       style   : 'normal',
       size    : 14,
-      color   : undefined
+      color   : 'rgba(229,229,229, 1)'
     }),
     'background-color': 'rgba(102,102,102, 1)',
     'border-color'    : 'rgb(75, 75, 75)',
@@ -505,7 +510,7 @@ export const theme = {
   },
 
   panel:  {
-    HeaderBorderRadius    : 5.829650280441558,
+    HeaderBorderRadius    : 10,
     HeaderRadius          : 5.829650280441558,
     TitleBackground       : 'rgba(126,178,237, 0.309051618904903)',
     TitleBorder           : 'rgba(136,136,136, 1)',
@@ -526,7 +531,7 @@ export const theme = {
     'margin-bottom-closed': 0,
     'margin-left'         : 0,
     'margin-right'        : 0,
-    'margin-top'          : 0.2606556353343805,
+    'margin-top'          : 4,
     'margin-top-closed'   : 0,
     'padding-bottom'      : undefined,
     'padding-left'        : 0,
@@ -584,7 +589,7 @@ export const theme = {
   tabs:  {
     TabActive         : 'rgba(86,86,86, 1)',
     TabBarRadius      : 6,
-    TabHighlight      : 'rgba(50, 50, 50, 0.2)',
+    TabHighlight      : 'rgba(74,74,74, 1)',
     TabInactive       : 'rgba(28,28,34, 1)',
     TabStrokeStyle1   : 'rgba(200, 200, 200, 1.0)',
     TabStrokeStyle2   : 'rgba(255, 255, 255, 1.0)',

@@ -79,9 +79,7 @@ export class SettingsEditor extends Editor {
       g_app_state.settings.reloadDefaultTheme();
       g_app_state.settings.save();
 
-      th.remove();
-      th = document.createElement("theme-editor-x");
-      tab.add(th);
+      th.build();
     });
 
     tab.add(th);

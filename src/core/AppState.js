@@ -703,6 +703,7 @@ export class AppState {
 
     if (!screen.listening) {
       screen.listen();
+      screen.completeSetCSS();
     }
 
     this.toolstack = toolstack;
@@ -1388,6 +1389,7 @@ export class AppState {
 
       if (!screen.listening) {
         screen.listen();
+        screen.completeSetCSS();
       }
 
       this2.size = size;

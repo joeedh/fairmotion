@@ -1364,7 +1364,7 @@ VertexAnimData {
 }, '/dev/fairmotion/src/core/animspline.js');
 
 
-es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spline_types.js", "./struct.js", "./animdata.js", "../curve/spline.js", "./animspline.js", "../vectordraw/vectordraw.js", "./animspline", "./lib_api.js", "../curve/spline_draw_new.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["./lib_api.js", "../curve/spline_types.js", "../vectordraw/vectordraw.js", "./animspline.js", "./animspline", "../curve/spline_element_array.js", "./animdata.js", "./struct.js", "../curve/spline_draw_new.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -1617,7 +1617,11 @@ SplineKCacheItem {
           warn("Warning, bad call to SplineKCache");
           return ;
       }
-      var ret=spline.import_ks(this.cache[frame].data);
+      let data=this.cache[frame].data;
+      if (!(__instance_of(data, Uint8Array))) {
+          data = this.cache[frame] = new Uint8Array(data);
+      }
+      let ret=spline.import_ks(data);
       if (ret===undefined) {
           delete this.cache[frame];
           console.log("bad kcache data for frame", frame);
@@ -2696,7 +2700,7 @@ es6_module_define('SettingsEditor', ["../../core/struct.js", "../../path.ux/scri
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 
 
-es6_module_define('data_api_define', ["../../scene/sceneobject.js", "../../editors/viewport/spline_createops.js", "../../curve/spline_base.js", "../../editors/curve/CurveEditor.js", "../../editors/viewport/view2d.js", "../../curve/spline_element_array.js", "../../editors/settings/SettingsEditor.js", "../../editors/ops/ops_editor.js", "../../editors/viewport/view2d_base.js", "../units.js", "../toolprops.js", "../../curve/spline_types.js", "../../editors/viewport/toolmodes/splinetool.js", "../../scene/scene.js", "../frameset.js", "../lib_api.js", "../UserSettings.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/viewport/toolmodes/toolmode.js", "../imageblock.js", "../../editors/viewport/selectmode.js", "../toolops_api.js", "../context.js", "../animdata.js", "../../curve/spline.js", "../../path.ux/scripts/pathux.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../editors/curve/CurveEditor.js", "../../curve/spline.js", "../../curve/spline_element_array.js", "../toolops_api.js", "../../editors/settings/SettingsEditor.js", "../toolprops.js", "../imageblock.js", "../../curve/spline_base.js", "../../editors/ops/ops_editor.js", "../lib_api.js", "../animdata.js", "../../editors/viewport/view2d_base.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../../scene/scene.js", "../frameset.js", "../../editors/dopesheet/DopeSheetEditor.js", "../UserSettings.js", "../../path.ux/scripts/pathux.js", "../units.js", "../../scene/sceneobject.js", "../context.js", "../../editors/viewport/selectmode.js", "../../editors/viewport/toolmodes/splinetool.js", "../../curve/spline_types.js", "../../editors/viewport/toolmodes/toolmode.js"], function _data_api_define_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -2926,36 +2930,19 @@ es6_module_define('data_api_define', ["../../scene/sceneobject.js", "../../edito
     }
     var MaterialStruct=api.mapStruct(Material, true);
     function api_define_Material(api) {
-      MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", function (old) {
-        this.dataref.update();
+      function prop_update() {
+        this.dataref.update(this.ctx.spline);
         window.redraw_viewport();
-      });
-      MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
-      MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      }
+      MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", prop_update);
+      MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", prop_update);
+      MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", prop_update);
       MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({SELECT: "Select", 
      MASK_TO_FACE: "Mask To Face"}).descriptions({SELECT: "Select", 
-     MASK_TO_FACE: "Mask To Face"}).icons(DataTypes).on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
-      MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
-      MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
-      MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+     MASK_TO_FACE: "Mask To Face"}).icons(DataTypes).on("change", prop_update);
+      MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", prop_update);
+      MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", prop_update);
+      MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", prop_update);
     }
     var ImageStruct=api.mapStruct(Image, true);
     function api_define_Image(api) {
@@ -3121,6 +3108,21 @@ es6_module_define('data_api_define', ["../../scene/sceneobject.js", "../../edito
       }]);
       SplineStruct.list("segments", "editable_segments", [function getIter(api, list) {
         return list.editable(g_app_state.ctx)[Symbol.iterator]();
+      }, function get(api, list, key) {
+        return list.local_idmap[key];
+      }, function getStruct(api, list, key) {
+        return SplineSegmentStruct;
+      }, function getKey(api, list, obj) {
+        return obj.eid;
+      }, function getLength(api, list) {
+        let len=0;
+        for (let e of list.editable(g_app_state.ctx)) {
+            len++;
+        }
+        return len;
+      }]);
+      SplineStruct.list("segments", "editable_selected_segments", [function getIter(api, list) {
+        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
       }, function get(api, list, key) {
         return list.local_idmap[key];
       }, function getStruct(api, list, key) {

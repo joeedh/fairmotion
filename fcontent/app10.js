@@ -4473,7 +4473,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "./selectmode.js", "
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
 
 
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/widgets/ui_menu.js", "../viewport/spline_editops.js", "../../path.ux/scripts/core/ui_base.js", "../../core/toolprops.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../editor_base.js", "../../core/struct.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../core/toolprops.js", "../../path.ux/scripts/widgets/ui_lasttool.js", "../viewport/spline_editops.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');

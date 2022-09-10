@@ -153,6 +153,7 @@ export class Spline extends DataBlock {
   updateGen: number
   elist_map: Object
   selectmode: number
+  _drawStrokeVertSplits: Set<number>
   layerset: SplineLayerSet
   drawer: SplineDrawer
   selected: ElementArraySet
@@ -184,6 +185,10 @@ export class Spline extends DataBlock {
      */
     this.strokeGroups = [];
     this._strokeGroupMap = new Map();
+
+    /* Used to keep track of which verts are at group
+       boundaries */
+    this._drawStrokeVertSplits = new Set();
 
     //this.strokeGroups broken up according to color/material settings
     //this is a seperate property because we'll need the originall groups
@@ -728,7 +733,40 @@ export class Spline extends DataBlock {
     h2.hpair = h1;
   }
 
-  export_ks(): Uint16Array {
+  export_ks() : Uint8Array {
+    let size = this.segments.length*ORDER + 1;
+    let ret = new Float32Array(size);
+    let i = 1;
+
+    ret[0] = 0; //version
+
+    for (let seg of this.segments) {
+      for (let j=0; j<ORDER; j++) {
+        ret[i++] = seg.ks[j];
+      }
+    }
+
+    return new Uint8Array(ret.buffer);
+  }
+
+  import_ks(data : Uint8Array) {
+    let i = 1;
+
+    data = new Float32Array(data.buffer);
+
+    let version = data[0];
+
+    for (let seg of this.segments) {
+      for (let j=0; j<ORDER; j++) {
+        seg.ks[j] = data[i++];
+      }
+    }
+
+    return true;
+  }
+
+  export_ks_old(): Uint16Array {
+    //XXX
     let mmlen = MMLEN;
     let size = 4/UMUL + 8/UMUL + this.segments.length*ORDER;
 
@@ -803,7 +841,7 @@ export class Spline extends DataBlock {
     return ret2; //new Uint8Array(ret2.buffer);
   }
 
-  import_ks(data: Uint16Array) {
+  import_ks_old(data: Uint16Array) {
     data = new UARR(data.buffer);
     /*
     let s = "";
@@ -831,9 +869,11 @@ export class Spline extends DataBlock {
     i += 4/UMUL;
 
     while (i < data.length) {
+      let mink, maxk;
+
       if (d === 0) {
-        let mink = view.getFloat32(i*UMUL);
-        let maxk = view.getFloat32(i*UMUL + 4);
+        mink = view.getFloat32(i*UMUL);
+        maxk = view.getFloat32(i*UMUL + 4);
 
         i += 8/UMUL;
       }
@@ -2221,6 +2261,45 @@ export class Spline extends DataBlock {
     this.resolve = 1;
   }
 
+  segmentNeedsResort(seg) {
+    let sliced;
+
+    let resort1 = vertexIsSplit(this, seg.v1);
+    let resort2 = vertexIsSplit(this, seg.v2);
+
+    //console.log(seg.eid, "SORTS", resort1, resort2, this._drawStrokeVertSplits.has(seg.v1.eid), this._drawStrokeVertSplits.has(seg.v2.eid));
+
+    if (!!resort1 !== !!this._drawStrokeVertSplits.has(seg.v1.eid)) {
+      return true;
+    }
+    if (!!resort2 !== !!this._drawStrokeVertSplits.has(seg.v2.eid)) {
+      return true;
+    }
+
+    return false;
+
+    outer: for (let v of [seg.v1, seg.v2]) {
+      for (let seg1 of v.segments) {
+        for (let seg2 of v.segments) {
+          if (seg1 === seg2) {
+            continue;
+          }
+
+          if (!seg1.mat.equals(true, seg2.mat)) {
+            sliced = v;
+            break outer;
+          }
+        }
+      }
+    }
+
+    if (sliced && !this._drawStrokeVertSplits.has(sliced.eid)) {
+      return true;
+    }
+
+    return false;
+  }
+
   redoSegGroups() {
     buildSegmentGroups(this);
     splitSegmentGroups(this);
@@ -2609,4 +2688,4 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
 `
 DataBlock.register(Spline);
 
-import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups} from "./spline_strokegroup.js";
+import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups, vertexIsSplit} from "./spline_strokegroup.js";

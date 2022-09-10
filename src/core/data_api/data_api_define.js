@@ -291,21 +291,18 @@ export function makeAPI(api = new DataAPI()) {
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api) {
+    function prop_update() {
+      this.dataref.update(this.ctx.spline);
+
+      window.redraw_viewport();
+    }
+
     MaterialStruct.color4("fillcolor", "fillcolor", "fill")
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      .on("change", prop_update);
     MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4)
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      .on("change", prop_update);
     MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4)
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      .on("change", prop_update);
     MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
       SELECT      : "Select",
       MASK_TO_FACE: "Mask To Face"
@@ -313,24 +310,12 @@ export function makeAPI(api = new DataAPI()) {
       SELECT      : "Select",
       MASK_TO_FACE: "Mask To Face"
     }).icons(DataTypes)
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
-    MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function (old) {
-      this.dataref.update();
-      window.redraw_viewport();
-    });
+      .on("change", prop_update);
+    MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", prop_update);
     MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4)
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      .on("change", prop_update);
     MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke")
-      .on("change", function (old) {
-        this.dataref.update();
-        window.redraw_viewport();
-      });
+      .on("change", prop_update);
   }
 
   var ImageStruct = api.mapStruct(Image, true);
@@ -652,6 +637,37 @@ export function makeAPI(api = new DataAPI()) {
     SplineStruct.list("segments", "editable_segments", [
       function getIter(api, list) {
         return list.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api, list, key) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api, list, key) {
+        return SplineSegmentStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
+      function getLength(api, list) {
+        let len = 0;
+        for (let e of list.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
+    ]);
+    SplineStruct.list("segments", "editable_selected_segments", [
+      function getIter(api, list) {
+        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
       },
       function get(api, list, key) {
         return list.local_idmap[key];

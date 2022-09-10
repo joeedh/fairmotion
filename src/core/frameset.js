@@ -290,8 +290,13 @@ export class SplineKCache {
       warn("Warning, bad call to SplineKCache");
       return;
     }
-    
-    var ret = spline.import_ks(this.cache[frame].data);
+
+    let data = this.cache[frame].data;
+    if (!(data instanceof Uint8Array)) {
+      data = this.cache[frame] = new Uint8Array(data);
+    }
+
+    let ret = spline.import_ks(data);
     
     if (ret === undefined) { //bad data
       delete this.cache[frame];

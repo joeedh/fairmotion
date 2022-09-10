@@ -832,7 +832,13 @@ export class SplineSegment extends SplineElement {
     return bspline.deBoor(3, s, ks, ws, 3);
   }
 
-  _material_update() {
+  _material_update(spline) {
+    if (spline && spline.segmentNeedsResort(this)) {
+      console.log("segment material flagged resort!");
+
+      spline.regen_sort();
+    }
+
     this.flag |= SplineFlags.REDRAW | SplineFlags.FRAME_DIRTY | SplineFlags.UPDATE;
     this.v1.flag |= SplineFlags.UPDATE;
     this.v2.flag |= SplineFlags.UPDATE;
@@ -1912,29 +1918,29 @@ export class Material {
     this.blur = 0.0;
   }
 
-  update() {
+  update(optional_spline) {
     throw new Error("override me! should have happened in splinesegment or splineface constructors!");
   }
 
   equals(is_stroke, mat) {
-    var color1 = is_stroke ? this.strokecolor : this.fillcolor;
-    var color2 = is_stroke ? mat.strokecolor : mat.fillcolor;
+    let color1 = is_stroke ? this.strokecolor : this.fillcolor;
+    let color2 = is_stroke ? mat.strokecolor : mat.fillcolor;
 
     for (var i = 0; i < 4; i++) {
-      if (color1[i] != color2[i])
+      if (color1[i] !== color2[i])
         return false;
     }
 
-    if (this.flag != mat.flag)
+    if (this.flag !== mat.flag)
       return false;
 
-    if (this.opacity != mat.opacity)
+    if (this.opacity !== mat.opacity)
       return false;
 
-    if (this.blur != mat.blur)
+    if (this.blur !== mat.blur)
       return false;
 
-    if (is_stroke && this.linewidth != mat.linewidth)
+    if (is_stroke && this.linewidth !== mat.linewidth)
       return false;
 
     return true;

@@ -1132,7 +1132,7 @@ export function makeAPI(api = new DataAPI()) {
       window.redraw_viewport();
     });
     SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+    SplineVertexStruct.float("width", "width", "width").range(0.0001, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
       this.dataref.flag |= SplineFlags.REDRAW;
       window.redraw_viewport();
     });

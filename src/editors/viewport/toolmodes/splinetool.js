@@ -337,6 +337,8 @@ export class SplineToolMode extends ToolMode {
 
     var found = false;
 
+    console.warn("findnearest");
+    
     //note that limit parameter (maximum distance from mpos) is enforced
     //by spline.q.findnearest (see spline_query.js)
 
@@ -359,7 +361,7 @@ export class SplineToolMode extends ToolMode {
     var pathspline = this.ctx.frameset.pathspline;
     var drawspline = this.ctx.frameset.spline;
 
-    var ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+    var ret = drawspline.q.zrest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
     if (ret != undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
@@ -401,7 +403,8 @@ export class SplineToolMode extends ToolMode {
       limit = (util.isMobile() || was_touch) ? 55 : 15;
     }
 
-    limit /= UIBase.getDPI();
+    limit *= 1.5;
+    limit *= UIBase.getDPI();
     if (toolmode === ToolModes.SELECT) limit *= 3;
 
     let ret = this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);

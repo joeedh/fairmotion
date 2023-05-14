@@ -2732,7 +2732,7 @@ es6_module_define('ui_listbox', ["../path-controller/toolsys/toolprop.js", "../p
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
 
 
-es6_module_define('ui_menu', ["../path-controller/util/events.js", "../path-controller/util/simple_events.js", "./ui_button.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../config/const.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../path-controller/controller.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -2742,6 +2742,7 @@ es6_module_define('ui_menu', ["../path-controller/util/events.js", "../path-cont
   var DomEventTypes=es6_import_item(_es6_module, '../path-controller/util/events.js', 'DomEventTypes');
   var HotKey=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'HotKey');
   var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
+  var parseToolPath=es6_import_item(_es6_module, '../path-controller/controller.js', 'parseToolPath');
   let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
   let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
   function getpx(css) {
@@ -3431,7 +3432,7 @@ es6_module_define('ui_menu', ["../path-controller/util/events.js", "../path-cont
         this.pushReportContext(this._reportCtxName);
         prop = this.ctx.api.resolvePath(this.ctx, this.getAttribute("datapath")).prop;
         val = this.ctx.api.getValue(this.ctx, this.getAttribute("datapath"));
-        prop = prop ? prop.prop : undefined;
+        prop = prop&&prop.prop ? prop.prop : prop;
         this.popReportContext();
       }
       catch (error) {
@@ -4094,7 +4095,7 @@ es6_module_define('ui_menu', ["../path-controller/util/events.js", "../path-cont
       }
       else 
         if (typeof item==="object") {
-          let $_t0uboq=item, name=$_t0uboq.name, callback=$_t0uboq.callback, hotkey=$_t0uboq.hotkey, icon=$_t0uboq.icon, tooltip=$_t0uboq.tooltip;
+          let $_t0htnj=item, name=$_t0htnj.name, callback=$_t0htnj.callback, hotkey=$_t0htnj.hotkey, icon=$_t0htnj.icon, tooltip=$_t0htnj.tooltip;
           let id2=item.id!==undefined ? item.id : id++;
           if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
               hotkey = hotkey.buildString();
@@ -11181,7 +11182,7 @@ es6_module_define('pentool', ["../../../core/keymap.js", "../../../path.ux/scrip
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
 
 
-es6_module_define('splinetool', ["../transform.js", "../selectmode.js", "../transform_ops.js", "../../../path.ux/scripts/core/ui_base.js", "../view2d_editor.js", "../view2d_ops.js", "../spline_selectops.js", "../../../path.ux/scripts/pathux.js", "../../../curve/spline_draw.js", "../spline_editops.js", "./toolmode.js", "../../../curve/spline_types.js", "../spline_createops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/util/util.js", "../../../core/keymap.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../core/keymap.js", "../spline_selectops.js", "../transform_ops.js", "../../../path.ux/scripts/pathux.js", "../selectmode.js", "../../../curve/spline_types.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_editops.js", "../view2d_editor.js", "../transform.js", "../../../curve/spline_draw.js", "../spline_createops.js", "./toolmode.js", "../view2d_ops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/util/util.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var ExtrudeVertOp=es6_import_item(_es6_module, '../spline_createops.js', 'ExtrudeVertOp');
@@ -11415,6 +11416,7 @@ es6_module_define('splinetool', ["../transform.js", "../selectmode.js", "../tran
       var closest=[0, 0, 0];
       var mindis=1e+17;
       var found=false;
+      console.warn("findnearest");
       if (!this.draw_anim_paths) {
           this.ensure_paths_off();
           var ret=this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
@@ -11428,7 +11430,7 @@ es6_module_define('splinetool', ["../transform.js", "../selectmode.js", "../tran
       var actspline=this.ctx.spline;
       var pathspline=this.ctx.frameset.pathspline;
       var drawspline=this.ctx.frameset.spline;
-      var ret=drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+      var ret=drawspline.q.zrest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
       if (ret!=undefined&&ret[1]<limit) {
           mindis = ret[1]-(drawspline===actspline ? 3 : 0);
           found = true;
@@ -11460,7 +11462,8 @@ es6_module_define('splinetool', ["../transform.js", "../selectmode.js", "../tran
       else {
         limit = (util.isMobile()||was_touch) ? 55 : 15;
       }
-      limit/=UIBase.getDPI();
+      limit*=1.5;
+      limit*=UIBase.getDPI();
       if (toolmode===ToolModes.SELECT)
         limit*=3;
       let ret=this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);

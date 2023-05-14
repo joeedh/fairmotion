@@ -2700,7 +2700,7 @@ es6_module_define('SettingsEditor', ["../../core/struct.js", "../../path.ux/scri
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 
 
-es6_module_define('data_api_define', ["../../editors/curve/CurveEditor.js", "../../curve/spline.js", "../../curve/spline_element_array.js", "../toolops_api.js", "../../editors/settings/SettingsEditor.js", "../toolprops.js", "../imageblock.js", "../../curve/spline_base.js", "../../editors/ops/ops_editor.js", "../lib_api.js", "../animdata.js", "../../editors/viewport/view2d_base.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../../scene/scene.js", "../frameset.js", "../../editors/dopesheet/DopeSheetEditor.js", "../UserSettings.js", "../../path.ux/scripts/pathux.js", "../units.js", "../../scene/sceneobject.js", "../context.js", "../../editors/viewport/selectmode.js", "../../editors/viewport/toolmodes/splinetool.js", "../../curve/spline_types.js", "../../editors/viewport/toolmodes/toolmode.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../editors/viewport/selectmode.js", "../../scene/sceneobject.js", "../../curve/spline_base.js", "../animdata.js", "../../curve/spline.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/spline_createops.js", "../../editors/curve/CurveEditor.js", "../frameset.js", "../../editors/ops/ops_editor.js", "../../editors/viewport/toolmodes/splinetool.js", "../../scene/scene.js", "../lib_api.js", "../toolprops.js", "../context.js", "../../path.ux/scripts/pathux.js", "../../editors/viewport/view2d_base.js", "../../editors/viewport/view2d.js", "../imageblock.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../toolops_api.js", "../UserSettings.js", "../../curve/spline_types.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../curve/spline_element_array.js"], function _data_api_define_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -3414,7 +3414,7 @@ es6_module_define('data_api_define', ["../../editors/curve/CurveEditor.js", "../
         window.redraw_viewport();
       });
       SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-      SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      SplineVertexStruct.float("width", "width", "width").range(0.0001, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
         this.dataref.flag|=SplineFlags.REDRAW;
         window.redraw_viewport();
       });

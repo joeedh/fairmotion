@@ -430,7 +430,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     let p=dtvtmps.next().load(co);
     p.sub(v1);
     let planedis=-p.dot(no);
-    let $_t0vnhm=calc_projection_axes(no), axis=$_t0vnhm[0], axis2=$_t0vnhm[1];
+    let $_t0stpv=calc_projection_axes(no), axis=$_t0stpv[0], axis2=$_t0stpv[1];
     let p1=dtvtmps.next();
     let p2=dtvtmps.next();
     let p3=dtvtmps.next();
@@ -1281,8 +1281,10 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   }
   corner_normal = _es6_module.add_export('corner_normal', corner_normal);
   function line_line_isect(v1, v2, v3, v4, test_segment) {
-    test_segment = test_segment===undefined ? true : test_segment;
-    if (!line_line_cross(v1, v2, v3, v4)) {
+    if (test_segment===undefined) {
+        test_segment = true;
+    }
+    if (test_segment&&!line_line_cross(v1, v2, v3, v4)) {
         return undefined;
     }
     var xa1=v1[0], xa2=v2[0], ya1=v1[1], ya2=v2[1];
@@ -2273,7 +2275,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
   function lreport() {
   }
   function trilinear_v3(uvw, boxverts) {
-    let $_t1lkno=uvw, u=$_t1lkno[0], v=$_t1lkno[1], w=$_t1lkno[2];
+    let $_t1hkrp=uvw, u=$_t1hkrp[0], v=$_t1hkrp[1], w=$_t1hkrp[2];
     const a1x=boxverts[0][0], a1y=boxverts[0][1], a1z=boxverts[0][2];
     const b1x=boxverts[1][0]-a1x, b1y=boxverts[1][1]-a1y, b1z=boxverts[1][2]-a1z;
     const c1x=boxverts[2][0]-a1x, c1y=boxverts[2][1]-a1y, c1z=boxverts[2][2]-a1z;
@@ -2322,7 +2324,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     if (!boxfacecents) {
         boxfacecents = boxfaces_tmp;
         for (let i=0; i<6; i++) {
-            let $_t2tcqm=boxfaces_table[i], v1=$_t2tcqm[0], v2=$_t2tcqm[1], v3=$_t2tcqm[2], v4=$_t2tcqm[3];
+            let $_t2epte=boxfaces_table[i], v1=$_t2epte[0], v2=$_t2epte[1], v3=$_t2epte[2], v4=$_t2epte[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2333,7 +2335,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
     if (!boxfacenormals) {
         boxfacenormals = boxfacenormals_tmp;
         for (let i=0; i<6; i++) {
-            let $_t3pmdv=boxfaces_table[i], v1=$_t3pmdv[0], v2=$_t3pmdv[1], v3=$_t3pmdv[2], v4=$_t3pmdv[3];
+            let $_t3gkti=boxfaces_table[i], v1=$_t3gkti[0], v2=$_t3gkti[1], v3=$_t3gkti[2], v4=$_t3gkti[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2385,7 +2387,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
         let mini=undefined;
         let mindis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
         for (let i=0; i<8; i++) {
-            let $_t4mcsc=wtable[i], t1=$_t4mcsc[0], t2=$_t4mcsc[1], t3=$_t4mcsc[2];
+            let $_t4igot=wtable[i], t1=$_t4igot[0], t2=$_t4igot[1], t3=$_t4igot[2];
             let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
             let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
             let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -2420,7 +2422,7 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
             lreport("mindis:", (mindis**0.5).toFixed(3));
             break;
         }
-        let $_t5qeuc=wtable[mini], t1=$_t5qeuc[0], t2=$_t5qeuc[1], t3=$_t5qeuc[2];
+        let $_t5wqhc=wtable[mini], t1=$_t5wqhc[0], t2=$_t5wqhc[1], t3=$_t5wqhc[2];
         let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
         let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
         let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -6785,6 +6787,16 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
    "brown": 314, 
    "lightred": 91, 
    "peach": 210}
+  function tab(n, chr) {
+    if (chr===undefined) {
+        chr = ' ';
+    }
+    let t='';
+    for (let i=0; i<n; i++) {
+        t+=chr;
+    }
+    return t;
+  }
   let termColorMap={}
   for (let k in colormap) {
       termColorMap[k] = colormap[k];
@@ -6879,6 +6891,19 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     }
     return out;
   }
+  function list(iter) {
+    let ret=[];
+    for (let item of iter) {
+        ret.push(item);
+    }
+    return ret;
+  }
+  var util=Object.freeze({__proto__: null, 
+   tab: tab, 
+   termColorMap: termColorMap, 
+   termColor: termColor, 
+   termPrint: termPrint, 
+   list: list});
   "use strict";
   function print_lines(ld, lineno, col, printColors, token) {
     let buf='';
@@ -7146,7 +7171,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       if (token===undefined)
         estr = "Parse error at end of input: "+msg;
       else 
-        estr = `Parse error at line ${token.lineno + 1}:${token.col+1}: ${msg}`;
+        estr = `Parse error at line ${token.lineno + 1}:${token.col + 1}: ${msg}`;
       let buf="";
       let ld=this.lexer.lexdata;
       let lineno=token ? token.lineno : this.lexer.linemap[this.lexer.linemap.length-1];
@@ -7178,7 +7203,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       return tok;
     }
      optional(type) {
-      let tok=this.peek();
+      let tok=this.peeknext();
       if (tok===undefined)
         return false;
       if (tok.type===type) {
@@ -7379,6 +7404,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
    USHORT: 18, 
    STATIC_ARRAY: 19, 
    SIGNED_BYTE: 20}
+  const ArrayTypes=new Set([StructEnum.STATIC_ARRAY, StructEnum.ARRAY, StructEnum.ITERKEYS, StructEnum.ITER]);
   const ValueTypes=new Set([StructEnum.INT, StructEnum.FLOAT, StructEnum.DOUBLE, StructEnum.STRING, StructEnum.STATIC_STRING, StructEnum.SHORT, StructEnum.BYTE, StructEnum.BOOL, StructEnum.UINT, StructEnum.USHORT, StructEnum.SIGNED_BYTE]);
   let StructTypes={"int": StructEnum.INT, 
    "uint": StructEnum.UINT, 
@@ -7472,12 +7498,19 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     }), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
       let js="";
       let lexer=t.lexer;
+      let p;
       while (lexer.lexpos<lexer.lexdata.length) {
         let c=lexer.lexdata[lexer.lexpos];
         if (c==="\n")
           break;
+        if (c==="/"&&p==="/") {
+            js = js.slice(0, js.length-1);
+            lexer.lexpos--;
+            break;
+        }
         js+=c;
         lexer.lexpos++;
+        p = c;
       }
       while (js.trim().endsWith(";")) {
         js = js.slice(0, js.length-1);
@@ -7485,7 +7518,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       }
       t.value = js.trim();
       return t;
-    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/, undefined, "number"), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+    }), tk("COMMENT", /\/\/.*[\n\r]/), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/, undefined, "number"), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
       t.lexer.lineno+=1;
     }, "newline"), tk("SPACE", / |\t/, function (t) {
     }, "whitespace")];
@@ -7497,7 +7530,6 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     }
     class Lexer extends lexer {
        input(str) {
-        str = stripComments(str);
         return super.input(str);
       }
     }
@@ -7598,7 +7630,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
      jsonKeyword: jsonKeyword}
     }
     function p_Type(p) {
-      let tok=p.peek();
+      let tok=p.peeknext();
       if (tok.type==="ID") {
           p.next();
           return {type: StructEnum.STRUCT, 
@@ -7659,25 +7691,33 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       field.set = undefined;
       field.get = undefined;
       let check=0;
-      let tok=p.peek();
-      if (tok.type==="JSCRIPT") {
+      let tok=p.peeknext();
+      if (tok&&tok.type==="JSCRIPT") {
           field.get = tok.value;
           check = 1;
           p.next();
+          tok = p.peeknext();
       }
-      tok = p.peek();
-      if (tok.type==="JSCRIPT") {
+      if (tok&&tok.type==="JSCRIPT") {
           check = 1;
           field.set = tok.value;
           p.next();
       }
       p.expect("SEMI");
+      tok = p.peeknext();
+      if (tok&&tok.type==="COMMENT") {
+          field.comment = tok.value;
+          p.next();
+      }
+      else {
+        field.comment = "";
+      }
       return field;
     }
     function p_Struct(p) {
       let name=p.expect("ID", "struct name");
       let st=new NStruct(name);
-      let tok=p.peek();
+      let tok=p.peeknext();
       let id=-1;
       if (tok.type==="ID"&&tok.value==="id") {
           p.next();
@@ -7706,6 +7746,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   var struct_parser=Object.freeze({__proto__: null, 
    NStruct: NStruct, 
    StructEnum: StructEnum, 
+   ArrayTypes: ArrayTypes, 
    ValueTypes: ValueTypes, 
    StructTypes: StructTypes, 
    StructTypeMap: StructTypeMap, 
@@ -8066,6 +8107,12 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   function fromJSON(manager, val, obj, field, type, instance) {
     return StructFieldTypeMap[type.type].fromJSON(manager, val, obj, field, type, instance);
   }
+  function formatJSON(manager, val, obj, field, type, instance, tlvl) {
+    if (tlvl===undefined) {
+        tlvl = 0;
+    }
+    return StructFieldTypeMap[type.type].formatJSON(manager, val, obj, field, type, instance, tlvl);
+  }
   function validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
     return StructFieldTypeMap[type.type].validateJSON(manager, val, obj, field, type, instance, _abstractKey);
   }
@@ -8124,6 +8171,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     }
     static  fromJSON(manager, val, obj, field, type, instance) {
       return val;
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return JSON.stringify(val);
     }
     static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
       return true;
@@ -8293,6 +8343,10 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       let stt=manager.get_struct(type.data);
       return manager.readJSON(val, stt, instance);
     }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      let stt=manager.get_struct(type.data);
+      return manager.formatJSON_intern(val, stt, field, tlvl);
+    }
     static  toJSON(manager, val, obj, field, type) {
       let stt=manager.get_struct(type.data);
       return manager.writeJSON(val, stt);
@@ -8370,6 +8424,11 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       let stt=manager.get_struct(val[key]);
       return manager.readJSON(val, stt, instance);
     }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      let key=type.jsonKeyword;
+      let stt=manager.get_struct(val[key]);
+      return manager.formatJSON_intern(val, stt, field, tlvl);
+    }
     static  toJSON(manager, val, obj, field, type) {
       const keywords=manager.constructor.keywords;
       let stt=manager.get_struct(val.constructor.structName);
@@ -8424,6 +8483,30 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   _ESClass.register(StructTStructField);
   _es6_module.add_class(StructTStructField);
   StructFieldType.register(StructTStructField);
+  function formatArrayJson(manager, val, obj, field, type, type2, instance, tlvl, array) {
+    if (array===undefined) {
+        array = val;
+    }
+    if (array===undefined||array===null||typeof array!=="object"||!array[Symbol.iterator]) {
+        console.log(obj);
+        console.log(array);
+        throw new Error(`Expected an array for ${field.name}`);
+    }
+    if (ValueTypes.has(type2.type)) {
+        return JSON.stringify(array);
+    }
+    let s='[';
+    if (manager.formatCtx.addComments&&field.comment.trim()) {
+        s+=" "+field.comment.trim();
+    }
+    s+="\n";
+    for (let i=0; i<array.length; i++) {
+        let item=array[i];
+        s+=tab(tlvl+1)+formatJSON(manager, item, val, field, type2, instance, tlvl+1)+",\n";
+    }
+    s+=tab(tlvl)+"]";
+    return s;
+  }
   class StructArrayField extends StructFieldType {
     static  pack(manager, data, val, obj, field, type) {
       if (val===undefined) {
@@ -8493,6 +8576,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
           ret.push(val2);
       }
       return ret;
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl);
     }
     static  toJSON(manager, val, obj, field, type) {
       val = val||[];
@@ -8577,6 +8663,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       data[starti++] = uint8_view[1];
       data[starti++] = uint8_view[2];
       data[starti++] = uint8_view[3];
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
     }
     static  validateJSON(manager, val, obj, field, type, instance) {
       return StructArrayField.validateJSON(...arguments);
@@ -8760,6 +8849,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     static  fromJSON() {
       return StructArrayField.fromJSON(...arguments);
     }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
+    }
     static  toJSON(manager, val, obj, field, type) {
       val = val||[];
       let json=[];
@@ -8889,6 +8981,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     static  fromJSON() {
       return StructArrayField.fromJSON(...arguments);
     }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
+    }
     static  packNull(manager, data, field, type) {
       let size=type.data.size;
       for (let i=0; i<size; i++) {
@@ -8940,9 +9035,11 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
    packNull: packNull, 
    toJSON: toJSON, 
    fromJSON: fromJSON, 
+   formatJSON: formatJSON, 
    validateJSON: validateJSON, 
    do_pack: do_pack, 
-   StructFieldType: StructFieldType});
+   StructFieldType: StructFieldType, 
+   formatArrayJson: formatArrayJson});
   var structEval=eval;
   function setStructEval(val) {
     structEval = val;
@@ -9171,6 +9268,24 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   _ESClass.register(JSONError);
   _es6_module.add_class(JSONError);
   
+  function printCodeLines(code) {
+    let lines=code.split(String.fromCharCode(10));
+    let buf='';
+    for (let i=0; i<lines.length; i++) {
+        let line=""+(i+1)+":";
+        while (line.length<3) {
+          line+=" ";
+        }
+        line+=" "+lines[i];
+        buf+=line+String.fromCharCode(10);
+    }
+    return buf;
+  }
+  function printEvalError(code) {
+    console.log("== CODE ==");
+    console.log(printCodeLines(code));
+    eval(code);
+  }
   function setTruncateDollarSign(v) {
     truncateDollarSign = !!v;
   }
@@ -9247,6 +9362,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       this.define_null_native("Object", Object);
       this.jsonUseColors = true;
       this.jsonBuf = '';
+      this.formatCtx = {};
     }
     static  inherit(child, parent, structName=child.name) {
       const keywords=this.keywords;
@@ -9255,7 +9371,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
       }
       let stt=struct_parse.parse(parent.STRUCT);
       let code=structName+"{\n";
-      code+=STRUCT.fmt_struct(stt, true);
+      code+=STRUCT.fmt_struct(stt, true, false, true);
       return code;
     }
     static  Super(obj, reader) {
@@ -9298,7 +9414,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     static  formatStruct(stt, internal_only, no_helper_js) {
       return this.fmt_struct(stt, internal_only, no_helper_js);
     }
-    static  fmt_struct(stt, internal_only, no_helper_js) {
+    static  fmt_struct(stt, internal_only, no_helper_js, addComments) {
       if (internal_only===undefined)
         internal_only = false;
       if (no_helper_js===undefined)
@@ -9344,7 +9460,11 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
           if (!no_helper_js&&f.get!==undefined) {
               s+=" | "+f.get.trim();
           }
-          s+=";\n";
+          s+=";";
+          if (addComments&&f.comment.trim()) {
+              s+=f.comment.trim();
+          }
+          s+="\n";
       }
       if (!internal_only)
         s+="}";
@@ -9939,6 +10059,9 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
           throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
       }
       stt = this.structs[cls.structName];
+      if (stt===undefined) {
+          throw new Error("unknown class "+cls);
+      }
       let fields=stt.fields;
       let flen=fields.length;
       let keys=new Set();
@@ -10079,13 +10202,60 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
         return obj;
       }
     }
+     formatJSON_intern(json, stt, field, tlvl=0) {
+      const keywords=this.constructor.keywords;
+      const addComments=this.formatCtx.addComments;
+      let s='{';
+      if (addComments&&field&&field.comment.trim()) {
+          s+=" "+field.comment.trim();
+      }
+      s+="\n";
+      for (let f of stt.fields) {
+          let value=json[f.name];
+          s+=tab(tlvl+1)+f.name+": ";
+          s+=sintern2.formatJSON(this, value, json, f, f.type, undefined, tlvl+1);
+          s+=",";
+          let basetype=f.type.type;
+          if (ArrayTypes.has(basetype)) {
+              basetype = f.type.data.type.type;
+          }
+          const addComment=ValueTypes.has(basetype)&&addComments&&f.comment.trim();
+          if (addComment) {
+              s+=" "+f.comment.trim();
+          }
+          s+="\n";
+      }
+      s+=tab(tlvl)+"}";
+      return s;
+    }
+     formatJSON(json, cls, addComments=true, validate=true) {
+      const keywords=this.constructor.keywords;
+      let s='';
+      if (validate) {
+          this.validateJSON(json, cls);
+      }
+      let stt=this.structs[cls.structName];
+      this.formatCtx = {addComments: addComments, 
+     validate: validate};
+      return this.formatJSON_intern(json, stt);
+    }
   }
   _ESClass.register(STRUCT);
   _es6_module.add_class(STRUCT);
   
   if (haveCodeGen) {
       var StructClass;
-      eval(code);
+      try {
+        eval(code);
+      }
+      catch (error) {
+          printEvalError(code);
+      }
+      StructClass.keywords = {name: "structName", 
+     script: "STRUCT", 
+     load: "loadSTRUCT", 
+     from: "fromSTRUCT", 
+     new: "newSTRUCT"};
       STRUCT = StructClass;
   }
   STRUCT.setClassKeyword("STRUCT");
@@ -10119,9 +10289,20 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
     }
     else {
       var StructClass;
+      var _json_parser=jsonParser;
+      var _util=util;
       let code2=code;
-      code2 = code2.replace(/\[keywords.script\]/g, keywords.script);
-      eval(code2);
+      code2 = code2.replace(/\[keywords.script\]/g, "."+keywords.script);
+      code2 = code2.replace(/\[keywords.name\]/g, "."+keywords.name);
+      code2 = code2.replace(/\bjsonParser\b/g, "_json_parser");
+      code2 = code2.replace(/\butil\b/g, "_util");
+      try {
+        eval(code2);
+      }
+      catch (error) {
+          printEvalError(code2);
+      }
+      StructClass.keywords = keywords;
       return StructClass;
     }
   }
@@ -10421,6 +10602,15 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   function writeJSON(obj) {
     return manager.writeJSON(obj);
   }
+  function formatJSON$1(json, cls, addComments, validate) {
+    if (addComments===undefined) {
+        addComments = true;
+    }
+    if (validate===undefined) {
+        validate = true;
+    }
+    return manager.formatJSON(json, cls, addComments, validate);
+  }
   function readJSON(json, class_or_struct_id) {
     return manager.readJSON(json, class_or_struct_id);
   }
@@ -10431,6 +10621,7 @@ es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_modul
   consoleLogger = _es6_module.add_export('consoleLogger', consoleLogger);
   deriveStructManager = _es6_module.add_export('deriveStructManager', deriveStructManager);
   struct_filehelper = _es6_module.add_export('struct_filehelper', struct_filehelper);
+  formatJSON$1 = _es6_module.add_export('formatJSON$1', formatJSON$1);
   getEndian = _es6_module.add_export('getEndian', getEndian);
   inherit = _es6_module.add_export('inherit', inherit);
   isRegistered = _es6_module.add_export('isRegistered', isRegistered);

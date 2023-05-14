@@ -2507,7 +2507,7 @@ es6_module_define('context', ["../util/util.js", "../config/config.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
 
 
-es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolpath.js", "./controller_abstract.js", "./controller_ops.js", "../util/util.js", "../util/parseutil.js", "../toolsys/toolsys.js", "../toolsys/toolprop_abstract.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js", "../toolsys/toolprop.js", "../toolsys/toolsys.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolpath.js", "./controller_ops.js", "./controller_abstract.js", "../util/util.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -3137,15 +3137,7 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
       }
       parserStack.cur--;
       if (ret!==undefined&&ret.prop&&ret.dpath&&(ret.dpath.flag&DataFlags.USE_CUSTOM_PROP_GETTER)) {
-          let prop=ret.prop;
-          prop.ctx = ctx;
-          prop.datapath = inpath;
-          prop.dataref = ret.obj;
-          let newprop=getTempProp(prop.type);
-          prop.copyTo(newprop);
-          ret.dpath.propGetter.call(prop, newprop);
-          ret.prop = newprop;
-          prop.ctx = prop.datapath = prop.dataref = undefined;
+          ret.prop = this.getPropOverride(ctx, inpath, ret.dpath, ret.obj);
       }
       if (ret!==undefined&&ret.prop&&ret.dpath&&ret.dpath.ui_name_get) {
           let dummy={datactx: ctx, 
@@ -3155,6 +3147,16 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
           ret.prop.uiname = ""+name;
       }
       return ret;
+    }
+     getPropOverride(ctx, path, dpath, obj, prop=dpath.data) {
+      prop.ctx = ctx;
+      prop.datapath = path;
+      prop.dataref = obj;
+      let newprop=getTempProp(prop.type);
+      prop.copyTo(newprop);
+      dpath.propGetter.call(prop, newprop);
+      prop.ctx = prop.datapath = prop.dataref = undefined;
+      return newprop;
     }
      resolvePath_intern(ctx, inpath, ignoreExistence=false, p=pathParser, dstruct=undefined) {
       inpath = inpath.replace("==", "=");
@@ -3264,6 +3266,9 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
         }
         else {
           prop = dpath.data;
+        }
+        if (prop&&(dpath.flag&DataFlags.USE_CUSTOM_PROP_GETTER)) {
+            prop = this.getPropOverride(ctx, inpath, dpath, obj);
         }
         if (dpath.path.search(/\./)>=0) {
             let keys=dpath.path.split(/\./);
@@ -9713,7 +9718,7 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
 
 
-es6_module_define('toolsys', ["../controller/controller_base.js", "../util/simple_events.js", "../util/events.js", "./toolprop.js", "../util/struct.js", "../util/util.js"], function _toolsys_module(_es6_module) {
+es6_module_define('toolsys', ["../util/simple_events.js", "../controller/controller_base.js", "../util/events.js", "../util/struct.js", "./toolprop.js", "../util/util.js"], function _toolsys_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var events=es6_import(_es6_module, '../util/events.js');

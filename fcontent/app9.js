@@ -37,7 +37,7 @@ export function loadShapes() {
 }, '/dev/fairmotion/src/webgl/simplemesh_shapes.js');
 
 
-es6_module_define('spline_draw_new', ["../editors/viewport/selectmode.js", "../editors/viewport/view2d_editor.js", "../util/bezier.js", "../core/evillog.js", "./spline_strokegroup.js", "./spline_base.js", "../util/mathlib.js", "../vectordraw/vectordraw_jobs.js", "./spline_math.js", "./spline_types.js", "./spline_element_array.js", "../path.ux/scripts/pathux.js", "../core/animdata.js", "../vectordraw/vectordraw.js", "./spline_multires.js", "../config/config.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["./spline_element_array.js", "../config/config.js", "../vectordraw/vectordraw.js", "../vectordraw/vectordraw_jobs.js", "./spline_base.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "../path.ux/scripts/pathux.js", "./spline_types.js", "./spline_math.js", "../util/bezier.js", "../util/mathlib.js", "./spline_strokegroup.js", "../core/evillog.js", "../core/animdata.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -844,7 +844,7 @@ es6_module_define('spline_draw_new', ["../editors/viewport/selectmode.js", "../e
           for (let si=0; si<segments.length; si++) {
               let seg=step ? segments[totseg-si-1] : segments[si];
               let seglen=seg.length;
-              let steps=seglen>0.0 ? ~~(seglen/55+0.5) : 0;
+              let steps=seglen>0.0 ? ~~(seglen/55.0+0.5) : 0;
               let ddata=seg.cdata.get_layer(SplineDrawData);
               let lastseg=si>0 ? segments[totseg-si-2] : undefined;
               let flip=lastseg&&(seg.v1===lastseg.v1||seg.v2===lastseg.v2);

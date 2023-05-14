@@ -1844,7 +1844,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
 }, '/dev/fairmotion/src/curve/bspline.js');
 
 
-es6_module_define('spline_math', ["./spline_math_hermite.js", "../wasm/native_api.js", "../config/config.js"], function _spline_math_module(_es6_module) {
+es6_module_define('spline_math', ["./spline_math_hermite.js", "../config/config.js", "../wasm/native_api.js"], function _spline_math_module(_es6_module) {
   "USE_PREPROCESSOR";
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
@@ -4109,7 +4109,7 @@ SplineElement {
 }, '/dev/fairmotion/src/curve/spline_base.js');
 
 
-es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pathux.js", "../core/toolprops_iter.js", "../core/struct.js", "./spline_base", "../core/eventdag.js", "./spline_multires.js", "./spline_math.js", "./bspline.js", "../wasm/native_api.js", "./spline_base.js", "../util/bezier.js", "../core/toolprops.js", "../editors/viewport/selectmode.js", "../util/mathlib.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../core/toolprops.js", "./spline_base.js", "../util/bezier.js", "./spline_multires.js", "./spline_base", "../path.ux/scripts/pathux.js", "../core/struct.js", "../config/config.js", "./spline_math.js", "../util/mathlib.js", "../core/eventdag.js", "../wasm/native_api.js", "./bspline.js", "../core/toolprops_iter.js", "../editors/viewport/selectmode.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -4656,25 +4656,25 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
       l4 = l3;
       let w3=this.w1*this.mat.linewidth;
       let s3=this.shift1;
-      let $_t0hose=walk(), w2=$_t0hose[0], s2=$_t0hose[1];
+      let $_t0apwm=walk(), w2=$_t0apwm[0], s2=$_t0apwm[1];
       l2 = len;
-      let $_t1itpq=walk(), w1=$_t1itpq[0], s1=$_t1itpq[1];
+      let $_t1pmea=walk(), w1=$_t1pmea[0], s1=$_t1pmea[1];
       l1 = len;
-      let $_t2ofuo=walk(), w0=$_t2ofuo[0], s0=$_t2ofuo[1];
+      let $_t2ticp=walk(), w0=$_t2ticp[0], s0=$_t2ticp[1];
       l0 = len;
-      let $_t3ikke=walk(), w0b=$_t3ikke[0], s0b=$_t3ikke[1];
+      let $_t3aejk=walk(), w0b=$_t3aejk[0], s0b=$_t3aejk[1];
       l0b = len;
       seg = this;
       v = this.v2;
       let w4=this.w2*this.mat.linewidth;
       let s4=this.shift2;
-      let $_t4dmkw=walk(), w5=$_t4dmkw[0], s5=$_t4dmkw[1];
+      let $_t4vpis=walk(), w5=$_t4vpis[0], s5=$_t4vpis[1];
       l5 = len;
-      let $_t5arik=walk(), w6=$_t5arik[0], s6=$_t5arik[1];
+      let $_t5gmlb=walk(), w6=$_t5gmlb[0], s6=$_t5gmlb[1];
       l6 = len;
-      let $_t6einc=walk(), w7=$_t6einc[0], s7=$_t6einc[1];
+      let $_t6cmow=walk(), w7=$_t6cmow[0], s7=$_t6cmow[1];
       l7 = len;
-      let $_t7imhi=walk(), w8=$_t7imhi[0], s8=$_t7imhi[1];
+      let $_t7echu=walk(), w8=$_t7echu[0], s8=$_t7echu[1];
       l8 = len;
       seg = this;
       let ks=bstmp1;
@@ -5189,7 +5189,6 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
       return k;
     }
      evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
-      s = Math.min(Math.max(s, 0.02), 0.98);
       if (this.flag&SplineFlags.COINCIDENT) {
           if (dv_out) {
               dv_out[0] = dv_out[1] = 0.0;
@@ -5412,7 +5411,7 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_keeG_update_winding;
+  var $cent_y9QL_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -5428,14 +5427,14 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_keeG_update_winding.zero();
+      $cent_y9QL_update_winding.zero();
       for (var l of this) {
-          $cent_keeG_update_winding.add(l.v);
+          $cent_y9QL_update_winding.add(l.v);
       }
-      $cent_keeG_update_winding.mulScalar(1.0/this.totvert);
+      $cent_y9QL_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_keeG_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_y9QL_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -5466,7 +5465,7 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
       return ret;
     }
   }
-  var $cent_keeG_update_winding=new Vector3();
+  var $cent_y9QL_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -5477,7 +5476,7 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
     winding : int;
   }
 `;
-  var $minmax_hU_j_update_aabb;
+  var $minmax_IVHT_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -5500,17 +5499,17 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_hU_j_update_aabb.reset();
+      $minmax_IVHT_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_hU_j_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_hU_j_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_hU_j_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_hU_j_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_IVHT_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_IVHT_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_IVHT_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_IVHT_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_hU_j_update_aabb.min);
-      this._aabb[1].load($minmax_hU_j_update_aabb.max);
+      this._aabb[0].load($minmax_IVHT_update_aabb.min);
+      this._aabb[1].load($minmax_IVHT_update_aabb.max);
     }
     get  aabb() {
       if (this.flag&SplineFlags.UPDATE_AABB)
@@ -5527,7 +5526,7 @@ es6_module_define('spline_types', ["../config/config.js", "../path.ux/scripts/pa
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_hU_j_update_aabb=new MinMax(3);
+  var $minmax_IVHT_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);

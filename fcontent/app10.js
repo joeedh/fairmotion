@@ -1489,7 +1489,7 @@ es6_module_define('spline_createops', ["../../curve/spline.js", "./spline_editop
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
 
 
-es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spline_draw.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js", "../../core/toolprops.js", "../../core/toolops_api.js", "../../curve/spline.js", "../../core/context.js", "../../curve/spline_types.js", "./transform.js", "../../core/frameset.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/context.js", "../../curve/spline_types.js", "./transform.js", "../../core/toolops_api.js", "../../curve/spline.js", "../../curve/spline_base.js", "../../core/toolprops.js", "../../path.ux/scripts/util/struct.js", "../../core/animdata.js", "../../curve/spline_draw.js", "../../core/frameset.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -1525,7 +1525,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      is_modal: false}
     }
      exec(ctx) {
-      for (var v of ctx.frameset.spline.verts.selected.editable(ctx)) {
+      for (let v of ctx.frameset.spline.verts.selected.editable(ctx)) {
           v.flag|=SplineFlags.FRAME_DIRTY;
       }
       ctx.frameset.update_frame();
@@ -1540,10 +1540,10 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
   class ShiftLayerOrderOp extends ToolOp {
      constructor(layer_id, off) {
       super();
-      if (layer_id!=undefined) {
+      if (layer_id!==undefined) {
           this.inputs.layer_id.setValue(layer_id);
       }
-      if (off!=undefined) {
+      if (off!==undefined) {
           this.inputs.off.setValue(off);
       }
     }
@@ -1558,12 +1558,12 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      is_modal: false}
     }
      exec(ctx) {
-      var spline=ctx.api.getValue(ctx, this.inputs.spline_path.data);
-      var layer=this.inputs.layer_id.data;
+      let spline=ctx.api.getValue(ctx, this.inputs.spline_path.data);
+      let layer=this.inputs.layer_id.data;
       layer = spline.layerset.idmap[layer];
-      if (layer==undefined)
+      if (layer===undefined)
         return ;
-      var off=this.inputs.off.data;
+      let off=this.inputs.off.data;
       spline.layerset.change_layer_order(layer, layer.order+off);
       spline.regen_sort();
     }
@@ -1584,20 +1584,20 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       super();
     }
      undo_pre(ctx) {
-      var spline=ctx.spline;
-      var data=[];
+      let spline=ctx.spline;
+      let data=[];
       istruct.write_object(data, spline);
       data = new DataView(new Uint8Array(data).buffer);
       this._undo = {data: data};
       window.redraw_viewport();
     }
      undo(ctx) {
-      var spline=ctx.spline;
-      var spline2=istruct.read_object(this._undo.data, Spline);
-      var idgen=spline.idgen;
-      var is_anim_path=spline.is_anim_path;
+      let spline=ctx.spline;
+      let spline2=istruct.read_object(this._undo.data, Spline);
+      let idgen=spline.idgen;
+      let is_anim_path=spline.is_anim_path;
       spline.on_destroy();
-      for (var k in spline2) {
+      for (let k in spline2) {
           if (typeof k==="symbol")
             continue;
           if (k==="inputs"||k==="outputs"||k.startsWith("dag_")) {
@@ -1605,7 +1605,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
           }
           spline[k] = spline2[k];
       }
-      var max_cur=spline.idgen.cur_id;
+      let max_cur=spline.idgen.cur_id;
       spline.idgen = idgen;
       if (is_anim_path!==undefined)
         spline.is_anim_path = is_anim_path;
@@ -1638,13 +1638,13 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       return ctx.spline===ctx.frameset.spline;
     }
      exec(ctx) {
-      var prefix="frameset.drawspline.segments[";
-      var frameset=ctx.frameset;
-      var spline=frameset.spline;
-      var edge_path_keys={z: 1};
-      for (var s of spline.segments) {
-          var path=prefix+s.eid+"]";
-          for (var k in edge_path_keys) {
+      let prefix="frameset.drawspline.segments[";
+      let frameset=ctx.frameset;
+      let spline=frameset.spline;
+      let edge_path_keys={z: 1};
+      for (let s of spline.segments) {
+          let path=prefix+s.eid+"]";
+          for (let k in edge_path_keys) {
               path+="."+k;
           }
           ctx.api.setAnimPathKey(ctx, frameset, path, ctx.scene.time);
@@ -1654,7 +1654,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
   _ESClass.register(KeyEdgesOp);
   _es6_module.add_class(KeyEdgesOp);
   KeyEdgesOp = _es6_module.add_export('KeyEdgesOp', KeyEdgesOp);
-  var pose_clipboards={}
+  let pose_clipboards={}
   class CopyPoseOp extends SplineLocalToolOp {
      constructor() {
       super();
@@ -1670,11 +1670,11 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      is_modal: false}
     }
      exec(ctx) {
-      var lists=[ctx.spline.verts.selected.editable(ctx), ctx.spline.handles.selected.editable(ctx)];
-      var pose_clipboard={};
+      let lists=[ctx.spline.verts.selected.editable(ctx), ctx.spline.handles.selected.editable(ctx)];
+      let pose_clipboard={};
       pose_clipboards[ctx.splinepath] = pose_clipboard;
-      for (var i=0; i<2; i++) {
-          for (var v of lists[i]) {
+      for (let i=0; i<2; i++) {
+          for (let v of lists[i]) {
               pose_clipboard[v.eid] = new Vector3(v);
           }
       }
@@ -1696,21 +1696,21 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      is_modal: true}
     }
      start_modal(ctx) {
-      var spline=ctx.spline;
-      var pose_clipboard=pose_clipboards[ctx.splinepath];
-      if (pose_clipboard==undefined) {
+      let spline=ctx.spline;
+      let pose_clipboard=pose_clipboards[ctx.splinepath];
+      if (pose_clipboard===undefined) {
           console.trace("No pose for splinepath", ctx.splinepath);
           this.end_modal(ctx);
           return ;
       }
-      var array=[];
-      for (var k in pose_clipboard) {
-          var v=spline.eidmap[k];
-          if (v==undefined) {
+      let array=[];
+      for (let k in pose_clipboard) {
+          let v=spline.eidmap[k];
+          if (v===undefined) {
               console.trace("Bad vertex");
               continue;
           }
-          var co=pose_clipboard[k];
+          let co=pose_clipboard[k];
           array.push(v.eid);
           array.push(co[0]);
           array.push(co[1]);
@@ -1721,23 +1721,23 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       this.exec(ctx);
     }
      exec(ctx) {
-      var spline=ctx.spline;
+      let spline=ctx.spline;
       if (this.modalRunning) {
           this.end_modal(this.modal_ctx);
       }
-      var pose=this.inputs.pose.data;
+      let pose=this.inputs.pose.data;
       console.log("poselen", pose.length);
-      var actlayer=spline.layerset.active;
-      var i=0;
+      let actlayer=spline.layerset.active;
+      let i=0;
       while (i<pose.length) {
-        var eid=pose[i++];
-        var v=spline.eidmap[eid];
-        if (v==undefined||v.type>2) {
+        let eid=pose[i++];
+        let v=spline.eidmap[eid];
+        if (v===undefined||v.type>2) {
             console.log("bad eid: eid, v:", eid, v);
             i+=3;
             continue;
         }
-        var skip=!(v.flag&SplineFlags.SELECT);
+        let skip=!(v.flag&SplineFlags.SELECT);
         skip = skip||(v.flag&SplineFlags.HIDE);
         skip = skip||!(actlayer.id in v.layers);
         if (skip) {
@@ -1773,29 +1773,29 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Disable/enable smooth interpolation for animation paths"}
     }
      get_animverts(ctx) {
-      var vds=new set();
-      var spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
-      var frameset=ctx.frameset;
-      for (var v of spline.verts.selected.editable(ctx)) {
-          var vd=frameset.vertex_animdata[v.eid];
-          if (vd==undefined)
+      let vds=new set();
+      let spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
+      let frameset=ctx.frameset;
+      for (let v of spline.verts.selected.editable(ctx)) {
+          let vd=frameset.vertex_animdata[v.eid];
+          if (vd===undefined)
             continue;
           vds.add(vd);
       }
       return vds;
     }
      undo_pre(ctx) {
-      var undo={};
-      var pathspline=ctx.frameset.pathspline;
-      for (var vd of this.get_animverts(ctx)) {
+      let undo={};
+      let pathspline=ctx.frameset.pathspline;
+      for (let vd of this.get_animverts(ctx)) {
           undo[vd.eid] = vd.animflag;
       }
       this._undo = undo;
     }
      undo(ctx) {
-      var undo=this._undo;
-      var pathspline=ctx.frameset.pathspline;
-      for (var vd of this.get_animverts(ctx)) {
+      let undo=this._undo;
+      let pathspline=ctx.frameset.pathspline;
+      for (let vd of this.get_animverts(ctx)) {
           if (!(vd.eid in undo)) {
               console.log("ERROR in step function tool undo!!");
               continue;
@@ -1804,11 +1804,11 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       }
     }
      exec(ctx) {
-      var kcache=ctx.frameset.kcache;
-      for (var vd of this.get_animverts(ctx)) {
+      let kcache=ctx.frameset.kcache;
+      for (let vd of this.get_animverts(ctx)) {
           vd.animflag^=VDAnimFlags.STEP_FUNC;
-          for (var v of vd.verts) {
-              var time=get_vtime(v);
+          for (let v of vd.verts) {
+              let time=get_vtime(v);
               kcache.invalidate(v.eid, time);
           }
       }
@@ -1835,14 +1835,14 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
     }
      exec(ctx) {
       console.log("delete op!");
-      var spline=ctx.spline;
-      var dellist=[];
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      let dellist=[];
+      for (let v of spline.verts.selected.editable(ctx)) {
           v.flag|=SplineFlags.UPDATE;
           dellist.push(v);
       }
       spline.propagate_update_flags();
-      for (var i=0; i<dellist.length; i++) {
+      for (let i=0; i<dellist.length; i++) {
           console.log(dellist[i]);
           spline.kill_vertex(dellist[i]);
       }
@@ -1870,18 +1870,18 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
     }
      exec(ctx) {
       console.log("delete op!");
-      var spline=ctx.spline;
-      var dellist=[];
-      for (var s of spline.segments.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      let dellist=[];
+      for (let s of spline.segments.selected.editable(ctx)) {
           dellist.push(s);
       }
-      for (var i=0; i<dellist.length; i++) {
+      for (let i=0; i<dellist.length; i++) {
           console.log(dellist[i]);
           spline.kill_segment(dellist[i]);
       }
       if (dellist.length>0) {
-          for (var i=0; i<spline.segments.length; i++) {
-              var s=spline.segments[i];
+          for (let i=0; i<spline.segments.length; i++) {
+              let s=spline.segments[i];
               s.flag|=SplineFlags.UPDATE;
           }
       }
@@ -1909,17 +1909,17 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
     }
      exec(ctx) {
       console.log("delete op!");
-      var spline=ctx.spline;
-      var vset=new set(), sset=new set(), fset=new set();
-      var dellist=[];
-      for (var f of spline.faces.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      let vset=new set(), sset=new set(), fset=new set();
+      let dellist=[];
+      for (let f of spline.faces.selected.editable(ctx)) {
           fset.add(f);
       }
-      for (var f of fset) {
-          for (var path of f.paths) {
-              for (var l of path) {
-                  var l2=l.s.l;
-                  var _c=0, del=true;
+      for (let f of fset) {
+          for (let path of f.paths) {
+              for (let l of path) {
+                  let l2=l.s.l;
+                  let _c=0, del=true;
                   do {
                     if (_c++>1000) {
                         console.log("Infintite loop!");
@@ -1928,18 +1928,18 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
                     if (!fset.has(l2.f))
                       del = false;
                     l2 = l2.radial_next;
-                  } while (l2!=l.s.l);
+                  } while (l2!==l.s.l);
                   
                   if (del)
                     sset.add(l.s);
               }
           }
       }
-      for (var s of sset) {
-          for (var si=0; si<2; si++) {
-              var del=true;
-              var v=si ? s.v2 : s.v1;
-              for (var i=0; i<v.segments.length; i++) {
+      for (let s of sset) {
+          for (let si=0; si<2; si++) {
+              let del=true;
+              let v=si ? s.v2 : s.v1;
+              for (let i=0; i<v.segments.length; i++) {
                   if (!(sset.has(v.segments[i]))) {
                       del = false;
                       break;
@@ -1949,13 +1949,13 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
                 vset.add(v);
           }
       }
-      for (var f of fset) {
+      for (let f of fset) {
           spline.kill_face(f);
       }
-      for (var s of sset) {
+      for (let s of sset) {
           spline.kill_segment(s);
       }
-      for (var v of vset) {
+      for (let v of vset) {
           spline.kill_vertex(v);
       }
       spline.regen_render();
@@ -1987,9 +1987,9 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       return 1;
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      var off=this.inputs.offset.getValue();
-      var selmode=this.inputs.selmode.getValue();
+      let spline=ctx.spline;
+      let off=this.inputs.offset.getValue();
+      let selmode=this.inputs.selmode.getValue();
       if (isNaN(off))
         off = 0.0;
       console.log("change face z! selmode:", selmode, "off", off);
@@ -1997,7 +1997,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
           selmode|=SplineTypes.SEGMENT;
       }
       if (selmode&SplineTypes.FACE) {
-          for (var f of spline.faces.selected.editable(ctx)) {
+          for (let f of spline.faces.selected.editable(ctx)) {
               if (isNaN(f.z))
                 f.z = 0.0;
               if (f.hidden)
@@ -2006,7 +2006,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
           }
       }
       if (selmode&(SplineTypes.SEGMENT|SplineTypes.VERTEX)) {
-          for (var s of spline.segments.selected.editable(ctx)) {
+          for (let s of spline.segments.selected.editable(ctx)) {
               if (isNaN(s.z))
                 s.z = 0.0;
               if (s.hidden)
@@ -2039,21 +2039,21 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       return !(ctx.spline.restrict&RestrictFlags.NO_DISSOLVE);
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      var dellist=[];
-      var verts=spline.verts.selected.editable(ctx);
+      let spline=ctx.spline;
+      let dellist=[];
+      let verts=spline.verts.selected.editable(ctx);
       if (this.inputs.use_verts.data) {
           verts = new set();
-          for (var eid of this.inputs.verts.data) {
+          for (let eid of this.inputs.verts.data) {
               verts.add(spline.eidmap[eid]);
           }
       }
-      for (var v of verts) {
-          if (v.segments.length!=2)
+      for (let v of verts) {
+          if (v.segments.length!==2)
             continue;
           dellist.push(v);
       }
-      for (var i=0; i<dellist.length; i++) {
+      for (let i=0; i<dellist.length; i++) {
           spline.dissolve_vertex(dellist[i]);
       }
       spline.regen_render();
@@ -2067,12 +2067,12 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
         t = 0.5;
     }
     console.log("split edge op!");
-    var interp_animdata=spline===ctx.frameset.spline;
-    var frameset=interp_animdata ? ctx.frameset : undefined;
+    let interp_animdata=spline===ctx.frameset.spline;
+    let frameset=interp_animdata ? ctx.frameset : undefined;
     if (interp_animdata) {
         console.log("interpolating animation data from adjacent vertices!");
     }
-    var e_v=spline.split_edge(s, t);
+    let e_v=spline.split_edge(s, t);
     if (interp_animdata) {
         frameset.create_path_from_adjacent(e_v[1], e_v[0]);
     }
@@ -2100,21 +2100,21 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
     }
      exec(ctx) {
       console.log("split edge op!");
-      var spline=ctx.spline;
-      var interp_animdata=spline===ctx.frameset.spline;
-      var frameset=interp_animdata ? ctx.frameset : undefined;
+      let spline=ctx.spline;
+      let interp_animdata=spline===ctx.frameset.spline;
+      let frameset=interp_animdata ? ctx.frameset : undefined;
       console.log("interp_animdata: ", interp_animdata);
-      var segs=[];
+      let segs=[];
       if (interp_animdata) {
           console.log("interpolating animation data from adjacent vertices!");
       }
-      for (var s of spline.segments.selected.editable(ctx)) {
+      for (let s of spline.segments.selected.editable(ctx)) {
           if (s.v1.hidden||s.v2.hidden)
             continue;
           if ((s.v1.flag&SplineFlags.SELECT&&s.v2.flag&SplineFlags.SELECT))
             segs.push(s);
       }
-      for (var i=0; i<segs.length; i++) {
+      for (let i=0; i<segs.length; i++) {
           let e_v=frameset_split_edge(ctx, spline, segs[i]);
           spline.verts.setselect(e_v[1], true);
       }
@@ -2170,30 +2170,23 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
     static  canRun(ctx) {
       return !(ctx.spline.restrict&RestrictFlags.NO_SPLIT_EDGE);
     }
-     start_modal(ctx) {
-      super.start_modal(ctx);
-    }
-     on_mousedown(e) {
+     on_pointerdown(e) {
       console.log("mdown", e);
-      this.finish(e.button!=0);
+      this.finish(e.button!==0);
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       console.log("mup");
-      this.finish(e.button!=0);
-    }
-     end_modal(ctx) {
-      this.reset_drawlines();
-      super.end_modal(ctx);
+      this.finish(e.button!==0);
     }
      on_keydown(event) {
       switch (event.keyCode) {
         case charmap["Enter"]:
         case charmap["Escape"]:
-          this.finish(event.keyCode==charmap["Escape"]);
+          this.finish(event.keyCode===charmap["Escape"]);
           break;
       }
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let ctx=this.modal_ctx;
       let mpos=[e.x, e.y];
       mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
@@ -2243,23 +2236,22 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       }
     }
      finish(do_cancel) {
-      if (do_cancel||this.inputs.segment_eid.data==-1) {
-          this.end_modal(this.modal_ctx);
-          this.cancel_modal(this.modal_ctx);
+      if (do_cancel||this.inputs.segment_eid.data===-1) {
+          this.modalEnd(do_cancel);
       }
       else {
         this.exec(this.modal_ctx);
-        this.end_modal(this.modal_ctx);
+        this.modalEnd(false);
       }
     }
      exec(ctx) {
-      var spline=this.inputs.spline_path.data;
-      spline = spline=="pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
+      let spline=this.inputs.spline_path.data;
+      spline = spline==="pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
       if (this.inputs.deselect.data) {
           spline.select_none(ctx, SplineTypes.ALL);
       }
-      var seg=spline.eidmap[this.inputs.segment_eid.data];
-      var t=this.inputs.segment_t.data;
+      let seg=spline.eidmap[this.inputs.segment_eid.data];
+      let t=this.inputs.segment_t.data;
       if (seg===undefined) {
           console.warn("Unknown segment", this.inputs.segment_eid.data);
           return ;
@@ -2272,18 +2264,18 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
   SplitEdgePickOp = _es6_module.add_export('SplitEdgePickOp', SplitEdgePickOp);
   class VertPropertyBaseOp extends ToolOp {
      undo_pre(ctx) {
-      var spline=ctx.spline;
-      var vdata={};
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      let vdata={};
+      for (let v of spline.verts.selected.editable(ctx)) {
           vdata[v.eid] = v.flag;
       }
       this._undo = vdata;
       window.redraw_viewport();
     }
      undo(ctx) {
-      var spline=ctx.spline;
-      for (var k in this._undo) {
-          var v=spline.eidmap[k];
+      let spline=ctx.spline;
+      for (let k in this._undo) {
+          let v=spline.eidmap[k];
           v.flag = this._undo[k];
           v.flag|=SplineFlags.UPDATE;
       }
@@ -2307,14 +2299,14 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Toggle Sharp Corners"}
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active.id;
-      for (var si=0; si<2; si++) {
-          var list=si ? spline.handles : spline.verts;
-          for (var v of list.selected.editable(ctx)) {
-              if (v.type==SplineTypes.HANDLE&&!v.use)
+      let spline=ctx.spline;
+      let actlayer=spline.layerset.active.id;
+      for (let si=0; si<2; si++) {
+          let list=si ? spline.handles : spline.verts;
+          for (let v of list.selected.editable(ctx)) {
+              if (v.type===SplineTypes.HANDLE&&!v.use)
                 continue;
-              if (v.type==SplineTypes.HANDLE&&(v.owning_vertex!=undefined&&(v.owning_vertex.flag&SplineFlags.SELECT))) {
+              if (v.type===SplineTypes.HANDLE&&(v.owning_vertex!==undefined&&(v.owning_vertex.flag&SplineFlags.SELECT))) {
                   if (v.owning_vertex.flag&SplineFlags.BREAK_TANGENTS)
                     v.flag|=SplineFlags.BREAK_TANGENTS;
                   else 
@@ -2344,8 +2336,8 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Toggle Break Curvatures, enable 'draw normals'\n in display panel to\n see what this does"}
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      for (let v of spline.verts.selected.editable(ctx)) {
           v.flag^=SplineFlags.BREAK_CURVATURES;
           v.flag|=SplineFlags.UPDATE;
       }
@@ -2369,28 +2361,28 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Pairs adjacent handles together to make a smooth curve"}
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      var h1=undefined, h2=undefined;
-      for (var h of spline.handles.selected.editable(ctx)) {
-          if (h1==undefined)
+      let spline=ctx.spline;
+      let h1=undefined, h2=undefined;
+      for (let h of spline.handles.selected.editable(ctx)) {
+          if (h1===undefined)
             h1 = h;
           else 
-            if (h2==undefined)
+            if (h2===undefined)
             h2 = h;
           else 
             break;
       }
-      if (h1==undefined||h2==undefined)
+      if (h1===undefined||h2===undefined)
         return ;
-      var s1=h1.segments[0], s2=h2.segments[0];
-      if (s1.handle_vertex(h1)!=s2.handle_vertex(h2))
+      let s1=h1.segments[0], s2=h2.segments[0];
+      if (s1.handle_vertex(h1)!==s2.handle_vertex(h2))
         return ;
       console.log("Connecting handles", h1.eid, h2.eid);
       h1.flag|=SplineFlags.AUTO_PAIRED_HANDLE;
       h2.flag|=SplineFlags.AUTO_PAIRED_HANDLE;
       h1.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
       h2.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      var v=s1.handle_vertex(h1);
+      let v=s1.handle_vertex(h1);
       v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
       spline.connect_handles(h1, h2);
       spline.resolve = 1;
@@ -2413,11 +2405,11 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Disconnects all handles around a point.\n  Point must have more than two segments"}
     }
      exec(ctx) {
-      var spline=ctx.spline;
+      let spline=ctx.spline;
       console.log("Disconnect handles");
-      for (var h of spline.handles.selected.editable(ctx)) {
-          var v=h.owning_segment.handle_vertex(h);
-          if (h.hpair==undefined)
+      for (let h of spline.handles.selected.editable(ctx)) {
+          let v=h.owning_segment.handle_vertex(h);
+          if (h.hpair===undefined)
             continue;
           h.flag&=~SplineFlags.AUTO_PAIRED_HANDLE;
           h.hpair.flag&=~SplineFlags.AUTO_PAIRED_HANDLE;
@@ -2447,19 +2439,19 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Test closest-point-to-curve functionality"}
     }
      on_mousemove(event) {
-      var mpos=[event.x, event.y];
-      var ctx=this.modal_ctx;
-      var spline=ctx.spline;
+      let mpos=[event.x, event.y];
+      let ctx=this.modal_ctx;
+      let spline=ctx.spline;
       this.reset_drawlines();
-      for (var seg of spline.segments) {
-          var ret=seg.closest_point(mpos, 0);
+      for (let seg of spline.segments) {
+          let ret=seg.closest_point(mpos, 0);
           if (ret===undefined)
             continue;
-          var dl=this.new_drawline(ret.co, mpos);
+          let dl=this.new_drawline(ret.co, mpos);
           dl.clr[3] = 0.1;
           continue;
-          var ret=seg.closest_point(mpos, 3);
-          for (var p of ret) {
+          ret = seg.closest_point(mpos, 3);
+          for (let p of ret) {
               this.new_drawline(p.co, mpos);
           }
       }
@@ -2497,18 +2489,18 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Toggle Manual Handles"}
     }
      undo_pre(ctx) {
-      var spline=ctx.spline;
-      var ud=this._undo = {};
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      let ud=this._undo = {};
+      for (let v of spline.verts.selected.editable(ctx)) {
           ud[v.eid] = v.flag&SplineFlags.USE_HANDLES;
       }
     }
      undo(ctx) {
-      var spline=ctx.spline;
-      var ud=this._undo;
-      for (var k in ud) {
-          var v=spline.eidmap[k];
-          if (v==undefined||v.type!=SplineTypes.VERTEX) {
+      let spline=ctx.spline;
+      let ud=this._undo;
+      for (let k in ud) {
+          let v=spline.eidmap[k];
+          if (v===undefined||v.type!==SplineTypes.VERTEX) {
               console.log("WARNING: bad v in toggle manual handles op's undo handler!", v);
               continue;
           }
@@ -2517,8 +2509,8 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       spline.resolve = 1;
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let spline=ctx.spline;
+      for (let v of spline.verts.selected.editable(ctx)) {
           v.flag^=SplineFlags.USE_HANDLES;
           v.flag|=SplineFlags.UPDATE;
       }
@@ -2548,20 +2540,20 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Move keyframes"}
     }
      get_curframe_animverts(ctx) {
-      var vset=new set();
-      var spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
-      var frameset=ctx.frameset;
-      for (var v of pathspline.verts.selected.editable(ctx)) {
+      let vset=new set();
+      let spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
+      let frameset=ctx.frameset;
+      for (let v of pathspline.verts.selected.editable(ctx)) {
           vset.add(v);
       }
-      if (vset.length==0) {
-          for (var v of spline.verts.selected.editable(ctx)) {
-              var vd=frameset.vertex_animdata[v.eid];
-              if (vd==undefined)
+      if (vset.length===0) {
+          for (let v of spline.verts.selected.editable(ctx)) {
+              let vd=frameset.vertex_animdata[v.eid];
+              if (vd===undefined)
                 continue;
-              for (var v2 of vd.verts) {
-                  var vtime=get_vtime(v2);
-                  if (vtime==ctx.scene.time) {
+              for (let v2 of vd.verts) {
+                  let vtime=get_vtime(v2);
+                  if (vtime===ctx.scene.time) {
                       vset.add(v2);
                   }
               }
@@ -2586,8 +2578,8 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
           this.start_mpos.load([event.x, event.y, 0]);
           this.first = false;
       }
-      var mpos=new Vector3([event.x, event.y, 0]);
-      var dx=-Math.floor((this.start_mpos[0]-mpos[0])/20+0.5);
+      let mpos=new Vector3([event.x, event.y, 0]);
+      let dx=-Math.floor((this.start_mpos[0]-mpos[0])/20+0.5);
       this.undo(this.modal_ctx);
       this.inputs.factor.setValue(dx);
       this.exec(this.modal_ctx);
@@ -2607,46 +2599,46 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       this.end_modal();
     }
      undo_pre(ctx) {
-      var ud=this._undo = {};
-      for (var v of this.get_curframe_animverts(ctx)) {
+      let ud=this._undo = {};
+      for (let v of this.get_curframe_animverts(ctx)) {
           ud[v.eid] = get_vtime(v);
       }
     }
      undo(ctx) {
-      var spline=ctx.frameset.pathspline;
-      for (var k in this._undo) {
-          var v=spline.eidmap[k], time=this._undo[k];
+      let spline=ctx.frameset.pathspline;
+      for (let k in this._undo) {
+          let v=spline.eidmap[k], time=this._undo[k];
           set_vtime(spline, v, time);
           v.dag_update("depend");
       }
       ctx.frameset.download();
     }
      exec(ctx) {
-      var spline=ctx.frameset.pathspline;
-      var starts={};
-      var off=this.inputs.factor.data;
-      var vset=this.get_curframe_animverts(ctx);
-      for (var v of vset) {
+      let spline=ctx.frameset.pathspline;
+      let starts={};
+      let off=this.inputs.factor.data;
+      let vset=this.get_curframe_animverts(ctx);
+      for (let v of vset) {
           starts[v.eid] = get_vtime(v);
       }
-      var kcache=ctx.frameset.kcache;
-      for (var v of vset) {
+      let kcache=ctx.frameset.kcache;
+      for (let v of vset) {
           kcache.invalidate(v.eid, get_vtime(v));
           set_vtime(spline, v, starts[v.eid]+off);
           kcache.invalidate(v.eid, get_vtime(v));
           v.dag_update("depend");
       }
-      for (var v of vset) {
-          var min=undefined, max=undefined;
-          if (v.segments.length==1) {
-              var s=v.segments[0];
-              var v2=s.other_vert(v);
-              var t1=get_vtime(v), t2=get_vtime(v2);
+      for (let v of vset) {
+          let min=undefined, max=undefined;
+          if (v.segments.length===1) {
+              let s=v.segments[0];
+              let v2=s.other_vert(v);
+              let t1=get_vtime(v), t2=get_vtime(v2);
               if (t1<t2) {
                   min = 0, max = t2;
               }
               else 
-                if (t1==t2) {
+                if (t1===t2) {
                   min = max = t1;
               }
               else {
@@ -2654,17 +2646,17 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
               }
           }
           else 
-            if (v.segments.length==2) {
-              var v1=v.segments[0].other_vert(v);
-              var v2=v.segments[1].other_vert(v);
-              var t1=get_vtime(v1), t2=get_vtime(v2);
+            if (v.segments.length===2) {
+              let v1=v.segments[0].other_vert(v);
+              let v2=v.segments[1].other_vert(v);
+              let t1=get_vtime(v1), t2=get_vtime(v2);
               min = Math.min(t1, t2), max = Math.max(t1, t2);
           }
           else {
             min = 0;
             max = 100000;
           }
-          var newtime=get_vtime(v);
+          let newtime=get_vtime(v);
           newtime = Math.min(Math.max(newtime, min), max);
           set_vtime(spline, v, newtime);
           v.dag_update("depend");
@@ -2692,40 +2684,40 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       return !(ctx.spline.restrict&RestrictFlags.NO_CREATE);
     }
      exec(ctx) {
-      var vset=new set();
-      var sset=new set();
-      var fset=new set();
-      var hset=new set();
-      var spline=ctx.spline;
-      var eidmap={};
-      for (var v of spline.verts.selected.editable(ctx)) {
+      let vset=new set();
+      let sset=new set();
+      let fset=new set();
+      let hset=new set();
+      let spline=ctx.spline;
+      let eidmap={};
+      for (let v of spline.verts.selected.editable(ctx)) {
           vset.add(v);
       }
-      for (var s of spline.segments.selected.editable(ctx)) {
+      for (let s of spline.segments.selected.editable(ctx)) {
           sset.add(s);
           vset.add(s.v1);
           vset.add(s.v2);
       }
-      for (var f of spline.faces.selected.editable(ctx)) {
+      for (let f of spline.faces.selected.editable(ctx)) {
           fset.add(f);
-          for (var path of f.paths) {
-              for (var l of path) {
+          for (let path of f.paths) {
+              for (let l of path) {
                   sset.add(l.s);
                   vset.add(l.s.v1);
                   vset.add(l.s.v2);
               }
           }
       }
-      for (var v of vset) {
-          var nv=spline.make_vertex(v);
+      for (let v of vset) {
+          let nv=spline.make_vertex(v);
           spline.copy_vert_data(nv, v);
           eidmap[v.eid] = nv;
           spline.verts.setselect(v, false);
           spline.verts.setselect(nv, true);
       }
-      for (var s of sset) {
-          var v1=eidmap[s.v1.eid], v2=eidmap[s.v2.eid];
-          var ns=spline.make_segment(v1, v2);
+      for (let s of sset) {
+          let v1=eidmap[s.v1.eid], v2=eidmap[s.v2.eid];
+          let ns=spline.make_segment(v1, v2);
           ns._aabb[0].load(s._aabb[0]);
           ns._aabb[1].load(s._aabb[1]);
           spline.copy_segment_data(ns, s);
@@ -2745,23 +2737,23 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
           spline.handles.setselect(ns.h1, true);
           spline.handles.setselect(ns.h2, true);
       }
-      for (var h of hset) {
-          var nh=eidmap[h.eid];
-          if (h.pair!=undefined&&h.pair.eid in eidmap) {
+      for (let h of hset) {
+          let nh=eidmap[h.eid];
+          if (h.pair!==undefined&&h.pair.eid in eidmap) {
               spline.connect_handles(nh, eidmap[h.pair.eid]);
           }
       }
-      for (var f of fset) {
-          var vlists=[];
-          for (var path of f.paths) {
-              var verts=[];
+      for (let f of fset) {
+          let vlists=[];
+          for (let path of f.paths) {
+              let verts=[];
               vlists.push(verts);
-              for (var l of path) {
+              for (let l of path) {
                   verts.push(eidmap[l.v.eid]);
               }
           }
           console.log("duplicate");
-          var nf=spline.make_face(vlists);
+          let nf=spline.make_face(vlists);
           nf._aabb[0].load(f._aabb[0]);
           nf._aabb[1].load(f._aabb[1]);
           spline.copy_face_data(nf, f);
@@ -2811,13 +2803,13 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
      description: "Flip selected points horizontally"}
     }
      exec(ctx) {
-      var spline=ctx.spline;
-      var points=new set();
-      var cent=new Vector3();
-      for (var i=0; i<2; i++) {
-          var list=i ? spline.handles : spline.verts;
-          for (var v of list.selected.editable(ctx)) {
-              if (i===1&&v.owning_vertex!=undefined&&v.owning_vertex.hidden)
+      let spline=ctx.spline;
+      let points=new set();
+      let cent=new Vector3();
+      for (let i=0; i<2; i++) {
+          let list=i ? spline.handles : spline.verts;
+          for (let v of list.selected.editable(ctx)) {
+              if (i===1&&v.owning_vertex!==undefined&&v.owning_vertex.hidden)
                 continue;
               if (i===0&&v.hidden)
                 continue;
@@ -2828,7 +2820,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../curve/spli
       if (points.length===0)
         return ;
       cent.mulScalar(1.0/points.length);
-      for (var v of points) {
+      for (let v of points) {
           v.sub(cent);
           v[0] = -v[0];
           v.add(cent);
@@ -9976,7 +9968,7 @@ es6_module_define('view2d', ["./view2d_ops.js", "../../path.ux/scripts/widgets/u
 }, '/dev/fairmotion/src/editors/viewport/view2d.js');
 
 
-es6_module_define('view2d_ops', ["../../curve/spline.js", "../../curve/spline_draw.js", "../../curve/spline_draw_new.js", "../../vectordraw/vectordraw_canvas2d_simple.js", "../../scene/scene.js", "../../core/frameset.js", "../../core/toolprops.js", "../../path.ux/scripts/pathux.js", "../../core/toolops_api.js", "../../core/fileapi/fileapi.js"], function _view2d_ops_module(_es6_module) {
+es6_module_define('view2d_ops', ["../../curve/spline_draw_new.js", "../../core/frameset.js", "../../path.ux/scripts/pathux.js", "../../core/toolprops.js", "../../curve/spline.js", "../../curve/spline_draw.js", "../../core/fileapi/fileapi.js", "../../scene/scene.js", "../../core/toolops_api.js", "../../vectordraw/vectordraw_canvas2d_simple.js"], function _view2d_ops_module(_es6_module) {
   "use strict";
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
@@ -10048,7 +10040,6 @@ es6_module_define('view2d_ops', ["../../curve/spline.js", "../../curve/spline_dr
       }
       mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
       mpos[1] = -mpos[1];
-      console.log("mpos", mpos[0], mpos[1]);
       this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
       ctx.view2d.set_cameramat(this.cameramat);
       if (!event.touches) {
@@ -10064,8 +10055,8 @@ es6_module_define('view2d_ops', ["../../curve/spline.js", "../../curve/spline_dr
   _ESClass.register(PanOp);
   _es6_module.add_class(PanOp);
   PanOp = _es6_module.add_export('PanOp', PanOp);
-  var $v1_QHS9_exec_pan;
-  var $v2_f0qr_exec_pan;
+  var $v1_LZCs_exec_pan;
+  var $v2_kW16_exec_pan;
   class ViewRotateZoomPanOp extends ToolOp {
     
     
@@ -10209,22 +10200,22 @@ es6_module_define('view2d_ops', ["../../curve/spline.js", "../../curve/spline_dr
     }
      exec_pan(ctx) {
       var view2d=ctx.view2d;
-      $v1_QHS9_exec_pan.load(this.mv5);
-      $v2_f0qr_exec_pan.load(this.mv6);
-      $v1_QHS9_exec_pan[2] = 0.9;
-      $v2_f0qr_exec_pan[2] = 0.9;
+      $v1_LZCs_exec_pan.load(this.mv5);
+      $v2_kW16_exec_pan.load(this.mv6);
+      $v1_LZCs_exec_pan[2] = 0.9;
+      $v2_kW16_exec_pan[2] = 0.9;
       var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
       iprojmat.invert();
       var scenter=new Vector3(this.center);
       scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
       if (isNaN(scenter[2]))
         scenter[2] = 0.0;
-      $v1_QHS9_exec_pan[2] = scenter[2];
-      $v2_f0qr_exec_pan[2] = scenter[2];
-      $v1_QHS9_exec_pan.multVecMatrix(iprojmat);
-      $v2_f0qr_exec_pan.multVecMatrix(iprojmat);
-      var vec=new Vector3($v2_f0qr_exec_pan);
-      vec.sub($v1_QHS9_exec_pan);
+      $v1_LZCs_exec_pan[2] = scenter[2];
+      $v2_kW16_exec_pan[2] = scenter[2];
+      $v1_LZCs_exec_pan.multVecMatrix(iprojmat);
+      $v2_kW16_exec_pan.multVecMatrix(iprojmat);
+      var vec=new Vector3($v2_kW16_exec_pan);
+      vec.sub($v1_LZCs_exec_pan);
       var newmat=new Matrix4(this.start_mat);
       if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
         return ;
@@ -10251,8 +10242,8 @@ es6_module_define('view2d_ops', ["../../curve/spline.js", "../../curve/spline_dr
         this.end_modal();
     }
   }
-  var $v1_QHS9_exec_pan=new Vector3();
-  var $v2_f0qr_exec_pan=new Vector3();
+  var $v1_LZCs_exec_pan=new Vector3();
+  var $v2_kW16_exec_pan=new Vector3();
   _ESClass.register(ViewRotateZoomPanOp);
   _es6_module.add_class(ViewRotateZoomPanOp);
   class ViewRotateOp extends ToolOp {

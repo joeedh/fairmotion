@@ -1346,7 +1346,7 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
    autoSizeUpdate: true, 
    showPathsInToolTips: true, 
    enableThemeAutoUpdate: true, 
-   useNativeToolTips: false, 
+   useNativeToolTips: true, 
    loadConstants: function (args) {
       for (let k in args) {
           if (k==="loadConstants")
@@ -1669,7 +1669,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/polyfill.js');
 
-es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js", "../extern/lz-string/lz-string.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./mobile-detect.js", "../extern/lz-string/lz-string.js", "./struct.js", "./polyfill.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -2712,6 +2712,7 @@ IDGen {
   }
   seed = _es6_module.add_export('seed', seed);
   let smallstr_hashes={}
+  const MAXINT=Math.pow(2, 31)-1;
   function strhash(str) {
     if (str.length<=64) {
         let hash=smallstr_hashes[str];
@@ -2723,7 +2724,7 @@ IDGen {
     for (var i=0; i<str.length; i++) {
         var ch=str.charCodeAt(i);
         hash = hash<0 ? -hash : hash;
-        hash^=(ch*524287+4323543)&((1<<19)-1);
+        hash^=(ch*1103515245+12345)&MAXINT;
     }
     if (str.length<=64) {
         smallstr_hashes[str] = hash;

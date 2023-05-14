@@ -21,7 +21,7 @@ var spline_draw_cache_vs = cachering.fromConstructor(Vector2, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector2, 32);
 
 var PI = Math.PI;
-var pow                                                                        = Math.pow, cos                                                        = Math.cos, sin = Math.sin, abs                        = Math.abs, floor      = Math.floor,
+var pow                                                                        = Math.pow, cos = Math.cos, sin                                        = Math.sin, abs = Math.abs, floor = Math.floor,
     ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
 
 import {
@@ -1043,7 +1043,7 @@ export class SplineDrawer {
       for (let si = 0; si < segments.length; si++) {
         let seg = step ? segments[totseg - si - 1] : segments[si];
         let seglen = seg.length;
-        let steps = seglen > 0.0 ? ~~(seglen/55 + 0.5) : 0;
+        let steps = seglen > 0.0 ? ~~(seglen/55.0 + 0.5) : 0;
         let ddata = seg.cdata.get_layer(SplineDrawData);
 
         let lastseg = si > 0 ? segments[totseg - si - 2] : undefined;
@@ -1060,8 +1060,8 @@ export class SplineDrawer {
 
         //lastsign = dsign;
         let side = (dsign < 0.0);
-
         let start = ddata.start(side), end = ddata.end(side);
+
         let ds = dsign*((end - start)/steps);
         let s = dsign < 0.0 ? end : start;
 
@@ -1136,7 +1136,7 @@ export class SplineDrawer {
           }
         }
 
-        /* now do curve */
+        /* Now do curve */
         for (let i = 0; i < steps; i++, s += ds) {
           if (si === segments.length - 1) {
             if (i === 0) {

@@ -44,8 +44,9 @@ import platforms.build
 util.doprint("Downloading path.ux")
 
 os.system("git submodule init")
-os.system("git submodule foreach --recursive git submodule init")
 os.system("git submodule update --recursive")
+os.system("git submodule foreach --recursive git submodule init")
+os.system("git submodule foreach --recursive git submodule update")
 
 startpath = os.getcwd()
 os.chdir("src/path.ux/simple_docsys")

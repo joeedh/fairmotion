@@ -449,7 +449,7 @@ def tinyhash(h):
 
     s = str(base64.b64encode(bytes(buf)), "latin-1")
 
-    return s.replace("=", "").replace("/", "").replace("-", "")
+    return s.replace("=", "").replace("/", "").replace("-", "").replace("+", "_")
 
 for t1 in targets:
   for i, f1 in enumerate(t1):

@@ -1458,7 +1458,7 @@ export class SplineSegment extends SplineElement {
   df(offy, s);
   */
   evaluateSide(s, side = 0, dv_out, normal_out, lw_dlw_out) {
-    s = Math.min(Math.max(s, 0.02), 0.98);
+    //s = Math.min(Math.max(s, 0.00001), 0.99999);
 
     if (this.flag & SplineFlags.COINCIDENT) {
       if (dv_out) {
@@ -1477,8 +1477,6 @@ export class SplineSegment extends SplineElement {
     }
 
     side = side ? 1.0 : -1.0;
-
-    //side = -(side*2.0 - 1.0);
 
     let co = evaluateSide_rets.next().load(this.evaluate(s));
 

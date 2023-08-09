@@ -83,8 +83,6 @@ export class PanOp extends ToolOp {
     mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
     mpos[1] = -mpos[1];
 
-    console.log("mpos", mpos[0], mpos[1]);
-
     this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
     ctx.view2d.set_cameramat(this.cameramat);
 

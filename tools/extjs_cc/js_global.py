@@ -87,7 +87,10 @@ glob_cmd_help_override = {
   "g_raw_code" : "Disable code transformations",
   "g_include_types" : "Emit type annotations",
   "g_type_file" : "Type file (json)",
-  "g_apply_types" : "Apply types from types file to original source"
+  "g_apply_types" : "Apply types from types file to original source",
+  "g_emit_class_vars" : "Keep class member variable declarations",
+  "g_prune_unassigned_class_vars" : "Prune class member vars with no declarations.",
+  "g_preprocess_code" : "Use preprocessor (disable with -npc)",
 }
 glob_cmd_short_override = {}
 
@@ -108,8 +111,9 @@ gcs["g_gen_log_code"] = "gtl"
 gcs["g_expand_classes"] = "ec"
 gcs["g_destroy_templates"] = "dt"
 gcs["g_log_productions"] = "lp"
-gcs["g_preprocess_code"] = "npc"
+gcs["g_preprocess_code"] = "pre" #disable with -npc
 gcs["g_include_dirs"] = "I"
+gcs["g_emit_class_vars"] = "ecv"
 gcs["g_do_annote"] = "na"
 gcs["g_gen_source_map"] = "gm"
 gcs["g_gen_smap_orig"] = "gsr"
@@ -179,6 +183,9 @@ class AbstractGlob:
     
     def add_args(self, cparse, js_cc_mode=True):
       global glob_cmd_exclude, glob_cmd_advanced, glob_cmd_help_override
+      
+      cparse.add_argument("-npc", "--no-preprocess-code", action="store_true", help="Don't preprocess code")
+      self.__arg_map["no-preprocess-code"] = "g_preprocess_code"
       
       def gen_cmd(attr):
         s = attr[2:].replace("_", "-")
@@ -290,7 +297,7 @@ class AbstractGlob:
 
         adv_parse.add_argument("--help", action="help", help="Print this message")
           
-    def parse_args(self, cparse, args):
+    def parse_args(self, cparse, args):        
       for k in args.__dict__:
         if k in glob_cmd_parse_exclude: continue
         
@@ -301,6 +308,8 @@ class AbstractGlob:
           glob_defaults[attr] = val
 
 class Glob(AbstractGlob):
+    g_emit_class_vars = True;
+    g_prune_unassigned_class_vars = True;
     g_gen_source_map = False;
     g_add_srcmap_ref = True
     g_semi_debug = False;
@@ -349,13 +358,13 @@ class Glob(AbstractGlob):
     g_infer_class_properties = False
     g_register_classes = True
     g_include_dirs=None
-    g_preprocess_code = True
+    g_preprocess_code = False
     g_transform_class_props = True
     g_combine_ifelse_nodes = False
     g_add_newlines = False
     g_force_global_strict = False
     g_autoglobalize = False
-    g_expand_iterators = True
+    g_expand_iterators = False
     g_inside_js_parse = False
     #g_harmony_iterators = True
     g_refactor_mode = False

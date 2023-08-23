@@ -164,7 +164,10 @@ tokens = (
    "ARROWPARENS",
    "ID_COLON",
    "CLASS_PROP_PRE",
+   "CLASS_PROP_PRIVATE",
+   "CLASS_PROP_PUBLIC",
    "DOUBLEQ", #coalesing operator
+   "HASH", # '#'
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
@@ -217,6 +220,7 @@ t_TIMES   = r'\*'
 t_EXPONENT = r'\*\*'
 t_DIVIDE  = r'/'
 t_MOD     = r'%'
+t_HASH = r'\#'
 
 #lex_arrow(lexdata, lexpos, lookahead_limit=256):
 def t_LPAREN(t):
@@ -224,10 +228,14 @@ def t_LPAREN(t):
   
   #detect presence of LexWithPrev
   if hasattr(t.lexer, "lexer"):
+    lex = t.lexer
     lexdata = t.lexer.lexer.lexdata
   else:
+    lex = t.lexer._lexwithprev
     lexdata = t.lexer.lexdata
 
+  lex.paren_lvl += 1
+  
   lexpos = t.lexpos
   arrowi = lex_arrow(lexdata, lexpos)
   if arrowi >= 0:
@@ -238,9 +246,37 @@ def t_LPAREN(t):
 
   return t
   
-t_RPAREN  = r'\)'
-t_LBRACKET = r'\{'
-t_RBRACKET = r'\}'
+def t_RPAREN(t):
+  r'\)'
+  
+  #Detect presence of LexWithPrev
+  if hasattr(t.lexer, "lexer"):
+    lex = t.lexer
+  else:
+    lex = t.lexer._lexwithprev
+    
+  lex.paren_lvl -= 1
+  
+  return t 
+  
+def t_LBRACKET(t):
+  r'\{'
+  l = t.lexer._lexwithprev
+  l.brace_lvl += 1
+  return t
+  
+def t_RBRACKET(t):
+  r'\}'
+  l = t.lexer._lexwithprev
+  l.brace_lvl -= 1
+  
+  if len(l.class_stack) > 0:
+    lvl = l.class_stack[-1][0]
+    if l.brace_lvl < lvl:
+      l.class_stack.pop()
+      
+  return t
+
 t_ASSIGN = r'='
 t_DOT = r'\.'
 t_BACKSLASH = r'\\'
@@ -755,8 +791,8 @@ def t_COMMENT(t):
   t.lexer.lineno += t.value.count("\n")
 
 cls_prop_id = r'([a-zA-Z_$]+[a-zA-Z0-9_$0-9]*)'
-cls_prop_type = r'([a-zA-Z_$]+[a-zA-Z0-9_$0-9<>,= \t]*)'
-cls_prop_re = r'(private[ \t]*)?(public[ \t]*)?(static[ \t]*)?' + cls_prop_id + r'[ \t]*:[ \t]*' + cls_prop_type + r'[ \t]*[\n\r;\=]'
+cls_prop_type = r'(:[ \t]*([a-zA-Z_$]+[a-zA-Z0-9_$0-9<>,= \t]*))?'
+cls_prop_re = r'((private[ \t]*)|(public[ \t]*)|(static[ \t]*))?' + cls_prop_id + r'[ \t]*' + cls_prop_type + r'[ \t]*[\n\r;\=]'
 cls_prop_re = re.compile(cls_prop_re)
 
 """
@@ -811,7 +847,22 @@ def t_ID(t):
     else:
         t.type = reserved.get(t.value,'ID')    # Check for reserved words
 
-    if class_property_validate(ld, t.lexpos) and last_id != "CLASS_PROP_PRE":
+    lex = t.lexer
+    if not isinstance(lex, LexWithPrev):
+      lex = lex._lexwithprev
+      
+    if t.type == "CLASS":
+      lex.class_stack.append([lex.brace_lvl + 1, lex.paren_lvl])
+    
+    inside_class_decl = False
+    if len(lex.class_stack) > 0:
+      brace_lvl = lex.class_stack[-1][0]
+      paren_lvl = lex.class_stack[-1][1]
+      
+      inside_class_decl = lex.brace_lvl == brace_lvl
+      inside_class_decl = inside_class_decl and lex.paren_lvl == paren_lvl
+    
+    if class_property_validate(ld, t.lexpos) and inside_class_decl:
         t2 = LexToken()
         t2.type = t.type
         t2.value = t.value
@@ -819,6 +870,13 @@ def t_ID(t):
         t2.lexer = t.lexer
         t2.lexpos = t.lexpos
 
+        if t2.value == "private":
+          t2.type = "CLASS_PROP_PRIVATE"
+        elif t2.value == "public":
+          t2.type = "CLASS_PROP_PUBLIC"
+        elif t2.value == "static":
+          t2.type = "STATIC"
+          
         t.lexer._lexwithprev.push(t2)
 
         t.type = "CLASS_PROP_PRE"
@@ -879,6 +937,10 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
+class Flags:
+  CLASS_DECL = 1
+Flags = Flags()
+
 # Build the lexer
 class LexWithPrev():
   def __init__(self, lexer):
@@ -892,6 +954,9 @@ class LexWithPrev():
     self.prev_lexpos = 0
     
     self.statestack = [];
+    self.brace_lvl = 0
+    self.paren_lvl = 0
+    self.class_stack = []
     
     self._laststack = 0
     self._no_semi_handling = False;
@@ -908,6 +973,9 @@ class LexWithPrev():
     lexer.comment = None
     lexer.comment_id = 0
     lexer.comments = {}
+    
+    #Per-character bitflags, see Flags class above
+    self.flags = []
     
   def next(self):
     t = self.token()
@@ -1008,7 +1076,12 @@ class LexWithPrev():
     
     return self.cur
     
+  def flag_data(self, data):
+    fs = self.flags = [0 for x in range(len(data))]
+          
   def input(self, data):
+    self.flag_data(data)
+    
     self.linemap = [0 for i in range(len(data))]
     linemap = self.linemap
     line = 0

@@ -483,7 +483,7 @@ print("using python executable \"" + PYBIN.strip() + "\"")
 
 #preprocessor is now disabled with -npc
 
-JFLAGS = " -dpr --no-expand-iterators -npc "
+JFLAGS = " -dpr -npc "
 if gen_type_logging:
     JFLAGS += " -gtl "
 

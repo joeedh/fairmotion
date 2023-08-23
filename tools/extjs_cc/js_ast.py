@@ -2427,15 +2427,19 @@ class ClassPropNode(Node):
             return "(none)"
 
     def gen_js(self, tlevel=0):
-        if not glob.g_include_types:
+        if not glob.g_emit_class_vars:
             return self.s("")
-
+        if glob.g_prune_unassigned_class_vars and len(self) == 0:
+          return self.s("")
+          
         s = self.s("")
         for m in self.modifiers:
             s += self.s(m + " ")
 
-        s += self.s(self.name + " : ")
-        if self.type is not None:
+        s += self.s(self.name)
+        
+        if self.type is not None and glob.g_include_types:
+            s += self.s(" : ")
             if type(self.type) == VarDeclNode:
                 s += self.type.get_type_str()
             else:
@@ -2444,6 +2448,12 @@ class ClassPropNode(Node):
 
         if len(self) > 0:
             s += self.s(" = ") + self[0].gen_js(0)
+        elif not glob.g_include_types or self.type is None:
+          #Create a valid ES declaration
+          s += self.s(" = undefined")
+          
+        s += self.s(";")
+        
         return s
 
 class MethodGetter(MethodNode):

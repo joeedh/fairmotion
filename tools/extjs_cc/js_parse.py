@@ -16,6 +16,18 @@ from js_process_ast_parser_only import *
 
 import random
 
+def get_lexer(p):
+  lex = None
+  if p:
+    lex = p.lexer
+  
+  if not lex:
+    lex = glob.g_lexer
+    
+  if not isinstance(lex, LexWithPrev):
+    lex = lex._lexwithprev
+  return lex
+  
 temp_idgen = [0]
 def getTempName():
     id = temp_idgen[0]
@@ -177,18 +189,20 @@ def restrict_prev(type1="noline"):
 def handle_semi_error(p):
   global parser 
   
-  if p and p.lexer._no_semi_handling:
+  lex = get_lexer(p)
+  
+  if p and lex._no_semi_handling:
     return
     
   if glob.g_production_debug:
     sys.stderr.write(termColor("in handle_semi_error", "yellow") + "\n")
     
-  tok = p.lexer.peek()
-  if len(p.lexer.peeks) > 1:
-    prev = p.lexer.peeks[-2]
+  tok = lex.peek()
+  if len(lex.peeks) > 1:
+    prev = lex.peeks[-2]
   else:
-    prev = p.lexer.prev
-  cur = p.lexer.cur
+    prev = lex.prev
+  cur = lex.cur
   
   if prev == None:
     prev = tok
@@ -226,7 +240,7 @@ def handle_semi_error(p):
   #"""
 
   i = cur.lexer.lexpos
-  ld = p.lexer.lexer.lexdata
+  ld = lex.lexer.lexdata
   lasttok = ""
 
   #print(prev, cur, tok, ret, prev.lineno, cur.lineno, tok.lineno)
@@ -236,14 +250,14 @@ def handle_semi_error(p):
     t = LexToken()
     t.type = "SEMI"
     t.value = ";"
-    t.lineno = p.lexer.lineno
-    t.lexpos = p.lexer.lexpos
+    t.lineno = lex.lineno
+    t.lexpos = lex.lexpos
 
     #"""
-    #p.lexer.cur.lexpos = p.lexer.lexpos
+    #lex.cur.lexpos = lex.lexpos
 
-    p.lexer.push(p.lexer.cur)
-    p.lexer.push(t)
+    lex.push(lex.cur)
+    lex.push(t)
 
     parser._parser.errok()
     glob.g_error = False
@@ -1673,6 +1687,7 @@ def p_id_right(p):
 
 def p_property_id(p):
   ''' property_id : ID
+                  | HASH ID
                   | GET
                   | SET
                   | DELETE
@@ -1698,7 +1713,9 @@ def p_property_id(p):
   '''
   set_parse_globals(p)
 
-  if len(p) == 4:
+  if len(p) == 3 and p[1] == "#":
+    p[0] = p[1] + p[2]
+  elif len(p) == 4:
     p[0] = RuntimeObjectKey(p[2])
   else:
     p[0] = p[1]
@@ -1807,46 +1824,43 @@ def p_static(p):
     p[0] = p[1]
 
 def p_cls_prefix(p):
-    ''' cls_prefix : STATIC
-                   | ID
-                   | cls_prefix STATIC
-                   | cls_prefix ID
-    '''
-    if len(p) == 2:
-        if p[1] not in ["static", "private", "public"]:
-            raise SyntaxError("expected static, private or public")
-
-        p[0] = [p[1]]
-    elif len(p) == 3:
-        if p[2] not in ["static", "private", "public"]:
-            raise SyntaxError("expected static, private or public")
-
-        p[0] = p[1]
-        p[0].add(p[2])
-
+  ''' cls_prefix : STATIC
+                 | CLASS_PROP_PRIVATE
+                 | CLASS_PROP_PUBLIC
+  '''
+  p[0] = p[1]
+    
 def p_cls_prefix_opt(p):
-    '''cls_prefix_opt : cls_prefix
-                      |
-    '''
-    if len(p) > 1:
-        p[0] = p[1]
+  '''cls_prefix_opt : cls_prefix
+                    |
+  '''
+  if len(p) > 1:
+    p[0] = p[1]
 
+def p_prop_id_vartype_opt(p):
+  '''prop_id_vartype_opt : ID_COLON COLON var_type
+                         | ID
+  '''
+  if len(p) == 4:
+    p[0] = [p[1], p[2]]
+  else:
+    p[0] = [p[1], None]
+    
 def p_typescript_class_property(p):
-    '''typescript_class_property : CLASS_PROP_PRE cls_prefix_opt ID_COLON COLON var_type SEMI
-                                 | CLASS_PROP_PRE cls_prefix_opt ID_COLON COLON var_type ASSIGN expr_for_arraylit SEMI
-
+    '''typescript_class_property : CLASS_PROP_PRE cls_prefix_opt prop_id_vartype_opt ASSIGN expr_for_arraylit SEMI
+                                 | CLASS_PROP_PRE cls_prefix_opt ID_COLON COLON var_type SEMI
     '''
     set_parse_globals(p)
 
-    if len(p) == 7:
+    if len(p) == 7 and type(p[3]) != list: #check that p[3] wasn't from prop_id_vartype_opt
         p[0] = ClassPropNode(p[3], type1=p[5])
         if p[2] is not None:
-            p[0].modifiers = p[2]
-    elif len(p) == 9:
-        p[0] = ClassPropNode(p[3], type1=p[5])
+            p[0].modifiers = set([p[2]])
+    elif len(p) == 7:
+        p[0] = ClassPropNode(p[3][0], type1=p[3][1])
         if p[2] is not None:
-            p[0].modifiers = p[2]
-        p[0].add(p[7])
+            p[0].modifiers = set([p[2]])
+        p[0].add(p[5])
 
 #"""
 
@@ -2646,13 +2660,18 @@ def p_id_colon(p):
 
 def p_member_name(p):
   '''member_name : ID
+                 | HASH ID
                  | NEW
                  | TRY
                  | DELETE
                  | FINALLY
                  | THROW
+                 | RETURN
                  | CATCH'''
-  p[0] = IdentNode(p[1])
+  if len(p) == 3:
+    p[0] = IdentNode(p[1] + p[2])
+  else:
+    p[0] = IdentNode(p[1])
 
 def p_expr(p):
     '''expr : NUMBER
@@ -3541,8 +3560,12 @@ def get_cur_pos(p):
   if lexpos == None: lexpos = 0
   """
   
-  if glob.g_lexer is not None and glob.g_lexer._force_lexpos_line is not None:
-    lexpos, line = glob.g_lexer._force_lexpos_line
+  lex = glob.g_lexer
+  if lex is not None and not isinstance(lex, LexWithPrev):
+    lex = lex._lexwithprev
+    
+  if lex is not None and lex._force_lexpos_line is not None:
+    lexpos, line = lex._force_lexpos_line
   elif type(p) == LexToken:
     lexpos, line = p.lexpos, p.lineno
   elif p != None and type(p.lineno) != int:
@@ -3661,10 +3684,12 @@ def p_error(p):
   #sys.exit()
   #"""
 
-  if p and p.lexer._force_lexpos_line is not None:
-    p.lexpos = p.lexer._force_lexpos_line[0]
-    p.lineno = p.lexer._force_lexpos_line[1]
-    p.line = p.lexer._force_lexpos_line[1]
+  lex = get_lexer(p)
+  
+  if p and lex._force_lexpos_line is not None:
+    p.lexpos = lex._force_lexpos_line[0]
+    p.lineno = lex._force_lexpos_line[1]
+    p.line = lex._force_lexpos_line[1]
 
   ### stack unwinding to fix error
   ### with reserved words as identifiers,

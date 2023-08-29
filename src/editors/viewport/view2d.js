@@ -1264,25 +1264,14 @@ export class View2DHandler extends Editor {
   }
 
   on_mouseup(event: MouseEvent) {
-    //if (event.was_touch && event.touches && event.touches.length === 0) {
-    //let x = this._last_mpos[0];
-    //let y = this._last_mpos[0];
-    //}
-    //console.warn("View3d mouseup", event.x, event.y, this.ctx.screen.pickElement(event.x, event.y), event);
-
-    //BAD! -> are we over a ui panel?
-    //if (this.ctx.screen.pickElement(event.x, event.y) !== this) {
-    //  return;
-    //}
-
-    event = this._mouse(event);
-    //if (this.bad_event(event))
-    //  return;
+    console.warn("View3d mouseup", event.x, event.y, this.ctx.screen.pickElement(event.x, event.y), event);
 
     this._mstart = null;
 
-    if (this.editor.on_mouseup(event))
+    event = this._mouse(event);
+    if (this.editor.on_mouseup(event)) {
       return;
+    }
   }
 
   on_mousemove(event) {
@@ -1291,7 +1280,7 @@ export class View2DHandler extends Editor {
     this._last_mpos[0] = event.x;
     this._last_mpos[1] = event.y;
 
-    if (!event.touches) {
+    if (event.pointerType === "mouse") {
       this.resetVelPan();
     }
 

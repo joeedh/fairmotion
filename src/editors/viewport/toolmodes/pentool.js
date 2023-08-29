@@ -2,8 +2,10 @@
 
 //import {FullContext} from "../../../core/context.js";
 
-import {SplineTypes, SplineFlags, SplineVertex,
-  SplineSegment, SplineFace} from '../../../curve/spline_types.js';
+import {
+  SplineTypes, SplineFlags, SplineVertex,
+  SplineSegment, SplineFace
+} from '../../../curve/spline_types.js';
 
 import {ToolOp, ToolMacro} from '../../../core/toolops_api.js';
 import {KeyMap, HotKey} from '../../../core/keymap.js';
@@ -14,8 +16,10 @@ import * as util from "../../../path.ux/scripts/util/util.js";
 import {ToolMode} from "./toolmode.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 
-import {ListProperty, Vec3Property, Vec4Property, BoolProperty,
-        IntProperty, FloatProperty, StringProperty} from "../../../path.ux/scripts/pathux.js";
+import {
+  ListProperty, Vec3Property, Vec4Property, BoolProperty,
+  IntProperty, FloatProperty, StringProperty
+} from "../../../path.ux/scripts/pathux.js";
 
 window.anim_to_playback = [];
 
@@ -23,29 +27,207 @@ export class StrokeOp extends ToolOp {
   constructor() {
     super();
 
+    this._first = true;
+
+    this.startMpos = new Vector2();
+    this.lastMpos = new Vector2();
+
     this._start = 0; //used for incremental build of op, without using undo
     this._verts = [];
+
+    let on_pointermove = this.on_pointermove;
+
+    let touches = new Map();
+
+    this.on_pointermove = (e) => {
+      console.log(e, e.pointerType, e.pointerId, touches.size);
+
+      if (e.pointerType == "touch") {
+        touches.set(e.pointerId, {});
+      }
+
+      if (0) {
+        if (e.getCoalescedEvents) {
+          for (let e2 of e.getCoalescedEvents()) {
+            on_pointermove.call(this, e2);
+          }
+        } else {
+          on_pointermove.call(this, e);
+        }
+      } else {
+        on_pointermove.call(this, e);
+      }
+    }
   }
 
-  static tooldef() {return {
-    uiname   : "Add Stroke",
-    toolpath : "pen.stroke",
-    inputs   : {
-      points : new ListProperty(Vec3Property),
-      lineWidth : new FloatProperty(),
-      strokeColor : new Vec4Property([0,0,0,1])
+  static tooldef() {
+    return {
+      uiname  : "Add Stroke",
+      toolpath: "pen.stroke",
+      inputs  : {
+        points     : new ListProperty(Vec3Property),
+        lineWidth  : new FloatProperty(),
+        strokeColor: new Vec4Property([0, 0, 0, 1]),
+        limit      : new FloatProperty(75),
+        mouseX     : new FloatProperty(-1).private(),
+        mouseY     : new FloatProperty(-1).private(),
+      },
+      is_modal: true
     }
-  }}
+  }
 
-  exec(ctx : FullContext) {
+
+  on_pointerdown(e) {
+    console.log("pointer down", e);
+  }
+
+  on_pointermove(e) {
+    //console.warn("pointer move");
+
+    let {limit, lineWidth, strokeColor, mouseX, mouseY} = this.getInputs();
+    if (mouseX >= 0) {
+      this.startMpos[0] = mouseX;
+      this.startMpos[1] = mouseY;
+      this.lastMpos.load(this.startMpos);
+      this._first = false;
+    }
+
+    let appendPoint = (v) => {
+      this.inputs.points.push(new Vector3([v[0], v[1], lineWidth]));
+      spline.verts.active = v;
+    }
+
+    let ctx = this.modal_ctx;
+    let view2d = ctx.view2d;
+
+    let p = new Vector2().loadXY(e.x, e.y); //view2d.getLocalMouse(e.x, e.y);
+    p = view2d.getLocalMouse(p[0], p[1]);
+    let spline = ctx.frameset.spline;
+
+    view2d.unproject(p);
+
+    if (this._first) {
+      let newv = spline.make_vertex(p);
+
+      this.onPointCreate(spline, newv, undefined, lineWidth, strokeColor);
+      appendPoint(newv);
+
+      this._first = false;
+
+      this.startMpos.load(p);
+      view2d.project(this.startMpos);
+      this.lastMpos.load(p);
+
+      this._splineUpdate(this.modal_ctx);
+      return;
+    }
+
+    if (this.lastMpos.vectorDistance(p) > limit) {
+      let actv = spline.verts.active;
+      let newv = spline.make_vertex(p);
+
+      this.onPointCreate(spline, newv, actv, lineWidth, strokeColor);
+      appendPoint(newv);
+
+      this._splineUpdate(this.modal_ctx);
+      this.lastMpos.load(p);
+    }
+  }
+
+  onPointCreate(spline, newv, lastv, lineWidth, strokeColor) {
+    if (lastv) {
+      let s = spline.make_segment(lastv, newv);
+
+      s.mat.linewidth = lineWidth;
+      for (let j = 0; j < 4; j++) {
+        s.mat.strokecolor[j] = strokeColor[j];
+      }
+
+      if (s.v1 === lastv) {
+        s.w1 = lastv[2] || 1.0;
+        s.w2 = newv[2] || 1.0;
+      } else {
+        s.w1 = newv[2] || 1.0;
+        s.w2 = lastv[2] || 1.0;
+      }
+    }
+
+    if (lastv && lastv.segments.length === 2) {
+      let n1 = new Vector2();
+      let n2 = new Vector2();
+
+      let s1 = lastv.segments[0];
+      let s2 = lastv.segments[1];
+
+      let a = s1.other_vert(lastv);
+      let b = lastv;
+      let c = s2.other_vert(lastv);
+
+      n1.load(a).sub(b);
+      n2.load(c).sub(b);
+
+      let bad = n1.dot(n1) < 0.001 || n2.dot(n2) < 0.001;
+
+      n1.normalize();
+      n2.normalize();
+
+      bad = bad || Math.acos(n1.dot(n2)) < Math.PI*0.25;
+
+      if (bad) {
+        //lastv.flag |= SplineFlags.BREAK_CURVATURES;
+        lastv.flag |= SplineFlags.BREAK_TANGENTS;
+      }
+    }
+  }
+
+  _splineUpdate(ctx) {
+    let spline = ctx.frameset.spline;
+    spline.regen_sort();
+    spline.regen_solve();
+    spline.regen_render();
+
+    window.redraw_viewport();
+  }
+
+  on_pointerup(e) {
+    this.finish(this.modal_ctx);
+  }
+
+  finish(ctx) {
+    this.modalEnd(false);
+  }
+
+  cancel(ctx) {
+    this.modalEnd(true);
+  }
+
+
+  exec(ctx: FullContext) {
+    let spline = ctx.frameset.spline;
+    let lastv;
+
+    let {lineWidth, strokeColor} = this.getInputs();
+
+    for (let p of this.inputs.points) {
+      let newv = spline.make_vertex(p);
+      this.onPointCreate(spline, newv, lastv, lineWidth, strokeColor);
+
+      lastv = newv;
+    }
+
+    this._splineUpdate(ctx);
+  }
+
+  _exec(ctx: FullContext) {
+    return;
     let spline = ctx.frameset.spline;
 
     let lastv = undefined;
 
     let arr = this.inputs.points.value;
 
-    lastv = this._verts[this._start-1];
-    let lastp = arr[this._start-1];
+    lastv = this._verts[this._start - 1];
+    let lastp = arr[this._start - 1];
     lastp = lastp ? lastp.getValue() : undefined;
 
     let n1 = new Vector2();
@@ -55,7 +237,7 @@ export class StrokeOp extends ToolOp {
     let lwid = this.inputs.lineWidth.getValue();
     let color = this.inputs.strokeColor.getValue();
 
-    for (let i=this._start; i<arr.length; i++) {
+    for (let i = this._start; i < arr.length; i++) {
       let v = arr[i];
       v = v.getValue();
 
@@ -66,7 +248,7 @@ export class StrokeOp extends ToolOp {
         let s = spline.make_segment(lastv, v2);
 
         s.mat.linewidth = lwid;
-        for (let j=0; j<4; j++) {
+        for (let j = 0; j < 4; j++) {
           s.mat.strokecolor[j] = color[j];
         }
 
@@ -126,7 +308,7 @@ export class StrokeOp extends ToolOp {
     let spline = ctx.frameset.spline;
 
     this._undo = {
-      start_eid : spline.idgen.cur_id
+      start_eid: spline.idgen.cur_id
     }
   }
 
@@ -138,7 +320,7 @@ export class StrokeOp extends ToolOp {
     let a = this._undo.start_eid;
     let b = spline.idgen.cur_id;
 
-    for (let i=a; i<=b; i++) {
+    for (let i = a; i <= b; i++) {
       let e = spline.eidmap[i];
       if (e !== undefined && e.type === SplineTypes.VERTEX) {
         spline.kill_vertex(e);
@@ -155,11 +337,10 @@ export class StrokeOp extends ToolOp {
 }
 
 export class PenToolMode extends ToolMode {
-  mpos : Vector2
-  last_mpos : Vector2
-  start_mpos : Vector2
-  _cancel_on_touch : boolean
-  mdown : boolean;
+  mpos: Vector2
+  last_mpos: Vector2
+  start_mpos: Vector2
+  mdown: boolean;
 
   constructor() {
     super();
@@ -171,7 +352,7 @@ export class PenToolMode extends ToolMode {
     this.start_mpos = new Vector2();
     this.mdown = false;
 
-    this.limit = 10;
+    this.limit = 75;
 
     this.stroke = [];
     this.smoothness = 1.0;
@@ -206,7 +387,7 @@ export class PenToolMode extends ToolMode {
   static defineAPI(api) {
     let st = super.defineAPI(api);
 
-    let def = st.float("limit", "limit", "Limit","Minimum distance between points");
+    let def = st.float("limit", "limit", "Limit", "Minimum distance between points");
     def.range(0, 300).noUnits()
 
     return st;
@@ -221,13 +402,13 @@ export class PenToolMode extends ToolMode {
 
   static toolDefine() {
     return {
-      name: "pen",
-      uiName: "Pen",
-      flag: 0,
-      icon: Icons.PEN_TOOL,
-      nodeInputs: {},
+      name       : "pen",
+      uiName     : "Pen",
+      flag       : 0,
+      icon       : Icons.PEN_TOOL,
+      nodeInputs : {},
       nodeOutputs: {},
-      nodeFlag: 0
+      nodeFlag   : 0
     }
   }
 
@@ -237,8 +418,7 @@ export class PenToolMode extends ToolMode {
   }
 
   tools_menu(ctx, mpos, view2d) {
-    let ops = [
-    ];
+    let ops = [];
 
     var menu = view2d.toolop_menu(ctx, "Tools", ops);
 
@@ -262,7 +442,7 @@ export class PenToolMode extends ToolMode {
       let f = event.touches[0];
 
       f = f.force || f.pressure || 1.0;
-      p[2]  = f;
+      p[2] = f;
     } else {
       p[2] = 1.0;
     }
@@ -283,6 +463,7 @@ export class PenToolMode extends ToolMode {
       this.ctx.toolstack.execTool(this.ctx, this.tool);
       this.tool = new StrokeOp();
 
+      this.tool.inputs.limit.setValue(this.limit);
       this.tool.inputs.lineWidth.setValue(this.ctx.view2d.default_linewidth);
       this.tool.inputs.strokeColor.setValue(this.ctx.view2d.default_stroke);
       this.ctx.toolstack.execTool(this.ctx, this.tool);
@@ -298,24 +479,19 @@ export class PenToolMode extends ToolMode {
     window.redraw_viewport();
   }
 
-  on_mousedown(event : Object, localX, localY) {
+  on_mousedown(event: Object, localX, localY) {
     if (event.altKey || event.shiftKey || event.ctrlKey || event.commandKey) {
       return;
     }
 
-    this.start_mpos[0] = event.x;
-    this.start_mpos[1] = event.y;
-
-    let mpos = this.getMouse(event);
+    event.stopPropagation();
+    event.preventDefault();
 
     this.tool = new StrokeOp();
+
     this.tool.inputs.lineWidth.setValue(this.ctx.view2d.default_linewidth);
     this.tool.inputs.strokeColor.setValue(this.ctx.view2d.default_stroke);
-    this.ctx.toolstack.execTool(this.ctx, this.tool); //set undo checkpoint
-
-    this.addPoint(mpos);
-
-    this.mdown = true;
+    this.ctx.toolstack.execTool(this.ctx, this.tool);
   }
 
   ensure_paths_off() {
@@ -336,7 +512,7 @@ export class PenToolMode extends ToolMode {
   }
 
   //returns [spline, element, mindis]
-  findnearest(mpos : Array, selectmask : number, limit : number, ignore_layers) {
+  findnearest(mpos: Array, selectmask: number, limit: number, ignore_layers) {
     var frameset = this.ctx.frameset;
     var editor = this.ctx.view2d;
 
@@ -401,30 +577,6 @@ export class PenToolMode extends ToolMode {
   updateHighlight(x, y, was_touch) {
   }
 
-  on_mousemove(event : Object) {
-    if (!this.mdown) {
-      return;
-    }
-
-    let mpos = this.getMouse(event);
-
-    if (this.last_mpos.vectorDistance(mpos) > this.limit) {
-      this.last_mpos.load(mpos);
-      this.addPoint(mpos);
-    }
-  }
-
-  on_mouseup(event : Object) {
-    this.mdown = false;
-
-    console.log("%cMOUSE UP", "color : yellow;");
-
-    this.tool = undefined;
-    this._cancel_on_touch = false;
-    this.start_mpos[0] = event.x;
-    this.start_mpos[1] = event.y;
-
-  }
 
   do_alt_select(event, mpos, view2d) {
   }
@@ -444,11 +596,11 @@ export class PenToolMode extends ToolMode {
   }
 
 
-  dataLink(scene : Scene, getblock : function, getblock_us : function) {
+  dataLink(scene: Scene, getblock: function, getblock_us: function) {
     this.ctx = g_app_state.ctx;
   }
 
-  loadSTRUCT(reader : function) {
+  loadSTRUCT(reader: function) {
     reader(this);
   }
 }

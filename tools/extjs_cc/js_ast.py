@@ -2693,7 +2693,12 @@ class BindingArg(IdentNode):
     self.val = id
   
   def gen_js(self, tlevel=0):
-    return self.s("..." + str(self.val))
+    s = self.s("...")
+    if type(self.val) == str:
+      s += self.s(self.val)
+    else:
+      s += self.val.gen_js(tlevel)
+    return s
     
 class ImportNode(Node):
   '''

@@ -167,7 +167,6 @@ tokens = (
    "CLASS_PROP_PRIVATE",
    "CLASS_PROP_PUBLIC",
    "DOUBLEQ", #coalesing operator
-   "HASH", # '#'
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
@@ -220,7 +219,6 @@ t_TIMES   = r'\*'
 t_EXPONENT = r'\*\*'
 t_DIVIDE  = r'/'
 t_MOD     = r'%'
-t_HASH = r'\#'
 
 #lex_arrow(lexdata, lexpos, lookahead_limit=256):
 def t_LPAREN(t):
@@ -754,7 +752,7 @@ def t_incomment_CLOSECOM(t):
   t.lexer.comment_id += 1
 
 def t_incomment_ALL(t):
-  r'(.|[ \n\r\t])'#(?!\*\/)'
+  r'(.|[ \n\r\t])' #(?!\*\/)'
 
   t.lexer.lineno += t.value.count("\n")
   comment_str.val += t.value
@@ -790,7 +788,7 @@ def t_COMMENT(t):
 
   t.lexer.lineno += t.value.count("\n")
 
-cls_prop_id = r'([a-zA-Z_$]+[a-zA-Z0-9_$0-9]*)'
+cls_prop_id = r'([#a-zA-Z_$]+[a-zA-Z0-9_$0-9]*)'
 cls_prop_type = r'(:[ \t]*([a-zA-Z_$]+[a-zA-Z0-9_$0-9<>,= \t]*))?'
 cls_prop_re = r'((private[ \t]*)|(public[ \t]*)|(static[ \t]*))?' + cls_prop_id + r'[ \t]*' + cls_prop_type + r'[ \t]*[\n\r;\=]'
 cls_prop_re = re.compile(cls_prop_re)
@@ -824,7 +822,7 @@ def class_property_validate(line, lexpos):
 
 last_id = None
 
-@TOKEN(r'[\$a-zA-Z_][\$a-zA-Z_0-9]*')
+@TOKEN(r'[\$#a-zA-Z_][\$a-zA-Z_0-9]*')
 def t_ID(t):
     global last_id
 

@@ -1687,7 +1687,6 @@ def p_id_right(p):
 
 def p_property_id(p):
   ''' property_id : ID
-                  | HASH ID
                   | GET
                   | SET
                   | DELETE
@@ -1981,23 +1980,16 @@ def p_template_ref_opt(p):
     
 def p_func_call(p):
   r''' func_call : template_ref_opt LPAREN exprlist RPAREN
-                 | template_ref_opt LPAREN TRIPLEDOT binding_ident RPAREN
-                 | template_ref_opt LPAREN expr COMMA TRIPLEDOT binding_ident RPAREN
                  | template_ref_opt LPAREN RPAREN
   '''
   set_parse_globals(p)
   
-  if len(p) == 8:
+  if len(p) == 5:
     elist = p[3]
-    elist.add(BindingArg(p[6]))
-  if len(p) == 6:
-    elist = ExprNode([BindingArg(p[4])])
   elif len(p) == 4:
     elist = ExprNode([])
-  elif len(p) == 5:
-    elist = p[3]
-  
-  p[0] = FuncCallNode(elist);
+
+  p[0] = FuncCallNode(elist)
   if p[1] != None:
     p[0].template = p[1]
   
@@ -2660,7 +2652,6 @@ def p_id_colon(p):
 
 def p_member_name(p):
   '''member_name : ID
-                 | HASH ID
                  | NEW
                  | TRY
                  | DELETE
@@ -2677,6 +2668,7 @@ def p_expr(p):
     '''expr : NUMBER
             | strlit
             | id
+            | TRIPLEDOT id
             | id_colon
             | id template_ref
             | template_ref
@@ -2735,6 +2727,10 @@ def p_expr(p):
             | re_lit
     '''
     set_parse_globals(p)
+
+    if len(p) == 3 and p[1] == "...":
+      p[0] = BindingArg(p[2])
+      return
 
     if len(p) == 7:
       if p[2] != "[": #assignment

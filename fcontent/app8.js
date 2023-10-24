@@ -1,5 +1,2533 @@
 
-es6_module_define('vectordraw_canvas2d_path2d', ["./vectordraw_base.js", "../path.ux/scripts/pathux.js"], function _vectordraw_canvas2d_path2d_module(_es6_module) {
+es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_table.js", "../core/struct.js"], function _spline_multires_module(_es6_module) {
+  "use strict";
+  var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var CustomDataLayer=es6_import_item(_es6_module, './spline_base.js', 'CustomDataLayer');
+  var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
+  var CurveEffect=es6_import_item(_es6_module, './spline_base.js', 'CurveEffect');
+  var MResFlags={SELECT: 1, 
+   ACTIVE: 2, 
+   REBASE: 4, 
+   UPDATE: 8, 
+   HIGHLIGHT: 16, 
+   HIDE: 64, 
+   FRAME_DIRTY: 128}
+  MResFlags = _es6_module.add_export('MResFlags', MResFlags);
+  var _a=0;
+  var TX=0;
+  TX = _es6_module.add_export('TX', TX);
+  var TY=1;
+  TY = _es6_module.add_export('TY', TY);
+  var TVX=2;
+  TVX = _es6_module.add_export('TVX', TVX);
+  var TVY=3;
+  TVY = _es6_module.add_export('TVY', TVY);
+  var TSEG=4;
+  TSEG = _es6_module.add_export('TSEG', TSEG);
+  var TS=5;
+  TS = _es6_module.add_export('TS', TS);
+  var TT=6;
+  TT = _es6_module.add_export('TT', TT);
+  var TA=7;
+  TA = _es6_module.add_export('TA', TA);
+  var TFLAG=8;
+  TFLAG = _es6_module.add_export('TFLAG', TFLAG);
+  var TID=9;
+  TID = _es6_module.add_export('TID', TID);
+  var TLEVEL=10;
+  TLEVEL = _es6_module.add_export('TLEVEL', TLEVEL);
+  var TSUPPORT=11;
+  TSUPPORT = _es6_module.add_export('TSUPPORT', TSUPPORT);
+  var TBASIS=12;
+  TBASIS = _es6_module.add_export('TBASIS', TBASIS);
+  var TDEGREE=13;
+  TDEGREE = _es6_module.add_export('TDEGREE', TDEGREE);
+  var TNEXT=14;
+  TNEXT = _es6_module.add_export('TNEXT', TNEXT);
+  var TTOT=15;
+  TTOT = _es6_module.add_export('TTOT', TTOT);
+  var _format=["TX", "TY", "TVX", "TVY", "TSEG", "TS", "TT", "TA", "TFLAG", "TID", "TLEVEL", "TSUPPORT", "TBASIS", "TDEGREE", "TNEXT"];
+  _format = _es6_module.add_export('_format', _format);
+  var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
+  var $p_gSLX_recalc_offset;
+  class BoundPoint  {
+    
+     constructor() {
+      this.mr = undefined;
+      this.i = undefined;
+      this.data = undefined;
+      this.composed_id = -1;
+      this.offset = {};
+      var this2=this;
+      Object.defineProperty(this.offset, "0", {get: function () {
+          return this2.data[this2.i+TVX];
+        }, 
+     set: function (val) {
+          this2.data[this2.i+TVX] = val;
+        }});
+      Object.defineProperty(this.offset, "1", {get: function () {
+          return this2.data[this2.i+TVY];
+        }, 
+     set: function (val) {
+          this2.data[this2.i+TVY] = val;
+        }});
+    }
+     recalc_offset(spline) {
+      var seg=spline.eidmap[this.seg];
+      var co=seg._evalwrap.evaluate(this.s);
+      this.offset[0] = this[0]-co[0];
+      this.offset[1] = this[1]-co[1];
+      $p_gSLX_recalc_offset[0] = this[0];
+      $p_gSLX_recalc_offset[1] = this[1];
+      var sta=seg._evalwrap.global_to_local($p_gSLX_recalc_offset, undefined, this.s);
+      this.t = sta[1];
+      this.a = sta[2];
+    }
+     toString() {
+      var next=this.data!=undefined ? this.data[this.i+TNEXT] : "(error)";
+      return "{\n"+"\"0\"   : "+this[0]+",\n"+"\"1\"   : "+this[1]+",\n"+".offset : ["+this.offset[0]+", "+this.offset[1]+"],\n"+"id      : "+this.id+",\n"+"seg     : "+this.seg+",\n"+"t       : "+this.t+",\n"+"s       : "+this.s+",\n"+"flag    : "+this.flag+",\n"+"next    : "+next+"\n"+"}\n";
+    }
+     bind(mr, i) {
+      this.mr = mr;
+      this.i = i;
+      this.data = mr.data;
+      this.composed_id = compose_id(this.seg, this.id);
+      return this;
+    }
+    get  0() {
+      return this.data[this.i+TX];
+    }
+    set  0(val) {
+      this.data[this.i+TX] = val;
+    }
+    get  1() {
+      return this.data[this.i+TY];
+    }
+    set  1(val) {
+      this.data[this.i+TY] = val;
+    }
+    get  support() {
+      return this.data[this.i+TSUPPORT];
+    }
+    set  support(val) {
+      this.data[this.i+TSUPPORT] = val;
+    }
+    get  degree() {
+      return this.data[this.i+TDEGREE];
+    }
+    set  degree(val) {
+      this.data[this.i+TDEGREE] = val;
+    }
+    get  basis() {
+      return this.data[this.i+TBASIS];
+    }
+    set  basis(val) {
+      this.data[this.i+TBASIS] = val;
+    }
+    get  seg() {
+      return this.data[this.i+TSEG];
+    }
+    set  seg(val) {
+      this.data[this.i+TSEG] = val;
+    }
+    get  level() {
+      return this.data[this.i+TLEVEL];
+    }
+    set  level(val) {
+      this.data[this.i+TLEVEL] = val;
+    }
+    get  s() {
+      return this.data[this.i+TS];
+    }
+    set  s(val) {
+      this.data[this.i+TS] = val;
+    }
+    get  t() {
+      return this.data[this.i+TT];
+    }
+    set  t(val) {
+      this.data[this.i+TT] = val;
+    }
+    get  a() {
+      return this.data[this.i+TA];
+    }
+    set  a(val) {
+      this.data[this.i+TA] = val;
+    }
+    get  flag() {
+      return this.data[this.i+TFLAG];
+    }
+    set  flag(val) {
+      this.data[this.i+TFLAG] = val;
+    }
+    get  id() {
+      return this.data[this.i+TID];
+    }
+    set  id(val) {
+      this.data[this.i+TID] = val;
+    }
+    get  next() {
+      return this.data[this.i+TNEXT];
+    }
+  }
+  var $p_gSLX_recalc_offset=new Vector3([0, 0, 0]);
+  _ESClass.register(BoundPoint);
+  _es6_module.add_class(BoundPoint);
+  BoundPoint = _es6_module.add_export('BoundPoint', BoundPoint);
+  var pointiter_ret_cache=cachering.fromConstructor(BoundPoint, 12);
+  var add_point_cache=cachering.fromConstructor(BoundPoint, 12);
+  var get_point_cache=cachering.fromConstructor(BoundPoint, 12);
+  class point_iter  {
+    
+     constructor() {
+      this.ret = {done: true, 
+     value: undefined};
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+     cache_init(mr, level) {
+      this.mr = mr;
+      this.level = level;
+      this.data = mr.data;
+      this.cur = mr.index[level*ITOT+IHEAD];
+      this.ret.done = false;
+      this.ret.value = undefined;
+      return this;
+    }
+     next() {
+      if (this.cur==-1) {
+          this.ret.done = true;
+          this.ret.value = undefined;
+          this.mr = undefined;
+          return this.ret;
+      }
+      var d=this.data;
+      var cur=this.cur;
+      var p=pointiter_ret_cache.next();
+      p.bind(this.mr, this.cur);
+      this.cur = d[cur+TNEXT];
+      if (this.cur==cur) {
+          console.log("EEK! bad data in mres iterator!", this, this.mr, this.cur, cur, "level:", this.level);
+          this.cur = -1;
+      }
+      this.ret.value = p;
+      return this.ret;
+    }
+  }
+  _ESClass.register(point_iter);
+  _es6_module.add_class(point_iter);
+  var binomial_table=es6_import_item(_es6_module, '../util/binomial_table.js', 'binomial_table');
+  var bernstein_offsets=es6_import_item(_es6_module, '../util/binomial_table.js', 'bernstein_offsets');
+  function binomial(n, k) {
+    if (binomial_table.length>n) {
+        return binomial_table[n][k];
+    }
+    if (k==0.0||k==n) {
+        return 1;
+    }
+    return binomial(n-1, k-1)+binomial(n-1, k);
+  }
+  function bernstein(degree, s) {
+    degree = Math.max(Math.floor(degree), 0.0);
+    var half=Math.floor(degree/2);
+    return binomial(degree, half)*pow(s, half)*pow(1.0-s, degree-half);
+  }
+  function bernstein2(degree, s) {
+    var a=floor(degree+1);
+    var b=ceil(degree+1);
+    if (isNaN(a)||a<=0) {
+        return 0.0;
+    }
+    var start=0.0, mid=0.5, end=1.0;
+    if (a>=0&&a<bernstein_offsets.length) {
+        start = bernstein_offsets[a][0];
+        mid = bernstein_offsets[a][1];
+        end = bernstein_offsets[a][2];
+    }
+    var off=0.5-mid;
+    if (1||a<4) {
+        var t=1.0-abs(s-0.5)*2.0;
+        s-=off*t;
+    }
+    else {
+      s*=2.0;
+      s = start*(1.0-s)+mid*s;
+    }
+    var height=bernstein(a, mid, 0, a, Math.floor(a/2));
+    return bernstein(a, s)/height;
+  }
+  function crappybasis(s, k, support, degree) {
+    if (s<k-support||s>=k+support)
+      return 0.0;
+    var start=k-support, end=k+support;
+    var t=(s-start)/(end-start);
+    var degree2=degree-2.0;
+    var sign=degree2<0.0 ? -1.0 : 1.0;
+    degree2 = pow(degree2, 0.25)*sign+2.0;
+    t = bernstein2(degree, t);
+    if (isNaN(t))
+      t = 0.0;
+    return t;
+  }
+  var $sum_m2F8_evaluate;
+  var $ks_UJLm_evaluate;
+  class MultiResEffector extends CurveEffect {
+     constructor(owner) {
+      super();
+      this.mr = owner;
+    }
+     evaluate(s) {
+      var n=this.prior.derivative(s);
+      var t=n[0];
+      n[0] = n[1];
+      n[1] = t;
+      n.normalize();
+      n.mulScalar(10.0);
+      var co=this.prior.evaluate(s);
+      $sum_m2F8_evaluate.zero();
+      var i=0;
+      for (var p in this.mr.points(0)) {
+          $ks_UJLm_evaluate[i] = p.s;
+          i++;
+      }
+      for (var p in this.mr.points(0)) {
+          var w=crappybasis(s, p.s, p.support, p.degree);
+          if (isNaN(w))
+            continue;
+          $sum_m2F8_evaluate[0]+=p.offset[0]*w;
+          $sum_m2F8_evaluate[1]+=p.offset[1]*w;
+      }
+      for (var i=0; i<2; i++) {
+          var next=i ? this.next : this.prev;
+          var soff=i ? -1.0 : 1.0;
+          var sign=i ? -1.0 : 1.0;
+          if (next!=undefined) {
+              var mr=!(__instance_of(next, MultiResEffector)) ? next.eff.mr : next.mr;
+              for (var p in mr.points(0)) {
+                  if ((!i&&p.s-support>=0)||(i&&p.s+support<=1.0))
+                    continue;
+                  var support=p.support;
+                  var ps=p.s;
+                  var s2;
+                  if (!i) {
+                      s2 = next.rescale(this, s)+1.0;
+                  }
+                  else {
+                    s2 = -next.rescale(this, 1.0-s);
+                  }
+                  var w=crappybasis(s2, ps, support, p.degree);
+                  $sum_m2F8_evaluate[0]+=p.offset[0]*w;
+                  $sum_m2F8_evaluate[1]+=p.offset[1]*w;
+              }
+          }
+      }
+      co.add($sum_m2F8_evaluate);
+      return co;
+    }
+  }
+  var $sum_m2F8_evaluate=new Vector3();
+  var $ks_UJLm_evaluate=new Array(2000);
+  _ESClass.register(MultiResEffector);
+  _es6_module.add_class(MultiResEffector);
+  MultiResEffector = _es6_module.add_export('MultiResEffector', MultiResEffector);
+  class MultiResGlobal  {
+     constructor() {
+      this.active = undefined;
+    }
+    static  fromSTRUCT(reader) {
+      var ret=new MultiResGlobal();
+      reader(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(MultiResGlobal);
+  _es6_module.add_class(MultiResGlobal);
+  MultiResGlobal = _es6_module.add_export('MultiResGlobal', MultiResGlobal);
+  MultiResGlobal.STRUCT = `
+  MultiResGlobal {
+    active : double | obj.active == undefined ? -1 : obj.active;
+  }
+`;
+  var $_co_qE7j_add_point;
+  var $sta_Vx4W_recalc_worldcos_level;
+  class MultiResLayer extends CustomDataLayer {
+     constructor(size=16) {
+      super(this);
+      this._effector = new MultiResEffector(this);
+      this.max_layers = 8;
+      this.data = new Float64Array(size*TTOT);
+      this.index = new Array(this.max_layers*ITOT);
+      this.totpoint = 0;
+      this._size = size;
+      this._freecur = 0;
+      for (var i=0; i<this.max_layers; i++) {
+          this.index[i*ITOT+IHEAD] = -1;
+          this.index[i*ITOT+ITAIL] = -1;
+          this.index[i*ITOT+IFREEHEAD] = 0;
+      }
+      this.points_iter_cache = cachering.fromConstructor(point_iter, 8);
+    }
+     _convert(formata, formatb) {
+      var totp=this.data.length/formata.length;
+      var data=new Float64Array(totp*formatb.length);
+      var odata=this.data;
+      var ttota=formata.length, ttotb=formatb.length;
+      console.log("FORMATA", formata, "\n");
+      console.log("FORMATB", formatb, "\n");
+      var fa=[], fb=[];
+      var fmap={};
+      for (var i=0; i<formata.length; i++) {
+          for (var j=0; j<formatb.length; j++) {
+              if (formata[i]==formatb[j]) {
+                  fmap[i] = j;
+              }
+          }
+      }
+      console.log("FMAP", fmap, "\n");
+      for (var i=0; i<totp; i++) {
+          for (var j=0; j<formata.length; j++) {
+              var src=odata[i*ttota+j];
+              if ((formata[j]=="TNEXT"||formata[j]=="TID")&&src!=-1) {
+                  src = Math.floor((src/ttota)*ttotb);
+              }
+              data[i*ttotb+fmap[j]] = src;
+          }
+      }
+      for (var i=0; i<this.max_layers; i++) {
+          if (this.index[i*ITOT+IHEAD]!=-1)
+            this.index[i*ITOT+IHEAD] = Math.floor((this.index[i*ITOT+IHEAD]/ttota)*ttotb);
+          if (this.index[i*ITOT+ITAIL]!=-1)
+            this.index[i*ITOT+ITAIL] = Math.floor((this.index[i*ITOT+ITAIL]/ttota)*ttotb);
+          if (this.index[i*ITOT+IFREEHEAD]!=-1)
+            this.index[i*ITOT+IFREEHEAD] = Math.floor((this.index[i*ITOT+IFREEHEAD]/ttota)*ttotb);
+      }
+      this.data = data;
+    }
+     fix_points(seg=undefined) {
+      var index=this.index;
+      for (var i=0; i<this.index.length; i+=ITOT) {
+          index[i] = index[i+1] = -1;
+          index[i+2] = index[i+3] = 0;
+      }
+      var data=this.data;
+      for (var i=0; i<data.length; i+=TTOT) {
+          if (data[i]==0&&data[i+1]==0&&data[i+2]==0&&data[TNEXT]==0)
+            continue;
+          this._freecur = i+TTOT;
+          var lvl=data[i+TLEVEL];
+          if (index[lvl*ITOT+IHEAD]==-1) {
+              index[lvl*ITOT+IHEAD] = index[lvl*ITOT+ITAIL] = i;
+              data[i+TNEXT] = -1;
+          }
+          else {
+            var i2=index[lvl*ITOT+ITAIL];
+            data[i2+TNEXT] = i;
+            data[i+TNEXT] = -1;
+            index[lvl*ITOT+ITAIL] = i;
+          }
+          index[lvl*ITOT+ITOTPOINT]++;
+      }
+      if (seg==undefined)
+        return ;
+      for (var i=0; i<this.max_layers; i++) {
+          for (var p in this.points(i)) {
+              p.seg = seg.eid;
+          }
+      }
+    }
+     points(level) {
+      return this.points_iter_cache.next().cache_init(this, level);
+    }
+     add_point(level, co=$_co_qE7j_add_point) {
+      this._freecur+=TTOT-(this._freecur%TTOT);
+      var i=this._freecur;
+      if (this._freecur+TTOT>=this._size) {
+          this.resize(this._freecur+3);
+      }
+      var j=0;
+      this.data[i+TX] = co[0];
+      this.data[i+TY] = co[1];
+      this.data[i+TLEVEL] = level;
+      this.data[i+TID] = i;
+      this.data[i+TNEXT] = -1;
+      this.data[i+TSUPPORT] = 0.3;
+      this.data[i+TDEGREE] = 2.0;
+      this._freecur = i+TTOT;
+      var head=this.index[level*ITOT+IHEAD];
+      var tail=this.index[level*ITOT+ITAIL];
+      if (head==-1||tail==-1) {
+          this.index[level*ITOT+IHEAD] = i;
+          this.index[level*ITOT+ITAIL] = i;
+      }
+      else {
+        this.data[tail+TNEXT] = i;
+        this.index[level*ITOT+ITAIL] = i;
+      }
+      this.index[level*ITOT+ITOTPOINT]++;
+      this.totpoint++;
+      return add_point_cache.next().bind(this, i);
+    }
+     get(id, allocate_object=false) {
+      if (allocate_object)
+        return new BoundPoint().bind(this, id);
+      else 
+        return get_point_cache.next().bind(this, id);
+    }
+     curve_effect() {
+      return this._effector;
+    }
+     resize(newsize) {
+      if (newsize<this._size)
+        return ;
+      newsize*=2.0;
+      var array=new Float64Array(newsize);
+      var oldsize=this.data.length;
+      for (var i=0; i<oldsize; i++) {
+          array[i] = this.data[i];
+      }
+      this._size = newsize;
+      this.data = array;
+    }
+     segment_split(old_segment, old_v1, old_v2, new_segments) {
+
+    }
+     recalc_worldcos_level(seg, level) {
+      for (var p in this.points(level)) {
+          $sta_Vx4W_recalc_worldcos_level[0] = p.s;
+          $sta_Vx4W_recalc_worldcos_level[1] = p.t;
+          $sta_Vx4W_recalc_worldcos_level[2] = p.a;
+          var co=seg._evalwrap.local_to_global($sta_Vx4W_recalc_worldcos_level);
+          var co2=seg._evalwrap.evaluate($sta_Vx4W_recalc_worldcos_level[0]);
+          p[0] = co[0];
+          p[1] = co[1];
+          p.offset[0] = co[0]-co2[0];
+          p.offset[1] = co[1]-co2[1];
+      }
+    }
+     recalc_wordscos(seg) {
+      for (var i=0; i<this.max_layers; i++) {
+          this.recalc_worldcos_level(seg, i);
+      }
+    }
+     post_solve(owner_segment) {
+      this.recalc_wordscos(owner_segment);
+    }
+     interp(srcs, ws) {
+      this.time = 0.0;
+      for (var i=0; i<srcs.length; i++) {
+
+      }
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(this);
+      ret.max_layers = 8;
+    }
+    static  define() {
+      return {typeName: "MultiResLayer", 
+     hasCurveEffect: true, 
+     sharedClass: MultiResGlobal}
+    }
+  }
+  var $_co_qE7j_add_point=[0, 0];
+  var $sta_Vx4W_recalc_worldcos_level=[0, 0, 0];
+  _ESClass.register(MultiResLayer);
+  _es6_module.add_class(MultiResLayer);
+  MultiResLayer = _es6_module.add_export('MultiResLayer', MultiResLayer);
+  MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer)+`
+    data            : array(double);
+    index           : array(double);
+    max_layers      : int;
+    totpoint        : int;
+    _freecur        : int;
+    _size           : int;
+  }
+`;
+  function test_fix_points() {
+    var spline=new Context().spline;
+    for (var seg in spline.segments) {
+        var mr=seg.cdata.get_layer(MultiResLayer);
+        mr.fix_points(seg);
+    }
+  }
+  test_fix_points = _es6_module.add_export('test_fix_points', test_fix_points);
+  function test_multires(n) {
+    var mr=new MultiResLayer();
+    var adds=[0.5, -0.25, -1, 1, 1, -2, 4, 9, 11.3, 3, 4, 0.245345, 1.0234, 8, 7, 4, 6];
+    var iadd=0.0;
+    for (var i=0; i<5; i++, iadd+=0.2*(i+1)) {
+        var add=iadd;
+        var p=mr.add_point(0, [-4, -3]);
+        var c=0;
+        p.id = adds[c++]+add++;
+        p.offset[0] = adds[c++]+add++;
+        p.offset[1] = adds[c++]+add++;
+        p.flag = adds[c++]+add++;
+        p.seg = adds[c++]+add++;
+        p.t = adds[c++]+add++;
+        p.s = adds[c++]+add++;
+        p[0] = adds[c++]+add++;
+        p[1] = adds[c++]+add++;
+        add = iadd;
+        c = 0;
+        console.log(p.id==adds[c++]+add++, adds[c-1]+add-1, p.id, "id");
+        console.log(p.offset[0]==adds[c++]+add++, adds[c-1]+add-1, p.offset[0], "offset[0]");
+        console.log(p.offset[1]==adds[c++]+add++, adds[c-1]+add-1, p.offset[1], "offset[1]");
+        console.log(p.flag==adds[c++]+add++, adds[c-1]+add-1, p.flag, "flag");
+        console.log(p.seg==adds[c++]+add++, adds[c-1]+add-1, p.seg, "seg");
+        console.log(p.t==adds[c++]+add++, adds[c-1]+add-1, p.t, "t");
+        console.log(p.s==adds[c++]+add++, adds[c-1]+add-1, p.s, "s");
+        console.log(p[0]==adds[c++]+add++, adds[c-1]+add-1, p[0], "[0]");
+        console.log(p[1]==adds[c++]+add++, adds[c-1]+add-1, p[1], "[1]");
+    }
+    var _c=0;
+    for (var p of mr.points(0)) {
+        console.log(""+p);
+        if (_c++>1000) {
+            console.trace("Infinite loop!");
+            break;
+        }
+    }
+    return mr;
+  }
+  test_multires = _es6_module.add_export('test_multires', test_multires);
+  function compose_id(eid, index) {
+    var mul=(1<<24);
+    return index+eid*mul;
+  }
+  compose_id = _es6_module.add_export('compose_id', compose_id);
+  var $ret_ofBl_decompose_id=[0, 0];
+  function decompose_id(id) {
+    var mul=(1<<24);
+    var eid=Math.floor(id/mul);
+    id-=eid*mul;
+    $ret_ofBl_decompose_id[0] = eid;
+    $ret_ofBl_decompose_id[1] = id;
+    return $ret_ofBl_decompose_id;
+  }
+  decompose_id = _es6_module.add_export('decompose_id', decompose_id);
+  var _test_id_start=0;
+  function test_ids(steps, start) {
+    if (steps===undefined) {
+        steps = 1;
+    }
+    if (start===undefined) {
+        start = _test_id_start;
+    }
+    var max_mres=5000000;
+    var max_seg=500000;
+    console.log("starting at", start);
+    for (var i=start; i<start+steps; i++) {
+        for (var j=0; j<max_seg; j++) {
+            var id=compose_id(i, j);
+            var ret=decompose_id(id);
+            if (i!=ret[0]||j!=ret[1]) {
+                console.log("Found bad combination!!", ret[0], ret[1], "||", i, j);
+            }
+        }
+    }
+    console.log("finished");
+    _test_id_start = i;
+  }
+  test_ids = _es6_module.add_export('test_ids', test_ids);
+  function has_multires(spline) {
+    return spline.segments.cdata.num_layers("MultiResLayer")>0;
+  }
+  has_multires = _es6_module.add_export('has_multires', has_multires);
+  function ensure_multires(spline) {
+    if (spline.segments.cdata.num_layers("MultiResLayer")==0) {
+        spline.segments.cdata.add_layer(MultiResLayer);
+    }
+  }
+  ensure_multires = _es6_module.add_export('ensure_multires', ensure_multires);
+  var empty_iter={_ret: {done: true, 
+    value: undefined}, 
+   next: function () {
+      this._ret.done = true;
+      this._ret.value = undefined;
+      return this._ret;
+    }}
+  empty_iter[Symbol.iterator] = function () {
+    return this;
+  }
+  class GlobalIter  {
+    
+     constructor(spline, level, return_keys=false) {
+      this.spline = spline;
+      this.level = level;
+      this.return_keys = return_keys;
+      this.seg = undefined;
+      this.segiter = spline.segments[Symbol.iterator]();
+      this.pointiter = undefined;
+      this.ret = {done: false, 
+     value: undefined};
+    }
+     next() {
+      if (this.pointiter==undefined) {
+          this.seg = this.segiter.next();
+          if (this.seg.done==true) {
+              this.ret.done = true;
+              this.ret.value = undefined;
+              return this.ret;
+          }
+          this.seg = this.seg.value;
+          var mr=this.seg.cdata.get_layer(MultiResLayer);
+          this.pointiter = mr.points(this.level);
+      }
+      var p=this.pointiter.next();
+      if (p.done) {
+          this.pointiter = undefined;
+          return this.next();
+      }
+      p = p.value;
+      this.ret.value = this.return_keys ? compose_id(p.seg, p.id) : p;
+      return this.ret;
+    }
+     [Symbol.iterator]() {
+      return this;
+    }
+  }
+  _ESClass.register(GlobalIter);
+  _es6_module.add_class(GlobalIter);
+  function iterpoints(spline, level, return_keys) {
+    if (return_keys===undefined) {
+        return_keys = false;
+    }
+    if (spline.segments.cdata.num_layers("MultiResLayer")==0)
+      return empty_iter;
+    return new GlobalIter(spline, level, return_keys);
+  }
+  iterpoints = _es6_module.add_export('iterpoints', iterpoints);
+  iterpoints.selected = function (spline, level) {
+  }
+}, '/dev/fairmotion/src/curve/spline_multires.js');
+
+
+es6_module_define('spline_strokegroup', ["./spline_element_array.js", "../path.ux/scripts/pathux.js", "./spline_types.js"], function _spline_strokegroup_module(_es6_module) {
+  "use strict";
+  var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
+  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
+  var cconst=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'cconst');
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
+  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
+  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
+  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
+  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
+  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
+  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
+  var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
+  var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
+  let hashcache=util.cachering.fromConstructor(util.HashDigest, 8);
+  class SplineStrokeGroup  {
+    
+    
+     constructor(segs) {
+      this.hash = -1;
+      this.segments = [];
+      this.eids = [];
+      this.id = -1;
+      if (segs) {
+          for (let seg of segs) {
+              this.add(seg);
+          }
+          this.calcHash();
+      }
+    }
+     add(seg) {
+      this.segments.push(seg);
+      this.eids.push(seg.eid);
+    }
+     calcHash() {
+      this.hash = SplineStrokeGroup.calcHash(this.segments);
+    }
+    static  calcHash(segments) {
+      let hash=hashcache.next().reset();
+      for (let s of segments) {
+          hash.add(s.eid);
+      }
+      return hash.get();
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+     afterSTRUCT(spline) {
+      let eids=this.eids;
+      this.segments.length = 0;
+      this.eids = [];
+      for (let eid of eids) {
+          let seg=spline.eidmap[eid];
+          if (!seg) {
+              console.warn("Missing SplineSegment in SplineGroup!");
+              continue;
+          }
+          this.segments.push(seg);
+          this.eids.push(eid);
+      }
+      this.calcHash();
+      return this;
+    }
+  }
+  _ESClass.register(SplineStrokeGroup);
+  _es6_module.add_class(SplineStrokeGroup);
+  SplineStrokeGroup = _es6_module.add_export('SplineStrokeGroup', SplineStrokeGroup);
+  SplineStrokeGroup.STRUCT = `
+SplineStrokeGroup {
+  id       : int;
+  hash     : uint;
+  eids     : array(int);
+}
+`;
+  let _color1=new Vector4();
+  let _color2=new Vector4();
+  function vertexIsSplit(spline, v, segments) {
+    if (segments===undefined) {
+        segments = v.segments;
+    }
+    function visible(seg) {
+      let hide=seg.flag&SplineFlags.HIDE;
+      hide = hide||(seg.flag&SplineFlags.NO_RENDER);
+      if (hide)
+        return false;
+      for (let k in seg.layers) {
+          if (spline.layerset.get(k).flag&SplineLayerFlags.HIDE) {
+              return false;
+          }
+      }
+      return true;
+    }
+    if (v!==undefined&&v.segments.length>3) {
+        return true;
+    }
+    let hide;
+    let stroke;
+    let mask_to_face;
+    let blur;
+    let doublewid;
+    let doublecol;
+    let fill_over_stroke;
+    let opacity;
+    function fcmp(a, b, l) {
+      if (l===undefined) {
+          l = 0.01;
+      }
+      return Math.abs(a-b)>l;
+    }
+    for (let seg of segments) {
+        let hide2=visible(seg);
+        if (hide!==undefined&&hide!==hide2) {
+            return 1;
+        }
+        else {
+          hide = hide2;
+        }
+        let stroke2=seg.mat.strokecolor;
+        if (stroke!==undefined&&stroke2.vectorDistanceSqr(stroke)>0.0001) {
+            return 2;
+        }
+        else {
+          stroke = _color1.load(stroke2);
+        }
+        let mask_to_face2=seg.mat.flag&MaterialFlags.MASK_TO_FACE;
+        if (mask_to_face!==undefined&&mask_to_face2!==mask_to_face) {
+            return 3;
+        }
+        else {
+          mask_to_face = mask_to_face2;
+        }
+        let blur2=seg.mat.blur;
+        if (blur!==undefined&&fcmp(blur2, blur)) {
+            return 4;
+        }
+        else {
+          blur = blur2;
+        }
+        let fill_over_stroke2=seg.mat.fill_over_stroke;
+        if (fill_over_stroke!==undefined&&fill_over_stroke2!==fill_over_stroke) {
+            return 5;
+        }
+        else {
+          fill_over_stroke = fill_over_stroke2;
+        }
+        let doublewid2=seg.mat.linewidth2;
+        if (doublewid!==undefined&&!!doublewid2!==!!doublewid) {
+            return 6;
+        }
+        else {
+          doublewid = doublewid2;
+        }
+        let doublecol2=seg.mat.strokecolor2;
+        if (doublewid2!==0&&doublecol!==undefined&&doublecol.vectorDistanceSqr(doublecol2)>0.001) {
+            return 7;
+        }
+        else {
+          doublecol = _color2.load(doublecol2);
+        }
+        let opacity2=seg.mat.opacity;
+        if (opacity!==undefined&&fcmp(opacity2, opacity)) {
+            return 8;
+        }
+        else {
+          opacity = opacity2;
+        }
+    }
+    let layerbad=9;
+    outer: for (let s1 of segments) {
+        for (let s2 of segments) {
+            if (s1===s2) {
+                continue;
+            }
+            for (let k in s1.layers) {
+                if (k in s2.layers) {
+                    layerbad = false;
+                    break outer;
+                }
+            }
+        }
+    }
+    return layerbad;
+  }
+  vertexIsSplit = _es6_module.add_export('vertexIsSplit', vertexIsSplit);
+  function splitSegmentGroups(spline) {
+    let oldstrokes=spline._drawStrokeGroupMap;
+    spline._drawStrokeVertSplits = new Set();
+    spline._drawStrokeGroupMap = new Map();
+    spline.drawStrokeGroups.length = 0;
+    let c1=new Vector4();
+    let c2=new Vector4();
+    let tempsegs=[null, null];
+    function visible(seg) {
+      let hide=seg.flag&SplineFlags.HIDE;
+      hide = hide||(seg.flag&SplineFlags.NO_RENDER);
+      if (hide)
+        return false;
+      for (let k in seg.layers) {
+          if (spline.layerset.get(k).flag&SplineLayerFlags.HIDE) {
+              return false;
+          }
+      }
+      return true;
+    }
+    const drawStrokeVertSplits=spline._drawStrokeVertSplits;
+    function finishSegs(segs) {
+      if (segs.length===0) {
+          return ;
+      }
+      if (segs.length===1) {
+          drawStrokeVertSplits.add(segs[0].v1.eid);
+          drawStrokeVertSplits.add(segs[0].v2.eid);
+      }
+      else {
+        let seg=segs[0];
+        if (seg.v2===segs[1].v1||seg.v2===segs[1].v2) {
+            drawStrokeVertSplits.add(seg.v2.eid);
+        }
+        else {
+          drawStrokeVertSplits.add(seg.v1.eid);
+        }
+        seg = segs[segs.length-1];
+        let seg2=segs[segs.length-2];
+        if (seg.v2===seg2.v1) {
+            drawStrokeVertSplits.add(seg.v2.eid);
+        }
+        else {
+          drawStrokeVertSplits.add(seg.v1.eid);
+        }
+      }
+      let hash=SplineStrokeGroup.calcHash(segs);
+      let group;
+      if (oldstrokes.has(hash)) {
+          group = oldstrokes.get(hash);
+          for (let i=0; i<group.segments.length; i++) {
+              group.segments[i] = spline.eidmap[group.eids[i]];
+          }
+      }
+      else {
+        group = new SplineStrokeGroup(segs);
+        group.id = spline.idgen.gen_id();
+        oldstrokes.set(hash, group);
+      }
+      spline._drawStrokeGroupMap.set(hash, group);
+      spline.drawStrokeGroups.push(group);
+    }
+    for (let group of spline.strokeGroups) {
+        if (group.segments.length===0) {
+            continue;
+        }
+        let seg=group.segments[0];
+        let i=0;
+        while (i<group.segments.length&&!visible(group.segments[i])) {
+          i++;
+        }
+        if (i===group.segments.length) {
+            continue;
+        }
+        seg = group.segments[i];
+        let segs=[];
+        while (i<group.segments.length) {
+          let s=group.segments[i];
+          let bad=false;
+          if (0) {
+              let mat1=seg.mat;
+              let mat2=s.mat;
+              c1.load(mat1.strokecolor);
+              c2.load(mat2.strokecolor);
+              bad = Math.abs(mat1.blur-mat2.blur)>0.01;
+              bad = bad||c1.vectorDistance(c2)>0.01;
+              bad = bad||!visible(s);
+              let layerbad=true;
+              for (let k in s.layers) {
+                  if (k in seg.layers) {
+                      layerbad = false;
+                  }
+              }
+              bad = bad||layerbad;
+          }
+          else {
+            tempsegs[0] = s;
+            tempsegs[1] = seg;
+            bad = vertexIsSplit(spline, undefined, tempsegs);
+          }
+          if (bad&&segs.length>0) {
+              finishSegs(segs);
+              segs = [];
+              seg = s;
+          }
+          segs.push(s);
+          i++;
+        }
+        finishSegs(segs);
+    }
+  }
+  splitSegmentGroups = _es6_module.add_export('splitSegmentGroups', splitSegmentGroups);
+  function buildSegmentGroups(spline) {
+    let roots=new Set();
+    let visit=new Set();
+    let oldstrokes=spline._strokeGroupMap;
+    spline._strokeGroupMap = new Map();
+    spline.strokeGroups.length = 0;
+    let groups=spline.strokeGroups;
+    for (let v of spline.verts) {
+        let val=v.segments.length;
+        if (val===0||val===2) {
+            continue;
+        }
+        roots.add(v);
+    }
+    let vvisit=new Set();
+    let doseg=(v) =>      {
+      let startv=v;
+      for (let seg of v.segments) {
+          if (visit.has(seg))
+            continue;
+          let _i=0;
+          let segs=[seg];
+          v = startv;
+          visit.add(seg);
+          vvisit.add(startv);
+          do {
+            if (v!==seg.v1&&v!==seg.v2) {
+                console.error("EEK!!");
+                break;
+            }
+            v = seg.other_vert(v);
+            vvisit.add(v);
+            if (v.segments.length!==2) {
+                break;
+            }
+            seg = v.other_segment(seg);
+            if (segs.length===0||seg!==segs[0]) {
+                segs.push(seg);
+            }
+            visit.add(seg);
+            if (_i++>1000) {
+                console.warn("infinite loop detected");
+                break;
+            }
+          } while (v!==startv);
+          
+          if (segs.length===0) {
+              continue;
+          }
+          let group=new SplineStrokeGroup(segs);
+          group.calcHash();
+          if (oldstrokes.has(group.hash)) {
+              group = oldstrokes.get(group.hash);
+              for (let i=0; i<group.segments.length; i++) {
+                  group.segments[i] = spline.eidmap[group.eids[i]];
+              }
+          }
+          else {
+            group.id = spline.idgen.gen_id();
+          }
+          if (!spline._strokeGroupMap.has(group.hash)) {
+              spline._strokeGroupMap.set(group.hash, group);
+              groups.push(group);
+          }
+      }
+    }
+    for (let v of roots) {
+        doseg(v);
+    }
+    for (let v of spline.verts) {
+        if (!(vvisit.has(v))) {
+            doseg(v);
+        }
+    }
+    for (let i=0; i<groups.length; i++) {
+        let g=groups[i];
+        for (let j=0; j<g.segments.length; j++) {
+            if (g.segments[j]===undefined) {
+                console.warn("Corrupted group!", g);
+                g.segments.remove(undefined);
+                j--;
+            }
+        }
+        if (g.length===0) {
+            groups[i] = groups[groups.length-1];
+            groups.length--;
+            i--;
+        }
+    }
+  }
+  buildSegmentGroups = _es6_module.add_export('buildSegmentGroups', buildSegmentGroups);
+}, '/dev/fairmotion/src/curve/spline_strokegroup.js');
+
+
+es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], function _solver_new_module(_es6_module) {
+  "USE_PREPROCESSOR";
+  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
+  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
+  var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
+  var acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
+  var $tan_83Kt_solve=new Vector3();
+  function solve(spline, order, steps, gk, do_inc, edge_segs) {
+    var pairs=[];
+    var CBREAK=SplineFlags.BREAK_CURVATURES;
+    var TBREAK=SplineFlags.BREAK_TANGENTS;
+    function reset_edge_segs() {
+      for (var j=0; do_inc&&j<edge_segs.length; j++) {
+          var seg=edge_segs[j];
+          var ks=seg.ks;
+          for (var k=0; k<ks.length; k++) {
+              ks[k] = seg._last_ks[k];
+          }
+      }
+    }
+    var eps=0.0001;
+    for (var i=0; i<spline.handles.length; i++) {
+        var h=spline.handles[i], seg1=h.owning_segment, v=h.owning_vertex;
+        if (do_inc&&!((v.flag)&SplineFlags.UPDATE))
+          continue;
+        if (!(h.flag&SplineFlags.USE_HANDLES)&&v.segments.length<=2)
+          continue;
+        if (h.hpair!=undefined&&(h.flag&SplineFlags.AUTO_PAIRED_HANDLE)) {
+            var seg2=h.hpair.owning_segment;
+            var s1=v===seg1.v1 ? eps : 1.0-eps, s2=v==seg2.v1 ? eps : 1.0-eps;
+            var thresh=5;
+            if (seg1.v1.vectorDistance(seg1.v2)<thresh||seg2.v1.vectorDistance(seg2.v2)<thresh)
+              continue;
+            var d1=seg1.v1.vectorDistance(seg1.v2);
+            var d2=seg2.v1.vectorDistance(seg2.v2);
+            var ratio=Math.min(d1/d2, d2/d1);
+            if (isNaN(ratio))
+              ratio = 0.0;
+            pairs.push(v);
+            pairs.push(seg1);
+            pairs.push(seg2);
+            pairs.push(s1);
+            pairs.push(s2);
+            pairs.push((s1<0.5)==(s2<0.5) ? -1 : 1);
+            pairs.push(ratio);
+        }
+        else 
+          if (!(h.flag&SplineFlags.AUTO_PAIRED_HANDLE)) {
+            var s1=v==seg1.v1 ? 0 : 1;
+            pairs.push(v);
+            pairs.push(seg1);
+            pairs.push(undefined);
+            pairs.push(s1);
+            pairs.push(0.0);
+            pairs.push(1);
+            pairs.push(1);
+        }
+    }
+    var PSLEN=7;
+    for (var i=0; i<spline.verts.length; i++) {
+        var v=spline.verts[i];
+        if (do_inc&&!((v.flag)&SplineFlags.UPDATE))
+          continue;
+        if (v.segments.length!=2)
+          continue;
+        if (v.flag&TBREAK)
+          continue;
+        var seg1=v.segments[0], seg2=v.segments[1];
+        var s1=v===seg1.v1 ? 0 : 1, s2=v==seg2.v1 ? 0 : 1;
+        seg1.evaluate(0.5, order);
+        seg2.evaluate(0.5, order);
+        var thresh=5;
+        if (seg1.v1.vectorDistance(seg1.v2)<thresh||seg2.v1.vectorDistance(seg2.v2)<thresh)
+          continue;
+        var d1=seg1.v1.vectorDistance(seg1.v2);
+        var d2=seg2.v1.vectorDistance(seg2.v2);
+        var ratio=Math.min(d1/d2, d2/d1);
+        if (isNaN(ratio))
+          ratio = 0.0;
+        pairs.push(v);
+        pairs.push(seg1);
+        pairs.push(seg2);
+        pairs.push(s1);
+        pairs.push(s2);
+        pairs.push((s1==0.0)==(s2==0.0) ? -1 : 1);
+        pairs.push(ratio);
+    }
+    var glist=[];
+    for (var i=0; i<pairs.length/PSLEN; i++) {
+        glist.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+    var klist1=[];
+    for (var i=0; i<pairs.length/PSLEN; i++) {
+        klist1.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+    var klist2=[];
+    for (var i=0; i<pairs.length/PSLEN; i++) {
+        klist2.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+    var gs=new Array(order);
+    var df=3e-05;
+    var err=0.0;
+    if (pairs.length==0)
+      return ;
+    for (var si=0; si<steps; si++) {
+        var i=0;
+        var plen=pairs.length;
+        if (isNaN(err)||isNaN(plen))
+          break;
+        if (si>0&&err/plen<0.1)
+          break;
+        var di=0;
+        if (si%2) {
+            di = -PSLEN*2;
+            i = plen-PSLEN;
+        }
+        reset_edge_segs();
+        err = 0.0;
+        while (i<plen&&i>=0) {
+          var cnum=Math.floor(i/PSLEN);
+          var v=pairs[i++], seg1=pairs[i++], seg2=pairs[i++];
+          var s1=pairs[i++], s2=pairs[i++], doflip=pairs[i++];
+          var ratio=pairs[i++];
+          i+=di;
+          for (var ci=0; ci<2; ci++) {
+              if (0&&seg2!=undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
+                  var sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
+                  var i1=s1*(order-1), i2=s2*(order-1);
+                  var k1=seg1.ks[i1], k2=seg2.ks[i2];
+                  var k=((k1/sz1)+(k2/sz2*doflip))/2.0;
+                  seg1.ks[i1] = seg1.ks[i1]+(k*sz1-seg1.ks[i1])*1;
+                  seg2.ks[i2] = seg2.ks[i2]+(k*doflip*sz2-seg2.ks[i2])*1;
+              }
+              if (seg2!=undefined) {
+                  var ta=seg1.derivative(s1, order), tb=seg2.derivative(s2, order);
+                  if (doflip<0.0)
+                    tb.negate();
+                  ta.normalize();
+                  tb.normalize();
+                  var _d=Math.min(Math.max(ta.dot(tb), -1.0), 1.0);
+                  var r=acos(_d);
+                  
+              }
+              else {
+                var h=seg1.handle(v);
+                $tan_83Kt_solve.load(h).sub(v).normalize();
+                if (v==seg1.v2)
+                  $tan_83Kt_solve.negate();
+                var ta=seg1.derivative(s1, order).normalize();
+                var _d=Math.min(Math.max(ta.dot($tan_83Kt_solve), -1.0), 1.0);
+                var r=acos(_d);
+                
+              }
+              if (r<0.0001)
+                continue;
+              err+=r;
+              var totgs=0.0;
+              var gs=glist[cnum];
+              var seglen=(seg2==undefined) ? 1 : 2;
+              for (var sj=0; sj<seglen; sj++) {
+                  var seg=sj ? seg2 : seg1;
+                  for (var j=0; j<order; j++) {
+                      var orig=seg.ks[j];
+                      seg.ks[j]+=df;
+                      if (seg2!=undefined) {
+                          var ta=seg1.derivative(s1, order), tb=seg2.derivative(s2, order);
+                          if (doflip<0.0)
+                            tb.negate();
+                          ta.normalize();
+                          tb.normalize();
+                          var _d=Math.min(Math.max(ta.dot(tb), -1.0), 1.0);
+                          var r2=acos(_d);
+                          
+                      }
+                      else {
+                        var ta=seg1.derivative(s1, order).normalize();
+                        var _d=Math.min(Math.max(ta.dot($tan_83Kt_solve), -1.0), 1.0);
+                        var r2=acos(_d);
+                        
+                      }
+                      var g=(r2-r)/df;
+                      gs[sj*order+j] = g;
+                      totgs+=g*g;
+                      seg.ks[j] = orig;
+                  }
+              }
+              if (totgs==0.0)
+                continue;
+              r/=totgs;
+              var unstable=ratio<0.1;
+              for (var sj=0; sj<seglen; sj++) {
+                  var seg=sj ? seg2 : seg1;
+                  for (var j=0; j<order; j++) {
+                      var g=gs[sj*order+j];
+                      if (order>2&&unstable&&(j==0||j==order-1)) {
+                      }
+                      seg.ks[j]+=-r*g*gk;
+                  }
+              }
+              if (seg2!=undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
+                  var sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
+                  var i1=s1*(order-1), i2=s2*(order-1);
+                  var k1=seg1.ks[i1], k2=seg2.ks[i2];
+                  var k=((k1/sz1)+(k2/sz2*doflip))/2.0;
+                  seg1.ks[i1] = seg1.ks[i1]+(k*sz1-seg1.ks[i1])*1;
+                  seg2.ks[i2] = seg2.ks[i2]+(k*doflip*sz2-seg2.ks[i2])*1;
+              }
+          }
+        }
+        for (var j=0; j<edge_segs.length; j++) {
+            var seg=edge_segs[j];
+            var ks=seg.ks;
+            for (var k=0; k<ks.length; k++) {
+                seg.ks[k] = seg._last_ks[k];
+            }
+        }
+    }
+  }
+  solve = _es6_module.add_export('solve', solve);
+}, '/dev/fairmotion/src/curve/solver_new.js');
+
+
+es6_module_define('vectordraw_base', ["../path.ux/scripts/pathux.js"], function _vectordraw_base_module(_es6_module) {
+  "use strict";
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
+  var VectorFlags={UPDATE: 2, 
+   TAG: 4}
+  VectorFlags = _es6_module.add_export('VectorFlags', VectorFlags);
+  class VectorVertex extends Vector2 {
+     constructor(co) {
+      super(co);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      this.load(this._vec);
+      delete this._vec;
+    }
+  }
+  _ESClass.register(VectorVertex);
+  _es6_module.add_class(VectorVertex);
+  VectorVertex = _es6_module.add_export('VectorVertex', VectorVertex);
+  VectorVertex.STRUCT = `
+VectorVertex {
+  _vec : vec2;
+}
+`;
+  class PathBase  {
+    
+    
+    
+    
+    
+    
+     constructor() {
+      this.off = new Vector2();
+      this.id = -1;
+      this.z = undefined;
+      this.blur = 0;
+      this.size = [-1, -1];
+      this.index = -1;
+      this.matrix = new Matrix4();
+      this.color = new Vector4();
+      this.aabb = [new Vector2(), new Vector2()];
+      this.clip_paths = new set();
+      this.clip_users = new set();
+    }
+     add_clip_path(path) {
+      if (!this.clip_paths.has(path)) {
+          this.update();
+      }
+      path.clip_users.add(this);
+      this.clip_paths.add(path);
+    }
+     reset_clip_paths() {
+      if (this.clip_paths.length>0) {
+      }
+      for (var path of this.clip_paths) {
+          path.clip_users.remove(this);
+      }
+      this.clip_paths.reset();
+    }
+     update_aabb(draw, fast_mode=false) {
+      throw new Error("implement me!");
+    }
+     beginPath() {
+      throw new Error("implement me");
+    }
+     undo() {
+      throw new Error("implement me");
+    }
+     moveTo(x, y) {
+      this.lastx = x;
+      this.lasty = y;
+      throw new Error("implement me");
+    }
+     makeLine(x1, y1, x2, y2, w=2.0) {
+      let dx=y1-y2, dy=x2-x1;
+      let l=Math.sqrt(dx*dx+dy*dy);
+      if (l===0.0) {
+          return ;
+      }
+      l = 0.5*w/l;
+      dx*=l;
+      dy*=l;
+      this.moveTo(x1-dx, y1-dy);
+      this.lineTo(x2-dx, y2-dy);
+      this.lineTo(x2+dx, y2+dy);
+      this.lineTo(x1+dx, y1+dy);
+      this.lineTo(x1-dx, y1-dy);
+    }
+     bezierTo(x2, y2, x3, y3) {
+      this.lastx = x3;
+      this.lasty = y3;
+      throw new Error("implement me");
+    }
+     cubicTo(x2, y2, x3, y3, x4, y4, subdiv=1) {
+      var x1=this.lastx, y1=this.lasty;
+      if (subdiv>0) {
+          var dx1=(x2-x1)*0.5, dy1=(y2-y1)*0.5;
+          var dx2=(x4-x3)*0.5, dy2=(y4-y3)*0.5;
+          var dxmid=(x3+x4-x2-x1)*0.25;
+          var dymid=(y3+y4-y2-y1)*0.25;
+          var midx=(3*x3+x4+3*x2+x1)/8.0;
+          var midy=(3*y3+y4+3*y2+y1)/8.0;
+          this.cubicTo(x2+dx1, y2+dy1, midx-dxmid, midy-dymid, midx, midy, subdiv-1);
+          this.cubicTo(midx+dxmid, midy+dymid, x4-dx2, y4-dy2, x4, y4, subdiv-1);
+          return ;
+      }
+      var dx1=(x2-x1)*3.0, dy1=(y2-y1)*3.0;
+      var dx2=(x4-x3)*3.0, dy2=(y4-y3)*3.0;
+      var tdiv=(dx1*dy2-dx2*dy1);
+      var t=(-(x1-x4)*dy2+(y1-y4)*dx2);
+      var midx, midy;
+      if (tdiv!==0.0) {
+          t/=tdiv;
+          midx = x1+dx1*t;
+          midy = y1+dy1*t;
+      }
+      else {
+        midx = (x2+x3)*0.5;
+        midy = (y2+y3)*0.5;
+      }
+      this.bezierTo(midx, midy, x4, y4);
+      this.lastx = x4;
+      this.lasty = y4;
+    }
+     lineTo(x2, y2) {
+      throw new Error("implement me");
+      this.lastx = x2;
+      this.lasty = y2;
+    }
+     destroy(draw) {
+
+    }
+     reset(draw) {
+      this.pan.zero();
+    }
+     draw() {
+      throw new Error("implement me!");
+    }
+     pushStroke(color, linewidth) {
+      throw new Error("implement me!");
+    }
+     pushFill() {
+      throw new Error("implement me!");
+    }
+     noAutoFill() {
+      throw new Error("implement me!");
+    }
+     update() {
+      throw new Error("implement me!");
+    }
+     [Symbol.keystr]() {
+      return this.id;
+    }
+  }
+  _ESClass.register(PathBase);
+  _es6_module.add_class(PathBase);
+  PathBase = _es6_module.add_export('PathBase', PathBase);
+  var pop_transform_rets=new cachering(function () {
+    return new Matrix4();
+  }, 32);
+  class VectorDraw  {
+    
+    
+    
+    
+     constructor() {
+      this.pan = new Vector2();
+      this.do_blur = true;
+      this.matstack = new Array(256);
+      for (var i=0; i<this.matstack.length; i++) {
+          this.matstack[i] = new Matrix4();
+      }
+      this.matstack.cur = 0;
+      this.matrix = new Matrix4();
+    }
+     recalcAll() {
+      this.regen = true;
+    }
+     clear() {
+
+    }
+     get_path(id, z, check_z=true) {
+      if (z===undefined) {
+          throw new Error("z cannot be undefined");
+      }
+      throw new Error("implement me");
+    }
+     has_path(id, z, check_z=true) {
+      if (z===undefined) {
+          throw new Error("z cannot be undefined");
+      }
+      throw new Error("implement me");
+    }
+     remove(path) {
+      for (var path2 of path.clip_users) {
+          path2.clip_paths.remove(path);
+          path2.update();
+      }
+      delete this.path_idmap[path.id];
+      this.paths.remove(path);
+      path.destroy(this);
+    }
+     update() {
+      throw new Error("implement me");
+    }
+     destroy() {
+      throw new Error("implement me");
+    }
+     draw(g) {
+      throw new Error("implement me");
+    }
+     push_transform(mat, multiply_instead_of_load=true) {
+      this.matstack[this.matstack.cur++].load(this.matrix);
+      if (mat!=undefined&&multiply_instead_of_load) {
+          this.matrix.multiply(mat);
+      }
+      else 
+        if (mat!=undefined) {
+          this.matrix.load(mat);
+      }
+    }
+     pop_transform() {
+      var ret=pop_transform_rets.next();
+      ret.load(this.matrix);
+      this.matrix.load(this.matstack[--this.matstack.cur]);
+      return ret;
+    }
+     translate(x, y) {
+      this.matrix.translate(x, y);
+    }
+     scale(x, y) {
+      this.matrix.scale(x, y, 1.0);
+    }
+     rotate(th) {
+      this.matrix.euler_rotate(0, 0, th);
+    }
+     set_matrix(matrix) {
+      this.matrix.load(matrix);
+    }
+     get_matrix() {
+      return this.matrix;
+    }
+  }
+  _ESClass.register(VectorDraw);
+  _es6_module.add_class(VectorDraw);
+  VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
+}, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
+
+
+es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_jobs_base.js", "../util/mathlib.js", "../config/config.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/math.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
+  "use strict";
+  var config=es6_import(_es6_module, '../config/config.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
+  var math=es6_import(_es6_module, '../path.ux/scripts/util/math.js');
+  var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
+  var VectorVertex=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorVertex');
+  var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
+  var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
+  var OPCODES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'OPCODES');
+  var vectordraw_jobs=es6_import(_es6_module, './vectordraw_jobs.js');
+  let debug=0;
+  const canvaspath_draw_mat_tmps=util.cachering.fromConstructor(Matrix4, 16);
+  const canvaspath_draw_args_tmps=new Array(16);
+  for (let i=1; i<canvaspath_draw_args_tmps.length; i++) {
+      canvaspath_draw_args_tmps[i] = new Array(i);
+  }
+  const canvaspath_draw_vs=util.cachering.fromConstructor(Vector2, 32);
+  const MOVETO=OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH, CUBICTO=OPCODES.CUBIC, CLOSEPATH=OPCODES.CLOSEPATH, LINEWIDTH=OPCODES.LINEWIDTH, LINESTYLE=OPCODES.LINESTYLE, STROKE=OPCODES.STROKE, FILL=OPCODES.FILL;
+  let arglens={}
+  arglens[FILL] = 0;
+  arglens[STROKE] = 0;
+  arglens[LINEWIDTH] = 1;
+  arglens[LINESTYLE] = 4;
+  arglens[BEGINPATH] = 0;
+  arglens[CLOSEPATH] = 0;
+  arglens[MOVETO] = 2;
+  arglens[LINETO] = 2;
+  arglens[BEZIERTO] = 4;
+  arglens[CUBICTO] = 6;
+  let render_idgen=1;
+  let batch_iden=1;
+  class CachedF64Array  {
+    array = [];
+    f64array = undefined;
+     constructor() {
+      this.array = [];
+      this.f64array;
+    }
+     reset() {
+      this.array.length = 0;
+      return this.array;
+    }
+     finish() {
+      if (!this.f64array||this.f64array.length<this.array.length) {
+          this.f64array = new Float64Array(this.array.length);
+      }
+      const f64array=this.f64array;
+      const array=this.array;
+      for (let i=0; i<this.array.length; i++) {
+          this.f64array[i] = array[i];
+      }
+      if (this.f64array.length===this.array.length) {
+          return this.f64array;
+      }
+      return new Float64Array(this.f64array.buffer, 0, this.array.length);
+    }
+  }
+  _ESClass.register(CachedF64Array);
+  _es6_module.add_class(CachedF64Array);
+  CachedF64Array = _es6_module.add_export('CachedF64Array', CachedF64Array);
+  class Batch  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      this._batch_id = batch_iden++;
+      this._commands = new CachedF64Array();
+      this.generation = 0;
+      this.isBlurBatch = false;
+      this.dpi_scale = 1.0;
+      this.paths = [];
+      this.path_idmap = {};
+      this.regen = 1;
+      this.gen_req = 0;
+      this._last_pan = new Vector2();
+      this.viewport = {pos: [0, 0], 
+     size: [1, 1]};
+      this.realViewport = {pos: [0, 0], 
+     size: [1, 1]};
+      this.patharea = 0;
+    }
+    set  regen(v) {
+      this._regen = v;
+      if (debug&&v) {
+          console.warn("Regen called");
+      }
+    }
+    get  regen() {
+      return this._regen;
+    }
+     add(p) {
+      if (this.has(p)) {
+          return ;
+      }
+      this.generation = 0;
+      let draw={matrix: new Matrix4()};
+      p.update_aabb(draw);
+      let min=p.aabb[0], max=p.aabb[1];
+      if (p.blur>0) {
+          min.addScalar(-p.blur*0.5);
+          max.addScalar(p.blur*0.5);
+      }
+      let w=max[0]-min[0];
+      let h=max[1]-min[1];
+      this.patharea+=w*h;
+      p._batch = this;
+      this.regen = 1;
+      if (!p._batch_id) {
+          p._batch_id = batch_iden++;
+      }
+      this.path_idmap[p._batch_id] = p;
+      this.paths.push(p);
+    }
+     remove(p) {
+      p._batch = undefined;
+      if (!this.has(p)) {
+          return ;
+      }
+      this.regen = 1;
+      p._batch = undefined;
+      this.paths.remove(p);
+      delete this.path_idmap[p._batch_id];
+      return this;
+    }
+     destroy() {
+      this.patharea = 0;
+      if (window._DEBUG.drawbatches) {
+          console.warn("destroying batch", this.length);
+      }
+      for (let p of this.paths) {
+          p._batch = undefined;
+      }
+      this.paths.length = 0;
+      this.path_idmap = {};
+      this.regen = 1;
+      this.gen_req = 0;
+    }
+     has(p) {
+      if (!p._batch_id)
+        return false;
+      return p._batch_id in this.path_idmap;
+    }
+     checkViewport(draw) {
+      let canvas=draw.canvas;
+      let p=new Vector2(draw.pan);
+      p[1] = draw.canvas.height-p[1];
+      p.sub(this._last_pan);
+      let cv={pos: new Vector2(), 
+     size: new Vector2([canvas.width, canvas.height])};
+      cv.pos[0]-=p[0];
+      cv.pos[1]-=p[1];
+      let clip1=math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
+      let clip2=math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
+      const debug=0;
+      if (debug) {
+          console.log("\n===\n");
+          console.log("dpan:", p);
+          console.log(cv.pos, cv.size);
+          if (clip1)
+            console.log("clip1", clip1.pos, clip1.size);
+          if (clip2)
+            console.log("clip2", clip2.pos, clip2.size);
+      }
+      if (!clip1||!clip2) {
+          if (debug) {
+              console.log("clip is bad 1:", clip1, clip2, !!clip1!==!!clip2);
+          }
+          return !!clip1!==!!clip2;
+      }
+      clip1.pos.floor();
+      clip1.size.floor();
+      clip2.pos.floor();
+      clip2.size.floor();
+      let bad=clip1.pos.vectorDistance(clip2.pos)>2;
+      bad = bad||clip1.size.vectorDistance(clip2.size)>2;
+      if (debug) {
+          console.log("clip is bad 2:", bad);
+      }
+      return bad;
+    }
+     _getPaddedViewport(canvas, cpad=512) {
+      let dpi_scale=canvas.dpi_scale*this.dpi_scale;
+      cpad/=dpi_scale;
+      return {pos: new Vector2([-cpad, -cpad]), 
+     size: new Vector2([canvas.width*canvas.dpi_scale+cpad*2, canvas.height*canvas.dpi_scale+cpad*2])}
+    }
+     gen(draw) {
+      if (this.gen_req-->0) {
+          return ;
+      }
+      this.gen_req = 10;
+      this.regen = false;
+      if (this.isBlurBatch) {
+          let matrix=new Matrix4(draw.matrix);
+          matrix.scale(this.dpi_scale, this.dpi_scale);
+          draw.push_transform(matrix, false);
+      }
+      let canvas=draw.canvas, g=draw.g;
+      if (debug)
+        console.warn("generating batch of size "+this.paths.length);
+      let min=new Vector2([1e+17, 1e+17]);
+      let max=new Vector2([-1e+17, -1e+17]);
+      let zoom=draw.matrix.$matrix.m11;
+      function setMat(p, set_off) {
+        if (set_off===undefined) {
+            set_off = false;
+        }
+        let mat=new Matrix4();
+        if (set_off) {
+            mat.translate(-min[0], -min[1], 0.0);
+        }
+        let m=new Matrix4(draw.matrix);
+        mat.multiply(m);
+        draw.push_transform(mat, false);
+        return mat;
+      }
+      for (let p of this.paths) {
+          let mat=setMat(p);
+          p.update_aabb(draw);
+          draw.pop_transform();
+          min.min(p.aabb[0]);
+          max.max(p.aabb[1]);
+      }
+      this.realViewport = {pos: new Vector2(min), 
+     size: new Vector2(max).sub(min)};
+      let min2=new Vector2(min);
+      let size2=new Vector2(max);
+      size2.sub(min2);
+      let cpad=512;
+      let cv=this._getPaddedViewport(canvas, cpad);
+      let box=math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
+      min2 = min2.floor();
+      size2 = size2.floor();
+      if (!box) {
+          if (this.isBlurBatch) {
+              draw.pop_transform();
+          }
+          return ;
+      }
+      min.load(box.pos);
+      max.load(min).add(box.size);
+      this.viewport = {pos: new Vector2(box.pos), 
+     size: new Vector2(box.size)};
+      let width=~~(max[0]-min[0]);
+      let height=~~(max[1]-min[1]);
+      let commands=this._commands.reset();
+      commands.push(width);
+      commands.push(height);
+      for (let p of this.paths) {
+          setMat(p, true);
+          if (1||!p._commands||p.recalc) {
+              p.genSmart(draw);
+          }
+          let c2=p._commands;
+          draw.pop_transform();
+          for (let i=0; i<c2.length; i++) {
+              commands.push(c2[i]);
+          }
+      }
+      if (this.isBlurBatch) {
+          draw.pop_transform();
+      }
+      let renderid=render_idgen++;
+      if (commands.length<3) {
+          this.gen_req = 0;
+          return ;
+      }
+      commands = this._commands.finish();
+      min = new Vector2(min);
+      let last_pan=new Vector2(draw.pan);
+      last_pan[1] = draw.canvas.height-last_pan[1];
+      this.pending = true;
+      vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) =>        {
+        this.pending = false;
+        if (this.onRenderDone) {
+            this.onRenderDone(this);
+        }
+        if (debug)
+          console.warn("Got render result!");
+        this.gen_req = 0;
+        this._last_pan.load(last_pan);
+        this._image = data;
+        this._image_off = min;
+        this._draw_zoom = zoom;
+        window.redraw_viewport();
+      });
+    }
+     draw(draw) {
+      if (this.paths.length===0) {
+          return ;
+      }
+      if (!this.regen&&this.checkViewport(draw)&&!this.gen_req) {
+          this.regen = 1;
+          console.log("bad viewport");
+      }
+      let canvas=draw.canvas, g=draw.g;
+      let zoom=draw.matrix.$matrix.m11;
+      let offx=0, offy=0;
+      let scale=zoom/this._draw_zoom;
+      offx = draw.pan[0]-this._last_pan[0]*scale;
+      offy = (draw.canvas.height-draw.pan[1])-this._last_pan[1]*scale;
+      offx/=scale;
+      offy/=scale;
+      if (this.regen) {
+          this.pending = true;
+          this.gen(draw);
+      }
+      if (this._image===undefined) {
+          return ;
+      }
+      g.imageSmoothingEnabled = !!this.isBlurBatch;
+      if (this.paths.length===0&&this.generation>2) {
+          this._image = undefined;
+          return ;
+      }
+      if (this.generation>0) {
+          this.generation++;
+      }
+      g.save();
+      g.scale(scale, scale);
+      g.translate(offx, offy);
+      g.translate(this._image_off[0], this._image_off[1]);
+      g.drawImage(this._image, 0, 0);
+      g.restore();
+    }
+  }
+  _ESClass.register(Batch);
+  _es6_module.add_class(Batch);
+  Batch = _es6_module.add_export('Batch', Batch);
+  let canvaspath_temp_vs=util.cachering.fromConstructor(Vector2, 512);
+  let canvaspath_temp_mats=util.cachering.fromConstructor(Matrix4, 128);
+  let last_print_time=util.time_ms();
+  class CanvasPath extends PathBase {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.z = 0;
+      this.nofill = false;
+      this.dead = false;
+      this.commands = [];
+      this.recalc = 1;
+      this.stroke_extra = 0;
+      this._render_id = render_idgen++;
+      this._image = undefined;
+      this._image_off = [0, 0];
+      this.lastx = 0;
+      this.lasty = 0;
+      this._aabb2 = [new Vector2(), new Vector2()];
+      this._size2 = new Vector2();
+      this.canvas = undefined;
+      this.g = undefined;
+      this.path_start_i = 2;
+      this.first = true;
+      this._mm = new MinMax(2);
+      this.matrix = new Matrix4();
+    }
+     pushFill() {
+      this._pushCmd(FILL);
+    }
+     pushStroke(color, width) {
+      if (color) {
+          let a=color.length>3 ? color[3] : 1.0;
+          this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+      }
+      if (width!==undefined) {
+          this.stroke_extra = Math.max(this.stroke_extra, width);
+          this._pushCmd(LINEWIDTH, width);
+      }
+      this._pushCmd(STROKE);
+    }
+     noAutoFill() {
+      this.nofill = true;
+    }
+     update_aabb(draw, fast_mode=false) {
+      let tmp=canvaspath_temp_vs.next().zero();
+      let mm=this._mm;
+      let pad=this.pad = this.blur>0 ? this.blur+15 : 0;
+      pad+=this.stroke_extra*3;
+      mm.reset();
+      if (fast_mode) {
+      }
+      let prev=-1;
+      let cs=this.commands, i=0;
+      while (i<cs.length) {
+        let cmd=cs[i++];
+        let arglen=arglens[cmd];
+        if (fast_mode&&prev!==BEGINPATH) {
+            prev = cmd;
+            i+=arglen;
+            continue;
+        }
+        if (cmd!==OPCODES.LINETO&&cmd!==OPCODES.MOVETO&&cmd!==OPCODES.CUBIC&&cmd!==OPCODES.QUADRATIC&&cmd!==OPCODES.ARC) {
+            i+=arglen;
+            continue;
+        }
+        for (let j=0; j<arglen; j+=2) {
+            tmp[0] = cs[i++];
+            tmp[1] = cs[i++];
+            if (isNaN(tmp.dot(tmp))) {
+                console.warn("NaN!");
+                continue;
+            }
+            tmp.multVecMatrix(draw.matrix);
+            mm.minmax(tmp);
+        }
+        prev = cmd;
+      }
+      this.aabb[0].load(mm.min).subScalar(pad);
+      this.aabb[1].load(mm.max).addScalar(pad);
+      this.aabb[0].floor();
+      this.aabb[1].ceil();
+    }
+     beginPath() {
+      this.path_start_i = this.commands.length;
+      this._pushCmd(BEGINPATH);
+    }
+     closePath() {
+      this.path_start_i = this.commands.length;
+      this._pushCmd(CLOSEPATH);
+    }
+     undo() {
+      this.commands.length = this.path_start_i;
+    }
+     _pushCmd() {
+      let arglen=arguments.length;
+      for (let i=0; i<arglen; i++) {
+          if (isNaN(arguments[i])) {
+              console.warn("NaN!");
+          }
+          let arg=arguments[i];
+          this.commands.push(arg);
+      }
+      this.recalc = 1;
+      this.first = false;
+    }
+     moveTo(x, y) {
+      this._pushCmd(MOVETO, x, y);
+      this.lastx = x;
+      this.lasty = y;
+    }
+     cubicTo(x2, y2, x3, y3, x4, y4) {
+      this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+      this.lastx = x4;
+      this.lasty = y4;
+    }
+     bezierTo(x2, y2, x3, y3) {
+      this._pushCmd(BEZIERTO, x2, y2, x3, y3);
+      this.lastx = x3;
+      this.lasty = y3;
+    }
+     lineTo(x2, y2) {
+      if (this.first) {
+          this.moveTo(x2, y2);
+          return ;
+      }
+      this._pushCmd(LINETO, x2, y2);
+      this.lastx = x2;
+      this.lasty = y2;
+    }
+     destroy(draw) {
+      if (this._batch) {
+          this._batch.remove(this);
+      }
+      this.canvas = this.g = undefined;
+      this._image = this.commands = undefined;
+    }
+     genInto(draw, path, commands, clip_mode=false) {
+      let oldc=this.canvas, oldg=this.g, oldaabb=this.aabb, oldsize=this.size;
+      this.aabb = this._aabb2;
+      this.aabb[0].load(path.aabb[0]);
+      this.aabb[1].load(path.aabb[1]);
+      this.size = this._size2;
+      this.size.load(path.size);
+      this.gen_commands(draw, commands, undefined, true);
+      this.canvas = oldc;
+      this.g = oldg;
+      this.aabb = oldaabb;
+      this.size = oldsize;
+    }
+     gen_commands(draw, commands, _check_tag=0, clip_mode=false) {
+      let r=~~(this.color[0]*255), g=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
+      if (!clip_mode) {
+          commands.push(OPCODES.FILLSTYLE);
+          commands.push(r);
+          commands.push(g);
+          commands.push(b);
+          commands.push(a);
+          commands.push(OPCODES.SETBLUR);
+          commands.push(this.blur);
+      }
+      commands.push(OPCODES.BEGINPATH);
+      for (let cmd of this.commands) {
+          commands.push(cmd);
+      }
+      if (clip_mode) {
+          commands.push(OPCODES.CLIP);
+      }
+      else 
+        if (!this.nofill) {
+          commands.push(OPCODES.FILL);
+      }
+      return commands;
+    }
+     round(matrix) {
+      let co=new Vector2();
+      let imat=new Matrix4(matrix);
+      imat.invert();
+      let cs=this.commands;
+      for (let i=0; i<cs.length; i+=cs[i+1]) {
+          let cmd=cs[i];
+          if (cmd!==LINETO&&cmd!==MOVETO&&cmd!==CUBICTO&&cmd!==BEZIERTO) {
+              continue;
+          }
+          let arglen=arglens[cmd];
+          for (let j=0; j<arglen; j+=2) {
+              let j2=i+1+j;
+              let d=1.0;
+              if (j2>=cs.length-1||j+1>=arglen) {
+                  break;
+              }
+              co[0] = cs[j2];
+              co[1] = cs[j2+1];
+              co.multVecMatrix(matrix);
+              co.mulScalar(d);
+              co.addScalar(0.5);
+              co.floor();
+              co.mulScalar(1.0/d);
+              co.multVecMatrix(imat);
+              cs[j2] = co[0];
+              cs[j2+1] = co[1];
+          }
+      }
+    }
+    get  recalc() {
+      return this.__recalc;
+    }
+    set  recalc(v) {
+      if (v) {
+          this._commands = undefined;
+      }
+      if (0) {
+          if (util.time_ms()-last_print_time>150) {
+              last_print_time = util.time_ms();
+              console.warn("recalc", v);
+          }
+      }
+      this.__recalc = v;
+    }
+     genSmart(draw) {
+      if (!this._commands||this.recalc) {
+          return this.gen(draw);
+      }
+      this.matrix.load(draw.matrix);
+      let trans_i=-1;
+      let cmds=this._commands;
+      for (let i=0; i<cmds.length; i++) {
+          if (cmds[i]===OPCODES.SETTRANSFORM) {
+              trans_i = i;
+              break;
+          }
+      }
+      if (trans_i===-1) {
+          console.error("Failed to find SETTRANSFORM");
+          return this.gen(draw);
+      }
+      let m=this.matrix.$matrix;
+      let i=trans_i+1;
+      cmds[i++] = m.m11;
+      cmds[i++] = m.m12;
+      cmds[i++] = m.m21;
+      cmds[i++] = m.m22;
+      cmds[i++] = m.m41;
+      cmds[i++] = m.m42;
+    }
+     gen(draw, _check_tag=0, clip_mode=false, independent=false) {
+      if (_check_tag&&!this.recalc) {
+          console.log("infinite loop in clip stack");
+          return ;
+      }
+      this.recalc = 0;
+      this.update_aabb(draw);
+      let w=this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
+      let h=this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
+      if (w>config.MAX_CANVAS2D_VECTOR_CACHE_SIZE||h>config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
+          let w2=Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+          let h2=Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+          let dw=w-w2, dh=h-h2;
+          this.aabb[0][0]+=dw*0.5;
+          this.aabb[0][1]+=dh*0.5;
+          this.aabb[1][0]-=dw*0.5;
+          this.aabb[1][1]-=dh*0.5;
+          this.size[0] = w2;
+          this.size[1] = h2;
+          w = w2, h = h2;
+      }
+      this.matrix.load(draw.matrix);
+      if (isNaN(w)||isNaN(h)) {
+          console.log("NaN path size", w, h, this);
+          if (isNaN(w))
+            w = 4.0;
+          if (isNaN(h))
+            h = 4.0;
+      }
+      let commands2=independent ? [w, h] : [];
+      let m=this.matrix.$matrix;
+      commands2.push(OPCODES.SETTRANSFORM);
+      commands2.push(m.m11);
+      commands2.push(m.m12);
+      commands2.push(m.m21);
+      commands2.push(m.m22);
+      commands2.push(m.m41);
+      commands2.push(m.m42);
+      commands2.push(OPCODES.SAVE);
+      for (let path of this.clip_paths) {
+          if (path.recalc) {
+              if (debug)
+                console.log("   clipping subgen!");
+              path.gen(draw, 1);
+          }
+          let oldc=path.canvas, oldg=path.g, oldaabb=path.aabb, oldsize=path.size;
+          path.genInto(draw, this, commands2, true);
+      }
+      this.gen_commands(draw, commands2, _check_tag, clip_mode);
+      commands2.push(OPCODES.RESTORE);
+      this._commands = commands2;
+    }
+     reset(draw) {
+      this.stroke_extra = 0;
+      this.commands.length = 0;
+      this.path_start_i = 0;
+      this.off.zero();
+      this.first = true;
+    }
+     draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g) {
+      offx+=this.off[0], offy+=this.off[1];
+      if (this.recalc) {
+          this.recalc = 0;
+          this.gen(draw);
+      }
+      if (this._image===undefined) {
+          return ;
+      }
+      g.imageSmoothingEnabled = false;
+      g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
+      g.beginPath();
+      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+      g.fillStyle = "rgba(0,255,0,0.4)";
+      g.fill();
+    }
+     update() {
+      this.recalc = 1;
+    }
+  }
+  _ESClass.register(CanvasPath);
+  _es6_module.add_class(CanvasPath);
+  CanvasPath = _es6_module.add_export('CanvasPath', CanvasPath);
+  class Batches extends Array {
+    
+     constructor() {
+      super();
+      this.cur = 0;
+      this.drawlist = [];
+    }
+     getHead(onBatchDone) {
+      if (this.drawlist.length>0) {
+          return this.drawlist[this.drawlist.length-1];
+      }
+      return this.requestBatch(onBatchDone);
+    }
+     requestBatch(onrenderdone) {
+      let ret;
+      if (this.cur<this.length) {
+          this.drawlist.push(this[this.cur]);
+          ret = this[this.cur++];
+      }
+      else {
+        let b=new Batch();
+        b.onRenderDone = onrenderdone;
+        this.cur++;
+        this.push(b);
+        this.drawlist.push(this[this.length-1]);
+        ret = this[this.length-1];
+      }
+      ret.isBlurBatch = false;
+      return ret;
+    }
+     remove(batch) {
+      let i=this.indexOf(batch);
+      this.drawlist.remove(batch);
+      if (this.cur>0&&this.cur<this.length-1) {
+          let j=this.cur-1;
+          this[i] = this[j];
+          this.cur--;
+      }
+    }
+     destroy() {
+      this.drawlist.length = 0;
+      this.cur = 0;
+      if (debug)
+        console.log("destroy batches");
+      for (let b of list(this)) {
+          if (b.generation>1) {
+              super.remove(b);
+          }
+          b.generation++;
+          b.destroy();
+      }
+    }
+  }
+  _ESClass.register(Batches);
+  _es6_module.add_class(Batches);
+  Batches = _es6_module.add_export('Batches', Batches);
+  class CanvasDraw2D extends VectorDraw {
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.promise = undefined;
+      this.on_batches_finish = undefined;
+      this.paths = [];
+      this.path_idmap = {};
+      this.dosort = true;
+      this.matstack = new Array(256);
+      this.matrix = new Matrix4();
+      this._last_pan = new Vector2();
+      for (let i=0; i<this.matstack.length; i++) {
+          this.matstack[i] = new Matrix4();
+      }
+      this.matstack.cur = 0;
+      this.canvas = undefined;
+      this.g = undefined;
+      this.batches = new Batches();
+      this.onBatchDone = this.onBatchDone.bind(this);
+    }
+     onBatchDone(batch) {
+      let ok=true;
+      for (let b of this.batches.drawlist) {
+          if (b.pending) {
+              ok = false;
+          }
+      }
+      if (ok&&this.promise) {
+          this.promise = undefined;
+          this.on_batches_finish();
+      }
+    }
+     has_path(id, z, check_z=true) {
+      if (z===undefined) {
+          throw new Error("z cannot be undefined");
+      }
+      if (!(id in this.path_idmap)) {
+          return false;
+      }
+      let path=this.path_idmap[id];
+      return check_z ? path.z===z : true;
+    }
+     get_path(id, z, check_z=true) {
+      if (z===undefined) {
+          throw new Error("z cannot be undefined");
+      }
+      if (!(id in this.path_idmap)) {
+          this.path_idmap[id] = new CanvasPath();
+          this.path_idmap[id].index = this.paths.length;
+          this.path_idmap[id].id = id;
+          this.paths.push(this.path_idmap[id]);
+      }
+      let ret=this.path_idmap[id];
+      if (check_z&&ret.z!==z) {
+          this.dosort = 1;
+          ret.z = z;
+      }
+      return ret;
+    }
+     update() {
+      for (let path of this.paths) {
+          path.update(this);
+      }
+    }
+     destroy() {
+      this.batches.destroy();
+      for (let path of this.paths) {
+          path.destroy(this);
+      }
+    }
+    set  regen(v) {
+      this.__regen = v;
+    }
+    get  regen() {
+      return this.__regen;
+    }
+     clear() {
+      this.recalcAll();
+    }
+     draw(g) {
+      if (!!this.do_blur!==!!this._last_do_blur) {
+          this._last_do_blur = !!this.do_blur;
+          this.regen = 1;
+          window.setTimeout(() =>            {
+            window.redraw_viewport();
+          }, 200);
+      }
+      if (this.regen) {
+          if (window._DEBUG.trace_recalc_all) {
+              console.log("RECALC ALL");
+          }
+          this.__regen = 0;
+          this.batches.destroy();
+      }
+      let batch;
+      let blimit=this.paths.length<15 ? 15 : Math.ceil(this.paths.length/vectordraw_jobs.manager.max_threads);
+      batch = this.batches.getHead(this.onBatchDone);
+      let canvas=g.canvas;
+      let off=canvaspath_draw_vs.next();
+      let zoom=this.matrix.$matrix.m11;
+      off.zero();
+      this._last_pan.load(this.pan);
+      if (this._last_zoom!==zoom) {
+          this._last_zoom = zoom;
+          for (let p of this.paths) {
+
+          }
+      }
+      for (let path of this.paths) {
+          if (!path.recalc) {
+              continue;
+          }
+          for (let path2 of path.clip_users) {
+              path2.recalc = 1;
+          }
+      }
+      for (let path of this.paths) {
+          if (!path.recalc) {
+              path.off.add(off);
+          }
+      }
+      this.canvas = canvas;
+      this.g = g;
+      if (this.dosort) {
+          if (debug)
+            console.log("SORT");
+          this.batches.destroy();
+          this.dosort = 0;
+          for (let p of this.paths) {
+              p._batch = undefined;
+          }
+          this.paths.sort(function (a, b) {
+            return a.z-b.z;
+          });
+          batch = this.batches.getHead(this.onBatchDone);
+      }
+      for (let path of this.paths) {
+          if (path.hidden) {
+              if (path._batch) {
+                  path._batch.remove(path);
+              }
+              continue;
+          }
+          let blurlimit=25;
+          let needsblur=this.do_blur&&(path.blur*zoom>=blurlimit);
+          needsblur = needsblur&&path.clip_paths.length===0;
+          if (needsblur&&path._batch&&!path._batch.isBlurBatch) {
+              this.regen = 1;
+          }
+          if (!needsblur&&path._batch&&path._batch.isBlurBatch) {
+              this.regen = 1;
+          }
+          if (!path._batch) {
+              let w1=batch.patharea/(canvas.width*canvas.height);
+              let w2=this.batches.length>10 ? 1.0/(this.batches.length-9) : 0.0;
+              if (needsblur) {
+                  if (!batch.isBlurBatch) {
+                      batch = this.batches.requestBatch(this.onBatchDone);
+                      batch.isBlurBatch = true;
+                      batch.dpi_scale = path.blur*zoom>50 ? 0.1 : 0.25;
+                  }
+                  else {
+                    let scale=path.blur*zoom>50 ? 0.1 : 0.25;
+                    batch.dpi_scale = Math.min(batch.dpi_scale, scale);
+                  }
+              }
+              else 
+                if (batch.isBlurBatch||(batch.paths.length*(1.0+w1*4.0)>blimit)) {
+                  batch = this.batches.requestBatch(this.onBatchDone);
+              }
+              batch.add(path);
+          }
+          if (path.recalc&&path._batch) {
+              path._batch.regen = 1;
+              path.recalc = 0;
+          }
+          window.path1 = path;
+      }
+      window.batch = batch;
+      window.batches = this.batches;
+      for (let batch of this.batches.drawlist) {
+          batch.draw(this);
+      }
+      if (!this.promise) {
+          this.promise = new Promise((accept, reject) =>            {
+            this.on_batches_finish = accept;
+          });
+      }
+      let ok=true;
+      for (let b of this.batches) {
+          if (b.pending) {
+              ok = false;
+          }
+      }
+      if (ok) {
+          window.setTimeout(() =>            {
+            this.onBatchDone();
+          });
+      }
+      return this.promise;
+    }
+     set_matrix(matrix) {
+      super.set_matrix(matrix);
+    }
+  }
+  _ESClass.register(CanvasDraw2D);
+  _es6_module.add_class(CanvasDraw2D);
+  CanvasDraw2D = _es6_module.add_export('CanvasDraw2D', CanvasDraw2D);
+}, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d.js');
+
+
+es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_path2d_module(_es6_module) {
   var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   let MOVETO=0, LINETO=1, CUBICTO=2, QUADTO=3, RECT=4, SETLINEWIDTH=5, STROKE=6, FILL=7, CLIP=8;
@@ -133,7 +2661,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["./vectordraw_base.js", "../pat
       this.need_aabb = false;
       this.matrix = draw ? draw.matrix||this.matrix : this.matrix;
       let matrix=this.matrix;
-      let $_t0mqbr=this.aabb, min=$_t0mqbr[0], max=$_t0mqbr[1];
+      let $_t0keib=this.aabb, min=$_t0keib[0], max=$_t0keib[1];
       min.zero().addScalar(1e+17);
       max.zero().addScalar(-1e+17);
       let ok=false;
@@ -179,7 +2707,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["./vectordraw_base.js", "../pat
           }
       }
       let mat=matrix.$matrix;
-      let $_t1mrsk=this.off, offx=$_t1mrsk[0], offy=$_t1mrsk[1];
+      let $_t1trps=this.off, offx=$_t1trps[0], offy=$_t1trps[1];
       g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41+offx, mat.m42+offy);
       let curi=0;
       let paths=this.paths;
@@ -345,7 +2873,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["./vectordraw_base.js", "../pat
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_path2d.js');
 
 
-es6_module_define('vectordraw_stub', ["./vectordraw_base.js", "../config/config.js", "../util/mathlib.js"], function _vectordraw_stub_module(_es6_module) {
+es6_module_define('vectordraw_stub', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_stub_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -574,7 +3102,7 @@ es6_module_define('vectordraw_stub', ["./vectordraw_base.js", "../config/config.
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
 
 
-es6_module_define('vectordraw_canvas2d_simple', ["./vectordraw_base.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -978,7 +3506,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["./vectordraw_base.js", "../uti
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_simple.js');
 
 
-es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_skia_simple_module(_es6_module) {
+es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_skia_simple_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
@@ -1480,7 +4008,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw
 }, '/dev/fairmotion/src/vectordraw/vectordraw_skia_simple.js');
 
 
-es6_module_define('vectordraw_svg', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["../util/mathlib.js", "../config/config.js", "./vectordraw_base.js"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -2058,7 +4586,7 @@ es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
 
 
-es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../config/config.js", "../../platforms/platform.js", "../path.ux/scripts/util/simple_events.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/scripts/util/simple_events.js", "../config/config.js", "../../platforms/platform.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
   let MS=MESSAGES;
@@ -2373,7 +4901,7 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../config/co
 
 
 es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_module(_es6_module) {
-  var OPCODES={LINESTYLE: 0, 
+  const OPCODES={LINESTYLE: 0, 
    LINEWIDTH: 1, 
    FILLSTYLE: 2, 
    BEGINPATH: 3, 
@@ -2397,8 +4925,8 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    DRAWIMAGE: 21, 
    PUTIMAGE: 22, 
    SETTRANSFORM: 23}
-  OPCODES = _es6_module.add_export('OPCODES', OPCODES);
-  var MESSAGES={NEW_JOB: 0, 
+  _es6_module.add_export('OPCODES', OPCODES);
+  const MESSAGES={NEW_JOB: 0, 
    ADD_DATABLOCK: 1, 
    SET_COMMANDS: 2, 
    RUN: 3, 
@@ -2408,14 +4936,14 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    CLEAR_QUEUE: 13, 
    CANCEL_JOB: 14, 
    WORKER_READY: 15}
-  MESSAGES = _es6_module.add_export('MESSAGES', MESSAGES);
-  var CompositeModes={"source-over": 0, 
+  _es6_module.add_export('MESSAGES', MESSAGES);
+  let CompositeModes={"source-over": 0, 
    "source-atop": 1}
   CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
 
 
-es6_module_define('vectordraw', ["./vectordraw_stub.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_base.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_skia_simple.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_canvas2d.js", "./vectordraw_stub.js", "./vectordraw_base.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -3677,7 +6205,7 @@ DrawMats {
 }, '/dev/fairmotion/src/webgl/webgl.js');
 
 
-es6_module_define('fbo', ["./webgl.js", "../path.ux/scripts/pathux.js", "./simplemesh.js"], function _fbo_module(_es6_module) {
+es6_module_define('fbo', ["./simplemesh.js", "./webgl.js", "../path.ux/scripts/pathux.js"], function _fbo_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');

@@ -1,5 +1,5 @@
 
-es6_module_define('view2d_spline_ops', ["../../core/toolops_api.js", "../../curve/spline_draw.js", "./spline_selectops.js", "./transform.js", "../../core/animdata.js", "../../core/lib_api.js", "./spline_createops.js", "../../curve/spline_types.js", "./view2d_editor.js", "./transform_ops.js", "../../core/keymap.js", "./spline_editops.js", "./view2d_base.js", "../events.js", "./selectmode.js"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw.js", "./spline_createops.js", "../../core/keymap.js", "./selectmode.js", "./spline_selectops.js", "../../curve/spline_types.js", "./transform.js", "../../core/animdata.js", "./transform_ops.js", "./view2d_editor.js", "./view2d_base.js", "../../core/lib_api.js", "../../core/toolops_api.js", "./spline_editops.js"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, './spline_createops.js', 'ExtrudeVertOp');
   var spline_selectops=es6_import(_es6_module, './spline_selectops.js');
@@ -617,7 +617,7 @@ es6_module_define('view2d_spline_ops', ["../../core/toolops_api.js", "../../curv
 }, '/dev/fairmotion/src/editors/viewport/view2d_spline_ops.js');
 
 
-es6_module_define('view2d_object_ops', ["./transform_ops.js", "./view2d_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "./view2d_editor.js", "../../core/lib_api.js", "./selectmode.js"], function _view2d_object_ops_module(_es6_module) {
+es6_module_define('view2d_object_ops', ["./view2d_editor.js", "./selectmode.js", "../../core/lib_api.js", "./view2d_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "./transform_ops.js"], function _view2d_object_ops_module(_es6_module) {
   "use strict";
   var WidgetResizeOp=es6_import_item(_es6_module, './transform_ops.js', 'WidgetResizeOp');
   var WidgetRotateOp=es6_import_item(_es6_module, './transform_ops.js', 'WidgetRotateOp');
@@ -753,7 +753,7 @@ SceneObjectEditor {
 }, '/dev/fairmotion/src/editors/viewport/view2d_object_ops.js');
 
 
-es6_module_define('sceneobject_ops', ["../../core/toolprops.js", "../../core/toolops_api.js", "../../core/struct.js"], function _sceneobject_ops_module(_es6_module) {
+es6_module_define('sceneobject_ops', ["../../core/toolops_api.js", "../../core/struct.js", "../../core/toolprops.js"], function _sceneobject_ops_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
   var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
@@ -788,7 +788,7 @@ es6_module_define('view2d_base', [], function _view2d_base_module(_es6_module) {
 }, '/dev/fairmotion/src/editors/viewport/view2d_base.js');
 
 
-es6_module_define('animspline', ["../curve/spline_types.js", "../curve/spline_element_array.js", "./toolprops.js", "./animdata.js", "./struct.js", "./lib_api.js", "../curve/spline.js", "../path.ux/scripts/util/struct.js"], function _animspline_module(_es6_module) {
+es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./animdata.js", "../path.ux/scripts/util/struct.js", "./toolprops.js", "../curve/spline_element_array.js", "../curve/spline.js", "./struct.js"], function _animspline_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -1341,10 +1341,8 @@ es6_module_define('animspline', ["../curve/spline_types.js", "../curve/spline_el
           hi+=2;
       }
     }
-    static  fromSTRUCT(reader) {
-      var ret=new VertexAnimData();
-      reader(ret);
-      return ret;
+     loadSTRUCT(reader) {
+      reader(this);
     }
   }
   _ESClass.register(VertexAnimData);
@@ -1364,7 +1362,7 @@ VertexAnimData {
 }, '/dev/fairmotion/src/core/animspline.js');
 
 
-es6_module_define('frameset', ["./lib_api.js", "../curve/spline_types.js", "../vectordraw/vectordraw.js", "./animspline.js", "./animspline", "../curve/spline_element_array.js", "./animdata.js", "./struct.js", "../curve/spline_draw_new.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./lib_api.js", "./animdata.js", "./animspline", "../curve/spline_element_array.js", "../curve/spline_types.js", "./animspline.js", "../curve/spline_draw_new.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -2420,7 +2418,7 @@ SplineKCacheItem {
 }, '/dev/fairmotion/src/core/frameset.js');
 
 
-es6_module_define('ops_editor', ["../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -2495,7 +2493,7 @@ es6_module_define('ops_editor', ["../editor_base.js", "../../core/struct.js", ".
 }, '/dev/fairmotion/src/editors/ops/ops_editor.js');
 
 
-es6_module_define('SettingsEditor', ["../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/pathux.js", "../editor_base.js"], function _SettingsEditor_module(_es6_module) {
+es6_module_define('SettingsEditor', ["../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/pathux.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _SettingsEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
@@ -2700,7 +2698,7 @@ es6_module_define('SettingsEditor', ["../../core/struct.js", "../../path.ux/scri
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 
 
-es6_module_define('data_api_define', ["../../editors/viewport/selectmode.js", "../../scene/sceneobject.js", "../../curve/spline_base.js", "../animdata.js", "../../curve/spline.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/spline_createops.js", "../../editors/curve/CurveEditor.js", "../frameset.js", "../../editors/ops/ops_editor.js", "../../editors/viewport/toolmodes/splinetool.js", "../../scene/scene.js", "../lib_api.js", "../toolprops.js", "../context.js", "../../path.ux/scripts/pathux.js", "../../editors/viewport/view2d_base.js", "../../editors/viewport/view2d.js", "../imageblock.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../toolops_api.js", "../UserSettings.js", "../../curve/spline_types.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../curve/spline_element_array.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../curve/spline.js", "../../editors/viewport/view2d.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/selectmode.js", "../frameset.js", "../../scene/sceneobject.js", "../../curve/spline_base.js", "../../editors/settings/SettingsEditor.js", "../../editors/viewport/view2d_base.js", "../../editors/ops/ops_editor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../curve/spline_types.js", "../context.js", "../UserSettings.js", "../toolops_api.js", "../../editors/viewport/toolmodes/splinetool.js", "../../editors/curve/CurveEditor.js", "../../curve/spline_element_array.js", "../animdata.js", "../lib_api.js", "../../path.ux/scripts/pathux.js", "../toolprops.js", "../../editors/viewport/spline_createops.js", "../../scene/scene.js", "../imageblock.js", "../units.js"], function _data_api_define_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -3414,7 +3412,7 @@ es6_module_define('data_api_define', ["../../editors/viewport/selectmode.js", ".
         window.redraw_viewport();
       });
       SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-      SplineVertexStruct.float("width", "width", "width").range(0.0001, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
+      SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.75).expRate(2.5).decimalPlaces(4).on("change", function (old) {
         this.dataref.flag|=SplineFlags.REDRAW;
         window.redraw_viewport();
       });
@@ -5813,7 +5811,7 @@ es6_module_define('brush_base', [], function _brush_base_module(_es6_module) {
 }, '/dev/fairmotion/src/brush/brush_base.js');
 
 
-es6_module_define('brush_types', ["../core/lib_api.js", "./brush_base.js", "../path.ux/scripts/pathux.js"], function _brush_types_module(_es6_module) {
+es6_module_define('brush_types', ["./brush_base.js", "../core/lib_api.js", "../path.ux/scripts/pathux.js"], function _brush_types_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Curve1D=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Curve1D');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
@@ -6105,7 +6103,7 @@ brush.BrushTool {
 }, '/dev/fairmotion/src/brush/brush_types.js');
 
 
-es6_module_define('brush', ["../path.ux/scripts/pathux.js", "../core/lib_api.js", "./brush_types.js"], function _brush_module(_es6_module) {
+es6_module_define('brush', ["./brush_types.js", "../path.ux/scripts/pathux.js", "../core/lib_api.js"], function _brush_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
@@ -6159,7 +6157,7 @@ es6_module_define('brush', ["../path.ux/scripts/pathux.js", "../core/lib_api.js"
 }, '/dev/fairmotion/src/brush/brush.js');
 
 
-es6_module_define('imagecanvas', ["../core/eventdag.js", "../core/lib_api.js", "../graph/graph.js", "./imagecanvas_base.js", "../path.ux/scripts/pathux.js"], function _imagecanvas_module(_es6_module) {
+es6_module_define('imagecanvas', ["../path.ux/scripts/pathux.js", "../graph/graph.js", "./imagecanvas_base.js", "../core/lib_api.js", "../core/eventdag.js"], function _imagecanvas_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Curve1D=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Curve1D');
   var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
@@ -6683,7 +6681,7 @@ es6_module_define('imagecanvas_draw', ["../path.ux/scripts/pathux.js"], function
 }, '/dev/fairmotion/src/paint/imagecanvas_draw.js');
 
 
-es6_module_define('imagecanvas_webgl', ["./imagecanvas.js", "../path.ux/scripts/pathux.js", "../webgl/simplemesh.js", "./imagecanvas_base.js", "../webgl/shaders.js", "../webgl/webgl.js", "../webgl/fbo.js"], function _imagecanvas_webgl_module(_es6_module) {
+es6_module_define('imagecanvas_webgl', ["../webgl/fbo.js", "./imagecanvas_base.js", "../webgl/shaders.js", "../webgl/webgl.js", "../path.ux/scripts/pathux.js", "./imagecanvas.js", "../webgl/simplemesh.js"], function _imagecanvas_webgl_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');

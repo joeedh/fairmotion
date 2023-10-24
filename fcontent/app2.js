@@ -1016,7 +1016,7 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_9FH2_viewport;
+  var $ret_vb84_viewport;
   class RasterState  {
     
     
@@ -1050,10 +1050,10 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_9FH2_viewport[0][0] = $ret_9FH2_viewport[0][1] = 0.0;
-        $ret_9FH2_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_9FH2_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_9FH2_viewport;
+        $ret_vb84_viewport[0][0] = $ret_vb84_viewport[0][1] = 0.0;
+        $ret_vb84_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_vb84_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_vb84_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1118,14 +1118,14 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_9FH2_viewport=[[0, 0], [0, 0]];
+  var $ret_vb84_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
 
 
-es6_module_define('imageblock', ["./struct.js", "./lib_api.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../util/strutils.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["./struct.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js", "../editors/viewport/view2d_editor.js", "./lib_api.js", "../editors/viewport/selectmode.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1243,7 +1243,7 @@ ImageUser {
 }, '/dev/fairmotion/src/core/imageblock.js');
 
 
-es6_module_define('image_ops', ["../path.ux/scripts/util/struct.js", "../core/toolops_api.js", "../config/config.js", "../core/imageblock.js", "../curve/spline_draw.js", "../core/fileapi/fileapi.js", "../curve/spline.js", "../core/struct.js", "../core/lib_api.js", "../core/frameset.js", "../core/toolprops.js", "../path.ux/scripts/pathux.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../core/imageblock.js", "../core/struct.js", "../core/toolprops.js", "../core/fileapi/fileapi.js", "../path.ux/scripts/util/struct.js", "../core/frameset.js", "../config/config.js", "../curve/spline.js", "../core/lib_api.js", "../curve/spline_draw.js", "../path.ux/scripts/pathux.js", "../core/toolops_api.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1349,7 +1349,7 @@ es6_module_define('image_ops', ["../path.ux/scripts/util/struct.js", "../core/to
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["./keymap.js", "../config/config.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/core/ui_theme.js", "../datafiles/theme.js", "../editors/theme.js", "../util/strutils.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../datafiles/theme.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../util/strutils.js", "../editors/theme.js", "../config/config.js", "./keymap.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1861,7 +1861,7 @@ AppSettings {
 }, '/dev/fairmotion/src/core/UserSettings.js');
 
 
-es6_module_define('context', ["../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/pathux.js", "../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "../scene/scene.js", "../path.ux/scripts/path-controller/controller/context.js", "./lib_api.js", "./frameset.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../curve/spline.js", "../editors/ops/ops_editor.js", "../editors/editor_base.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../scene/scene.js", "../editors/ops/ops_editor.js", "../editors/viewport/view2d.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/settings/SettingsEditor.js", "../curve/spline.js", "../editors/editor_base.js", "../editors/curve/CurveEditor.js", "../editors/console/console.js", "../path.ux/scripts/pathux.js", "./lib_api.js", "./frameset.js", "../editors/dopesheet/DopeSheetEditor.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
   var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
@@ -2090,7 +2090,7 @@ es6_module_define('context', ["../editors/dopesheet/DopeSheetEditor.js", "../pat
 }, '/dev/fairmotion/src/core/context.js');
 
 
-es6_module_define('toolstack', ["./context.js", "./toolprops.js", "../path.ux/scripts/pathux.js", "./toolops_api.js", "./const.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./context.js", "./toolprops.js", "./toolops_api.js", "../path.ux/scripts/pathux.js", "./const.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2421,7 +2421,7 @@ es6_module_define('toolstack', ["./context.js", "./toolprops.js", "../path.ux/sc
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["../editors/all.js", "./notifications.js", "../path.ux/scripts/util/util.js", "../editors/menubar/MenuBar.js", "../config/config.js", "./const.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/editor_base.js", "./jobs.js", "./lib_utils.js", "./lib_api.js", "../path.ux/scripts/core/ui_base.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../scene/scene.js", "./context.js", "./raster.js", "./ajax.js", "./fileapi/fileapi.js", "./toolprops.js", "../editors/viewport/view2d.js", "../editors/material/MaterialEditor.js", "../editors/ops/ops_editor.js", "../editors/theme.js", "../editors/dopesheet/DopeSheetEditor.js", "./startup/startup_file.js", "../path.ux/scripts/config/const.js", "../editors/viewport/view2d_ops.js", "./startup/startup_file_example.js", "./struct.js", "../curve/spline_base.js", "../path.ux/scripts/screen/ScreenArea.js", "./toolops_api.js", "../path.ux/scripts/pathux.js", "../util/strutils.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./toolstack.js", "./UserSettings.js", "../../platforms/platform.js", "./frameset.js", "./data_api/data_api_define.js", "../editors/console/console.js", "../editors/settings/SettingsEditor.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["./ajax.js", "../editors/theme.js", "../editors/console/console.js", "./toolstack.js", "./toolops_api.js", "../editors/curve/CurveEditor.js", "./context.js", "./toolprops.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/menubar/MenuBar.js", "./fileapi/fileapi.js", "./startup/startup_file.js", "../config/config.js", "../editors/all.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./jobs.js", "../editors/material/MaterialEditor.js", "../editors/viewport/view2d_ops.js", "../editors/viewport/view2d.js", "./raster.js", "../path.ux/scripts/util/util.js", "./lib_utils.js", "../curve/spline_base.js", "./lib_api.js", "../editors/settings/SettingsEditor.js", "./struct.js", "../util/strutils.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../../platforms/platform.js", "./notifications.js", "../scene/scene.js", "../editors/ops/ops_editor.js", "./UserSettings.js", "../path.ux/scripts/config/const.js", "./startup/startup_file_example.js", "../editors/editor_base.js", "../path.ux/scripts/pathux.js", "./frameset.js", "../path.ux/scripts/core/ui_base.js", "../editors/dopesheet/DopeSheetEditor.js", "./const.js", "./data_api/data_api_define.js"], function _AppState_module(_es6_module) {
   "use strict";
   var pathux_platform=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'platform');
   pathux_platform.getPlatformAsync().then((mod) =>    {
@@ -4258,7 +4258,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
 }, '/dev/fairmotion/src/core/video.js');
 
 
-es6_module_define('fileapi', ["./fileapi_electron", "../../config/config.js", "./fileapi_chrome", "./fileapi_html5"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["./fileapi_chrome", "./fileapi_electron", "../../config/config.js", "./fileapi_html5"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -4527,7 +4527,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (thisvar==undefined)
       thisvar = this;
     let default_path=get_base_dir(g_app_state.filepath);
-    let $_t0lbgd=require('electron'), ipcRenderer=$_t0lbgd.ipcRenderer;
+    let $_t0ukcm=require('electron'), ipcRenderer=$_t0ukcm.ipcRenderer;
     let onthen=(e) =>      {
       if (e.cancelled) {
           return ;
@@ -4621,7 +4621,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (dialog===undefined) {
         dialog = require('electron').remote.dialog;
     }
-    let $_t1qugw=require('electron'), ipcRenderer=$_t1qugw.ipcRenderer;
+    let $_t1mtdd=require('electron'), ipcRenderer=$_t1mtdd.ipcRenderer;
     let onthen=(dialog_data) =>      {
       let canceled=dialog_data.canceled;
       let path=dialog_data.filePath;
@@ -4665,7 +4665,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
 
 
-es6_module_define('animdata', ["./struct.js", "./toolprops.js", "./lib_api.js", "../curve/spline_base.js", "./eventdag.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline_base.js", "./lib_api.js", "./eventdag.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -4937,7 +4937,7 @@ es6_module_define('config_defines', [], function _config_defines_module(_es6_mod
 }, '/dev/fairmotion/src/config/config_defines.js');
 
 
-es6_module_define('svg_export', ["../curve/spline_base.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_draw_new.js", "../curve/spline_draw.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../curve/spline_base.js", "../vectordraw/vectordraw_svg.js", "./mathlib.js", "../curve/spline_draw_new.js", "../curve/spline_draw.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -5023,7 +5023,7 @@ es6_module_define('simple_controller', ["../path-controller/controller/controlle
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
 
 
-es6_module_define('anim', ["../path-controller/util/math.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/curve/curve1d.js"], function _anim_module(_es6_module) {
+es6_module_define('anim', ["../path-controller/curve/curve1d.js", "../path-controller/util/math.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/util/util.js"], function _anim_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
   var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
@@ -5425,7 +5425,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             chain2[i] = chain[i];
         }
         for (let i=0; i<chain2.length; i++) {
-            let $_t0kijo=chain2[i], cb=$_t0kijo[0], node=$_t0kijo[1], once=$_t0kijo[2];
+            let $_t0wprs=chain2[i], cb=$_t0wprs[0], node=$_t0wprs[1], once=$_t0wprs[2];
             if (node) {
                 let isDead=!node.isConnected;
                 if (__instance_of(node, UIBase)) {
@@ -5487,17 +5487,19 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
       this._checkbind();
       if (cb===undefined) {
           console.warn("invalid call to .after(); cb was undefined");
-          return ;
+          return this.owner;
       }
       this.chain = [[cb, node, once]].concat(this.chain);
+      return this.owner;
     }
      after(cb, node, once) {
       this._checkbind();
       if (cb===undefined) {
           console.warn("invalid call to .after(); cb was undefined");
-          return ;
+          return this.owner;
       }
       this.chain.push([cb, node, once]);
+      return this.owner;
     }
   }
   _ESClass.register(AfterAspect);
@@ -5752,6 +5754,7 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     BoxDepressed: 'rgba(130,130,130, 1)', 
     BoxHighlight: 'rgba(151,208,239, 1)', 
     "flex-grow": "unset", 
+    mobileSizeMultiplier: 1.0, 
     DefaultText: new CSSFont({font: 'sans-serif', 
      weight: 'normal', 
      variant: 'normal', 
@@ -5968,22 +5971,46 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     "border-style": "solid", 
     ProgressBarBG: "rgb(74,148,183)", 
     ProgressBar: "rgb(250,132,58)"}, 
-   numslider: {'background-color': 'rgba(219,219,219, 1)', 
-    'border-color': 'black', 
+   numslider: {'arrow-color': '50%', 
+    'background-color': 'rgba(219,219,219, 1)', 
+    'border-color': 'rgba(255,255,255, 1)', 
     'border-radius': 1, 
-    height: 18, 
-    width: 90}, 
+    height: 22, 
+    highlight: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgb(0,0,0)'}), 
+     'background-color': 'rgba(151,208,239, 1)', 
+     'border-color': 'rgba(255,255,255, 1)', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
+    pressed: {DefaultText: new CSSFont({font: 'poppins', 
+      weight: 'bold', 
+      variant: 'normal', 
+      style: 'normal', 
+      size: 12, 
+      color: 'rgba(0,0,0, 1)'}), 
+     'arrow-color': 'rgb(28,28,28)', 
+     'background-color': 'rgba(178,178,178, 1)', 
+     'border-color': 'rgba(255,255,255, 1)', 
+     'border-style': 'solid', 
+     'border-width': 1}, 
+    width: 115}, 
    numslider_simple: {SlideHeight: 10, 
     TextBoxWidth: 45, 
     'background-color': 'rgba(219,219,219, 1)', 
     height: 18, 
     labelOnTop: true, 
+    addLabel: true, 
     width: 135}, 
    numslider_textbox: {TextBoxHeight: 25, 
     TextBoxWidth: 50, 
     'background-color': 'rgba(219,219,219, 1)', 
     height: 25, 
     labelOnTop: true, 
+    addLabel: false, 
     width: 120}, 
    panel: {HeaderBorderRadius: 5.329650280441558, 
     HeaderRadius: 4, 
@@ -6036,7 +6063,10 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
     oneAxisPadding: 2, 
     padding: 1, 
     "flex-grow": "unset"}, 
-   tabs: {"movable-tabs": "true", 
+   tabs: {"focus-on-tab-click": "false", 
+    "movable-tabs": "true", 
+    TabPadding_mobile: 20, 
+    TabPadding: 0, 
     TabActive: 'rgba(212,212,212, 1)', 
     TabBarRadius: 6, 
     TabHighlight: 'rgba(50, 50, 50, 0.2)', 
@@ -6056,6 +6086,10 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
      style: 'normal', 
      size: 14, 
      color: 'rgba(3,3,3, 1)'}), 
+    'border-color': "rgba(0,0,0,0)", 
+    'border-width': 1, 
+    "border-radius": 4, 
+    "border-style": "solid", 
     'background-color': 'rgba(245,245,245, 1)'}, 
    tooltip: {ToolTipText: new CSSFont({font: 'sans-serif', 
      weight: 'bold', 
@@ -6078,7 +6112,7 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
 
 
-es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/const.js", "./ui_theme.js", "../path-controller/toolsys/toolprop.js", "../core/units.js", "./ui_base.js", "../path-controller/util/util.js", "../widgets/ui_widgets.js", "../widgets/ui_menu.js", "../path-controller/util/simple_events.js", "../path-controller/util/html5_fileapi.js", "../path-controller/controller/controller_base.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../widgets/ui_widgets.js", "./ui_base.js", "../path-controller/controller/controller_base.js", "../core/units.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "./ui_theme.js", "../config/const.js", "../path-controller/util/html5_fileapi.js", "../widgets/ui_menu.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var units=es6_import(_es6_module, '../core/units.js');
@@ -6734,6 +6768,7 @@ es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/con
           ret = this.iconbutton(def.icon, label, cb);
           ret.iconsheet = iconSheetFromPackFlag(packflag);
           ret.packflag|=packflag;
+          ret.description = tooltip;
       }
       else {
         label = label===undefined ? def.uiname : label;
@@ -7293,7 +7328,7 @@ es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/con
               }
             }
             for (let key in prop.values) {
-                let check=frame.check(inpath+" = "+prop.values[key], prop.ui_value_names[key]);
+                let check=frame.check(`${inpath}[${key}]`, prop.ui_value_names[key]);
                 checks[key] = check;
                 if (mass_set_path) {
                     check.setAttribute("mass_set_path", mass_set_path);
@@ -7807,7 +7842,7 @@ es6_module_define('ui', ["../path-controller/util/vectormath.js", "../config/con
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
 
 
-es6_module_define('ui_base', ["../path-controller/toolsys/toolprop.js", "./units.js", "../path-controller/util/math.js", "./ui_theme.js", "./anim.js", "../path-controller/controller/controller.js", "../config/const.js", "../util/colorutils.js", "../path-controller/util/vectormath.js", "../icon_enum.js", "./aspect.js", "../path-controller/util/util.js", "./ui_consts.js", "../screen/area_wrangler.js", "../path-controller/util/simple_events.js", "./theme.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["../path-controller/util/vectormath.js", "../path-controller/util/math.js", "../path-controller/util/util.js", "./units.js", "../path-controller/util/simple_events.js", "../path-controller/controller/controller.js", "./ui_consts.js", "../icon_enum.js", "./theme.js", "./aspect.js", "../screen/area_wrangler.js", "./ui_theme.js", "./anim.js", "../path-controller/toolsys/toolprop.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
   var contextWrangler=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'contextWrangler');
   let _ui_base=undefined;
   let TextBox=undefined;
@@ -8016,7 +8051,10 @@ es6_module_define('ui_base', ["../path-controller/toolsys/toolprop.js", "./units
         g.drawImage(this.image, tx*ts, ty*ts, ts, ts, x, y, ds*dpi, ds*dpi);
       }
       catch (error) {
-          console.log("failed to draw an icon");
+          console.log(this.image);
+          console.error(error.stack);
+          console.error(error.message);
+          console.error("failed to draw an icon");
       }
     }
      setCSS(icon, dom, fitsize=undefined) {
@@ -8429,7 +8467,7 @@ ${selector}::-webkit-scrollbar-thumb {
         return ;
     }
     for (let item of new Set(setTimeoutQueue)) {
-        let $_t0jsmk=item, cb=$_t0jsmk.cb, timeout=$_t0jsmk.timeout, time=$_t0jsmk.time;
+        let $_t0grfd=item, cb=$_t0grfd.cb, timeout=$_t0grfd.timeout, time=$_t0grfd.time;
         if (util.time_ms()-time<timeout) {
             continue;
         }
@@ -8491,7 +8529,7 @@ ${selector}::-webkit-scrollbar-thumb {
         if (child&&typeof child==="object"&&__instance_of(child, UIBase)) {
             child.parentWidget = this;
         }
-        return this.shadow._appendChild(child);
+        return this.shadow._appendChild(child, ...arguments);
       };
       this._wasAddedToNodeAtSomeTime = false;
       this.visibleToPick = true;
@@ -8612,6 +8650,9 @@ ${selector}::-webkit-scrollbar-thumb {
               s+="\n    massSetPath: "+m;
           }
           this._description_final = s;
+      }
+      else {
+        this._description_final = this._description;
       }
       if (cconst.useNativeToolTips) {
           this.title = ""+this._description_final;
@@ -9075,8 +9116,8 @@ ${selector}::-webkit-scrollbar-thumb {
         }
         return [i, p];
       };
-      let $_t1bato=getPos(this, p1), i1=$_t1bato[0], n1=$_t1bato[1];
-      let $_t2ihrl=getPos(b, p2), i2=$_t2ihrl[0], n2=$_t2ihrl[1];
+      let $_t1adhg=getPos(this, p1), i1=$_t1adhg[0], n1=$_t1adhg[1];
+      let $_t2gdpd=getPos(b, p2), i2=$_t2gdpd[0], n2=$_t2gdpd[1];
       console.log("i1, i2, n1, n2", i1, i2, n1, n2);
       let tmp1=document.createElement("div");
       let tmp2=document.createElement("div");
@@ -9635,6 +9676,9 @@ ${selector}::-webkit-scrollbar-thumb {
       else {
         this._lastPathUndoGen = this.pathUndoGen;
         let toolop=getDataPathToolOp().create(ctx, path, val, this._id, mass_set_path);
+        if (!toolop) {
+            return ;
+        }
         ctx.toolstack.execTool(this.ctx, toolop);
         head = toolstack.head;
       }
@@ -9708,8 +9752,9 @@ ${selector}::-webkit-scrollbar-thumb {
           val = (""+val).toLowerCase();
           this.isInt = val==="null"||val==="true"||val==="yes"||val==="1";
       }
-      else {
-        this.isInt = prop&&__instance_of(prop, IntProperty);
+      else 
+        if (prop&&__instance_of(prop, IntProperty)) {
+          this.isInt = true;
       }
       if (!this.isInt!==!oldint) {
           modified = true;
@@ -10073,9 +10118,13 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       this.class_default_overrides[style][key] = val;
     }
-     _doMobileDefault(key, val) {
+     _doMobileDefault(key, val, obj) {
       if (!util.isMobile())
         return val;
+      const mobilekey=key+"_mobile";
+      if (obj&&mobilekey in obj) {
+          return obj[mobilekey];
+      }
       key = key.toLowerCase();
       let ok=false;
       for (let re of _mobile_theme_patterns) {
@@ -10084,7 +10133,7 @@ ${selector}::-webkit-scrollbar-thumb {
               break;
           }
       }
-      if (ok) {
+      if (ok&&theme.base.mobileSizeMultiplier) {
           val*=theme.base.mobileSizeMultiplier;
       }
       return val;
@@ -10099,28 +10148,66 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return this.hasClassDefault(key);
     }
-     getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined) {
+     hasSubDefault(key, subkey) {
+      return this._hasSubDefault(...arguments, theme)||this._themeOverride&&this._hasSubDefault(...arguments, this._themeOverride);
+    }
+     _hasSubDefault(key, subkey) {
+      let style=this.getStyleClass();
+      let obj=this.getDefault(key);
+      if (!obj||typeof obj!=="object") {
+          return false;
+      }
+      return subkey in obj;
+    }
+     hasClassSubDefault(key, subkey, inherit=true) {
+      return this._hasClassSubDefault(key, subkey, inherit, undefined, theme)||this._themeOverride&&this._hasClassSubDefault(key, subkey, inherit, undefined, this._themeOverride);
+    }
+     _hasClassSubDefault(key, subkey, inherit=true, style=this.getStyleClass(), themeDef) {
+      let th=themeDef;
+      th = th[style];
+      if (inherit) {
+          if (this._hasClassSubDefault(key, subkey, false, themeDef)) {
+              return true;
+          }
+          let ret=false;
+          let def=this.constructor.define();
+          if (def.parentStyle) {
+              ret|=this._hasClassSubDefault(key, subkey, false, def.parentStyle, themeDef);
+          }
+          ret|=this._hasClassSubDefault(key, subkey, false, "base", themeDef);
+          return ret;
+      }
+      if (!th) {
+          return false;
+      }
+      let obj=th[key];
+      if (!obj||typeof obj!=="object") {
+          return false;
+      }
+      return subkey in obj;
+    }
+     getSubDefault(key, subkey, backupkey=subkey, defaultval=undefined, inherit=true) {
       if (subkey&&subkey in this.my_default_overrides) {
       }
       if (!key) {
-          return this.getDefault(subkey, undefined, defaultval);
+          return this.getDefault(subkey, undefined, defaultval, inherit);
       }
-      let style=this.getDefault(key);
+      let style=this.getDefault(key, undefined, undefined, inherit);
       if (!style||typeof style!=="object"||!(subkey in style)) {
           if (defaultval!==undefined) {
               return defaultval;
           }
           else 
-            if (backupkey!==undefined) {
-              return this.getDefault(backupkey);
+            if (backupkey) {
+              return this.getDefault(backupkey, undefined, undefined, inherit);
           }
       }
       else {
         return style[subkey];
       }
     }
-     getDefault(key, checkForMobile=true, defaultval=undefined) {
-      let ret=this.getDefault_intern(key, checkForMobile, defaultval);
+     getDefault(key, checkForMobile=true, defaultval=undefined, inherit=true) {
+      let ret=this.getDefault_intern(key, checkForMobile, defaultval, inherit);
       if (typeof ret==="string"&&ret.trim().toLowerCase().endsWith("px")) {
           let s=ret.trim().toLowerCase();
           s = s.slice(0, s.length-2).trim();
@@ -10131,20 +10218,20 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return ret;
     }
-     getDefault_intern(key, checkForMobile=true, defaultval=undefined) {
+     getDefault_intern(key, checkForMobile=true, defaultval=undefined, inherit=true) {
       if (this.my_default_overrides[key]!==undefined) {
           let v=this.my_default_overrides[key];
-          return checkForMobile ? this._doMobileDefault(key, v) : v;
+          return checkForMobile ? this._doMobileDefault(key, v, this.my_default_overrides) : v;
       }
       let p=this;
       while (p) {
         if (p.default_overrides[key]!==undefined) {
             let v=p.default_overrides[key];
-            checkForMobile ? this._doMobileDefault(key, v) : v;
+            checkForMobile ? this._doMobileDefault(key, v, p.default_overrides) : v;
         }
         p = p.parentWidget;
       }
-      return this.getClassDefault(key, checkForMobile, defaultval);
+      return this.getClassDefault(key, checkForMobile, defaultval, inherit);
     }
      getStyleClass() {
       if (this._override_class!==undefined) {
@@ -10181,16 +10268,18 @@ ${selector}::-webkit-scrollbar-thumb {
       }
       return key in theme.base;
     }
-     getClassDefault(key, checkForMobile=true, defaultval=undefined) {
+     getClassDefault(key, checkForMobile=true, defaultval=undefined, inherit=true) {
       let style=this.getStyleClass();
       if (style==="none") {
           return undefined;
       }
-      let val=undefined;
+      let themeobj;
+      let val;
       let p=this;
       while (p) {
         let def=p.class_default_overrides[style];
         if (def&&(key in def)) {
+            themeobj = def;
             val = def[key];
             break;
         }
@@ -10207,24 +10296,28 @@ ${selector}::-webkit-scrollbar-thumb {
               continue;
           }
           if (val===undefined&&style in th&&key in th[style]) {
+              themeobj = th[style];
               val = th[style][key];
           }
           else 
             if (defaultval!==undefined) {
+              themeobj = undefined;
               val = defaultval;
           }
           else 
-            if (val===undefined) {
+            if (val===undefined&&inherit) {
               let def=this.constructor.define();
               if (def.parentStyle&&key in th[def.parentStyle]) {
                   val = th[def.parentStyle][key];
+                  themeobj = th[def.parentStyle];
               }
               else {
                 val = th.base[key];
+                themeobj = th.base;
               }
           }
       }
-      return checkForMobile ? this._doMobileDefault(key, val) : val;
+      return checkForMobile ? this._doMobileDefault(key, val, themeobj) : val;
     }
      overrideTheme(theme) {
       this._themeOverride = theme;
@@ -10535,18 +10628,6 @@ ${selector}::-webkit-scrollbar-thumb {
       _ensureFont(elem, canvas, g, size);
     }
     let ret=g.measureText(text);
-    if (ret&&util.isMobile()) {
-        let ret2={};
-        let dpi=UIBase.getDPI();
-        for (let k in ret) {
-            let v=ret[k];
-            if (typeof v==="number") {
-                v*=dpi;
-            }
-            ret2[k] = v;
-        }
-        ret = ret2;
-    }
     if (size!==undefined) {
         g.font = undefined;
     }
@@ -10689,7 +10770,7 @@ es6_module_define('ui_consts', [], function _ui_consts_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_consts.js');
 
 
-es6_module_define('ui_save', ["../util/vectormath.js", "../util/util.js", "../path-controller/util/parseutil.js"], function _ui_save_module(_es6_module) {
+es6_module_define('ui_save', ["../path-controller/util/parseutil.js", "../util/util.js", "../util/vectormath.js"], function _ui_save_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');

@@ -1,5 +1,2925 @@
 
-es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/util/events.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
+es6_module_define('iconsheet', [], function _iconsheet_module(_es6_module) {
+  let text=`
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="512"
+   height="512"
+   id="svg16099"
+   version="1.1"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="iconsheet.svg"
+   inkscape:export-filename="C:\dev\allshape\src\datafiles\iconsheet16.png"
+   inkscape:export-xdpi="45"
+   inkscape:export-ydpi="45">
+  <defs
+     id="defs16101">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1587"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1307"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1303"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1299"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1295"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1291"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1231"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1186"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1182"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4974"
+       is_visible="true" />
+    <linearGradient
+       id="linearGradient5481">
+      <stop
+         id="stop4865"
+         offset="0"
+         style="stop-color:#e66700;stop-opacity:1;" />
+      <stop
+         style="stop-color:#f47712;stop-opacity:1;"
+         offset="0.52777779"
+         id="stop4867" />
+      <stop
+         id="stop4869"
+         offset="1"
+         style="stop-color:#f8bb8a;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116-6">
+      <stop
+         id="stop4860"
+         offset="0"
+         style="stop-color:#b3a500;stop-opacity:1;" />
+      <stop
+         id="stop4862"
+         offset="1"
+         style="stop-color:#eaa500;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116">
+      <stop
+         id="stop4853"
+         offset="0"
+         style="stop-color:#b3a500;stop-opacity:1;" />
+      <stop
+         id="stop4855"
+         offset="1"
+         style="stop-color:#eaa500;stop-opacity:1;" />
+    </linearGradient>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4290"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4286"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4118"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4194"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5012"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5008"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3264"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5465"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4613"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4609"
+       is_visible="true" />
+    <linearGradient
+       id="linearGradient5609">
+      <stop
+         id="stop5611"
+         offset="0"
+         style="stop-color:#0089e6;stop-opacity:1;" />
+      <stop
+         style="stop-color:#1280f4;stop-opacity:1;"
+         offset="0.52777779"
+         id="stop5613" />
+      <stop
+         id="stop5615"
+         offset="1"
+         style="stop-color:#d4eefc;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient5481-8">
+      <stop
+         style="stop-color:#ffc700;stop-opacity:1"
+         offset="0"
+         id="stop5483" />
+      <stop
+         id="stop5491"
+         offset="0.52777779"
+         style="stop-color:#ffc700;stop-opacity:1" />
+      <stop
+         style="stop-color:#ffa41c;stop-opacity:1"
+         offset="1"
+         id="stop5485" />
+    </linearGradient>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="-108.10967 : 516.24314 : 1"
+       inkscape:vp_y="0 : 323.31882 : 0"
+       inkscape:vp_z="57.429562 : 516.24314 : 1"
+       inkscape:persp3d-origin="-25.340056 : 488.65327 : 1"
+       id="perspective18342" />
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Send"
+       style="overflow:visible;">
+      <path
+         id="path17173"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.3) rotate(180) translate(-2.3,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mend"
+       style="overflow:visible;">
+      <path
+         id="path17167"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Send"
+       style="overflow:visible;">
+      <path
+         id="path17155"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Lend"
+       style="overflow:visible;">
+      <path
+         id="path17161"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(1.1) rotate(180) translate(1,0)" />
+    </marker>
+    <linearGradient
+       id="linearGradient17126">
+      <stop
+         style="stop-color:#008080;stop-opacity:1;"
+         offset="0"
+         id="stop17128" />
+      <stop
+         style="stop-color:#00b3b3;stop-opacity:1;"
+         offset="1"
+         id="stop17130" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient17116-6-9">
+      <stop
+         style="stop-color:#b3a500;stop-opacity:1;"
+         offset="0"
+         id="stop17118" />
+      <stop
+         style="stop-color:#eaa500;stop-opacity:1;"
+         offset="1"
+         id="stop17120" />
+    </linearGradient>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-2"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-2"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-6"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-8"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-7"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-6"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-8"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-9"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-79"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-5"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-3"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-1"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-33"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-4"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-1"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path17173-3"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient5481-5"
+       id="linearGradient5489-4"
+       x1="355.89935"
+       y1="17.125025"
+       x2="380.47559"
+       y2="17.125025"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient5481-5">
+      <stop
+         style="stop-color:#e66700;stop-opacity:1;"
+         offset="0"
+         id="stop5483-2" />
+      <stop
+         id="stop5491-9"
+         offset="0.52777779"
+         style="stop-color:#f47712;stop-opacity:1;" />
+      <stop
+         style="stop-color:#f8bb8a;stop-opacity:1;"
+         offset="1"
+         id="stop5485-9" />
+    </linearGradient>
+    <linearGradient
+       y2="17.125025"
+       x2="380.47559"
+       y1="17.125025"
+       x1="355.89935"
+       gradientUnits="userSpaceOnUse"
+       id="linearGradient5588"
+       xlink:href="#linearGradient5609"
+       inkscape:collect="always"
+       gradientTransform="matrix(1.2151103,0,0,1.1804992,-207.06775,536.98221)" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-1"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-4"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4108-9"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225-1"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3225-4"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122-2"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4122-7"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect1587-6"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4194-5"
+       is_visible="true" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#9c9c9c"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="3.8325453"
+     inkscape:cx="144.17961"
+     inkscape:cy="49.96269"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="1606"
+     inkscape:window-height="962"
+     inkscape:window-x="177"
+     inkscape:window-y="71"
+     inkscape:window-maximized="0"
+     inkscape:snap-global="false"
+     inkscape:pagecheckerboard="true"
+     inkscape:document-rotation="0">
+    <inkscape:grid
+       type="xygrid"
+       id="grid16107"
+       empspacing="1"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="false"
+       spacingx="32"
+       spacingy="32"
+       dotted="false"
+       originx="0"
+       originy="0" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata16104">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-540.36218)">
+    <ellipse
+       style="opacity:0.79203539;fill:url(#linearGradient5588);fill-opacity:1;stroke:#3c3c3c;stroke-width:1.1393038;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path3171-8"
+       cx="240.32063"
+       cy="557.19836"
+       rx="14.353489"
+       ry="14.165989" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot5564"
+       style="font-style:normal;font-weight:normal;line-height:0.01%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       transform="matrix(0.64571833,0,0,0.61432912,8.6966653,558.72048)"><flowRegion
+         id="flowRegion5566"
+         style="font-family:sans-serif"><rect
+           id="rect5568"
+           width="78.749992"
+           height="72.5"
+           x="346.24997"
+           y="-21.999973"
+           style="font-family:sans-serif" /></flowRegion><flowPara
+         id="flowPara5570"
+         style="font-weight:bold;font-size:40px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'Sans Bold'">?</flowPara></flowRoot>
+    <path
+       style="fill:none;stroke:#ec6900;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
+       d="m 187.1235,559.26606 c -3.71166,-5.87882 -12.04056,-10.0009 -18.86169,0.34701"
+       id="path4144-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ec6900;fill-opacity:1;stroke:none;stroke-width:0.001;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 170.01417,560.40163 2.05175,2.63036 -9.89352,4.33226 2.83717,-13.08504 z"
+       id="path5370-7"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#1f9000;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
+       d="m 197.1805,559.70121 c 3.69186,-5.88365 11.97631,-10.00911 18.76103,0.3473"
+       id="path4144-1-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#1f9000;fill-opacity:1;stroke:none"
+       d="m 213.95021,560.59037 -2.0408,2.63252 9.84072,4.33582 -2.82203,-13.09579 z"
+       id="path5370-7-4"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       id="rect3224"
+       width="23.641272"
+       height="8.4057856"
+       x="487.73776"
+       y="552.41565" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 498.18023,567.81152 484.7754,556.20378 498.93081,545.77569"
+       id="path4074"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccc" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 17.866009,585.82436 -0.09,-4.53232 -14.5167501,7.49748 14.5683701,7.84238 z"
+       id="path5370-5-0-6-5"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 46.366429,592.31275 0.0109,4.6129 14.90287,-7.37024 -14.68289,-8.23782 z"
+       id="path5370-5-1-2"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
+       id="rect5558-3-3"
+       width="10.726034"
+       height="5.6689787"
+       x="-3.0812507"
+       y="587.85645"
+       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
+    <rect
+       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
+       id="rect5558-1"
+       width="10.540748"
+       height="5.5710502"
+       x="-22.93788"
+       y="587.9295"
+       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
+    <path
+       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
+       d="m 71.46269,592.27473 0.01481,6.27371 20.268436,-10.02379 -19.969263,-11.20374 z"
+       id="path5370-5-1-2-1"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
+       d="m 108.87703,578.56977 -6.27262,0.11779 10.35514,20.10117 10.87444,-20.15049 z"
+       id="path5370-5-1-2-1-7"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 69.769603,567.95981 5.60449,-5.39601"
+       id="path5452-5-5-1-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.061478"
+       inkscape:transform-center-y="-0.63275351" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 75.172083,567.8747 -5.47097,-5.53134"
+       id="path5452-5-5-1-7-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.196728"
+       inkscape:transform-center-y="-0.78552851" />
+    <path
+       style="fill:#ffe87e;fill-opacity:1;stroke:#a58000;stroke-width:1.02573335px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
+       id="path4607"
+       inkscape:path-effect="#path-effect4609"
+       inkscape:original-d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccccc"
+       transform="translate(-33.065965,-31.819347)" />
+    <path
+       style="fill:#dfc449;fill-opacity:1;stroke:#a58000;stroke-width:1.04236829px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
+       id="path5463"
+       inkscape:path-effect="#path-effect5465"
+       inkscape:original-d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       transform="translate(-33.065965,-31.819347)" />
+    <path
+       style="fill:#d7f0fb;fill-opacity:1;stroke:#4f4f4f;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
+       id="path3262"
+       inkscape:path-effect="#path-effect3264"
+       inkscape:original-d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccc"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.190225,596.58015 16.81157,-0.35024"
+       id="path4106"
+       inkscape:path-effect="#path-effect4108"
+       inkscape:original-d="m 73.190225,596.58015 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.540465,591.50166 16.81157,-0.35024"
+       id="path4106-7"
+       inkscape:path-effect="#path-effect4108-1"
+       inkscape:original-d="m 73.540465,591.50166 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.365345,586.59829 16.81157,-0.35024"
+       id="path4106-0"
+       inkscape:path-effect="#path-effect4108-4"
+       inkscape:original-d="m 73.365345,586.59829 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 73.365345,582.22027 16.81157,-0.35024"
+       id="path4106-4"
+       inkscape:path-effect="#path-effect4108-9"
+       inkscape:original-d="m 73.365345,582.22027 16.81157,-0.35024"
+       inkscape:connector-curvature="0"
+       transform="translate(-33.561281,-31.819347)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 103.19489,558.19446 16.18158,0.0627"
+       id="path5452-5-5-1-7-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.6534509"
+       inkscape:transform-center-y="-5.3788766" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f4f4f4;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 111.38254,565.89244 -0.15492,-16.18101"
+       id="path5452-5-5-1-7-4-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.6340509"
+       inkscape:transform-center-y="-5.8027516" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.54087734;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 135.53124,558.66024 15.77493,0.0612"
+       id="path5452-5-5-1-7-7-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:transform-center-x="3.561639"
+       inkscape:transform-center-y="-5.2436726" />
+    <path
+       style="fill:#bfbfbf;fill-opacity:1;stroke:#ffffff;stroke-width:1.39999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 273.79736,565.92624 4.84986,4.15066 7.44379,-12.0346 -3.26109,-1.20718 -4.82074,8.91974 -2.46038,-2.39761 z"
+       id="path1157"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:#ff9d00;fill-opacity:1;stroke:#808080;stroke-width:0.78749156px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 306.19903,566.65065 4.84985,4.15066 7.4438,-12.0346 -3.26109,-1.20718 -4.82075,8.91974 -2.46037,-2.39761 z"
+       id="path1157-6"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
+       id="path1585"
+       inkscape:connector-curvature="0"
+       inkscape:path-effect="#path-effect1587"
+       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
+       sodipodi:nodetypes="ccc"
+       transform="matrix(0.82348572,0,0,0.82348572,75.604975,111.95505)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
+       id="path1585-6"
+       inkscape:connector-curvature="0"
+       inkscape:path-effect="#path-effect1587-6"
+       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
+       sodipodi:nodetypes="ccc"
+       transform="matrix(-0.82326686,0.01898429,-0.01898429,-0.82326686,829.82733,995.45395)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:1.4972775px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 325.7796,560.88703 9.22114,7.89176 14.15308,-22.88169 -6.20039,-2.29524 -9.16581,16.95932 -4.67796,-4.55863 z"
+       id="path1157-6-7"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 4.98485,11.66133 z"
+       id="path4192-0"
+       inkscape:path-effect="#path-effect4194-5"
+       inkscape:original-d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 c 11.73953,18.68506 2.52594,6.89719 4.98485,11.66133 z"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccc"
+       transform="rotate(-9.319008,159.52768,371.93318)" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.712px;line-height:0%;font-family:'MV Boli';-inkscape-font-specification:'MV Boli';letter-spacing:0px;word-spacing:0px;fill:#ffdc00;fill-opacity:1;stroke:none;stroke-width:1.476"
+       x="179.14906"
+       y="751.84772"
+       id="text3255-0"
+       transform="matrix(1.2141217,-0.1513943,0.23126622,0.79480305,0,0)"><tspan
+         sodipodi:role="line"
+         id="tspan3257-0"
+         x="179.14906"
+         y="751.84772"
+         style="font-size:44.4154px;line-height:1.25;stroke-width:1.476">!</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:32.4516px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.81129"
+       x="131.62856"
+       y="599.63672"
+       id="text1309"><tspan
+         sodipodi:role="line"
+         id="tspan1307"
+         x="131.62856"
+         y="599.63672"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.81129">B</tspan></text>
+    <text
+       id="text1309-2"
+       y="658.43152"
+       x="153.61592"
+       style="font-style:normal;font-weight:normal;font-size:41.6588px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.04147"
+       xml:space="preserve"
+       transform="scale(1.0962314,0.91221617)"><tspan
+         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Bold Italic';stroke-width:1.04147"
+         y="658.43152"
+         x="153.61592"
+         id="tspan1307-4"
+         sodipodi:role="line">i</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:38.431px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.960773"
+       x="264.23669"
+       y="522.23657"
+       id="text1309-0-9"
+       transform="scale(0.87011438,1.1492742)"><tspan
+         sodipodi:role="line"
+         id="tspan1307-3-4"
+         x="264.23669"
+         y="522.23657"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.960773"><tspan
+           style="font-weight:normal;stroke-width:0.960773"
+           id="tspan1365">s</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:31.7797px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.794494"
+       x="195.07664"
+       y="596.5979"
+       id="text1309-0-2"
+       transform="scale(0.99519471,1.0048285)"><tspan
+         sodipodi:role="line"
+         id="tspan1307-3-1"
+         x="195.07664"
+         y="596.5979"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.794494">U</tspan></text>
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:3.47724;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 194.05959,600.03363 25.702,0.14808"
+       id="path1375" />
+    <path
+       id="path1375-2"
+       d="m 227.04774,587.38832 25.63991,0.14772"
+       style="fill:none;stroke:#ffffff;stroke-width:3.46884;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:transform-center-x="1.1856386"
+       inkscape:transform-center-y="-0.33875464" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 262.93706,592.38036 0.0134,5.70131 18.41916,-9.10923 -18.14729,-10.18151 z"
+       id="path5370-5-1-2-1-4"
+       inkscape:connector-curvature="0" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path5370-5-1-2-1-4-0"
+       d="m 301.44451,581.20782 -5.70129,0.0197 9.12976,18.40899 10.16128,-18.15862 z"
+       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <ellipse
+       style="fill:none;stroke:#242424;stroke-width:2.80047;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1"
+       id="path1040"
+       ry="8.7032747"
+       rx="8.4312963"
+       cy="583.49023"
+       cx="331.71524" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 336.4644,589.47097 10.10632,10.66173"
+       id="path1042"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 325.36075,583.26941 12.63506,0.34484"
+       id="path1044" />
+    <ellipse
+       cx="364.00839"
+       cy="584.36328"
+       rx="9.6165609"
+       ry="9.9267731"
+       id="path1040-0"
+       style="fill:none;stroke:#242424;stroke-width:3.19416;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1" />
+    <path
+       sodipodi:nodetypes="cc"
+       id="path1042-6"
+       d="m 369.73697,590.7899 10.89694,10.89694"
+       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       id="path1044-4"
+       d="m 357.64269,584.09303 12.63506,0.34484"
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 363.94156,590.78154 0.20796,-12.63806"
+       id="path1044-4-9" />
+  </g>
+</svg>
+`.trim();
+  text = btoa(text);
+  let iconSvg=`data:image/svg+xml;base64,`+text;
+  iconSvg = _es6_module.add_export('iconSvg', iconSvg);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/iconsheet.js');
+
+
+es6_module_define('menubar', ["../core/ui_base.js", "./editor.js", "../screen/ScreenArea.js", "../path-controller/controller.js"], function _menubar_module(_es6_module) {
+  var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
+  var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
+  class MenuBarEditor extends Editor {
+     constructor() {
+      super();
+      this.updateHeight();
+      this.borderLock = 1|2|4|8;
+      this.areaDragToolEnabled = false;
+      this._height = 25;
+      this.needsRebuild = false;
+    }
+    get  height() {
+      return this._height;
+    }
+    set  height(v) {
+      this._height = v;
+      this.updateHeight();
+    }
+    static  define() {
+      return {tagname: "simple-menu-editor-x", 
+     areaname: "menu", 
+     uiname: "Menu Bar", 
+     icon: -1, 
+     flag: AreaFlags.HIDDEN|AreaFlags.NO_HEADER_CONTEXT_MENU|AreaFlags.NO_COLLAPSE|AreaFlags.NO_SWITCHER}
+    }
+     updateHeight(force=false) {
+      if (!this.header)
+        return ;
+      if (window.haveElectron) {
+          this.maxSize[1] = this.minSize[1] = 1;
+          electron_api.initMenuBar(this);
+          return ;
+      }
+      if (this._height===undefined) {
+          let rect=this.header.getClientRects()[0];
+          if (rect) {
+              this._height = rect.height;
+          }
+      }
+      let update=force||this._height!==this.minSize[1];
+      this.minSize[1] = this.maxSize[1] = this._height;
+      if (update&&this.ctx&&this.getScreen()) {
+          this.getScreen().solveAreaConstraints();
+      }
+    }
+     makeMenuBar(container) {
+      if (Editor.makeMenuBar) {
+          Editor.makeMenuBar(this.ctx, container, this);
+      }
+    }
+     flagRebuild() {
+      this.needsRebuild = true;
+    }
+     init() {
+      super.init();
+      this.background = this.getDefault("AreaHeaderBG");
+      this.menuRow = this.header.row();
+      this.makeMenuBar(this.menuRow);
+      this.doOnce(() =>        {
+        if (window.haveElectron) {
+            this.height = 1;
+            electron_api.initMenuBar(this);
+        }
+      });
+      this.updateHeight(true);
+      this.flushUpdate();
+    }
+     rebuild() {
+      this.needsRebuild = false;
+      this.menuRow.clear();
+      this.makeMenuBar(this.menuRow);
+      this.flushUpdate();
+    }
+     update() {
+      if (this.needsRebuild) {
+          this.rebuild();
+      }
+    }
+  }
+  _ESClass.register(MenuBarEditor);
+  _es6_module.add_class(MenuBarEditor);
+  MenuBarEditor = _es6_module.add_export('MenuBarEditor', MenuBarEditor);
+  MenuBarEditor.STRUCT = nstructjs.inherit(MenuBarEditor, Editor, "MenuBarEditor")+`
+}
+`;
+  function registerMenuBarEditor() {
+    Editor.register(MenuBarEditor);
+  }
+  registerMenuBarEditor = _es6_module.add_export('registerMenuBarEditor', registerMenuBarEditor);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/menubar.js');
+
+
+es6_module_define('setup', [], function _setup_module(_es6_module) {
+}, '/dev/fairmotion/src/path.ux/scripts/simple/setup.js');
+
+
+es6_module_define('simple', ["./context_class.js", "./app.js", "./icons.js", "../widgets/ui_menu.js", "./editor.js", "./menubar.js", "./setup.js", "./iconsheet.js", "./file.js"], function _simple_module(_es6_module) {
+  var app=es6_import(_es6_module, './app.js');
+  var editor=es6_import(_es6_module, './editor.js');
+  var ___app_js=es6_import(_es6_module, './app.js');
+  for (let k in ___app_js) {
+      _es6_module.add_export(k, ___app_js[k], true);
+  }
+  var ___editor_js=es6_import(_es6_module, './editor.js');
+  for (let k in ___editor_js) {
+      _es6_module.add_export(k, ___editor_js[k], true);
+  }
+  var ___setup_js=es6_import(_es6_module, './setup.js');
+  for (let k in ___setup_js) {
+      _es6_module.add_export(k, ___setup_js[k], true);
+  }
+  var ___icons_js=es6_import(_es6_module, './icons.js');
+  for (let k in ___icons_js) {
+      _es6_module.add_export(k, ___icons_js[k], true);
+  }
+  var ___iconsheet_js=es6_import(_es6_module, './iconsheet.js');
+  for (let k in ___iconsheet_js) {
+      _es6_module.add_export(k, ___iconsheet_js[k], true);
+  }
+  var ___file_js=es6_import(_es6_module, './file.js');
+  for (let k in ___file_js) {
+      _es6_module.add_export(k, ___file_js[k], true);
+  }
+  var ___context_class_js=es6_import(_es6_module, './context_class.js');
+  for (let k in ___context_class_js) {
+      _es6_module.add_export(k, ___context_class_js[k], true);
+  }
+  var ___menubar_js=es6_import(_es6_module, './menubar.js');
+  for (let k in ___menubar_js) {
+      _es6_module.add_export(k, ___menubar_js[k], true);
+  }
+  let _ex_Menu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'Menu');
+  _es6_module.add_export('Menu', _ex_Menu, true);
+}, '/dev/fairmotion/src/path.ux/scripts/simple/simple.js');
+
+
+es6_module_define('simple_toolsys', ["../path-controller/toolsys/toolsys.js"], function _simple_toolsys_module(_es6_module) {
+  var ____path_controller_toolsys_toolsys_js=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
+  for (let k in ____path_controller_toolsys_toolsys_js) {
+      _es6_module.add_export(k, ____path_controller_toolsys_toolsys_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/toolsys/simple_toolsys.js');
+
+
+es6_module_define('toolpath', ["../path-controller/toolsys/toolsys.js"], function _toolpath_module(_es6_module) {
+  var ____path_controller_toolsys_toolsys_js=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
+  for (let k in ____path_controller_toolsys_toolsys_js) {
+      _es6_module.add_export(k, ____path_controller_toolsys_toolsys_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolpath.js');
+
+
+es6_module_define('toolprop', ["../path-controller/toolsys/toolprop.js"], function _toolprop_module(_es6_module) {
+  var ____path_controller_toolsys_toolprop_js=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
+  for (let k in ____path_controller_toolsys_toolprop_js) {
+      _es6_module.add_export(k, ____path_controller_toolsys_toolprop_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop.js');
+
+
+es6_module_define('colorutils', ["../path-controller/util/colorutils.js"], function _colorutils_module(_es6_module) {
+  var ____path_controller_util_colorutils_js=es6_import(_es6_module, '../path-controller/util/colorutils.js');
+  for (let k in ____path_controller_util_colorutils_js) {
+      _es6_module.add_export(k, ____path_controller_util_colorutils_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/colorutils.js');
+
+
+es6_module_define('events', ["../path-controller/util/events.js"], function _events_module(_es6_module) {
+  var ____path_controller_util_events_js=es6_import(_es6_module, '../path-controller/util/events.js');
+  for (let k in ____path_controller_util_events_js) {
+      _es6_module.add_export(k, ____path_controller_util_events_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
+
+
+es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./solver.js"], function _graphpack_module(_es6_module) {
+  "use strict";
+  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
+  var math=es6_import(_es6_module, './math.js');
+  var util=es6_import(_es6_module, './util.js');
+  var Constraint=es6_import_item(_es6_module, './solver.js', 'Constraint');
+  var Solver=es6_import_item(_es6_module, './solver.js', 'Solver');
+  let idgen=0;
+  class PackNodeVertex extends Vector2 {
+     constructor(node, co) {
+      super(co);
+      this.node = node;
+      this._id = idgen++;
+      this.edges = [];
+      this._absPos = new Vector2();
+    }
+    get  absPos() {
+      this._absPos.load(this).add(this.node.pos);
+      return this._absPos;
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNodeVertex);
+  _es6_module.add_class(PackNodeVertex);
+  PackNodeVertex = _es6_module.add_export('PackNodeVertex', PackNodeVertex);
+  class PackNode  {
+     constructor() {
+      this.pos = new Vector2();
+      this.vel = new Vector2();
+      this.oldpos = new Vector2();
+      this._id = idgen++;
+      this.size = new Vector2();
+      this.verts = [];
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNode);
+  _es6_module.add_class(PackNode);
+  PackNode = _es6_module.add_export('PackNode', PackNode);
+  function copyGraph(nodes) {
+    let ret=[];
+    let idmap={}
+    for (let n of nodes) {
+        let n2=new PackNode();
+        n2._id = n._id;
+        n2.pos.load(n.pos);
+        n2.vel.load(n.vel);
+        n2.size.load(n.size);
+        n2.verts = [];
+        idmap[n2._id] = n2;
+        for (let v of n.verts) {
+            let v2=new PackNodeVertex(n2, v);
+            v2._id = v._id;
+            idmap[v2._id] = v2;
+            n2.verts.push(v2);
+        }
+        ret.push(n2);
+    }
+    for (let n of nodes) {
+        for (let v of n.verts) {
+            let v2=idmap[v._id];
+            for (let v3 of v.edges) {
+                v2.edges.push(idmap[v3._id]);
+            }
+        }
+    }
+    return ret;
+  }
+  function getCenter(nodes) {
+    let cent=new Vector2();
+    for (let n of nodes) {
+        cent.add(n.pos);
+    }
+    if (nodes.length===0)
+      return cent;
+    cent.mulScalar(1.0/nodes.length);
+    return cent;
+  }
+  function loadGraph(nodes, copy) {
+    let idmap={}
+    for (let i=0; i<nodes.length; i++) {
+        nodes[i].pos.load(copy[i].pos);
+        nodes[i].oldpos.load(copy[i].oldpos);
+        nodes[i].vel.load(copy[i].vel);
+    }
+  }
+  function graphGetIslands(nodes) {
+    let islands=[];
+    let visit1=new util.set();
+    let rec=(n, island) =>      {
+      island.push(n);
+      visit1.add(n);
+      for (let v of n.verts) {
+          for (let e of v.edges) {
+              let n2=e.node;
+              if (n2!==n&&!visit1.has(n2)) {
+                  rec(n2, island);
+              }
+          }
+      }
+    }
+    for (let n of nodes) {
+        if (visit1.has(n)) {
+            continue;
+        }
+        let island=[];
+        islands.push(island);
+        rec(n, island);
+    }
+    return islands;
+  }
+  graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
+  function graphPack(nodes, margin, steps, updateCb) {
+    if (margin===undefined) {
+        margin = 15;
+    }
+    if (steps===undefined) {
+        steps = 10;
+    }
+    if (updateCb===undefined) {
+        updateCb = undefined;
+    }
+    let orignodes=nodes;
+    nodes = copyGraph(nodes);
+    for (let n of nodes) {
+        n.pos[0]+=(Math.random()-0.5)*5.0;
+        n.pos[1]+=(Math.random()-0.5)*5.0;
+    }
+    let nodemap={}
+    for (let n of nodes) {
+        n.vel.zero();
+        nodemap[n._id] = n;
+        for (let v of n.verts) {
+            nodemap[v._id] = v;
+        }
+    }
+    let visit=new util.set();
+    let verts=new util.set();
+    let isect=[];
+    let disableEdges=false;
+    function edge_c(params) {
+      let $_t0wkub=params, v1=$_t0wkub[0], v2=$_t0wkub[1];
+      if (disableEdges)
+        return 0;
+      return v1.absPos.vectorDistance(v2.absPos);
+    }
+    let p1=new Vector2();
+    let p2=new Vector2();
+    let s1=new Vector2();
+    let s2=new Vector2();
+    function loadBoxes(n1, n2, margin1) {
+      if (margin1===undefined) {
+          margin1 = margin;
+      }
+      p1.load(n1.pos);
+      p2.load(n2.pos);
+      s1.load(n1.size);
+      s2.load(n2.size);
+      p1.subScalar(margin1);
+      p2.subScalar(margin1);
+      s1.addScalar(margin1*2.0);
+      s2.addScalar(margin1*2.0);
+    }
+    let disableArea=false;
+    function area_c(params) {
+      let $_t1foiu=params, n1=$_t1foiu[0], n2=$_t1foiu[1];
+      if (disableArea)
+        return 0.0;
+      loadBoxes(n1, n2);
+      let a1=n1.size[0]*n1.size[1];
+      let a2=n2.size[0]*n2.size[1];
+      return math.aabb_overlap_area(p1, s1, p2, s2);
+      return (math.aabb_overlap_area(p1, s1, p2, s2)/(a1+a2));
+    }
+    let lasterr, besterr, best;
+    let err;
+    let islands=graphGetIslands(nodes);
+    let fakeVerts=[];
+    for (let island of islands) {
+        let n=island[0];
+        let fv=new PackNodeVertex(n);
+        fakeVerts.push(fv);
+    }
+    let solveStep1=(gk) =>      {
+      if (gk===undefined) {
+          gk = 1.0;
+      }
+      let solver=new Solver();
+      isect.length = 0;
+      visit = new util.set();
+      if (fakeVerts.length>1) {
+          for (let i=1; i<fakeVerts.length; i++) {
+              let v1=fakeVerts[0];
+              let v2=fakeVerts[i];
+              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2]);
+              con.k = 0.25;
+              solver.add(con);
+          }
+      }
+      for (let n1 of nodes) {
+          for (let v of n1.verts) {
+              verts.add(v);
+              for (let v2 of v.edges) {
+                  if (v2._id<v._id)
+                    continue;
+                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2]);
+                  con.k = 1.0;
+                  solver.add(con);
+              }
+          }
+          for (let n2 of nodes) {
+              if (n1===n2)
+                continue;
+              let key=Math.min(n1._id, n2._id)+":"+Math.max(n1._id, n2._id);
+              if (visit.has(key))
+                continue;
+              loadBoxes(n1, n2);
+              let area=math.aabb_overlap_area(p1, s1, p2, s2);
+              if (area>0.01) {
+                  isect.push([n1, n2]);
+                  visit.add(key);
+              }
+          }
+          for (let /*unprocessed ExpandNode*/[n1, n2] of isect) {
+              let con=new Constraint("area_c", area_c, [n1.pos, n2.pos], [n1, n2]);
+              solver.add(con);
+              con.k = 1.0;
+          }
+      }
+      return solver;
+    }
+    let i=1;
+    let solveStep=(gk) =>      {
+      if (gk===undefined) {
+          gk = 0.5;
+      }
+      let solver=solveStep1();
+      if (i%40===0.0) {
+          let c1=getCenter(nodes);
+          let rfac=1000.0;
+          if (best)
+            loadGraph(nodes, best);
+          for (let n of nodes) {
+              n.pos[0]+=(Math.random()-0.5)*rfac;
+              n.pos[1]+=(Math.random()-0.5)*rfac;
+              n.vel.zero();
+          }
+          let c2=getCenter(nodes);
+          c1.sub(c2);
+          for (let n of nodes) {
+              n.pos.add(c1);
+          }
+      }
+      let err=1e+17;
+      for (let n of nodes) {
+          n.oldpos.load(n.pos);
+          n.pos.addFac(n.vel, 0.5);
+      }
+      disableEdges = false;
+      disableArea = true;
+      solver.solve(1, gk);
+      disableEdges = true;
+      disableArea = false;
+      for (let j=0; j<10; j++) {
+          solver = solveStep1();
+          err = solver.solve(10, gk);
+      }
+      for (let n of nodes) {
+          n.vel.load(n.pos).sub(n.oldpos);
+      }
+      disableEdges = false;
+      disableArea = true;
+      err = 0.0;
+      for (let con of solver.constraints) {
+          err+=con.evaluate(true);
+      }
+      disableEdges = false;
+      disableArea = false;
+      lasterr = err;
+      let add=Math.random()*besterr*Math.exp(-i*0.1);
+      if (besterr===undefined||err<besterr+add) {
+          best = copyGraph(nodes);
+          besterr = err;
+      }
+      i++;
+      return err;
+    }
+    for (let j=0; j<steps; j++) {
+        solveStep();
+    }
+    loadGraph(orignodes, best ? best : nodes);
+    if (updateCb) {
+        if (nodes._timer!==undefined) {
+            window.clearInterval(nodes._timer);
+        }
+        nodes._timer = window.setInterval(() =>          {
+          let time=util.time_ms();
+          while (util.time_ms()-time<50) {
+            let err=solveStep();
+          }
+          if (cconst.DEBUG.boxPacker) {
+              console.log("err", (besterr/nodes.length).toFixed(2), (lasterr/nodes.length).toFixed(2), "isects", isect.length);
+          }
+          if (best)
+            loadGraph(orignodes, best);
+          if (updateCb()===false) {
+              clearInterval(nodes._timer);
+              return ;
+          }
+        }, 100);
+        let timer=nodes._timer;
+        return {stop: () =>            {
+            if (best)
+              loadGraph(nodes, best);
+            window.clearInterval(timer);
+            nodes._timer = undefined;
+          }}
+    }
+  }
+  graphPack = _es6_module.add_export('graphPack', graphPack);
+}, '/dev/fairmotion/src/path.ux/scripts/util/graphpack.js');
+
+
+es6_module_define('html5_fileapi', ["../path-controller/util/html5_fileapi.js"], function _html5_fileapi_module(_es6_module) {
+  var ____path_controller_util_html5_fileapi_js=es6_import(_es6_module, '../path-controller/util/html5_fileapi.js');
+  for (let k in ____path_controller_util_html5_fileapi_js) {
+      _es6_module.add_export(k, ____path_controller_util_html5_fileapi_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/html5_fileapi.js');
+
+
+es6_module_define('math', ["../path-controller/util/math.js"], function _math_module(_es6_module) {
+  var ____path_controller_util_math_js=es6_import(_es6_module, '../path-controller/util/math.js');
+  for (let k in ____path_controller_util_math_js) {
+      _es6_module.add_export(k, ____path_controller_util_math_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/math.js');
+
+
+es6_module_define('nstructjs', ["../path-controller/util/nstructjs.js"], function _nstructjs_module(_es6_module) {
+  var ____path_controller_util_nstructjs_js=es6_import(_es6_module, '../path-controller/util/nstructjs.js');
+  for (let k in ____path_controller_util_nstructjs_js) {
+      _es6_module.add_export(k, ____path_controller_util_nstructjs_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
+
+
+es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./util.js", "./vectormath.js", "./math.js", "../core/ui.js"], function _ScreenOverdraw_module(_es6_module) {
+  "use strict";
+  const SVG_URL='http://www.w3.org/2000/svg';
+  _es6_module.add_export('SVG_URL', SVG_URL);
+  var util=es6_import(_es6_module, './util.js');
+  var vectormath=es6_import(_es6_module, './vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var math=es6_import(_es6_module, './math.js');
+  const Vector2=vectormath.Vector2;
+  class CanvasOverdraw extends ui_base.UIBase {
+     constructor() {
+      super();
+      this.canvas = document.createElement("canvas");
+      this.shadow.appendChild(this.canvas);
+      this.g = this.canvas.getContext("2d");
+      this.screen = undefined;
+      this.shapes = [];
+      this.otherChildren = [];
+      this.font = undefined;
+      let style=document.createElement("style");
+      style.textContent = `
+      .overdrawx {
+        pointer-events : none;
+      }
+    `;
+      this.shadow.appendChild(style);
+    }
+    static  define() {
+      return {tagname: 'screen-overdraw-canvas-x'}
+    }
+     startNode(node, screen) {
+      if (screen) {
+          this.screen = screen;
+          this.ctx = screen.ctx;
+      }
+      if (!this.parentNode) {
+          node.appendChild(this);
+      }
+      this.style["display"] = "float";
+      this.style["z-index"] = this.zindex_base;
+      this.style["position"] = "absolute";
+      this.style["left"] = "0px";
+      this.style["top"] = "0px";
+      this.style["width"] = "100%";
+      this.style["height"] = "100%";
+      this.style["pointer-events"] = "none";
+      this.svg = document.createElementNS(SVG_URL, "svg");
+      this.svg.style["width"] = "100%";
+      this.svg.style["height"] = "100%";
+      this.svg.style["pointer-events"] = "none";
+      this.shadow.appendChild(this.svg);
+    }
+     start(screen) {
+      this.screen = screen;
+      this.ctx = screen.ctx;
+      screen.parentNode.appendChild(this);
+      this.style["display"] = "float";
+      this.style["z-index"] = this.zindex_base;
+      this.style["position"] = "absolute";
+      this.style["left"] = "0px";
+      this.style["top"] = "0px";
+      this.style["width"] = screen.size[0]+"px";
+      this.style["height"] = screen.size[1]+"px";
+      this.style["pointer-events"] = "none";
+      this.svg = document.createElementNS(SVG_URL, "svg");
+      this.svg.style["width"] = "100%";
+      this.svg.style["height"] = "100%";
+      this.shadow.appendChild(this.svg);
+    }
+  }
+  _ESClass.register(CanvasOverdraw);
+  _es6_module.add_class(CanvasOverdraw);
+  CanvasOverdraw = _es6_module.add_export('CanvasOverdraw', CanvasOverdraw);
+  class Overdraw extends ui_base.UIBase {
+     constructor() {
+      super();
+      this.visibleToPick = false;
+      this.screen = undefined;
+      this.shapes = [];
+      this.otherChildren = [];
+      this.font = undefined;
+      let style=document.createElement("style");
+      style.textContent = `
+      .overdrawx {
+        pointer-events : none;
+      }
+    `;
+      this.shadow.appendChild(style);
+      this.zindex_base = 1000;
+    }
+     startNode(node, screen) {
+      if (screen) {
+          this.screen = screen;
+          this.ctx = screen.ctx;
+      }
+      if (!this.parentNode) {
+          node.appendChild(this);
+      }
+      this.style["z-index"] = this.zindex_base;
+      this.style["position"] = "relative";
+      this.style["margin"] = this.style["padding"] = "0px";
+      this.style["width"] = "100%";
+      this.style["height"] = "100%";
+      this.style["pointer-events"] = "none";
+      this.svg = document.createElementNS(SVG_URL, "svg");
+      this.svg.style["width"] = "100%";
+      this.svg.style["height"] = "100%";
+      this.svg.style["pointer-events"] = "none";
+      this.shadow.appendChild(this.svg);
+    }
+     start(screen) {
+      this.screen = screen;
+      this.ctx = screen.ctx;
+      screen.parentNode.appendChild(this);
+      this.style["display"] = "float";
+      this.style["z-index"] = this.zindex_base;
+      this.style["position"] = "absolute";
+      this.style["left"] = "0px";
+      this.style["top"] = "0px";
+      this.style["width"] = screen.size[0]+"px";
+      this.style["height"] = screen.size[1]+"px";
+      this.style["pointer-events"] = "none";
+      this.svg = document.createElementNS(SVG_URL, "svg");
+      this.svg.style["width"] = "100%";
+      this.svg.style["height"] = "100%";
+      this.shadow.appendChild(this.svg);
+    }
+     clear() {
+      for (let child of util.list(this.svg.childNodes)) {
+          child.remove();
+      }
+      for (let child of this.otherChildren) {
+          child.remove();
+      }
+      this.otherChildren.length = 0;
+    }
+     drawTextBubbles(texts, cos, colors) {
+      let boxes=[];
+      let elems=[];
+      let cent=new Vector2();
+      for (let i=0; i<texts.length; i++) {
+          let co=cos[i];
+          let text=texts[i];
+          let color;
+          if (colors!==undefined) {
+              color = colors[i];
+          }
+          cent.add(co);
+          let box=this.text(texts[i], co[0], co[1], {color: color});
+          boxes.push(box);
+          let font=box.style["font"];
+          let pat=/[0-9]+px/;
+          let size=font.match(pat)[0];
+          if (size===undefined) {
+              size = this.getDefault("DefaultText").size;
+          }
+          else {
+            size = ui_base.parsepx(size);
+          }
+          let tsize=ui_base.measureTextBlock(this, text, undefined, undefined, size, font);
+          box.minsize = [~~tsize.width, ~~tsize.height];
+          let pad=ui_base.parsepx(box.style["padding"]);
+          box.minsize[0]+=pad*2;
+          box.minsize[1]+=pad*2;
+          let x=ui_base.parsepx(box.style["left"]);
+          let y=ui_base.parsepx(box.style["top"]);
+          box.grads = new Array(4);
+          box.params = [x, y, box.minsize[0], box.minsize[1]];
+          box.startpos = new Vector2([x, y]);
+          box.setCSS = function () {
+            this.style["padding"] = "0px";
+            this.style["margin"] = "0px";
+            this.style["left"] = ~~this.params[0]+"px";
+            this.style["top"] = ~~this.params[1]+"px";
+            this.style["width"] = ~~this.params[2]+"px";
+            this.style["height"] = ~~this.params[3]+"px";
+          };
+          box.setCSS();
+          elems.push(box);
+      }
+      if (boxes.length===0) {
+          return ;
+      }
+      cent.mulScalar(1.0/boxes.length);
+      function error() {
+        let p1=[0, 0], p2=[0, 0];
+        let s1=[0, 0], s2=[0, 0];
+        let ret=0.0;
+        for (let box1 of boxes) {
+            for (let box2 of boxes) {
+                if (box2===box1) {
+                    continue;
+                }
+                s1[0] = box1.params[2];
+                s1[1] = box1.params[3];
+                s2[0] = box2.params[2];
+                s2[1] = box2.params[3];
+                let overlap=math.aabb_overlap_area(box1.params, s1, box2.params, s2);
+                ret+=overlap;
+            }
+            ret+=box1.startpos.vectorDistance(box1.params)*0.25;
+        }
+        return ret;
+      }
+      function solve() {
+        let r1=error();
+        if (r1===0.0) {
+            return ;
+        }
+        let df=0.0001;
+        let totgs=0.0;
+        for (let box of boxes) {
+            for (let i=0; i<box.params.length; i++) {
+                let orig=box.params[i];
+                box.params[i]+=df;
+                let r2=error();
+                box.params[i] = orig;
+                box.grads[i] = (r2-r1)/df;
+                totgs+=box.grads[i]**2;
+            }
+        }
+        if (totgs===0.0) {
+            return ;
+        }
+        r1/=totgs;
+        let k=0.4;
+        for (let box of boxes) {
+            for (let i=0; i<box.params.length; i++) {
+                box.params[i]+=-r1*box.grads[i]*k;
+            }
+            box.params[2] = Math.max(box.params[2], box.minsize[0]);
+            box.params[3] = Math.max(box.params[3], box.minsize[1]);
+            box.setCSS();
+        }
+      }
+      for (let i=0; i<15; i++) {
+          solve();
+      }
+      for (let box of boxes) {
+          elems.push(this.line(box.startpos, box.params));
+      }
+      return elems;
+    }
+     text(text, x, y, args={}) {
+      args = Object.assign({}, args);
+      if (args.font===undefined) {
+          if (this.font!==undefined)
+            args.font = this.font;
+          else 
+            args.font = this.getDefault("DefaultText").genCSS();
+      }
+      if (!args["background-color"]) {
+          args["background-color"] = "rgba(75, 75, 75, 0.75)";
+      }
+      args.color = args.color ? args.color : "white";
+      if (typeof args.color==="object") {
+          args.color = ui_base.color2css(args.color);
+      }
+      args["padding"] = args["padding"]===undefined ? "5px" : args["padding"];
+      args["border-color"] = args["border-color"] ? args["border-color"] : "grey";
+      args["border-radius"] = args["border-radius"] ? args["border-radius"] : "25px";
+      args["border-width"] = args["border-width"]!==undefined ? args["border-width"] : "2px";
+      if (typeof args["border-width"]==="number") {
+          args["border-width"] = ""+args["border-width"]+"px";
+      }
+      if (typeof args["border-radius"]==="number") {
+          args["border-radius"] = ""+args["border-radius"]+"px";
+      }
+      let box=document.createElement("div");
+      box.setAttribute("class", "overdrawx");
+      box.style["position"] = "fixed";
+      box.style["width"] = "min-contents";
+      box.style["height"] = "min-contents";
+      box.style["border-width"] = args["border-width"];
+      box.style["border-radius"] = "25px";
+      box.style["pointer-events"] = "none";
+      box.style["z-index"] = this.zindex_base+1;
+      box.style["background-color"] = args["background-color"];
+      box.style["padding"] = args["padding"];
+      box.style["left"] = x+"px";
+      box.style["top"] = y+"px";
+      box.style["display"] = "flex";
+      box.style["justify-content"] = "center";
+      box.style["align-items"] = "center";
+      box.innerText = text;
+      box.style["font"] = args.font;
+      box.style["color"] = args.color;
+      this.otherChildren.push(box);
+      this.shadow.appendChild(box);
+      return box;
+    }
+     circle(p, r, stroke="black", fill="none") {
+      let circle=document.createElementNS(SVG_URL, "circle");
+      circle.setAttribute("cx", p[0]);
+      circle.setAttribute("cy", p[1]);
+      circle.setAttribute("r", r);
+      if (fill) {
+          circle.setAttribute("style", `stroke:${stroke};stroke-width:2;fill:${fill}`);
+      }
+      else {
+        circle.setAttribute("style", `stroke:${stroke};stroke-width:2`);
+      }
+      this.svg.appendChild(circle);
+      return circle;
+    }
+     line(v1, v2, color="black") {
+      let line=document.createElementNS(SVG_URL, "line");
+      line.setAttribute("x1", v1[0]);
+      line.setAttribute("y1", v1[1]);
+      line.setAttribute("x2", v2[0]);
+      line.setAttribute("y2", v2[1]);
+      line.setAttribute("style", `stroke:${color};stroke-width:2`);
+      this.svg.appendChild(line);
+      return line;
+    }
+     rect(p, size, color="black") {
+      let line=document.createElementNS(SVG_URL, "rect");
+      line.setAttribute("x", p[0]);
+      line.setAttribute("y", p[1]);
+      line.setAttribute("width", size[0]);
+      line.setAttribute("height", size[1]);
+      line.setAttribute("style", `fill:${color};stroke-width:2`);
+      line.setColor = (color) =>        {
+        line.setAttribute("style", `fill:${color};stroke-width:2`);
+      };
+      this.svg.appendChild(line);
+      return line;
+    }
+     end() {
+      this.clear();
+      this.remove();
+    }
+    static  define() {
+      return {tagname: "overdraw-x", 
+     style: "overdraw"}
+    }
+  }
+  _ESClass.register(Overdraw);
+  _es6_module.add_class(Overdraw);
+  Overdraw = _es6_module.add_export('Overdraw', Overdraw);
+  ui_base.UIBase.internalRegister(Overdraw);
+}, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
+
+
+es6_module_define('simple_events', ["../path-controller/util/simple_events.js"], function _simple_events_module(_es6_module) {
+  var ____path_controller_util_simple_events_js=es6_import(_es6_module, '../path-controller/util/simple_events.js');
+  for (let k in ____path_controller_util_simple_events_js) {
+      _es6_module.add_export(k, ____path_controller_util_simple_events_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/simple_events.js');
+
+
+es6_module_define('solver', ["../path-controller/util/solver.js"], function _solver_module(_es6_module) {
+  var ____path_controller_util_solver_js=es6_import(_es6_module, '../path-controller/util/solver.js');
+  for (let k in ____path_controller_util_solver_js) {
+      _es6_module.add_export(k, ____path_controller_util_solver_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/solver.js');
+
+
+es6_module_define('startup_report', ["./util.js"], function _startup_report_module(_es6_module) {
+  var util=es6_import(_es6_module, './util.js');
+  function startupReport() {
+    let s='';
+    for (let i=0; i<arguments.length; i++) {
+        s+=arguments[i]+' ';
+    }
+    console.log(util.termColor(s, "green"));
+  }
+  startupReport = _es6_module.add_export('startupReport', startupReport);
+}, '/dev/fairmotion/src/path.ux/scripts/util/startup_report.js');
+
+
+es6_module_define('struct', ["../path-controller/util/struct.js"], function _struct_module(_es6_module) {
+  var ____path_controller_util_struct_js=es6_import(_es6_module, '../path-controller/util/struct.js');
+  for (let k in ____path_controller_util_struct_js) {
+      _es6_module.add_export(k, ____path_controller_util_struct_js[k], true);
+  }
+  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
+  nstructjs;
+  _es6_module.set_default_export('nstructjs', nstructjs);
+  
+}, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
+
+
+es6_module_define('vectormath', ["../path-controller/util/vectormath.js"], function _vectormath_module(_es6_module) {
+  var ____path_controller_util_vectormath_js=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  for (let k in ____path_controller_util_vectormath_js) {
+      _es6_module.add_export(k, ____path_controller_util_vectormath_js[k], true);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
+
+
+es6_module_define('dragbox', ["../core/ui.js", "../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/simple_events.js"], function _dragbox_module(_es6_module) {
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
+  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
+  var parsepx=es6_import_item(_es6_module, '../core/ui_theme.js', 'parsepx');
+  function startDrag(box) {
+    if (box._modal) {
+        popModalLight(box._modal);
+        box._modal = undefined;
+        return ;
+    }
+    let first=true;
+    let lastx=0;
+    let lasty=0;
+    let handlers={on_mousemove: function on_mousemove(e) {
+        let x=e.x, y=e.y;
+        if (first) {
+            lastx = x;
+            lasty = y;
+            first = false;
+            return ;
+        }
+        let dx=x-lastx;
+        let dy=y-lasty;
+        let hx=parsepx(box.style["left"]);
+        let hy=parsepx(box.style["top"]);
+        hx+=dx;
+        hy+=dy;
+        console.log(hx, hy);
+        box.style["left"] = hx+"px";
+        box.style["top"] = hy+"px";
+        lastx = x;
+        lasty = y;
+      }, 
+    end: function end() {
+        if (box._modal) {
+            popModalLight(box._modal);
+            box._modal = undefined;
+        }
+      }, 
+    on_mouseup: function on_mouseup(e) {
+        this.end();
+      }, 
+    on_keydown: function on_keydown(e) {
+        switch (e.keyCode) {
+          case keymap["Escape"]:
+          case keymap["Return"]:
+            this.end();
+            break;
+        }
+      }}
+    box._modal = pushModalLight(handlers);
+  }
+  class DragBox extends Container {
+     constructor() {
+      super();
+      this._done = false;
+      this.header = UIBase.createElement("rowframe-x");
+      this.contents = UIBase.createElement("container-x");
+      this.header.style["border-radius"] = "20px";
+      this.header.parentWidget = this;
+      this.contents.parentWidget = this;
+      this.shadow.appendChild(this.header);
+      this.shadow.appendChild(this.contents);
+    }
+     init() {
+      super.init();
+      let header=this.header;
+      header.ctx = this.ctx;
+      this.contents.ctx = this.ctx;
+      header._init();
+      this.contents._init();
+      this.style["min-width"] = "350px";
+      header.style["height"] = "35px";
+      let icon=header.iconbutton(Icons.DELETE, "Hide", () =>        {
+        this.end();
+      });
+      icon.iconsheet = 0;
+      this.addEventListener("mousedown", (e) =>        {
+        console.log("start drag");
+        startDrag(this);
+        e.preventDefault();
+      }, {capture: false});
+      header.background = this.getDefault("background-color");
+      this.setCSS();
+    }
+     add() {
+      return this.contents.add(...arguments);
+    }
+     prepend(n) {
+      return this.contents.prepend(n);
+    }
+     appendChild(n) {
+      return this.contents.appendChild(n);
+    }
+     col() {
+      return this.contents.col(...arguments);
+    }
+     row() {
+      return this.contents.row(...arguments);
+    }
+     strip() {
+      return this.contents.strip(...arguments);
+    }
+     button() {
+      return this.contents.button(...arguments);
+    }
+     iconbutton() {
+      return this.contents.iconbutton(...arguments);
+    }
+     iconcheck() {
+      return this.contents.iconcheck(...arguments);
+    }
+     tool() {
+      return this.contents.tool(...arguments);
+    }
+     menu() {
+      return this.contents.menu(...arguments);
+    }
+     prop() {
+      return this.contents.prop(...arguments);
+    }
+     listenum() {
+      return this.contents.listenum(...arguments);
+    }
+     check() {
+      return this.contents.check(...arguments);
+    }
+     iconenum() {
+      return this.contents.iconenum(...arguments);
+    }
+     slider() {
+      return this.contents.slider(...arguments);
+    }
+     simpleslider() {
+      return this.contents.simpleslider(...arguments);
+    }
+     curve() {
+      return this.contents.curve(...arguments);
+    }
+     textbox() {
+      return this.contents.textbox(...arguments);
+    }
+     textarea() {
+      return this.contents.textarea(...arguments);
+    }
+     viewer() {
+      return this.contents.viewer(...arguments);
+    }
+     panel() {
+      return this.contents.panel(...arguments);
+    }
+     tabs() {
+      return this.contents.tabs(...arguments);
+    }
+     table() {
+      return this.contents.table(...arguments);
+    }
+     end() {
+      if (this._done) {
+          return ;
+      }
+      this.remove();
+      if (this._onend) {
+          this._onend();
+      }
+      if (this.onend) {
+          this.onend();
+      }
+    }
+     setCSS() {
+      super.setCSS();
+      this.background = this.getDefault("background-color");
+    }
+    static  define() {
+      return {tagname: "drag-box-x", 
+     style: "panel"}
+    }
+  }
+  _ESClass.register(DragBox);
+  _es6_module.add_class(DragBox);
+  DragBox = _es6_module.add_export('DragBox', DragBox);
+  UIBase.internalRegister(DragBox);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
+
+
+es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../path-controller/util/struct.js", "../core/ui.js", "../core/ui_base.js", "../core/ui_theme.js"], function _theme_editor_module(_es6_module) {
+  var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
+  var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var theme=es6_import_item(_es6_module, '../core/ui_base.js', 'theme');
+  var flagThemeUpdate=es6_import_item(_es6_module, '../core/ui_base.js', 'flagThemeUpdate');
+  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var validateCSSColor=es6_import_item(_es6_module, '../core/ui_theme.js', 'validateCSSColor');
+  var color2css=es6_import_item(_es6_module, '../core/ui_theme.js', 'color2css');
+  var css2color=es6_import_item(_es6_module, '../core/ui_theme.js', 'css2color');
+  var CSSFont=es6_import_item(_es6_module, '../core/ui_theme.js', 'CSSFont');
+  class ThemeEditor extends Container {
+     constructor() {
+      super();
+      this.categoryMap = {};
+    }
+    static  define() {
+      return {tagname: "theme-editor-x", 
+     style: "theme-editor"}
+    }
+     init() {
+      super.init();
+      this.build();
+    }
+     doFolder(catkey, obj, container=this, panel=undefined, path=undefined) {
+      let key=catkey.key;
+      if (!path) {
+          path = [key];
+      }
+      if (!panel) {
+          panel = container.panel(key, undefined, undefined, catkey.help);
+          panel.style["margin-left"] = "15px";
+      }
+      let row2=panel.row();
+      let textbox=row2.textbox(undefined, "");
+      let callback=(id) =>        {
+        console.log("ID", id, obj, catkey);
+        console.log(textbox, textbox.text, textbox.value);
+        let propkey=(textbox.text||"").trim();
+        if (!propkey) {
+            console.error("Cannot have empty theme property name");
+            return ;
+        }
+        if (id==="FLOAT") {
+            obj[propkey] = 0.0;
+        }
+        else 
+          if (id==="SUBFOLDER") {
+            obj[propkey] = {test: 0};
+        }
+        else 
+          if (id==="COLOR") {
+            obj[propkey] = "grey";
+        }
+        else 
+          if (id==="FONT") {
+            obj[propkey] = new CSSFont();
+        }
+        else 
+          if (id==="STRING") {
+            obj[propkey] = "";
+        }
+        let uidata=saveUIData(panel, "theme-panel");
+        panel.clear();
+        this.doFolder(catkey, obj, container, panel, path);
+        loadUIData(panel, uidata);
+        panel.flushUpdate();
+        panel.flushSetCSS();
+        if (this.onchange) {
+            this.onchange(key, propkey, obj);
+        }
+      };
+      let menu=row2.menu("+", [{name: "Float", 
+     callback: () =>          {
+          return callback("FLOAT");
+        }}, {name: "Color", 
+     callback: () =>          {
+          return callback("COLOR");
+        }}, {name: "Subfolder", 
+     callback: () =>          {
+          return callback("SUBFOLDER");
+        }}, {name: "Font", 
+     callback: () =>          {
+          return callback("FONT");
+        }}, {name: "String", 
+     callback: () =>          {
+          return callback("STRING");
+        }}]);
+      let row=panel.row();
+      let col1=row.col();
+      let col2=row.col();
+      let do_onchange=(key, k, obj) =>        {
+        flagThemeUpdate();
+        if (this.onchange) {
+            this.onchange(key, k, obj);
+        }
+        this.ctx.screen.completeSetCSS();
+        this.ctx.screen.completeUpdate();
+      };
+      let getpath=(path) =>        {
+        let obj=theme;
+        for (let i=0; i<path.length; i++) {
+            obj = obj[path[i]];
+        }
+        return obj;
+      };
+      let ok=false;
+      let _i=0;
+      let dokey=(k, v, path) =>        {
+        let col=_i%2===0 ? col1 : col2;
+        if (k.toLowerCase().search("flag")>=0) {
+            return ;
+        }
+        if (typeof v==="string") {
+            let v2=v.toLowerCase().trim();
+            let iscolor=validateCSSColor(v2);
+            if (iscolor) {
+                let cw=col.colorbutton();
+                ok = true;
+                _i++;
+                let color=css2color(v2);
+                if (color.length<3) {
+                    color = [color[0], color[1], color[2], 1.0];
+                }
+                try {
+                  cw.setRGBA(color);
+                }
+                catch (error) {
+                    console.warn("Failed to set color "+k, v2);
+                }
+                cw.onchange = () =>                  {
+                  console.log("setting '"+k+"' to "+color2css(cw.rgba), key);
+                  getpath(path)[k] = color2css(cw.rgba);
+                  do_onchange(key, k);
+                };
+                cw.label = k;
+            }
+            else {
+              col.label(k);
+              let box=col.textbox();
+              box.onchange = () =>                {
+                getpath(path)[k] = box.text;
+                do_onchange(key, k);
+              };
+              box.text = v;
+            }
+        }
+        else 
+          if (typeof v==="number") {
+            let slider=col.slider(undefined, k, v, 0, 256, 0.01, false);
+            slider.baseUnit = slider.displayUnit = "none";
+            ok = true;
+            _i++;
+            slider.onchange = () =>              {
+              getpath(path)[k] = slider.value;
+              do_onchange(key, k);
+            };
+        }
+        else 
+          if (typeof v==="boolean") {
+            let check=col.check(undefined, k);
+            check.value = getpath(path)[k];
+            check.onchange = () =>              {
+              getpath(path)[k] = !!check.value;
+              do_onchange(key, k);
+            };
+        }
+        else 
+          if (typeof v==="object"&&__instance_of(v, CSSFont)) {
+            let panel2=col.panel(k);
+            ok = true;
+            _i++;
+            let textbox=(key) =>              {
+              panel2.label(key);
+              let tbox=panel2.textbox(undefined, v[key]);
+              tbox.width = tbox.getDefault("width");
+              tbox.onchange = function () {
+                v[key] = this.text;
+                do_onchange(key, k);
+              }
+            };
+            textbox("font");
+            textbox("variant");
+            textbox("weight");
+            textbox("style");
+            let cw=panel2.colorbutton();
+            cw.label = "color";
+            cw.setRGBA(css2color(v.color));
+            cw.onchange = () =>              {
+              v.color = color2css(cw.rgba);
+              do_onchange(key, k);
+            };
+            let slider=panel2.slider(undefined, "size", v.size);
+            slider.onchange = () =>              {
+              v.size = slider.value;
+              do_onchange(key, k);
+            };
+            slider.setAttribute("min", 1);
+            slider.setAttribute("max", 100);
+            slider.baseUnit = slider.displayUnit = "none";
+            panel2.closed = true;
+        }
+        else 
+          if (typeof v==="object") {
+            let catkey2=Object.assign({}, catkey);
+            catkey2.key = k;
+            let path2=path.concat(k);
+            this.doFolder(catkey2, v, panel, undefined, path2);
+        }
+      };
+      for (let k in obj) {
+          let v=obj[k];
+          dokey(k, v, path);
+      }
+      if (!ok) {
+          panel.remove();
+      }
+      else {
+        panel.closed = true;
+      }
+    }
+     build() {
+      let uidata=saveUIData(this, "theme");
+      this.clear();
+      let categories={};
+      for (let k of Object.keys(theme)) {
+          let catkey;
+          if (k in this.categoryMap) {
+              let cat=this.categoryMap[k];
+              if (typeof cat==="string") {
+                  cat = {category: cat, 
+           help: "", 
+           key: k};
+              }
+              catkey = cat;
+          }
+          else {
+            catkey = {category: k, 
+        help: '', 
+        key: k};
+          }
+          if (!catkey.key) {
+              catkey.key = k;
+          }
+          if (!(catkey.category in categories)) {
+              categories[catkey.category] = [];
+          }
+          categories[catkey.category].push(catkey);
+      }
+      function strcmp(a, b) {
+        a = a.trim().toLowerCase();
+        b = b.trim().toLowerCase();
+        return a<b ? -1 : (a===b ? 0 : 1);
+      }
+      let keys=Object.keys(categories);
+      keys.sort(strcmp);
+      for (let k of keys) {
+          let list=categories[k];
+          list.sort((a, b) =>            {
+            return strcmp(a.key, b.key);
+          });
+          let panel=this;
+          if (list.length>1) {
+              panel = this.panel(k);
+          }
+          for (let cat of list) {
+              let k2=cat.key;
+              let v=theme[k2];
+              if (typeof v==="object") {
+                  this.doFolder(cat, v, panel);
+              }
+          }
+          if (list.length>1) {
+              panel.closed = true;
+          }
+      }
+      loadUIData(this, uidata);
+      for (let i=0; i<2; i++) {
+          this.flushSetCSS();
+          this.flushUpdate();
+      }
+      if (this.ctx&&this.ctx.screen) {
+          window.setTimeout(() =>            {
+            this.ctx.screen.completeSetCSS();
+          }, 100);
+      }
+    }
+  }
+  _ESClass.register(ThemeEditor);
+  _es6_module.add_class(ThemeEditor);
+  ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
+  UIBase.internalRegister(ThemeEditor);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
+
+
+es6_module_define('ui_button', ["../path-controller/toolsys/toolsys.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../path-controller/controller/controller.js", "../core/ui_base.js", "../path-controller/util/events.js"], function _ui_button_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../path-controller/util/util.js');
+  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../path-controller/util/events.js');
+  var simple_toolsys=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
+  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
+  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
+  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var _themeUpdateKey=es6_import_item(_es6_module, '../core/ui_base.js', '_themeUpdateKey');
+  var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
+  let keymap=events.keymap;
+  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  let parsepx=ui_base.parsepx;
+  cconst.DEBUG.buttonEvents = true;
+  class ButtonEventBase extends UIBase {
+     constructor() {
+      super();
+      this._auto_depress = true;
+      this._highlight = false;
+      this._pressed = false;
+    }
+     bindEvents() {
+      let press_gen=0;
+      let depress;
+      let press=(e) =>        {
+        e.stopPropagation();
+        if (!this.modalRunning) {
+            let this2=this;
+            this.pushModal({on_pointerdown: function on_pointerdown(e) {
+                this.end(e);
+              }, 
+        on_pointerup: function on_pointerup(e) {
+                this.end(e);
+              }, 
+        on_pointercancel: function on_pointercancel(e) {
+                console.warn("Pointer cancel in button");
+                this2.popModal();
+              }, 
+        on_keydown: function on_keydown(e) {
+                switch (e.keyCode) {
+                  case keymap["Enter"]:
+                  case keymap["Escape"]:
+                  case keymap["Space"]:
+                    this.end();
+                    break;
+                }
+              }, 
+        end: function end(e) {
+                if (!this2.modalRunning) {
+                    return ;
+                }
+                this2.popModal();
+                depress(e);
+              }}, undefined, e.pointerId);
+        }
+        if (cconst.DEBUG.buttonEvents) {
+            console.log("button press", this._pressed, this.disabled, e.button);
+        }
+        if (this.disabled)
+          return ;
+        this._pressed = true;
+        if (this._onpress) {
+            this._onpress(this);
+        }
+        this._redraw();
+        e.preventDefault();
+      };
+      depress = (e) =>        {
+        if (cconst.DEBUG.buttonEvents)
+          console.log("button depress", e.button, e.was_touch);
+        if (this._auto_depress) {
+            this._pressed = false;
+            if (this.disabled)
+              return ;
+            this._redraw();
+        }
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (util.isMobile()||e.type==="pointerup"&&e.button) {
+                return ;
+            }
+        }
+        this._redraw();
+        if (cconst.DEBUG.buttonEvents)
+          console.log("button click callback:", this.onclick, this._onpress, this.onpress);
+        if (this.onclick&&e&&e.pointerType!=="mouse") {
+            this.onclick(this);
+        }
+        this.undoBreakPoint();
+      };
+      this.addEventListener("click", () =>        {
+        this._pressed = false;
+        this._highlight = false;
+        this._redraw();
+      });
+      this.addEventListener("pointerdown", press, {captured: true, 
+     passive: false});
+      this.addEventListener("pointerup", depress, {captured: true, 
+     passive: false});
+      this.addEventListener("pointerover", (e) =>        {
+        if (this.disabled)
+          return ;
+        this._highlight = true;
+        this._redraw();
+      });
+      this.addEventListener("pointerout", (e) =>        {
+        if (this.disabled)
+          return ;
+        this._highlight = false;
+        this._redraw();
+      });
+      this.addEventListener("keydown", (e) =>        {
+        if (this.disabled)
+          return ;
+        if (cconst.DEBUG.buttonEvents)
+          console.log(e.keyCode);
+        switch (e.keyCode) {
+          case 27:
+            this.blur();
+            e.preventDefault();
+            e.stopPropagation();
+            break;
+          case 32:
+          case 13:
+            this.click();
+            e.preventDefault();
+            e.stopPropagation();
+            break;
+        }
+      });
+      this.addEventListener("focusin", () =>        {
+        if (this.disabled)
+          return ;
+        this._focus = 1;
+        this._redraw();
+        this.focus();
+      });
+      this.addEventListener("blur", () =>        {
+        if (this.disabled)
+          return ;
+        this._focus = 0;
+        this._redraw();
+      });
+    }
+     _redraw() {
+
+    }
+  }
+  _ESClass.register(ButtonEventBase);
+  _es6_module.add_class(ButtonEventBase);
+  ButtonEventBase = _es6_module.add_export('ButtonEventBase', ButtonEventBase);
+  class Button extends ButtonEventBase {
+     constructor() {
+      super();
+      this.label = document.createElement("span");
+      this.label.innerText = "button";
+      this.shadow.appendChild(this.label);
+      this.label.style["pointer-events"] = "none";
+      this._pressed = false;
+      this._highlight = false;
+      this._pressedTime = 0;
+      this._pressedTimeout = 100;
+      this._auto_depress = true;
+      this._last_name = undefined;
+      this._last_disabled = undefined;
+    }
+    get  name() {
+      return ""+this.getAttribute("name");
+    }
+    set  name(val) {
+      this.setAttribute("name", val);
+    }
+    get  _pressed() {
+      return this.__pressed;
+    }
+    set  _pressed(v) {
+      let changed=!v!==!this._pressed;
+      if (v) {
+          this._pressedTime = util.time_ms();
+      }
+      else 
+        if (changed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
+          window.setTimeout(() =>            {
+            this.setCSS();
+          }, this._pressedTimeout-(util.time_ms()-this._pressedTime)+1);
+      }
+      this.__pressed = v;
+    }
+    static  define() {
+      return {tagname: "button-x", 
+     style: "button"}
+    }
+     init() {
+      super.init();
+      this.tabIndex = 0;
+      this.bindEvents();
+      this.setCSS();
+    }
+     on_enabled() {
+      this.setCSS();
+    }
+     on_disabled() {
+      this.setCSS();
+    }
+     setCSS() {
+      super.setCSS();
+      if (this.hasDefault("pressedTimeout")) {
+          this._pressedTimeout = this.getDefault("pressedTimeout");
+      }
+      let subkey=undefined;
+      let pressed=this._pressed;
+      if (!pressed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
+          pressed = true;
+      }
+      if (this.disabled) {
+          subkey = "disabled";
+      }
+      else 
+        if (pressed&&this._highlight) {
+          subkey = "highlight-pressed";
+      }
+      else 
+        if (pressed) {
+          subkey = "pressed";
+      }
+      else 
+        if (this._highlight) {
+          subkey = "highlight";
+      }
+      let h=this.getDefault("height");
+      this.setBoxCSS(subkey);
+      this.label.style["padding"] = this.label.style["margin"] = "0px";
+      this.style["background-color"] = this.getSubDefault(subkey, "background-color");
+      let font=this.getSubDefault(subkey, "DefaultText");
+      this.label.style["font"] = font.genCSS();
+      this.label.style["color"] = font.color;
+      this.style["display"] = "flex";
+      this.style["align-items"] = "center";
+      this.style["width"] = "max-content";
+      this.style["height"] = h+"px";
+      this.style["user-select"] = "none";
+      this.label.style["user-select"] = "none";
+    }
+     click() {
+      if (this._onpress) {
+          let rect=this.getClientRects();
+          let x=rect.x+rect.width*0.5;
+          let y=rect.y+rect.height*0.5;
+          let e={x: x, 
+       y: y, 
+       stopPropagation: () =>              {            }, 
+       preventDefault: () =>              {            }};
+          this._onpress(e);
+      }
+      super.click();
+    }
+     _redraw() {
+      this.setCSS();
+    }
+     updateDisabled() {
+      if (this._last_disabled!==this.disabled) {
+          this._last_disabled = this.disabled;
+          this._redraw();
+          if (cconst.DEBUG.buttonEvents)
+            console.log("disabled update!", this.disabled, this.style["background-color"]);
+      }
+    }
+     update() {
+      if (this._last_name!==this.name) {
+          this.label.innerHTML = this.name;
+          this._last_name = this.name;
+      }
+    }
+  }
+  _ESClass.register(Button);
+  _es6_module.add_class(Button);
+  Button = _es6_module.add_export('Button', Button);
+  UIBase.register(Button);
+  class OldButton extends ButtonEventBase {
+     constructor() {
+      super();
+      let dpi=this.getDPI();
+      this._last_but_update_key = "";
+      this._name = "";
+      this._namePad = undefined;
+      this._leftPad = 5;
+      this._rightPad = 5;
+      this._last_w = 0;
+      this._last_h = 0;
+      this._last_dpi = dpi;
+      this._lastw = undefined;
+      this._lasth = undefined;
+      this.dom = document.createElement("canvas");
+      this.g = this.dom.getContext("2d");
+      this.dom.setAttribute("class", "canvas1");
+      this.dom.tabIndex = 0;
+      this._last_bg = undefined;
+      this.addEventListener("keydown", (e) =>        {
+        if (this.disabled)
+          return ;
+        if (cconst.DEBUG.buttonEvents)
+          console.log(e.keyCode);
+        switch (e.keyCode) {
+          case 27:
+            this.blur();
+            e.preventDefault();
+            e.stopPropagation();
+            break;
+          case 32:
+          case 13:
+            this.click();
+            e.preventDefault();
+            e.stopPropagation();
+            break;
+        }
+      });
+      this.addEventListener("focusin", () =>        {
+        if (this.disabled)
+          return ;
+        this._focus = 1;
+        this._redraw();
+        this.focus();
+      });
+      this.addEventListener("blur", () =>        {
+        if (this.disabled)
+          return ;
+        this._focus = 0;
+        this._redraw();
+      });
+      this._last_disabled = false;
+      this._auto_depress = true;
+      this.shadow.appendChild(this.dom);
+    }
+    get  r() {
+      return this.getDefault("border-radius");
+    }
+    set  r(val) {
+      this.overrideDefault("border-radius", val);
+    }
+    static  define() {
+      return {tagname: "old-button-x", 
+     style: "button"}
+    }
+     click() {
+      if (this._onpress) {
+          let rect=this.getClientRects();
+          let x=rect.x+rect.width*0.5;
+          let y=rect.y+rect.height*0.5;
+          let e={x: x, 
+       y: y, 
+       stopPropagation: () =>              {            }, 
+       preventDefault: () =>              {            }};
+          this._onpress(e);
+      }
+      super.click();
+    }
+     init() {
+      let dpi=this.getDPI();
+      let width=~~(this.getDefault("width"));
+      let height=~~(this.getDefault("height"));
+      this.dom.style["width"] = width+"px";
+      this.dom.style["height"] = height+"px";
+      this.dom.style["padding"] = this.dom.style["margin"] = "0px";
+      this.dom.width = Math.ceil(width*dpi);
+      this.dom.height = Math.ceil(parsepx(this.dom.style["height"])*dpi);
+      this._name = undefined;
+      this.updateName();
+      this.bindEvents();
+      this._redraw();
+    }
+     setAttribute(key, val) {
+      super.setAttribute(key, val);
+      if (key==="name") {
+          this.updateName();
+          this.updateWidth();
+      }
+    }
+     old_bindEvents() {
+      let press_gen=0;
+      let press=(e) =>        {
+        e.stopPropagation();
+        if (cconst.DEBUG.buttonEvents) {
+            console.log("button press", this._pressed, this.disabled, e.button);
+        }
+        if (this.disabled)
+          return ;
+        this._pressed = true;
+        if (util.isMobile()&&this.onclick&&e.button===0) {
+            this.onclick();
+        }
+        if (this._onpress) {
+            this._onpress(this);
+        }
+        this._redraw();
+        e.preventDefault();
+      };
+      let depress=(e) =>        {
+        if (cconst.DEBUG.buttonEvents)
+          console.log("button depress", e.button, e.was_touch);
+        if (this._auto_depress) {
+            this._pressed = false;
+            if (this.disabled)
+              return ;
+            this._redraw();
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (util.isMobile()||e.type==="pointerup"&&e.button) {
+            return ;
+        }
+        this._redraw();
+        if (cconst.DEBUG.buttonEvents) {
+            console.log("button click callback:", this.onclick, this._onpress, this.onpress);
+        }
+        if (this.onclick&&e.pointerType!=="mouse") {
+            this.onclick(this);
+        }
+        this.undoBreakPoint();
+      };
+      this.addEventListener("mousedown", press, {captured: true, 
+     passive: false});
+      this.addEventListener("mouseup", depress, {captured: true, 
+     passive: false});
+      this.addEventListener("mouseover", (e) =>        {
+        if (this.disabled)
+          return ;
+        this._highlight = true;
+        this._repos_canvas();
+        this._redraw();
+      });
+      this.addEventListener("mouseout", (e) =>        {
+        if (this.disabled)
+          return ;
+        this._highlight = false;
+        this._repos_canvas();
+        this._redraw();
+      });
+    }
+     updateDisabled() {
+      if (this._last_disabled!==this.disabled) {
+          this._last_disabled = this.disabled;
+          this.dom._background = this.getDefault("background-color");
+          this._repos_canvas();
+          this._redraw();
+          if (cconst.DEBUG.buttonEvents)
+            console.log("disabled update!", this.disabled, this.style["background-color"]);
+      }
+    }
+     updateDefaultSize() {
+      let height=~~(this.getDefault("height"))+this.getDefault("padding");
+      let size=this.getDefault("DefaultText").size*1.33;
+      if (height===undefined||size===undefined||isNaN(height)||isNaN(size)) {
+          return ;
+      }
+      height = ~~Math.max(height, size);
+      height = height+"px";
+      if (height!==this.style["height"]) {
+          this.style["height"] = height;
+          this.dom.style["height"] = height;
+          this._repos_canvas();
+          this._redraw();
+      }
+    }
+     _calcUpdateKey() {
+      return _themeUpdateKey;
+    }
+     update() {
+      super.update();
+      this.style["user-select"] = "none";
+      this.dom.style["user-select"] = "none";
+      this.updateDefaultSize();
+      this.updateWidth();
+      this.updateDPI();
+      this.updateName();
+      this.updateDisabled();
+      if (this.background!==this._last_bg) {
+          this._last_bg = this.background;
+          this._repos_canvas();
+          this._redraw();
+      }
+      let key=this._calcUpdateKey();
+      if (key!==this._last_but_update_key) {
+          this._last_but_update_key = key;
+          this.setCSS();
+          this._repos_canvas();
+          this._redraw();
+      }
+    }
+     setCSS() {
+      super.setCSS();
+      this.dom.style["margin"] = this.getDefault("margin", undefined, 0)+"px";
+      this.dom.style["margin-left"] = this.getDefault("margin-left", undefined, 0)+"px";
+      this.dom.style["margin-right"] = this.getDefault("margin-right", undefined, 0)+"px";
+      this.dom.style["margin-top"] = this.getDefault("margin-top", undefined, 0)+"px";
+      this.dom.style["margin-bottom"] = this.getDefault("margin-bottom", undefined, 0)+"px";
+      let name=this._name;
+      if (name===undefined) {
+          return ;
+      }
+      let dpi=this.getDPI();
+      let pad=this.getDefault("padding");
+      let ts=this.getDefault("DefaultText").size;
+      let tw=ui_base.measureText(this, this._genLabel(), {size: ts, 
+     font: this.getDefault("DefaultText")}).width+2.0*pad+this._leftPad+this._rightPad;
+      if (this._namePad!==undefined) {
+          tw+=this._namePad;
+      }
+      let w=this.getDefault("width");
+      w = Math.max(w, tw);
+      w = ~~w;
+      this.dom.style["width"] = w+"px";
+      this.updateBorders();
+    }
+     updateBorders() {
+      let lwid=this.getDefault("border-width");
+      if (lwid) {
+          this.dom.style["border-color"] = this.getDefault("border-color");
+          this.dom.style["border-width"] = lwid+"px";
+          this.dom.style["border-style"] = "solid";
+          this.dom.style["border-radius"] = this.getDefault("border-radius")+"px";
+      }
+      else {
+        this.dom.style["border-color"] = "none";
+        this.dom.style["border-width"] = "0px";
+        this.dom.style["border-radius"] = this.getDefault("border-radius")+"px";
+      }
+    }
+     updateName() {
+      if (!this.hasAttribute("name")) {
+          return ;
+      }
+      let name=this.getAttribute("name");
+      if (name!==this._name) {
+          this._name = name;
+          this.setCSS();
+          this._repos_canvas();
+          this._redraw();
+      }
+    }
+     updateWidth(w_add=0) {
+
+    }
+     _repos_canvas() {
+      let dpi=this.getDPI();
+      let w=parsepx(this.dom.style["width"]);
+      let h=parsepx(this.dom.style["height"]);
+      let w2=~~(w*dpi);
+      let h2=~~(h*dpi);
+      w = w2/dpi;
+      h = h2/dpi;
+      this.dom.width = w2;
+      this.dom.style["width"] = w+"px";
+      this.dom.height = h2;
+      this.dom.style["height"] = h+"px";
+    }
+     updateDPI() {
+      let dpi=this.getDPI();
+      if (this._last_dpi!==dpi) {
+          this._last_dpi = dpi;
+          this.g.font = undefined;
+          this.setCSS();
+          this._repos_canvas();
+          this._redraw();
+      }
+      if (this.style["background-color"]) {
+          this.dom._background = this.style["background-color"];
+          this.style["background-color"] = "";
+      }
+    }
+     _genLabel() {
+      return ""+this._name;
+    }
+     _getSubKey() {
+      if (this._pressed) {
+          return 'depressed';
+      }
+      else 
+        if (this._highlight) {
+          return 'highlight';
+      }
+      else {
+        return undefined;
+      }
+    }
+     _redraw(draw_text=true) {
+      let dpi=this.getDPI();
+      let subkey=this._getSubKey();
+      if (this._pressed&&this._highlight) {
+          this.dom._background = this.getSubDefault(subkey, "highlight-pressed", "BoxHighlight");
+      }
+      else 
+        if (this._pressed) {
+          this.dom._background = this.getSubDefault(subkey, "pressed", "BoxDepressed");
+      }
+      else 
+        if (this._highlight) {
+          this.dom._background = this.getSubDefault(subkey, "highlight", "BoxHighlight");
+      }
+      else {
+        this.dom._background = this.getSubDefault(subkey, "background-color", "background-color");
+      }
+      ui_base.drawRoundBox(this, this.dom, this.g);
+      this.updateBorders();
+      if (this._focus) {
+          let w=this.dom.width, h=this.dom.height;
+          let p=1/dpi;
+          this.g.translate(p, p);
+          let lw=this.g.lineWidth;
+          this.g.lineWidth = this.getDefault("focus-border-width", undefined, 1.0)*dpi;
+          ui_base.drawRoundBox(this, this.dom, this.g, w-p*2, h-p*2, this.r, "stroke", this.getDefault("BoxHighlight"));
+          this.g.lineWidth = lw;
+          this.g.translate(-p, -p);
+      }
+      if (draw_text) {
+          this._draw_text();
+      }
+    }
+     _draw_text() {
+      let dpi=this.getDPI();
+      let subkey=this._getSubKey();
+      let font=this.getSubDefault(subkey, "DefaultText");
+      let pad=this.getDefault("padding")*dpi;
+      let ts=font.size*dpi;
+      let text=this._genLabel();
+      let w=this.dom.width, h=this.dom.height;
+      let tw=ui_base.measureText(this, text, undefined, undefined, ts, font).width;
+      let cx=pad*0.5+this._leftPad*dpi;
+      let cy=ts+(h-ts)/3.0;
+      let g=this.g;
+      ui_base.drawText(this, ~~cx, ~~cy, text, {canvas: this.dom, 
+     g: this.g, 
+     size: ts/dpi, 
+     font: font});
+    }
+  }
+  _ESClass.register(OldButton);
+  _es6_module.add_class(OldButton);
+  OldButton = _es6_module.add_export('OldButton', OldButton);
+  UIBase.internalRegister(OldButton);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
+
+
+es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../path-controller/util/events.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -618,7 +3538,7 @@ es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
 
 
-es6_module_define('ui_colorpicker2', ["../path-controller/util/events.js", "../config/const.js", "../path-controller/util/simple_events.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/colorutils.js", "../path-controller/util/util.js", "../screen/area_wrangler.js"], function _ui_colorpicker2_module(_es6_module) {
+es6_module_define('ui_colorpicker2', ["../screen/area_wrangler.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/events.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../path-controller/util/colorutils.js", "../config/const.js", "../core/ui_base.js", "../core/ui.js"], function _ui_colorpicker2_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -1818,7 +4738,7 @@ es6_module_define('ui_colorpicker2', ["../path-controller/util/events.js", "../c
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker2.js');
 
 
-es6_module_define('ui_container', ["../core/ui_base.js", "../path-controller/controller/controller.js", "../core/ui.js"], function _ui_container_module(_es6_module) {
+es6_module_define('ui_container', ["../core/ui.js", "../core/ui_base.js", "../path-controller/controller/controller.js"], function _ui_container_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var DataAPI=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataAPI');
@@ -2141,7 +5061,7 @@ es6_module_define('ui_container', ["../core/ui_base.js", "../path-controller/con
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_container.js');
 
 
-es6_module_define('ui_curvewidget', ["../core/ui.js", "../path-controller/curve/curve1d.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/curve/curve1d_utils.js", "../path-controller/util/util.js"], function _ui_curvewidget_module(_es6_module) {
+es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../path-controller/curve/curve1d_utils.js", "../path-controller/toolsys/toolprop.js", "../path-controller/curve/curve1d.js"], function _ui_curvewidget_module(_es6_module) {
   var Curve1DProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'Curve1DProperty');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -2346,7 +5266,7 @@ es6_module_define('ui_curvewidget', ["../core/ui.js", "../path-controller/curve/
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_curvewidget.js');
 
 
-es6_module_define('ui_dialog', ["../path-controller/util/simple_events.js", "../screen/ScreenArea.js"], function _ui_dialog_module(_es6_module) {
+es6_module_define('ui_dialog', ["../screen/ScreenArea.js", "../path-controller/util/simple_events.js"], function _ui_dialog_module(_es6_module) {
   var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
   var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
   function makePopupArea(area_class, screen, args) {
@@ -2388,7 +5308,7 @@ es6_module_define('ui_dialog', ["../path-controller/util/simple_events.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
 
 
-es6_module_define('ui_lasttool', ["../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../config/const.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/controller/controller.js", "../path-controller/toolsys/toolsys.js"], function _ui_lasttool_module(_es6_module) {
+es6_module_define('ui_lasttool', ["../path-controller/toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/controller/controller.js"], function _ui_lasttool_module(_es6_module) {
   var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -2542,7 +5462,7 @@ es6_module_define('ui_lasttool', ["../path-controller/toolsys/toolprop.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_lasttool.js');
 
 
-es6_module_define('ui_listbox', ["../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../core/ui_base.js", "../core/ui.js", "./ui_table.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js"], function _ui_listbox_module(_es6_module) {
+es6_module_define('ui_listbox', ["./ui_table.js", "../path-controller/toolsys/toolsys.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../path-controller/util/util.js"], function _ui_listbox_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -2732,7 +5652,7 @@ es6_module_define('ui_listbox', ["../path-controller/toolsys/toolprop.js", "../p
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
 
 
-es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/events.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../path-controller/controller.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/controller.js", "../core/ui_base.js", "../path-controller/util/events.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -4095,7 +7015,7 @@ es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/events.
       }
       else 
         if (typeof item==="object") {
-          let $_t0htnj=item, name=$_t0htnj.name, callback=$_t0htnj.callback, hotkey=$_t0htnj.hotkey, icon=$_t0htnj.icon, tooltip=$_t0htnj.tooltip;
+          let $_t0slih=item, name=$_t0slih.name, callback=$_t0slih.callback, hotkey=$_t0slih.hotkey, icon=$_t0slih.icon, tooltip=$_t0slih.tooltip;
           let id2=item.id!==undefined ? item.id : id++;
           if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
               hotkey = hotkey.buildString();
@@ -4144,7 +7064,7 @@ es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/events.
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
 
 
-es6_module_define('ui_noteframe', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/util.js"], function _ui_noteframe_module(_es6_module) {
+es6_module_define('ui_noteframe', ["../path-controller/util/util.js", "../core/ui_base.js", "../core/ui.js"], function _ui_noteframe_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var ui=es6_import(_es6_module, '../core/ui.js');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
@@ -4424,7 +7344,7 @@ es6_module_define('ui_noteframe', ["../core/ui.js", "../core/ui_base.js", "../pa
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
 
 
-es6_module_define('ui_numsliders', ["../core/ui.js", "../path-controller/util/simple_events.js", "../config/const.js", "../core/units.js", "../path-controller/util/vectormath.js", "../core/ui_theme.js", "../core/ui_base.js", "../path-controller/util/util.js", "./theme_editor.js", "./ui_widgets.js", "../path-controller/toolsys/toolprop.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "./theme_editor.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/util/simple_events.js", "../core/ui_theme.js", "../path-controller/util/util.js", "../core/ui.js", "./ui_widgets.js", "../core/units.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -5388,7 +8308,7 @@ es6_module_define('ui_numsliders', ["../core/ui.js", "../path-controller/util/si
     }
      update() {
       super.update();
-      let key=this.getDefault("width")+this.getDefault("height")+this.getDefault("SlideHeight");
+      let key=""+this.getDefault("width")+":"+this.getDefault("height")+":"+this.getDefault("SlideHeight");
       if (key!==this._last_slider_key) {
           this._last_slider_key = key;
           this.flushUpdate();
@@ -5632,7 +8552,7 @@ es6_module_define('ui_numsliders', ["../core/ui.js", "../path-controller/util/si
       if (!this._init_done) {
           return ;
       }
-      if (this._lock_textbox>0)
+      if (this._lock_textbox>0||this.textbox.editing)
         return ;
       this.textbox.text = this.formatNumber(this._value);
       this.textbox.update();
@@ -5757,7 +8677,7 @@ es6_module_define('ui_numsliders', ["../core/ui.js", "../path-controller/util/si
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
 
 
-es6_module_define('ui_panel', ["../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/html5_fileapi.js", "./ui_widgets.js", "../core/ui.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["../path-controller/util/util.js", "./ui_widgets.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/html5_fileapi.js", "../path-controller/util/vectormath.js"], function _ui_panel_module(_es6_module) {
   var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -6092,7 +9012,7 @@ es6_module_define('ui_panel', ["../path-controller/util/util.js", "../path-contr
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_panel.js');
 
 
-es6_module_define('ui_progress', ["../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/simple_events.js"], function _ui_progress_module(_es6_module) {
+es6_module_define('ui_progress', ["../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../core/ui_base.js"], function _ui_progress_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
@@ -6259,7 +9179,7 @@ es6_module_define('ui_progress', ["../path-controller/util/util.js", "../core/ui
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_progress.js');
 
 
-es6_module_define('ui_richedit', ["../path-controller/util/util.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "./ui_textbox.js"], function _ui_richedit_module(_es6_module) {
+es6_module_define('ui_richedit', ["../path-controller/util/util.js", "../core/ui.js", "../core/ui_base.js", "./ui_textbox.js", "../path-controller/util/simple_events.js"], function _ui_richedit_module(_es6_module) {
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -6542,7 +9462,7 @@ es6_module_define('ui_richedit', ["../path-controller/util/util.js", "../core/ui
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
 
 
-es6_module_define('ui_table', ["./ui_curvewidget.js", "../core/ui.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "./ui_widgets.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js"], function _ui_table_module(_es6_module) {
+es6_module_define('ui_table', ["../path-controller/util/util.js", "./ui_curvewidget.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "./ui_widgets.js", "../path-controller/util/vectormath.js"], function _ui_table_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -6719,7 +9639,7 @@ es6_module_define('ui_table', ["./ui_curvewidget.js", "../core/ui.js", "../path-
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
 
 
-es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js"], function _ui_tabs_module(_es6_module) {
+es6_module_define('ui_tabs', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../path-controller/util/events.js"], function _ui_tabs_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -6728,6 +9648,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
   var ui=es6_import(_es6_module, '../core/ui.js');
   var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
   var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var keymap=es6_import_item(_es6_module, '../path-controller/util/events.js', 'keymap');
   let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets, iconmanager=ui_base.iconmanager;
   let tab_idgen=1;
   tab_idgen = _es6_module.add_export('tab_idgen', tab_idgen);
@@ -6781,6 +9702,18 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       this.addEventListener("pointerup", (e) =>        {
         this.parentWidget.on_pointerup(e);
       });
+      this.addEventListener("keydown", (e) =>        {
+        console.log(e.keyCode, this._id);
+        switch (e.keyCode) {
+          case keymap.Enter:
+          case keymap.Space:
+            this.parentWidget.setActive(this, e);
+            break;
+        }
+      });
+    }
+     init() {
+      this.tabIndex = 1;
     }
     static  define() {
       return {tagname: "tab-item-x"}
@@ -6835,6 +9768,12 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       let y=this.pos[1]/dpi;
       let w=this.size[0]/dpi;
       let h=this.size[1]/dpi;
+      if (this==this.parentWidget.tabs.active) {
+          this.style["focus-border-width"] = "0px";
+      }
+      else {
+        this.style["focus-border-width"] = "2px";
+      }
       this.style["background-color"] = "transparent";
       this.style["margin"] = this.style["padding"] = "0px";
       this.style["position"] = "absolute";
@@ -7022,10 +9961,10 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       if (debug)
         console.log(e.keyCode);
       switch (e.keyCode) {
-        case 27:
-        case 32:
-        case 13:
-        case 9:
+        case keymap.Escape:
+        case keymap.Space:
+        case keymap.Enter:
+        case keymap.Tab:
           this.finish();
           break;
       }
@@ -7092,7 +10031,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       mx*=dpi;
       my*=dpi;
       this._doelement(e, mx, my);
-      const is_mdown=e.type==="mousedown";
+      const is_mdown=e.type==="mousedown"||e.type=="pointerdown";
       if (is_mdown&&this.onselect&&this._fireOnSelect().defaultPrevented) {
           e.preventDefault();
       }
@@ -7356,9 +10295,10 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       g.font = font.genCSS(tsize);
       let axis=this.horiz ? 0 : 1;
       let pad=4*dpi+Math.ceil(tsize*0.25);
+      let hpad=this.getDefault("TabPadding", undefined, 0.0);
       let x=pad;
-      let y=0;
-      let h=tsize+Math.ceil(tsize*0.5);
+      let y=0.0;
+      let h=tsize+Math.ceil(tsize*0.5)+hpad;
       let iconsize=iconmanager.getTileSize(this.iconsheet);
       let have_icons=false;
       for (let tab of this.tabs) {
@@ -7371,7 +10311,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       let r1=this.parentWidget ? this.parentWidget.getClientRects()[0] : undefined;
       let r2=this.canvas.getClientRects()[0];
       let rx=0, ry=0;
-      if (r1&&r2) {
+      if (r2) {
           rx = r2.x;
           ry = r2.y;
       }
@@ -7420,8 +10360,6 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
           if (tab.extra&&!tab.dom) {
               tab.dom = document.createElement("div");
               tab.dom.style["margin"] = tab.dom.style["padding"] = "0px";
-              let z=this.calcZ();
-              tab.dom.style["z-index"] = z+1+ti;
               document.body.appendChild(tab.dom);
               tab.dom.style["position"] = UIBase.PositionKey;
               tab.dom.style["display"] = "flex";
@@ -7482,6 +10420,10 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       let update=tab!==this.tabs.active;
       this.tabs.active = tab;
       if (update) {
+          if (!util.isMobile()&&this.getDefault("focus-on-tab-click")) {
+              tab.focus({preventScroll: true, 
+         focusVisible: false});
+          }
           if (this.onchange)
             this.onchange(tab, event);
           this.update(true);
@@ -7504,6 +10446,16 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
       let r=this.r*dpi;
       this._layout();
       let tab;
+      const draw_text=(name, x2, y2) =>        {
+        let hpad=this.getDefault("TabPadding", undefined, 0.0);
+        if (this.horiz) {
+            y2+=hpad*0.5;
+        }
+        else {
+          y2-=hpad*0.5;
+        }
+        g.fillText(tab.name, x2, y2);
+      };
       let ti=-1;
       for (tab of this.tabs) {
           ti++;
@@ -7533,7 +10485,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
               iconmanager.canvasDraw(this, this.canvas, g, tab.icon, x, y, this.iconsheet);
               x2+=iconsize+4;
           }
-          g.fillText(tab.name, x2, y2);
+          draw_text(tab.name, x2, y2);
           if (!this.horiz) {
               g.restore();
           }
@@ -7610,11 +10562,9 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
                   g.translate(-x3-tsize, -y3-tsize*0.5);
               }
               g.fillStyle = this.getDefault("TabText").color;
-              g.fillText(tab.name, x2, y2);
+              draw_text(tab.name, x2, y2);
               if (!this.horiz) {
                   g.restore();
-              }
-              if (!this.horiz) {
               }
           }
       }
@@ -8009,7 +10959,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../path-controller/util/util.js"
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_tabs.js');
 
 
-es6_module_define('ui_textbox', ["../path-controller/util/events.js", "../path-controller/util/util.js", "./ui_button.js", "../path-controller/util/vectormath.js", "../config/const.js", "../core/units.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js"], function _ui_textbox_module(_es6_module) {
+es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../path-controller/util/util.js", "../core/units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js", "../config/const.js"], function _ui_textbox_module(_es6_module) {
   "use strict";
   var units=es6_import(_es6_module, '../core/units.js');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -8049,6 +10999,7 @@ es6_module_define('ui_textbox', ["../path-controller/util/events.js", "../path-c
   class TextBox extends TextBoxBase {
      constructor() {
       super();
+      this._editing = false;
       this._width = this.getDefault("width")+"px";
       this._textBoxEvents = true;
       let margin=Math.ceil(3*this.getDPI());
@@ -8114,6 +11065,7 @@ es6_module_define('ui_textbox', ["../path-controller/util/events.js", "../path-c
       if (this._modal) {
           this._endModal(true);
       }
+      this._editing = true;
       let ignore=0;
       let finish=(ok) =>        {
         this._endModal(ok);
@@ -8151,8 +11103,12 @@ es6_module_define('ui_textbox', ["../path-controller/util/events.js", "../path-c
      _flash_focus() {
 
     }
+    get  editing() {
+      return this._editing;
+    }
      _endModal(ok) {
       console.log("textbox end modal");
+      this._editing = false;
       this._modal = false;
       this.popModal();
       this.blur();
@@ -8410,7 +11366,7 @@ es6_module_define('ui_textbox', ["../path-controller/util/events.js", "../path-c
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_textbox.js');
 
 
-es6_module_define('ui_treeview', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../path-controller/util/math.js", "../core/ui_theme.js", "../util/ScreenOverdraw.js"], function _ui_treeview_module(_es6_module) {
+es6_module_define('ui_treeview', ["../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/math.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../util/ScreenOverdraw.js", "../path-controller/util/simple_events.js"], function _ui_treeview_module(_es6_module) {
   es6_import(_es6_module, '../util/ScreenOverdraw.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -8692,2892 +11648,4 @@ es6_module_define('ui_treeview', ["../core/ui.js", "../core/ui_base.js", "../pat
   TreeView = _es6_module.add_export('TreeView', TreeView);
   UIBase.internalRegister(TreeView);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_treeview.js');
-
-
-es6_module_define('ui_widgets', ["../path-controller/util/events.js", "./ui_button.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolsys.js", "../path-controller/toolsys/toolprop.js", "../path-controller/controller/controller.js", "./ui_textbox.js", "../config/const.js", "../core/ui_base.js", "../path-controller/util/simple_events.js", "../core/units.js", "../path-controller/util/util.js"], function _ui_widgets_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var toolsys=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
-  var isNumber=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'isNumber');
-  var PropFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropFlags');
-  var units=es6_import(_es6_module, '../core/units.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  function myToFixed(s, n) {
-    s = s.toFixed(n);
-    while (s.endsWith('0')) {
-      s = s.slice(0, s.length-1);
-    }
-    if (s.endsWith("\.")) {
-        s = s.slice(0, s.length-1);
-    }
-    return s;
-  }
-  let keymap=events.keymap;
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let parsepx=ui_base.parsepx;
-  var Button=es6_import_item(_es6_module, './ui_button.js', 'Button');
-  var OldButton=es6_import_item(_es6_module, './ui_button.js', 'OldButton');
-  var eventWasTouch=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'eventWasTouch');
-  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
-  let _ex_Button=es6_import_item(_es6_module, './ui_button.js', 'Button');
-  _es6_module.add_export('Button', _ex_Button, true);
-  class IconLabel extends UIBase {
-     constructor() {
-      super();
-      this._icon = -1;
-      this.iconsheet = 1;
-    }
-    get  icon() {
-      return this._icon;
-    }
-    set  icon(id) {
-      this._icon = id;
-      this.setCSS();
-    }
-    static  define() {
-      return {tagname: "icon-label-x"}
-    }
-     init() {
-      super.init();
-      this.style["display"] = "flex";
-      this.style["margin"] = this.style["padding"] = "0px";
-      this.setCSS();
-    }
-     setCSS() {
-      let size=ui_base.iconmanager.getTileSize(this.iconsheet);
-      ui_base.iconmanager.setCSS(this.icon, this);
-      this.style["width"] = size+"px";
-      this.style["height"] = size+"px";
-    }
-  }
-  _ESClass.register(IconLabel);
-  _es6_module.add_class(IconLabel);
-  IconLabel = _es6_module.add_export('IconLabel', IconLabel);
-  UIBase.internalRegister(IconLabel);
-  class ValueButtonBase extends OldButton {
-     constructor() {
-      super();
-    }
-    get  value() {
-      return this._value;
-    }
-    set  value(val) {
-      this._value = val;
-      if (this.ctx&&this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), this._value);
-      }
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath"))
-        return ;
-      if (this.ctx===undefined)
-        return ;
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          let redraw=!this.disabled;
-          this.internalDisabled = true;
-          if (redraw)
-            this._redraw();
-          return ;
-      }
-      else {
-        let redraw=this.disabled;
-        this.internalDisabled = false;
-        if (redraw)
-          this._redraw();
-      }
-      if (val!==this._value) {
-          this._value = val;
-          this.updateWidth();
-          this._repos_canvas();
-          this._redraw();
-          this.setCSS();
-      }
-    }
-     update() {
-      this.updateDataPath();
-      super.update();
-    }
-  }
-  _ESClass.register(ValueButtonBase);
-  _es6_module.add_class(ValueButtonBase);
-  ValueButtonBase = _es6_module.add_export('ValueButtonBase', ValueButtonBase);
-  class Check extends UIBase {
-     constructor() {
-      super();
-      this._checked = false;
-      this._highlight = false;
-      this._focus = false;
-      let shadow=this.shadow;
-      let span=document.createElement("span");
-      span.setAttribute("class", "checkx");
-      span.style["display"] = "flex";
-      span.style["flex-direction"] = "row";
-      span.style["margin"] = span.style["padding"] = "0px";
-      let sheet=0;
-      let size=ui_base.iconmanager.getTileSize(0);
-      let check=this.canvas = document.createElement("canvas");
-      this.g = check.getContext("2d");
-      check.setAttribute("id", check._id);
-      check.setAttribute("name", check._id);
-      let mdown=(e) =>        {
-        this._highlight = false;
-        this.checked = !this.checked;
-      };
-      let mup=(e) =>        {
-        this._highlight = false;
-        this.blur();
-        this._redraw();
-      };
-      let mover=(e) =>        {
-        this._highlight = true;
-        this._redraw();
-      };
-      let mleave=(e) =>        {
-        this._highlight = false;
-        this._redraw();
-      };
-      span.addEventListener("pointerover", mover, {passive: true});
-      span.addEventListener("mousein", mover, {passive: true});
-      span.addEventListener("mouseleave", mleave, {passive: true});
-      span.addEventListener("pointerout", mleave, {passive: true});
-      this.addEventListener("blur", (e) =>        {
-        this._highlight = this._focus = false;
-        this._redraw();
-      });
-      this.addEventListener("focusin", (e) =>        {
-        this._focus = true;
-        this._redraw();
-      });
-      this.addEventListener("focus", (e) =>        {
-        this._focus = true;
-        this._redraw();
-      });
-      span.addEventListener("pointerdown", mdown, {passive: true});
-      span.addEventListener("pointerup", mup, {passive: true});
-      span.addEventListener("pointercancel", mup, {passive: true});
-      this.addEventListener("keydown", (e) =>        {
-        switch (e.keyCode) {
-          case keymap["Escape"]:
-            this._highlight = undefined;
-            this._redraw();
-            e.preventDefault();
-            e.stopPropagation();
-            this.blur();
-            break;
-          case keymap["Enter"]:
-          case keymap["Space"]:
-            this.checked = !this.checked;
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-        }
-      });
-      this.checkbox = check;
-      span.appendChild(check);
-      let label=this._label = document.createElement("label");
-      label.setAttribute("class", "checkx");
-      span.setAttribute("class", "checkx");
-      label.style["align-self"] = "center";
-      let side=this.getDefault("CheckSide");
-      if (side==="right") {
-          span.prepend(label);
-      }
-      else {
-        span.appendChild(label);
-      }
-      shadow.appendChild(span);
-    }
-    get  internalDisabled() {
-      return super.internalDisabled;
-    }
-    set  internalDisabled(val) {
-      if (!!this.internalDisabled===!!val) {
-          return ;
-      }
-      super.internalDisabled = val;
-      this._redraw();
-    }
-    get  value() {
-      return this.checked;
-    }
-    set  value(v) {
-      this.checked = v;
-    }
-    get  checked() {
-      return this._checked;
-    }
-    set  checked(v) {
-      v = !!v;
-      if (this._checked!==v) {
-          this._checked = v;
-          this.setCSS();
-          this._redraw();
-          if (this.onclick) {
-              this.onclick(v);
-          }
-          if (this.onchange) {
-              this.onchange(v);
-          }
-          if (this.hasAttribute("datapath")) {
-              this.setPathValue(this.ctx, this.getAttribute("datapath"), this._checked);
-          }
-      }
-    }
-    get  label() {
-      return this._label.textContent;
-    }
-    set  label(l) {
-      this._label.textContent = l;
-    }
-    static  define() {
-      return {tagname: "check-x", 
-     style: "checkbox", 
-     parentStyle: "button"}
-    }
-     init() {
-      this.tabIndex = 1;
-      this.setAttribute("class", "checkx");
-      let style=document.createElement("style");
-      let color=this.getDefault("focus-border-color");
-      style.textContent = `
-      .checkx:focus {
-        outline : none;
-      }
-    `;
-      this.prepend(style);
-    }
-     setCSS() {
-      this._label.style["font"] = this.getDefault("DefaultText").genCSS();
-      this._label.style["color"] = this.getDefault("DefaultText").color;
-      this._label.style['font'] = 'normal 14px poppins';
-      super.setCSS();
-      this.style["background-color"] = "rgba(0,0,0,0)";
-    }
-     updateDataPath() {
-      if (!this.getAttribute("datapath")) {
-          return ;
-      }
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      let redraw=false;
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      else {
-        redraw = this.internalDisabled;
-        this.internalDisabled = false;
-      }
-      val = !!val;
-      redraw = redraw||!!this._checked!==!!val;
-      if (redraw) {
-          this._checked = val;
-          this._repos_canvas();
-          this.setCSS();
-          this._redraw();
-      }
-    }
-     _repos_canvas() {
-
-    }
-     _redraw() {
-      if (this.canvas===undefined) {
-          this._updatekey = "";
-          return ;
-      }
-      let canvas=this.canvas, g=this.g;
-      let dpi=UIBase.getDPI();
-      let tilesize=ui_base.iconmanager.getTileSize(0);
-      let pad=this.getDefault("padding");
-      let csize=tilesize+pad*2;
-      canvas.style["margin"] = "2px";
-      canvas.style["width"] = csize+"px";
-      canvas.style["height"] = csize+"px";
-      csize = ~~(csize*dpi+0.5);
-      tilesize = ~~(tilesize*dpi+0.5);
-      canvas.width = csize;
-      canvas.height = csize;
-      g.clearRect(0, 0, canvas.width, canvas.height);
-      g.beginPath();
-      g.rect(0, 0, canvas.width, canvas.height);
-      g.fill();
-      let color;
-      if (!this._checked&&this._highlight) {
-          color = this.getDefault("BoxHighlight");
-      }
-      ui_base.drawRoundBox(this, canvas, g, undefined, undefined, undefined, undefined, color);
-      if (this._checked) {
-          let x=(csize-tilesize)*0.5, y=(csize-tilesize)*0.5;
-          ui_base.iconmanager.canvasDraw(this, canvas, g, ui_base.Icons.LARGE_CHECK, x, y);
-      }
-      if (this._focus) {
-          color = this.getDefault("focus-border-color");
-          g.lineWidth*=dpi;
-          ui_base.drawRoundBox(this, canvas, g, undefined, undefined, undefined, "stroke", color);
-      }
-    }
-     updateDPI() {
-      let dpi=UIBase.getDPI();
-      if (dpi!==this._last_dpi) {
-          this._last_dpi = dpi;
-          this._redraw();
-      }
-    }
-     update() {
-      super.update();
-      this.updateDPI();
-      let ready=ui_base.getIconManager().isReady(0);
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-      let updatekey=this.getDefault("DefaultText").hash();
-      updatekey+=this._checked+":"+this._label.textContent;
-      updatekey+=":"+ready;
-      if (updatekey!==this._updatekey) {
-          this._repos_canvas();
-          this.setCSS();
-          this._updatekey = updatekey;
-          this._redraw();
-      }
-    }
-  }
-  _ESClass.register(Check);
-  _es6_module.add_class(Check);
-  Check = _es6_module.add_export('Check', Check);
-  UIBase.internalRegister(Check);
-  class IconButton extends UIBase {
-     constructor() {
-      super();
-      this._customIcon = undefined;
-      this._pressed = false;
-      this._highlight = false;
-      this._draw_pressed = true;
-      this._icon = -1;
-      this._icon_pressed = undefined;
-      this.iconsheet = 0;
-      this.drawButtonBG = true;
-      this._extraIcon = undefined;
-      this.extraDom = undefined;
-      this.dom = document.createElement("div");
-      this.shadow.appendChild(this.dom);
-      this._last_iconsheet = undefined;
-      this.addEventListener("keydown", (e) =>        {
-        switch (e.keyCode) {
-          case keymap["Enter"]:
-          case keymap["Space"]:
-            this.click();
-            break;
-        }
-      });
-    }
-     click() {
-      if (this._onpress) {
-          let rect=this.getClientRects();
-          let x=rect.x+rect.width*0.5;
-          let y=rect.y+rect.height*0.5;
-          let e={x: x, 
-       y: y, 
-       stopPropagation: () =>              {            }, 
-       preventDefault: () =>              {            }};
-          this._onpress(e);
-      }
-      super.click();
-    }
-    get  customIcon() {
-      return this._customIcon;
-    }
-    set  customIcon(domImage) {
-      this._customIcon = domImage;
-      this.setCSS();
-    }
-    get  icon() {
-      return this._icon;
-    }
-    set  icon(val) {
-      this._icon = val;
-      this.setCSS();
-    }
-    static  define() {
-      return {tagname: "iconbutton-x", 
-     style: "iconbutton"}
-    }
-     _on_press() {
-      this._pressed = true;
-      this.setCSS();
-    }
-     _on_depress() {
-      this._pressed = false;
-      this.setCSS();
-    }
-     updateDefaultSize() {
-
-    }
-     setCSS() {
-      super.setCSS();
-      let def;
-      let pstyle=this.getDefault("depressed");
-      let hstyle=this.getDefault("highlight");
-      this.noMarginsOrPadding();
-      if (this._pressed&&this._draw_pressed) {
-          def = (k) =>            {
-            return this.getSubDefault("depressed", k);
-          };
-      }
-      else 
-        if (this._highlight) {
-          def = (k) =>            {
-            return this.getSubDefault("highlight", k);
-          };
-      }
-      else {
-        def = (k) =>          {
-          return this.getDefault(k);
-        };
-      }
-      let loadstyle=(key, addpx) =>        {
-        let val=def(key);
-        if (addpx) {
-            val = (""+val).trim();
-            if (!val.toLowerCase().endsWith("px")) {
-                val+="px";
-            }
-        }
-        this.style[key] = val;
-      };
-      let keys=["margin", "padding", "margin-left", "margin-right", "margin-top", "margin-botton", "padding-left", "padding-bottom", "padding-top", "padding-right", "border-radius"];
-      for (let k of keys) {
-          loadstyle(k, true);
-      }
-      loadstyle("background-color", false);
-      loadstyle("color", false);
-      let border=`${def("border-width", true)} ${def("border-style", false)} ${def("border-color", false)}`;
-      this.style["border"] = border;
-      let w=this.getDefault("width");
-      let size=ui_base.iconmanager.getTileSize(this.iconsheet);
-      w = size;
-      this.style["width"] = w+"px";
-      this.style["height"] = w+"px";
-      this.dom.style["width"] = w+"px";
-      this.dom.style["height"] = w+"px";
-      this.dom.style["margin"] = this.dom.style["padding"] = "0px";
-      this.style["display"] = "flex";
-      this.style["align-items"] = "center";
-      if (this._customIcon) {
-          this.dom.style["background-image"] = `url("${this._customIcon.src}")`;
-          this.dom.style["background-size"] = "contain";
-          this.dom.style["background-repeat"] = "no-repeat";
-      }
-      else {
-        let icon=this.icon;
-        if (this._pressed&&this._icon_pressed!==undefined) {
-            icon = this._icon_pressed;
-        }
-        ui_base.iconmanager.setCSS(icon, this.dom, this.iconsheet);
-      }
-      if (this._extraIcon!==undefined) {
-          let dom;
-          if (!this.extraDom) {
-              this.extraDom = dom = document.createElement("div");
-              this.shadow.appendChild(dom);
-          }
-          else {
-            dom = this.extraDom;
-          }
-          dom.style["position"] = "absolute";
-          dom.style["margin"] = dom.style["padding"] = "0px";
-          dom.style["pointer-events"] = "none";
-          dom.style["width"] = size+"px";
-          dom.style["height"] = size+"px";
-          ui_base.iconmanager.setCSS(this._extraIcon, dom, this.iconsheet);
-      }
-      else 
-        if (this.extraDom) {
-          this.extraDom.remove();
-      }
-    }
-     init() {
-      super.init();
-      let press=(e) =>        {
-        e.stopPropagation();
-        e.preventDefault();
-        if (this.modalRunning) {
-            this.popModal();
-        }
-        if (!eventWasTouch(e)&&e.button!==0) {
-            return ;
-        }
-        if (1) {
-            let this2=this;
-            this.pushModal({on_mouseup: function on_mouseup(e) {
-                if (this2.onclick&&eventWasTouch(e)) {
-                    this2.onclick();
-                }
-                this.end();
-              }, 
-        on_touchcancel: function on_touchcancel(e) {
-                this.on_mouseup(e);
-                this.end();
-              }, 
-        on_touchend: function on_touchend(e) {
-                this.on_mouseup(e);
-                this.end();
-              }, 
-        on_keydown: function on_keydown(e) {
-                this.end();
-              }, 
-        end: function end() {
-                if (this2.modalRunning) {
-                    this2.popModal();
-                    this2._on_depress(e);
-                    this2.setCSS();
-                }
-              }});
-        }
-        this._on_press(e);
-      };
-      let depress=(e) =>        {
-        e.stopPropagation();
-        e.preventDefault();
-        this._on_depress();
-        this.setCSS();
-      };
-      let high=(e) =>        {
-        this._highlight = true;
-        this.setCSS();
-      };
-      let unhigh=(e) =>        {
-        this._highlight = false;
-        this.setCSS();
-      };
-      this.tabIndex = 0;
-      this.addEventListener("mouseover", high);
-      this.addEventListener("mouseexit", unhigh);
-      this.addEventListener("mouseleave", unhigh);
-      this.addEventListener("focus", high);
-      this.addEventListener("blur", unhigh);
-      this.addEventListener("mousedown", press, {capture: true});
-      this.addEventListener("mouseup", depress, {capture: true});
-      this.setCSS();
-      this.dom.style["pointer-events"] = "none";
-    }
-     update() {
-      super.update();
-      if (this.iconsheet!==this._last_iconsheet) {
-          this.setCSS();
-          this._last_iconsheet = this.iconsheet;
-      }
-    }
-     _getsize() {
-      let margin=this.getDefault("padding");
-      return ui_base.iconmanager.getTileSize(this.iconsheet)+margin*2;
-    }
-  }
-  _ESClass.register(IconButton);
-  _es6_module.add_class(IconButton);
-  IconButton = _es6_module.add_export('IconButton', IconButton);
-  UIBase.internalRegister(IconButton);
-  class IconCheck extends IconButton {
-     constructor() {
-      super();
-      this._checked = undefined;
-      this._drawCheck = undefined;
-    }
-    get  drawCheck() {
-      let ret=this._drawCheck;
-      ret = ret===undefined ? this.getDefault("drawCheck") : ret;
-      ret = ret===undefined ? true : ret;
-      return ret;
-    }
-    set  drawCheck(val) {
-      val = !!val;
-      if (val&&(this.packflag&PackFlags.HIDE_CHECK_MARKS)) {
-          this.packflag&=~PackFlags.HIDE_CHECK_MARKS;
-      }
-      let old=!!this.drawCheck;
-      this._drawCheck = val;
-      if (val!==old) {
-          this.updateDrawCheck();
-          this.setCSS();
-      }
-    }
-     click() {
-      super.click();
-      this.checked^=true;
-    }
-    get  icon() {
-      return this._icon;
-    }
-    set  icon(val) {
-      this._icon = val;
-      this.setCSS();
-    }
-    get  checked() {
-      return this._checked;
-    }
-    set  checked(val) {
-      if (!!val!==!!this._checked) {
-          this._checked = val;
-          this._updatePressed(!!val);
-          this.setCSS();
-          if (this.onchange) {
-              this.onchange(val);
-          }
-      }
-    }
-    get  noEmboss() {
-      let ret=this.getAttribute("no-emboss");
-      if (!ret) {
-          return false;
-      }
-      ret = ret.toLowerCase().trim();
-      return ret==='true'||ret==='yes'||ret==='on';
-    }
-    set  noEmboss(val) {
-      this.setAttribute('no-emboss', val ? 'true' : 'false');
-    }
-    static  define() {
-      return {tagname: "iconcheck-x", 
-     style: "iconcheck", 
-     parentStyle: "iconbutton"}
-    }
-     _updatePressed(val) {
-      if (this._icon_pressed) {
-          this._draw_pressed = false;
-      }
-      this._pressed = val;
-      this.setCSS();
-    }
-     _on_depress() {
-      return ;
-    }
-     _on_press() {
-      this.checked^=true;
-      if (this.hasAttribute("datapath")) {
-          this.setPathValue(this.ctx, this.getAttribute("datapath"), !!this.checked);
-      }
-      this.setCSS();
-    }
-     updateDefaultSize() {
-
-    }
-     _calcUpdateKey() {
-      return super._calcUpdateKey()+":"+this._icon;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")||!this.ctx) {
-          return ;
-      }
-      if (this._icon<0) {
-          let rdef;
-          try {
-            rdef = this.ctx.api.resolvePath(this.ctx, this.getAttribute("datapath"));
-          }
-          catch (error) {
-              if (__instance_of(error, DataPathError)) {
-                  return ;
-              }
-              else {
-                throw error;
-              }
-          }
-          if (rdef!==undefined&&rdef.prop) {
-              let icon, icon2, title;
-              if (rdef.prop.flag&PropFlags.NO_UNDO) {
-                  this.setUndo(false);
-              }
-              else {
-                this.setUndo(true);
-              }
-              if (rdef.subkey&&(rdef.prop.type===PropTypes.FLAG||rdef.prop.type===PropTypes.ENUM)) {
-                  icon = rdef.prop.iconmap[rdef.subkey];
-                  icon2 = rdef.prop.iconmap2[rdef.subkey];
-                  title = rdef.prop.descriptions[rdef.subkey];
-                  if (title===undefined&&rdef.subkey.length>0) {
-                      title = rdef.subkey;
-                      title = title[0].toUpperCase()+title.slice(1, title.length).toLowerCase();
-                  }
-              }
-              else {
-                icon2 = rdef.prop.icon2;
-                icon = rdef.prop.icon;
-                title = rdef.prop.description;
-              }
-              if (icon2!==undefined&&icon2!==-1) {
-                  this._icon_pressed = icon;
-                  icon = icon2;
-              }
-              if (icon!==undefined&&icon!==this.icon)
-                this.icon = icon;
-              if (title!==undefined)
-                this.description = title;
-          }
-      }
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      else {
-        this.internalDisabled = false;
-      }
-      val = !!val;
-      if (val!==!!this._checked) {
-          this._checked = val;
-          this._updatePressed(!!val);
-          this.setCSS();
-      }
-    }
-     updateDrawCheck() {
-      if (this.drawCheck) {
-          this._extraIcon = this._checked ? ui_base.Icons.ENUM_CHECKED : ui_base.Icons.ENUM_UNCHECKED;
-      }
-      else {
-        this._extraIcon = undefined;
-      }
-    }
-     update() {
-      if (this.packflag&PackFlags.HIDE_CHECK_MARKS) {
-          this.drawCheck = false;
-      }
-      this.updateDrawCheck();
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-      super.update();
-    }
-     _getsize() {
-      let margin=this.getDefault("padding");
-      return ui_base.iconmanager.getTileSize(this.iconsheet)+margin*2;
-    }
-     setCSS() {
-      this.updateDrawCheck();
-      super.setCSS();
-    }
-  }
-  _ESClass.register(IconCheck);
-  _es6_module.add_class(IconCheck);
-  IconCheck = _es6_module.add_export('IconCheck', IconCheck);
-  UIBase.internalRegister(IconCheck);
-  class Check1 extends Button {
-     constructor() {
-      super();
-      this._namePad = 40;
-      this._value = undefined;
-    }
-    static  define() {
-      return {tagname: "check1-x", 
-     parentStyle: "button"}
-    }
-     _redraw() {
-      let dpi=this.getDPI();
-      let box=40;
-      ui_base.drawRoundBox(this, this.dom, this.g, box);
-      let ts=this.getDefault("DefaultText").size;
-      let text=this._genLabel();
-      let tw=ui_base.measureText(this, text, this.dom, this.g).width;
-      let cx=this.dom.width/2-tw/2;
-      let cy=this.dom.height/2;
-      ui_base.drawText(this, box, cy+ts/2, text, {canvas: this.dom, 
-     g: this.g});
-    }
-  }
-  _ESClass.register(Check1);
-  _es6_module.add_class(Check1);
-  Check1 = _es6_module.add_export('Check1', Check1);
-  UIBase.internalRegister(Check1);
-  let _ex_checkForTextBox=es6_import_item(_es6_module, './ui_textbox.js', 'checkForTextBox');
-  _es6_module.add_export('checkForTextBox', _ex_checkForTextBox, true);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
-
-
-es6_module_define('ui_widgets2', ["./ui_richedit.js", "../core/ui_base.js", "../core/ui.js", "./ui_widgets.js", "./ui_button.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js", "../util/util.js", "../path-controller/toolsys/toolprop.js", "../core/units.js"], function _ui_widgets2_module(_es6_module) {
-  "use strict";
-  es6_import(_es6_module, './ui_richedit.js');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
-  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
-  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
-  var isNumber=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'isNumber');
-  var PropFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropFlags');
-  es6_import(_es6_module, './ui_widgets.js');
-  let keymap=events.keymap;
-  var EnumProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'EnumProperty');
-  var PropTypes=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'PropTypes');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
-  var IconSheets=es6_import_item(_es6_module, '../core/ui_base.js', 'IconSheets');
-  var parsepx=es6_import_item(_es6_module, '../core/ui_base.js', 'parsepx');
-  var units=es6_import(_es6_module, '../core/units.js');
-  var ToolProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'ToolProperty');
-  var Button=es6_import_item(_es6_module, './ui_button.js', 'Button');
-  class VectorPopupButton extends Button {
-     constructor() {
-      super();
-      this.value = new Vector4();
-    }
-    static  define() {
-      return {tagname: "vector-popup-button-x", 
-     style: "vecPopupButton"}
-    }
-     _onpress(e) {
-      if (e.button&&e.button!==0) {
-          return ;
-      }
-      let panel=UIBase.createElement("vector-panel-x");
-      let screen=this.ctx.screen;
-      let popup=screen.popup(this, this);
-      popup.add(panel);
-      popup.button("ok", () =>        {
-        popup.end();
-      });
-      if (this.hasAttribute("datapath")) {
-          panel.setAttribute("datapath", this.getAttribute("datapath"));
-      }
-      if (this.hasAttribute("mass_set_path")) {
-          panel.setAttribute("mass_set_path", this.getAttribute("mass_set_path"));
-      }
-      popup.flushUpdate();
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let value=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (!value) {
-          this.internalDisabled = true;
-          return ;
-      }
-      if (this.internalDisabled) {
-          this.internalDisabled = false;
-      }
-      if (this.value.length!==value.length) {
-          switch (value.length) {
-            case 2:
-              this.value = new Vector2();
-              break;
-            case 3:
-              this.value = new Vector3();
-              break;
-            case 4:
-              this.value = new Vector4();
-              break;
-          }
-      }
-      if (this.value.vectorDistance(value)>0.0001) {
-          this.value.load(value);
-          console.log("updated vector popup button value");
-      }
-    }
-     update() {
-      super.update();
-      this.updateDataPath();
-    }
-  }
-  _ESClass.register(VectorPopupButton);
-  _es6_module.add_class(VectorPopupButton);
-  VectorPopupButton = _es6_module.add_export('VectorPopupButton', VectorPopupButton);
-  UIBase.internalRegister(VectorPopupButton);
-  class VectorPanel extends ColumnFrame {
-     constructor() {
-      super();
-      this.range = [-1e+17, 1e+17];
-      this.name = "";
-      this.axes = "XYZW";
-      this.value = new Vector3();
-      this.sliders = [];
-      this.hasUniformSlider = false;
-      this.packflag|=PackFlags.FORCE_ROLLER_SLIDER|PackFlags.NO_NUMSLIDER_TEXTBOX;
-      let makeParam=(key) =>        {
-        Object.defineProperty(this, key, {get: function () {
-            return this._getNumParam(key);
-          }, 
-      set: function (val) {
-            this._setNumParam(key, val);
-          }});
-      };
-      this.__range = [-1e+17, 1e+17];
-      this._range = new Array(2);
-      Object.defineProperty(this._range, 0, {get: () =>          {
-          return this.__range[0];
-        }, 
-     set: (val) =>          {
-          return this.__range[0] = val;
-        }});
-      Object.defineProperty(this._range, 1, {get: () =>          {
-          return this.__range[1];
-        }, 
-     set: (val) =>          {
-          return this.__range[1] = val;
-        }});
-      makeParam("isInt");
-      makeParam("radix");
-      makeParam("decimalPlaces");
-      makeParam("baseUnit");
-      makeParam("displayUnit");
-      makeParam("step");
-      makeParam("expRate");
-      makeParam("stepIsRelative");
-      window.vp = this;
-    }
-     init() {
-      super.init();
-      this.rebuild();
-      this.setCSS();
-      this.background = this.getDefault("InnerPanelBG");
-    }
-     _getNumParam(key) {
-      return this["_"+key];
-    }
-     _setNumParam(key, val) {
-      if (key==="range") {
-          this.__range[0] = val[0];
-          this.__range[1] = val[1];
-          return ;
-      }
-      this["_"+key] = val;
-      for (let slider of this.sliders) {
-          slider[key] = val;
-      }
-    }
-     rebuild() {
-      this.clear();
-      if (this.name) {
-          this.label(this.name);
-      }
-      let frame, row;
-      if (this.hasUniformSlider) {
-          row = this.row();
-          frame = row.col();
-      }
-      else {
-        frame = this;
-      }
-      this.sliders = [];
-      for (let i=0; i<this.value.length; i++) {
-          let slider=frame.slider(undefined, {name: this.axes[i], 
-       defaultval: this.value[i], 
-       min: this.range[0], 
-       max: this.range[1], 
-       step: this.step||0.001, 
-       is_int: this.isInt, 
-       packflag: this.packflag});
-          slider.axis = i;
-          let this2=this;
-          slider.baseUnit = this.baseUnit;
-          slider.displayUnit = this.displayUnit;
-          slider.isInt = this.isInt;
-          slider.range = this.__range;
-          slider.radix = this.radix;
-          slider.step = this.step;
-          slider.expRate = this.expRate;
-          slider.stepIsRelative = this.stepIsRelative;
-          if (this.stepIsRelative) {
-              slider.step = ToolProperty.calcRelativeStep(this.step, this.value[i]);
-          }
-          slider.onchange = function (e) {
-            this2.value[this.axis] = this.value;
-            if (this2.hasAttribute("datapath")) {
-                this2.setPathValue(this2.ctx, this2.getAttribute("datapath"), this2.value);
-            }
-            if (this2.uslider) {
-                this2.uslider.setValue(this2.uniformValue, false);
-            }
-            if (this2.onchange) {
-                this2.onchange(this2.value);
-            }
-          };
-          this.sliders.push(slider);
-      }
-      if (this.hasUniformSlider) {
-          let uslider=this.uslider = UIBase.createElement("numslider-x");
-          row._prepend(uslider);
-          uslider.range = this.range;
-          uslider.baseUnit = this.baseUnit;
-          uslider.displayUnit = this.displayUnit;
-          uslider.expRate = this.expRate;
-          uslider.step = this.step;
-          uslider.expRate = this.expRate;
-          uslider.isInt = this.isInt;
-          uslider.radix = this.radix;
-          uslider.decimalPlaces = this.decimalPlaces;
-          uslider.stepIsRelative = this.stepIsRelative;
-          uslider.vertical = true;
-          uslider.setValue(this.uniformValue, false);
-          this.sliders.push(uslider);
-          uslider.onchange = () =>            {
-            this.uniformValue = uslider.value;
-          };
-      }
-      else {
-        this.uslider = undefined;
-      }
-      this.setCSS();
-    }
-    get  uniformValue() {
-      let sum=0.0;
-      for (let i=0; i<this.value.length; i++) {
-          sum+=isNaN(this.value[i]) ? 0.0 : this.value[i];
-      }
-      return sum/this.value.length;
-    }
-    set  uniformValue(val) {
-      let old=this.uniformValue;
-      let doupdate=false;
-      if (old===0.0||val===0.0) {
-          doupdate = this.value.dot(this.value)!==0.0;
-          this.value.zero();
-      }
-      else {
-        let ratio=val/old;
-        for (let i=0; i<this.value.length; i++) {
-            this.value[i]*=ratio;
-        }
-        doupdate = true;
-      }
-      if (doupdate) {
-          if (this.hasAttribute("datapath")) {
-              this.setPathValue(this.ctx, this.getAttribute("datapath"), this.value);
-          }
-          if (this.onchange) {
-              this.onchange(this.value);
-          }
-          for (let i=0; i<this.value.length; i++) {
-              this.sliders[i].setValue(this.value[i], false);
-              this.sliders[i]._redraw();
-          }
-          if (this.uslider) {
-              this.uslider.setValue(val, false);
-              this.uslider._redraw();
-          }
-      }
-    }
-     setValue(value) {
-      if (!value) {
-          return ;
-      }
-      if (value.length!==this.value.length) {
-          switch (value.length) {
-            case 2:
-              this.value = new Vector2(value);
-              break;
-            case 3:
-              this.value = new Vector3(value);
-              break;
-            case 4:
-              this.value = new Vector4(value);
-              break;
-            default:
-              throw new Error("invalid vector size "+value.length);
-          }
-          this.rebuild();
-      }
-      else {
-        this.value.load(value);
-      }
-      if (this.onchange) {
-          this.onchange(this.value);
-      }
-      return this;
-    }
-     updateDataPath() {
-      if (!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let val=this.getPathValue(this.ctx, path);
-      if (val===undefined) {
-          this.internalDisabled = true;
-          return ;
-      }
-      let meta=this.getPathMeta(this.ctx, path);
-      let name=meta.uiname!==undefined ? meta.uiname : meta.name;
-      if (this.hasAttribute("name")) {
-          name = this.getAttribute("name");
-      }
-      if (name&&name!==this.name) {
-          this.name = name;
-          this.rebuild();
-          return ;
-      }
-      let loadNumParam=(k, do_rebuild) =>        {
-        if (do_rebuild===undefined) {
-            do_rebuild = false;
-        }
-        if (meta&&meta[k]!==undefined&&this[k]===undefined) {
-            this[k] = meta[k];
-            if (this[k]!==meta[k]&&do_rebuild) {
-                this.doOnce(this.rebuild);
-            }
-        }
-      };
-      loadNumParam("baseUnit");
-      loadNumParam("displayUnit");
-      loadNumParam("decimalPlaces");
-      loadNumParam("isInt");
-      loadNumParam("radix");
-      loadNumParam("step");
-      loadNumParam("expRate");
-      loadNumParam("stepIsRelative");
-      if (meta&&meta.hasUniformSlider!==undefined&&meta.hasUniformSlider!==this.hasUniformSlider) {
-          this.hasUniformSlider = meta.hasUniformSlider;
-          this.doOnce(this.rebuild);
-      }
-      if (meta&&meta.range) {
-          let update=this.range[0]!==meta.range[0];
-          update = update||this.range[1]!==meta.range[1];
-          this.range[0] = meta.range[0];
-          this.range[1] = meta.range[1];
-          if (update) {
-              this.doOnce(this.rebuild);
-          }
-      }
-      this.internalDisabled = false;
-      let length=val.length;
-      if (meta&&(meta.flag&PropFlags.USE_CUSTOM_GETSET)) {
-          let rdef=this.ctx.api.resolvePath(this.ctx, path);
-          meta.ctx = this.ctx;
-          meta.dataref = rdef.obj;
-          meta.datapath = path;
-          length = meta.getValue().length;
-          meta.dataref = undefined;
-      }
-      if (this.value.length!==length) {
-          switch (length) {
-            case 2:
-              val = new Vector2(val);
-              break;
-            case 3:
-              val = new Vector3(val);
-              break;
-            case 4:
-              val = new Vector4(val);
-              break;
-            default:
-              val = meta.getValue().copy().load(val);
-              break;
-          }
-          this.value = val;
-          this.rebuild();
-          for (let i=0; i<this.value.length; i++) {
-              this.sliders[i].setValue(val[i], false);
-              this.sliders[i]._redraw();
-          }
-      }
-      else {
-        if (this.value.vectorDistance(val)>0) {
-            this.value.load(val);
-            if (this.uslider) {
-                this.uslider.setValue(this.uniformValue, false);
-            }
-            for (let i=0; i<this.value.length; i++) {
-                this.sliders[i].setValue(val[i], false);
-                this.sliders[i]._redraw();
-            }
-        }
-      }
-    }
-     update() {
-      super.update();
-      this.updateDataPath();
-      if (this.stepIsRelative) {
-          for (let slider of this.sliders) {
-              slider.step = ToolProperty.calcRelativeStep(this.step, slider.value);
-          }
-      }
-      if (this.uslider) {
-          this.uslider.step = this.step;
-          if (this.stepIsRelative) {
-              this.uslider.step = ToolProperty.calcRelativeStep(this.step, this.uniformValue);
-          }
-      }
-    }
-    static  define() {
-      return {tagname: "vector-panel-x"}
-    }
-  }
-  _ESClass.register(VectorPanel);
-  _es6_module.add_class(VectorPanel);
-  VectorPanel = _es6_module.add_export('VectorPanel', VectorPanel);
-  UIBase.internalRegister(VectorPanel);
-  class ToolTip extends UIBase {
-     constructor() {
-      super();
-      this.visibleToPick = false;
-      this.div = document.createElement("div");
-      this.shadow.appendChild(this.div);
-      this._start_time = undefined;
-      this.timeout = undefined;
-    }
-    static  show(message, screen, x, y) {
-      let ret=UIBase.createElement(this.define().tagname);
-      ret._start_time = util.time_ms();
-      ret.timeout = ret.getDefault("timeout");
-      ret.text = message;
-      let size=ret._estimateSize();
-      let pad=5;
-      size = [size[0]+pad, size[1]+pad];
-      console.log(size);
-      x = Math.min(Math.max(x, 0), screen.size[0]-size[0]);
-      y = Math.min(Math.max(y, 0), screen.size[1]-size[1]);
-      let dpi=UIBase.getDPI();
-      x+=10/dpi;
-      y+=15/dpi;
-      ret._popup = screen.popup(ret, x, y);
-      ret._popup.background = "rgba(0,0,0,0)";
-      ret._popup.style["border"] = "none";
-      ret.div.style["padding"] = "15px";
-      ret._popup.add(ret);
-      return ret;
-    }
-     end() {
-      this._popup.end();
-    }
-     init() {
-      super.init();
-      this.setCSS();
-    }
-    set  text(val) {
-      this.div.innerHTML = val.replace(/[\n]/g, "<br>\n");
-    }
-    get  text() {
-      return this.div.innerHTML;
-    }
-     _estimateSize() {
-      let text=this.div.textContent;
-      let block=ui_base.measureTextBlock(this, text, undefined, undefined, undefined, this.getDefault("ToolTipText"));
-      return [block.width+50, block.height+30];
-    }
-     update() {
-      super.update();
-      if (util.time_ms()-this._start_time>this.timeout) {
-          this.end();
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      let color=this.getDefault("background-color");
-      let bcolor=this.getDefault("border-color");
-      this.background = color;
-      let radius=this.getDefault("border-radius", undefined, 5);
-      let bstyle=this.getDefault("border-style", undefined, "solid");
-      let bwidth=this.getDefault("border-width", undefined, 1);
-      let padding=this.getDefault("padding", undefined, 15);
-      this.noMarginsOrPadding();
-      this.div.style["padding"] = padding+"px";
-      this.div.style["background-color"] = "rgba(0,0,0,0)";
-      this.div.style["border"] = `${bwidth}px ${bstyle} ${bcolor}`;
-      this.div.style["border-radius"] = radius+"px";
-      this.style["border-radius"] = radius+"px";
-      let font=this.getDefault("ToolTipText");
-      this.div.style["color"] = font.color;
-      this.div.style["font"] = font.genCSS();
-    }
-    static  define() {
-      return {tagname: "tool-tip-x", 
-     style: "tooltip"}
-    }
-  }
-  _ESClass.register(ToolTip);
-  _es6_module.add_class(ToolTip);
-  ToolTip = _es6_module.add_export('ToolTip', ToolTip);
-  
-  UIBase.internalRegister(ToolTip);
-  window._ToolTip = ToolTip;
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets2.js');
-
-
-es6_module_define('xmlpage', ["../util/util.js", "../core/ui_base.js", "../widgets/ui_menu.js", "../widgets/ui_numsliders.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js"], function _xmlpage_module(_es6_module) {
-  var isNumber=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'isNumber');
-  let pagecache=new Map();
-  var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var sliderDomAttributes=es6_import_item(_es6_module, '../widgets/ui_numsliders.js', 'sliderDomAttributes');
-  var util=es6_import(_es6_module, '../util/util.js');
-  var Menu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'Menu');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var domTransferAttrs=new Set(["id", "title", "tab-index"]);
-  domTransferAttrs = _es6_module.add_export('domTransferAttrs', domTransferAttrs);
-  var domEventAttrs=new Set(["click", "mousedown", "mouseup", "mousemove", "keydown", "keypress"]);
-  domEventAttrs = _es6_module.add_export('domEventAttrs', domEventAttrs);
-  function parseXML(xml) {
-    let parser=new DOMParser();
-    xml = `<root>${xml}</root>`;
-    return parser.parseFromString(xml.trim(), "application/xml");
-  }
-  parseXML = _es6_module.add_export('parseXML', parseXML);
-  let num_re=/[0-9]+$/;
-  function getIconFlag(elem) {
-    if (!elem.hasAttribute("useIcons")) {
-        return 0;
-    }
-    let attr=elem.getAttribute("useIcons");
-    if (typeof attr==="string") {
-        attr = attr.toLowerCase().trim();
-    }
-    if (attr==="false"||attr==="no") {
-        return 0;
-    }
-    if (attr==="true"||attr==="yes") {
-        return PackFlags.USE_ICONS;
-    }
-    else 
-      if (attr==="small") {
-        return PackFlags.SMALL_ICON|PackFlags.USE_ICONS;
-    }
-    else 
-      if (attr==="large") {
-        return PackFlags.LARGE_ICON|PackFlags.USE_ICONS;
-    }
-    else {
-      let isnum=typeof attr==="number";
-      let sheet=attr;
-      if (typeof sheet==="string"&&sheet.search(num_re)===0) {
-          sheet = parseInt(sheet);
-          isnum = true;
-      }
-      if (!isnum) {
-          return PackFlags.USE_ICONS;
-      }
-      let flag=PackFlags.USE_ICONS|PackFlags.CUSTOM_ICON_SHEET;
-      flag|=((sheet-1)<<PackFlags.CUSTOM_ICON_SHEET_START);
-      return flag;
-    }
-    return 0;
-  }
-  function getPackFlag(elem) {
-    let packflag=getIconFlag(elem);
-    if (elem.hasAttribute("drawChecks")) {
-        if (!getbool(elem, "drawChecks")) {
-            packflag|=PackFlags.HIDE_CHECK_MARKS;
-        }
-        else {
-          packflag&=~PackFlags.HIDE_CHECK_MARKS;
-        }
-    }
-    if (getbool(elem, "simpleSlider")) {
-        packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-    }
-    if (getbool(elem, "rollarSlider")) {
-        packflag|=PackFlags.FORCE_ROLLER_SLIDER;
-    }
-    return packflag;
-  }
-  function myParseFloat(s) {
-    s = ''+s;
-    s = s.trim().toLowerCase();
-    if (s.endsWith("px")) {
-        s = s.slice(0, s.length-2);
-    }
-    return parseFloat(s);
-  }
-  function getbool(elem, attr) {
-    let ret=elem.getAttribute(attr);
-    if (!ret) {
-        return false;
-    }
-    ret = ret.toLowerCase();
-    return ret==="1"||ret==="true"||ret==="yes";
-  }
-  function getfloat(elem, attr, defaultval) {
-    if (!elem.hasAttribute(attr)) {
-        return defaultval;
-    }
-    return myParseFloat(elem.getAttribute(attr));
-  }
-  const customHandlers={}
-  _es6_module.add_export('customHandlers', customHandlers);
-  class Handler  {
-     constructor(ctx, container) {
-      this.container = container;
-      this.stack = [];
-      this.ctx = ctx;
-      this.codefuncs = {};
-      this.templateVars = {};
-      let attrs=util.list(sliderDomAttributes);
-      this.inheritDomAttrs = {};
-      this.inheritDomAttrKeys = new Set(attrs);
-    }
-     push() {
-      this.stack.push(this.container);
-      this.stack.push(new Set(this.inheritDomAttrKeys));
-      this.stack.push(Object.assign({}, this.inheritDomAttrs));
-    }
-     pop() {
-      this.inheritDomAttrs = this.stack.pop();
-      this.inheritDomAttrKeys = this.stack.pop();
-      this.container = this.stack.pop();
-    }
-     handle(elem) {
-      if (elem.constructor===XMLDocument||elem.nodeName==='root') {
-          for (let child of elem.childNodes) {
-              this.handle(child);
-          }
-          window.tree = elem;
-          return ;
-      }
-      else 
-        if (elem.constructor===Text||elem.constructor===Comment) {
-          return ;
-      }
-      let tagname=""+elem.tagName;
-      if (tagname in customHandlers) {
-          customHandlers[tagname](this, elem);
-      }
-      else 
-        if (this[tagname]) {
-          this[tagname](elem);
-      }
-      else {
-        let elem2=UIBase.createElement(tagname.toLowerCase());
-        window.__elem = elem;
-        for (let k of elem.getAttributeNames()) {
-            elem2.setAttribute(k, elem.getAttribute(k));
-        }
-        if (__instance_of(elem2, UIBase)) {
-            if (!elem2.hasAttribute("datapath")&&elem2.hasAttribute("path")) {
-                elem2.setAttribute("datapath", elem2.getAttribute("path"));
-            }
-            if (elem2.hasAttribute("datapath")) {
-                let path=elem2.getAttribute("datapath");
-                path = this.container._joinPrefix(path);
-                elem2.setAttribute("datapath", path);
-            }
-            if (elem2.hasAttribute("massSetPath")||this.container.massSetPrefix) {
-                let massSetPath="";
-                if (elem2.hasAttribute("massSetPath")) {
-                    massSetPath = elem2.getAttribute("massSetPath");
-                }
-                let path=elem2.getAttribute("datapath");
-                path = this.container._getMassPath(this.container.ctx, path, massSetPath);
-                elem2.setAttribute("massSetPath", path);
-                elem2.setAttribute("mass_set_path", path);
-            }
-            this.container.add(elem2);
-            this._style(elem, elem2);
-            if (__instance_of(elem2, Container)) {
-                this.push();
-                this.container = elem2;
-                this._container(elem, elem2, true);
-                this.visit(elem);
-                this.pop();
-                return ;
-            }
-        }
-        else {
-          console.warn("Unknown element "+elem.tagName+" ("+elem.constructor.name+")");
-          let elem2=document.createElement(elem.tagName.toLowerCase());
-          for (let attr of elem.getAttributeNames()) {
-              elem2.setAttribute(attr, elem.getAttribute(attr));
-          }
-          this._basic(elem, elem2);
-          this.container.shadow.appendChild(elem2);
-          if (!(__instance_of(elem2, UIBase))) {
-              elem2.pathux_ctx = this.container.ctx;
-          }
-          else {
-            elem2.ctx = this.container.ctx;
-          }
-        }
-        this.visit(elem);
-      }
-    }
-     _style(elem, elem2) {
-      let style={};
-      if (elem.hasAttribute("class")) {
-          elem2.setAttribute("class", elem.getAttribute("class"));
-          let cls=elem2.getAttribute("class").trim();
-          let keys=[cls, (elem2.tagName.toLowerCase()+"."+cls).trim(), "#"+elem.getAttribute("id").trim()];
-          for (let sheet of document.styleSheets) {
-              for (let rule of sheet.rules) {
-                  for (let k of keys) {
-                      if (rule.selectorText.trim()===k) {
-                          for (let k2 of rule.styleMap.keys()) {
-                              let val=rule.style[k2];
-                              style[k2] = val;
-                          }
-                      }
-                  }
-              }
-          }
-      }
-      if (elem.hasAttribute("style")) {
-          let stylecode=elem.getAttribute("style");
-          stylecode = stylecode.split(";");
-          for (let row of stylecode) {
-              row = row.trim();
-              let i=row.search(/\:/);
-              if (i>=0) {
-                  let key=row.slice(0, i).trim();
-                  let val=row.slice(i+1, row.length).trim();
-                  style[key] = val;
-              }
-          }
-      }
-      let keys=Object.keys(style);
-      if (keys.length===0) {
-          return ;
-      }
-      function setStyle() {
-        for (let k of keys) {
-            elem2.style[k] = style[k];
-        }
-      }
-      if (__instance_of(elem2, UIBase)) {
-          elem2.setCSS.after(() =>            {
-            setStyle();
-          });
-      }
-      setStyle();
-    }
-     visit(node) {
-      for (let child of node.childNodes) {
-          this.handle(child);
-      }
-    }
-     _getattr(elem, k) {
-      let val=elem.getAttribute(k);
-      if (!val) {
-          return val;
-      }
-      if (val.startsWith("##")) {
-          val = val.slice(2, val.length).trim();
-          if (!(val in this.templateVars)) {
-              console.error(`unknown template variable '${val}'`);
-              val = '';
-          }
-          else {
-            val = this.templateVars[val];
-          }
-      }
-      return val;
-    }
-     _basic(elem, elem2) {
-      this._style(elem, elem2);
-      for (let k of elem.getAttributeNames()) {
-          if (k.startsWith("custom")) {
-              elem2.setAttribute(k, this._getattr(elem, k));
-          }
-      }
-      let codeattrs=[];
-      for (let k of elem.getAttributeNames()) {
-          let val=""+elem.getAttribute(k);
-          if (val.startsWith('ng[')) {
-              val = val.slice(3, val.endsWith("]") ? val.length-1 : val.length);
-              codeattrs.push([k, "ng", val]);
-          }
-      }
-      for (let k of domEventAttrs) {
-          let k2='on'+k;
-          if (elem.hasAttribute(k2)) {
-              codeattrs.push([k, "dom", elem.getAttribute(k2)]);
-          }
-      }
-      for (let /*unprocessed ExpandNode*/[k, eventType, id] of codeattrs) {
-          if (!(id in this.codefuncs)) {
-              console.error("Unknown code fragment "+id);
-              continue;
-          }
-          if (eventType==="dom") {
-              if (k==='click') {
-                  let onclick=elem2.onclick;
-                  let func=this.codefuncs[id];
-                  elem2.onclick = function () {
-                    if (onclick) {
-                        onclick.apply(this, arguments);
-                    }
-                    return func.apply(this, arguments);
-                  };
-              }
-              else {
-                elem2.addEventListener(k, this.codefuncs[id]);
-              }
-          }
-          else 
-            if (eventType==="ng") {
-              elem2.addEventListener(k, this.codefuncs[id]);
-          }
-      }
-      for (let k of domTransferAttrs) {
-          if (elem.hasAttribute(k)) {
-              elem2.setAttribute(k, elem.getAttribute(k));
-          }
-      }
-      for (let k in this.inheritDomAttrs) {
-          if (!elem.hasAttribute(k)) {
-              elem.setAttribute(k, this.inheritDomAttrs[k]);
-          }
-      }
-      for (let k of sliderDomAttributes) {
-          if (elem.hasAttribute(k)) {
-              elem2.setAttribute(k, elem.getAttribute(k));
-          }
-      }
-      if (!(__instance_of(elem2, UIBase))) {
-          return ;
-      }
-      if (elem.hasAttribute("theme-class")) {
-          elem2.overrideClass(elem.getAttribute("theme-class"));
-          if (elem2._init_done) {
-              elem2.setCSS();
-              elem2.flushUpdate();
-          }
-      }
-      if (elem.hasAttribute("useIcons")&&typeof elem2.useIcons==="function") {
-          let val=elem.getAttribute("useIcons").trim().toLowerCase();
-          if (val==="small"||val==="true"||val==="yes") {
-              val = true;
-          }
-          else 
-            if (val==="large") {
-              val = 1;
-          }
-          else 
-            if (val==="false"||val==="no") {
-              val = false;
-          }
-          else {
-            val = parseInt(val)-1;
-          }
-          elem2.useIcons(val);
-      }
-      if (elem.hasAttribute("sliderTextBox")) {
-          let textbox=getbool(elem, "sliderTextBox");
-          if (textbox) {
-              elem2.packflag&=~PackFlags.NO_NUMSLIDER_TEXTBOX;
-              elem2.inherit_packflag&=~PackFlags.NO_NUMSLIDER_TEXTBOX;
-          }
-          else {
-            elem2.packflag|=PackFlags.NO_NUMSLIDER_TEXTBOX;
-            elem2.inherit_packflag|=PackFlags.NO_NUMSLIDER_TEXTBOX;
-          }
-      }
-      if (elem.hasAttribute("sliderMode")) {
-          let sliderMode=elem.getAttribute("sliderMode");
-          if (sliderMode==="slider") {
-              elem2.packflag&=~PackFlags.FORCE_ROLLER_SLIDER;
-              elem2.inherit_packflag&=~PackFlags.FORCE_ROLLER_SLIDER;
-              elem2.packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-              elem2.inherit_packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-          }
-          else 
-            if (sliderMode==="roller") {
-              elem2.packflag&=~PackFlags.SIMPLE_NUMSLIDERS;
-              elem2.packflag|=PackFlags.FORCE_ROLLER_SLIDER;
-              elem2.inherit_packflag&=~PackFlags.SIMPLE_NUMSLIDERS;
-              elem2.inherit_packflag|=PackFlags.FORCE_ROLLER_SLIDER;
-          }
-      }
-      if (elem.hasAttribute("showLabel")) {
-          let state=getbool(elem, "showLabel");
-          if (state) {
-              elem2.packflag|=PackFlags.FORCE_PROP_LABELS;
-              elem2.inherit_packflag|=PackFlags.FORCE_PROP_LABELS;
-          }
-          else {
-            elem2.packflag&=~PackFlags.FORCE_PROP_LABELS;
-            elem2.inherit_packflag&=~PackFlags.FORCE_PROP_LABELS;
-          }
-      }
-      function doBox(key) {
-        if (elem.hasAttribute(key)) {
-            let val=elem.getAttribute(key).toLowerCase().trim();
-            if (val.endsWith("px")) {
-                val = val.slice(0, val.length-2).trim();
-            }
-            if (val.endsWith("%")) {
-                console.warn(`Relative styling of '${key}' may be unstable for this element`, elem);
-                elem.setCSS.after(function () {
-                  this.style[key] = val;
-                });
-            }
-            else {
-              val = parseFloat(val);
-              if (isNaN(val)||typeof val!=="number") {
-                  console.error(`Invalid style ${key}:${elem.getAttribute(key)}`);
-                  return ;
-              }
-              elem2.overrideDefault(key, val);
-              elem2.setCSS();
-              elem2.style[key] = ""+val+"px";
-            }
-        }
-      }
-      doBox("width");
-      doBox("height");
-      doBox("margin");
-      doBox("padding");
-      for (let i=0; i<2; i++) {
-          let key=i ? "margin" : "padding";
-          doBox(key+"-bottom");
-          doBox(key+"-top");
-          doBox(key+"-left");
-          doBox(key+"-right");
-      }
-    }
-     _handlePathPrefix(elem, con) {
-      if (elem.hasAttribute("path")) {
-          let prefix=con.dataPrefix;
-          let path=elem.getAttribute("path").trim();
-          if (prefix.length>0) {
-              prefix+=".";
-          }
-          prefix+=path;
-          con.dataPrefix = prefix;
-      }
-      if (elem.hasAttribute("massSetPath")) {
-          let prefix=con.massSetPrefix;
-          let path=elem.getAttribute("massSetPath").trim();
-          if (prefix.length>0) {
-              prefix+=".";
-          }
-          prefix+=path;
-          con.massSetPrefix = prefix;
-      }
-    }
-     _container(elem, con, ignorePathPrefix=false) {
-      for (let k of this.inheritDomAttrKeys) {
-          if (elem.hasAttribute(k)) {
-              this.inheritDomAttrs[k] = elem.getAttribute(k);
-          }
-      }
-      let packflag=getPackFlag(elem);
-      con.packflag|=packflag;
-      con.inherit_packflag|=packflag;
-      this._basic(elem, con);
-      if (!ignorePathPrefix) {
-          this._handlePathPrefix(elem, con);
-      }
-    }
-     noteframe(elem) {
-      let ret=this.container.noteframe();
-      if (ret) {
-          this._basic(elem, ret);
-      }
-    }
-     cell(elem) {
-      this.push();
-      this.container = this.container.cell();
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     table(elem) {
-      this.push();
-      this.container = this.container.table();
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     panel(elem) {
-      let title=""+elem.getAttribute("label");
-      let closed=getbool(elem, "closed");
-      this.push();
-      this.container = this.container.panel(title);
-      this.container.closed = closed;
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     pathlabel(elem) {
-      this._prop(elem, "pathlabel");
-    }
-     code(elem) {
-      window._codelem = elem;
-      let buf='';
-      for (let elem2 of elem.childNodes) {
-          if (elem2.nodeName==="#text") {
-              buf+=elem2.textContent+'\n';
-          }
-      }
-      var func, $scope=this.templateScope;
-      buf = `
-func = function() {
-  ${buf};
-}
-    `;
-      eval(buf);
-      let id=""+elem.getAttribute("id");
-      this.codefuncs[id] = func;
-    }
-     textbox(elem) {
-      if (elem.hasAttribute("path")) {
-          this._prop(elem, 'textbox');
-      }
-      else {
-      }
-    }
-     label(elem) {
-      let elem2=this.container.label(elem.innerHTML);
-      this._basic(elem, elem2);
-    }
-     colorfield(elem) {
-      this._prop(elem, "colorfield");
-    }
-     prop(elem) {
-      this._prop(elem, "prop");
-    }
-     _prop(elem, key) {
-      let packflag=getPackFlag(elem);
-      let path=elem.getAttribute("path");
-      let elem2;
-      if (key==='pathlabel') {
-          elem2 = this.container.pathlabel(path, elem.innerHTML, packflag);
-      }
-      else 
-        if (key==='textbox') {
-          elem2 = this.container.textbox(path, undefined, undefined, packflag);
-          elem2.update();
-          if (elem.hasAttribute("modal")) {
-              elem2.setAttribute("modal", elem.getAttribute("modal"));
-          }
-          if (elem.hasAttribute("realtime")) {
-              elem2.setAttribute("realtime", elem.getAttribute("realtime"));
-          }
-      }
-      else 
-        if (key==="colorfield") {
-          elem2 = this.container.colorPicker(path, {packflag: packflag, 
-       themeOverride: elem.hasAttribute("theme-class") ? elem.getAttribute("theme-class") : undefined});
-      }
-      else {
-        elem2 = this.container[key](path, packflag);
-      }
-      if (!elem2) {
-          elem2 = document.createElement("span");
-          elem2.innerHTML = "error";
-          this.container.shadow.appendChild(elem2);
-      }
-      else {
-        this._basic(elem, elem2);
-        if (elem.hasAttribute("massSetPath")||this.container.massSetPrefix) {
-            let mpath=elem.getAttribute("massSetPath");
-            if (!mpath) {
-                mpath = elem.getAttribute("path");
-            }
-            mpath = this.container._getMassPath(this.container.ctx, path, mpath);
-            elem2.setAttribute("mass_set_path", mpath);
-        }
-      }
-    }
-     strip(elem) {
-      this.push();
-      let dir;
-      if (elem.hasAttribute("mode")) {
-          dir = elem.getAttribute("mode").toLowerCase().trim();
-          dir = dir==="horizontal";
-      }
-      let margin1=getfloat(elem, "margin1", undefined);
-      let margin2=getfloat(elem, "margin2", undefined);
-      this.container = this.container.strip(undefined, margin1, margin2, dir);
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     column(elem) {
-      this.push();
-      this.container = this.container.col();
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     row(elem) {
-      this.push();
-      this.container = this.container.row();
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     toolPanel(elem) {
-      this.tool(elem, "toolPanel");
-    }
-     tool(elem, key="tool") {
-      let path=elem.getAttribute("path");
-      let packflag=getPackFlag(elem);
-      let noIcons=false, iconflags;
-      if (getbool(elem, "useIcons")) {
-          packflag|=PackFlags.USE_ICONS;
-      }
-      else 
-        if (elem.hasAttribute("useIcons")) {
-          packflag&=~PackFlags.USE_ICONS;
-          noIcons = true;
-      }
-      let label=(""+elem.textContent).trim();
-      if (label.length>0) {
-          path+="|"+label;
-      }
-      if (noIcons) {
-          iconflags = this.container.useIcons(false);
-      }
-      let elem2=this.container[key](path, packflag);
-      if (elem2) {
-          this._basic(elem, elem2);
-      }
-      else {
-        elem2 = document.createElement("strip");
-        elem2.innerHTML = "error";
-        this.container.shadow.appendChild(elem2);
-        this._basic(elem, elem2);
-      }
-      if (noIcons) {
-          this.container.inherit_packflag|=iconflags;
-          this.container.packflag|=iconflags;
-      }
-    }
-     dropbox(elem) {
-      return this.menu(elem, true);
-    }
-     menu(elem, isDropBox=false) {
-      let packflag=getPackFlag(elem);
-      let title=elem.getAttribute("name");
-      let list=[];
-      for (let child of elem.childNodes) {
-          if (child.tagName==="tool") {
-              let path=child.getAttribute("path");
-              let label=child.innerHTML.trim();
-              if (label.length>0) {
-                  path+="|"+label;
-              }
-              list.push(path);
-          }
-          else 
-            if (child.tagName==="sep") {
-              list.push(Menu.SEP);
-          }
-          else 
-            if (child.tagName==="item") {
-              let id, icon, hotkey, description;
-              if (child.hasAttribute("id")) {
-                  id = child.getAttribute("id");
-              }
-              if (child.hasAttribute("icon")) {
-                  icon = child.getAttribute("icon").toUpperCase().trim();
-                  icon = Icons[icon];
-              }
-              if (child.hasAttribute("hotkey")) {
-                  hotkey = child.getAttribute("hotkey");
-              }
-              if (child.hasAttribute("description")) {
-                  description = child.getAttribute("description");
-              }
-              list.push({name: child.innerHTML.trim(), 
-         id: id, 
-         icon: icon, 
-         hotkey: hotkey, 
-         description: description});
-          }
-      }
-      let ret=this.container.menu(title, list, packflag);
-      if (isDropBox) {
-          ret.removeAttribute("simple");
-      }
-      if (elem.hasAttribute("id")) {
-          ret.setAttribute("id", elem.getAttribute("id"));
-      }
-      this._basic(elem, ret);
-      return ret;
-    }
-     button(elem) {
-      let title=elem.innerHTML.trim();
-      let ret=this.container.button(title);
-      if (elem.hasAttribute("id")) {
-          ret.setAttribute("id", elem.getAttribute("id"));
-      }
-      this._basic(elem, ret);
-    }
-     iconbutton(elem) {
-      let title=elem.innerHTML.trim();
-      let icon=elem.getAttribute("icon");
-      if (icon) {
-          icon = UIBase.getIconEnum()[icon];
-      }
-      let ret=this.container.iconbutton(icon, title);
-      if (elem.hasAttribute("id")) {
-          ret.setAttribute("id", elem.getAttribute("id"));
-      }
-      this._basic(elem, ret);
-    }
-     tab(elem) {
-      this.push();
-      let title=""+elem.getAttribute("label");
-      let tabs=this.container;
-      this.container = this.container.tab(title);
-      if (elem.hasAttribute("overflow")) {
-          this.container.setAttribute("overflow", elem.getAttribute("overflow"));
-      }
-      if (elem.hasAttribute("overflow-y")) {
-          this.container.setAttribute("overflow-y", elem.getAttribute("overflow-y"));
-      }
-      this._container(elem, this.container);
-      this.visit(elem);
-      this.pop();
-    }
-     tabs(elem) {
-      let pos=elem.getAttribute("pos")||"left";
-      this.push();
-      let tabs=this.container.tabs(pos);
-      this.container = tabs;
-      if (elem.hasAttribute("movable-tabs")) {
-          tabs.setAttribute("movable-tabs", elem.getAttribute("movable-tabs"));
-      }
-      this._container(elem, tabs);
-      this.visit(elem);
-      this.pop();
-    }
-  }
-  _ESClass.register(Handler);
-  _es6_module.add_class(Handler);
-  function initPage(ctx, xml, parentContainer, templateVars, templateScope) {
-    if (parentContainer===undefined) {
-        parentContainer = undefined;
-    }
-    if (templateVars===undefined) {
-        templateVars = {};
-    }
-    if (templateScope===undefined) {
-        templateScope = {};
-    }
-    let tree=parseXML(xml);
-    let container=UIBase.createElement("container-x");
-    container.ctx = ctx;
-    if (ctx) {
-        container._init();
-    }
-    if (parentContainer) {
-        parentContainer.add(container);
-    }
-    let handler=new Handler(ctx, container);
-    handler.templateVars = Object.assign({}, templateVars);
-    handler.templateScope = templateScope;
-    handler.handle(tree);
-    return container;
-  }
-  initPage = _es6_module.add_export('initPage', initPage);
-  function loadPage(ctx, url, parentContainer_or_args, loadSourceOnly, modifySourceCB, templateVars, templateScope) {
-    if (parentContainer_or_args===undefined) {
-        parentContainer_or_args = undefined;
-    }
-    if (loadSourceOnly===undefined) {
-        loadSourceOnly = false;
-    }
-    let source;
-    let parentContainer;
-    if (parentContainer_or_args!==undefined&&!(__instance_of(parentContainer_or_args, HTMLElement))) {
-        let args=parentContainer_or_args;
-        parentContainer = args.parentContainer;
-        loadSourceOnly = args.loadSourceOnly;
-        modifySourceCB = args.modifySourceCB;
-        templateVars = args.templateVars;
-        templateScope = args.templateScope;
-    }
-    else {
-      parentContainer = parentContainer_or_args;
-    }
-    if (pagecache.has(url)) {
-        source = pagecache.get(url);
-        if (modifySourceCB) {
-            source = modifySourceCB(source);
-        }
-        return new Promise((accept, reject) =>          {
-          if (loadSourceOnly) {
-              accept(source);
-          }
-          else {
-            accept(initPage(ctx, source, parentContainer, templateVars, templateScope));
-          }
-        });
-    }
-    else {
-      return new Promise((accept, reject) =>        {
-        fetch(url).then((res) =>          {
-          return res.text();
-        }).then((data) =>          {
-          pagecache.set(url, data);
-          if (modifySourceCB) {
-              data = modifySourceCB(data);
-          }
-          if (loadSourceOnly) {
-              accept(data);
-          }
-          else {
-            accept(initPage(ctx, data, parentContainer, templateVars, templateScope));
-          }
-        });
-      });
-    }
-  }
-  loadPage = _es6_module.add_export('loadPage', loadPage);
-}, '/dev/fairmotion/src/path.ux/scripts/xmlpage/xmlpage.js');
-
-
-es6_module_define('all', ["./pentool.js", "./splinetool.js"], function _all_module(_es6_module) {
-  es6_import(_es6_module, './splinetool.js');
-  es6_import(_es6_module, './pentool.js');
-}, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
-
-
-es6_module_define('pentool', ["../../../core/keymap.js", "../../../path.ux/scripts/pathux.js", "../../../core/toolops_api.js", "../../../curve/spline_types.js", "../../../path.ux/scripts/util/util.js", "./toolmode.js"], function _pentool_module(_es6_module) {
-  "use strict";
-  var SplineTypes=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFlags');
-  var SplineVertex=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineVertex');
-  var SplineSegment=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineSegment');
-  var SplineFace=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFace');
-  var ToolOp=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolOp');
-  var ToolMacro=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolMacro');
-  var KeyMap=es6_import_item(_es6_module, '../../../core/keymap.js', 'KeyMap');
-  var HotKey=es6_import_item(_es6_module, '../../../core/keymap.js', 'HotKey');
-  var util=es6_import(_es6_module, '../../../path.ux/scripts/util/util.js');
-  var ToolMode=es6_import_item(_es6_module, './toolmode.js', 'ToolMode');
-  var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
-  var ListProperty=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'ListProperty');
-  var Vec3Property=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'Vec4Property');
-  var BoolProperty=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'BoolProperty');
-  var IntProperty=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'FloatProperty');
-  var StringProperty=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'StringProperty');
-  window.anim_to_playback = [];
-  class StrokeOp extends ToolOp {
-     constructor() {
-      super();
-      this._start = 0;
-      this._verts = [];
-    }
-    static  tooldef() {
-      return {uiname: "Add Stroke", 
-     toolpath: "pen.stroke", 
-     inputs: {points: new ListProperty(Vec3Property), 
-      lineWidth: new FloatProperty(), 
-      strokeColor: new Vec4Property([0, 0, 0, 1])}}
-    }
-     exec(ctx) {
-      let spline=ctx.frameset.spline;
-      let lastv=undefined;
-      let arr=this.inputs.points.value;
-      lastv = this._verts[this._start-1];
-      let lastp=arr[this._start-1];
-      lastp = lastp ? lastp.getValue() : undefined;
-      let n1=new Vector2();
-      let n2=new Vector2();
-      let n3=new Vector2();
-      let lwid=this.inputs.lineWidth.getValue();
-      let color=this.inputs.strokeColor.getValue();
-      for (let i=this._start; i<arr.length; i++) {
-          let v=arr[i];
-          v = v.getValue();
-          let x=v[0], y=v[1], p=v[2];
-          let v2=spline.make_vertex(v);
-          if (lastv) {
-              let s=spline.make_segment(lastv, v2);
-              s.mat.linewidth = lwid;
-              for (let j=0; j<4; j++) {
-                  s.mat.strokecolor[j] = color[j];
-              }
-              if (s.v1===lastv) {
-                  s.w1 = lastp[2]||1.0;
-                  s.w2 = v[2]||1.0;
-              }
-              else {
-                s.w1 = v[2]||1.0;
-                s.w2 = lastp[2]||1.0;
-              }
-          }
-          if (lastv&&lastv.segments.length===2) {
-              let s1=lastv.segments[0];
-              let s2=lastv.segments[1];
-              let a=s1.other_vert(lastv);
-              let b=lastv;
-              let c=s2.other_vert(lastv);
-              n1.load(a).sub(b);
-              n2.load(c).sub(b);
-              let bad=n1.dot(n1)<0.001||n2.dot(n2)<0.001;
-              n1.normalize();
-              n2.normalize();
-              bad = bad||Math.acos(n1.dot(n2))<Math.PI*0.25;
-              if (bad) {
-                  lastv.flag|=SplineFlags.BREAK_TANGENTS;
-              }
-          }
-          lastv = v2;
-          lastp = v;
-          this._verts.push(v2);
-      }
-      spline.regen_sort();
-      spline.regen_render();
-      spline.regen_solve();
-      spline.checkSolve();
-    }
-     undoPre(ctx) {
-      return this.undo_pre(ctx);
-    }
-     undo_pre(ctx) {
-      this._start = 0;
-      this._verts = [];
-      let spline=ctx.frameset.spline;
-      this._undo = {start_eid: spline.idgen.cur_id};
-    }
-     undo(ctx) {
-      this._start = 0;
-      this._verts = [];
-      let spline=ctx.frameset.spline;
-      let a=this._undo.start_eid;
-      let b=spline.idgen.cur_id;
-      for (let i=a; i<=b; i++) {
-          let e=spline.eidmap[i];
-          if (e!==undefined&&e.type===SplineTypes.VERTEX) {
-              spline.kill_vertex(e);
-          }
-      }
-      spline.idgen.cur_id = a;
-      spline.regen_sort();
-      spline.regen_render();
-      spline.regen_solve();
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(StrokeOp);
-  _es6_module.add_class(StrokeOp);
-  StrokeOp = _es6_module.add_export('StrokeOp', StrokeOp);
-  class PenToolMode extends ToolMode {
-    
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.keymap = undefined;
-      this.mpos = new Vector2();
-      this.last_mpos = new Vector2();
-      this.start_mpos = new Vector2();
-      this.mdown = false;
-      this.limit = 10;
-      this.stroke = [];
-      this.smoothness = 1.0;
-    }
-     rightClickMenu(e, localX, localY, view2d) {
-
-    }
-     draw(view2d) {
-      super.draw(view2d);
-    }
-     duplicate() {
-      return new this.constructor();
-    }
-    static  contextOverride() {
-
-    }
-    static  buildSideBar(container) {
-      container.prop("active_tool.limit");
-      container.label("Yay");
-    }
-    static  buildHeader(container) {
-
-    }
-    static  defineAPI(api) {
-      let st=super.defineAPI(api);
-      let def=st.float("limit", "limit", "Limit", "Minimum distance between points");
-      def.range(0, 300).noUnits();
-      return st;
-    }
-    static  buildProperties(container) {
-
-    }
-     on_tick() {
-
-    }
-    static  toolDefine() {
-      return {name: "pen", 
-     uiName: "Pen", 
-     flag: 0, 
-     icon: Icons.PEN_TOOL, 
-     nodeInputs: {}, 
-     nodeOutputs: {}, 
-     nodeFlag: 0}
-    }
-     defineKeyMap() {
-      let k=this.keymap = new KeyMap("view2d:pentool");
-      return k;
-    }
-     tools_menu(ctx, mpos, view2d) {
-      let ops=[];
-      var menu=view2d.toolop_menu(ctx, "Tools", ops);
-      view2d.call_menu(menu, view2d, mpos);
-    }
-     getSpline() {
-      return this.ctx.frameset.spline;
-    }
-     getMouse(event) {
-      let view2d=this.ctx.view2d;
-      let p=new Vector3([event.x, event.y, 0.0]);
-      view2d.unproject(p);
-      p = new Vector3(p);
-      if (event.touches&&event.touches.length>0) {
-          let f=event.touches[0];
-          f = f.force||f.pressure||1.0;
-          p[2] = f;
-      }
-      else {
-        p[2] = 1.0;
-      }
-      return p;
-    }
-     addPoint(mpos) {
-      let spline=this.getSpline();
-      let v3=new Vec3Property();
-      v3.setValue(mpos);
-      if (this.tool===this.ctx.toolstack.head) {
-      }
-      else {
-        this.ctx.toolstack.execTool(this.ctx, this.tool);
-        this.tool = new StrokeOp();
-        this.tool.inputs.lineWidth.setValue(this.ctx.view2d.default_linewidth);
-        this.tool.inputs.strokeColor.setValue(this.ctx.view2d.default_stroke);
-        this.ctx.toolstack.execTool(this.ctx, this.tool);
-      }
-      this.tool._start = this.tool.inputs.points.value.length;
-      this.tool.inputs.points.value.push(v3);
-      this.tool.exec(this.ctx);
-      this.stroke.push(mpos);
-      window.redraw_viewport();
-    }
-     on_mousedown(event, localX, localY) {
-      if (event.altKey||event.shiftKey||event.ctrlKey||event.commandKey) {
-          return ;
-      }
-      this.start_mpos[0] = event.x;
-      this.start_mpos[1] = event.y;
-      let mpos=this.getMouse(event);
-      this.tool = new StrokeOp();
-      this.tool.inputs.lineWidth.setValue(this.ctx.view2d.default_linewidth);
-      this.tool.inputs.strokeColor.setValue(this.ctx.view2d.default_stroke);
-      this.ctx.toolstack.execTool(this.ctx, this.tool);
-      this.addPoint(mpos);
-      this.mdown = true;
-    }
-     ensure_paths_off() {
-      if (g_app_state.active_splinepath!=="frameset.drawspline") {
-          this.highlight_spline = undefined;
-          var spline=this.ctx.spline;
-          g_app_state.switch_active_spline("frameset.drawspline");
-          spline.clear_highlight();
-          spline.solve();
-          redraw_viewport();
-      }
-    }
-    get  draw_anim_paths() {
-      return this.ctx.view2d.draw_anim_paths;
-    }
-     findnearest(mpos, selectmask, limit, ignore_layers) {
-      var frameset=this.ctx.frameset;
-      var editor=this.ctx.view2d;
-      var closest=[0, 0, 0];
-      var mindis=1e+17;
-      var found=false;
-      if (!this.draw_anim_paths) {
-          this.ensure_paths_off();
-          var ret=this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-          if (ret!=undefined) {
-              return [this.ctx.spline, ret[0], ret[1]];
-          }
-          else {
-            return undefined;
-          }
-      }
-      var actspline=this.ctx.spline;
-      var pathspline=this.ctx.frameset.pathspline;
-      var drawspline=this.ctx.frameset.spline;
-      var ret=drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-      if (ret!=undefined&&ret[1]<limit) {
-          mindis = ret[1]-(drawspline===actspline ? 3 : 0);
-          found = true;
-          closest[0] = drawspline;
-          closest[1] = ret[0];
-          closest[2] = mindis;
-      }
-      var ret=frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
-      if (ret!=undefined) {
-          ret[1]-=pathspline===actspline ? 2 : 0;
-          if (ret[1]<limit&&ret[1]<mindis) {
-              closest[0] = pathspline;
-              closest[1] = ret[0];
-              closest[2] = ret[1]-(pathspline===actspline ? 3 : 0);
-              mindis = ret[1];
-              found = true;
-          }
-      }
-      if (!found)
-        return undefined;
-      return closest;
-    }
-     updateHighlight(x, y, was_touch) {
-
-    }
-     on_mousemove(event) {
-      if (!this.mdown) {
-          return ;
-      }
-      let mpos=this.getMouse(event);
-      if (this.last_mpos.vectorDistance(mpos)>this.limit) {
-          this.last_mpos.load(mpos);
-          this.addPoint(mpos);
-      }
-    }
-     on_mouseup(event) {
-      this.mdown = false;
-      console.log("%cMOUSE UP", "color : yellow;");
-      this.tool = undefined;
-      this._cancel_on_touch = false;
-      this.start_mpos[0] = event.x;
-      this.start_mpos[1] = event.y;
-    }
-     do_alt_select(event, mpos, view2d) {
-
-    }
-     getKeyMaps() {
-      if (this.keymap===undefined) {
-          this.defineKeyMap();
-      }
-      return [this.keymap];
-    }
-    static  buildEditMenu() {
-      return [];
-    }
-     delete_menu(event) {
-
-    }
-     dataLink(scene, getblock, getblock_us) {
-      this.ctx = g_app_state.ctx;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(PenToolMode);
-  _es6_module.add_class(PenToolMode);
-  PenToolMode = _es6_module.add_export('PenToolMode', PenToolMode);
-  PenToolMode.STRUCT = nstructjs.inherit(PenToolMode, ToolMode)+`
-  limit : float;
-}`;
-  ToolMode.register(PenToolMode);
-}, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
-
-
-es6_module_define('splinetool', ["../../../core/keymap.js", "../spline_selectops.js", "../transform_ops.js", "../../../path.ux/scripts/pathux.js", "../selectmode.js", "../../../curve/spline_types.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_editops.js", "../view2d_editor.js", "../transform.js", "../../../curve/spline_draw.js", "../spline_createops.js", "./toolmode.js", "../view2d_ops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/util/util.js"], function _splinetool_module(_es6_module) {
-  "use strict";
-  var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
-  var ExtrudeVertOp=es6_import_item(_es6_module, '../spline_createops.js', 'ExtrudeVertOp');
-  var DeleteVertOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteVertOp');
-  var DeleteSegmentOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteSegmentOp');
-  var WidgetResizeOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetResizeOp');
-  var WidgetRotateOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetRotateOp');
-  var KeyMap=es6_import_item(_es6_module, '../../../core/keymap.js', 'KeyMap');
-  var HotKey=es6_import_item(_es6_module, '../../../core/keymap.js', 'HotKey');
-  var SelectLinkedOp=es6_import_item(_es6_module, '../spline_selectops.js', 'SelectLinkedOp');
-  var SelectOneOp=es6_import_item(_es6_module, '../spline_selectops.js', 'SelectOneOp');
-  var SelOpModes=es6_import_item(_es6_module, '../spline_selectops.js', 'SelOpModes');
-  var TranslateOp=es6_import_item(_es6_module, '../transform.js', 'TranslateOp');
-  var SelMask=es6_import_item(_es6_module, '../selectmode.js', 'SelMask');
-  var ToolModes=es6_import_item(_es6_module, '../selectmode.js', 'ToolModes');
-  var SplineTypes=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFlags');
-  var SplineVertex=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineVertex');
-  var SplineSegment=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineSegment');
-  var SplineFace=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFace');
-  var View2DEditor=es6_import_item(_es6_module, '../view2d_editor.js', 'View2DEditor');
-  var SessionFlags=es6_import_item(_es6_module, '../view2d_editor.js', 'SessionFlags');
-  var redraw_element=es6_import_item(_es6_module, '../../../curve/spline_draw.js', 'redraw_element');
-  var UndoFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolFlags');
-  var ModalStates=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ModalStates');
-  var ToolOp=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolOp');
-  var ToolMacro=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolMacro');
-  var DeleteVertOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteVertOp');
-  var DeleteSegmentOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteSegmentOp');
-  var DeleteFaceOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteFaceOp');
-  var ChangeFaceZ=es6_import_item(_es6_module, '../spline_editops.js', 'ChangeFaceZ');
-  var SplitEdgeOp=es6_import_item(_es6_module, '../spline_editops.js', 'SplitEdgeOp');
-  var DuplicateOp=es6_import_item(_es6_module, '../spline_editops.js', 'DuplicateOp');
-  var DisconnectHandlesOp=es6_import_item(_es6_module, '../spline_editops.js', 'DisconnectHandlesOp');
-  var SplitEdgePickOp=es6_import_item(_es6_module, '../spline_editops.js', 'SplitEdgePickOp');
-  var util=es6_import(_es6_module, '../../../path.ux/scripts/util/util.js');
-  var ToolMode=es6_import_item(_es6_module, './toolmode.js', 'ToolMode');
-  var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
-  var WidgetResizeOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetResizeOp');
-  var WidgetRotateOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetRotateOp');
-  var ToolModes=es6_import_item(_es6_module, '../selectmode.js', 'ToolModes');
-  var PanOp=es6_import_item(_es6_module, '../view2d_ops.js', 'PanOp');
-  window.anim_to_playback = [];
-  class SplineToolMode extends ToolMode {
-    
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.keymap = undefined;
-      this.mpos = new Vector2();
-      this.last_mpos = new Vector2();
-      this.start_mpos = new Vector2();
-      this.mdown = false;
-    }
-     rightClickMenu(e, localX, localY, view2d) {
-
-    }
-     draw(view2d) {
-      super.draw(view2d);
-    }
-     duplicate() {
-      return new this.constructor();
-    }
-    static  contextOverride() {
-
-    }
-    static  buildSideBar(container) {
-
-    }
-    static  buildHeader(container) {
-
-    }
-    static  buildProperties(container) {
-      let panel=container.panel("Tools");
-      panel.toolPanel("spline.vertex_smooth()");
-    }
-     on_tick() {
-      if (!this.ctx) {
-          return ;
-      }
-      let ctx=this.ctx;
-      let widgets=[WidgetResizeOp, WidgetRotateOp];
-      if (ctx.view2d.toolmode==ToolModes.RESIZE) {
-          ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
-      }
-      else 
-        if (ctx.view2d.toolmode==ToolModes.ROTATE) {
-          ctx.view2d.widgets.ensure_toolop(ctx, WidgetRotateOp);
-      }
-      else {
-        for (let cls of widgets) {
-            ctx.view2d.widgets.ensure_not_toolop(ctx, cls);
-        }
-      }
-    }
-    static  toolDefine() {
-      return {name: "spline", 
-     uiName: "Spline", 
-     flag: 0, 
-     icon: -1, 
-     nodeInputs: {}, 
-     nodeOutputs: {}, 
-     nodeFlag: 0}
-    }
-     defineKeyMap() {
-      var this2=this;
-      function del_tool(ctx) {
-        console.log("delete");
-        if (this2.selectmode&SelMask.SEGMENT) {
-            console.log("kill segments");
-            let op=new DeleteSegmentOp();
-            g_app_state.toolstack.exec_tool(op);
-        }
-        else 
-          if (this2.selectmode&SelMask.FACE) {
-            console.log("kill faces");
-            let op=new DeleteFaceOp();
-            g_app_state.toolstack.exec_tool(op);
-        }
-        else {
-          console.log("kill verts");
-          let op=new DeleteVertOp();
-          g_app_state.toolstack.exec_tool(op);
-        }
-      }
-      this.keymap = new KeyMap("view2d:spline", [new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Move Up"), new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Move Down"), new HotKey("G", [], "spline.translate(datamode='selectmode')"), new HotKey("S", [], "spline.scale(datamode='selectmode')"), new HotKey("R", [], "spline.rotate(datamode='selectmode')"), new HotKey("S", ["SHIFT"], "spline.shift_time()"), new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"), new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"), new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"), new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"), new HotKey("G", [], "spline.hide(selmode='selectmode' ghost=1)|Ghost Selection"), new HotKey("G", [], "spline.unhide(selmode='selectmode' ghost=1)|Unghost Selection"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"), new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"), new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"), new HotKey("X", [], del_tool, "Delete"), new HotKey("Delete", [], del_tool, "Delete"), new HotKey("Backspace", [], del_tool, "Delete"), new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"), new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"), new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"), new HotKey("E", [], "spline.split_edges()|Split Segments"), new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"), new HotKey("C", [], "view2d.circle_select()|Circle Select"), new HotKey("Z", [], function (ctx) {
-        console.warn("ZKEY", arguments, this);
-        ctx.view2d.only_render^=1;
-        window.redraw_viewport();
-      }, "Toggle Only Render"), new HotKey("W", [], function (ctx) {
-        var mpos=ctx.keymap_mpos;
-        mpos = ctx.screen.mpos;
-        ctx.view2d.tools_menu(ctx, mpos);
-      }, "Tools Menu")]);
-      return ;
-      let k=this.keymap = new KeyMap("view2d:splinetool");
-    }
-     tools_menu(ctx, mpos, view2d) {
-      let ops=["spline.flip_segments()", "spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
-      var menu=view2d.toolop_menu(ctx, "Tools", ops);
-      view2d.call_menu(menu, view2d, mpos);
-    }
-     _get_spline() {
-      return this.ctx.spline;
-    }
-     on_mousedown(event, localX, localY) {
-      if (this._do_touch_undo(event)) {
-          return true;
-      }
-      var spline=this.ctx.spline;
-      var toolmode=this.ctx.view2d.toolmode;
-      this.start_mpos[0] = event.x;
-      this.start_mpos[1] = event.y;
-      this.updateHighlight(event.x, event.y, !!event.touches);
-      if (this.highlight_spline!==undefined&&this.highlight_spline!==spline) {
-          this._cancel_on_touch = false;
-          console.log("spline switch!");
-          var newpath;
-          if (this.highlight_spline.is_anim_path) {
-              newpath = "frameset.pathspline";
-          }
-          else {
-            newpath = "frameset.drawspline";
-          }
-          console.log(spline._debug_id, this.highlight_spline._debug_id);
-          console.log("new path!", G.active_splinepath, newpath);
-          this.ctx.switch_active_spline(newpath);
-          spline = this._get_spline();
-          redraw_viewport();
-          return true;
-      }
-      let ret=false;
-      if (event.button===0) {
-          var can_append=toolmode===ToolModes.APPEND;
-          can_append = can_append&&(this.selectmode&(SelMask.VERTEX|SelMask.HANDLE));
-          can_append = can_append&&spline.verts.highlight===undefined&&spline.handles.highlight===undefined;
-          if (can_append) {
-              var co=new Vector3([event.x, event.y, 0]);
-              this.view2d.unproject(co);
-              console.log(co);
-              var op=new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
-              op.inputs.location.setValue(co);
-              op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
-              op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
-              this._cancel_on_touch = true;
-              g_app_state.toolstack.exec_tool(op);
-              redraw_viewport();
-              ret = true;
-          }
-          else {
-            this._cancel_on_touch = false;
-            for (var i=0; i<spline.elists.length; i++) {
-                var list=spline.elists[i];
-                if (!(this.selectmode&list.type))
-                  continue;
-                
-                if (list.highlight===undefined)
-                  continue;
-                var op=new SelectOneOp(list.highlight, !event.shiftKey, !(list.highlight.flag&SplineFlags.SELECT), this.selectmode, true);
-                g_app_state.toolstack.exec_tool(op);
-                ret = true;
-                break;
-            }
-          }
-          this.start_mpos[0] = event.x;
-          this.start_mpos[1] = event.y;
-          this.mdown = true;
-      }
-      return ret;
-    }
-     ensure_paths_off() {
-      if (g_app_state.active_splinepath!="frameset.drawspline") {
-          this.highlight_spline = undefined;
-          var spline=this.ctx.spline;
-          g_app_state.switch_active_spline("frameset.drawspline");
-          spline.clear_highlight();
-          spline.solve();
-          redraw_viewport();
-      }
-    }
-    get  draw_anim_paths() {
-      return this.ctx.view2d.draw_anim_paths;
-    }
-     findnearest(mpos, selectmask, limit, ignore_layers) {
-      var frameset=this.ctx.frameset;
-      var editor=this.ctx.view2d;
-      var closest=[0, 0, 0];
-      var mindis=1e+17;
-      var found=false;
-      console.warn("findnearest");
-      if (!this.draw_anim_paths) {
-          this.ensure_paths_off();
-          var ret=this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-          if (ret!=undefined) {
-              return [this.ctx.spline, ret[0], ret[1]];
-          }
-          else {
-            return undefined;
-          }
-      }
-      var actspline=this.ctx.spline;
-      var pathspline=this.ctx.frameset.pathspline;
-      var drawspline=this.ctx.frameset.spline;
-      var ret=drawspline.q.zrest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
-      if (ret!=undefined&&ret[1]<limit) {
-          mindis = ret[1]-(drawspline===actspline ? 3 : 0);
-          found = true;
-          closest[0] = drawspline;
-          closest[1] = ret[0];
-          closest[2] = mindis;
-      }
-      var ret=frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
-      if (ret!=undefined) {
-          ret[1]-=pathspline===actspline ? 2 : 0;
-          if (ret[1]<limit&&ret[1]<mindis) {
-              closest[0] = pathspline;
-              closest[1] = ret[0];
-              closest[2] = ret[1]-(pathspline===actspline ? 3 : 0);
-              mindis = ret[1];
-              found = true;
-          }
-      }
-      if (!found)
-        return undefined;
-      return closest;
-    }
-     updateHighlight(x, y, was_touch) {
-      let toolmode=this.ctx.view2d.toolmode;
-      let limit;
-      if (this.ctx.view2d.selectmode&SelMask.SEGMENT) {
-          limit = 55;
-      }
-      else {
-        limit = (util.isMobile()||was_touch) ? 55 : 15;
-      }
-      limit*=1.5;
-      limit*=UIBase.getDPI();
-      if (toolmode===ToolModes.SELECT)
-        limit*=3;
-      let ret=this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
-      if (ret!==undefined) {
-          if (ret[0]!==this.highlight_spline&&this.highlight_spline!==undefined) {
-              this.highlight_spline.clear_highlight();
-          }
-          this.highlight_spline = ret[0];
-          this.highlight_spline.clear_highlight();
-          window.redraw_viewport();
-      }
-      else {
-        if (this.highlight_spline!==undefined) {
-            this.highlight_spline.clear_highlight();
-            window.redraw_viewport();
-        }
-        this.highlight_spline = undefined;
-      }
-      if (this.highlight_spline&&ret&&ret[1]) {
-          let list=this.highlight_spline.get_elist(ret[1].type);
-          let redraw=list.highlight!==ret[1];
-          list.highlight = ret[1];
-          if (redraw) {
-              window.redraw_viewport();
-          }
-      }
-    }
-     _do_touch_undo(event) {
-      if (event.touches&&event.touches.length>1&&this._cancel_on_touch) {
-          console.log("touch undo!");
-          this.ctx.toolstack.undo();
-          this._cancel_on_touch = false;
-          this.ctx.toolstack.execTool(this.ctx, new PanOp());
-          window.redraw_viewport();
-          return true;
-      }
-    }
-     on_mousemove(event) {
-      if (this.ctx===undefined)
-        return ;
-      this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
-      var selectmode=this.selectmode;
-      if (this._do_touch_undo(event)) {
-          return ;
-      }
-      this.updateHighlight(event.x, event.y, !!event.touches);
-      let translate=(this.mdown&&this.start_mpos.vectorDistance(this.mpos)>15/UIBase.getDPI());
-      if (translate) {
-          this.mdown = false;
-          let mpos=new Vector2();
-          mpos.load(this.start_mpos);
-          var op=new TranslateOp(mpos);
-          console.log("start_mpos:", mpos);
-          op.inputs.datamode.setValue(this.ctx.view2d.selectmode);
-          op.inputs.edit_all_layers.setValue(this.ctx.view2d.edit_all_layers);
-          var ctx=new Context();
-          if (ctx.view2d.session_flag&SessionFlags.PROP_TRANSFORM) {
-              op.inputs.proportional.setValue(true);
-              op.inputs.propradius.setValue(ctx.view2d.propradius);
-          }
-          let _cancel_on_touch=this._cancel_on_touch;
-          this._cancel_on_touch = false;
-          op.touchCancelable(() =>            {
-            console.log("touch-induced cancel!");
-            this.ctx.toolstack.execTool(this.ctx, new PanOp());
-            if (_cancel_on_touch) {
-                this.ctx.toolstack.undo();
-            }
-          });
-          g_app_state.toolstack.exec_tool(op);
-      }
-    }
-     on_mouseup(event) {
-      this._cancel_on_touch = false;
-      this.start_mpos[0] = event.x;
-      this.start_mpos[1] = event.y;
-      this.mdown = true;
-      var spline=this._get_spline();
-      spline.size = [window.innerWidth, window.innerHeight];
-      this.mdown = false;
-    }
-     do_alt_select(event, mpos, view2d) {
-
-    }
-     getKeyMaps() {
-      if (this.keymap===undefined) {
-          this.defineKeyMap();
-      }
-      return [this.keymap];
-    }
-    static  buildEditMenu() {
-      var ops=["spline.toggle_manual_handles()", "spline.split_edges()", "spline.delete_faces()", "spline.delete_segments()", "spline.delete_verts()", "spline.dissolve_verts()", "spline.make_edge_face()", "spline.split_edges()", "spline.mirror_verts()", "spline.duplicate_transform()", "spline.disconnect_handles()", "spline.connect_handles()", "spline.unhide()", "spline.hide()", "spline.toggle_select_all(mode='SELECT')|Select All|A", "spline.toggle_select_all(mode='DESELECT')|Deselect All|Alt-A", "view2d.circle_select()", "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked|L", "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked|Shift+L"];
-      return ops;
-    }
-     delete_menu(event) {
-      var view2d=this.view2d;
-      var ctx=new Context();
-      var menu=this.gen_delete_menu(true);
-      menu.close_on_right = true;
-      menu.swap_mouse_button = 2;
-      view2d.call_menu(menu, view2d, [event.x, event.y]);
-    }
-     dataLink(scene, getblock, getblock_us) {
-      this.ctx = g_app_state.ctx;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-  }
-  _ESClass.register(SplineToolMode);
-  _es6_module.add_class(SplineToolMode);
-  SplineToolMode = _es6_module.add_export('SplineToolMode', SplineToolMode);
-  SplineToolMode.STRUCT = nstructjs.inherit(SplineToolMode, ToolMode)+`
-}`;
-  ToolMode.register(SplineToolMode);
-}, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
 

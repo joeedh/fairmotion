@@ -1080,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_local.js", "./config_local"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local", "../path.ux/scripts/config/const.js", "./config_local.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1320,8 +1320,9 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
     }, 
    colorSchemeType: "light", 
    docManualPath: "../simple_docsys/doc_build/", 
+   docEditorPath: "../simple_docsys.js", 
    useNumSliderTextboxes: true, 
-   numSliderArrowLimit: 3, 
+   numSliderArrowLimit: 15, 
    simpleNumSliders: false, 
    menusCanPopupAbove: false, 
    menu_close_time: 500, 
@@ -1347,6 +1348,7 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
    showPathsInToolTips: true, 
    enableThemeAutoUpdate: true, 
    useNativeToolTips: true, 
+   noElectronMenus: false, 
    loadConstants: function (args) {
       for (let k in args) {
           if (k==="loadConstants")
@@ -1669,7 +1671,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/polyfill.js');
 
-es6_module_define('util', ["./mobile-detect.js", "../extern/lz-string/lz-string.js", "./struct.js", "./polyfill.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/lz-string.js", "./mobile-detect.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -1909,8 +1911,6 @@ es6_module_define('util', ["./mobile-detect.js", "../extern/lz-string/lz-string.
         }
         else 
           if (typeof n==="object") {
-            if (n===undefined) {
-            }
             if (visit.has(n)) {
                 return ;
             }

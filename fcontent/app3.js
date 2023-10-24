@@ -1,5 +1,5 @@
 
-es6_module_define('ui_theme', ["../path-controller/util/vectormath.js", "../path-controller/util/struct.js", "../config/const.js", "../path-controller/util/util.js"], function _ui_theme_module(_es6_module) {
+es6_module_define('ui_theme', ["../config/const.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _ui_theme_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
   var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
@@ -383,485 +383,15 @@ ${indent}})`;
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
 
 
-es6_module_define('units', ["../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _units_module(_es6_module) {
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
-  const FLT_EPSILONE=1.192092895507812e-07;
-  function myfloor(f) {
-    return Math.floor(f+FLT_EPSILONE*2.0);
+es6_module_define('units', ["../path-controller/units/units.js"], function _units_module(_es6_module) {
+  var ____path_controller_units_units_js=es6_import(_es6_module, '../path-controller/units/units.js');
+  for (let k in ____path_controller_units_units_js) {
+      _es6_module.add_export(k, ____path_controller_units_units_js[k], true);
   }
-  function normString(s) {
-    s = s.replace(/ /g, "").replace(/\t/g, "");
-    return s.toLowerCase();
-  }
-  function myToFixed(f, decimals) {
-    if (typeof f!=="number") {
-        return "(error)";
-    }
-    f = f.toFixed(decimals);
-    while (f.endsWith("0")&&f.search(/\./)>=0) {
-      f = f.slice(0, f.length-1);
-    }
-    if (f.endsWith(".")) {
-        f = f.slice(0, f.length-1);
-    }
-    if (f.length===0)
-      f = "0";
-    return f.trim();
-  }
-  const Units=[];
-  _es6_module.add_export('Units', Units);
-  class Unit  {
-    static  getUnit(name) {
-      if (name==="none"||name===undefined) {
-          return undefined;
-      }
-      for (let cls of Units) {
-          if (cls.unitDefine().name===name) {
-              return cls;
-          }
-      }
-      throw new Error("Unknown unit "+name);
-    }
-    static  register(cls) {
-      Units.push(cls);
-    }
-    static  unitDefine() {
-      return {name: "", 
-     uiname: "", 
-     type: "", 
-     icon: -1, 
-     pattern: undefined}
-    }
-    static  parse(string) {
-
-    }
-    static  validate(string) {
-      string = normString(string);
-      let def=this.unitDefine();
-      let m=string.match(def.pattern);
-      if (!m)
-        return false;
-      return m[0]===string;
-    }
-    static  toInternal(value) {
-
-    }
-    static  fromInternal(value) {
-
-    }
-    static  buildString(value, decimals=2) {
-
-    }
-  }
-  _ESClass.register(Unit);
-  _es6_module.add_class(Unit);
-  Unit = _es6_module.add_export('Unit', Unit);
-  class MeterUnit extends Unit {
-    static  unitDefine() {
-      return {name: "meter", 
-     uiname: "Meter", 
-     type: "distance", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d*)?m$/}
-    }
-    static  parse(string) {
-      string = normString(string);
-      if (string.endsWith("m")) {
-          string = string.slice(0, string.length-1);
-      }
-      return parseFloat(string);
-    }
-    static  toInternal(value) {
-      return value;
-    }
-    static  fromInternal(value) {
-      return value;
-    }
-    static  buildString(value, decimals=2) {
-      return ""+myToFixed(value, decimals)+" m";
-    }
-  }
-  _ESClass.register(MeterUnit);
-  _es6_module.add_class(MeterUnit);
-  MeterUnit = _es6_module.add_export('MeterUnit', MeterUnit);
-  Unit.register(MeterUnit);
-  class InchUnit extends Unit {
-    static  unitDefine() {
-      return {name: "inch", 
-     uiname: "Inch", 
-     type: "distance", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d*)?(in|inch)$/}
-    }
-    static  parse(string) {
-      string = string.toLowerCase();
-      let i=string.indexOf("i");
-      if (i>=0) {
-          string = string.slice(0, i);
-      }
-      return parseInt(string);
-    }
-    static  toInternal(value) {
-      return value*0.0254;
-    }
-    static  fromInternal(value) {
-      return value/0.0254;
-    }
-    static  buildString(value, decimals=2) {
-      return ""+myToFixed(value, decimals)+"in";
-    }
-  }
-  _ESClass.register(InchUnit);
-  _es6_module.add_class(InchUnit);
-  InchUnit = _es6_module.add_export('InchUnit', InchUnit);
-  Unit.register(InchUnit);
-  let foot_re=/((-?\d+(\.\d*)?ft)(-?\d+(\.\d*)?(in|inch))?)|(-?\d+(\.\d*)?(in|inch))$/;
-  class FootUnit extends Unit {
-    static  unitDefine() {
-      return {name: "foot", 
-     uiname: "Foot", 
-     type: "distance", 
-     icon: -1, 
-     pattern: foot_re}
-    }
-    static  parse(string) {
-      string = normString(string);
-      let i=string.search("ft");
-      let parts=[];
-      let vft=0.0, vin=0.0;
-      if (i>=0) {
-          parts = string.split("ft");
-          let j=parts[1].search("in");
-          if (j>=0) {
-              parts = [parts[0]].concat(parts[1].split("in"));
-              vin = parseFloat(parts[1]);
-          }
-          vft = parseFloat(parts[0]);
-      }
-      else {
-        string = string.replace(/in/g, "");
-        vin = parseFloat(string);
-      }
-      return vin/12.0+vft;
-    }
-    static  toInternal(value) {
-      return value*0.3048;
-    }
-    static  fromInternal(value) {
-      return value/0.3048;
-    }
-    static  buildString(value, decimals=2) {
-      let vft=myfloor(value);
-      let vin=((value+FLT_EPSILONE*2)*12)%12;
-      if (vft===0.0) {
-          return myToFixed(vin, decimals)+" in";
-      }
-      let s=""+vft+" ft";
-      if (vin!==0.0) {
-          s+=" "+myToFixed(vin, decimals)+" in";
-      }
-      return s;
-    }
-  }
-  _ESClass.register(FootUnit);
-  _es6_module.add_class(FootUnit);
-  FootUnit = _es6_module.add_export('FootUnit', FootUnit);
-  Unit.register(FootUnit);
-  let square_foot_re=/((-?\d+(\.\d*)?ft(\u00b2)?)(-?\d+(\.\d*)?(in|inch)(\u00b2)?)?)|(-?\d+(\.\d*)?(in|inch)(\u00b2)?)$/;
-  class SquareFootUnit extends FootUnit {
-    static  unitDefine() {
-      return {name: "square_foot", 
-     uiname: "Square Feet", 
-     type: "area", 
-     icon: -1, 
-     pattern: square_foot_re}
-    }
-    static  parse(string) {
-      string = string.replace(/\u00b2/g, "");
-      return super.parse(string);
-    }
-    static  buildString(value, decimals=2) {
-      let vft=myfloor(value);
-      let vin=((value+FLT_EPSILONE*2)*12)%12;
-      if (vft===0.0) {
-          return myToFixed(vin, decimals)+" in\u00b2";
-      }
-      let s=""+vft+" ft\u00b2";
-      if (vin!==0.0) {
-          s+=" "+myToFixed(vin, decimals)+" in\u00b2";
-      }
-      return s;
-    }
-  }
-  _ESClass.register(SquareFootUnit);
-  _es6_module.add_class(SquareFootUnit);
-  SquareFootUnit = _es6_module.add_export('SquareFootUnit', SquareFootUnit);
-  Unit.register(SquareFootUnit);
-  class MileUnit extends Unit {
-    static  unitDefine() {
-      return {name: "mile", 
-     uiname: "Mile", 
-     type: "distance", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d+)?miles$/}
-    }
-    static  parse(string) {
-      string = normString(string);
-      string = string.replace(/miles/, "");
-      return parseFloat(string);
-    }
-    static  toInternal(value) {
-      return value*1609.34;
-    }
-    static  fromInternal(value) {
-      return value/1609.34;
-    }
-    static  buildString(value, decimals=3) {
-      return ""+myToFixed(value, decimals)+" miles";
-    }
-  }
-  _ESClass.register(MileUnit);
-  _es6_module.add_class(MileUnit);
-  MileUnit = _es6_module.add_export('MileUnit', MileUnit);
-  Unit.register(MileUnit);
-  class DegreeUnit extends Unit {
-    static  unitDefine() {
-      return {name: "degree", 
-     uiname: "Degrees", 
-     type: "angle", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d+)?(\u00B0|degree|deg|d|degree|degrees)$/}
-    }
-    static  parse(string) {
-      string = normString(string);
-      if (string.search("d")>=0) {
-          string = string.slice(0, string.search("d")).trim();
-      }
-      else 
-        if (string.search("\u00B0")>=0) {
-          string = string.slice(0, string.search("\u00B0")).trim();
-      }
-      return parseFloat(string);
-    }
-    static  toInternal(value) {
-      return value/180.0*Math.PI;
-    }
-    static  fromInternal(value) {
-      return value*180.0/Math.PI;
-    }
-    static  buildString(value, decimals=3) {
-      return ""+myToFixed(value, decimals)+" \u00B0";
-    }
-  }
-  _ESClass.register(DegreeUnit);
-  _es6_module.add_class(DegreeUnit);
-  DegreeUnit = _es6_module.add_export('DegreeUnit', DegreeUnit);
-  
-  Unit.register(DegreeUnit);
-  class RadianUnit extends Unit {
-    static  unitDefine() {
-      return {name: "radian", 
-     uiname: "Radians", 
-     type: "angle", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d+)?(r|rad|radian|radians)$/}
-    }
-    static  parse(string) {
-      string = normString(string);
-      if (string.search("r")>=0) {
-          string = string.slice(0, string.search("r")).trim();
-      }
-      return parseFloat(string);
-    }
-    static  toInternal(value) {
-      return value;
-    }
-    static  fromInternal(value) {
-      return value;
-    }
-    static  buildString(value, decimals=3) {
-      return ""+myToFixed(value, decimals)+" r";
-    }
-  }
-  _ESClass.register(RadianUnit);
-  _es6_module.add_class(RadianUnit);
-  RadianUnit = _es6_module.add_export('RadianUnit', RadianUnit);
-  
-  Unit.register(RadianUnit);
-  function setBaseUnit(unit) {
-    Unit.baseUnit = unit;
-  }
-  setBaseUnit = _es6_module.add_export('setBaseUnit', setBaseUnit);
-  window._getBaseUnit = () =>    {
-    return Unit.baseUnit;
-  }
-  function setMetric(val) {
-    Unit.isMetric = val;
-  }
-  setMetric = _es6_module.add_export('setMetric', setMetric);
-  Unit.isMetric = true;
-  Unit.baseUnit = "meter";
-  let numre1=/[+\-]?[0-9]+(\.[0-9]*)?$/;
-  let numre2=/[+\-]?[0-9]?(\.[0-9]*)+$/;
-  let hexre1=/[+\-]?[0-9a-fA-F]+h$/;
-  let hexre2=/[+\-]?0x[0-9a-fA-F]+$/;
-  let binre=/[+\-]?0b[01]+$/;
-  let expre=/[+\-]?[0-9]+(\.[0-9]*)?[eE]\-?[0-9]+$/;
-  let intre=/[+\-]?[0-9]+$/;
-  function isnumber(s) {
-    s = (""+s).trim();
-    function test(re) {
-      return s.search(re)===0;
-    }
-    return test(intre)||test(numre1)||test(numre2)||test(hexre1)||test(hexre2)||test(binre)||test(expre);
-  }
-  function parseValueIntern(string, baseUnit) {
-    if (baseUnit===undefined) {
-        baseUnit = undefined;
-    }
-    string = string.trim();
-    if (string[0]===".") {
-        string = "0"+string;
-    }
-    if (typeof baseUnit==="string") {
-        let base=Unit.getUnit(baseUnit);
-        if (base===undefined&&baseUnit!=="none") {
-            console.warn("Unknown unit "+baseUnit);
-            return NaN;
-        }
-        baseUnit = base;
-    }
-    if (isnumber(string)) {
-        let f=parseFloat(string);
-        return f;
-    }
-    if (baseUnit===undefined) {
-        console.warn("No base unit in units.js:parseValueIntern");
-    }
-    for (let unit of Units) {
-        let def=unit.unitDefine();
-        if (unit.validate(string)) {
-            console.log(unit);
-            let value=unit.parse(string);
-            if (baseUnit) {
-                value = unit.toInternal(value);
-                return baseUnit.fromInternal(value);
-            }
-            else {
-              return value;
-            }
-        }
-    }
-    return NaN;
-  }
-  parseValueIntern = _es6_module.add_export('parseValueIntern', parseValueIntern);
-  function parseValue(string, baseUnit, displayUnit) {
-    if (baseUnit===undefined) {
-        baseUnit = undefined;
-    }
-    if (displayUnit===undefined) {
-        displayUnit = undefined;
-    }
-    displayUnit = Unit.getUnit(displayUnit);
-    baseUnit = Unit.getUnit(baseUnit);
-    let f=parseValueIntern(string, displayUnit||baseUnit);
-    if (baseUnit) {
-        if (displayUnit) {
-            f = displayUnit.toInternal(f);
-        }
-        f = baseUnit.fromInternal(f);
-    }
-    return f;
-  }
-  parseValue = _es6_module.add_export('parseValue', parseValue);
-  function isNumber(string) {
-    if (isnumber(string)) {
-        return true;
-    }
-    for (let unit of Units) {
-        let def=unit.unitDefine();
-        if (unit.validate(string)) {
-            return true;
-        }
-    }
-    return false;
-  }
-  isNumber = _es6_module.add_export('isNumber', isNumber);
-  class PixelUnit extends Unit {
-    static  unitDefine() {
-      return {name: "pixel", 
-     uiname: "Pixel", 
-     type: "distance", 
-     icon: -1, 
-     pattern: /-?\d+(\.\d*)?px$/}
-    }
-    static  parse(string) {
-      string = normString(string);
-      if (string.endsWith("px")) {
-          string = string.slice(0, string.length-2).trim();
-      }
-      return parseFloat(string);
-    }
-    static  toInternal(value) {
-      return value;
-    }
-    static  fromInternal(value) {
-      return value;
-    }
-    static  buildString(value, decimals=2) {
-      return ""+myToFixed(value, decimals)+"px";
-    }
-  }
-  _ESClass.register(PixelUnit);
-  _es6_module.add_class(PixelUnit);
-  PixelUnit = _es6_module.add_export('PixelUnit', PixelUnit);
-  Unit.register(PixelUnit);
-  function convert(value, unita, unitb) {
-    if (typeof unita==="string")
-      unita = Unit.getUnit(unita);
-    if (typeof unitb==="string")
-      unitb = Unit.getUnit(unitb);
-    return unitb.fromInternal(unita.toInternal(value));
-  }
-  convert = _es6_module.add_export('convert', convert);
-  function buildString(value, baseUnit, decimalPlaces, displayUnit) {
-    if (baseUnit===undefined) {
-        baseUnit = Unit.baseUnit;
-    }
-    if (decimalPlaces===undefined) {
-        decimalPlaces = 3;
-    }
-    if (displayUnit===undefined) {
-        displayUnit = Unit.baseUnit;
-    }
-    if (typeof baseUnit==="string"&&baseUnit!=="none") {
-        baseUnit = Unit.getUnit(baseUnit);
-    }
-    if (typeof displayUnit==="string"&&displayUnit!=="none") {
-        displayUnit = Unit.getUnit(displayUnit);
-    }
-    if (baseUnit!=="none"&&displayUnit!==baseUnit&&displayUnit!=="none") {
-        value = convert(value, baseUnit, displayUnit);
-    }
-    if (displayUnit!=="none") {
-        return displayUnit.buildString(value, decimalPlaces);
-    }
-    else {
-      return myToFixed(value, decimalPlaces);
-    }
-  }
-  buildString = _es6_module.add_export('buildString', buildString);
-  window._parseValueTest = parseValue;
-  window._buildStringTest = buildString;
 }, '/dev/fairmotion/src/path.ux/scripts/core/units.js');
 
 
-es6_module_define('docbrowser', ["../path-controller/util/struct.js", "../util/util.js", "../config/const.js", "../platforms/platform.js", "../core/ui_base.js", "../util/vectormath.js", "../path-controller/util/simple_events.js"], function _docbrowser_module(_es6_module) {
+es6_module_define('docbrowser', ["../util/util.js", "../path-controller/util/simple_events.js", "../util/vectormath.js", "../config/const.js", "../core/ui_base.js", "../platforms/platform.js", "../path-controller/util/struct.js"], function _docbrowser_module(_es6_module) {
   var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
   var cconst=es6_import(_es6_module, '../config/const.js');
@@ -2037,7 +1567,7 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/icon_enum.js');
 
 
-es6_module_define('context', ["../util/util.js", "../config/config.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../config/config.js", "../util/util.js"], function _context_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/config.js', 'default');
   let notifier=undefined;
@@ -2507,7 +2037,7 @@ es6_module_define('context', ["../util/util.js", "../config/config.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
 
 
-es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js", "../toolsys/toolprop.js", "../toolsys/toolsys.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolpath.js", "./controller_ops.js", "./controller_abstract.js", "../util/util.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "./controller_abstract.js", "./controller_ops.js", "../toolsys/toolsys.js", "../util/parseutil.js", "../toolsys/toolpath.js", "../util/util.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -3659,19 +3189,33 @@ es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js",
      dstruct: dstruct, 
      prop: prop}
     }
-     _stripToolUIName(path, uiNameOut=undefined) {
-      if (path.search(/\|/)>=0) {
-          if (uiNameOut) {
-              uiNameOut[0] = path.slice(path.search(/\|/)+1, path.length).trim();
+     _parsePathOverrides(path) {
+      let parts=['', undefined, undefined];
+      const TOOLPATH=0, NAME=1, HOTKEY=2;
+      let part=TOOLPATH;
+      for (let i=0; i<path.length; i++) {
+          let c=path[i];
+          let n=i<path.length-1 ? path[i+1] : "";
+          if (c==="|") {
+              part = NAME;
+              parts[NAME] = "";
+              continue;
           }
-          path = path.slice(0, path.search(/\|/)).trim();
+          else 
+            if (c===":"&&n===":") {
+              part = HOTKEY;
+              parts[HOTKEY] = "";
+              i++;
+              continue;
+          }
+          parts[part]+=c;
       }
-      return path.trim();
+      return {path: parts[TOOLPATH].trim(), 
+     uiname: parts[NAME] ? parts[NAME].trim() : undefined, 
+     hotkey: parts[HOTKEY] ? parts[HOTKEY].trim() : undefined}
     }
-     getToolDef(path) {
-      let uiname=[undefined];
-      path = this._stripToolUIName(path, uiname);
-      uiname = uiname[0];
+     getToolDef(toolpath) {
+      let $_t0vtnj=this._parsePathOverrides(toolpath), path=$_t0vtnj.path, uiname=$_t0vtnj.uiname, hotkey=$_t0vtnj.hotkey;
       let cls=this.parseToolPath(path);
       if (cls===undefined) {
           throw new DataPathError("unknown path \""+path+"\"");
@@ -3680,12 +3224,18 @@ es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js",
       if (uiname) {
           def.uiname = uiname;
       }
+      if (hotkey) {
+          def.hotkey = hotkey;
+      }
       return def;
     }
-     getToolPathHotkey(ctx, path) {
-      path = this._stripToolUIName(path);
+     getToolPathHotkey(ctx, toolpath) {
+      let $_t1pmic=this._parsePathOverrides(toolpath), path=$_t1pmic.path, uiname=$_t1pmic.uiname, hotkey=$_t1pmic.hotkey;
+      if (hotkey) {
+          return hotkey;
+      }
       try {
-        return this.getToolPathHotkey_intern(ctx, path);
+        return this.#getToolPathHotkey_intern(ctx, path);
       }
       catch (error) {
           print_stack(error);
@@ -3693,22 +3243,31 @@ es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js",
           return undefined;
       }
     }
-     getToolPathHotkey_intern(ctx, path) {
+     #getToolPathHotkey_intern(ctx, path) {
       let screen=ctx.screen;
       let this2=this;
       function searchKeymap(keymap) {
         if (keymap===undefined) {
             return undefined;
         }
-        for (let hk of keymap) {
-            if (typeof hk.action!=="string") {
-                continue;
-            }
-            let tool=this2._stripToolUIName(hk.action);
-            if (tool===path) {
-                return hk.buildString();
-            }
+        let ret;
+        function search(cb) {
+          if (ret) {
+              return ;
+          }
+          for (let hk of keymap) {
+              if (typeof hk.action==="string"&&cb(hk.action)) {
+                  ret = hk.buildString();
+              }
+          }
         }
+        search((tool) =>          {
+          return tool.trim()===path.trim();
+        });
+        search((tool) =>          {
+          return this2._parsePathOverrides(tool).path===path.trim();
+        });
+        return ret;
       }
       if (screen.sareas.length===0) {
           return searchKeymap(screen.keymap);
@@ -3806,7 +3365,7 @@ es6_module_define('controller', ["../util/parseutil.js", "./controller_base.js",
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller.js');
 
 
-es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "../util/util.js", "./controller_base.js", "../toolsys/toolsys.js", "../toolsys/toolprop.js"], function _controller_abstract_module(_es6_module) {
+es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "./controller_base.js", "../toolsys/toolprop.js", "../toolsys/toolsys.js", "../util/util.js"], function _controller_abstract_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
@@ -4089,7 +3648,7 @@ es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "..
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_abstract.js');
 
 
-es6_module_define('controller_base', ["../toolsys/toolprop.js", "../util/util.js", "../util/vectormath.js", "../toolsys/toolprop_abstract.js"], function _controller_base_module(_es6_module) {
+es6_module_define('controller_base', ["../util/vectormath.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js", "../util/util.js"], function _controller_base_module(_es6_module) {
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
@@ -4412,7 +3971,7 @@ es6_module_define('controller_base', ["../toolsys/toolprop.js", "../util/util.js
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
 
 
-es6_module_define('controller_ops', ["../util/util.js", "../toolsys/toolsys.js", "./controller_base.js", "../toolsys/toolprop.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolsys.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -4669,7 +4228,7 @@ es6_module_define('controller_ops', ["../util/util.js", "../toolsys/toolsys.js",
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_ops.js');
 
 
-es6_module_define('controller', ["./controller/controller_abstract.js", "./curve/curve1d_base.js", "./util/graphpack.js", "./extern/lz-string/lz-string.js", "./util/math.js", "./curve/curve1d_bspline.js", "./util/simple_events.js", "./util/html5_fileapi.js", "./config/config.js", "./util/colorutils.js", "./toolsys/toolprop.js", "./util/util.js", "./toolsys/toolpath.js", "./util/vectormath.js", "./toolsys/toolprop_abstract.js", "./controller/context.js", "./toolsys/toolsys.js", "./util/struct.js", "./controller/controller_ops.js", "./controller/controller_base.js", "./util/parseutil.js", "./util/solver.js", "./controller/controller.js", "./curve/curve1d.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["./toolsys/toolpath.js", "./util/html5_fileapi.js", "./util/vectormath.js", "./controller/controller_abstract.js", "./controller/controller_ops.js", "./util/graphpack.js", "./controller/controller_base.js", "./extern/lz-string/lz-string.js", "./util/math.js", "./config/config.js", "./util/simple_events.js", "./curve/curve1d.js", "./util/colorutils.js", "./curve/curve1d_bspline.js", "./toolsys/toolprop.js", "./controller/context.js", "./util/parseutil.js", "./util/solver.js", "./curve/curve1d_base.js", "./util/util.js", "./util/struct.js", "./controller/controller.js", "./toolsys/toolsys.js", "./toolsys/toolprop_abstract.js"], function _controller_module(_es6_module) {
   var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
   for (let k in ___controller_context_js) {
       _es6_module.add_export(k, ___controller_context_js[k], true);
@@ -4763,7 +4322,7 @@ es6_module_define('controller', ["./controller/controller_abstract.js", "./curve
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller.js');
 
 
-es6_module_define('curve1d', ["../util/vectormath.js", "./curve1d_base.js", "./curve1d_anim.js", "./curve1d_basic.js", "../util/struct.js", "./curve1d_bspline.js", "../util/util.js", "../util/events.js"], function _curve1d_module(_es6_module) {
+es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../util/struct.js", "./curve1d_bspline.js", "./curve1d_basic.js", "../util/events.js", "../util/util.js", "./curve1d_anim.js"], function _curve1d_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -5055,7 +4614,7 @@ Curve1D {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d.js');
 
 
-es6_module_define('curve1d_anim', ["../util/struct.js", "./ease.js", "./curve1d_base.js", "../util/util.js"], function _curve1d_anim_module(_es6_module) {
+es6_module_define('curve1d_anim', ["./curve1d_base.js", "../util/struct.js", "../util/util.js", "./ease.js"], function _curve1d_anim_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
@@ -5598,7 +5157,7 @@ CurveTypeData {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_base.js');
 
 
-es6_module_define('curve1d_basic', ["../util/struct.js", "../util/util.js", "./curve1d_base.js", "../util/vectormath.js"], function _curve1d_basic_module(_es6_module) {
+es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../util/vectormath.js", "./curve1d_base.js"], function _curve1d_basic_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
   var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
@@ -5943,7 +5502,7 @@ es6_module_define('curve1d_basic', ["../util/struct.js", "../util/util.js", "./c
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_basic.js');
 
 
-es6_module_define('curve1d_bspline', ["./curve1d_base.js", "../config/config.js", "../util/util.js", "../util/vectormath.js", "../util/struct.js"], function _curve1d_bspline_module(_es6_module) {
+es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js", "./curve1d_base.js", "../config/config.js", "../util/struct.js"], function _curve1d_bspline_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var config=es6_import_item(_es6_module, '../config/config.js', 'default');
@@ -7050,7 +6609,7 @@ Curve1DPoint {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_bspline.js');
 
 
-es6_module_define('curve1d_utils', ["./curve1d_base.js", "../toolsys/toolprop.js"], function _curve1d_utils_module(_es6_module) {
+es6_module_define('curve1d_utils', ["../toolsys/toolprop.js", "./curve1d_base.js"], function _curve1d_utils_module(_es6_module) {
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
   function makeGenEnum() {
@@ -7727,7 +7286,7 @@ es6_module_define('test', [], function _test_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/extern/lz-string/test.js');
 
 
-es6_module_define('toolpath', ["../controller/controller_base.js", "../util/parseutil.js", "./toolsys.js", "../util/util.js"], function _toolpath_module(_es6_module) {
+es6_module_define('toolpath', ["../util/util.js", "./toolsys.js", "../util/parseutil.js", "../controller/controller_base.js"], function _toolpath_module(_es6_module) {
   var ToolClasses=es6_import_item(_es6_module, './toolsys.js', 'ToolClasses');
   var ToolOp=es6_import_item(_es6_module, './toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, './toolsys.js', 'ToolFlags');
@@ -7846,7 +7405,7 @@ es6_module_define('toolpath', ["../controller/controller_base.js", "../util/pars
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolpath.js');
 
 
-es6_module_define('toolprop', ["../util/util.js", "./toolprop_abstract.js", "../util/struct.js", "../../core/units.js", "../curve/curve1d.js", "../util/vectormath.js"], function _toolprop_module(_es6_module) {
+es6_module_define('toolprop', ["../util/vectormath.js", "../util/struct.js", "./toolprop_abstract.js", "../curve/curve1d.js", "../util/util.js", "../../core/units.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -8177,6 +7736,10 @@ es6_module_define('toolprop', ["../util/util.js", "./toolprop_abstract.js", "../
     }
      setDisplayUnit(unit) {
       this.displayUnit = unit;
+      return this;
+    }
+     setUnit(unit) {
+      this.baseUnit = this.displayUnit = unit;
       return this;
     }
      setFlag(f, combine=false) {
@@ -8839,8 +8402,8 @@ EnumKeyPair {
 `;
   nstructjs.register(EnumProperty);
   class FlagProperty extends EnumProperty {
-     constructor(string, valid_values, apiname, uiname, description, flag, icon) {
-      super(string, valid_values, apiname, uiname, description, flag, icon);
+     constructor(string_or_int, valid_values, apiname, uiname, description, flag, icon) {
+      super(string_or_int, valid_values, apiname, uiname, description, flag, icon);
       this.type = PropTypes.FLAG;
       this.wasSet = false;
     }
@@ -9718,7 +9281,7 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
 
 
-es6_module_define('toolsys', ["../util/simple_events.js", "../controller/controller_base.js", "../util/events.js", "../util/struct.js", "./toolprop.js", "../util/util.js"], function _toolsys_module(_es6_module) {
+es6_module_define('toolsys', ["../util/simple_events.js", "../controller/controller_base.js", "./toolprop.js", "../util/events.js", "../util/struct.js", "../util/util.js"], function _toolsys_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var events=es6_import(_es6_module, '../util/events.js');
@@ -10950,6 +10513,519 @@ toolsys.ToolStack {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolsys.js');
 
 
+es6_module_define('units', [], function _units_module(_es6_module) {
+  const FLT_EPSILONE=1.192092895507812e-07;
+  function myfloor(f) {
+    return Math.floor(f+FLT_EPSILONE*2.0);
+  }
+  function normString(s) {
+    s = s.replace(/ /g, "").replace(/\t/g, "");
+    return s.toLowerCase();
+  }
+  function myToFixed(f, decimals) {
+    if (typeof f!=="number") {
+        return "(error)";
+    }
+    f = f.toFixed(decimals);
+    while (f.endsWith("0")&&f.search(/\./)>=0) {
+      f = f.slice(0, f.length-1);
+    }
+    if (f.endsWith(".")) {
+        f = f.slice(0, f.length-1);
+    }
+    if (f.length===0)
+      f = "0";
+    return f.trim();
+  }
+  const Units=[];
+  _es6_module.add_export('Units', Units);
+  class Unit  {
+    static  getUnit(name) {
+      if (name==="none"||name===undefined) {
+          return undefined;
+      }
+      for (let cls of Units) {
+          if (cls.unitDefine().name===name) {
+              return cls;
+          }
+      }
+      throw new Error("Unknown unit "+name);
+    }
+    static  register(cls) {
+      Units.push(cls);
+    }
+    static  unitDefine() {
+      return {name: "", 
+     uiname: "", 
+     type: "", 
+     icon: -1, 
+     pattern: undefined}
+    }
+    static  parse(string) {
+
+    }
+    static  validate(string) {
+      string = normString(string);
+      let def=this.unitDefine();
+      let m=string.match(def.pattern);
+      if (!m)
+        return false;
+      return m[0]===string;
+    }
+    static  toInternal(value) {
+
+    }
+    static  fromInternal(value) {
+
+    }
+    static  buildString(value, decimals=2) {
+
+    }
+  }
+  _ESClass.register(Unit);
+  _es6_module.add_class(Unit);
+  Unit = _es6_module.add_export('Unit', Unit);
+  class MeterUnit extends Unit {
+    static  unitDefine() {
+      return {name: "meter", 
+     uiname: "Meter", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d*)?m$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      if (string.endsWith("m")) {
+          string = string.slice(0, string.length-1);
+      }
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value;
+    }
+    static  fromInternal(value) {
+      return value;
+    }
+    static  buildString(value, decimals=2) {
+      return ""+myToFixed(value, decimals)+" m";
+    }
+  }
+  _ESClass.register(MeterUnit);
+  _es6_module.add_class(MeterUnit);
+  MeterUnit = _es6_module.add_export('MeterUnit', MeterUnit);
+  Unit.register(MeterUnit);
+  class InchUnit extends Unit {
+    static  unitDefine() {
+      return {name: "inch", 
+     uiname: "Inch", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d*)?(in|inch)$/}
+    }
+    static  parse(string) {
+      string = string.toLowerCase();
+      let i=string.indexOf("i");
+      if (i>=0) {
+          string = string.slice(0, i);
+      }
+      return parseInt(string);
+    }
+    static  toInternal(value) {
+      return value*0.0254;
+    }
+    static  fromInternal(value) {
+      return value/0.0254;
+    }
+    static  buildString(value, decimals=2) {
+      return ""+myToFixed(value, decimals)+"in";
+    }
+  }
+  _ESClass.register(InchUnit);
+  _es6_module.add_class(InchUnit);
+  InchUnit = _es6_module.add_export('InchUnit', InchUnit);
+  Unit.register(InchUnit);
+  let foot_re=/((-?\d+(\.\d*)?ft)(-?\d+(\.\d*)?(in|inch))?)|(-?\d+(\.\d*)?(in|inch))$/;
+  class FootUnit extends Unit {
+    static  unitDefine() {
+      return {name: "foot", 
+     uiname: "Foot", 
+     type: "distance", 
+     icon: -1, 
+     pattern: foot_re}
+    }
+    static  parse(string) {
+      string = normString(string);
+      let i=string.search("ft");
+      let parts=[];
+      let vft=0.0, vin=0.0;
+      if (i>=0) {
+          parts = string.split("ft");
+          let j=parts[1].search("in");
+          if (j>=0) {
+              parts = [parts[0]].concat(parts[1].split("in"));
+              vin = parseFloat(parts[1]);
+          }
+          vft = parseFloat(parts[0]);
+      }
+      else {
+        string = string.replace(/in/g, "");
+        vin = parseFloat(string);
+      }
+      return vin/12.0+vft;
+    }
+    static  toInternal(value) {
+      return value*0.3048;
+    }
+    static  fromInternal(value) {
+      return value/0.3048;
+    }
+    static  buildString(value, decimals=2) {
+      let vft=myfloor(value);
+      let vin=((value+FLT_EPSILONE*2)*12)%12;
+      if (vft===0.0) {
+          return myToFixed(vin, decimals)+" in";
+      }
+      let s=""+vft+" ft";
+      if (vin!==0.0) {
+          s+=" "+myToFixed(vin, decimals)+" in";
+      }
+      return s;
+    }
+  }
+  _ESClass.register(FootUnit);
+  _es6_module.add_class(FootUnit);
+  FootUnit = _es6_module.add_export('FootUnit', FootUnit);
+  Unit.register(FootUnit);
+  let square_foot_re=/((-?\d+(\.\d*)?ft(\u00b2)?)(-?\d+(\.\d*)?(in|inch)(\u00b2)?)?)|(-?\d+(\.\d*)?(in|inch)(\u00b2)?)$/;
+  class SquareFootUnit extends FootUnit {
+    static  unitDefine() {
+      return {name: "square_foot", 
+     uiname: "Square Feet", 
+     type: "area", 
+     icon: -1, 
+     pattern: square_foot_re}
+    }
+    static  parse(string) {
+      string = string.replace(/\u00b2/g, "");
+      return super.parse(string);
+    }
+    static  buildString(value, decimals=2) {
+      let vft=myfloor(value);
+      let vin=((value+FLT_EPSILONE*2)*12)%12;
+      if (vft===0.0) {
+          return myToFixed(vin, decimals)+" in\u00b2";
+      }
+      let s=""+vft+" ft\u00b2";
+      if (vin!==0.0) {
+          s+=" "+myToFixed(vin, decimals)+" in\u00b2";
+      }
+      return s;
+    }
+  }
+  _ESClass.register(SquareFootUnit);
+  _es6_module.add_class(SquareFootUnit);
+  SquareFootUnit = _es6_module.add_export('SquareFootUnit', SquareFootUnit);
+  Unit.register(SquareFootUnit);
+  class MileUnit extends Unit {
+    static  unitDefine() {
+      return {name: "mile", 
+     uiname: "Mile", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d+)?miles$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      string = string.replace(/miles/, "");
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value*1609.34;
+    }
+    static  fromInternal(value) {
+      return value/1609.34;
+    }
+    static  buildString(value, decimals=3) {
+      return ""+myToFixed(value, decimals)+" miles";
+    }
+  }
+  _ESClass.register(MileUnit);
+  _es6_module.add_class(MileUnit);
+  MileUnit = _es6_module.add_export('MileUnit', MileUnit);
+  Unit.register(MileUnit);
+  class DegreeUnit extends Unit {
+    static  unitDefine() {
+      return {name: "degree", 
+     uiname: "Degrees", 
+     type: "angle", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d+)?(\u00B0|degree|deg|d|degree|degrees)$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      if (string.search("d")>=0) {
+          string = string.slice(0, string.search("d")).trim();
+      }
+      else 
+        if (string.search("\u00B0")>=0) {
+          string = string.slice(0, string.search("\u00B0")).trim();
+      }
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value/180.0*Math.PI;
+    }
+    static  fromInternal(value) {
+      return value*180.0/Math.PI;
+    }
+    static  buildString(value, decimals=3) {
+      return ""+myToFixed(value, decimals)+" \u00B0";
+    }
+  }
+  _ESClass.register(DegreeUnit);
+  _es6_module.add_class(DegreeUnit);
+  DegreeUnit = _es6_module.add_export('DegreeUnit', DegreeUnit);
+  
+  Unit.register(DegreeUnit);
+  class RadianUnit extends Unit {
+    static  unitDefine() {
+      return {name: "radian", 
+     uiname: "Radians", 
+     type: "angle", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d+)?(r|rad|radian|radians)$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      if (string.search("r")>=0) {
+          string = string.slice(0, string.search("r")).trim();
+      }
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value;
+    }
+    static  fromInternal(value) {
+      return value;
+    }
+    static  buildString(value, decimals=3) {
+      return ""+myToFixed(value, decimals)+" r";
+    }
+  }
+  _ESClass.register(RadianUnit);
+  _es6_module.add_class(RadianUnit);
+  RadianUnit = _es6_module.add_export('RadianUnit', RadianUnit);
+  
+  Unit.register(RadianUnit);
+  function setBaseUnit(unit) {
+    Unit.baseUnit = unit;
+  }
+  setBaseUnit = _es6_module.add_export('setBaseUnit', setBaseUnit);
+  window._getBaseUnit = () =>    {
+    return Unit.baseUnit;
+  }
+  function setMetric(val) {
+    Unit.isMetric = val;
+  }
+  setMetric = _es6_module.add_export('setMetric', setMetric);
+  Unit.isMetric = true;
+  Unit.baseUnit = "meter";
+  let numre1=/[+\-]?[0-9]+(\.[0-9]*)?$/;
+  let numre2=/[+\-]?[0-9]?(\.[0-9]*)+$/;
+  let hexre1=/[+\-]?[0-9a-fA-F]+h$/;
+  let hexre2=/[+\-]?0x[0-9a-fA-F]+$/;
+  let binre=/[+\-]?0b[01]+$/;
+  let expre=/[+\-]?[0-9]+(\.[0-9]*)?[eE]\-?[0-9]+$/;
+  let intre=/[+\-]?[0-9]+$/;
+  function isnumber(s) {
+    s = (""+s).trim();
+    function test(re) {
+      return s.search(re)===0;
+    }
+    return test(intre)||test(numre1)||test(numre2)||test(hexre1)||test(hexre2)||test(binre)||test(expre);
+  }
+  function parseValueIntern(string, baseUnit) {
+    if (baseUnit===undefined) {
+        baseUnit = undefined;
+    }
+    string = string.trim();
+    if (string[0]===".") {
+        string = "0"+string;
+    }
+    if (typeof baseUnit==="string") {
+        let base=Unit.getUnit(baseUnit);
+        if (base===undefined&&baseUnit!=="none") {
+            console.warn("Unknown unit "+baseUnit);
+            return NaN;
+        }
+        baseUnit = base;
+    }
+    if (isnumber(string)) {
+        let f=parseFloat(string);
+        return f;
+    }
+    if (baseUnit===undefined) {
+        console.warn("No base unit in units.js:parseValueIntern");
+    }
+    for (let unit of Units) {
+        let def=unit.unitDefine();
+        if (unit.validate(string)) {
+            console.log(unit);
+            let value=unit.parse(string);
+            if (baseUnit) {
+                value = unit.toInternal(value);
+                return baseUnit.fromInternal(value);
+            }
+            else {
+              return value;
+            }
+        }
+    }
+    return NaN;
+  }
+  parseValueIntern = _es6_module.add_export('parseValueIntern', parseValueIntern);
+  function parseValue(string, baseUnit, displayUnit) {
+    if (baseUnit===undefined) {
+        baseUnit = undefined;
+    }
+    if (displayUnit===undefined) {
+        displayUnit = undefined;
+    }
+    displayUnit = Unit.getUnit(displayUnit);
+    baseUnit = Unit.getUnit(baseUnit);
+    let f=parseValueIntern(string, displayUnit||baseUnit);
+    if (displayUnit) {
+        f = displayUnit.toInternal(f);
+    }
+    if (baseUnit) {
+        f = baseUnit.fromInternal(f);
+    }
+    return f;
+  }
+  parseValue = _es6_module.add_export('parseValue', parseValue);
+  function isNumber(string) {
+    if (isnumber(string)) {
+        return true;
+    }
+    for (let unit of Units) {
+        let def=unit.unitDefine();
+        if (unit.validate(string)) {
+            return true;
+        }
+    }
+    return false;
+  }
+  isNumber = _es6_module.add_export('isNumber', isNumber);
+  class PixelUnit extends Unit {
+    static  unitDefine() {
+      return {name: "pixel", 
+     uiname: "Pixel", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /-?\d+(\.\d*)?px$/}
+    }
+    static  parse(string) {
+      string = normString(string);
+      if (string.endsWith("px")) {
+          string = string.slice(0, string.length-2).trim();
+      }
+      return parseFloat(string);
+    }
+    static  toInternal(value) {
+      return value;
+    }
+    static  fromInternal(value) {
+      return value;
+    }
+    static  buildString(value, decimals=2) {
+      return ""+myToFixed(value, decimals)+"px";
+    }
+  }
+  _ESClass.register(PixelUnit);
+  _es6_module.add_class(PixelUnit);
+  PixelUnit = _es6_module.add_export('PixelUnit', PixelUnit);
+  Unit.register(PixelUnit);
+  class PercentUnit extends Unit {
+    static  unitDefine() {
+      return {name: "percent", 
+     uiname: "Percent", 
+     type: "distance", 
+     icon: -1, 
+     pattern: /[0-9]+(\.[0-9]+)?[ \t]*%/}
+    }
+    static  toInternal(value) {
+      return value/100.0;
+    }
+    static  fromInternal(value) {
+      return value*100.0;
+    }
+    static  parse(string) {
+      return parseFloat(string.replace(/%/g, ""));
+    }
+    static  buildString(value, decimals=2) {
+      return (value).toFixed(decimals)+"%";
+    }
+  }
+  _ESClass.register(PercentUnit);
+  _es6_module.add_class(PercentUnit);
+  PercentUnit = _es6_module.add_export('PercentUnit', PercentUnit);
+  Unit.register(PercentUnit);
+  function convert(value, unita, unitb) {
+    if (typeof unita==="string") {
+        unita = Unit.getUnit(unita);
+    }
+    if (typeof unitb==="string") {
+        unitb = Unit.getUnit(unitb);
+    }
+    if (unita&&unitb) {
+        return unitb.fromInternal(unita.toInternal(value));
+    }
+    else 
+      if (unitb) {
+        return unitb.fromInternal(value);
+    }
+    else 
+      if (unita) {
+        return unita.toInternal(value);
+    }
+    else {
+      return value;
+    }
+  }
+  convert = _es6_module.add_export('convert', convert);
+  window.unitConvert = convert;
+  function buildString(value, baseUnit, decimalPlaces, displayUnit) {
+    if (baseUnit===undefined) {
+        baseUnit = Unit.baseUnit;
+    }
+    if (decimalPlaces===undefined) {
+        decimalPlaces = 3;
+    }
+    if (displayUnit===undefined) {
+        displayUnit = Unit.baseUnit;
+    }
+    if (typeof baseUnit==="string"&&baseUnit!=="none") {
+        baseUnit = Unit.getUnit(baseUnit);
+    }
+    if (typeof displayUnit==="string"&&displayUnit!=="none") {
+        displayUnit = Unit.getUnit(displayUnit);
+    }
+    if (displayUnit!==baseUnit) {
+        value = convert(value, baseUnit, displayUnit);
+    }
+    if (displayUnit!=="none") {
+        return displayUnit.buildString(value, decimalPlaces);
+    }
+    else {
+      return myToFixed(value, decimalPlaces);
+    }
+  }
+  buildString = _es6_module.add_export('buildString', buildString);
+  window._parseValueTest = parseValue;
+  window._buildStringTest = buildString;
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/units/units.js');
+
+
 es6_module_define('colorutils', ["../util/vectormath.js", "../util/util.js"], function _colorutils_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -11254,7 +11330,7 @@ es6_module_define('events', ["./util.js", "./simple_events.js"], function _event
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
 
 
-es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_module(_es6_module) {
+es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
   var vectormath=es6_import(_es6_module, './vectormath.js');
   var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
   var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
@@ -11553,7 +11629,7 @@ es6_module_define('expr', ["./parseutil.js", "./vectormath.js"], function _expr_
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/expr.js');
 
 
-es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "./math.js"], function _graphpack_module(_es6_module) {
+es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./solver.js"], function _graphpack_module(_es6_module) {
   "use strict";
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
@@ -11718,7 +11794,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0qkuo=params, v1=$_t0qkuo[0], v2=$_t0qkuo[1], restlen=$_t0qkuo[2];
+      let $_t0nqql=params, v1=$_t0nqql[0], v2=$_t0nqql[1], restlen=$_t0nqql[2];
       if (disableEdges)
         return 0;
       return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
@@ -11742,7 +11818,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./solver.js", "./util.js", "
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1jjfv=params, n1=$_t1jjfv[0], n2=$_t1jjfv[1];
+      let $_t1dvbn=params, n1=$_t1dvbn[0], n2=$_t1dvbn[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);
@@ -11979,65 +12055,4 @@ es6_module_define('html5_fileapi', [], function _html5_fileapi_module(_es6_modul
     saveFile(buf, "unnamed.w3d", [".w3d"]);
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/html5_fileapi.js');
-
-
-es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
-  var util=es6_import(_es6_module, './util.js');
-  function getImageData(image) {
-    if (typeof image=="string") {
-        let src=image;
-        image = new Image();
-        image.src = src;
-    }
-    function render() {
-      let canvas=document.createElement("canvas");
-      let g=canvas.getContext("2d");
-      canvas.width = image.width;
-      canvas.height = image.height;
-      g.drawImage(image, 0, 0);
-      return g.getImageData(0, 0, image.width, image.height);
-    }
-    return new Promise((accept, reject) =>      {
-      if (!image.complete) {
-          image.onload = () =>            {
-            console.log("image loaded");
-            accept(render(image));
-          };
-      }
-      else {
-        accept(render(image));
-      }
-    });
-  }
-  getImageData = _es6_module.add_export('getImageData', getImageData);
-  function loadImageFile() {
-    let this2=this;
-    return new Promise((accept, reject) =>      {
-      let input=document.createElement("input");
-      input.type = "file";
-      input.addEventListener("change", function (e) {
-        let files=this.files;
-        console.log("file!", e, this.files);
-        console.log("got file", e, files);
-        if (files.length==0)
-          return ;
-        var reader=new FileReader();
-        reader.onload = function (e) {
-          var img=new Image();
-          let dataurl=img.src = e.target.result;
-          window._image_url = e.target.result;
-          img.onload = (e) =>            {
-            this2.getImageData(img).then((data) =>              {
-              data.dataurl = dataurl;
-              accept(data);
-            });
-          }
-        }
-        reader.readAsDataURL(files[0]);
-      });
-      input.click();
-    });
-  }
-  loadImageFile = _es6_module.add_export('loadImageFile', loadImageFile);
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/image.js');
 

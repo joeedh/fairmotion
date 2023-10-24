@@ -1,4 +1,5248 @@
 
+es6_module_define('nstructjs_es6', [], function _nstructjs_es6_module(_es6_module) {
+  let colormap={"black": 30, 
+   "red": 31, 
+   "green": 32, 
+   "yellow": 33, 
+   "blue": 34, 
+   "magenta": 35, 
+   "cyan": 36, 
+   "white": 37, 
+   "reset": 0, 
+   "grey": 2, 
+   "orange": 202, 
+   "pink": 198, 
+   "brown": 314, 
+   "lightred": 91, 
+   "peach": 210}
+  function tab(n, chr) {
+    if (chr===undefined) {
+        chr = ' ';
+    }
+    let t='';
+    for (let i=0; i<n; i++) {
+        t+=chr;
+    }
+    return t;
+  }
+  let termColorMap={}
+  for (let k in colormap) {
+      termColorMap[k] = colormap[k];
+      termColorMap[colormap[k]] = k;
+  }
+  function termColor(s, c) {
+    if (typeof s==="symbol") {
+        s = s.toString();
+    }
+    else {
+      s = ""+s;
+    }
+    if (c in colormap)
+      c = colormap[c];
+    if (c>107) {
+        let s2='\u001b[38;5;'+c+"m";
+        return s2+s+'\u001b[0m';
+    }
+    return '\u001b['+c+'m'+s+'\u001b[0m';
+  }
+  function termPrint() {
+    let s='';
+    for (let i=0; i<arguments.length; i++) {
+        if (i>0) {
+            s+=' ';
+        }
+        s+=arguments[i];
+    }
+    let re1a=/\u001b\[[1-9][0-9]?m/;
+    let re1b=/\u001b\[[1-9][0-9];[0-9][0-9]?;[0-9]+m/;
+    let re2=/\u001b\[0m/;
+    let endtag='\u001b[0m';
+    function tok(s, type) {
+      return {type: type, 
+     value: s}
+    }
+    let tokdef=[[re1a, "start"], [re1b, "start"], [re2, "end"]];
+    let s2=s;
+    let i=0;
+    let tokens=[];
+    while (s2.length>0) {
+      let ok=false;
+      let mintk=undefined, mini=undefined;
+      let minslice=undefined, mintype=undefined;
+      for (let tk of tokdef) {
+          let i=s2.search(tk[0]);
+          if (i>=0&&(mini===undefined||i<mini)) {
+              minslice = s2.slice(i, s2.length).match(tk[0])[0];
+              mini = i;
+              mintype = tk[1];
+              mintk = tk;
+              ok = true;
+          }
+      }
+      if (!ok) {
+          break;
+      }
+      if (mini>0) {
+          let chunk=s2.slice(0, mini);
+          tokens.push(tok(chunk, "chunk"));
+      }
+      s2 = s2.slice(mini+minslice.length, s2.length);
+      let t=tok(minslice, mintype);
+      tokens.push(t);
+    }
+    if (s2.length>0) {
+        tokens.push(tok(s2, "chunk"));
+    }
+    let stack=[];
+    let cur;
+    let out='';
+    for (let t of tokens) {
+        if (t.type==="chunk") {
+            out+=t.value;
+        }
+        else 
+          if (t.type==="start") {
+            stack.push(cur);
+            cur = t.value;
+            out+=t.value;
+        }
+        else 
+          if (t.type==="end") {
+            cur = stack.pop();
+            if (cur) {
+                out+=cur;
+            }
+            else {
+              out+=endtag;
+            }
+        }
+    }
+    return out;
+  }
+  function list(iter) {
+    let ret=[];
+    for (let item of iter) {
+        ret.push(item);
+    }
+    return ret;
+  }
+  var util=Object.freeze({__proto__: null, 
+   tab: tab, 
+   termColorMap: termColorMap, 
+   termColor: termColor, 
+   termPrint: termPrint, 
+   list: list});
+  "use strict";
+  function print_lines(ld, lineno, col, printColors, token) {
+    let buf='';
+    let lines=ld.split("\n");
+    let istart=Math.max(lineno-5, 0);
+    let iend=Math.min(lineno+3, lines.length);
+    let color=printColors ? (c) =>      {
+      return c;
+    } : termColor;
+    for (let i=istart; i<iend; i++) {
+        let l=""+(i+1);
+        while (l.length<3) {
+          l = " "+l;
+        }
+        l+=`: ${lines[i]}\n`;
+        if (i===lineno&&token&&token.value.length===1) {
+            l = l.slice(0, col+5)+color(l[col+5], "yellow")+l.slice(col+6, l.length);
+        }
+        buf+=l;
+        if (i===lineno) {
+            let colstr='     ';
+            for (let i=0; i<col; i++) {
+                colstr+=' ';
+            }
+            colstr+=color("^", "red");
+            buf+=colstr+"\n";
+        }
+    }
+    buf = "------------------\n"+buf+"\n==================\n";
+    return buf;
+  }
+  class token  {
+     constructor(type, val, lexpos, lineno, lexer, parser, col) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lineno = lineno;
+      this.col = col;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     toString() {
+      if (this.value!==undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  class tokdef  {
+     constructor(name, regexpr, func, example) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+      this.example = example;
+      if (example===undefined&&regexpr) {
+          let s=""+regexpr;
+          if (s.startsWith("/")&&s.endsWith("/")) {
+              s = s.slice(1, s.length-1);
+          }
+          if (s.startsWith("\\")) {
+              s = s.slice(1, s.length);
+          }
+          s = s.trim();
+          if (s.length===1) {
+              this.example = s;
+          }
+      }
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  class PUTIL_ParseError extends Error {
+     constructor(msg) {
+      super();
+    }
+  }
+  _ESClass.register(PUTIL_ParseError);
+  _es6_module.add_class(PUTIL_ParseError);
+  class lexer  {
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new Array();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.colmap = undefined;
+      this.lineno = 0;
+      this.printTokens = false;
+      this.linestart = 0;
+      this.errfunc = errfunc;
+      this.linemap = undefined;
+      this.tokints = {};
+      for (let i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+      this.logger = function () {
+        console.log(...arguments);
+      };
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc===undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      let item=this.statestack[this.statestack.length-1];
+      let state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      let linemap=this.linemap = new Array(str.length);
+      let lineno=0;
+      let col=0;
+      let colmap=this.colmap = new Array(str.length);
+      for (let i=0; i<str.length; i++, col++) {
+          let c=str[i];
+          linemap[i] = lineno;
+          colmap[i] = col;
+          if (c==="\n") {
+              lineno++;
+              col = 0;
+          }
+      }
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new Array();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!==undefined&&!this.errfunc(this))
+        return ;
+      let safepos=Math.min(this.lexpos, this.lexdata.length-1);
+      let line=this.linemap[safepos];
+      let col=this.colmap[safepos];
+      let s=print_lines(this.lexdata, line, col, true);
+      this.logger("  "+s);
+      this.logger("Syntax error near line "+(this.lineno+1));
+      let next=Math.min(this.lexpos+8, this.lexdata.length);
+      throw new PUTIL_ParseError("Parse error");
+    }
+     peek() {
+      let tok=this.next(true);
+      if (tok===undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peeknext() {
+      if (this.peeked_tokens.length>0) {
+          return this.peeked_tokens[0];
+      }
+      return this.peek();
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length===0;
+    }
+     next(ignore_peek) {
+      if (!ignore_peek&&this.peeked_tokens.length>0) {
+          let tok=this.peeked_tokens[0];
+          this.peeked_tokens.shift();
+          if (!ignore_peek&&this.printTokens) {
+              this.logger(""+tok);
+          }
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      let ts=this.tokdef;
+      let tlen=ts.length;
+      let lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      let results=[];
+      for (var i=0; i<tlen; i++) {
+          let t=ts[i];
+          if (t.re===undefined)
+            continue;
+          let res=t.re.exec(lexdata);
+          if (res!==null&&res!==undefined&&res.index===0) {
+              results.push([t, res]);
+          }
+      }
+      let max_res=0;
+      let theres=undefined;
+      for (var i=0; i<results.length; i++) {
+          let res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres===undefined) {
+          this.error();
+          return ;
+      }
+      let def=theres[0];
+      let col=this.colmap[Math.min(this.lexpos, this.lexdata.length-1)];
+      if (this.lexpos<this.lexdata.length) {
+          this.lineno = this.linemap[this.lexpos];
+      }
+      let tok=new token(def.name, theres[1][0], this.lexpos, this.lineno, this, undefined, col);
+      this.lexpos+=tok.value.length;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok===undefined) {
+              return this.next();
+          }
+      }
+      if (!ignore_peek&&this.printTokens) {
+          this.logger(""+tok);
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+      this.logger = function () {
+        console.log(...arguments);
+      };
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed===undefined)
+        err_on_unconsumed = true;
+      if (data!==undefined)
+        this.lexer.input(data);
+      let ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
+          this.error(undefined, "parser did not consume entire input");
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(token, msg) {
+      let estr;
+      if (msg===undefined)
+        msg = "";
+      if (token===undefined)
+        estr = "Parse error at end of input: "+msg;
+      else 
+        estr = `Parse error at line ${token.lineno + 1}:${token.col + 1}: ${msg}`;
+      let buf="";
+      let ld=this.lexer.lexdata;
+      let lineno=token ? token.lineno : this.lexer.linemap[this.lexer.linemap.length-1];
+      let col=token ? token.col : 0;
+      ld = ld.replace(/\r/g, '');
+      this.logger(print_lines(ld, lineno, col, true, token));
+      this.logger(estr);
+      if (this.errfunc&&!this.errfunc(token)) {
+          return ;
+      }
+      throw new PUTIL_ParseError(estr);
+    }
+     peek() {
+      let tok=this.lexer.peek();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      let tok=this.lexer.peeknext();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     next() {
+      let tok=this.lexer.next();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      let tok=this.peeknext();
+      if (tok===undefined)
+        return false;
+      if (tok.type===type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      let tok=this.next();
+      if (msg===undefined) {
+          msg = type;
+          for (let tk of this.lexer.tokdef) {
+              if (tk.name===type&&tk.example) {
+                  msg = tk.example;
+              }
+          }
+      }
+      if (tok===undefined||tok.type!==type) {
+          this.error(tok, "Expected "+msg);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  function test_parser() {
+    let basic_types=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    let reserved_tokens=new Set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    let tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      let js="";
+      let lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (let rt of reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    let a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+
+    loops :, array(Loop);
+  }
+  `;
+    function errfunc(lexer) {
+      return true;
+    }
+    let lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    let token;
+    while (token = lex.next()) {
+      console.log(token.toString());
+    }
+    let parse=new parser(lex);
+    parse.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      let tok=p.peek();
+      if (tok.type==="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type==="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      let field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      let tok=p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      let st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    let ret=p_Struct(parse);
+    console.log(JSON.stringify(ret));
+  }
+  var struct_parseutil=Object.freeze({__proto__: null, 
+   token: token, 
+   tokdef: tokdef, 
+   PUTIL_ParseError: PUTIL_ParseError, 
+   lexer: lexer, 
+   parser: parser});
+  "use strict";
+  class NStruct  {
+     constructor(name) {
+      this.fields = [];
+      this.id = -1;
+      this.name = name;
+    }
+  }
+  _ESClass.register(NStruct);
+  _es6_module.add_class(NStruct);
+  const StructEnum={INT: 0, 
+   FLOAT: 1, 
+   DOUBLE: 2, 
+   STRING: 7, 
+   STATIC_STRING: 8, 
+   STRUCT: 9, 
+   TSTRUCT: 10, 
+   ARRAY: 11, 
+   ITER: 12, 
+   SHORT: 13, 
+   BYTE: 14, 
+   BOOL: 15, 
+   ITERKEYS: 16, 
+   UINT: 17, 
+   USHORT: 18, 
+   STATIC_ARRAY: 19, 
+   SIGNED_BYTE: 20}
+  const ArrayTypes=new Set([StructEnum.STATIC_ARRAY, StructEnum.ARRAY, StructEnum.ITERKEYS, StructEnum.ITER]);
+  const ValueTypes=new Set([StructEnum.INT, StructEnum.FLOAT, StructEnum.DOUBLE, StructEnum.STRING, StructEnum.STATIC_STRING, StructEnum.SHORT, StructEnum.BYTE, StructEnum.BOOL, StructEnum.UINT, StructEnum.USHORT, StructEnum.SIGNED_BYTE]);
+  let StructTypes={"int": StructEnum.INT, 
+   "uint": StructEnum.UINT, 
+   "ushort": StructEnum.USHORT, 
+   "float": StructEnum.FLOAT, 
+   "double": StructEnum.DOUBLE, 
+   "string": StructEnum.STRING, 
+   "static_string": StructEnum.STATIC_STRING, 
+   "struct": StructEnum.STRUCT, 
+   "abstract": StructEnum.TSTRUCT, 
+   "array": StructEnum.ARRAY, 
+   "iter": StructEnum.ITER, 
+   "short": StructEnum.SHORT, 
+   "byte": StructEnum.BYTE, 
+   "bool": StructEnum.BOOL, 
+   "iterkeys": StructEnum.ITERKEYS, 
+   "sbyte": StructEnum.SIGNED_BYTE}
+  let StructTypeMap={}
+  for (let k in StructTypes) {
+      StructTypeMap[StructTypes[k]] = k;
+  }
+  function gen_tabstr(t) {
+    let s="";
+    for (let i=0; i<t; i++) {
+        s+="  ";
+    }
+    return s;
+  }
+  function stripComments(buf) {
+    let s='';
+    const MAIN=0, COMMENT=1, STR=2;
+    let p, n;
+    let strs=new Set(["'", '"', "`"]);
+    let mode=MAIN;
+    let strlit;
+    let escape=false;
+    for (let i=0; i<buf.length; i++) {
+        let p=i>0 ? buf[i-1] : undefined;
+        let c=buf[i];
+        let n=i<buf.length-1 ? buf[i+1] : undefined;
+        switch (mode) {
+          case MAIN:
+            if (c==="/"&&n==="/") {
+                mode = COMMENT;
+                continue;
+            }
+            if (strs.has(c)) {
+                strlit = c;
+                mode = STR;
+            }
+            s+=c;
+            break;
+          case COMMENT:
+            if (n==="\n") {
+                mode = MAIN;
+            }
+            break;
+          case STR:
+            if (c===strlit&&!escape) {
+                mode = MAIN;
+            }
+            s+=c;
+            break;
+        }
+        if (c==="\\") {
+            escape^=true;
+        }
+        else {
+          escape = false;
+        }
+    }
+    return s;
+  }
+  function StructParser() {
+    let basic_types=new Set(["int", "float", "double", "string", "short", "byte", "sbyte", "bool", "uint", "ushort"]);
+    let reserved_tokens=new Set(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "sbyte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_\.$]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("STRLIT", /\"[^"]*\"/, (t) =>      {
+      t.value = t.value.slice(1, t.value.length-1);
+      return t;
+    }), tk("STRLIT", /\'[^']*\'/, (t) =>      {
+      t.value = t.value.slice(1, t.value.length-1);
+      return t;
+    }), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
+      let js="";
+      let lexer=t.lexer;
+      let p;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
+          break;
+        if (c==="/"&&p==="/") {
+            js = js.slice(0, js.length-1);
+            lexer.lexpos--;
+            break;
+        }
+        js+=c;
+        lexer.lexpos++;
+        p = c;
+      }
+      while (js.trim().endsWith(";")) {
+        js = js.slice(0, js.length-1);
+        lexer.lexpos--;
+      }
+      t.value = js.trim();
+      return t;
+    }), tk("COMMENT", /\/\/.*[\n\r]/), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/, undefined, "number"), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }, "newline"), tk("SPACE", / |\t/, function (t) {
+    }, "whitespace")];
+    reserved_tokens.forEach(function (rt) {
+      tokens.push(tk(rt.toUpperCase()));
+    });
+    function errfunc(lexer) {
+      return true;
+    }
+    class Lexer extends lexer {
+       input(str) {
+        return super.input(str);
+      }
+    }
+    _ESClass.register(Lexer);
+    _es6_module.add_class(Lexer);
+    let lex=new Lexer(tokens, errfunc);
+    let parser$1=new parser(lex);
+    function p_Static_String(p) {
+      p.expect("STATIC_STRING");
+      p.expect("SOPEN");
+      let num=p.expect("NUM");
+      p.expect("SCLOSE");
+      return {type: StructEnum.STATIC_STRING, 
+     data: {maxlength: num}}
+    }
+    function p_DataRef(p) {
+      p.expect("DATAREF");
+      p.expect("LPARAM");
+      let tname=p.expect("ID");
+      p.expect("RPARAM");
+      return {type: StructEnum.DATAREF, 
+     data: tname}
+    }
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ARRAY, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Iter(p) {
+      p.expect("ITER");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ITER, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_StaticArray(p) {
+      p.expect("STATIC_ARRAY");
+      p.expect("SOPEN");
+      let arraytype=p_Type(p);
+      let itername="";
+      p.expect("COMMA");
+      let size=p.expect("NUM");
+      if (size<0||Math.abs(size-Math.floor(size))>1e-06) {
+          console.log(Math.abs(size-Math.floor(size)));
+          p.error("Expected an integer");
+      }
+      size = Math.floor(size);
+      if (p.optional("COMMA")) {
+          itername = p_Type(p).data;
+      }
+      p.expect("SCLOSE");
+      return {type: StructEnum.STATIC_ARRAY, 
+     data: {type: arraytype, 
+      size: size, 
+      iname: itername}}
+    }
+    function p_IterKeys(p) {
+      p.expect("ITERKEYS");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype.data.replace(/"/g, "");
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.ITERKEYS, 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Abstract(p) {
+      p.expect("ABSTRACT");
+      p.expect("LPARAM");
+      let type=p.expect("ID");
+      let jsonKeyword="_structName";
+      if (p.optional("COMMA")) {
+          jsonKeyword = p.expect("STRLIT");
+      }
+      p.expect("RPARAM");
+      return {type: StructEnum.TSTRUCT, 
+     data: type, 
+     jsonKeyword: jsonKeyword}
+    }
+    function p_Type(p) {
+      let tok=p.peeknext();
+      if (tok.type==="ID") {
+          p.next();
+          return {type: StructEnum.STRUCT, 
+       data: tok.value}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: StructTypes[tok.type.toLowerCase()]}
+      }
+      else 
+        if (tok.type==="ARRAY") {
+          return p_Array(p);
+      }
+      else 
+        if (tok.type==="ITER") {
+          return p_Iter(p);
+      }
+      else 
+        if (tok.type==="ITERKEYS") {
+          return p_IterKeys(p);
+      }
+      else 
+        if (tok.type==="STATIC_ARRAY") {
+          return p_StaticArray(p);
+      }
+      else 
+        if (tok.type==="STATIC_STRING") {
+          return p_Static_String(p);
+      }
+      else 
+        if (tok.type==="ABSTRACT") {
+          return p_Abstract(p);
+      }
+      else 
+        if (tok.type==="DATAREF") {
+          return p_DataRef(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_ID_or_num(p) {
+      let t=p.peeknext();
+      if (t.type==="NUM") {
+          p.next();
+          return t.value;
+      }
+      else {
+        return p.expect("ID", "struct field name");
+      }
+    }
+    function p_Field(p) {
+      let field={}
+      field.name = p_ID_or_num(p);
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      let check=0;
+      let tok=p.peeknext();
+      if (tok&&tok.type==="JSCRIPT") {
+          field.get = tok.value;
+          check = 1;
+          p.next();
+          tok = p.peeknext();
+      }
+      if (tok&&tok.type==="JSCRIPT") {
+          check = 1;
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      tok = p.peeknext();
+      if (tok&&tok.type==="COMMENT") {
+          field.comment = tok.value;
+          p.next();
+      }
+      else {
+        field.comment = "";
+      }
+      return field;
+    }
+    function p_Struct(p) {
+      let name=p.expect("ID", "struct name");
+      let st=new NStruct(name);
+      let tok=p.peeknext();
+      let id=-1;
+      if (tok.type==="ID"&&tok.value==="id") {
+          p.next();
+          p.expect("EQUALS");
+          st.id = p.expect("NUM");
+      }
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    parser$1.start = p_Struct;
+    return parser$1;
+  }
+  const struct_parse=StructParser();
+  var struct_parser=Object.freeze({__proto__: null, 
+   NStruct: NStruct, 
+   StructEnum: StructEnum, 
+   ArrayTypes: ArrayTypes, 
+   ValueTypes: ValueTypes, 
+   StructTypes: StructTypes, 
+   StructTypeMap: StructTypeMap, 
+   stripComments: stripComments, 
+   struct_parse: struct_parse});
+  var struct_typesystem=Object.freeze({__proto__: null});
+  "use strict";
+  var STRUCT_ENDIAN=true;
+  function setBinaryEndian(mode) {
+    STRUCT_ENDIAN = !!mode;
+  }
+  let temp_dataview=new DataView(new ArrayBuffer(16));
+  let uint8_view=new Uint8Array(temp_dataview.buffer);
+  class unpack_context  {
+     constructor() {
+      this.i = 0;
+    }
+  }
+  _ESClass.register(unpack_context);
+  _es6_module.add_class(unpack_context);
+  function pack_byte(array, val) {
+    array.push(val);
+  }
+  function pack_sbyte(array, val) {
+    if (val<0) {
+        val = 256+val;
+    }
+    array.push(val);
+  }
+  function pack_bytes(array, bytes) {
+    for (let i=0; i<bytes.length; i++) {
+        array.push(bytes[i]);
+    }
+  }
+  function pack_int(array, val) {
+    temp_dataview.setInt32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_uint(array, val) {
+    temp_dataview.setUint32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_ushort(array, val) {
+    temp_dataview.setUint16(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+  }
+  function pack_float(array, val) {
+    temp_dataview.setFloat32(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+  }
+  function pack_double(array, val) {
+    temp_dataview.setFloat64(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+    array.push(uint8_view[2]);
+    array.push(uint8_view[3]);
+    array.push(uint8_view[4]);
+    array.push(uint8_view[5]);
+    array.push(uint8_view[6]);
+    array.push(uint8_view[7]);
+  }
+  function pack_short(array, val) {
+    temp_dataview.setInt16(0, val, STRUCT_ENDIAN);
+    array.push(uint8_view[0]);
+    array.push(uint8_view[1]);
+  }
+  function encode_utf8(arr, str) {
+    for (let i=0; i<str.length; i++) {
+        let c=str.charCodeAt(i);
+        while (c!==0) {
+          let uc=c&127;
+          c = c>>7;
+          if (c!==0)
+            uc|=128;
+          arr.push(uc);
+        }
+    }
+  }
+  function decode_utf8(arr) {
+    let str="";
+    let i=0;
+    while (i<arr.length) {
+      let c=arr[i];
+      let sum=c&127;
+      let j=0;
+      let lasti=i;
+      while (i<arr.length&&(c&128)) {
+        j+=7;
+        i++;
+        c = arr[i];
+        c = (c&127)<<j;
+        sum|=c;
+      }
+      if (sum===0)
+        break;
+      str+=String.fromCharCode(sum);
+      i++;
+    }
+    return str;
+  }
+  function test_utf8() {
+    let s="a"+String.fromCharCode(8800)+"b";
+    let arr=[];
+    encode_utf8(arr, s);
+    let s2=decode_utf8(arr);
+    if (s!==s2) {
+        throw new Error("UTF-8 encoding/decoding test failed");
+    }
+    return true;
+  }
+  function truncate_utf8(arr, maxlen) {
+    let len=Math.min(arr.length, maxlen);
+    let last_codepoint=0;
+    let last2=0;
+    let incode=false;
+    let i=0;
+    let code=0;
+    while (i<len) {
+      incode = arr[i]&128;
+      if (!incode) {
+          last2 = last_codepoint+1;
+          last_codepoint = i+1;
+      }
+      i++;
+    }
+    if (last_codepoint<maxlen)
+      arr.length = last_codepoint;
+    else 
+      arr.length = last2;
+    return arr;
+  }
+  let _static_sbuf_ss=new Array(2048);
+  function pack_static_string(data, str, length) {
+    if (length===undefined)
+      throw new Error("'length' paremter is not optional for pack_static_string()");
+    let arr=length<2048 ? _static_sbuf_ss : new Array();
+    arr.length = 0;
+    encode_utf8(arr, str);
+    truncate_utf8(arr, length);
+    for (let i=0; i<length; i++) {
+        if (i>=arr.length) {
+            data.push(0);
+        }
+        else {
+          data.push(arr[i]);
+        }
+    }
+  }
+  let _static_sbuf=new Array(32);
+  function pack_string(data, str) {
+    _static_sbuf.length = 0;
+    encode_utf8(_static_sbuf, str);
+    pack_int(data, _static_sbuf.length);
+    for (let i=0; i<_static_sbuf.length; i++) {
+        data.push(_static_sbuf[i]);
+    }
+  }
+  function unpack_bytes(dview, uctx, len) {
+    let ret=new DataView(dview.buffer.slice(uctx.i, uctx.i+len));
+    uctx.i+=len;
+    return ret;
+  }
+  function unpack_byte(dview, uctx) {
+    return dview.getUint8(uctx.i++);
+  }
+  function unpack_sbyte(dview, uctx) {
+    return dview.getInt8(uctx.i++);
+  }
+  function unpack_int(dview, uctx) {
+    uctx.i+=4;
+    return dview.getInt32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_uint(dview, uctx) {
+    uctx.i+=4;
+    return dview.getUint32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_ushort(dview, uctx) {
+    uctx.i+=2;
+    return dview.getUint16(uctx.i-2, STRUCT_ENDIAN);
+  }
+  function unpack_float(dview, uctx) {
+    uctx.i+=4;
+    return dview.getFloat32(uctx.i-4, STRUCT_ENDIAN);
+  }
+  function unpack_double(dview, uctx) {
+    uctx.i+=8;
+    return dview.getFloat64(uctx.i-8, STRUCT_ENDIAN);
+  }
+  function unpack_short(dview, uctx) {
+    uctx.i+=2;
+    return dview.getInt16(uctx.i-2, STRUCT_ENDIAN);
+  }
+  let _static_arr_us=new Array(32);
+  function unpack_string(data, uctx) {
+    let slen=unpack_int(data, uctx);
+    if (!slen) {
+        return "";
+    }
+    let str="";
+    let arr=slen<2048 ? _static_arr_us : new Array(slen);
+    arr.length = slen;
+    for (let i=0; i<slen; i++) {
+        arr[i] = unpack_byte(data, uctx);
+    }
+    return decode_utf8(arr);
+  }
+  let _static_arr_uss=new Array(2048);
+  function unpack_static_string(data, uctx, length) {
+    let str="";
+    if (length===undefined)
+      throw new Error("'length' cannot be undefined in unpack_static_string()");
+    let arr=length<2048 ? _static_arr_uss : new Array(length);
+    arr.length = 0;
+    let done=false;
+    for (let i=0; i<length; i++) {
+        let c=unpack_byte(data, uctx);
+        if (c===0) {
+            done = true;
+        }
+        if (!done&&c!==0) {
+            arr.push(c);
+        }
+    }
+    truncate_utf8(arr, length);
+    return decode_utf8(arr);
+  }
+  var struct_binpack=Object.freeze({__proto__: null, 
+   get STRUCT_ENDIAN() {
+      return STRUCT_ENDIAN;
+    }, 
+   setBinaryEndian: setBinaryEndian, 
+   temp_dataview: temp_dataview, 
+   uint8_view: uint8_view, 
+   unpack_context: unpack_context, 
+   pack_byte: pack_byte, 
+   pack_sbyte: pack_sbyte, 
+   pack_bytes: pack_bytes, 
+   pack_int: pack_int, 
+   pack_uint: pack_uint, 
+   pack_ushort: pack_ushort, 
+   pack_float: pack_float, 
+   pack_double: pack_double, 
+   pack_short: pack_short, 
+   encode_utf8: encode_utf8, 
+   decode_utf8: decode_utf8, 
+   test_utf8: test_utf8, 
+   pack_static_string: pack_static_string, 
+   pack_string: pack_string, 
+   unpack_bytes: unpack_bytes, 
+   unpack_byte: unpack_byte, 
+   unpack_sbyte: unpack_sbyte, 
+   unpack_int: unpack_int, 
+   unpack_uint: unpack_uint, 
+   unpack_ushort: unpack_ushort, 
+   unpack_float: unpack_float, 
+   unpack_double: unpack_double, 
+   unpack_short: unpack_short, 
+   unpack_string: unpack_string, 
+   unpack_static_string: unpack_static_string});
+  let warninglvl=2;
+  let debug=0;
+  let _static_envcode_null="";
+  let packer_debug, packer_debug_start, packer_debug_end;
+  let packdebug_tablevel=0;
+  function _get_pack_debug() {
+    return {packer_debug: packer_debug, 
+    packer_debug_start: packer_debug_start, 
+    packer_debug_end: packer_debug_end, 
+    debug: debug, 
+    warninglvl: warninglvl}
+  }
+  class cachering extends Array {
+     constructor(cb, tot) {
+      super();
+      this.length = tot;
+      this.cur = 0;
+      for (let i=0; i<tot; i++) {
+          this[i] = cb();
+      }
+    }
+    static  fromConstructor(cls, tot) {
+      return new cachering(() =>        {
+        return new cls();
+      }, tot);
+    }
+     next() {
+      let ret=this[this.cur];
+      this.cur = (this.cur+1)%this.length;
+      return ret;
+    }
+  }
+  _ESClass.register(cachering);
+  _es6_module.add_class(cachering);
+  function gen_tabstr$1(tot) {
+    let ret="";
+    for (let i=0; i<tot; i++) {
+        ret+=" ";
+    }
+    return ret;
+  }
+  function setWarningMode2(t) {
+    if (typeof t!=="number"||isNaN(t)) {
+        throw new Error("Expected a single number (>= 0) argument to setWarningMode");
+    }
+    warninglvl = t;
+  }
+  function setDebugMode2(t) {
+    debug = t;
+    if (debug) {
+        packer_debug = function () {
+          let tab=gen_tabstr$1(packdebug_tablevel);
+          if (arguments.length>0) {
+              console.warn(tab);
+          }
+          else {
+            console.warn("Warning: undefined msg");
+          }
+        };
+        packer_debug_start = function (funcname) {
+          packer_debug("Start "+funcname);
+          packdebug_tablevel++;
+        };
+        packer_debug_end = function (funcname) {
+          packdebug_tablevel--;
+          if (funcname) {
+              packer_debug("Leave "+funcname);
+          }
+        };
+    }
+    else {
+      packer_debug = function () {
+      };
+      packer_debug_start = function () {
+      };
+      packer_debug_end = function () {
+      };
+    }
+  }
+  setDebugMode2(debug);
+  const StructFieldTypes=[];
+  const StructFieldTypeMap={}
+  function packNull(manager, data, field, type) {
+    StructFieldTypeMap[type.type].packNull(manager, data, field, type);
+  }
+  function toJSON(manager, val, obj, field, type) {
+    return StructFieldTypeMap[type.type].toJSON(manager, val, obj, field, type);
+  }
+  function fromJSON(manager, val, obj, field, type, instance) {
+    return StructFieldTypeMap[type.type].fromJSON(manager, val, obj, field, type, instance);
+  }
+  function formatJSON(manager, val, obj, field, type, instance, tlvl) {
+    if (tlvl===undefined) {
+        tlvl = 0;
+    }
+    return StructFieldTypeMap[type.type].formatJSON(manager, val, obj, field, type, instance, tlvl);
+  }
+  function validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+    return StructFieldTypeMap[type.type].validateJSON(manager, val, obj, field, type, instance, _abstractKey);
+  }
+  function unpack_field(manager, data, type, uctx) {
+    let name;
+    if (debug) {
+        name = StructFieldTypeMap[type.type].define().name;
+        packer_debug_start("R "+name);
+    }
+    let ret=StructFieldTypeMap[type.type].unpack(manager, data, type, uctx);
+    if (debug) {
+        packer_debug_end();
+    }
+    return ret;
+  }
+  let fakeFields=new cachering(() =>    {
+    return {type: undefined, 
+    get: undefined, 
+    set: undefined}
+  }, 256);
+  function fmt_type(type) {
+    return StructFieldTypeMap[type.type].format(type);
+  }
+  function do_pack(manager, data, val, obj, field, type) {
+    let name;
+    if (debug) {
+        name = StructFieldTypeMap[type.type].define().name;
+        packer_debug_start("W "+name);
+    }
+    let typeid=type;
+    if (typeof typeid!=="number") {
+        typeid = typeid.type;
+    }
+    let ret=StructFieldTypeMap[typeid].pack(manager, data, val, obj, field, type);
+    if (debug) {
+        packer_debug_end();
+    }
+    return ret;
+  }
+  let _ws_env=[[undefined, undefined]];
+  class StructFieldType  {
+    static  pack(manager, data, val, obj, field, type) {
+
+    }
+    static  unpack(manager, data, type, uctx) {
+
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, 0, 0, field, type);
+    }
+    static  format(type) {
+      return this.define().name;
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return val;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      return val;
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return JSON.stringify(val);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      return true;
+    }
+    static  useHelperJS(field) {
+      return true;
+    }
+    static  define() {
+      return {type: -1, 
+     name: "(error)"}
+    }
+    static  register(cls) {
+      if (StructFieldTypes.indexOf(cls)>=0) {
+          throw new Error("class already registered");
+      }
+      if (cls.define===StructFieldType.define) {
+          throw new Error("you forgot to make a define() static method");
+      }
+      if (cls.define().type===undefined) {
+          throw new Error("cls.define().type was undefined!");
+      }
+      if (cls.define().type in StructFieldTypeMap) {
+          throw new Error("type "+cls.define().type+" is used by another StructFieldType subclass");
+      }
+      StructFieldTypes.push(cls);
+      StructFieldTypeMap[cls.define().type] = cls;
+    }
+  }
+  _ESClass.register(StructFieldType);
+  _es6_module.add_class(StructFieldType);
+  class StructIntField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_int(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_int(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.INT, 
+     name: "int"}
+    }
+  }
+  _ESClass.register(StructIntField);
+  _es6_module.add_class(StructIntField);
+  StructFieldType.register(StructIntField);
+  class StructFloatField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_float(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_float(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      if (typeof val!=="number") {
+          return "Not a float: "+val;
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.FLOAT, 
+     name: "float"}
+    }
+  }
+  _ESClass.register(StructFloatField);
+  _es6_module.add_class(StructFloatField);
+  StructFieldType.register(StructFloatField);
+  class StructDoubleField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_double(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_double(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number") {
+          return "Not a double: "+val;
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.DOUBLE, 
+     name: "double"}
+    }
+  }
+  _ESClass.register(StructDoubleField);
+  _es6_module.add_class(StructDoubleField);
+  StructFieldType.register(StructDoubleField);
+  class StructStringField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      val = !val ? "" : val;
+      pack_string(data, val);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="string") {
+          return "Not a string: "+val;
+      }
+      return true;
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, "", 0, field, type);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_string(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.STRING, 
+     name: "string"}
+    }
+  }
+  _ESClass.register(StructStringField);
+  _es6_module.add_class(StructStringField);
+  StructFieldType.register(StructStringField);
+  class StructStaticStringField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      val = !val ? "" : val;
+      pack_static_string(data, val, type.data.maxlength);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="string") {
+          return "Not a string: "+val;
+      }
+      if (val.length>type.data.maxlength) {
+          return "String is too big; limit is "+type.data.maxlength+"; string:"+val;
+      }
+      return true;
+    }
+    static  format(type) {
+      return `static_string[${type.data.maxlength}]`;
+    }
+    static  packNull(manager, data, field, type) {
+      this.pack(manager, data, "", 0, field, type);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_static_string(data, uctx, type.data.maxlength);
+    }
+    static  define() {
+      return {type: StructEnum.STATIC_STRING, 
+     name: "static_string"}
+    }
+  }
+  _ESClass.register(StructStaticStringField);
+  _es6_module.add_class(StructStaticStringField);
+  StructFieldType.register(StructStaticStringField);
+  class StructStructField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      let stt=manager.get_struct(type.data);
+      packer_debug("struct", stt.name);
+      manager.write_struct(data, val, stt);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      let stt=manager.get_struct(type.data);
+      if (!val) {
+          return "Expected "+stt.name+" object";
+      }
+      return manager.validateJSONIntern(val, stt, _abstractKey);
+    }
+    static  format(type) {
+      return type.data;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let stt=manager.get_struct(type.data);
+      return manager.readJSON(val, stt, instance);
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      let stt=manager.get_struct(type.data);
+      return manager.formatJSON_intern(val, stt, field, tlvl);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      let stt=manager.get_struct(type.data);
+      return manager.writeJSON(val, stt);
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let cls2=manager.get_struct_cls(type.data);
+      packer_debug("struct", cls2 ? cls2.name : "(error)");
+      return manager.read_object(data, cls2, uctx, dest);
+    }
+    static  packNull(manager, data, field, type) {
+      let stt=manager.get_struct(type.data);
+      packer_debug("struct", type);
+      for (let field2 of stt.fields) {
+          let type2=field2.type;
+          packNull(manager, data, field2, type2);
+      }
+    }
+    static  unpack(manager, data, type, uctx) {
+      let cls2=manager.get_struct_cls(type.data);
+      packer_debug("struct", cls2 ? cls2.name : "(error)");
+      return manager.read_object(data, cls2, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.STRUCT, 
+     name: "struct"}
+    }
+  }
+  _ESClass.register(StructStructField);
+  _es6_module.add_class(StructStructField);
+  StructFieldType.register(StructStructField);
+  class StructTStructField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      let cls=manager.get_struct_cls(type.data);
+      let stt=manager.get_struct(type.data);
+      const keywords=manager.constructor.keywords;
+      if (val.constructor.structName!==type.data&&(__instance_of(val, cls))) {
+          stt = manager.get_struct(val.constructor.structName);
+      }
+      else 
+        if (val.constructor.structName===type.data) {
+          stt = manager.get_struct(type.data);
+      }
+      else {
+        console.trace();
+        throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
+      }
+      packer_debug("int "+stt.id);
+      pack_int(data, stt.id);
+      manager.write_struct(data, val, stt);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      let key=type.jsonKeyword;
+      if (typeof val!=="object") {
+          return typeof val+" is not an object";
+      }
+      let stt=manager.get_struct(val[key]);
+      let cls=manager.get_struct_cls(stt.name);
+      let parentcls=manager.get_struct_cls(type.data);
+      let ok=false;
+      do {
+        if (cls===parentcls) {
+            ok = true;
+            break;
+        }
+        cls = cls.prototype.__proto__.constructor;
+      } while (cls&&cls!==Object);
+      
+      if (!ok) {
+          return stt.name+" is not a child class off "+type.data;
+      }
+      return manager.validateJSONIntern(val, stt, type.jsonKeyword);
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let key=type.jsonKeyword;
+      let stt=manager.get_struct(val[key]);
+      return manager.readJSON(val, stt, instance);
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      let key=type.jsonKeyword;
+      let stt=manager.get_struct(val[key]);
+      return manager.formatJSON_intern(val, stt, field, tlvl);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      const keywords=manager.constructor.keywords;
+      let stt=manager.get_struct(val.constructor.structName);
+      let ret=manager.writeJSON(val, stt);
+      ret[type.jsonKeyword] = ""+stt.name;
+      return ret;
+    }
+    static  packNull(manager, data, field, type) {
+      let stt=manager.get_struct(type.data);
+      pack_int(data, stt.id);
+      packNull(manager, data, field, {type: StructEnum.STRUCT, 
+     data: type.data});
+    }
+    static  format(type) {
+      return "abstract("+type.data+")";
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let id=unpack_int(data, uctx);
+      packer_debug("-int "+id);
+      if (!(id in manager.struct_ids)) {
+          packer_debug("tstruct id: "+id);
+          console.trace();
+          console.log(id);
+          console.log(manager.struct_ids);
+          throw new Error("Unknown struct type "+id+".");
+      }
+      let cls2=manager.get_struct_id(id);
+      packer_debug("struct name: "+cls2.name);
+      cls2 = manager.struct_cls[cls2.name];
+      return manager.read_object(data, cls2, uctx, dest);
+    }
+    static  unpack(manager, data, type, uctx) {
+      let id=unpack_int(data, uctx);
+      packer_debug("-int "+id);
+      if (!(id in manager.struct_ids)) {
+          packer_debug("tstruct id: "+id);
+          console.trace();
+          console.log(id);
+          console.log(manager.struct_ids);
+          throw new Error("Unknown struct type "+id+".");
+      }
+      let cls2=manager.get_struct_id(id);
+      packer_debug("struct name: "+cls2.name);
+      cls2 = manager.struct_cls[cls2.name];
+      return manager.read_object(data, cls2, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.TSTRUCT, 
+     name: "tstruct"}
+    }
+  }
+  _ESClass.register(StructTStructField);
+  _es6_module.add_class(StructTStructField);
+  StructFieldType.register(StructTStructField);
+  function formatArrayJson(manager, val, obj, field, type, type2, instance, tlvl, array) {
+    if (array===undefined) {
+        array = val;
+    }
+    if (array===undefined||array===null||typeof array!=="object"||!array[Symbol.iterator]) {
+        console.log(obj);
+        console.log(array);
+        throw new Error(`Expected an array for ${field.name}`);
+    }
+    if (ValueTypes.has(type2.type)) {
+        return JSON.stringify(array);
+    }
+    let s='[';
+    if (manager.formatCtx.addComments&&field.comment.trim()) {
+        s+=" "+field.comment.trim();
+    }
+    s+="\n";
+    for (let i=0; i<array.length; i++) {
+        let item=array[i];
+        s+=tab(tlvl+1)+formatJSON(manager, item, val, field, type2, instance, tlvl+1)+",\n";
+    }
+    s+=tab(tlvl)+"]";
+    return s;
+  }
+  class StructArrayField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if (val===undefined) {
+          console.trace();
+          console.log("Undefined array fed to struct struct packer!");
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+          packer_debug("int 0");
+          pack_int(data, 0);
+          return ;
+      }
+      packer_debug("int "+val.length);
+      pack_int(data, val.length);
+      let d=type.data;
+      let itername=d.iname;
+      let type2=d.type;
+      let env=_ws_env;
+      for (let i=0; i<val.length; i++) {
+          let val2=val[i];
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          let fakeField=fakeFields.next();
+          fakeField.type = type2;
+          do_pack(manager, data, val2, obj, fakeField, type2);
+      }
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "array("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  validateJSON(manager, val, obj, field, type, instance, _abstractKey) {
+      if (!val) {
+          return "not an array: "+val;
+      }
+      for (let i=0; i<val.length; i++) {
+          let ret=validateJSON(manager, val[i], val, field, type.data.type, undefined, _abstractKey);
+          if (typeof ret==="string"||!ret) {
+              return ret;
+          }
+      }
+      return true;
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      let ret=instance||[];
+      ret.length = 0;
+      for (let i=0; i<val.length; i++) {
+          let val2=fromJSON(manager, val[i], val, field, type.data.type, undefined);
+          if (val2===undefined) {
+              console.log(val2);
+              console.error("eeek");
+              process.exit();
+          }
+          ret.push(val2);
+      }
+      return ret;
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let i=0; i<val.length; i++) {
+          let val2=val[i];
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  unpackInto(manager, data, type, uctx, dest) {
+      let len=unpack_int(data, uctx);
+      dest.length = 0;
+      for (let i=0; i<len; i++) {
+          dest.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ARRAY, 
+     name: "array"}
+    }
+  }
+  _ESClass.register(StructArrayField);
+  _es6_module.add_class(StructArrayField);
+  StructFieldType.register(StructArrayField);
+  class StructIterField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      function forEach(cb, thisvar) {
+        if (val&&val[Symbol.iterator]) {
+            for (let item of val) {
+                cb.call(thisvar, item);
+            }
+        }
+        else 
+          if (val&&val.forEach) {
+            val.forEach(function (item) {
+              cb.call(thisvar, item);
+            });
+        }
+        else {
+          console.trace();
+          console.log("Undefined iterable list fed to struct struct packer!", val);
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+        }
+      }
+      let starti=data.length;
+      data.length+=4;
+      let d=type.data, itername=d.iname, type2=d.type;
+      let env=_ws_env;
+      let i=0;
+      forEach(function (val2) {
+        if (itername!==""&&itername!==undefined&&field.get) {
+            env[0][0] = itername;
+            env[0][1] = val2;
+            val2 = manager._env_call(field.get, obj, env);
+        }
+        let fakeField=fakeFields.next();
+        fakeField.type = type2;
+        do_pack(manager, data, val2, obj, fakeField, type2);
+        i++;
+      }, this);
+      temp_dataview.setInt32(0, i, STRUCT_ENDIAN);
+      data[starti++] = uint8_view[0];
+      data[starti++] = uint8_view[1];
+      data[starti++] = uint8_view[2];
+      data[starti++] = uint8_view[3];
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let val2 of val) {
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "iter("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "iter("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  unpackInto(manager, data, type, uctx, arr) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      arr.length = 0;
+      for (let i=0; i<len; i++) {
+          arr.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return arr;
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ITER, 
+     name: "iter"}
+    }
+  }
+  _ESClass.register(StructIterField);
+  _es6_module.add_class(StructIterField);
+  StructFieldType.register(StructIterField);
+  class StructShortField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_short(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_short(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.SHORT, 
+     name: "short"}
+    }
+  }
+  _ESClass.register(StructShortField);
+  _es6_module.add_class(StructShortField);
+  StructFieldType.register(StructShortField);
+  class StructByteField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_byte(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_byte(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.BYTE, 
+     name: "byte"}
+    }
+  }
+  _ESClass.register(StructByteField);
+  _es6_module.add_class(StructByteField);
+  StructFieldType.register(StructByteField);
+  class StructSignedByteField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_sbyte(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_sbyte(data, uctx);
+    }
+    static  define() {
+      return {type: StructEnum.SIGNED_BYTE, 
+     name: "sbyte"}
+    }
+  }
+  _ESClass.register(StructSignedByteField);
+  _es6_module.add_class(StructSignedByteField);
+  StructFieldType.register(StructSignedByteField);
+  class StructBoolField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_byte(data, !!val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return !!unpack_byte(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (val===0||val===1||val===true||val===false||val==="true"||val==="false") {
+          return true;
+      }
+      return ""+val+" is not a bool";
+    }
+    static  fromJSON(manager, val, obj, field, type, instance) {
+      if (val==="false") {
+          val = false;
+      }
+      return !!val;
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return !!val;
+    }
+    static  define() {
+      return {type: StructEnum.BOOL, 
+     name: "bool"}
+    }
+  }
+  _ESClass.register(StructBoolField);
+  _es6_module.add_class(StructBoolField);
+  StructFieldType.register(StructBoolField);
+  class StructIterKeysField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
+          console.warn("Bad object fed to iterkeys in struct packer!", val);
+          console.log("Field: ", field);
+          console.log("Type: ", type);
+          console.log("");
+          pack_int(data, 0);
+          return ;
+      }
+      let len=0.0;
+      for (let k in val) {
+          len++;
+      }
+      packer_debug("int "+len);
+      pack_int(data, len);
+      let d=type.data, itername=d.iname, type2=d.type;
+      let env=_ws_env;
+      let i=0;
+      for (let val2 in val) {
+          if (i>=len) {
+              if (warninglvl>0)
+                console.warn("Warning: object keys magically replaced on us", val, i);
+              return ;
+          }
+          if (itername&&itername.trim().length>0&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          else {
+            val2 = val[val2];
+          }
+          let f2={type: type2, 
+       get: undefined, 
+       set: undefined};
+          do_pack(manager, data, val2, obj, f2, type2);
+          i++;
+      }
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      val = val||[];
+      let json=[];
+      let itername=type.data.iname;
+      for (let k in val) {
+          let val2=val[k];
+          let env=_ws_env;
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          json.push(toJSON(manager, val2, val, field, type.data.type));
+      }
+      return json;
+    }
+    static  packNull(manager, data, field, type) {
+      pack_int(data, 0);
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  format(type) {
+      if (type.data.iname!==""&&type.data.iname!==undefined) {
+          return "iterkeys("+type.data.iname+", "+fmt_type(type.data.type)+")";
+      }
+      else {
+        return "iterkeys("+fmt_type(type.data.type)+")";
+      }
+    }
+    static  unpackInto(manager, data, type, uctx, arr) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      arr.length = 0;
+      for (let i=0; i<len; i++) {
+          arr.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return arr;
+    }
+    static  unpack(manager, data, type, uctx) {
+      let len=unpack_int(data, uctx);
+      packer_debug("-int "+len);
+      let arr=new Array(len);
+      for (let i=0; i<len; i++) {
+          arr[i] = unpack_field(manager, data, type.data.type, uctx);
+      }
+      return arr;
+    }
+    static  define() {
+      return {type: StructEnum.ITERKEYS, 
+     name: "iterkeys"}
+    }
+  }
+  _ESClass.register(StructIterKeysField);
+  _es6_module.add_class(StructIterKeysField);
+  StructFieldType.register(StructIterKeysField);
+  class StructUintField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_uint(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_uint(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.UINT, 
+     name: "uint"}
+    }
+  }
+  _ESClass.register(StructUintField);
+  _es6_module.add_class(StructUintField);
+  StructFieldType.register(StructUintField);
+  class StructUshortField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      pack_ushort(data, val);
+    }
+    static  unpack(manager, data, type, uctx) {
+      return unpack_ushort(data, uctx);
+    }
+    static  validateJSON(manager, val, obj, field, type, instance) {
+      if (typeof val!=="number"||val!==Math.floor(val)) {
+          return ""+val+" is not an integer";
+      }
+      return true;
+    }
+    static  define() {
+      return {type: StructEnum.USHORT, 
+     name: "ushort"}
+    }
+  }
+  _ESClass.register(StructUshortField);
+  _es6_module.add_class(StructUshortField);
+  StructFieldType.register(StructUshortField);
+  class StructStaticArrayField extends StructFieldType {
+    static  pack(manager, data, val, obj, field, type) {
+      if (type.data.size===undefined) {
+          throw new Error("type.data.size was undefined");
+      }
+      let itername=type.data.iname;
+      if (val===undefined||!val.length) {
+          this.packNull(manager, data, field, type);
+          return ;
+      }
+      for (let i=0; i<type.data.size; i++) {
+          let i2=Math.min(i, Math.min(val.length-1, type.data.size));
+          let val2=val[i2];
+          if (itername!==""&&itername!==undefined&&field.get) {
+              let env=_ws_env;
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          do_pack(manager, data, val2, val, field, type.data.type);
+      }
+    }
+    static  useHelperJS(field) {
+      return !field.type.data.iname;
+    }
+    static  validateJSON() {
+      return StructArrayField.validateJSON(...arguments);
+    }
+    static  fromJSON() {
+      return StructArrayField.fromJSON(...arguments);
+    }
+    static  formatJSON(manager, val, obj, field, type, instance, tlvl) {
+      return formatArrayJson(manager, val, obj, field, type, type.data.type, instance, tlvl, list(val));
+    }
+    static  packNull(manager, data, field, type) {
+      let size=type.data.size;
+      for (let i=0; i<size; i++) {
+          packNull(manager, data, field, type.data.type);
+      }
+    }
+    static  toJSON(manager, val, obj, field, type) {
+      return StructArrayField.toJSON(...arguments);
+    }
+    static  format(type) {
+      let type2=StructFieldTypeMap[type.data.type.type].format(type.data.type);
+      let ret=`static_array[${type2}, ${type.data.size}`;
+      if (type.data.iname) {
+          ret+=`, ${type.data.iname}`;
+      }
+      ret+=`]`;
+      return ret;
+    }
+    static  unpackInto(manager, data, type, uctx, ret) {
+      packer_debug("-size: "+type.data.size);
+      ret.length = 0;
+      for (let i=0; i<type.data.size; i++) {
+          ret.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return ret;
+    }
+    static  unpack(manager, data, type, uctx) {
+      packer_debug("-size: "+type.data.size);
+      let ret=[];
+      for (let i=0; i<type.data.size; i++) {
+          ret.push(unpack_field(manager, data, type.data.type, uctx));
+      }
+      return ret;
+    }
+    static  define() {
+      return {type: StructEnum.STATIC_ARRAY, 
+     name: "static_array"}
+    }
+  }
+  _ESClass.register(StructStaticArrayField);
+  _es6_module.add_class(StructStaticArrayField);
+  StructFieldType.register(StructStaticArrayField);
+  var _sintern2=Object.freeze({__proto__: null, 
+   _get_pack_debug: _get_pack_debug, 
+   setWarningMode2: setWarningMode2, 
+   setDebugMode2: setDebugMode2, 
+   StructFieldTypes: StructFieldTypes, 
+   StructFieldTypeMap: StructFieldTypeMap, 
+   packNull: packNull, 
+   toJSON: toJSON, 
+   fromJSON: fromJSON, 
+   formatJSON: formatJSON, 
+   validateJSON: validateJSON, 
+   do_pack: do_pack, 
+   StructFieldType: StructFieldType, 
+   formatArrayJson: formatArrayJson});
+  var structEval=eval;
+  function setStructEval(val) {
+    structEval = val;
+  }
+  var _struct_eval=Object.freeze({__proto__: null, 
+   get structEval() {
+      return structEval;
+    }, 
+   setStructEval: setStructEval});
+  const TokSymbol=Symbol("token-info");
+  function buildJSONParser() {
+    let tk=(name, re, func, example) =>      {
+      return new tokdef(name, re, func, example);
+    }
+    let parse;
+    let nint="[+-]?[0-9]+";
+    let nhex="[+-]?0x[0-9a-fA-F]+";
+    let nfloat1="[+-]?[0-9]+\\.[0-9]*";
+    let nfloat2="[+-]?[0-9]*\\.[0-9]+";
+    let nfloat3="[+-]?[0-9]+\\.[0-9]+";
+    let nfloatexp="[+-]?[0-9]+\\.[0-9]+[eE][+-]?[0-9]+";
+    let nfloat=`(${nfloat1})|(${nfloat2})|(${nfloatexp})`;
+    let num=`(${nint})|(${nfloat})|(${nhex})`;
+    let numre=new RegExp(num);
+    let numreTest=new RegExp(`(${num})$`);
+    nfloat3 = new RegExp(nfloat3);
+    nfloatexp = new RegExp(nfloatexp);
+    let tests=["1.234234", ".23432", "-234.", "1e-17", "-0x23423ff", "+23423", "-4.263256414560601e-14"];
+    for (let test of tests) {
+        if (!numreTest.test(test)) {
+            console.error("Error! Number regexp failed:", test);
+        }
+    }
+    let tokens=[tk("BOOL", /true|false/), tk("WS", /[ \r\t\n]/, (t) =>      {
+      return undefined;
+    }), tk("STRLIT", /["']/, (t) =>      {
+      let lex=t.lexer;
+      let char=t.value;
+      let i=lex.lexpos;
+      let lexdata=lex.lexdata;
+      let escape=0;
+      t.value = "";
+      let prev;
+      while (i<lexdata.length) {
+        let c=lexdata[i];
+        t.value+=c;
+        if (c==="\\") {
+            escape^=true;
+        }
+        else 
+          if (!escape&&c===char) {
+            break;
+        }
+        else {
+          escape = false;
+        }
+        i++;
+      }
+      lex.lexpos = i+1;
+      if (t.value.length>0) {
+          t.value = t.value.slice(0, t.value.length-1);
+      }
+      return t;
+    }), tk("LSBRACKET", /\[/), tk("RSBRACKET", /]/), tk("LBRACE", /{/), tk("RBRACE", /}/), tk("NULL", /null/), tk("COMMA", /,/), tk("COLON", /:/), tk("NUM", numre, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    }), tk("NUM", nfloat3, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    }), tk("NUM", nfloatexp, (t) =>      {
+      return (t.value = parseFloat(t.value), t);
+    })];
+    function tokinfo(t) {
+      return {lexpos: t.lexpos, 
+     lineno: t.lineno, 
+     col: t.col, 
+     fields: {}}
+    }
+    function p_Array(p) {
+      p.expect("LSBRACKET");
+      let t=p.peeknext();
+      let first=true;
+      let ret=[];
+      ret[TokSymbol] = tokinfo(t);
+      while (t&&t.type!=="RSBRACKET") {
+        if (!first) {
+            p.expect("COMMA");
+        }
+        ret[TokSymbol].fields[ret.length] = tokinfo(t);
+        ret.push(p_Start(p));
+        first = false;
+        t = p.peeknext();
+      }
+      p.expect("RSBRACKET");
+      return ret;
+    }
+    function p_Object(p) {
+      p.expect("LBRACE");
+      let obj={}
+      let first=true;
+      let t=p.peeknext();
+      obj[TokSymbol] = tokinfo(t);
+      while (t&&t.type!=="RBRACE") {
+        if (!first) {
+            p.expect("COMMA");
+        }
+        let key=p.expect("STRLIT");
+        p.expect("COLON");
+        let val=p_Start(p, true);
+        obj[key] = val;
+        first = false;
+        t = p.peeknext();
+        obj[TokSymbol].fields[key] = tokinfo(t);
+      }
+      p.expect("RBRACE");
+      return obj;
+    }
+    function p_Start(p, throwError) {
+      if (throwError===undefined) {
+          throwError = true;
+      }
+      let t=p.peeknext();
+      if (t.type==="LSBRACKET") {
+          return p_Array(p);
+      }
+      else 
+        if (t.type==="LBRACE") {
+          return p_Object(p);
+      }
+      else 
+        if (t.type==="STRLIT"||t.type==="NUM"||t.type==="NULL"||t.type==="BOOL") {
+          return p.next().value;
+      }
+      else {
+        p.error(t, "Unknown token");
+      }
+    }
+    function p_Error(token, msg) {
+      throw new PUTIL_ParseError("Parse Error");
+    }
+    let lex=new lexer(tokens);
+    lex.linestart = 0;
+    parse = new parser(lex, p_Error);
+    parse.start = p_Start;
+    return parse;
+  }
+  var jsonParser=buildJSONParser();
+  function printContext(buf, tokinfo, printColors) {
+    if (printColors===undefined) {
+        printColors = true;
+    }
+    let lines=buf.split("\n");
+    if (!tokinfo) {
+        return '';
+    }
+    let lineno=tokinfo.lineno;
+    let col=tokinfo.col;
+    let istart=Math.max(lineno-50, 0);
+    let iend=Math.min(lineno+2, lines.length-1);
+    let s='';
+    if (printColors) {
+        s+=termColor("  /* pretty-printed json */\n", "blue");
+    }
+    else {
+      s+="/* pretty-printed json */\n";
+    }
+    for (let i=istart; i<iend; i++) {
+        let l=lines[i];
+        let idx=""+i;
+        while (idx.length<3) {
+          idx = " "+idx;
+        }
+        if (i===lineno&&printColors) {
+            s+=termColor(`${idx}: ${l}\n`, "yellow");
+        }
+        else {
+          s+=`${idx}: ${l}\n`;
+        }
+        if (i===lineno) {
+            let l2='';
+            for (let j=0; j<col+5; j++) {
+                l2+=" ";
+            }
+            s+=l2+"^\n";
+        }
+    }
+    return s;
+  }
+  var nGlobal;
+  if (typeof globalThis!=="undefined") {
+      nGlobal = globalThis;
+  }
+  else 
+    if (typeof window!=="undefined") {
+      nGlobal = window;
+  }
+  else 
+    if (typeof global!=="undefined") {
+      nGlobal = global;
+  }
+  else 
+    if (typeof globals!=="undefined") {
+      nGlobal = globals;
+  }
+  else 
+    if (typeof self!=="undefined") {
+      nGlobal = self;
+  }
+  const DEBUG={}
+  function updateDEBUG() {
+    for (let k in Object.keys(DEBUG)) {
+        delete DEBUG[k];
+    }
+    if (typeof nGlobal.DEBUG==="object") {
+        for (let k in nGlobal.DEBUG) {
+            DEBUG[k] = nGlobal.DEBUG[k];
+        }
+    }
+  }
+  "use strict";
+  var sintern2=_sintern2;
+  var struct_eval=_struct_eval;
+  let warninglvl$1=2;
+  var truncateDollarSign=true;
+  var manager;
+  class JSONError extends Error {
+  }
+  _ESClass.register(JSONError);
+  _es6_module.add_class(JSONError);
+  
+  function printCodeLines(code) {
+    let lines=code.split(String.fromCharCode(10));
+    let buf='';
+    for (let i=0; i<lines.length; i++) {
+        let line=""+(i+1)+":";
+        while (line.length<3) {
+          line+=" ";
+        }
+        line+=" "+lines[i];
+        buf+=line+String.fromCharCode(10);
+    }
+    return buf;
+  }
+  function printEvalError(code) {
+    console.log("== CODE ==");
+    console.log(printCodeLines(code));
+    eval(code);
+  }
+  function setTruncateDollarSign(v) {
+    truncateDollarSign = !!v;
+  }
+  function _truncateDollarSign(s) {
+    let i=s.search("$");
+    if (i>0) {
+        return s.slice(0, i).trim();
+    }
+    return s;
+  }
+  function unmangle(name) {
+    if (truncateDollarSign) {
+        return _truncateDollarSign(name);
+    }
+    else {
+      return name;
+    }
+  }
+  let _static_envcode_null$1="";
+  function gen_tabstr$2(tot) {
+    let ret="";
+    for (let i=0; i<tot; i++) {
+        ret+=" ";
+    }
+    return ret;
+  }
+  let packer_debug$1, packer_debug_start$1, packer_debug_end$1;
+  function update_debug_data() {
+    let ret=_get_pack_debug();
+    packer_debug$1 = ret.packer_debug;
+    packer_debug_start$1 = ret.packer_debug_start;
+    packer_debug_end$1 = ret.packer_debug_end;
+    warninglvl$1 = ret.warninglvl;
+  }
+  update_debug_data();
+  function setWarningMode(t) {
+    sintern2.setWarningMode2(t);
+    if (typeof t!=="number"||isNaN(t)) {
+        throw new Error("Expected a single number (>= 0) argument to setWarningMode");
+    }
+    warninglvl$1 = t;
+  }
+  function setDebugMode(t) {
+    sintern2.setDebugMode2(t);
+    update_debug_data();
+  }
+  let _ws_env$1=[[undefined, undefined]];
+  function define_empty_class(scls, name) {
+    let cls=function () {
+    }
+    cls.prototype = Object.create(Object.prototype);
+    cls.constructor = cls.prototype.constructor = cls;
+    let keywords=scls.keywords;
+    cls.STRUCT = name+" {\n  }\n";
+    cls.structName = name;
+    cls.prototype.loadSTRUCT = function (reader) {
+      reader(this);
+    }
+    cls.newSTRUCT = function () {
+      return new this();
+    }
+    return cls;
+  }
+  let haveCodeGen;
+  class STRUCT  {
+     constructor() {
+      this.idgen = 0;
+      this.allowOverriding = true;
+      this.structs = {};
+      this.struct_cls = {};
+      this.struct_ids = {};
+      this.compiled_code = {};
+      this.null_natives = {};
+      this.define_null_native("Object", Object);
+      this.jsonUseColors = true;
+      this.jsonBuf = '';
+      this.formatCtx = {};
+    }
+    static  inherit(child, parent, structName=child.name) {
+      const keywords=this.keywords;
+      if (!parent.STRUCT) {
+          return structName+"{\n";
+      }
+      let stt=struct_parse.parse(parent.STRUCT);
+      let code=structName+"{\n";
+      code+=STRUCT.fmt_struct(stt, true, false, true);
+      return code;
+    }
+    static  Super(obj, reader) {
+      if (warninglvl$1>0)
+        console.warn("deprecated");
+      reader(obj);
+      function reader2(obj) {
+      }
+      let cls=obj.constructor;
+      let bad=cls===undefined||cls.prototype===undefined||cls.prototype.__proto__===undefined;
+      if (bad) {
+          return ;
+      }
+      let parent=cls.prototype.__proto__.constructor;
+      bad = bad||parent===undefined;
+      if (!bad&&parent.prototype.loadSTRUCT&&parent.prototype.loadSTRUCT!==obj.loadSTRUCT) {
+          parent.prototype.loadSTRUCT.call(obj, reader2);
+      }
+    }
+    static  chain_fromSTRUCT(cls, reader) {
+      if (warninglvl$1>0)
+        console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
+      let proto=cls.prototype;
+      let parent=cls.prototype.prototype.constructor;
+      let obj=parent.fromSTRUCT(reader);
+      let obj2=new cls();
+      let keys=Object.keys(obj).concat(Object.getOwnPropertySymbols(obj));
+      for (let i=0; i<keys.length; i++) {
+          let k=keys[i];
+          try {
+            obj2[k] = obj[k];
+          }
+          catch (error) {
+              if (warninglvl$1>0)
+                console.warn("  failed to set property", k);
+          }
+      }
+      return obj2;
+    }
+    static  formatStruct(stt, internal_only, no_helper_js) {
+      return this.fmt_struct(stt, internal_only, no_helper_js);
+    }
+    static  fmt_struct(stt, internal_only, no_helper_js, addComments) {
+      if (internal_only===undefined)
+        internal_only = false;
+      if (no_helper_js===undefined)
+        no_helper_js = false;
+      let s="";
+      if (!internal_only) {
+          s+=stt.name;
+          if (stt.id!==-1)
+            s+=" id="+stt.id;
+          s+=" {\n";
+      }
+      let tab="  ";
+      function fmt_type(type) {
+        return StructFieldTypeMap[type.type].format(type);
+        if (type.type===StructEnum.ARRAY||type.type===StructEnum.ITER||type.type===StructEnum.ITERKEYS) {
+            if (type.data.iname!==""&&type.data.iname!==undefined) {
+                return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+            }
+            else {
+              return "array("+fmt_type(type.data.type)+")";
+            }
+        }
+        else 
+          if (type.type===StructEnum.STATIC_STRING) {
+            return "static_string["+type.data.maxlength+"]";
+        }
+        else 
+          if (type.type===StructEnum.STRUCT) {
+            return type.data;
+        }
+        else 
+          if (type.type===StructEnum.TSTRUCT) {
+            return "abstract("+type.data+")";
+        }
+        else {
+          return StructTypeMap[type.type];
+        }
+      }
+      let fields=stt.fields;
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          s+=tab+f.name+" : "+fmt_type(f.type);
+          if (!no_helper_js&&f.get!==undefined) {
+              s+=" | "+f.get.trim();
+          }
+          s+=";";
+          if (addComments&&f.comment.trim()) {
+              s+=f.comment.trim();
+          }
+          s+="\n";
+      }
+      if (!internal_only)
+        s+="}";
+      return s;
+    }
+    static  setClassKeyword(keyword, nameKeyword=undefined) {
+      if (!nameKeyword) {
+          nameKeyword = keyword.toLowerCase()+"Name";
+      }
+      this.keywords = {script: keyword, 
+     name: nameKeyword, 
+     load: "load"+keyword, 
+     new: "new"+keyword, 
+     after: "after"+keyword, 
+     from: "from"+keyword};
+    }
+     define_null_native(name, cls) {
+      const keywords=this.constructor.keywords;
+      let obj=define_empty_class(this.constructor, name);
+      let stt=struct_parse.parse(obj.STRUCT);
+      stt.id = this.idgen++;
+      this.structs[name] = stt;
+      this.struct_cls[name] = cls;
+      this.struct_ids[stt.id] = stt;
+      this.null_natives[name] = 1;
+    }
+     validateStructs(onerror) {
+      function getType(type) {
+        switch (type.type) {
+          case StructEnum.ITERKEYS:
+          case StructEnum.ITER:
+          case StructEnum.STATIC_ARRAY:
+          case StructEnum.ARRAY:
+            return getType(type.data.type);
+          case StructEnum.TSTRUCT:
+            return type;
+          case StructEnum.STRUCT:
+          default:
+            return type;
+        }
+      }
+      function formatType(type) {
+        let ret={}
+        ret.type = type.type;
+        if (typeof ret.type==="number") {
+            for (let k in StructEnum) {
+                if (StructEnum[k]===ret.type) {
+                    ret.type = k;
+                    break;
+                }
+            }
+        }
+        else 
+          if (typeof ret.type==="object") {
+            ret.type = formatType(ret.type);
+        }
+        if (typeof type.data==="object") {
+            ret.data = formatType(type.data);
+        }
+        else {
+          ret.data = type.data;
+        }
+        return ret;
+      }
+      function throwError(stt, field, msg) {
+        let buf=STRUCT.formatStruct(stt);
+        console.error(buf+"\n\n"+msg);
+        if (onerror) {
+            onerror(msg, stt, field);
+        }
+        else {
+          throw new Error(msg);
+        }
+      }
+      for (let k in this.structs) {
+          let stt=this.structs[k];
+          for (let field of stt.fields) {
+              if (field.name==="this") {
+                  let type=field.type.type;
+                  if (ValueTypes.has(type)) {
+                      throwError(stt, field, "'this' cannot be used with value types");
+                  }
+              }
+              let type=getType(field.type);
+              if (type.type!==StructEnum.STRUCT&&type.type!==StructEnum.TSTRUCT) {
+                  continue;
+              }
+              if (!(type.data in this.structs)) {
+                  let msg=stt.name+":"+field.name+": Unknown struct "+type.data+".";
+                  throwError(stt, field, msg);
+              }
+          }
+      }
+    }
+     forEach(func, thisvar) {
+      for (let k in this.structs) {
+          let stt=this.structs[k];
+          if (thisvar!==undefined)
+            func.call(thisvar, stt);
+          else 
+            func(stt);
+      }
+    }
+     parse_structs(buf, defined_classes) {
+      const keywords=this.constructor.keywords;
+      if (defined_classes===undefined) {
+          defined_classes = manager;
+      }
+      if (__instance_of(defined_classes, STRUCT)) {
+          let struct2=defined_classes;
+          defined_classes = [];
+          for (let k in struct2.struct_cls) {
+              defined_classes.push(struct2.struct_cls[k]);
+          }
+      }
+      if (defined_classes===undefined) {
+          defined_classes = [];
+          for (let k in manager.struct_cls) {
+              defined_classes.push(manager.struct_cls[k]);
+          }
+      }
+      let clsmap={};
+      for (let i=0; i<defined_classes.length; i++) {
+          let cls=defined_classes[i];
+          if (!cls.structName&&cls.STRUCT) {
+              let stt=struct_parse.parse(cls.STRUCT.trim());
+              cls.structName = stt.name;
+          }
+          else 
+            if (!cls.structName&&cls.name!=="Object") {
+              if (warninglvl$1>0)
+                console.log("Warning, bad class in registered class list", unmangle(cls.name), cls);
+              continue;
+          }
+          clsmap[cls.structName] = defined_classes[i];
+      }
+      struct_parse.input(buf);
+      while (!struct_parse.at_end()) {
+        let stt=struct_parse.parse(undefined, false);
+        if (!(stt.name in clsmap)) {
+            if (!(stt.name in this.null_natives))
+              if (warninglvl$1>0)
+              console.log("WARNING: struct "+stt.name+" is missing from class list.");
+            let dummy=define_empty_class(this.constructor, stt.name);
+            dummy.STRUCT = STRUCT.fmt_struct(stt);
+            dummy.structName = stt.name;
+            dummy.prototype.structName = dummy.name;
+            this.struct_cls[dummy.structName] = dummy;
+            this.structs[dummy.structName] = stt;
+            if (stt.id!==-1)
+              this.struct_ids[stt.id] = stt;
+        }
+        else {
+          this.struct_cls[stt.name] = clsmap[stt.name];
+          this.structs[stt.name] = stt;
+          if (stt.id!==-1)
+            this.struct_ids[stt.id] = stt;
+        }
+        let tok=struct_parse.peek();
+        while (tok&&(tok.value==="\n"||tok.value==="\r"||tok.value==="\t"||tok.value===" ")) {
+          tok = struct_parse.peek();
+        }
+      }
+    }
+     registerGraph(srcSTRUCT, cls) {
+      if (!cls.structName) {
+          console.warn("class was not in srcSTRUCT");
+          return this.register(cls);
+      }
+      let recStruct;
+      let recArray=(t) =>        {
+        switch (t.type) {
+          case StructEnum.ARRAY:
+            return recArray(t.data.type);
+          case StructEnum.ITERKEYS:
+            return recArray(t.data.type);
+          case StructEnum.STATIC_ARRAY:
+            return recArray(t.data.type);
+          case StructEnum.ITER:
+            return recArray(t.data.type);
+          case StructEnum.STRUCT:
+          case StructEnum.TSTRUCT:
+{            let st=srcSTRUCT.structs[t.data];
+            let cls=srcSTRUCT.struct_cls[st.name];
+            return recStruct(st, cls);
+}
+        }
+      };
+      recStruct = (st, cls) =>        {
+        if (!(cls.structName in this.structs)) {
+            this.add_class(cls, cls.structName);
+        }
+        for (let f of st.fields) {
+            if (f.type.type===StructEnum.STRUCT||f.type.type===StructEnum.TSTRUCT) {
+                let st2=srcSTRUCT.structs[f.type.data];
+                let cls2=srcSTRUCT.struct_cls[st2.name];
+                recStruct(st2, cls2);
+            }
+            else 
+              if (f.type.type===StructEnum.ARRAY) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.ITER) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.ITERKEYS) {
+                recArray(f.type);
+            }
+            else 
+              if (f.type.type===StructEnum.STATIC_ARRAY) {
+                recArray(f.type);
+            }
+        }
+      };
+      let st=srcSTRUCT.structs[cls.structName];
+      recStruct(st, cls);
+    }
+     register(cls, structName) {
+      return this.add_class(cls, structName);
+    }
+     unregister(cls) {
+      const keywords=this.constructor.keywords;
+      if (!cls||!cls.structName||!(cls.structName in this.struct_cls)) {
+          console.warn("Class not registered with nstructjs", cls);
+          return ;
+      }
+      let st=this.structs[cls.structName];
+      delete this.structs[cls.structName];
+      delete this.struct_cls[cls.structName];
+      delete this.struct_ids[st.id];
+    }
+     add_class(cls, structName) {
+      if (cls===Object) {
+          return ;
+      }
+      const keywords=this.constructor.keywords;
+      if (cls.STRUCT) {
+          let bad=false;
+          let p=cls;
+          while (p) {
+            p = p.__proto__;
+            if (p&&p.STRUCT&&p.STRUCT===cls.STRUCT) {
+                bad = true;
+                break;
+            }
+          }
+          if (bad) {
+              console.warn("Generating "+keywords.script+" script for derived class "+unmangle(cls.name));
+              if (!structName) {
+                  structName = unmangle(cls.name);
+              }
+              cls.STRUCT = STRUCT.inherit(cls, p)+"\n}";
+          }
+      }
+      if (!cls.STRUCT) {
+          throw new Error("class "+unmangle(cls.name)+" has no "+keywords.script+" script");
+      }
+      let stt=struct_parse.parse(cls.STRUCT);
+      stt.name = unmangle(stt.name);
+      cls.structName = stt.name;
+      if (cls.newSTRUCT===undefined) {
+          cls.newSTRUCT = function () {
+            return new this();
+          };
+      }
+      if (structName!==undefined) {
+          stt.name = cls.structName = structName;
+      }
+      else 
+        if (cls.structName===undefined) {
+          cls.structName = stt.name;
+      }
+      else {
+        stt.name = cls.structName;
+      }
+      if (cls.structName in this.structs) {
+          console.warn("Struct "+unmangle(cls.structName)+" is already registered", cls);
+          if (!this.allowOverriding) {
+              throw new Error("Struct "+unmangle(cls.structName)+" is already registered");
+          }
+          return ;
+      }
+      if (stt.id===-1)
+        stt.id = this.idgen++;
+      this.structs[cls.structName] = stt;
+      this.struct_cls[cls.structName] = cls;
+      this.struct_ids[stt.id] = stt;
+    }
+     isRegistered(cls) {
+      const keywords=this.constructor.keywords;
+      if (!cls.hasOwnProperty("structName")) {
+          return false;
+      }
+      return cls===this.struct_cls[cls.structName];
+    }
+     get_struct_id(id) {
+      return this.struct_ids[id];
+    }
+     get_struct(name) {
+      if (!(name in this.structs)) {
+          console.warn("Unknown struct", name);
+          throw new Error("Unknown struct "+name);
+      }
+      return this.structs[name];
+    }
+     get_struct_cls(name) {
+      if (!(name in this.struct_cls)) {
+          console.trace();
+          throw new Error("Unknown struct "+name);
+      }
+      return this.struct_cls[name];
+    }
+     _env_call(code, obj, env) {
+      let envcode=_static_envcode_null$1;
+      if (env!==undefined) {
+          envcode = "";
+          for (let i=0; i<env.length; i++) {
+              envcode = "let "+env[i][0]+" = env["+i.toString()+"][1];\n"+envcode;
+          }
+      }
+      let fullcode="";
+      if (envcode!==_static_envcode_null$1)
+        fullcode = envcode+code;
+      else 
+        fullcode = code;
+      let func;
+      if (!(fullcode in this.compiled_code)) {
+          let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+          try {
+            func = struct_eval.structEval(code2);
+          }
+          catch (err) {
+              console.warn(err.stack);
+              console.warn(code2);
+              console.warn(" ");
+              throw err;
+          }
+          this.compiled_code[fullcode] = func;
+      }
+      else {
+        func = this.compiled_code[fullcode];
+      }
+      try {
+        return func.call(obj, obj, env);
+      }
+      catch (err) {
+          console.warn(err.stack);
+          let code2="func = function(obj, env) { "+envcode+"return "+code+"}";
+          console.warn(code2);
+          console.warn(" ");
+          throw err;
+      }
+    }
+     write_struct(data, obj, stt) {
+      function use_helper_js(field) {
+        let type=field.type.type;
+        let cls=StructFieldTypeMap[type];
+        return cls.useHelperJS(field);
+      }
+      let fields=stt.fields;
+      let thestruct=this;
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          let t1=f.type;
+          let t2=t1.type;
+          if (use_helper_js(f)) {
+              let val;
+              let type=t2;
+              if (f.get!==undefined) {
+                  val = thestruct._env_call(f.get, obj);
+              }
+              else {
+                val = f.name==="this" ? obj : obj[f.name];
+              }
+              if (DEBUG.tinyeval) {
+                  console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+              }
+              sintern2.do_pack(this, data, val, obj, f, t1);
+          }
+          else {
+            let val=f.name==="this" ? obj : obj[f.name];
+            sintern2.do_pack(this, data, val, obj, f, t1);
+          }
+      }
+    }
+     write_object(data, obj) {
+      const keywords=this.constructor.keywords;
+      let cls=obj.constructor.structName;
+      let stt=this.get_struct(cls);
+      if (data===undefined) {
+          data = [];
+      }
+      this.write_struct(data, obj, stt);
+      return data;
+    }
+     readObject(data, cls_or_struct_id, uctx) {
+      if (__instance_of(data, Uint8Array)||__instance_of(data, Uint8ClampedArray)) {
+          data = new DataView(data.buffer);
+      }
+      else 
+        if (__instance_of(data, Array)) {
+          data = new DataView(new Uint8Array(data).buffer);
+      }
+      return this.read_object(data, cls_or_struct_id, uctx);
+    }
+     writeObject(data, obj) {
+      return this.write_object(data, obj);
+    }
+     writeJSON(obj, stt=undefined) {
+      const keywords=this.constructor.keywords;
+      let cls=obj.constructor;
+      stt = stt||this.get_struct(cls.structName);
+      function use_helper_js(field) {
+        let type=field.type.type;
+        let cls=StructFieldTypeMap[type];
+        return cls.useHelperJS(field);
+      }
+      let toJSON=sintern2.toJSON;
+      let fields=stt.fields;
+      let thestruct=this;
+      let json={};
+      for (let i=0; i<fields.length; i++) {
+          let f=fields[i];
+          let val;
+          let t1=f.type;
+          let json2;
+          if (use_helper_js(f)) {
+              if (f.get!==undefined) {
+                  val = thestruct._env_call(f.get, obj);
+              }
+              else {
+                val = f.name==="this" ? obj : obj[f.name];
+              }
+              if (DEBUG.tinyeval) {
+                  console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+              }
+              json2 = toJSON(this, val, obj, f, t1);
+          }
+          else {
+            val = f.name==="this" ? obj : obj[f.name];
+            json2 = toJSON(this, val, obj, f, t1);
+          }
+          if (f.name!=='this') {
+              json[f.name] = json2;
+          }
+          else {
+            let isArray=Array.isArray(json2);
+            isArray = isArray||f.type.type===StructTypes.ARRAY;
+            isArray = isArray||f.type.type===StructTypes.STATIC_ARRAY;
+            if (isArray) {
+                json.length = json2.length;
+                for (let i=0; i<json2.length; i++) {
+                    json[i] = json2[i];
+                }
+            }
+            else {
+              Object.assign(json, json2);
+            }
+          }
+      }
+      return json;
+    }
+     read_object(data, cls_or_struct_id, uctx, objInstance) {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (__instance_of(data, Array)) {
+          data = new DataView(new Uint8Array(data).buffer);
+      }
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      if (uctx===undefined) {
+          uctx = new unpack_context();
+          packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+      }
+      let thestruct=this;
+      let this2=this;
+      function unpack_field(type) {
+        return StructFieldTypeMap[type.type].unpack(this2, data, type, uctx);
+      }
+      function unpack_into(type, dest) {
+        return StructFieldTypeMap[type.type].unpackInto(this2, data, type, uctx, dest);
+      }
+      let was_run=false;
+      function makeLoader(stt) {
+        return function load(obj) {
+          if (was_run) {
+              return ;
+          }
+          was_run = true;
+          let fields=stt.fields;
+          let flen=fields.length;
+          for (let i=0; i<flen; i++) {
+              let f=fields[i];
+              if (f.name==='this') {
+                  unpack_into(f.type, obj);
+              }
+              else {
+                obj[f.name] = unpack_field(f.type);
+              }
+          }
+        }
+      }
+      let load=makeLoader(stt);
+      if (cls.prototype.loadSTRUCT!==undefined) {
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
+          }
+          else 
+            if (!obj) {
+              obj = new cls();
+          }
+          obj.loadSTRUCT(load);
+          if (!was_run) {
+              console.warn(""+cls.structName+".prototype.loadSTRUCT() did not execute its loader callback!");
+              load(obj);
+          }
+          return obj;
+      }
+      else 
+        if (cls.fromSTRUCT!==undefined) {
+          if (warninglvl$1>1)
+            console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+          return cls.fromSTRUCT(load);
+      }
+      else {
+        let obj=objInstance;
+        if (!obj&&cls.newSTRUCT!==undefined) {
+            obj = cls.newSTRUCT(load);
+        }
+        else 
+          if (!obj) {
+            obj = new cls();
+        }
+        load(obj);
+        return obj;
+      }
+    }
+     validateJSON(json, cls_or_struct_id, useInternalParser=true, useColors=true, consoleLogger=function () {
+      console.log(...arguments);
+    }, _abstractKey="_structName") {
+      if (cls_or_struct_id===undefined) {
+          throw new Error(this.constructor.name+".prototype.validateJSON: Expected at least two arguments");
+      }
+      try {
+        json = JSON.stringify(json, undefined, 2);
+        this.jsonBuf = json;
+        this.jsonUseColors = useColors;
+        this.jsonLogger = consoleLogger;
+        jsonParser.logger = this.jsonLogger;
+        if (useInternalParser) {
+            json = jsonParser.parse(json);
+        }
+        else {
+          json = JSON.parse(json);
+        }
+        this.validateJSONIntern(json, cls_or_struct_id, _abstractKey);
+      }
+      catch (error) {
+          if (!(__instance_of(error, JSONError))) {
+              console.error(error.stack);
+          }
+          this.jsonLogger(error.message);
+          return false;
+      }
+      return true;
+    }
+     validateJSONIntern(json, cls_or_struct_id, _abstractKey="_structName") {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else 
+        if (__instance_of(cls_or_struct_id, NStruct)) {
+          cls = this.get_struct_cls(cls_or_struct_id.name);
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      if (stt===undefined) {
+          throw new Error("unknown class "+cls);
+      }
+      let fields=stt.fields;
+      let flen=fields.length;
+      let keys=new Set();
+      keys.add(_abstractKey);
+      let keyTestJson=json;
+      for (let i=0; i<flen; i++) {
+          let f=fields[i];
+          let val;
+          let tokinfo;
+          if (f.name==='this') {
+              val = json;
+              keyTestJson = {"this": json};
+              keys.add("this");
+              tokinfo = json[TokSymbol];
+          }
+          else {
+            val = json[f.name];
+            keys.add(f.name);
+            tokinfo = json[TokSymbol] ? json[TokSymbol].fields[f.name] : undefined;
+            if (!tokinfo) {
+                let f2=fields[Math.max(i-1, 0)];
+                tokinfo = TokSymbol[TokSymbol] ? json[TokSymbol].fields[f2.name] : undefined;
+            }
+            if (!tokinfo) {
+                tokinfo = json[TokSymbol];
+            }
+          }
+          if (val===undefined) {
+          }
+          let instance=f.name==='this' ? val : json;
+          let ret=sintern2.validateJSON(this, val, json, f, f.type, instance, _abstractKey);
+          if (!ret||typeof ret==="string") {
+              let msg=typeof ret==="string" ? ": "+ret : "";
+              if (tokinfo) {
+                  this.jsonLogger(printContext(this.jsonBuf, tokinfo, this.jsonUseColors));
+              }
+              if (val===undefined) {
+                  throw new JSONError("Missing json field "+f.name+msg);
+              }
+              else {
+                throw new JSONError("Invalid json field "+f.name+msg);
+              }
+              return false;
+          }
+      }
+      for (let k in keyTestJson) {
+          if (typeof json[k]==="symbol") {
+              continue;
+          }
+          if (!keys.has(k)) {
+              this.jsonLogger(cls.STRUCT);
+              throw new JSONError("Unknown json field "+k);
+              return false;
+          }
+      }
+      return true;
+    }
+     readJSON(json, cls_or_struct_id, objInstance=undefined) {
+      const keywords=this.constructor.keywords;
+      let cls, stt;
+      if (typeof cls_or_struct_id==="number") {
+          cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+      }
+      else 
+        if (__instance_of(cls_or_struct_id, NStruct)) {
+          cls = this.get_struct_cls(cls_or_struct_id.name);
+      }
+      else {
+        cls = cls_or_struct_id;
+      }
+      if (cls===undefined) {
+          throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+      }
+      stt = this.structs[cls.structName];
+      packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
+      let thestruct=this;
+      let this2=this;
+      let was_run=false;
+      let fromJSON=sintern2.fromJSON;
+      function makeLoader(stt) {
+        return function load(obj) {
+          if (was_run) {
+              return ;
+          }
+          was_run = true;
+          let fields=stt.fields;
+          let flen=fields.length;
+          for (let i=0; i<flen; i++) {
+              let f=fields[i];
+              let val;
+              if (f.name==='this') {
+                  val = json;
+              }
+              else {
+                val = json[f.name];
+              }
+              if (val===undefined) {
+                  console.warn("nstructjs.readJSON: Missing field "+f.name+" in struct "+stt.name);
+                  continue;
+              }
+              let instance=f.name==='this' ? obj : objInstance;
+              let ret=fromJSON(this2, val, obj, f, f.type, instance);
+              if (f.name!=='this') {
+                  obj[f.name] = ret;
+              }
+          }
+        }
+      }
+      let load=makeLoader(stt);
+      if (cls.prototype.loadSTRUCT!==undefined) {
+          let obj=objInstance;
+          if (!obj&&cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT(load);
+          }
+          else 
+            if (!obj) {
+              obj = new cls();
+          }
+          obj.loadSTRUCT(load);
+          return obj;
+      }
+      else 
+        if (cls.fromSTRUCT!==undefined) {
+          if (warninglvl$1>1)
+            console.warn("Warning: class "+unmangle(cls.name)+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+          return cls.fromSTRUCT(load);
+      }
+      else {
+        let obj=objInstance;
+        if (!obj&&cls.newSTRUCT!==undefined) {
+            obj = cls.newSTRUCT(load);
+        }
+        else 
+          if (!obj) {
+            obj = new cls();
+        }
+        load(obj);
+        return obj;
+      }
+    }
+     formatJSON_intern(json, stt, field, tlvl=0) {
+      const keywords=this.constructor.keywords;
+      const addComments=this.formatCtx.addComments;
+      let s='{';
+      if (addComments&&field&&field.comment.trim()) {
+          s+=" "+field.comment.trim();
+      }
+      s+="\n";
+      for (let f of stt.fields) {
+          let value=json[f.name];
+          s+=tab(tlvl+1)+f.name+": ";
+          s+=sintern2.formatJSON(this, value, json, f, f.type, undefined, tlvl+1);
+          s+=",";
+          let basetype=f.type.type;
+          if (ArrayTypes.has(basetype)) {
+              basetype = f.type.data.type.type;
+          }
+          const addComment=ValueTypes.has(basetype)&&addComments&&f.comment.trim();
+          if (addComment) {
+              s+=" "+f.comment.trim();
+          }
+          s+="\n";
+      }
+      s+=tab(tlvl)+"}";
+      return s;
+    }
+     formatJSON(json, cls, addComments=true, validate=true) {
+      const keywords=this.constructor.keywords;
+      let s='';
+      if (validate) {
+          this.validateJSON(json, cls);
+      }
+      let stt=this.structs[cls.structName];
+      this.formatCtx = {addComments: addComments, 
+     validate: validate};
+      return this.formatJSON_intern(json, stt);
+    }
+  }
+  _ESClass.register(STRUCT);
+  _es6_module.add_class(STRUCT);
+  
+  if (haveCodeGen) {
+      var StructClass;
+      try {
+        eval(code);
+      }
+      catch (error) {
+          printEvalError(code);
+      }
+      StructClass.keywords = {name: "structName", 
+     script: "STRUCT", 
+     load: "loadSTRUCT", 
+     from: "fromSTRUCT", 
+     new: "newSTRUCT"};
+      STRUCT = StructClass;
+  }
+  STRUCT.setClassKeyword("STRUCT");
+  function deriveStructManager(keywords) {
+    if (keywords===undefined) {
+        keywords = {script: "STRUCT", 
+      name: undefined, 
+      load: undefined, 
+      new: undefined, 
+      from: undefined};
+    }
+    if (!keywords.name) {
+        keywords.name = keywords.script.toLowerCase()+"Name";
+    }
+    if (!keywords.load) {
+        keywords.load = "load"+keywords.script;
+    }
+    if (!keywords.new) {
+        keywords.new = "new"+keywords.script;
+    }
+    if (!keywords.from) {
+        keywords.from = "from"+keywords.script;
+    }
+    if (!haveCodeGen) {
+        class NewSTRUCT extends STRUCT {
+        }
+        _ESClass.register(NewSTRUCT);
+        _es6_module.add_class(NewSTRUCT);
+        NewSTRUCT.keywords = keywords;
+        return NewSTRUCT;
+    }
+    else {
+      var StructClass;
+      var _json_parser=jsonParser;
+      var _util=util;
+      let code2=code;
+      code2 = code2.replace(/\[keywords.script\]/g, "."+keywords.script);
+      code2 = code2.replace(/\[keywords.name\]/g, "."+keywords.name);
+      code2 = code2.replace(/\bjsonParser\b/g, "_json_parser");
+      code2 = code2.replace(/\butil\b/g, "_util");
+      try {
+        eval(code2);
+      }
+      catch (error) {
+          printEvalError(code2);
+      }
+      StructClass.keywords = keywords;
+      return StructClass;
+    }
+  }
+  manager = new STRUCT();
+  function write_scripts(nManager, include_code) {
+    if (nManager===undefined) {
+        nManager = manager;
+    }
+    if (include_code===undefined) {
+        include_code = false;
+    }
+    let buf="";
+    let nl=String.fromCharCode(10);
+    let tab=String.fromCharCode(9);
+    nManager.forEach(function (stt) {
+      buf+=STRUCT.fmt_struct(stt, false, !include_code)+nl;
+    });
+    let buf2=buf;
+    buf = "";
+    for (let i=0; i<buf2.length; i++) {
+        let c=buf2[i];
+        if (c===nl) {
+            buf+=nl;
+            let i2=i;
+            while (i<buf2.length&&(buf2[i]===" "||buf2[i]===tab||buf2[i]===nl)) {
+              i++;
+            }
+            if (i!==i2)
+              i--;
+        }
+        else {
+          buf+=c;
+        }
+    }
+    return buf;
+  }
+  "use strict";
+  let nbtoa, natob;
+  if (typeof btoa==="undefined") {
+      nbtoa = function btoa(str) {
+        let buffer=new Buffer(""+str, 'binary');
+        return buffer.toString('base64');
+      };
+      natob = function atob(str) {
+        return new Buffer(str, 'base64').toString('binary');
+      };
+  }
+  else {
+    natob = atob;
+    nbtoa = btoa;
+  }
+  function versionToInt(v) {
+    v = versionCoerce(v);
+    let mul=64;
+    return ~~(v.major*mul*mul*mul+v.minor*mul*mul+v.micro*mul);
+  }
+  let ver_pat=/[0-9]+\.[0-9]+\.[0-9]+$/;
+  function versionCoerce(v) {
+    if (!v) {
+        throw new Error("empty version: "+v);
+    }
+    if (typeof v==="string") {
+        if (!ver_pat.exec(v)) {
+            throw new Error("invalid version string "+v);
+        }
+        let ver=v.split(".");
+        return {major: parseInt(ver[0]), 
+      minor: parseInt(ver[1]), 
+      micro: parseInt(ver[2])}
+    }
+    else 
+      if (Array.isArray(v)) {
+        return {major: v[0], 
+      minor: v[1], 
+      micro: v[2]}
+    }
+    else 
+      if (typeof v==="object") {
+        let test=(k) =>          {
+          return k in v&&typeof v[k]==="number";
+        };
+        if (!test("major")||!test("minor")||!test("micro")) {
+            throw new Error("invalid version object: "+v);
+        }
+        return v;
+    }
+    else {
+      throw new Error("invalid version "+v);
+    }
+  }
+  function versionLessThan(a, b) {
+    return versionToInt(a)<versionToInt(b);
+  }
+  class FileParams  {
+     constructor() {
+      this.magic = "STRT";
+      this.ext = ".bin";
+      this.blocktypes = ["DATA"];
+      this.version = {major: 0, 
+     minor: 0, 
+     micro: 1};
+    }
+  }
+  _ESClass.register(FileParams);
+  _es6_module.add_class(FileParams);
+  class Block  {
+     constructor(type_magic, data) {
+      this.type = type_magic;
+      this.data = data;
+    }
+  }
+  _ESClass.register(Block);
+  _es6_module.add_class(Block);
+  class FileeError extends Error {
+  }
+  _ESClass.register(FileeError);
+  _es6_module.add_class(FileeError);
+  class FileHelper  {
+     constructor(params) {
+      if (params===undefined) {
+          params = new FileParams();
+      }
+      else {
+        let fp=new FileParams();
+        for (let k in params) {
+            fp[k] = params[k];
+        }
+        params = fp;
+      }
+      this.version = params.version;
+      this.blocktypes = params.blocktypes;
+      this.magic = params.magic;
+      this.ext = params.ext;
+      this.struct = undefined;
+      this.unpack_ctx = undefined;
+    }
+     read(dataview) {
+      this.unpack_ctx = new unpack_context();
+      let magic=unpack_static_string(dataview, this.unpack_ctx, 4);
+      if (magic!==this.magic) {
+          throw new FileError("corrupted file");
+      }
+      this.version = {};
+      this.version.major = unpack_short(dataview, this.unpack_ctx);
+      this.version.minor = unpack_byte(dataview, this.unpack_ctx);
+      this.version.micro = unpack_byte(dataview, this.unpack_ctx);
+      let struct=this.struct = new STRUCT();
+      let scripts=unpack_string(dataview, this.unpack_ctx);
+      this.struct.parse_structs(scripts, manager);
+      let blocks=[];
+      let dviewlen=dataview.buffer.byteLength;
+      while (this.unpack_ctx.i<dviewlen) {
+        let type=unpack_static_string(dataview, this.unpack_ctx, 4);
+        let datalen=unpack_int(dataview, this.unpack_ctx);
+        let bstruct=unpack_int(dataview, this.unpack_ctx);
+        let bdata;
+        if (bstruct===-2) {
+            bdata = unpack_static_string(dataview, this.unpack_ctx, datalen);
+        }
+        else {
+          bdata = unpack_bytes(dataview, this.unpack_ctx, datalen);
+          bdata = struct.read_object(bdata, bstruct, new unpack_context());
+        }
+        let block=new Block();
+        block.type = type;
+        block.data = bdata;
+        blocks.push(block);
+      }
+      this.blocks = blocks;
+      return blocks;
+    }
+     doVersions(old) {
+      let blocks=this.blocks;
+      if (versionLessThan(old, "0.0.1")) {
+      }
+    }
+     write(blocks) {
+      this.struct = manager;
+      this.blocks = blocks;
+      let data=[];
+      pack_static_string(data, this.magic, 4);
+      pack_short(data, this.version.major);
+      pack_byte(data, this.version.minor&255);
+      pack_byte(data, this.version.micro&255);
+      let scripts=write_scripts();
+      pack_string(data, scripts);
+      let struct=this.struct;
+      for (let block of blocks) {
+          if (typeof block.data==="string") {
+              pack_static_string(data, block.type, 4);
+              pack_int(data, block.data.length);
+              pack_int(data, -2);
+              pack_static_string(data, block.data, block.data.length);
+              continue;
+          }
+          let structName=block.data.constructor.structName;
+          if (structName===undefined||!(structName in struct.structs)) {
+              throw new Error("Non-STRUCTable object "+block.data);
+          }
+          let data2=[];
+          let stt=struct.structs[structName];
+          struct.write_object(data2, block.data);
+          pack_static_string(data, block.type, 4);
+          pack_int(data, data2.length);
+          pack_int(data, stt.id);
+          pack_bytes(data, data2);
+      }
+      return new DataView(new Uint8Array(data).buffer);
+    }
+     writeBase64(blocks) {
+      let dataview=this.write(blocks);
+      let str="";
+      let bytes=new Uint8Array(dataview.buffer);
+      for (let i=0; i<bytes.length; i++) {
+          str+=String.fromCharCode(bytes[i]);
+      }
+      return nbtoa(str);
+    }
+     makeBlock(type, data) {
+      return new Block(type, data);
+    }
+     readBase64(base64) {
+      let data=natob(base64);
+      let data2=new Uint8Array(data.length);
+      for (let i=0; i<data.length; i++) {
+          data2[i] = data.charCodeAt(i);
+      }
+      return this.read(new DataView(data2.buffer));
+    }
+  }
+  _ESClass.register(FileHelper);
+  _es6_module.add_class(FileHelper);
+  var struct_filehelper=Object.freeze({__proto__: null, 
+   versionToInt: versionToInt, 
+   versionCoerce: versionCoerce, 
+   versionLessThan: versionLessThan, 
+   FileParams: FileParams, 
+   Block: Block, 
+   FileeError: FileeError, 
+   FileHelper: FileHelper});
+  function truncateDollarSign$1(value) {
+    if (value===undefined) {
+        value = true;
+    }
+    setTruncateDollarSign(value);
+  }
+  function validateStructs(onerror) {
+    return manager.validateStructs(onerror);
+  }
+  function setEndian(mode) {
+    let ret=STRUCT_ENDIAN;
+    setBinaryEndian(mode);
+    return ret;
+  }
+  function consoleLogger() {
+    console.log(...arguments);
+  }
+  function validateJSON$1(json, cls, useInternalParser, printColors, logger) {
+    if (printColors===undefined) {
+        printColors = true;
+    }
+    if (logger===undefined) {
+        logger = consoleLogger;
+    }
+    return manager.validateJSON(json, cls, useInternalParser, printColors, logger);
+  }
+  function getEndian() {
+    return STRUCT_ENDIAN;
+  }
+  function setAllowOverriding(t) {
+    return manager.allowOverriding = !!t;
+  }
+  function isRegistered(cls) {
+    return manager.isRegistered(cls);
+  }
+  function register(cls, structName) {
+    return manager.register(cls, structName);
+  }
+  function unregister(cls) {
+    manager.unregister(cls);
+  }
+  function inherit(child, parent, structName) {
+    if (structName===undefined) {
+        structName = child.name;
+    }
+    return STRUCT.inherit(...arguments);
+  }
+  function readObject(data, cls, __uctx) {
+    if (__uctx===undefined) {
+        __uctx = undefined;
+    }
+    return manager.readObject(data, cls, __uctx);
+  }
+  function writeObject(data, obj) {
+    return manager.writeObject(data, obj);
+  }
+  function writeJSON(obj) {
+    return manager.writeJSON(obj);
+  }
+  function formatJSON$1(json, cls, addComments, validate) {
+    if (addComments===undefined) {
+        addComments = true;
+    }
+    if (validate===undefined) {
+        validate = true;
+    }
+    return manager.formatJSON(json, cls, addComments, validate);
+  }
+  function readJSON(json, class_or_struct_id) {
+    return manager.readJSON(json, class_or_struct_id);
+  }
+  JSONError = _es6_module.add_export('JSONError', JSONError);
+  STRUCT = _es6_module.add_export('STRUCT', STRUCT);
+  _truncateDollarSign = _es6_module.add_export('_truncateDollarSign', _truncateDollarSign);
+  struct_binpack = _es6_module.add_export('struct_binpack', struct_binpack);
+  consoleLogger = _es6_module.add_export('consoleLogger', consoleLogger);
+  deriveStructManager = _es6_module.add_export('deriveStructManager', deriveStructManager);
+  struct_filehelper = _es6_module.add_export('struct_filehelper', struct_filehelper);
+  formatJSON$1 = _es6_module.add_export('formatJSON$1', formatJSON$1);
+  getEndian = _es6_module.add_export('getEndian', getEndian);
+  inherit = _es6_module.add_export('inherit', inherit);
+  isRegistered = _es6_module.add_export('isRegistered', isRegistered);
+  manager = _es6_module.add_export('manager', manager);
+  struct_parser = _es6_module.add_export('struct_parser', struct_parser);
+  struct_parseutil = _es6_module.add_export('struct_parseutil', struct_parseutil);
+  readJSON = _es6_module.add_export('readJSON', readJSON);
+  readObject = _es6_module.add_export('readObject', readObject);
+  register = _es6_module.add_export('register', register);
+  setAllowOverriding = _es6_module.add_export('setAllowOverriding', setAllowOverriding);
+  setDebugMode = _es6_module.add_export('setDebugMode', setDebugMode);
+  setEndian = _es6_module.add_export('setEndian', setEndian);
+  setTruncateDollarSign = _es6_module.add_export('setTruncateDollarSign', setTruncateDollarSign);
+  setWarningMode = _es6_module.add_export('setWarningMode', setWarningMode);
+  truncateDollarSign$1 = _es6_module.add_export('truncateDollarSign$1', truncateDollarSign$1);
+  struct_typesystem = _es6_module.add_export('struct_typesystem', struct_typesystem);
+  unpack_context = _es6_module.add_export('unpack_context', unpack_context);
+  unregister = _es6_module.add_export('unregister', unregister);
+  validateJSON$1 = _es6_module.add_export('validateJSON$1', validateJSON$1);
+  validateStructs = _es6_module.add_export('validateStructs', validateStructs);
+  writeJSON = _es6_module.add_export('writeJSON', writeJSON);
+  writeObject = _es6_module.add_export('writeObject', writeObject);
+  write_scripts = _es6_module.add_export('write_scripts', write_scripts);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/nstructjs_es6.js');
+
+
+es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
+  class token  {
+     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lexlen = lexlen;
+      this.lineno = lineno;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     setValue(val) {
+      this.value = val;
+      return this;
+    }
+     toString() {
+      if (this.value!==undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  token = _es6_module.add_export('token', token);
+  class tokdef  {
+     constructor(name, regexpr, func) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  tokdef = _es6_module.add_export('tokdef', tokdef);
+  class PUTLParseError extends Error {
+  }
+  _ESClass.register(PUTLParseError);
+  _es6_module.add_class(PUTLParseError);
+  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
+  class lexer  {
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new Array();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.lineno = 0;
+      this.errfunc = errfunc;
+      this.tokints = {};
+      this.print_tokens = false;
+      this.print_debug = false;
+      for (let i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+    }
+     copy() {
+      let ret=new lexer(this.tokdef, this.errfunc);
+      for (let k in this.states) {
+          let state=this.states[k];
+          state = [state[0], state[1]];
+          ret.states[k] = state;
+      }
+      ret.statedata = this.statedata;
+      return ret;
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc===undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      let item=this.statestack[this.statestack.length-1];
+      let state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new Array();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!==undefined&&!this.errfunc(this))
+        return ;
+      console.log("Syntax error near line "+this.lineno);
+      let next=Math.min(this.lexpos+8, this.lexdata.length);
+      console.log("  "+this.lexdata.slice(this.lexpos, next));
+      throw new PUTLParseError("Parse error");
+    }
+     peek() {
+      let tok=this.next(true);
+      if (tok===undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peek_i(i) {
+      while (this.peeked_tokens.length<=i) {
+        let t=this.peek();
+        if (t===undefined)
+          return undefined;
+      }
+      return this.peeked_tokens[i];
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length===0;
+    }
+     next(ignore_peek) {
+      if (ignore_peek!==true&&this.peeked_tokens.length>0) {
+          let tok=this.peeked_tokens[0];
+          if (this.print_debug) {
+              console.log("PEEK_SHIFTING", ""+tok);
+          }
+          this.peeked_tokens.shift();
+          if (this.print_tokens) {
+              console.log(tok.toString());
+          }
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      let ts=this.tokdef;
+      let tlen=ts.length;
+      let lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      let results=[];
+      for (let i=0; i<tlen; i++) {
+          let t=ts[i];
+          if (t.re===undefined)
+            continue;
+          let res=t.re.exec(lexdata);
+          if (res!==null&&res!==undefined&&res.index===0) {
+              results.push([t, res]);
+          }
+      }
+      let max_res=0;
+      let theres=undefined;
+      for (let i=0; i<results.length; i++) {
+          let res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres===undefined) {
+          this.error();
+          return ;
+      }
+      let def=theres[0];
+      let lexlen=max_res;
+      let tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+      this.lexpos+=max_res;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok===undefined) {
+              return this.next(ignore_peek);
+          }
+      }
+      if (this.print_tokens) {
+          console.log(tok.toString());
+      }
+      if (!ignore_peek&&this.print_debug) {
+          console.log("CONSUME", tok.toString(), "\n"+getTraceBack());
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  lexer = _es6_module.add_export('lexer', lexer);
+  function getTraceBack(limit, start) {
+    try {
+      throw new Error();
+    }
+    catch (error) {
+        let stack=error.stack.split("\n");
+        stack = stack.slice(1, stack.length);
+        if (start===undefined) {
+            start = 0;
+        }
+        for (let i=0; i<stack.length; i++) {
+            let l=stack[i];
+            let j=l.length-1;
+            while (j>0&&l[j]!=="/") {
+              j--;
+            }
+            let k=j;
+            while (k>=0&&l[k]!=="(") {
+              k--;
+            }
+            let func=l.slice(0, k).trim();
+            let file=l.slice(j+1, l.length-1);
+            l = `  ${func} (${file})`;
+            if (l.search(/parseutil\.js/)>=0) {
+                start = Math.max(start, i);
+            }
+            stack[i] = l;
+        }
+        if (limit!==undefined) {
+            stack.length = Math.min(stack.length, limit);
+        }
+        if (start!==undefined) {
+            stack = stack.slice(start, stack.length);
+        }
+        stack = stack.join("\n");
+        return stack;
+    }
+  }
+  getTraceBack = _es6_module.add_export('getTraceBack', getTraceBack);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+      this.userdata = undefined;
+    }
+     copy() {
+      let ret=new parser(this.lexer.copy(), this.errfunc);
+      ret.start = this.start;
+      return ret;
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed===undefined)
+        err_on_unconsumed = true;
+      if (data!==undefined)
+        this.lexer.input(data);
+      let ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
+          this.error(undefined, "parser did not consume entire input");
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(tok, msg) {
+      if (msg===undefined)
+        msg = "";
+      let estr;
+      if (tok===undefined)
+        estr = "Parse error at end of input: "+msg;
+      else 
+        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
+      let buf="1| ";
+      let ld=this.lexer.lexdata;
+      let l=1;
+      for (let i=0; i<ld.length; i++) {
+          let c=ld[i];
+          if (c==='\n') {
+              l++;
+              buf+="\n"+l+"| ";
+          }
+          else {
+            buf+=c;
+          }
+      }
+      console.log("------------------");
+      console.log(buf);
+      console.log("==================");
+      console.log(estr);
+      if (this.errfunc&&!this.errfunc(tok)) {
+          return ;
+      }
+      throw new PUTLParseError(estr);
+    }
+     peek() {
+      let tok=this.lexer.peek();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peek_i(i) {
+      let tok=this.lexer.peek_i(i);
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      return this.peek_i(0);
+    }
+     next() {
+      let tok=this.lexer.next();
+      if (tok!==undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      let tok=this.peek_i(0);
+      if (tok&&tok.type===type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      let tok=this.next();
+      if (msg===undefined)
+        msg = type;
+      if (tok===undefined||tok.type!=type) {
+          this.error(tok, "Expected "+msg+", not "+tok.type);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  parser = _es6_module.add_export('parser', parser);
+  function test_parser() {
+    let basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    let reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    let tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      let js="";
+      let lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        let c=lexer.lexdata[lexer.lexpos];
+        if (c==="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (let rt in reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    function errfunc(lexer) {
+      return true;
+    }
+    let lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    let tok;
+    while (tok = lex.next()) {
+      console.log(tok.toString());
+    }
+    let parser=new parser(lex);
+    parser.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      let arraytype=p_Type(p);
+      let itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      let tok=p.peek();
+      if (tok.type==="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type==="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      let field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      let tok=p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type==="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      let st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    let ret=p_Struct(parser);
+    console.log(JSON.stringify(ret));
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/parseutil.js');
+
+
+es6_module_define('simple_events', ["./vectormath.js", "../config/config.js", "./util.js"], function _simple_events_module(_es6_module) {
+  var util=es6_import(_es6_module, './util.js');
+  var cconst=es6_import_item(_es6_module, '../config/config.js', 'default');
+  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
+  let modalstack=[];
+  modalstack = _es6_module.add_export('modalstack', modalstack);
+  let singleMouseCBs={}
+  function debugDomEvents() {
+    let cbsymbol=Symbol("event-callback");
+    let thsymbol=Symbol("debug-info");
+    let idgen=0;
+    function init(et) {
+      if (!et[thsymbol]) {
+          et[thsymbol] = idgen++;
+      }
+    }
+    function getkey(et, type, options) {
+      init(et);
+      return ""+et[thsymbol]+":"+type+":"+JSON.stringify(options);
+    }
+    let addEventListener=EventTarget.prototype.addEventListener;
+    let removeEventListener=EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.addEventListener = function (type, cb, options) {
+      init(this);
+      if (!cb[cbsymbol]) {
+          cb[cbsymbol] = new Set();
+      }
+      let key=getkey(this, type, options);
+      cb[cbsymbol].add(key);
+      return addEventListener.call(this, type, cb, options);
+    }
+    EventTarget.prototype.removeEventListener = function (type, cb, options) {
+      init(this);
+      if (!cb[cbsymbol]) {
+          console.error("Invalid callback in removeEventListener for", type, this, cb);
+          return ;
+      }
+      let key=getkey(this, type, options);
+      if (!cb[cbsymbol].has(key)) {
+          console.error("Callback not in removeEventListener;", type, this, cb);
+          return ;
+      }
+      cb[cbsymbol].delete(key);
+      return removeEventListener.call(this, type, cb, options);
+    }
+  }
+  function singletonMouseEvents() {
+    let keys=["mousedown", "mouseup", "mousemove"];
+    for (let k of keys) {
+        singleMouseCBs[k] = new Set();
+    }
+    let ddd=-1.0;
+    window.testSingleMouseUpEvent = (type) =>      {
+      if (type===undefined) {
+          type = "mousedown";
+      }
+      let id=ddd++;
+      singleMouseEvent(() =>        {
+        console.log("mouse event", id);
+      }, type);
+    }
+    let _mpos=new Vector2();
+    function doSingleCbs(e, type) {
+      let list=singleMouseCBs[type];
+      singleMouseCBs[type] = new Set();
+      if (e.type!=="touchend"&&e.type!=="touchcancel") {
+          _mpos[0] = e.touches&&e.touches.length>0 ? e.touches[0].pageX : e.x;
+          _mpos[1] = e.touches&&e.touches.length>0 ? e.touches[0].pageY : e.y;
+      }
+      if (e.touches) {
+          e = copyEvent(e);
+          e.type = type;
+          if (e.touches.length>0) {
+              e.x = e.pageX = e.touches[0].pageX;
+              e.y = e.pageY = e.touches[0].pageY;
+          }
+          else {
+            e.x = _mpos[0];
+            e.y = _mpos[1];
+          }
+      }
+      for (let cb of list) {
+          try {
+            cb(e);
+          }
+          catch (error) {
+              util.print_stack(error);
+              console.warn("Error in event callback");
+          }
+      }
+    }
+    window.addEventListener("mouseup", (e) =>      {
+      doSingleCbs(e, "mouseup");
+    }, {capture: true});
+    window.addEventListener("touchcancel", (e) =>      {
+      doSingleCbs(e, "mouseup");
+    }, {capture: true});
+    document.addEventListener("touchend", (e) =>      {
+      doSingleCbs(e, "mouseup");
+    }, {capture: true});
+    document.addEventListener("mousedown", (e) =>      {
+      doSingleCbs(e, "mousedown");
+    }, {capture: true});
+    document.addEventListener("touchstart", (e) =>      {
+      doSingleCbs(e, "mousedown");
+    }, {capture: true});
+    document.addEventListener("mousemove", (e) =>      {
+      doSingleCbs(e, "mousemove");
+    }, {capture: true});
+    document.addEventListener("touchmove", (e) =>      {
+      doSingleCbs(e, "mousemove");
+    }, {capture: true});
+    return {singleMouseEvent: function singleMouseEvent(cb, type) {
+        if (!(type in singleMouseCBs)) {
+            throw new Error("not a mouse event");
+        }
+        singleMouseCBs[type].add(cb);
+      }}
+  }
+  singletonMouseEvents = singletonMouseEvents();
+  function singleMouseEvent(cb, type) {
+    return singletonMouseEvents.singleMouseEvent(cb, type);
+  }
+  singleMouseEvent = _es6_module.add_export('singleMouseEvent', singleMouseEvent);
+  function isLeftClick(e) {
+    if (e.touches!==undefined) {
+        return e.touches.length===1;
+    }
+    return e.button===0;
+  }
+  isLeftClick = _es6_module.add_export('isLeftClick', isLeftClick);
+  class DoubleClickHandler  {
+     constructor() {
+      this.down = 0;
+      this.last = 0;
+      this.dblEvent = undefined;
+      this.start_mpos = new Vector2();
+      this._on_mouseup = this._on_mouseup.bind(this);
+      this._on_mousemove = this._on_mousemove.bind(this);
+    }
+     _on_mouseup(e) {
+      this.mdown = false;
+    }
+     _on_mousemove(e) {
+      let mpos=new Vector2();
+      mpos[0] = e.x;
+      mpos[1] = e.y;
+      let dist=mpos.vectorDistance(this.start_mpos)*devicePixelRatio;
+      if (dist>11) {
+          this.mdown = false;
+      }
+      if (this.mdown) {
+          singleMouseEvent(this._on_mousemove, "mousemove");
+      }
+      this.update();
+    }
+     mousedown(e) {
+      if (!this.last) {
+          this.last = 0;
+      }
+      if (!this.down) {
+          this.down = 0;
+      }
+      if (!this.up) {
+          this.up = 0;
+      }
+      if (isMouseDown(e)) {
+          this.mdown = true;
+          let cpy=Object.assign({}, e);
+          this.start_mpos[0] = e.x;
+          this.start_mpos[1] = e.y;
+          singleMouseEvent(this._on_mousemove, "mousemove");
+          if (e.type.search("touch")>=0&&e.touches.length>0) {
+              cpy.x = cpy.pageX = e.touches[0].pageX;
+              cpy.y = cpy.pageY = e.touches[1].pageY;
+          }
+          else {
+            cpy.x = cpy.pageX = e.x;
+            cpy.y = cpy.pageY = e.y;
+          }
+          this.dblEvent = copyEvent(e);
+          this.dblEvent.type = "dblclick";
+          this.last = this.down;
+          this.down = util.time_ms();
+          if (this.down-this.last<cconst.doubleClickTime) {
+              this.mdown = false;
+              this.ondblclick(this.dblEvent);
+              this.down = this.last = 0.0;
+          }
+          else {
+            singleMouseEvent(this._on_mouseup, "mouseup");
+          }
+      }
+      else {
+        this.mdown = false;
+      }
+    }
+     ondblclick(e) {
+
+    }
+     update() {
+      if (modalstack.length>0) {
+          this.mdown = false;
+      }
+      if (this.mdown&&util.time_ms()-this.down>cconst.doubleClickHoldTime) {
+          this.mdown = false;
+          this.ondblclick(this.dblEvent);
+      }
+    }
+     abort() {
+      this.last = this.down = 0;
+    }
+  }
+  _ESClass.register(DoubleClickHandler);
+  _es6_module.add_class(DoubleClickHandler);
+  DoubleClickHandler = _es6_module.add_export('DoubleClickHandler', DoubleClickHandler);
+  function isMouseDown(e) {
+    let mdown=0;
+    if (e.touches!==undefined) {
+        mdown = e.touches.length>0;
+    }
+    else {
+      mdown = e.buttons;
+    }
+    mdown = mdown&1;
+    return mdown;
+  }
+  isMouseDown = _es6_module.add_export('isMouseDown', isMouseDown);
+  function pathDebugEvent(e, extra) {
+    e.__prevdef = e.preventDefault;
+    e.__stopprop = e.stopPropagation;
+    e.preventDefault = function () {
+      console.warn("preventDefault", extra);
+      return this.__prevdef();
+    }
+    e.stopPropagation = function () {
+      console.warn("stopPropagation", extra);
+      return this.__stopprop();
+    }
+  }
+  pathDebugEvent = _es6_module.add_export('pathDebugEvent', pathDebugEvent);
+  function eventWasTouch(e) {
+    let ret=e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents;
+    ret = ret||e.was_touch;
+    ret = ret||__instance_of(e, TouchEvent);
+    ret = ret||e.touches!==undefined;
+    if (__instance_of(e, PointerEvent)) {
+        ret = ret||(e.pointerType==="pen"||e.pointerType==="touch");
+    }
+    return ret;
+  }
+  eventWasTouch = _es6_module.add_export('eventWasTouch', eventWasTouch);
+  function copyEvent(e) {
+    let ret={}
+    let keys=[];
+    for (let k in e) {
+        keys.push(k);
+    }
+    keys = keys.concat(Object.getOwnPropertySymbols(e));
+    keys = keys.concat(Object.getOwnPropertyNames(e));
+    for (let k of keys) {
+        let v;
+        try {
+          v = e[k];
+        }
+        catch (error) {
+            console.warn("read error for event key", k);
+            continue;
+        }
+        if (typeof v=="function") {
+            ret[k] = v.bind(e);
+        }
+        else {
+          ret[k] = v;
+        }
+    }
+    ret.original = e;
+    return ret;
+  }
+  copyEvent = _es6_module.add_export('copyEvent', copyEvent);
+  let Screen;
+  function _setScreenClass(cls) {
+    Screen = cls;
+  }
+  _setScreenClass = _es6_module.add_export('_setScreenClass', _setScreenClass);
+  function findScreen() {
+    let rec=(n) =>      {
+      for (let n2 of n.childNodes) {
+          if (n2&&typeof n2==="object"&&__instance_of(n2, Screen)) {
+              return n2;
+          }
+      }
+      for (let n2 of n.childNodes) {
+          let ret=rec(n2);
+          if (ret) {
+              return ret;
+          }
+      }
+    }
+    return rec(document.body);
+  }
+  window._findScreen = findScreen;
+  let ContextAreaClass;
+  function _setModalAreaClass(cls) {
+    ContextAreaClass = cls;
+  }
+  _setModalAreaClass = _es6_module.add_export('_setModalAreaClass', _setModalAreaClass);
+  function pushPointerModal(obj, elem, pointerId, autoStopPropagation) {
+    if (autoStopPropagation===undefined) {
+        autoStopPropagation = true;
+    }
+    return pushModalLight(obj, autoStopPropagation, elem, pointerId);
+  }
+  pushPointerModal = _es6_module.add_export('pushPointerModal', pushPointerModal);
+  function pushModalLight(obj, autoStopPropagation, elem, pointerId) {
+    if (autoStopPropagation===undefined) {
+        autoStopPropagation = true;
+    }
+    let keys;
+    if (pointerId===undefined) {
+        keys = new Set(["keydown", "keyup", "keypress", "mousedown", "mouseup", "touchstart", "touchend", "touchcancel", "mousewheel", "mousemove", "mouseover", "mouseout", "mouseenter", "mouseleave", "dragstart", "drag", "dragend", "dragexit", "dragleave", "dragover", "dragenter", "drop", "pointerdown", "pointermove", "pointerup", "pointercancel", "pointerstart", "pointerend", "pointerleave", "pointerexit", "pointerenter", "pointerover"]);
+    }
+    else {
+      keys = new Set(["keydown", "keyup", "keypress", "mousewheel"]);
+    }
+    let ret={keys: keys, 
+    handlers: {}, 
+    last_mpos: [0, 0]}
+    let touchmap={"touchstart": "mousedown", 
+    "touchmove": "mousemove", 
+    "touchend": "mouseup", 
+    "touchcancel": "mouseup"}
+    let mpos=[0, 0];
+    let screen=findScreen();
+    if (screen) {
+        mpos[0] = screen.mpos[0];
+        mpos[1] = screen.mpos[1];
+        screen = undefined;
+    }
+    function handleAreaContext() {
+      let screen=findScreen();
+      if (screen) {
+          let sarea=screen.findScreenArea(mpos[0], mpos[1]);
+          if (sarea&&sarea.area) {
+              sarea.area.push_ctx_active();
+              sarea.area.pop_ctx_active();
+          }
+      }
+    }
+    function make_default_touchhandler(type, state) {
+      return function (e) {
+        if (cconst.DEBUG.domEvents) {
+            pathDebugEvent(e);
+        }
+        if (touchmap[type] in ret.handlers) {
+            let type2=touchmap[type];
+            let e2=copyEvent(e);
+            e2.was_touch = true;
+            e2.type = type2;
+            e2.button = type=="touchcancel" ? 1 : 0;
+            e2.touches = e.touches;
+            if (e.touches.length>0) {
+                let dpi=window.devicePixelRatio;
+                let t=e.touches[0];
+                mpos[0] = t.pageX;
+                mpos[1] = t.pageY;
+                e2.pageX = e2.x = t.pageX;
+                e2.pageY = e2.y = t.pageY;
+                e2.clientX = t.clientX;
+                e2.clientY = t.clientY;
+                e2.x = t.clientX;
+                e2.y = t.clientY;
+                ret.last_mpos[0] = e2.x;
+                ret.last_mpos[1] = e2.y;
+            }
+            else {
+              e2.x = e2.clientX = e2.pageX = e2.screenX = ret.last_mpos[0];
+              e2.y = e2.clientY = e2.pageY = e2.screenY = ret.last_mpos[1];
+            }
+            e2.was_touch = true;
+            handleAreaContext();
+            ret.handlers[type2](e2);
+        }
+        if (autoStopPropagation) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+      }
+    }
+    function make_handler(type, key) {
+      return function (e) {
+        if (cconst.DEBUG.domEvents) {
+            pathDebugEvent(e);
+        }
+        if (typeof key!=="string") {
+            return ;
+        }
+        if (key.startsWith("mouse")) {
+            mpos[0] = e.pageX;
+            mpos[1] = e.pageY;
+        }
+        handleAreaContext();
+        if (key!==undefined)
+          obj[key](e);
+        if (autoStopPropagation) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+      }
+    }
+    let found={}
+    for (let k of keys) {
+        let key;
+        if (obj[k])
+          key = k;
+        else 
+          if (obj["on"+k])
+          key = "on"+k;
+        else 
+          if (obj["on_"+k])
+          key = "on_"+k;
+        else 
+          if (k in touchmap)
+          continue;
+        else 
+          key = undefined;
+        if (key===undefined&&k.search("pointer")===0) {
+            continue;
+        }
+        if (key!==undefined) {
+            found[k] = 1;
+        }
+        let handler=make_handler(k, key);
+        ret.handlers[k] = handler;
+        let settings=handler.settings = {passive: false, 
+      capture: true};
+        window.addEventListener(k, handler, settings);
+    }
+    for (let k in touchmap) {
+        if (!(k in found)) {
+            ret.handlers[k] = make_default_touchhandler(k, ret);
+            let settings=ret.handlers[k].settings = {passive: false, 
+        capture: true};
+            window.addEventListener(k, ret.handlers[k], settings);
+        }
+    }
+    if (pointerId!==undefined) {
+        ret.pointer = {elem: elem, 
+      pointerId: pointerId};
+        function make_pointer(k) {
+          let k2="on_"+k;
+          ret.pointer[k] = function (e) {
+            if (obj[k2]!==undefined) {
+                obj[k2](e);
+            }
+            if (autoStopPropagation) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+          }
+        }
+        make_pointer("pointerdown");
+        make_pointer("pointermove");
+        make_pointer("pointerup");
+        make_pointer("pointerstart");
+        make_pointer("pointerend");
+        make_pointer("pointerleave");
+        make_pointer("pointerenter");
+        make_pointer("pointerout");
+        make_pointer("pointerover");
+        make_pointer("pointerexit");
+        make_pointer("pointercancel");
+        for (let k in ret.pointer) {
+            if (k!=="elem"&&k!=="pointerId") {
+                elem.addEventListener(k, ret.pointer[k]);
+            }
+        }
+        try {
+          elem.setPointerCapture(pointerId);
+        }
+        catch (error) {
+            util.print_stack(error);
+            console.log("attempting fallback");
+            for (let k in ret.pointer) {
+                if (k!=="elem"&&k!=="pointerId") {
+                    elem.removeEventListener(k, ret.pointer[k]);
+                }
+            }
+            delete ret.pointer;
+            modalstack.push(ret);
+            popModalLight(ret);
+            for (let k in obj) {
+                if (k==="pointercancel"||k==="pointerend"||k==="pointerstart") {
+                    continue;
+                }
+                if (k.startsWith("pointer")) {
+                    let k2=k.replace(/pointer/, "mouse");
+                    if (k2 in obj) {
+                        console.warn("warning, existing mouse handler", k2);
+                        continue;
+                    }
+                    let v=obj[k];
+                    obj[k] = undefined;
+                    obj[k2] = v;
+                }
+            }
+            console.log(obj);
+            return pushModalLight(obj, autoStopPropagation);
+        }
+    }
+    modalstack.push(ret);
+    ContextAreaClass.lock();
+    if (cconst.DEBUG.modalEvents) {
+        console.warn("pushModalLight", ret.pointer ? "(pointer events)" : "");
+    }
+    return ret;
+  }
+  pushModalLight = _es6_module.add_export('pushModalLight', pushModalLight);
+  if (0) {
+      let addevent=EventTarget.prototype.addEventListener;
+      let remevent=EventTarget.prototype.removeEventListener;
+      const funckey=Symbol("eventfunc");
+      EventTarget.prototype.addEventListener = function (name, func, args) {
+        console.warn("listener added", name, func, args);
+        let func2=function (e) {
+          let proxy=new Proxy(e, {get: function get(target, p, receiver) {
+              if (p==="preventDefault") {
+                  return function () {
+                    console.warn("preventDefault", name, arguments);
+                    return e.preventDefault(...arguments);
+                  }
+              }
+              else 
+                if (p==="stopPropagation") {
+                  return function () {
+                    console.warn("stopPropagation", name, arguments);
+                    return e.preventDefault(...arguments);
+                  }
+              }
+              return e[p];
+            }});
+          return func.call(this, proxy);
+        }
+        func[funckey] = func2;
+        return addevent.call(this, name, func2, args);
+      };
+      EventTarget.prototype.removeEventListener = function (name, func, args) {
+        console.warn("listener removed", name, func, args);
+        func = func[funckey];
+        return remevent.call(this, name, func, args);
+      };
+  }
+  function popModalLight(state) {
+    if (state===undefined) {
+        console.warn("Bad call to popModalLight: state was undefined");
+        return ;
+    }
+    if (state!==modalstack[modalstack.length-1]) {
+        if (modalstack.indexOf(state)<0) {
+            console.warn("Error in popModalLight; modal handler not found");
+            return ;
+        }
+        else {
+          console.warn("Error in popModalLight; called in wrong order");
+        }
+    }
+    for (let k in state.handlers) {
+        window.removeEventListener(k, state.handlers[k], state.handlers[k].settings);
+    }
+    state.handlers = {}
+    modalstack.remove(state);
+    ContextAreaClass.unlock();
+    if (cconst.DEBUG.modalEvents) {
+        console.warn("popModalLight", modalstack, state.pointer ? "(pointer events)" : "");
+    }
+    if (state.pointer) {
+        let elem=state.pointer.elem;
+        try {
+          elem.releasePointerCapture(state.pointer.pointerId);
+        }
+        catch (error) {
+            util.print_stack(error);
+        }
+        for (let k in state.pointer) {
+            if (k!=="elem"&&k!=="pointerId") {
+                elem.removeEventListener(k, state.pointer[k]);
+            }
+        }
+    }
+  }
+  popModalLight = _es6_module.add_export('popModalLight', popModalLight);
+  function haveModal() {
+    return modalstack.length>0;
+  }
+  haveModal = _es6_module.add_export('haveModal', haveModal);
+  window._haveModal = haveModal;
+  var keymap_latin_1={"Space": 32, 
+   "Escape": 27, 
+   "Enter": 13, 
+   "Return": 13, 
+   "Up": 38, 
+   "Down": 40, 
+   "Left": 37, 
+   "Right": 39, 
+   "Num0": 96, 
+   "Num1": 97, 
+   "Num2": 98, 
+   "Num3": 99, 
+   "Num4": 100, 
+   "Num5": 101, 
+   "Num6": 102, 
+   "Num7": 103, 
+   "Num8": 104, 
+   "Num9": 105, 
+   "Home": 36, 
+   "End": 35, 
+   "Delete": 46, 
+   "Backspace": 8, 
+   "Insert": 45, 
+   "PageUp": 33, 
+   "PageDown": 34, 
+   "Tab": 9, 
+   "-": 189, 
+   "=": 187, 
+   ".": 190, 
+   "/": 191, 
+   ",": 188, 
+   ";": 186, 
+   "'": 222, 
+   "[": 219, 
+   "]": 221, 
+   "NumPlus": 107, 
+   "NumMinus": 109, 
+   "Shift": 16, 
+   "Ctrl": 17, 
+   "Control": 17, 
+   "Alt": 18}
+  keymap_latin_1 = _es6_module.add_export('keymap_latin_1', keymap_latin_1);
+  for (var i=0; i<26; i++) {
+      keymap_latin_1[String.fromCharCode(i+65)] = i+65;
+  }
+  for (var i=0; i<10; i++) {
+      keymap_latin_1[String.fromCharCode(i+48)] = i+48;
+  }
+  for (var k in keymap_latin_1) {
+      if (!(k in keymap_latin_1)) {
+          keymap_latin_1[keymap_latin_1[k]] = k;
+      }
+  }
+  var keymap_latin_1_rev={}
+  for (var k in keymap_latin_1) {
+      keymap_latin_1_rev[keymap_latin_1[k]] = k;
+  }
+  var keymap=keymap_latin_1;
+  keymap = _es6_module.add_export('keymap', keymap);
+  var reverse_keymap=keymap_latin_1_rev;
+  reverse_keymap = _es6_module.add_export('reverse_keymap', reverse_keymap);
+  class HotKey  {
+     constructor(key, modifiers, action, uiname) {
+      this.action = action;
+      this.mods = modifiers;
+      this.key = keymap[key];
+      this.uiname = uiname;
+    }
+     exec(ctx) {
+      if (typeof this.action=="string") {
+          ctx.api.execTool(ctx, this.action);
+      }
+      else {
+        this.action(ctx);
+      }
+    }
+     buildString() {
+      let s="";
+      for (let i=0; i<this.mods.length; i++) {
+          if (i>0) {
+              s+=" + ";
+          }
+          let k=this.mods[i].toLowerCase();
+          k = k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
+          s+=k;
+      }
+      if (this.mods.length>0) {
+          s+="+";
+      }
+      s+=reverse_keymap[this.key];
+      return s.trim();
+    }
+  }
+  _ESClass.register(HotKey);
+  _es6_module.add_class(HotKey);
+  HotKey = _es6_module.add_export('HotKey', HotKey);
+  class KeyMap extends Array {
+     constructor(hotkeys=[], pathid="undefined") {
+      super();
+      this.pathid = pathid;
+      for (let hk of hotkeys) {
+          this.add(hk);
+      }
+    }
+     handle(ctx, e) {
+      let mods=new util.set();
+      if (e.shiftKey)
+        mods.add("shift");
+      if (e.altKey)
+        mods.add("alt");
+      if (e.ctrlKey) {
+          mods.add("ctrl");
+      }
+      if (e.commandKey) {
+          mods.add("command");
+      }
+      for (let hk of this) {
+          let ok=e.keyCode===hk.key;
+          if (!ok)
+            continue;
+          let count=0;
+          for (let m of hk.mods) {
+              m = m.toLowerCase().trim();
+              if (!mods.has(m)) {
+                  ok = false;
+                  break;
+              }
+              count++;
+          }
+          if (count!==mods.length) {
+              ok = false;
+          }
+          if (ok) {
+              try {
+                hk.exec(ctx);
+              }
+              catch (error) {
+                  util.print_stack(error);
+                  console.log("failed to execute a hotkey", keymap[e.keyCode]);
+              }
+              return true;
+          }
+      }
+    }
+     add(hk) {
+      this.push(hk);
+    }
+     push(hk) {
+      super.push(hk);
+    }
+  }
+  _ESClass.register(KeyMap);
+  _es6_module.add_class(KeyMap);
+  KeyMap = _es6_module.add_export('KeyMap', KeyMap);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/simple_events.js');
+
+
+es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], function _solver_module(_es6_module) {
+  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
+  var math=es6_import(_es6_module, './math.js');
+  var util=es6_import(_es6_module, './util.js');
+  class Constraint  {
+     constructor(name, func, klst, params, k=1.0) {
+      this.glst = [];
+      this.klst = klst;
+      this.k = k;
+      this.params = params;
+      this.name = name;
+      for (let ks of klst) {
+          this.glst.push(new Float64Array(ks.length));
+      }
+      this.df = 0.0005;
+      this.threshold = 0.0001;
+      this.func = func;
+      this.funcDv = null;
+    }
+     evaluate(no_dvs=false) {
+      let r1=this.func(this.params);
+      if (this.funcDv) {
+          this.funcDv(this.params, this.glst);
+          return r1;
+      }
+      if (Math.abs(r1)<this.threshold)
+        return 0.0;
+      let df=this.df;
+      if (no_dvs)
+        return r1;
+      for (let i=0; i<this.klst.length; i++) {
+          let gs=this.glst[i];
+          let ks=this.klst[i];
+          for (let j=0; j<ks.length; j++) {
+              let orig=ks[j];
+              ks[j]+=df;
+              let r2=this.func(this.params);
+              ks[j] = orig;
+              gs[j] = (r2-r1)/df;
+          }
+      }
+      return r1;
+    }
+  }
+  _ESClass.register(Constraint);
+  _es6_module.add_class(Constraint);
+  Constraint = _es6_module.add_export('Constraint', Constraint);
+  class Solver  {
+     constructor() {
+      this.constraints = [];
+      this.gk = 0.99;
+      this.simple = false;
+      this.randCons = false;
+      this.threshold = 0.01;
+    }
+     add(con) {
+      this.constraints.push(con);
+    }
+     solveStep(gk=this.gk) {
+      let err=0.0;
+      let cons=this.constraints;
+      for (let ci=0; ci<cons.length; ci++) {
+          let ri=ci;
+          if (this.randCons) {
+              ri = ~~(Math.random()*this.constraints.length*0.99999);
+          }
+          let con=cons[ri];
+          let r1=con.evaluate();
+          if (r1===0.0)
+            continue;
+          err+=Math.abs(r1);
+          let totgs=0.0;
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  totgs+=gs[j]*gs[j];
+              }
+          }
+          if (totgs===0.0) {
+              continue;
+          }
+          r1/=totgs;
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  ks[j]+=-r1*gs[j]*con.k*gk;
+              }
+          }
+      }
+      return err;
+    }
+     solveStepSimple(gk=this.gk) {
+      let err=0.0;
+      let cons=this.constraints;
+      for (let ci=0; ci<cons.length; ci++) {
+          let ri=ci;
+          if (this.randCons) {
+              ri = ~~(Math.random()*this.constraints.length*0.99999);
+          }
+          let con=cons[ri];
+          let r1=con.evaluate();
+          if (r1===0.0)
+            continue;
+          err+=Math.abs(r1);
+          let totgs=0.0;
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  totgs+=gs[j]*gs[j];
+              }
+          }
+          if (totgs===0.0) {
+              continue;
+          }
+          totgs = 0.0001/Math.sqrt(totgs);
+          for (let i=0; i<con.klst.length; i++) {
+              let ks=con.klst[i], gs=con.glst[i];
+              for (let j=0; j<ks.length; j++) {
+                  ks[j]+=-totgs*gs[j]*con.k*gk;
+              }
+          }
+      }
+      return err;
+    }
+     solve(steps, gk=this.gk, printError=false) {
+      let err=0.0;
+      for (let i=0; i<steps; i++) {
+          if (this.simple) {
+              err = this.solveStepSimple(gk);
+          }
+          else {
+            err = this.solveStep(gk);
+          }
+          if (printError) {
+              console.warn("average error:", (err/this.constraints.length).toFixed(4));
+          }
+          if (err<this.threshold/this.constraints.length) {
+              break;
+          }
+      }
+      return err;
+    }
+  }
+  _ESClass.register(Solver);
+  _es6_module.add_class(Solver);
+  Solver = _es6_module.add_export('Solver', Solver);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/solver.js');
+
+
+es6_module_define('struct', ["./nstructjs_es6.js"], function _struct_module(_es6_module) {
+  var nstructjs=es6_import(_es6_module, './nstructjs_es6.js');
+  nstructjs;
+  _es6_module.set_default_export('nstructjs', nstructjs);
+  
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/struct.js');
+
+
 es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var nstructjs=es6_import_item(_es6_module, './struct.js', 'default');
@@ -2180,7 +7424,7 @@ mat4 {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/vectormath.js');
 
 
-es6_module_define('pathux', ["./widgets/ui_textbox.js", "./widgets/ui_treeview.js", "./core/ui.js", "./core/ui_theme.js", "./path-controller/util/polyfill.js", "./path-controller/controller.js", "./widgets/ui_tabs.js", "./platforms/platform.js", "./platforms/electron/electron_api.js", "./path-controller/util/graphpack.js", "./widgets/ui_button.js", "./widgets/ui_noteframe.js", "./widgets/ui_menu.js", "./config/const.js", "./widgets/ui_widgets2.js", "./widgets/ui_widgets.js", "./core/ui_base.js", "./widgets/ui_curvewidget.js", "./path-controller/util/html5_fileapi.js", "./widgets/theme_editor.js", "./screen/FrameManager.js", "./widgets/ui_progress.js", "./widgets/ui_richedit.js", "./xmlpage/xmlpage.js", "./platforms/platform_base.js", "./core/units.js", "./screen/ScreenArea.js", "./widgets/ui_table.js", "./simple/simple.js", "./widgets/ui_listbox.js", "./widgets/ui_numsliders.js", "./widgets/ui_lasttool.js", "./widgets/ui_colorpicker2.js", "./util/ScreenOverdraw.js", "./widgets/ui_panel.js"], function _pathux_module(_es6_module) {
+es6_module_define('pathux', ["./widgets/ui_listbox.js", "./core/ui_theme.js", "./simple/simple.js", "./widgets/theme_editor.js", "./platforms/electron/electron_api.js", "./widgets/ui_tabs.js", "./platforms/platform.js", "./screen/ScreenArea.js", "./widgets/ui_curvewidget.js", "./path-controller/util/html5_fileapi.js", "./core/ui_base.js", "./widgets/ui_panel.js", "./widgets/ui_widgets.js", "./platforms/platform_base.js", "./widgets/ui_menu.js", "./config/const.js", "./path-controller/util/graphpack.js", "./widgets/ui_noteframe.js", "./util/ScreenOverdraw.js", "./core/ui.js", "./widgets/ui_textbox.js", "./widgets/ui_button.js", "./widgets/ui_colorpicker2.js", "./widgets/ui_treeview.js", "./widgets/ui_progress.js", "./widgets/ui_lasttool.js", "./widgets/ui_table.js", "./widgets/ui_widgets2.js", "./widgets/ui_richedit.js", "./xmlpage/xmlpage.js", "./screen/FrameManager.js", "./path-controller/controller.js", "./core/units.js", "./path-controller/util/polyfill.js", "./widgets/ui_numsliders.js"], function _pathux_module(_es6_module) {
   es6_import(_es6_module, './path-controller/util/polyfill.js');
   var ___xmlpage_xmlpage_js=es6_import(_es6_module, './xmlpage/xmlpage.js');
   for (let k in ___xmlpage_xmlpage_js) {
@@ -2327,7 +7571,7 @@ es6_module_define('pathux', ["./widgets/ui_textbox.js", "./widgets/ui_treeview.j
 }, '/dev/fairmotion/src/path.ux/scripts/pathux.js');
 
 
-es6_module_define('electron_api', ["../../core/ui_base.js", "../../config/const.js", "../../util/util.js", "../../widgets/ui_menu.js", "../platform_base.js"], function _electron_api_module(_es6_module) {
+es6_module_define('electron_api', ["../../config/const.js", "../../widgets/ui_menu.js", "../../util/util.js", "../platform_base.js", "../../core/ui_base.js"], function _electron_api_module(_es6_module) {
   "use strict";
   function getElectronVersion() {
     let key=navigator.userAgent;
@@ -2404,9 +7648,9 @@ es6_module_define('electron_api', ["../../core/ui_base.js", "../../config/const.
       this.push(item);
     }
      popup(args) {
-      let $_t0lccd=args, x=$_t0lccd.x, y=$_t0lccd.y, callback=$_t0lccd.callback;
+      let $_t0pams=args, x=$_t0pams.x, y=$_t0pams.y, callback=$_t0pams.callback;
       callback = wrapRemoteCallback("popup_menu_click", callback);
-      const $_t1pptf=require('electron'), ipcRenderer=$_t1pptf.ipcRenderer;
+      const $_t1ndap=require('electron'), ipcRenderer=$_t1ndap.ipcRenderer;
       ipcRenderer.invoke("popup-menu", this, x, y, callback);
     }
   }
@@ -2670,7 +7914,7 @@ es6_module_define('electron_api', ["../../core/ui_base.js", "../../config/const.
   var isMimeText=es6_import_item(_es6_module, '../platform_base.js', 'isMimeText');
   class platform extends PlatformAPI {
     static  showOpenDialog(title, args=new FileDialogArgs()) {
-      const $_t2rfpu=require('electron').remote, dialog=$_t2rfpu.dialog;
+      const $_t2lkqr=require('electron').remote, dialog=$_t2lkqr.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -2718,7 +7962,7 @@ es6_module_define('electron_api', ["../../core/ui_base.js", "../../config/const.
       return filters2;
     }
     static  showSaveDialog(title, filedata_cb, args=new FileDialogArgs()) {
-      const $_t3hmpw=require('electron').remote, dialog=$_t3hmpw.dialog;
+      const $_t3rqrn=require('electron').remote, dialog=$_t3rqrn.dialog;
       console.log(args.filters);
       let eargs={defaultPath: args.defaultPath, 
      filters: this._sanitizeFilters(args.filters??[]), 
@@ -3242,7 +8486,7 @@ es6_module_define('web_api', ["../../path-controller/util/html5_fileapi.js", "..
 }, '/dev/fairmotion/src/path.ux/scripts/platforms/web/web_api.js');
 
 
-es6_module_define('AreaDocker', ["../path-controller/util/util.js", "../config/const.js", "../core/ui.js", "../path-controller/util/struct.js", "./ScreenArea.js", "../path-controller/util/vectormath.js", "./area_wrangler.js", "../core/ui_base.js", "../widgets/ui_menu.js"], function _AreaDocker_module(_es6_module) {
+es6_module_define('AreaDocker', ["../core/ui.js", "../core/ui_base.js", "./ScreenArea.js", "../config/const.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "./area_wrangler.js", "../widgets/ui_menu.js", "../path-controller/util/util.js"], function _AreaDocker_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
   var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
@@ -3606,7 +8850,7 @@ es6_module_define('AreaDocker', ["../path-controller/util/util.js", "../config/c
 }, '/dev/fairmotion/src/path.ux/scripts/screen/AreaDocker.js');
 
 
-es6_module_define('area_wrangler', ["../core/ui_consts.js", "../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js"], function _area_wrangler_module(_es6_module) {
+es6_module_define('area_wrangler', ["../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "../path-controller/util/util.js", "../core/ui_consts.js"], function _area_wrangler_module(_es6_module) {
   var haveModal=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'haveModal');
   var _setModalAreaClass=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', '_setModalAreaClass');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -3801,7 +9045,7 @@ es6_module_define('area_wrangler', ["../core/ui_consts.js", "../path-controller/
 }, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
 
 
-es6_module_define('FrameManager', ["../widgets/ui_menu.js", "../widgets/ui_treeview.js", "./FrameManager_ops.js", "../path-controller/util/math.js", "../util/ScreenOverdraw.js", "../widgets/ui_curvewidget.js", "../widgets/ui_table.js", "../widgets/ui_widgets.js", "../widgets/ui_colorpicker2.js", "./FrameManager_mesh.js", "../widgets/ui_widgets2.js", "../core/ui_base.js", "../widgets/ui_tabs.js", "../widgets/ui_noteframe.js", "../path-controller/controller.js", "../widgets/ui_dialog.js", "./ScreenArea.js", "../path-controller/util/util.js", "../widgets/ui_panel.js", "../path-controller/util/vectormath.js", "../config/const.js", "./AreaDocker.js", "../widgets/ui_listbox.js", "../widgets/ui_textbox.js", "../path-controller/util/simple_events.js", "../widgets/dragbox.js", "../path-controller/util/struct.js"], function _FrameManager_module(_es6_module) {
+es6_module_define('FrameManager', ["../path-controller/util/math.js", "../widgets/ui_noteframe.js", "../widgets/ui_listbox.js", "../widgets/ui_tabs.js", "../path-controller/util/struct.js", "../config/const.js", "../widgets/ui_widgets.js", "./FrameManager_mesh.js", "../core/ui_base.js", "../widgets/ui_treeview.js", "../widgets/ui_menu.js", "./FrameManager_ops.js", "../widgets/ui_curvewidget.js", "../widgets/ui_panel.js", "../widgets/ui_dialog.js", "../path-controller/util/vectormath.js", "../widgets/dragbox.js", "../path-controller/controller.js", "../widgets/ui_colorpicker2.js", "../util/ScreenOverdraw.js", "../path-controller/util/simple_events.js", "../path-controller/util/util.js", "./AreaDocker.js", "../widgets/ui_widgets2.js", "../widgets/ui_table.js", "../widgets/ui_textbox.js", "./ScreenArea.js"], function _FrameManager_module(_es6_module) {
   var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
   let _FrameManager=undefined;
   es6_import(_es6_module, '../widgets/dragbox.js');
@@ -5151,7 +10395,6 @@ es6_module_define('FrameManager', ["../widgets/ui_menu.js", "../widgets/ui_treev
      regenBorders() {
       for (let b of this.screenborders) {
           b.remove();
-          HTMLElement.prototype.remove.call(b);
       }
       this._idmap = {};
       this.screenborders = [];
@@ -6116,7 +11359,7 @@ pathux.Screen {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager.js');
 
 
-es6_module_define('FrameManager_mesh', ["../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../path-controller/util/struct.js", "./FrameManager_ops.js", "../config/const.js", "../core/ui_base.js", "../widgets/ui_menu.js"], function _FrameManager_mesh_module(_es6_module) {
+es6_module_define('FrameManager_mesh', ["../path-controller/util/struct.js", "../core/ui_base.js", "./FrameManager_ops.js", "../path-controller/util/vectormath.js", "../widgets/ui_menu.js", "../path-controller/util/simple_events.js", "../config/const.js"], function _FrameManager_mesh_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var FrameManager_ops=es6_import(_es6_module, './FrameManager_ops.js');
@@ -6238,7 +11481,7 @@ pathux.ScreenVert {
       this.inner = document.createElement("div");
       this.shadow.appendChild(this.inner);
       let call_menu=ScreenBorder.bindBorderMenu(this);
-      this.addEventListener("mousedown", (e) =>        {
+      this.addEventListener("pointerdown", (e) =>        {
         let ok=this.movable;
         if (e.button===2) {
             call_menu(e);
@@ -6248,7 +11491,6 @@ pathux.ScreenVert {
             console.log("border is not movable");
             return ;
         }
-        console.log("area resize start!");
         let tool=new FrameManager_ops.AreaResizeTool(this.screen, this, [e.x, e.y]);
         tool.start();
         e.preventDefault();
@@ -6470,7 +11712,7 @@ pathux.ScreenVert {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_mesh.js');
 
 
-es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", "../widgets/ui_widgets2.js", "../path-controller/toolsys/toolsys.js", "../util/simple_events.js", "../path-controller/util/util.js", "../core/ui_base.js", "../config/const.js"], function _FrameManager_ops_module(_es6_module) {
+es6_module_define('FrameManager_ops', ["../widgets/ui_widgets2.js", "../path-controller/util/vectormath.js", "../util/simple_events.js", "../core/ui_base.js", "../path-controller/util/util.js", "../config/const.js", "../path-controller/toolsys/toolsys.js"], function _FrameManager_ops_module(_es6_module) {
   "use strict";
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -6536,21 +11778,20 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           }
       }
       if (pointerId!==undefined) {
-          handlers.on_pointerdown = handlers.on_mousedown;
-          handlers.on_pointermove = handlers.on_mousemove;
-          handlers.on_pointerup = handlers.on_mouseup;
-          handlers.on_pointercancel = handlers.on_mouseup;
-          handlers.on_pointerend = handlers.on_mouseup;
+          handlers.on_pointerdown = handlers.on_pointerdown??handlers.on_mousedown;
+          handlers.on_pointermove = handlers.on_pointermove??handlers.on_mousemove;
+          handlers.on_pointerup = handlers.on_pointerup??handlers.on_mouseup;
+          handlers.on_pointercancel = handlers.on_pointercancel??handlers.on_pointerup??handlers.on_mouseup;
           this.modaldata = pushPointerModal(handlers, elem, pointerId);
       }
       else {
         this.modaldata = pushModalLight(handlers);
       }
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
 
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       this.finish();
     }
      on_keydown(e) {
@@ -6618,7 +11859,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       rec(this.border.v2);
       return ret;
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       this.finish();
     }
      finish() {
@@ -6637,7 +11878,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           break;
       }
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let mpos=new Vector2([e.x, e.y]);
       mpos.sub(this.start_mpos);
       let axis=this.border.horiz ? 1 : 0;
@@ -6747,7 +11988,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       screen.splitArea(sarea, t, this.horiz);
       screen._internalRegenAll();
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let x=e.x, y=e.y;
       let screen=this.screen;
       let sarea=screen.findScreenArea(x, y);
@@ -6769,10 +12010,10 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           }
       }
     }
-     on_mousedown(e) {
+     on_pointerdown(e) {
 
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       this.finish();
       if (e.button) {
           this.stopPropagation();
@@ -6848,7 +12089,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           screen._internalRegenAll();
       }
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let x=e.x, y=e.y;
       let screen=this.screen;
       let sarea=screen.findScreenArea(x, y);
@@ -6858,10 +12099,10 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           this.overdraw.rect(sarea.pos, sarea.size, "rgba(0,0,0,0.1)");
       }
     }
-     on_mousedown(e) {
+     on_pointerdown(e) {
 
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       this.finish();
       if (e.button) {
           this.stopPropagation();
@@ -7094,10 +12335,10 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
         b.side = side;
         b.setAttribute("class", cls);
         b.setAttribute("is_box", true);
-        b.addEventListener("mousemove", this.on_mousemove.bind(this));
+        b.addEventListener("pointermove", this.on_pointermove.bind(this));
         let onclick=b.onclick = (e) =>          {
           let type=e.type.toLowerCase();
-          if ((e.type==="mousedown"||e.type==="mouseup")&&e.button!==0) {
+          if ((e.type==="pointerdown"||e.type==="pointerup")&&e.button!==0) {
               return ;
           }
           console.log("split click");
@@ -7109,9 +12350,9 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           }
         }
         b.addEventListener("click", onclick);
-        b.addEventListener("mousedown", onclick);
-        b.addEventListener("mouseup", onclick);
-        b.addEventListener("mouseenter", (e) =>          {
+        b.addEventListener("pointerdown", onclick);
+        b.addEventListener("pointerup", onclick);
+        b.addEventListener("pointerenter", (e) =>          {
           if (this.curbox!==undefined) {
               if (this.curbox.rect) {
                   this.curbox.rect.remove();
@@ -7126,7 +12367,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
           this.curbox = b;
           b.setColor(hcolor);
         });
-        b.addEventListener("mouseleave", (e) =>          {
+        b.addEventListener("pointerleave", (e) =>          {
           if (b.rect) {
               b.rect.remove();
               b.rect = undefined;
@@ -7170,12 +12411,12 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       }
     }
      on_drag(e) {
-      this.on_mousemove(e);
+      this.on_pointermove(e);
     }
      on_dragend(e) {
-      this.on_mouseup(e);
+      this.on_pointerup(e);
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let wid=55;
       let color="rgb(200, 200, 200, 0.7)";
       let n=this.getActiveBox(e.x, e.y);
@@ -7184,10 +12425,10 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       }
       if (this.boxes.active!==undefined&&this.boxes.active!==n) {
           this.boxes.active.setColor(this.color);
-          this.boxes.active.dispatchEvent(new MouseEvent("mouseleave", e));
+          this.boxes.active.dispatchEvent(new PointerEvent("pointerleave", e));
       }
       if (n!==undefined) {
-          n.dispatchEvent(new MouseEvent("mouseenter", e));
+          n.dispatchEvent(new PointerEvent("pointerenter", e));
       }
       this.boxes.active = n;
       if (this.sarea===undefined) {
@@ -7204,9 +12445,6 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       }
     }
      on_pointerup(e) {
-      this.on_mouseup(e);
-    }
-     on_mouseup(e) {
       console.log("e.button", e.button, e, e.x, e.y, this.getActiveBox(e.x, e.y));
       if (e.button) {
           e.stopPropagation();
@@ -7260,7 +12498,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       this.start_mpos2 = new Vector2(mpos);
       this.start_pos = new Vector2(sarea.pos);
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       let dx=e.x-this.start_mpos2[0];
       let dy=e.y-this.start_mpos2[1];
       let sarea=this.sarea;
@@ -7273,13 +12511,13 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
       sarea.pos[1] = this.start_pos[1]+dy;
       sarea.loadFromPosSize();
       this.mpos.loadXY(e.x, e.y);
-      super.on_mousemove(e);
+      super.on_pointermove(e);
     }
-     on_mouseup(e) {
-      super.on_mouseup(e);
+     on_pointerup(e) {
+      super.on_pointerup(e);
     }
-     on_mousedown(e) {
-      super.on_mousedown(e);
+     on_pointerdown(e) {
+      super.on_pointerdown(e);
     }
      on_keydown(e) {
       super.on_keydown(e);
@@ -7305,13 +12543,13 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
      inputs: {}, 
      outputs: {}}
     }
-     on_mousemove(e) {
+     on_pointermove(e) {
       this.pick(e);
     }
-     on_mousedown(e) {
+     on_pointerdown(e) {
       this.pick(e);
     }
-     on_mouseup(e) {
+     on_pointerup(e) {
       this.finish();
     }
      finish() {
@@ -7351,7 +12589,7 @@ es6_module_define('FrameManager_ops', ["../path-controller/util/vectormath.js", 
 }, '/dev/fairmotion/src/path.ux/scripts/screen/FrameManager_ops.js');
 
 
-es6_module_define('ScreenArea', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "./FrameManager_mesh.js", "../widgets/ui_noteframe.js", "../core/ui_base.js", "./area_wrangler.js", "../path-controller/util/struct.js", "../config/const.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/simple_events.js"], function _ScreenArea_module(_es6_module) {
+es6_module_define('ScreenArea', ["../path-controller/util/util.js", "../config/const.js", "../core/ui_base.js", "../widgets/ui_noteframe.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/struct.js", "../path-controller/toolsys/toolprop.js", "./area_wrangler.js", "../path-controller/util/simple_events.js", "./FrameManager_mesh.js"], function _ScreenArea_module(_es6_module) {
   let _ScreenArea=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -8426,7 +13664,7 @@ pathux.ScreenArea {
 }, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
 
 
-es6_module_define('app', ["./app_ops.js", "../path-controller/util/vectormath.js", "./file.js", "./editor.js", "../screen/area_wrangler.js", "../util/util.js", "../config/const.js", "../path-controller/util/simple_events.js", "./icons.js", "../path-controller/controller/context.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/struct.js", "../path-controller/controller/controller.js", "./menubar.js", "../core/ui_base.js", "../path-controller/curve/curve1d_bspline.js", "../screen/FrameManager.js", "../widgets/ui_noteframe.js"], function _app_module(_es6_module) {
+es6_module_define('app', ["../path-controller/controller/context.js", "./app_ops.js", "./file.js", "../path-controller/toolsys/toolsys.js", "../screen/FrameManager.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../screen/area_wrangler.js", "../widgets/ui_noteframe.js", "../path-controller/controller/controller.js", "./editor.js", "../path-controller/util/simple_events.js", "../path-controller/curve/curve1d_bspline.js", "../config/const.js", "../util/util.js", "./menubar.js", "./icons.js"], function _app_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var Context=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'Context');
   var ContextOverlay=es6_import_item(_es6_module, '../path-controller/controller/context.js', 'ContextOverlay');
@@ -8843,7 +14081,7 @@ es6_module_define('app', ["./app_ops.js", "../path-controller/util/vectormath.js
 }, '/dev/fairmotion/src/path.ux/scripts/simple/app.js');
 
 
-es6_module_define('app_ops', ["../widgets/ui_noteframe.js", "../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js", "../platforms/platform.js"], function _app_ops_module(_es6_module) {
+es6_module_define('app_ops', ["../widgets/ui_noteframe.js", "../platforms/platform.js", "../path-controller/toolsys/toolsys.js", "../path-controller/toolsys/toolprop.js"], function _app_ops_module(_es6_module) {
   var platform=es6_import(_es6_module, '../platforms/platform.js');
   var ToolOp=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../path-controller/toolsys/toolsys.js', 'UndoFlags');
@@ -8979,7 +14217,7 @@ es6_module_define('context_class', [], function _context_class_module(_es6_modul
 }, '/dev/fairmotion/src/path.ux/scripts/simple/context_class.js');
 
 
-es6_module_define('editor', ["../core/ui_base.js", "../core/ui.js", "../path-controller/controller.js", "../util/util.js", "../screen/ScreenArea.js"], function _editor_module(_es6_module) {
+es6_module_define('editor', ["../util/util.js", "../path-controller/controller.js", "../screen/ScreenArea.js", "../core/ui.js", "../core/ui_base.js"], function _editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var contextWrangler=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'contextWrangler');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
@@ -9189,7 +14427,7 @@ es6_module_define('editor', ["../core/ui_base.js", "../core/ui.js", "../path-con
 }, '/dev/fairmotion/src/path.ux/scripts/simple/editor.js');
 
 
-es6_module_define('file', ["../path-controller/util/struct.js", "../core/ui_base.js"], function _file_module(_es6_module) {
+es6_module_define('file', ["../core/ui_base.js", "../path-controller/util/struct.js"], function _file_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   class FileHeader  {
@@ -9397,2923 +14635,4 @@ es6_module_define('icons', ["./iconsheet.js"], function _icons_module(_es6_modul
   }
   loadDefaultIconSheet = _es6_module.add_export('loadDefaultIconSheet', loadDefaultIconSheet);
 }, '/dev/fairmotion/src/path.ux/scripts/simple/icons.js');
-
-
-es6_module_define('iconsheet', [], function _iconsheet_module(_es6_module) {
-  let text=`<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="512"
-   height="512"
-   id="svg16099"
-   version="1.1"
-   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
-   sodipodi:docname="iconsheet.svg"
-   inkscape:export-filename="C:\dev\allshape\src\datafiles\iconsheet16.png"
-   inkscape:export-xdpi="45"
-   inkscape:export-ydpi="45">
-  <defs
-     id="defs16101">
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1587"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1307"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1303"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1299"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1295"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1291"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1231"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1186"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1182"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4974"
-       is_visible="true" />
-    <linearGradient
-       id="linearGradient5481">
-      <stop
-         id="stop4865"
-         offset="0"
-         style="stop-color:#e66700;stop-opacity:1;" />
-      <stop
-         style="stop-color:#f47712;stop-opacity:1;"
-         offset="0.52777779"
-         id="stop4867" />
-      <stop
-         id="stop4869"
-         offset="1"
-         style="stop-color:#f8bb8a;stop-opacity:1;" />
-    </linearGradient>
-    <linearGradient
-       id="linearGradient17116-6">
-      <stop
-         id="stop4860"
-         offset="0"
-         style="stop-color:#b3a500;stop-opacity:1;" />
-      <stop
-         id="stop4862"
-         offset="1"
-         style="stop-color:#eaa500;stop-opacity:1;" />
-    </linearGradient>
-    <linearGradient
-       id="linearGradient17116">
-      <stop
-         id="stop4853"
-         offset="0"
-         style="stop-color:#b3a500;stop-opacity:1;" />
-      <stop
-         id="stop4855"
-         offset="1"
-         style="stop-color:#eaa500;stop-opacity:1;" />
-    </linearGradient>
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4290"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4286"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4122"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4118"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4194"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect3225"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect5012"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect5008"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4108"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect3264"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect5465"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4613"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4609"
-       is_visible="true" />
-    <linearGradient
-       id="linearGradient5609">
-      <stop
-         id="stop5611"
-         offset="0"
-         style="stop-color:#0089e6;stop-opacity:1;" />
-      <stop
-         style="stop-color:#1280f4;stop-opacity:1;"
-         offset="0.52777779"
-         id="stop5613" />
-      <stop
-         id="stop5615"
-         offset="1"
-         style="stop-color:#d4eefc;stop-opacity:1;" />
-    </linearGradient>
-    <linearGradient
-       id="linearGradient5481-8">
-      <stop
-         style="stop-color:#ffc700;stop-opacity:1"
-         offset="0"
-         id="stop5483" />
-      <stop
-         id="stop5491"
-         offset="0.52777779"
-         style="stop-color:#ffc700;stop-opacity:1" />
-      <stop
-         style="stop-color:#ffa41c;stop-opacity:1"
-         offset="1"
-         id="stop5485" />
-    </linearGradient>
-    <inkscape:perspective
-       sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="-108.10967 : 516.24314 : 1"
-       inkscape:vp_y="0 : 323.31882 : 0"
-       inkscape:vp_z="57.429562 : 516.24314 : 1"
-       inkscape:persp3d-origin="-25.340056 : 488.65327 : 1"
-       id="perspective18342" />
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0.0"
-       refX="0.0"
-       id="Arrow2Send"
-       style="overflow:visible;">
-      <path
-         id="path17173"
-         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
-         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
-         transform="scale(0.3) rotate(180) translate(-2.3,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Mend"
-       orient="auto"
-       refY="0.0"
-       refX="0.0"
-       id="Arrow2Mend"
-       style="overflow:visible;">
-      <path
-         id="path17167"
-         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
-         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
-         transform="scale(0.6) rotate(180) translate(0,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Send"
-       orient="auto"
-       refY="0.0"
-       refX="0.0"
-       id="Arrow1Send"
-       style="overflow:visible;">
-      <path
-         id="path17155"
-         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;"
-         transform="scale(0.2) rotate(180) translate(6,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Lend"
-       orient="auto"
-       refY="0.0"
-       refX="0.0"
-       id="Arrow2Lend"
-       style="overflow:visible;">
-      <path
-         id="path17161"
-         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
-         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
-         transform="scale(1.1) rotate(180) translate(1,0)" />
-    </marker>
-    <linearGradient
-       id="linearGradient17126">
-      <stop
-         style="stop-color:#008080;stop-opacity:1;"
-         offset="0"
-         id="stop17128" />
-      <stop
-         style="stop-color:#00b3b3;stop-opacity:1;"
-         offset="1"
-         id="stop17130" />
-    </linearGradient>
-    <linearGradient
-       id="linearGradient17116-6-9">
-      <stop
-         style="stop-color:#b3a500;stop-opacity:1;"
-         offset="0"
-         id="stop17118" />
-      <stop
-         style="stop-color:#eaa500;stop-opacity:1;"
-         offset="1"
-         id="stop17120" />
-    </linearGradient>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-2"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-2"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-6"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-8"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-7"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-6"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-8"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-9"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-79"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-5"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-3"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-1"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-33"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-4"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow2Send"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow2Send-1"
-       style="overflow:visible">
-      <path
-         inkscape:connector-curvature="0"
-         id="path17173-3"
-         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
-    </marker>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient5481-5"
-       id="linearGradient5489-4"
-       x1="355.89935"
-       y1="17.125025"
-       x2="380.47559"
-       y2="17.125025"
-       gradientUnits="userSpaceOnUse" />
-    <linearGradient
-       id="linearGradient5481-5">
-      <stop
-         style="stop-color:#e66700;stop-opacity:1;"
-         offset="0"
-         id="stop5483-2" />
-      <stop
-         id="stop5491-9"
-         offset="0.52777779"
-         style="stop-color:#f47712;stop-opacity:1;" />
-      <stop
-         style="stop-color:#f8bb8a;stop-opacity:1;"
-         offset="1"
-         id="stop5485-9" />
-    </linearGradient>
-    <linearGradient
-       y2="17.125025"
-       x2="380.47559"
-       y1="17.125025"
-       x1="355.89935"
-       gradientUnits="userSpaceOnUse"
-       id="linearGradient5588"
-       xlink:href="#linearGradient5609"
-       inkscape:collect="always"
-       gradientTransform="matrix(1.2151103,0,0,1.1804992,-207.06775,536.98221)" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4108-1"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4108-4"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4108-9"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect3225-1"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect3225-4"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4122-2"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4122-7"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect1587-6"
-       is_visible="true" />
-    <inkscape:path-effect
-       effect="spiro"
-       id="path-effect4194-5"
-       is_visible="true" />
-  </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#9c9c9c"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="3.8325453"
-     inkscape:cx="144.17961"
-     inkscape:cy="49.96269"
-     inkscape:document-units="px"
-     inkscape:current-layer="layer1"
-     showgrid="true"
-     inkscape:window-width="1606"
-     inkscape:window-height="962"
-     inkscape:window-x="177"
-     inkscape:window-y="71"
-     inkscape:window-maximized="0"
-     inkscape:snap-global="false"
-     inkscape:pagecheckerboard="true"
-     inkscape:document-rotation="0">
-    <inkscape:grid
-       type="xygrid"
-       id="grid16107"
-       empspacing="1"
-       visible="true"
-       enabled="true"
-       snapvisiblegridlinesonly="false"
-       spacingx="32"
-       spacingy="32"
-       dotted="false"
-       originx="0"
-       originy="0" />
-  </sodipodi:namedview>
-  <metadata
-     id="metadata16104">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1"
-     transform="translate(0,-540.36218)">
-    <ellipse
-       style="opacity:0.79203539;fill:url(#linearGradient5588);fill-opacity:1;stroke:#3c3c3c;stroke-width:1.1393038;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="path3171-8"
-       cx="240.32063"
-       cy="557.19836"
-       rx="14.353489"
-       ry="14.165989" />
-    <flowRoot
-       xml:space="preserve"
-       id="flowRoot5564"
-       style="font-style:normal;font-weight:normal;line-height:0.01%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       transform="matrix(0.64571833,0,0,0.61432912,8.6966653,558.72048)"><flowRegion
-         id="flowRegion5566"
-         style="font-family:sans-serif"><rect
-           id="rect5568"
-           width="78.749992"
-           height="72.5"
-           x="346.24997"
-           y="-21.999973"
-           style="font-family:sans-serif" /></flowRegion><flowPara
-         id="flowPara5570"
-         style="font-weight:bold;font-size:40px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'Sans Bold'">?</flowPara></flowRoot>
-    <path
-       style="fill:none;stroke:#ec6900;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
-       d="m 187.1235,559.26606 c -3.71166,-5.87882 -12.04056,-10.0009 -18.86169,0.34701"
-       id="path4144-1"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:#ec6900;fill-opacity:1;stroke:none;stroke-width:0.001;stroke-miterlimit:4;stroke-dasharray:none"
-       d="m 170.01417,560.40163 2.05175,2.63036 -9.89352,4.33226 2.83717,-13.08504 z"
-       id="path5370-7"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;stroke:#1f9000;stroke-width:4.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-mid:none;marker-end:none"
-       d="m 197.1805,559.70121 c 3.69186,-5.88365 11.97631,-10.00911 18.76103,0.3473"
-       id="path4144-1-9"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:#1f9000;fill-opacity:1;stroke:none"
-       d="m 213.95021,560.59037 -2.0408,2.63252 9.84072,4.33582 -2.82203,-13.09579 z"
-       id="path5370-7-4"
-       inkscape:connector-curvature="0" />
-    <rect
-       style="fill:#000000;fill-opacity:1;stroke:none"
-       id="rect3224"
-       width="23.641272"
-       height="8.4057856"
-       x="487.73776"
-       y="552.41565" />
-    <path
-       style="fill:none;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="M 498.18023,567.81152 484.7754,556.20378 498.93081,545.77569"
-       id="path4074"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccc" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:none"
-       d="m 17.866009,585.82436 -0.09,-4.53232 -14.5167501,7.49748 14.5683701,7.84238 z"
-       id="path5370-5-0-6-5"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:none"
-       d="m 46.366429,592.31275 0.0109,4.6129 14.90287,-7.37024 -14.68289,-8.23782 z"
-       id="path5370-5-1-2"
-       inkscape:connector-curvature="0" />
-    <rect
-       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
-       id="rect5558-3-3"
-       width="10.726034"
-       height="5.6689787"
-       x="-3.0812507"
-       y="587.85645"
-       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
-    <rect
-       style="opacity:0.94690265;fill:#000000;fill-opacity:1;stroke:none"
-       id="rect5558-1"
-       width="10.540748"
-       height="5.5710502"
-       x="-22.93788"
-       y="587.9295"
-       transform="matrix(1,0,0.06880209,0.99763033,0,0)" />
-    <path
-       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
-       d="m 71.46269,592.27473 0.01481,6.27371 20.268436,-10.02379 -19.969263,-11.20374 z"
-       id="path5370-5-1-2-1"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#2e2e2e;fill-opacity:1;stroke:none;stroke-width:0.685581"
-       d="m 108.87703,578.56977 -6.27262,0.11779 10.35514,20.10117 10.87444,-20.15049 z"
-       id="path5370-5-1-2-1-7"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 69.769603,567.95981 5.60449,-5.39601"
-       id="path5452-5-5-1-7"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:transform-center-x="3.061478"
-       inkscape:transform-center-y="-0.63275351" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#363636;stroke-width:2.23946524;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 75.172083,567.8747 -5.47097,-5.53134"
-       id="path5452-5-5-1-7-4"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:transform-center-x="3.196728"
-       inkscape:transform-center-y="-0.78552851" />
-    <path
-       style="fill:#ffe87e;fill-opacity:1;stroke:#a58000;stroke-width:1.02573335px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
-       id="path4607"
-       inkscape:path-effect="#path-effect4609"
-       inkscape:original-d="m 36.512525,599.08328 -0.0847,-15.30469 14.76623,-0.079 1.13455,-5.3121 h 6.7663 l 0.52197,5.56549 h 2.38874 l -0.0349,15.41642 z"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccccc"
-       transform="translate(-33.065965,-31.819347)" />
-    <path
-       style="fill:#dfc449;fill-opacity:1;stroke:#a58000;stroke-width:1.04236829px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
-       id="path5463"
-       inkscape:path-effect="#path-effect5465"
-       inkscape:original-d="m 38.651325,583.64804 2.27904,-5.34039 8.11475,0.19058 1.53729,4.93611 z"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccc"
-       transform="translate(-33.065965,-31.819347)" />
-    <path
-       style="fill:#d7f0fb;fill-opacity:1;stroke:#4f4f4f;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
-       d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
-       id="path3262"
-       inkscape:path-effect="#path-effect3264"
-       inkscape:original-d="m 71.789265,599.90744 0.17512,-24.69199 h 15.41061 l 4.378,4.90337 0.17513,19.96374 z"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cccccc"
-       transform="translate(-33.561281,-31.819347)" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 73.190225,596.58015 16.81157,-0.35024"
-       id="path4106"
-       inkscape:path-effect="#path-effect4108"
-       inkscape:original-d="m 73.190225,596.58015 16.81157,-0.35024"
-       inkscape:connector-curvature="0"
-       transform="translate(-33.561281,-31.819347)" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 73.540465,591.50166 16.81157,-0.35024"
-       id="path4106-7"
-       inkscape:path-effect="#path-effect4108-1"
-       inkscape:original-d="m 73.540465,591.50166 16.81157,-0.35024"
-       inkscape:connector-curvature="0"
-       transform="translate(-33.561281,-31.819347)" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 73.365345,586.59829 16.81157,-0.35024"
-       id="path4106-0"
-       inkscape:path-effect="#path-effect4108-4"
-       inkscape:original-d="m 73.365345,586.59829 16.81157,-0.35024"
-       inkscape:connector-curvature="0"
-       transform="translate(-33.561281,-31.819347)" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 73.365345,582.22027 16.81157,-0.35024"
-       id="path4106-4"
-       inkscape:path-effect="#path-effect4108-9"
-       inkscape:original-d="m 73.365345,582.22027 16.81157,-0.35024"
-       inkscape:connector-curvature="0"
-       transform="translate(-33.561281,-31.819347)" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 103.19489,558.19446 16.18158,0.0627"
-       id="path5452-5-5-1-7-7"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:transform-center-x="3.6534509"
-       inkscape:transform-center-y="-5.3788766" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#f4f4f4;stroke-width:4.65793133;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 111.38254,565.89244 -0.15492,-16.18101"
-       id="path5452-5-5-1-7-4-4"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:transform-center-x="3.6340509"
-       inkscape:transform-center-y="-5.8027516" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#f1f1f1;stroke-width:4.54087734;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 135.53124,558.66024 15.77493,0.0612"
-       id="path5452-5-5-1-7-7-1"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:transform-center-x="3.561639"
-       inkscape:transform-center-y="-5.2436726" />
-    <path
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#ffffff;stroke-width:1.39999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 273.79736,565.92624 4.84986,4.15066 7.44379,-12.0346 -3.26109,-1.20718 -4.82074,8.91974 -2.46038,-2.39761 z"
-       id="path1157"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccc" />
-    <path
-       style="fill:#ff9d00;fill-opacity:1;stroke:#808080;stroke-width:0.78749156px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 306.19903,566.65065 4.84985,4.15066 7.4438,-12.0346 -3.26109,-1.20718 -4.82075,8.91974 -2.46037,-2.39761 z"
-       id="path1157-6"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccc" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
-       id="path1585"
-       inkscape:connector-curvature="0"
-       inkscape:path-effect="#path-effect1587"
-       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
-       sodipodi:nodetypes="ccc"
-       transform="matrix(0.82348572,0,0,0.82348572,75.604975,111.95505)" />
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:4.85740042;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 419.41366,537.85807 12.87326,7.64338 12.79438,-7.33068"
-       id="path1585-6"
-       inkscape:connector-curvature="0"
-       inkscape:path-effect="#path-effect1587-6"
-       inkscape:original-d="m 419.41366,537.85807 12.87326,7.64338 c 4.40656,-2.37267 3.01422,-8.5404 12.79438,-7.33068"
-       sodipodi:nodetypes="ccc"
-       transform="matrix(-0.82326686,0.01898429,-0.01898429,-0.82326686,829.82733,995.45395)" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:1.4972775px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 325.7796,560.88703 9.22114,7.89176 14.15308,-22.88169 -6.20039,-2.29524 -9.16581,16.95932 -4.67796,-4.55863 z"
-       id="path1157-6-7"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccc" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:none"
-       d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 4.98485,11.66133 z"
-       id="path4192-0"
-       inkscape:path-effect="#path-effect4194-5"
-       inkscape:original-d="m 338.27455,603.35315 -4.55847,-12.13972 -4.42325,4.14941 0.29119,-21.42993 14.0532,13.84869 -5.29334,1.40046 c 11.73953,18.68506 2.52594,6.89719 4.98485,11.66133 z"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cccccccc"
-       transform="rotate(-9.319008,159.52768,371.93318)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.712px;line-height:0%;font-family:'MV Boli';-inkscape-font-specification:'MV Boli';letter-spacing:0px;word-spacing:0px;fill:#ffdc00;fill-opacity:1;stroke:none;stroke-width:1.476"
-       x="179.14906"
-       y="751.84772"
-       id="text3255-0"
-       transform="matrix(1.2141217,-0.1513943,0.23126622,0.79480305,0,0)"><tspan
-         sodipodi:role="line"
-         id="tspan3257-0"
-         x="179.14906"
-         y="751.84772"
-         style="font-size:44.4154px;line-height:1.25;stroke-width:1.476">!</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:32.4516px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.81129"
-       x="131.62856"
-       y="599.63672"
-       id="text1309"><tspan
-         sodipodi:role="line"
-         id="tspan1307"
-         x="131.62856"
-         y="599.63672"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.81129">B</tspan></text>
-    <text
-       id="text1309-2"
-       y="658.43152"
-       x="153.61592"
-       style="font-style:normal;font-weight:normal;font-size:41.6588px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.04147"
-       xml:space="preserve"
-       transform="scale(1.0962314,0.91221617)"><tspan
-         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Bold Italic';stroke-width:1.04147"
-         y="658.43152"
-         x="153.61592"
-         id="tspan1307-4"
-         sodipodi:role="line">i</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:38.431px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.960773"
-       x="264.23669"
-       y="522.23657"
-       id="text1309-0-9"
-       transform="scale(0.87011438,1.1492742)"><tspan
-         sodipodi:role="line"
-         id="tspan1307-3-4"
-         x="264.23669"
-         y="522.23657"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.960773"><tspan
-           style="font-weight:normal;stroke-width:0.960773"
-           id="tspan1365">s</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:31.7797px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.794494"
-       x="195.07664"
-       y="596.5979"
-       id="text1309-0-2"
-       transform="scale(0.99519471,1.0048285)"><tspan
-         sodipodi:role="line"
-         id="tspan1307-3-1"
-         x="195.07664"
-         y="596.5979"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.794494">U</tspan></text>
-    <path
-       style="fill:none;stroke:#ffffff;stroke-width:3.47724;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 194.05959,600.03363 25.702,0.14808"
-       id="path1375" />
-    <path
-       id="path1375-2"
-       d="m 227.04774,587.38832 25.63991,0.14772"
-       style="fill:none;stroke:#ffffff;stroke-width:3.46884;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       inkscape:transform-center-x="1.1856386"
-       inkscape:transform-center-y="-0.33875464" />
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 262.93706,592.38036 0.0134,5.70131 18.41916,-9.10923 -18.14729,-10.18151 z"
-       id="path5370-5-1-2-1-4"
-       inkscape:connector-curvature="0" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path5370-5-1-2-1-4-0"
-       d="m 301.44451,581.20782 -5.70129,0.0197 9.12976,18.40899 10.16128,-18.15862 z"
-       style="fill:#ffffff;fill-opacity:1;stroke:#484848;stroke-width:1.623;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <ellipse
-       style="fill:none;stroke:#242424;stroke-width:2.80047;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1"
-       id="path1040"
-       ry="8.7032747"
-       rx="8.4312963"
-       cy="583.49023"
-       cx="331.71524" />
-    <path
-       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 336.4644,589.47097 10.10632,10.66173"
-       id="path1042"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 325.36075,583.26941 12.63506,0.34484"
-       id="path1044" />
-    <ellipse
-       cx="364.00839"
-       cy="584.36328"
-       rx="9.6165609"
-       ry="9.9267731"
-       id="path1040-0"
-       style="fill:none;stroke:#242424;stroke-width:3.19416;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:20;stroke-opacity:1" />
-    <path
-       sodipodi:nodetypes="cc"
-       id="path1042-6"
-       d="m 369.73697,590.7899 10.89694,10.89694"
-       style="fill:none;stroke:#242424;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <path
-       id="path1044-4"
-       d="m 357.64269,584.09303 12.63506,0.34484"
-       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <path
-       style="fill:none;stroke:#242424;stroke-width:2.17621;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 363.94156,590.78154 0.20796,-12.63806"
-       id="path1044-4-9" />
-  </g>
-</svg>
-`.trim();
-  text = btoa(text);
-  let iconSvg=`data:image/svg+xml;base64,`+text;
-  iconSvg = _es6_module.add_export('iconSvg', iconSvg);
-}, '/dev/fairmotion/src/path.ux/scripts/simple/iconsheet.js');
-
-
-es6_module_define('menubar', ["../screen/ScreenArea.js", "../path-controller/controller.js", "./editor.js", "../core/ui_base.js"], function _menubar_module(_es6_module) {
-  var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
-  var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
-  class MenuBarEditor extends Editor {
-     constructor() {
-      super();
-      this.updateHeight();
-      this.borderLock = 1|2|4|8;
-      this.areaDragToolEnabled = false;
-      this._height = 25;
-      this.needsRebuild = false;
-    }
-    get  height() {
-      return this._height;
-    }
-    set  height(v) {
-      this._height = v;
-      this.updateHeight();
-    }
-    static  define() {
-      return {tagname: "simple-menu-editor-x", 
-     areaname: "menu", 
-     uiname: "Menu Bar", 
-     icon: -1, 
-     flag: AreaFlags.HIDDEN|AreaFlags.NO_HEADER_CONTEXT_MENU|AreaFlags.NO_COLLAPSE|AreaFlags.NO_SWITCHER}
-    }
-     updateHeight(force=false) {
-      if (!this.header)
-        return ;
-      if (window.haveElectron) {
-          this.maxSize[1] = this.minSize[1] = 1;
-          electron_api.initMenuBar(this);
-          return ;
-      }
-      if (this._height===undefined) {
-          let rect=this.header.getClientRects()[0];
-          if (rect) {
-              this._height = rect.height;
-          }
-      }
-      let update=force||this._height!==this.minSize[1];
-      this.minSize[1] = this.maxSize[1] = this._height;
-      if (update&&this.ctx&&this.getScreen()) {
-          this.getScreen().solveAreaConstraints();
-      }
-    }
-     makeMenuBar(container) {
-      if (Editor.makeMenuBar) {
-          Editor.makeMenuBar(this.ctx, container, this);
-      }
-    }
-     flagRebuild() {
-      this.needsRebuild = true;
-    }
-     init() {
-      super.init();
-      this.background = this.getDefault("AreaHeaderBG");
-      this.menuRow = this.header.row();
-      this.makeMenuBar(this.menuRow);
-      this.doOnce(() =>        {
-        if (window.haveElectron) {
-            this.height = 1;
-            electron_api.initMenuBar(this);
-        }
-      });
-      this.updateHeight(true);
-      this.flushUpdate();
-    }
-     rebuild() {
-      this.needsRebuild = false;
-      this.menuRow.clear();
-      this.makeMenuBar(this.menuRow);
-      this.flushUpdate();
-    }
-     update() {
-      if (this.needsRebuild) {
-          this.rebuild();
-      }
-    }
-  }
-  _ESClass.register(MenuBarEditor);
-  _es6_module.add_class(MenuBarEditor);
-  MenuBarEditor = _es6_module.add_export('MenuBarEditor', MenuBarEditor);
-  MenuBarEditor.STRUCT = nstructjs.inherit(MenuBarEditor, Editor, "MenuBarEditor")+`
-}
-`;
-  function registerMenuBarEditor() {
-    Editor.register(MenuBarEditor);
-  }
-  registerMenuBarEditor = _es6_module.add_export('registerMenuBarEditor', registerMenuBarEditor);
-}, '/dev/fairmotion/src/path.ux/scripts/simple/menubar.js');
-
-
-es6_module_define('setup', [], function _setup_module(_es6_module) {
-}, '/dev/fairmotion/src/path.ux/scripts/simple/setup.js');
-
-
-es6_module_define('simple', ["./iconsheet.js", "./context_class.js", "./icons.js", "./editor.js", "./file.js", "../widgets/ui_menu.js", "./setup.js", "./menubar.js", "./app.js"], function _simple_module(_es6_module) {
-  var app=es6_import(_es6_module, './app.js');
-  var editor=es6_import(_es6_module, './editor.js');
-  var ___app_js=es6_import(_es6_module, './app.js');
-  for (let k in ___app_js) {
-      _es6_module.add_export(k, ___app_js[k], true);
-  }
-  var ___editor_js=es6_import(_es6_module, './editor.js');
-  for (let k in ___editor_js) {
-      _es6_module.add_export(k, ___editor_js[k], true);
-  }
-  var ___setup_js=es6_import(_es6_module, './setup.js');
-  for (let k in ___setup_js) {
-      _es6_module.add_export(k, ___setup_js[k], true);
-  }
-  var ___icons_js=es6_import(_es6_module, './icons.js');
-  for (let k in ___icons_js) {
-      _es6_module.add_export(k, ___icons_js[k], true);
-  }
-  var ___iconsheet_js=es6_import(_es6_module, './iconsheet.js');
-  for (let k in ___iconsheet_js) {
-      _es6_module.add_export(k, ___iconsheet_js[k], true);
-  }
-  var ___file_js=es6_import(_es6_module, './file.js');
-  for (let k in ___file_js) {
-      _es6_module.add_export(k, ___file_js[k], true);
-  }
-  var ___context_class_js=es6_import(_es6_module, './context_class.js');
-  for (let k in ___context_class_js) {
-      _es6_module.add_export(k, ___context_class_js[k], true);
-  }
-  var ___menubar_js=es6_import(_es6_module, './menubar.js');
-  for (let k in ___menubar_js) {
-      _es6_module.add_export(k, ___menubar_js[k], true);
-  }
-  let _ex_Menu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'Menu');
-  _es6_module.add_export('Menu', _ex_Menu, true);
-}, '/dev/fairmotion/src/path.ux/scripts/simple/simple.js');
-
-
-es6_module_define('simple_toolsys', ["../path-controller/toolsys/toolsys.js"], function _simple_toolsys_module(_es6_module) {
-  var ____path_controller_toolsys_toolsys_js=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
-  for (let k in ____path_controller_toolsys_toolsys_js) {
-      _es6_module.add_export(k, ____path_controller_toolsys_toolsys_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/simple_toolsys.js');
-
-
-es6_module_define('toolpath', ["../path-controller/toolsys/toolsys.js"], function _toolpath_module(_es6_module) {
-  var ____path_controller_toolsys_toolsys_js=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
-  for (let k in ____path_controller_toolsys_toolsys_js) {
-      _es6_module.add_export(k, ____path_controller_toolsys_toolsys_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolpath.js');
-
-
-es6_module_define('toolprop', ["../path-controller/toolsys/toolprop.js"], function _toolprop_module(_es6_module) {
-  var ____path_controller_toolsys_toolprop_js=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  for (let k in ____path_controller_toolsys_toolprop_js) {
-      _es6_module.add_export(k, ____path_controller_toolsys_toolprop_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop.js');
-
-
-es6_module_define('colorutils', ["../path-controller/util/colorutils.js"], function _colorutils_module(_es6_module) {
-  var ____path_controller_util_colorutils_js=es6_import(_es6_module, '../path-controller/util/colorutils.js');
-  for (let k in ____path_controller_util_colorutils_js) {
-      _es6_module.add_export(k, ____path_controller_util_colorutils_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/colorutils.js');
-
-
-es6_module_define('events', ["../path-controller/util/events.js"], function _events_module(_es6_module) {
-  var ____path_controller_util_events_js=es6_import(_es6_module, '../path-controller/util/events.js');
-  for (let k in ____path_controller_util_events_js) {
-      _es6_module.add_export(k, ____path_controller_util_events_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
-
-
-es6_module_define('graphpack', ["./solver.js", "./util.js", "./vectormath.js", "./math.js"], function _graphpack_module(_es6_module) {
-  "use strict";
-  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
-  var math=es6_import(_es6_module, './math.js');
-  var util=es6_import(_es6_module, './util.js');
-  var Constraint=es6_import_item(_es6_module, './solver.js', 'Constraint');
-  var Solver=es6_import_item(_es6_module, './solver.js', 'Solver');
-  let idgen=0;
-  class PackNodeVertex extends Vector2 {
-     constructor(node, co) {
-      super(co);
-      this.node = node;
-      this._id = idgen++;
-      this.edges = [];
-      this._absPos = new Vector2();
-    }
-    get  absPos() {
-      this._absPos.load(this).add(this.node.pos);
-      return this._absPos;
-    }
-     [Symbol.keystr]() {
-      return this._id;
-    }
-  }
-  _ESClass.register(PackNodeVertex);
-  _es6_module.add_class(PackNodeVertex);
-  PackNodeVertex = _es6_module.add_export('PackNodeVertex', PackNodeVertex);
-  class PackNode  {
-     constructor() {
-      this.pos = new Vector2();
-      this.vel = new Vector2();
-      this.oldpos = new Vector2();
-      this._id = idgen++;
-      this.size = new Vector2();
-      this.verts = [];
-    }
-     [Symbol.keystr]() {
-      return this._id;
-    }
-  }
-  _ESClass.register(PackNode);
-  _es6_module.add_class(PackNode);
-  PackNode = _es6_module.add_export('PackNode', PackNode);
-  function copyGraph(nodes) {
-    let ret=[];
-    let idmap={}
-    for (let n of nodes) {
-        let n2=new PackNode();
-        n2._id = n._id;
-        n2.pos.load(n.pos);
-        n2.vel.load(n.vel);
-        n2.size.load(n.size);
-        n2.verts = [];
-        idmap[n2._id] = n2;
-        for (let v of n.verts) {
-            let v2=new PackNodeVertex(n2, v);
-            v2._id = v._id;
-            idmap[v2._id] = v2;
-            n2.verts.push(v2);
-        }
-        ret.push(n2);
-    }
-    for (let n of nodes) {
-        for (let v of n.verts) {
-            let v2=idmap[v._id];
-            for (let v3 of v.edges) {
-                v2.edges.push(idmap[v3._id]);
-            }
-        }
-    }
-    return ret;
-  }
-  function getCenter(nodes) {
-    let cent=new Vector2();
-    for (let n of nodes) {
-        cent.add(n.pos);
-    }
-    if (nodes.length===0)
-      return cent;
-    cent.mulScalar(1.0/nodes.length);
-    return cent;
-  }
-  function loadGraph(nodes, copy) {
-    let idmap={}
-    for (let i=0; i<nodes.length; i++) {
-        nodes[i].pos.load(copy[i].pos);
-        nodes[i].oldpos.load(copy[i].oldpos);
-        nodes[i].vel.load(copy[i].vel);
-    }
-  }
-  function graphGetIslands(nodes) {
-    let islands=[];
-    let visit1=new util.set();
-    let rec=(n, island) =>      {
-      island.push(n);
-      visit1.add(n);
-      for (let v of n.verts) {
-          for (let e of v.edges) {
-              let n2=e.node;
-              if (n2!==n&&!visit1.has(n2)) {
-                  rec(n2, island);
-              }
-          }
-      }
-    }
-    for (let n of nodes) {
-        if (visit1.has(n)) {
-            continue;
-        }
-        let island=[];
-        islands.push(island);
-        rec(n, island);
-    }
-    return islands;
-  }
-  graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
-  function graphPack(nodes, margin, steps, updateCb) {
-    if (margin===undefined) {
-        margin = 15;
-    }
-    if (steps===undefined) {
-        steps = 10;
-    }
-    if (updateCb===undefined) {
-        updateCb = undefined;
-    }
-    let orignodes=nodes;
-    nodes = copyGraph(nodes);
-    for (let n of nodes) {
-        n.pos[0]+=(Math.random()-0.5)*5.0;
-        n.pos[1]+=(Math.random()-0.5)*5.0;
-    }
-    let nodemap={}
-    for (let n of nodes) {
-        n.vel.zero();
-        nodemap[n._id] = n;
-        for (let v of n.verts) {
-            nodemap[v._id] = v;
-        }
-    }
-    let visit=new util.set();
-    let verts=new util.set();
-    let isect=[];
-    let disableEdges=false;
-    function edge_c(params) {
-      let $_t0lfki=params, v1=$_t0lfki[0], v2=$_t0lfki[1];
-      if (disableEdges)
-        return 0;
-      return v1.absPos.vectorDistance(v2.absPos);
-    }
-    let p1=new Vector2();
-    let p2=new Vector2();
-    let s1=new Vector2();
-    let s2=new Vector2();
-    function loadBoxes(n1, n2, margin1) {
-      if (margin1===undefined) {
-          margin1 = margin;
-      }
-      p1.load(n1.pos);
-      p2.load(n2.pos);
-      s1.load(n1.size);
-      s2.load(n2.size);
-      p1.subScalar(margin1);
-      p2.subScalar(margin1);
-      s1.addScalar(margin1*2.0);
-      s2.addScalar(margin1*2.0);
-    }
-    let disableArea=false;
-    function area_c(params) {
-      let $_t1wdaa=params, n1=$_t1wdaa[0], n2=$_t1wdaa[1];
-      if (disableArea)
-        return 0.0;
-      loadBoxes(n1, n2);
-      let a1=n1.size[0]*n1.size[1];
-      let a2=n2.size[0]*n2.size[1];
-      return math.aabb_overlap_area(p1, s1, p2, s2);
-      return (math.aabb_overlap_area(p1, s1, p2, s2)/(a1+a2));
-    }
-    let lasterr, besterr, best;
-    let err;
-    let islands=graphGetIslands(nodes);
-    let fakeVerts=[];
-    for (let island of islands) {
-        let n=island[0];
-        let fv=new PackNodeVertex(n);
-        fakeVerts.push(fv);
-    }
-    let solveStep1=(gk) =>      {
-      if (gk===undefined) {
-          gk = 1.0;
-      }
-      let solver=new Solver();
-      isect.length = 0;
-      visit = new util.set();
-      if (fakeVerts.length>1) {
-          for (let i=1; i<fakeVerts.length; i++) {
-              let v1=fakeVerts[0];
-              let v2=fakeVerts[i];
-              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2]);
-              con.k = 0.25;
-              solver.add(con);
-          }
-      }
-      for (let n1 of nodes) {
-          for (let v of n1.verts) {
-              verts.add(v);
-              for (let v2 of v.edges) {
-                  if (v2._id<v._id)
-                    continue;
-                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2]);
-                  con.k = 1.0;
-                  solver.add(con);
-              }
-          }
-          for (let n2 of nodes) {
-              if (n1===n2)
-                continue;
-              let key=Math.min(n1._id, n2._id)+":"+Math.max(n1._id, n2._id);
-              if (visit.has(key))
-                continue;
-              loadBoxes(n1, n2);
-              let area=math.aabb_overlap_area(p1, s1, p2, s2);
-              if (area>0.01) {
-                  isect.push([n1, n2]);
-                  visit.add(key);
-              }
-          }
-          for (let /*unprocessed ExpandNode*/[n1, n2] of isect) {
-              let con=new Constraint("area_c", area_c, [n1.pos, n2.pos], [n1, n2]);
-              solver.add(con);
-              con.k = 1.0;
-          }
-      }
-      return solver;
-    }
-    let i=1;
-    let solveStep=(gk) =>      {
-      if (gk===undefined) {
-          gk = 0.5;
-      }
-      let solver=solveStep1();
-      if (i%40===0.0) {
-          let c1=getCenter(nodes);
-          let rfac=1000.0;
-          if (best)
-            loadGraph(nodes, best);
-          for (let n of nodes) {
-              n.pos[0]+=(Math.random()-0.5)*rfac;
-              n.pos[1]+=(Math.random()-0.5)*rfac;
-              n.vel.zero();
-          }
-          let c2=getCenter(nodes);
-          c1.sub(c2);
-          for (let n of nodes) {
-              n.pos.add(c1);
-          }
-      }
-      let err=1e+17;
-      for (let n of nodes) {
-          n.oldpos.load(n.pos);
-          n.pos.addFac(n.vel, 0.5);
-      }
-      disableEdges = false;
-      disableArea = true;
-      solver.solve(1, gk);
-      disableEdges = true;
-      disableArea = false;
-      for (let j=0; j<10; j++) {
-          solver = solveStep1();
-          err = solver.solve(10, gk);
-      }
-      for (let n of nodes) {
-          n.vel.load(n.pos).sub(n.oldpos);
-      }
-      disableEdges = false;
-      disableArea = true;
-      err = 0.0;
-      for (let con of solver.constraints) {
-          err+=con.evaluate(true);
-      }
-      disableEdges = false;
-      disableArea = false;
-      lasterr = err;
-      let add=Math.random()*besterr*Math.exp(-i*0.1);
-      if (besterr===undefined||err<besterr+add) {
-          best = copyGraph(nodes);
-          besterr = err;
-      }
-      i++;
-      return err;
-    }
-    for (let j=0; j<steps; j++) {
-        solveStep();
-    }
-    loadGraph(orignodes, best ? best : nodes);
-    if (updateCb) {
-        if (nodes._timer!==undefined) {
-            window.clearInterval(nodes._timer);
-        }
-        nodes._timer = window.setInterval(() =>          {
-          let time=util.time_ms();
-          while (util.time_ms()-time<50) {
-            let err=solveStep();
-          }
-          if (cconst.DEBUG.boxPacker) {
-              console.log("err", (besterr/nodes.length).toFixed(2), (lasterr/nodes.length).toFixed(2), "isects", isect.length);
-          }
-          if (best)
-            loadGraph(orignodes, best);
-          if (updateCb()===false) {
-              clearInterval(nodes._timer);
-              return ;
-          }
-        }, 100);
-        let timer=nodes._timer;
-        return {stop: () =>            {
-            if (best)
-              loadGraph(nodes, best);
-            window.clearInterval(timer);
-            nodes._timer = undefined;
-          }}
-    }
-  }
-  graphPack = _es6_module.add_export('graphPack', graphPack);
-}, '/dev/fairmotion/src/path.ux/scripts/util/graphpack.js');
-
-
-es6_module_define('html5_fileapi', ["../path-controller/util/html5_fileapi.js"], function _html5_fileapi_module(_es6_module) {
-  var ____path_controller_util_html5_fileapi_js=es6_import(_es6_module, '../path-controller/util/html5_fileapi.js');
-  for (let k in ____path_controller_util_html5_fileapi_js) {
-      _es6_module.add_export(k, ____path_controller_util_html5_fileapi_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/html5_fileapi.js');
-
-
-es6_module_define('math', ["../path-controller/util/math.js"], function _math_module(_es6_module) {
-  var ____path_controller_util_math_js=es6_import(_es6_module, '../path-controller/util/math.js');
-  for (let k in ____path_controller_util_math_js) {
-      _es6_module.add_export(k, ____path_controller_util_math_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/math.js');
-
-
-es6_module_define('nstructjs', ["../path-controller/util/nstructjs.js"], function _nstructjs_module(_es6_module) {
-  var ____path_controller_util_nstructjs_js=es6_import(_es6_module, '../path-controller/util/nstructjs.js');
-  for (let k in ____path_controller_util_nstructjs_js) {
-      _es6_module.add_export(k, ____path_controller_util_nstructjs_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
-
-
-es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "../core/ui_base.js", "./util.js", "./math.js"], function _ScreenOverdraw_module(_es6_module) {
-  "use strict";
-  const SVG_URL='http://www.w3.org/2000/svg';
-  _es6_module.add_export('SVG_URL', SVG_URL);
-  var util=es6_import(_es6_module, './util.js');
-  var vectormath=es6_import(_es6_module, './vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var math=es6_import(_es6_module, './math.js');
-  const Vector2=vectormath.Vector2;
-  class CanvasOverdraw extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.canvas = document.createElement("canvas");
-      this.shadow.appendChild(this.canvas);
-      this.g = this.canvas.getContext("2d");
-      this.screen = undefined;
-      this.shapes = [];
-      this.otherChildren = [];
-      this.font = undefined;
-      let style=document.createElement("style");
-      style.textContent = `
-      .overdrawx {
-        pointer-events : none;
-      }
-    `;
-      this.shadow.appendChild(style);
-    }
-    static  define() {
-      return {tagname: 'screen-overdraw-canvas-x'}
-    }
-     startNode(node, screen) {
-      if (screen) {
-          this.screen = screen;
-          this.ctx = screen.ctx;
-      }
-      if (!this.parentNode) {
-          node.appendChild(this);
-      }
-      this.style["display"] = "float";
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
-      this.style["width"] = "100%";
-      this.style["height"] = "100%";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.svg.style["pointer-events"] = "none";
-      this.shadow.appendChild(this.svg);
-    }
-     start(screen) {
-      this.screen = screen;
-      this.ctx = screen.ctx;
-      screen.parentNode.appendChild(this);
-      this.style["display"] = "float";
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
-      this.style["width"] = screen.size[0]+"px";
-      this.style["height"] = screen.size[1]+"px";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.shadow.appendChild(this.svg);
-    }
-  }
-  _ESClass.register(CanvasOverdraw);
-  _es6_module.add_class(CanvasOverdraw);
-  CanvasOverdraw = _es6_module.add_export('CanvasOverdraw', CanvasOverdraw);
-  class Overdraw extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.visibleToPick = false;
-      this.screen = undefined;
-      this.shapes = [];
-      this.otherChildren = [];
-      this.font = undefined;
-      let style=document.createElement("style");
-      style.textContent = `
-      .overdrawx {
-        pointer-events : none;
-      }
-    `;
-      this.shadow.appendChild(style);
-      this.zindex_base = 1000;
-    }
-     startNode(node, screen) {
-      if (screen) {
-          this.screen = screen;
-          this.ctx = screen.ctx;
-      }
-      if (!this.parentNode) {
-          node.appendChild(this);
-      }
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "relative";
-      this.style["margin"] = this.style["padding"] = "0px";
-      this.style["width"] = "100%";
-      this.style["height"] = "100%";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.svg.style["pointer-events"] = "none";
-      this.shadow.appendChild(this.svg);
-    }
-     start(screen) {
-      this.screen = screen;
-      this.ctx = screen.ctx;
-      screen.parentNode.appendChild(this);
-      this.style["display"] = "float";
-      this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "absolute";
-      this.style["left"] = "0px";
-      this.style["top"] = "0px";
-      this.style["width"] = screen.size[0]+"px";
-      this.style["height"] = screen.size[1]+"px";
-      this.style["pointer-events"] = "none";
-      this.svg = document.createElementNS(SVG_URL, "svg");
-      this.svg.style["width"] = "100%";
-      this.svg.style["height"] = "100%";
-      this.shadow.appendChild(this.svg);
-    }
-     clear() {
-      for (let child of util.list(this.svg.childNodes)) {
-          child.remove();
-      }
-      for (let child of this.otherChildren) {
-          child.remove();
-      }
-      this.otherChildren.length = 0;
-    }
-     drawTextBubbles(texts, cos, colors) {
-      let boxes=[];
-      let elems=[];
-      let cent=new Vector2();
-      for (let i=0; i<texts.length; i++) {
-          let co=cos[i];
-          let text=texts[i];
-          let color;
-          if (colors!==undefined) {
-              color = colors[i];
-          }
-          cent.add(co);
-          let box=this.text(texts[i], co[0], co[1], {color: color});
-          boxes.push(box);
-          let font=box.style["font"];
-          let pat=/[0-9]+px/;
-          let size=font.match(pat)[0];
-          if (size===undefined) {
-              size = this.getDefault("DefaultText").size;
-          }
-          else {
-            size = ui_base.parsepx(size);
-          }
-          let tsize=ui_base.measureTextBlock(this, text, undefined, undefined, size, font);
-          box.minsize = [~~tsize.width, ~~tsize.height];
-          let pad=ui_base.parsepx(box.style["padding"]);
-          box.minsize[0]+=pad*2;
-          box.minsize[1]+=pad*2;
-          let x=ui_base.parsepx(box.style["left"]);
-          let y=ui_base.parsepx(box.style["top"]);
-          box.grads = new Array(4);
-          box.params = [x, y, box.minsize[0], box.minsize[1]];
-          box.startpos = new Vector2([x, y]);
-          box.setCSS = function () {
-            this.style["padding"] = "0px";
-            this.style["margin"] = "0px";
-            this.style["left"] = ~~this.params[0]+"px";
-            this.style["top"] = ~~this.params[1]+"px";
-            this.style["width"] = ~~this.params[2]+"px";
-            this.style["height"] = ~~this.params[3]+"px";
-          };
-          box.setCSS();
-          elems.push(box);
-      }
-      if (boxes.length===0) {
-          return ;
-      }
-      cent.mulScalar(1.0/boxes.length);
-      function error() {
-        let p1=[0, 0], p2=[0, 0];
-        let s1=[0, 0], s2=[0, 0];
-        let ret=0.0;
-        for (let box1 of boxes) {
-            for (let box2 of boxes) {
-                if (box2===box1) {
-                    continue;
-                }
-                s1[0] = box1.params[2];
-                s1[1] = box1.params[3];
-                s2[0] = box2.params[2];
-                s2[1] = box2.params[3];
-                let overlap=math.aabb_overlap_area(box1.params, s1, box2.params, s2);
-                ret+=overlap;
-            }
-            ret+=box1.startpos.vectorDistance(box1.params)*0.25;
-        }
-        return ret;
-      }
-      function solve() {
-        let r1=error();
-        if (r1===0.0) {
-            return ;
-        }
-        let df=0.0001;
-        let totgs=0.0;
-        for (let box of boxes) {
-            for (let i=0; i<box.params.length; i++) {
-                let orig=box.params[i];
-                box.params[i]+=df;
-                let r2=error();
-                box.params[i] = orig;
-                box.grads[i] = (r2-r1)/df;
-                totgs+=box.grads[i]**2;
-            }
-        }
-        if (totgs===0.0) {
-            return ;
-        }
-        r1/=totgs;
-        let k=0.4;
-        for (let box of boxes) {
-            for (let i=0; i<box.params.length; i++) {
-                box.params[i]+=-r1*box.grads[i]*k;
-            }
-            box.params[2] = Math.max(box.params[2], box.minsize[0]);
-            box.params[3] = Math.max(box.params[3], box.minsize[1]);
-            box.setCSS();
-        }
-      }
-      for (let i=0; i<15; i++) {
-          solve();
-      }
-      for (let box of boxes) {
-          elems.push(this.line(box.startpos, box.params));
-      }
-      return elems;
-    }
-     text(text, x, y, args={}) {
-      args = Object.assign({}, args);
-      if (args.font===undefined) {
-          if (this.font!==undefined)
-            args.font = this.font;
-          else 
-            args.font = this.getDefault("DefaultText").genCSS();
-      }
-      if (!args["background-color"]) {
-          args["background-color"] = "rgba(75, 75, 75, 0.75)";
-      }
-      args.color = args.color ? args.color : "white";
-      if (typeof args.color==="object") {
-          args.color = ui_base.color2css(args.color);
-      }
-      args["padding"] = args["padding"]===undefined ? "5px" : args["padding"];
-      args["border-color"] = args["border-color"] ? args["border-color"] : "grey";
-      args["border-radius"] = args["border-radius"] ? args["border-radius"] : "25px";
-      args["border-width"] = args["border-width"]!==undefined ? args["border-width"] : "2px";
-      if (typeof args["border-width"]==="number") {
-          args["border-width"] = ""+args["border-width"]+"px";
-      }
-      if (typeof args["border-radius"]==="number") {
-          args["border-radius"] = ""+args["border-radius"]+"px";
-      }
-      let box=document.createElement("div");
-      box.setAttribute("class", "overdrawx");
-      box.style["position"] = "fixed";
-      box.style["width"] = "min-contents";
-      box.style["height"] = "min-contents";
-      box.style["border-width"] = args["border-width"];
-      box.style["border-radius"] = "25px";
-      box.style["pointer-events"] = "none";
-      box.style["z-index"] = this.zindex_base+1;
-      box.style["background-color"] = args["background-color"];
-      box.style["padding"] = args["padding"];
-      box.style["left"] = x+"px";
-      box.style["top"] = y+"px";
-      box.style["display"] = "flex";
-      box.style["justify-content"] = "center";
-      box.style["align-items"] = "center";
-      box.innerText = text;
-      box.style["font"] = args.font;
-      box.style["color"] = args.color;
-      this.otherChildren.push(box);
-      this.shadow.appendChild(box);
-      return box;
-    }
-     circle(p, r, stroke="black", fill="none") {
-      let circle=document.createElementNS(SVG_URL, "circle");
-      circle.setAttribute("cx", p[0]);
-      circle.setAttribute("cy", p[1]);
-      circle.setAttribute("r", r);
-      if (fill) {
-          circle.setAttribute("style", `stroke:${stroke};stroke-width:2;fill:${fill}`);
-      }
-      else {
-        circle.setAttribute("style", `stroke:${stroke};stroke-width:2`);
-      }
-      this.svg.appendChild(circle);
-      return circle;
-    }
-     line(v1, v2, color="black") {
-      let line=document.createElementNS(SVG_URL, "line");
-      line.setAttribute("x1", v1[0]);
-      line.setAttribute("y1", v1[1]);
-      line.setAttribute("x2", v2[0]);
-      line.setAttribute("y2", v2[1]);
-      line.setAttribute("style", `stroke:${color};stroke-width:2`);
-      this.svg.appendChild(line);
-      return line;
-    }
-     rect(p, size, color="black") {
-      let line=document.createElementNS(SVG_URL, "rect");
-      line.setAttribute("x", p[0]);
-      line.setAttribute("y", p[1]);
-      line.setAttribute("width", size[0]);
-      line.setAttribute("height", size[1]);
-      line.setAttribute("style", `fill:${color};stroke-width:2`);
-      line.setColor = (color) =>        {
-        line.setAttribute("style", `fill:${color};stroke-width:2`);
-      };
-      this.svg.appendChild(line);
-      return line;
-    }
-     end() {
-      this.clear();
-      this.remove();
-    }
-    static  define() {
-      return {tagname: "overdraw-x", 
-     style: "overdraw"}
-    }
-  }
-  _ESClass.register(Overdraw);
-  _es6_module.add_class(Overdraw);
-  Overdraw = _es6_module.add_export('Overdraw', Overdraw);
-  ui_base.UIBase.internalRegister(Overdraw);
-}, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-
-
-es6_module_define('simple_events', ["../path-controller/util/simple_events.js"], function _simple_events_module(_es6_module) {
-  var ____path_controller_util_simple_events_js=es6_import(_es6_module, '../path-controller/util/simple_events.js');
-  for (let k in ____path_controller_util_simple_events_js) {
-      _es6_module.add_export(k, ____path_controller_util_simple_events_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/simple_events.js');
-
-
-es6_module_define('solver', ["../path-controller/util/solver.js"], function _solver_module(_es6_module) {
-  var ____path_controller_util_solver_js=es6_import(_es6_module, '../path-controller/util/solver.js');
-  for (let k in ____path_controller_util_solver_js) {
-      _es6_module.add_export(k, ____path_controller_util_solver_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/solver.js');
-
-
-es6_module_define('startup_report', ["./util.js"], function _startup_report_module(_es6_module) {
-  var util=es6_import(_es6_module, './util.js');
-  function startupReport() {
-    let s='';
-    for (let i=0; i<arguments.length; i++) {
-        s+=arguments[i]+' ';
-    }
-    console.log(util.termColor(s, "green"));
-  }
-  startupReport = _es6_module.add_export('startupReport', startupReport);
-}, '/dev/fairmotion/src/path.ux/scripts/util/startup_report.js');
-
-
-es6_module_define('struct', ["../path-controller/util/struct.js"], function _struct_module(_es6_module) {
-  var ____path_controller_util_struct_js=es6_import(_es6_module, '../path-controller/util/struct.js');
-  for (let k in ____path_controller_util_struct_js) {
-      _es6_module.add_export(k, ____path_controller_util_struct_js[k], true);
-  }
-  var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
-  nstructjs;
-  _es6_module.set_default_export('nstructjs', nstructjs);
-  
-}, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
-
-
-es6_module_define('vectormath', ["../path-controller/util/vectormath.js"], function _vectormath_module(_es6_module) {
-  var ____path_controller_util_vectormath_js=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  for (let k in ____path_controller_util_vectormath_js) {
-      _es6_module.add_export(k, ____path_controller_util_vectormath_js[k], true);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
-
-
-es6_module_define('dragbox', ["../core/ui_theme.js", "../path-controller/util/simple_events.js", "../core/ui.js", "../core/ui_base.js"], function _dragbox_module(_es6_module) {
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
-  var parsepx=es6_import_item(_es6_module, '../core/ui_theme.js', 'parsepx');
-  function startDrag(box) {
-    if (box._modal) {
-        popModalLight(box._modal);
-        box._modal = undefined;
-        return ;
-    }
-    let first=true;
-    let lastx=0;
-    let lasty=0;
-    let handlers={on_mousemove: function on_mousemove(e) {
-        let x=e.x, y=e.y;
-        if (first) {
-            lastx = x;
-            lasty = y;
-            first = false;
-            return ;
-        }
-        let dx=x-lastx;
-        let dy=y-lasty;
-        let hx=parsepx(box.style["left"]);
-        let hy=parsepx(box.style["top"]);
-        hx+=dx;
-        hy+=dy;
-        console.log(hx, hy);
-        box.style["left"] = hx+"px";
-        box.style["top"] = hy+"px";
-        lastx = x;
-        lasty = y;
-      }, 
-    end: function end() {
-        if (box._modal) {
-            popModalLight(box._modal);
-            box._modal = undefined;
-        }
-      }, 
-    on_mouseup: function on_mouseup(e) {
-        this.end();
-      }, 
-    on_keydown: function on_keydown(e) {
-        switch (e.keyCode) {
-          case keymap["Escape"]:
-          case keymap["Return"]:
-            this.end();
-            break;
-        }
-      }}
-    box._modal = pushModalLight(handlers);
-  }
-  class DragBox extends Container {
-     constructor() {
-      super();
-      this._done = false;
-      this.header = UIBase.createElement("rowframe-x");
-      this.contents = UIBase.createElement("container-x");
-      this.header.style["border-radius"] = "20px";
-      this.header.parentWidget = this;
-      this.contents.parentWidget = this;
-      this.shadow.appendChild(this.header);
-      this.shadow.appendChild(this.contents);
-    }
-     init() {
-      super.init();
-      let header=this.header;
-      header.ctx = this.ctx;
-      this.contents.ctx = this.ctx;
-      header._init();
-      this.contents._init();
-      this.style["min-width"] = "350px";
-      header.style["height"] = "35px";
-      let icon=header.iconbutton(Icons.DELETE, "Hide", () =>        {
-        this.end();
-      });
-      icon.iconsheet = 0;
-      this.addEventListener("mousedown", (e) =>        {
-        console.log("start drag");
-        startDrag(this);
-        e.preventDefault();
-      }, {capture: false});
-      header.background = this.getDefault("background-color");
-      this.setCSS();
-    }
-     add() {
-      return this.contents.add(...arguments);
-    }
-     prepend(n) {
-      return this.contents.prepend(n);
-    }
-     appendChild(n) {
-      return this.contents.appendChild(n);
-    }
-     col() {
-      return this.contents.col(...arguments);
-    }
-     row() {
-      return this.contents.row(...arguments);
-    }
-     strip() {
-      return this.contents.strip(...arguments);
-    }
-     button() {
-      return this.contents.button(...arguments);
-    }
-     iconbutton() {
-      return this.contents.iconbutton(...arguments);
-    }
-     iconcheck() {
-      return this.contents.iconcheck(...arguments);
-    }
-     tool() {
-      return this.contents.tool(...arguments);
-    }
-     menu() {
-      return this.contents.menu(...arguments);
-    }
-     prop() {
-      return this.contents.prop(...arguments);
-    }
-     listenum() {
-      return this.contents.listenum(...arguments);
-    }
-     check() {
-      return this.contents.check(...arguments);
-    }
-     iconenum() {
-      return this.contents.iconenum(...arguments);
-    }
-     slider() {
-      return this.contents.slider(...arguments);
-    }
-     simpleslider() {
-      return this.contents.simpleslider(...arguments);
-    }
-     curve() {
-      return this.contents.curve(...arguments);
-    }
-     textbox() {
-      return this.contents.textbox(...arguments);
-    }
-     textarea() {
-      return this.contents.textarea(...arguments);
-    }
-     viewer() {
-      return this.contents.viewer(...arguments);
-    }
-     panel() {
-      return this.contents.panel(...arguments);
-    }
-     tabs() {
-      return this.contents.tabs(...arguments);
-    }
-     table() {
-      return this.contents.table(...arguments);
-    }
-     end() {
-      if (this._done) {
-          return ;
-      }
-      this.remove();
-      if (this._onend) {
-          this._onend();
-      }
-      if (this.onend) {
-          this.onend();
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      this.background = this.getDefault("background-color");
-    }
-    static  define() {
-      return {tagname: "drag-box-x", 
-     style: "panel"}
-    }
-  }
-  _ESClass.register(DragBox);
-  _es6_module.add_class(DragBox);
-  DragBox = _es6_module.add_export('DragBox', DragBox);
-  UIBase.internalRegister(DragBox);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
-
-
-es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../path-controller/util/struct.js", "../core/ui_theme.js", "../core/ui_base.js", "../core/ui.js"], function _theme_editor_module(_es6_module) {
-  var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
-  var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
-  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
-  var theme=es6_import_item(_es6_module, '../core/ui_base.js', 'theme');
-  var flagThemeUpdate=es6_import_item(_es6_module, '../core/ui_base.js', 'flagThemeUpdate');
-  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
-  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
-  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
-  var validateCSSColor=es6_import_item(_es6_module, '../core/ui_theme.js', 'validateCSSColor');
-  var color2css=es6_import_item(_es6_module, '../core/ui_theme.js', 'color2css');
-  var css2color=es6_import_item(_es6_module, '../core/ui_theme.js', 'css2color');
-  var CSSFont=es6_import_item(_es6_module, '../core/ui_theme.js', 'CSSFont');
-  class ThemeEditor extends Container {
-     constructor() {
-      super();
-      this.categoryMap = {};
-    }
-    static  define() {
-      return {tagname: "theme-editor-x", 
-     style: "theme-editor"}
-    }
-     init() {
-      super.init();
-      this.build();
-    }
-     doFolder(catkey, obj, container=this, panel=undefined, path=undefined) {
-      let key=catkey.key;
-      if (!path) {
-          path = [key];
-      }
-      if (!panel) {
-          panel = container.panel(key, undefined, undefined, catkey.help);
-          panel.style["margin-left"] = "15px";
-      }
-      let row2=panel.row();
-      let textbox=row2.textbox(undefined, "");
-      let callback=(id) =>        {
-        console.log("ID", id, obj, catkey);
-        console.log(textbox, textbox.text, textbox.value);
-        let propkey=(textbox.text||"").trim();
-        if (!propkey) {
-            console.error("Cannot have empty theme property name");
-            return ;
-        }
-        if (id==="FLOAT") {
-            obj[propkey] = 0.0;
-        }
-        else 
-          if (id==="SUBFOLDER") {
-            obj[propkey] = {test: 0};
-        }
-        else 
-          if (id==="COLOR") {
-            obj[propkey] = "grey";
-        }
-        else 
-          if (id==="FONT") {
-            obj[propkey] = new CSSFont();
-        }
-        else 
-          if (id==="STRING") {
-            obj[propkey] = "";
-        }
-        let uidata=saveUIData(panel, "theme-panel");
-        panel.clear();
-        this.doFolder(catkey, obj, container, panel, path);
-        loadUIData(panel, uidata);
-        panel.flushUpdate();
-        panel.flushSetCSS();
-        if (this.onchange) {
-            this.onchange(key, propkey, obj);
-        }
-      };
-      let menu=row2.menu("+", [{name: "Float", 
-     callback: () =>          {
-          return callback("FLOAT");
-        }}, {name: "Color", 
-     callback: () =>          {
-          return callback("COLOR");
-        }}, {name: "Subfolder", 
-     callback: () =>          {
-          return callback("SUBFOLDER");
-        }}, {name: "Font", 
-     callback: () =>          {
-          return callback("FONT");
-        }}, {name: "String", 
-     callback: () =>          {
-          return callback("STRING");
-        }}]);
-      let row=panel.row();
-      let col1=row.col();
-      let col2=row.col();
-      let do_onchange=(key, k, obj) =>        {
-        flagThemeUpdate();
-        if (this.onchange) {
-            this.onchange(key, k, obj);
-        }
-        this.ctx.screen.completeSetCSS();
-        this.ctx.screen.completeUpdate();
-      };
-      let getpath=(path) =>        {
-        let obj=theme;
-        for (let i=0; i<path.length; i++) {
-            obj = obj[path[i]];
-        }
-        return obj;
-      };
-      let ok=false;
-      let _i=0;
-      let dokey=(k, v, path) =>        {
-        let col=_i%2===0 ? col1 : col2;
-        if (k.toLowerCase().search("flag")>=0) {
-            return ;
-        }
-        if (typeof v==="string") {
-            let v2=v.toLowerCase().trim();
-            let iscolor=validateCSSColor(v2);
-            if (iscolor) {
-                let cw=col.colorbutton();
-                ok = true;
-                _i++;
-                let color=css2color(v2);
-                if (color.length<3) {
-                    color = [color[0], color[1], color[2], 1.0];
-                }
-                try {
-                  cw.setRGBA(color);
-                }
-                catch (error) {
-                    console.warn("Failed to set color "+k, v2);
-                }
-                cw.onchange = () =>                  {
-                  console.log("setting '"+k+"' to "+color2css(cw.rgba), key);
-                  getpath(path)[k] = color2css(cw.rgba);
-                  do_onchange(key, k);
-                };
-                cw.label = k;
-            }
-            else {
-              col.label(k);
-              let box=col.textbox();
-              box.onchange = () =>                {
-                getpath(path)[k] = box.text;
-                do_onchange(key, k);
-              };
-              box.text = v;
-            }
-        }
-        else 
-          if (typeof v==="number") {
-            let slider=col.slider(undefined, k, v, 0, 256, 0.01, false);
-            slider.baseUnit = slider.displayUnit = "none";
-            ok = true;
-            _i++;
-            slider.onchange = () =>              {
-              getpath(path)[k] = slider.value;
-              do_onchange(key, k);
-            };
-        }
-        else 
-          if (typeof v==="boolean") {
-            let check=col.check(undefined, k);
-            check.value = getpath(path)[k];
-            check.onchange = () =>              {
-              getpath(path)[k] = !!check.value;
-              do_onchange(key, k);
-            };
-        }
-        else 
-          if (typeof v==="object"&&__instance_of(v, CSSFont)) {
-            let panel2=col.panel(k);
-            ok = true;
-            _i++;
-            let textbox=(key) =>              {
-              panel2.label(key);
-              let tbox=panel2.textbox(undefined, v[key]);
-              tbox.width = tbox.getDefault("width");
-              tbox.onchange = function () {
-                v[key] = this.text;
-                do_onchange(key, k);
-              }
-            };
-            textbox("font");
-            textbox("variant");
-            textbox("weight");
-            textbox("style");
-            let cw=panel2.colorbutton();
-            cw.label = "color";
-            cw.setRGBA(css2color(v.color));
-            cw.onchange = () =>              {
-              v.color = color2css(cw.rgba);
-              do_onchange(key, k);
-            };
-            let slider=panel2.slider(undefined, "size", v.size);
-            slider.onchange = () =>              {
-              v.size = slider.value;
-              do_onchange(key, k);
-            };
-            slider.setAttribute("min", 1);
-            slider.setAttribute("max", 100);
-            slider.baseUnit = slider.displayUnit = "none";
-            panel2.closed = true;
-        }
-        else 
-          if (typeof v==="object") {
-            let catkey2=Object.assign({}, catkey);
-            catkey2.key = k;
-            let path2=path.concat(k);
-            this.doFolder(catkey2, v, panel, undefined, path2);
-        }
-      };
-      for (let k in obj) {
-          let v=obj[k];
-          dokey(k, v, path);
-      }
-      if (!ok) {
-          panel.remove();
-      }
-      else {
-        panel.closed = true;
-      }
-    }
-     build() {
-      let uidata=saveUIData(this, "theme");
-      this.clear();
-      let categories={};
-      for (let k of Object.keys(theme)) {
-          let catkey;
-          if (k in this.categoryMap) {
-              let cat=this.categoryMap[k];
-              if (typeof cat==="string") {
-                  cat = {category: cat, 
-           help: "", 
-           key: k};
-              }
-              catkey = cat;
-          }
-          else {
-            catkey = {category: k, 
-        help: '', 
-        key: k};
-          }
-          if (!catkey.key) {
-              catkey.key = k;
-          }
-          if (!(catkey.category in categories)) {
-              categories[catkey.category] = [];
-          }
-          categories[catkey.category].push(catkey);
-      }
-      function strcmp(a, b) {
-        a = a.trim().toLowerCase();
-        b = b.trim().toLowerCase();
-        return a<b ? -1 : (a===b ? 0 : 1);
-      }
-      let keys=Object.keys(categories);
-      keys.sort(strcmp);
-      for (let k of keys) {
-          let list=categories[k];
-          list.sort((a, b) =>            {
-            return strcmp(a.key, b.key);
-          });
-          let panel=this;
-          if (list.length>1) {
-              panel = this.panel(k);
-          }
-          for (let cat of list) {
-              let k2=cat.key;
-              let v=theme[k2];
-              if (typeof v==="object") {
-                  this.doFolder(cat, v, panel);
-              }
-          }
-          if (list.length>1) {
-              panel.closed = true;
-          }
-      }
-      loadUIData(this, uidata);
-      for (let i=0; i<2; i++) {
-          this.flushSetCSS();
-          this.flushUpdate();
-      }
-      if (this.ctx&&this.ctx.screen) {
-          window.setTimeout(() =>            {
-            this.ctx.screen.completeSetCSS();
-          }, 100);
-      }
-    }
-  }
-  _ESClass.register(ThemeEditor);
-  _es6_module.add_class(ThemeEditor);
-  ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
-  UIBase.internalRegister(ThemeEditor);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-
-
-es6_module_define('ui_button', ["../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../path-controller/controller/controller.js", "../core/ui_base.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js"], function _ui_button_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../path-controller/util/util.js');
-  var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../path-controller/util/events.js');
-  var simple_toolsys=es6_import(_es6_module, '../path-controller/toolsys/toolsys.js');
-  var toolprop=es6_import(_es6_module, '../path-controller/toolsys/toolprop.js');
-  var DataPathError=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataPathError');
-  var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
-  var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
-  var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
-  var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var _themeUpdateKey=es6_import_item(_es6_module, '../core/ui_base.js', '_themeUpdateKey');
-  var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
-  let keymap=events.keymap;
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  let parsepx=ui_base.parsepx;
-  cconst.DEBUG.buttonEvents = true;
-  class ButtonEventBase extends UIBase {
-     constructor() {
-      super();
-      this._auto_depress = true;
-      this._highlight = false;
-      this._pressed = false;
-    }
-     bindEvents() {
-      let press_gen=0;
-      let depress;
-      let press=(e) =>        {
-        e.stopPropagation();
-        if (!this.modalRunning) {
-            let this2=this;
-            this.pushModal({on_pointerdown: function on_pointerdown(e) {
-                this.end(e);
-              }, 
-        on_pointerup: function on_pointerup(e) {
-                this.end(e);
-              }, 
-        on_pointercancel: function on_pointercancel(e) {
-                console.warn("Pointer cancel in button");
-                this2.popModal();
-              }, 
-        on_keydown: function on_keydown(e) {
-                switch (e.keyCode) {
-                  case keymap["Enter"]:
-                  case keymap["Escape"]:
-                  case keymap["Space"]:
-                    this.end();
-                    break;
-                }
-              }, 
-        end: function end(e) {
-                if (!this2.modalRunning) {
-                    return ;
-                }
-                this2.popModal();
-                depress(e);
-              }}, undefined, e.pointerId);
-        }
-        if (cconst.DEBUG.buttonEvents) {
-            console.log("button press", this._pressed, this.disabled, e.button);
-        }
-        if (this.disabled)
-          return ;
-        this._pressed = true;
-        if (this._onpress) {
-            this._onpress(this);
-        }
-        this._redraw();
-        e.preventDefault();
-      };
-      depress = (e) =>        {
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button depress", e.button, e.was_touch);
-        if (this._auto_depress) {
-            this._pressed = false;
-            if (this.disabled)
-              return ;
-            this._redraw();
-        }
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (util.isMobile()||e.type==="pointerup"&&e.button) {
-                return ;
-            }
-        }
-        this._redraw();
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        if (this.onclick&&e&&e.pointerType!=="mouse") {
-            this.onclick(this);
-        }
-        this.undoBreakPoint();
-      };
-      this.addEventListener("click", () =>        {
-        this._pressed = false;
-        this._highlight = false;
-        this._redraw();
-      });
-      this.addEventListener("pointerdown", press, {captured: true, 
-     passive: false});
-      this.addEventListener("pointerup", depress, {captured: true, 
-     passive: false});
-      this.addEventListener("pointerover", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = true;
-        this._redraw();
-      });
-      this.addEventListener("pointerout", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = false;
-        this._redraw();
-      });
-      this.addEventListener("keydown", (e) =>        {
-        if (this.disabled)
-          return ;
-        if (cconst.DEBUG.buttonEvents)
-          console.log(e.keyCode);
-        switch (e.keyCode) {
-          case 27:
-            this.blur();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-          case 32:
-          case 13:
-            this.click();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-        }
-      });
-      this.addEventListener("focusin", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 1;
-        this._redraw();
-        this.focus();
-      });
-      this.addEventListener("blur", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 0;
-        this._redraw();
-      });
-    }
-     _redraw() {
-
-    }
-  }
-  _ESClass.register(ButtonEventBase);
-  _es6_module.add_class(ButtonEventBase);
-  ButtonEventBase = _es6_module.add_export('ButtonEventBase', ButtonEventBase);
-  class Button extends ButtonEventBase {
-     constructor() {
-      super();
-      this.label = document.createElement("span");
-      this.label.innerText = "button";
-      this.shadow.appendChild(this.label);
-      this.label.style["pointer-events"] = "none";
-      this._pressed = false;
-      this._highlight = false;
-      this._pressedTime = 0;
-      this._pressedTimeout = 100;
-      this._auto_depress = true;
-      this._last_name = undefined;
-      this._last_disabled = undefined;
-    }
-    get  name() {
-      return ""+this.getAttribute("name");
-    }
-    set  name(val) {
-      this.setAttribute("name", val);
-    }
-    get  _pressed() {
-      return this.__pressed;
-    }
-    set  _pressed(v) {
-      let changed=!v!==!this._pressed;
-      if (v) {
-          this._pressedTime = util.time_ms();
-      }
-      else 
-        if (changed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
-          window.setTimeout(() =>            {
-            this.setCSS();
-          }, this._pressedTimeout-(util.time_ms()-this._pressedTime)+1);
-      }
-      this.__pressed = v;
-    }
-    static  define() {
-      return {tagname: "button-x", 
-     style: "button"}
-    }
-     init() {
-      super.init();
-      this.tabIndex = 0;
-      this.bindEvents();
-      this.setCSS();
-    }
-     on_enabled() {
-      this.setCSS();
-    }
-     on_disabled() {
-      this.setCSS();
-    }
-     setCSS() {
-      super.setCSS();
-      if (this.hasDefault("pressedTimeout")) {
-          this._pressedTimeout = this.getDefault("pressedTimeout");
-      }
-      let subkey=undefined;
-      let pressed=this._pressed;
-      if (!pressed&&util.time_ms()-this._pressedTime<this._pressedTimeout) {
-          pressed = true;
-      }
-      if (this.disabled) {
-          subkey = "disabled";
-      }
-      else 
-        if (pressed&&this._highlight) {
-          subkey = "highlight-pressed";
-      }
-      else 
-        if (pressed) {
-          subkey = "pressed";
-      }
-      else 
-        if (this._highlight) {
-          subkey = "highlight";
-      }
-      let h=this.getDefault("height");
-      this.setBoxCSS(subkey);
-      this.label.style["padding"] = this.label.style["margin"] = "0px";
-      this.style["background-color"] = this.getSubDefault(subkey, "background-color");
-      let font=this.getSubDefault(subkey, "DefaultText");
-      this.label.style["font"] = font.genCSS();
-      this.label.style["color"] = font.color;
-      this.style["display"] = "flex";
-      this.style["align-items"] = "center";
-      this.style["width"] = "max-content";
-      this.style["height"] = h+"px";
-      this.style["user-select"] = "none";
-      this.label.style["user-select"] = "none";
-    }
-     click() {
-      if (this._onpress) {
-          let rect=this.getClientRects();
-          let x=rect.x+rect.width*0.5;
-          let y=rect.y+rect.height*0.5;
-          let e={x: x, 
-       y: y, 
-       stopPropagation: () =>              {            }, 
-       preventDefault: () =>              {            }};
-          this._onpress(e);
-      }
-      super.click();
-    }
-     _redraw() {
-      this.setCSS();
-    }
-     updateDisabled() {
-      if (this._last_disabled!==this.disabled) {
-          this._last_disabled = this.disabled;
-          this._redraw();
-          if (cconst.DEBUG.buttonEvents)
-            console.log("disabled update!", this.disabled, this.style["background-color"]);
-      }
-    }
-     update() {
-      if (this._last_name!==this.name) {
-          this.label.innerHTML = this.name;
-          this._last_name = this.name;
-      }
-    }
-  }
-  _ESClass.register(Button);
-  _es6_module.add_class(Button);
-  Button = _es6_module.add_export('Button', Button);
-  UIBase.register(Button);
-  class OldButton extends ButtonEventBase {
-     constructor() {
-      super();
-      let dpi=this.getDPI();
-      this._last_but_update_key = "";
-      this._name = "";
-      this._namePad = undefined;
-      this._leftPad = 5;
-      this._rightPad = 5;
-      this._last_w = 0;
-      this._last_h = 0;
-      this._last_dpi = dpi;
-      this._lastw = undefined;
-      this._lasth = undefined;
-      this.dom = document.createElement("canvas");
-      this.g = this.dom.getContext("2d");
-      this.dom.setAttribute("class", "canvas1");
-      this.dom.tabIndex = 0;
-      this._last_bg = undefined;
-      this.addEventListener("keydown", (e) =>        {
-        if (this.disabled)
-          return ;
-        if (cconst.DEBUG.buttonEvents)
-          console.log(e.keyCode);
-        switch (e.keyCode) {
-          case 27:
-            this.blur();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-          case 32:
-          case 13:
-            this.click();
-            e.preventDefault();
-            e.stopPropagation();
-            break;
-        }
-      });
-      this.addEventListener("focusin", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 1;
-        this._redraw();
-        this.focus();
-      });
-      this.addEventListener("blur", () =>        {
-        if (this.disabled)
-          return ;
-        this._focus = 0;
-        this._redraw();
-      });
-      this._last_disabled = false;
-      this._auto_depress = true;
-      this.shadow.appendChild(this.dom);
-    }
-    get  r() {
-      return this.getDefault("border-radius");
-    }
-    set  r(val) {
-      this.overrideDefault("border-radius", val);
-    }
-    static  define() {
-      return {tagname: "old-button-x", 
-     style: "button"}
-    }
-     click() {
-      if (this._onpress) {
-          let rect=this.getClientRects();
-          let x=rect.x+rect.width*0.5;
-          let y=rect.y+rect.height*0.5;
-          let e={x: x, 
-       y: y, 
-       stopPropagation: () =>              {            }, 
-       preventDefault: () =>              {            }};
-          this._onpress(e);
-      }
-      super.click();
-    }
-     init() {
-      let dpi=this.getDPI();
-      let width=~~(this.getDefault("width"));
-      let height=~~(this.getDefault("height"));
-      this.dom.style["width"] = width+"px";
-      this.dom.style["height"] = height+"px";
-      this.dom.style["padding"] = this.dom.style["margin"] = "0px";
-      this.dom.width = Math.ceil(width*dpi);
-      this.dom.height = Math.ceil(parsepx(this.dom.style["height"])*dpi);
-      this._name = undefined;
-      this.updateName();
-      this.bindEvents();
-      this._redraw();
-    }
-     setAttribute(key, val) {
-      super.setAttribute(key, val);
-      if (key==="name") {
-          this.updateName();
-          this.updateWidth();
-      }
-    }
-     old_bindEvents() {
-      let press_gen=0;
-      let press=(e) =>        {
-        e.stopPropagation();
-        if (cconst.DEBUG.buttonEvents) {
-            console.log("button press", this._pressed, this.disabled, e.button);
-        }
-        if (this.disabled)
-          return ;
-        this._pressed = true;
-        if (util.isMobile()&&this.onclick&&e.button===0) {
-            this.onclick();
-        }
-        if (this._onpress) {
-            this._onpress(this);
-        }
-        this._redraw();
-        e.preventDefault();
-      };
-      let depress=(e) =>        {
-        if (cconst.DEBUG.buttonEvents)
-          console.log("button depress", e.button, e.was_touch);
-        if (this._auto_depress) {
-            this._pressed = false;
-            if (this.disabled)
-              return ;
-            this._redraw();
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        if (util.isMobile()||e.type==="pointerup"&&e.button) {
-            return ;
-        }
-        this._redraw();
-        if (cconst.DEBUG.buttonEvents) {
-            console.log("button click callback:", this.onclick, this._onpress, this.onpress);
-        }
-        if (this.onclick&&e.pointerType!=="mouse") {
-            this.onclick(this);
-        }
-        this.undoBreakPoint();
-      };
-      this.addEventListener("mousedown", press, {captured: true, 
-     passive: false});
-      this.addEventListener("mouseup", depress, {captured: true, 
-     passive: false});
-      this.addEventListener("mouseover", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = true;
-        this._repos_canvas();
-        this._redraw();
-      });
-      this.addEventListener("mouseout", (e) =>        {
-        if (this.disabled)
-          return ;
-        this._highlight = false;
-        this._repos_canvas();
-        this._redraw();
-      });
-    }
-     updateDisabled() {
-      if (this._last_disabled!==this.disabled) {
-          this._last_disabled = this.disabled;
-          this.dom._background = this.getDefault("background-color");
-          this._repos_canvas();
-          this._redraw();
-          if (cconst.DEBUG.buttonEvents)
-            console.log("disabled update!", this.disabled, this.style["background-color"]);
-      }
-    }
-     updateDefaultSize() {
-      let height=~~(this.getDefault("height"))+this.getDefault("padding");
-      let size=this.getDefault("DefaultText").size*1.33;
-      if (height===undefined||size===undefined||isNaN(height)||isNaN(size)) {
-          return ;
-      }
-      height = ~~Math.max(height, size);
-      height = height+"px";
-      if (height!==this.style["height"]) {
-          this.style["height"] = height;
-          this.dom.style["height"] = height;
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     _calcUpdateKey() {
-      return _themeUpdateKey;
-    }
-     update() {
-      super.update();
-      this.style["user-select"] = "none";
-      this.dom.style["user-select"] = "none";
-      this.updateDefaultSize();
-      this.updateWidth();
-      this.updateDPI();
-      this.updateName();
-      this.updateDisabled();
-      if (this.background!==this._last_bg) {
-          this._last_bg = this.background;
-          this._repos_canvas();
-          this._redraw();
-      }
-      let key=this._calcUpdateKey();
-      if (key!==this._last_but_update_key) {
-          this._last_but_update_key = key;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     setCSS() {
-      super.setCSS();
-      this.dom.style["margin"] = this.getDefault("margin", undefined, 0)+"px";
-      this.dom.style["margin-left"] = this.getDefault("margin-left", undefined, 0)+"px";
-      this.dom.style["margin-right"] = this.getDefault("margin-right", undefined, 0)+"px";
-      this.dom.style["margin-top"] = this.getDefault("margin-top", undefined, 0)+"px";
-      this.dom.style["margin-bottom"] = this.getDefault("margin-bottom", undefined, 0)+"px";
-      let name=this._name;
-      if (name===undefined) {
-          return ;
-      }
-      let dpi=this.getDPI();
-      let pad=this.getDefault("padding");
-      let ts=this.getDefault("DefaultText").size;
-      let tw=ui_base.measureText(this, this._genLabel(), {size: ts, 
-     font: this.getDefault("DefaultText")}).width+2.0*pad+this._leftPad+this._rightPad;
-      if (this._namePad!==undefined) {
-          tw+=this._namePad;
-      }
-      let w=this.getDefault("width");
-      w = Math.max(w, tw);
-      w = ~~w;
-      this.dom.style["width"] = w+"px";
-      this.updateBorders();
-    }
-     updateBorders() {
-      let lwid=this.getDefault("border-width");
-      if (lwid) {
-          this.dom.style["border-color"] = this.getDefault("border-color");
-          this.dom.style["border-width"] = lwid+"px";
-          this.dom.style["border-style"] = "solid";
-          this.dom.style["border-radius"] = this.getDefault("border-radius")+"px";
-      }
-      else {
-        this.dom.style["border-color"] = "none";
-        this.dom.style["border-width"] = "0px";
-        this.dom.style["border-radius"] = this.getDefault("border-radius")+"px";
-      }
-    }
-     updateName() {
-      if (!this.hasAttribute("name")) {
-          return ;
-      }
-      let name=this.getAttribute("name");
-      if (name!==this._name) {
-          this._name = name;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-    }
-     updateWidth(w_add=0) {
-
-    }
-     _repos_canvas() {
-      let dpi=this.getDPI();
-      let w=parsepx(this.dom.style["width"]);
-      let h=parsepx(this.dom.style["height"]);
-      let w2=~~(w*dpi);
-      let h2=~~(h*dpi);
-      w = w2/dpi;
-      h = h2/dpi;
-      this.dom.width = w2;
-      this.dom.style["width"] = w+"px";
-      this.dom.height = h2;
-      this.dom.style["height"] = h+"px";
-    }
-     updateDPI() {
-      let dpi=this.getDPI();
-      if (this._last_dpi!==dpi) {
-          this._last_dpi = dpi;
-          this.g.font = undefined;
-          this.setCSS();
-          this._repos_canvas();
-          this._redraw();
-      }
-      if (this.style["background-color"]) {
-          this.dom._background = this.style["background-color"];
-          this.style["background-color"] = "";
-      }
-    }
-     _genLabel() {
-      return ""+this._name;
-    }
-     _getSubKey() {
-      if (this._pressed) {
-          return 'depressed';
-      }
-      else 
-        if (this._highlight) {
-          return 'highlight';
-      }
-      else {
-        return undefined;
-      }
-    }
-     _redraw(draw_text=true) {
-      let dpi=this.getDPI();
-      let subkey=this._getSubKey();
-      if (this._pressed&&this._highlight) {
-          this.dom._background = this.getSubDefault(subkey, "highlight-pressed", "BoxHighlight");
-      }
-      else 
-        if (this._pressed) {
-          this.dom._background = this.getSubDefault(subkey, "pressed", "BoxDepressed");
-      }
-      else 
-        if (this._highlight) {
-          this.dom._background = this.getSubDefault(subkey, "highlight", "BoxHighlight");
-      }
-      else {
-        this.dom._background = this.getSubDefault(subkey, "background-color", "background-color");
-      }
-      ui_base.drawRoundBox(this, this.dom, this.g);
-      this.updateBorders();
-      if (this._focus) {
-          let w=this.dom.width, h=this.dom.height;
-          let p=1/dpi;
-          this.g.translate(p, p);
-          let lw=this.g.lineWidth;
-          this.g.lineWidth = this.getDefault("focus-border-width", undefined, 1.0)*dpi;
-          ui_base.drawRoundBox(this, this.dom, this.g, w-p*2, h-p*2, this.r, "stroke", this.getDefault("BoxHighlight"));
-          this.g.lineWidth = lw;
-          this.g.translate(-p, -p);
-      }
-      if (draw_text) {
-          this._draw_text();
-      }
-    }
-     _draw_text() {
-      let dpi=this.getDPI();
-      let subkey=this._getSubKey();
-      let font=this.getSubDefault(subkey, "DefaultText");
-      let pad=this.getDefault("padding")*dpi;
-      let ts=font.size*dpi;
-      let text=this._genLabel();
-      let w=this.dom.width, h=this.dom.height;
-      let tw=ui_base.measureText(this, text, undefined, undefined, ts, font).width;
-      let cx=pad*0.5+this._leftPad*dpi;
-      let cy=ts+(h-ts)/3.0;
-      let g=this.g;
-      ui_base.drawText(this, ~~cx, ~~cy, text, {canvas: this.dom, 
-     g: this.g, 
-     size: ts/dpi, 
-     font: font});
-    }
-  }
-  _ESClass.register(OldButton);
-  _es6_module.add_class(OldButton);
-  OldButton = _es6_module.add_export('OldButton', OldButton);
-  UIBase.internalRegister(OldButton);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
 

@@ -2,7 +2,7 @@
 
 import {ENABLE_MULTIRES} from '../config/config.js';
 
-var PI                                                        = Math.PI, abs                                         = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
+var PI                                                        = Math.PI, abs = Math.abs, sqrt                        = Math.sqrt, floor = Math.floor,
     ceil                                                      = Math.ceil, sin                                     = Math.sin, cos = Math.cos, acos = Math.acos,
     asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
 
@@ -12,7 +12,7 @@ import {
   MinMax
 } from '../util/mathlib.js';
 
-import {Vector2} from "../path.ux/scripts/pathux.js";
+import {Vector2, util} from "../path.ux/scripts/pathux.js";
 
 import {
   TPropFlags, PropTypes
@@ -22,7 +22,7 @@ import {STRUCT} from '../core/struct.js';
 import * as math from '../util/mathlib.js';
 import {DataPathNode, NodeBase} from '../core/eventdag.js';
 
-var abs                                                     = Math.abs, acos = Math.acos, asin                  = Math.asin,
+var abs                                                     = Math.abs, acos = Math.acos, asin = Math.asin,
     atan2 = Math.atan2, PI = Math.PI, sqrt = Math.sqrt, pow = Math.pow,
     log                                                     = Math.log;
 
@@ -50,7 +50,6 @@ let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
 import {bez3, bez4} from '../util/bezier.js';
 
 let _seg_aabb_ret = [new Vector3(), new Vector3()];
-
 
 export class SplineVertex extends SplineElement {
   flag: boolean
@@ -523,27 +522,6 @@ export class SplineSegment extends SplineElement {
   shift2: number
   ks: Array
   _last_ks: Array;
-
-  /*
-  get flag() {
-    return this._flag;
-  }
-
-  set flag(v) {
-    if (v & SplineFlags.UPDATE) {
-      try {
-        throw new Error();
-      } catch (error) {
-        let stack = "" + error.stack;
-        if (stack.search("draw_spline") < 0) {
-          window.d++;
-        }
-      }
-      window.SplineSegment = SplineSegment;
-    }
-    this._flag = v;
-  }
-  //*/
 
   constructor(v1: SplineVertex, v2: SplineVertex) {
     super(SplineTypes.SEGMENT);

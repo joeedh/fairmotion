@@ -362,8 +362,6 @@ export class View2DHandler extends Editor {
     let scale = 1.0 + dt;
     this.set_zoom(this.zoom*scale);
     window.redraw_viewport();
-
-    console.log(scale, this.zoom);
   }
 
   _mouse(e: MouseEvent) {

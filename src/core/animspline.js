@@ -819,13 +819,9 @@ export class VertexAnimData {
     }
   }
   
-  static fromSTRUCT(reader) {
-    var ret = new VertexAnimData();
-    
-    reader(ret);
-    //ret.timechannel_verts = new set(ret.timechannel_verts);
-    
-    return ret;
+  loadSTRUCT(reader) {
+    reader(this);
+    //this.timechannel_verts = new set(this.timechannel_verts);
   }
 }
 

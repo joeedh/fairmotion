@@ -20,20 +20,16 @@ import * as vectordraw_jobs from './vectordraw_jobs.js';
 
 let debug = 0;
 
-var canvaspath_draw_mat_tmps = new cachering(function() {
-  return new Matrix4();
-}, 16);
-var canvaspath_draw_args_tmps = new Array(16);
-for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
+const canvaspath_draw_mat_tmps = util.cachering.fromConstructor(Matrix4, 16);
+const canvaspath_draw_args_tmps = new Array(16);
+for (let i = 1; i < canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
-var canvaspath_draw_vs = new cachering(function() {
-  return new Vector2();
-}, 32);
+const canvaspath_draw_vs = util.cachering.fromConstructor(Vector2, 32);
 
-let MOVETO = OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH,
-    CUBICTO=OPCODES.CUBIC, CLOSEPATH = OPCODES.CLOSEPATH, LINEWIDTH = OPCODES.LINEWIDTH,
-    LINESTYLE = OPCODES.LINESTYLE, STROKE = OPCODES.STROKE, FILL=OPCODES.FILL;
+const MOVETO = OPCODES.MOVETO, BEZIERTO = OPCODES.QUADRATIC, LINETO = OPCODES.LINETO, BEGINPATH = OPCODES.BEGINPATH,
+      CUBICTO                                                                                   = OPCODES.CUBIC, CLOSEPATH                                                        = OPCODES.CLOSEPATH, LINEWIDTH = OPCODES.LINEWIDTH,
+      LINESTYLE                                                                                 = OPCODES.LINESTYLE, STROKE                                                     = OPCODES.STROKE, FILL = OPCODES.FILL;
 
 let arglens = {};
 
@@ -51,21 +47,56 @@ arglens[CUBICTO] = 6;
 let render_idgen = 1;
 let batch_iden = 1;
 
+export class CachedF64Array {
+  array = [];
+  f64array = undefined;
+
+  constructor() {
+    this.array = [];
+    this.f64array;
+  }
+
+  reset() {
+    this.array.length = 0;
+    return this.array;
+  }
+
+  finish() {
+    if (!this.f64array || this.f64array.length < this.array.length) {
+      this.f64array = new Float64Array(this.array.length);
+    }
+
+    const f64array = this.f64array;
+    const array = this.array;
+    for (let i = 0; i < this.array.length; i++) {
+      this.f64array[i] = array[i];
+    }
+
+    if (this.f64array.length === this.array.length) {
+      return this.f64array;
+    }
+
+    return new Float64Array(this.f64array.buffer, 0, this.array.length);
+  }
+}
+
 export class Batch {
-  generation : number
-  path_idmap : Object
-  isBlurBatch : boolean
-  regen : number
-  gen_req : number
-  _last_pan : Vector2
-  viewport : Object
-  realViewport : Object
-  patharea : number;
-  dpi_scale : number;
+  generation: number
+  path_idmap: Object
+  isBlurBatch: boolean
+  regen: number
+  gen_req: number
+  _last_pan: Vector2
+  viewport: Object
+  realViewport: Object
+  patharea: number;
+  dpi_scale: number;
+  _commands: CachedF64Array;
 
   constructor() {
     this._batch_id = batch_iden++;
 
+    this._commands = new CachedF64Array();
     this.generation = 0;
     this.isBlurBatch = false;
     this.dpi_scale = 1.0;
@@ -79,12 +110,12 @@ export class Batch {
 
     this.viewport = {
       pos : [0, 0],
-      size : [1, 1]
+      size: [1, 1]
     };
 
     this.realViewport = {
       pos : [0, 0],
-      size : [1, 1]
+      size: [1, 1]
     }
 
     this.patharea = 0;
@@ -102,7 +133,7 @@ export class Batch {
     return this._regen;
   }
 
-  add(p : CanvasPath) {
+  add(p: CanvasPath) {
     if (this.has(p)) {
       return;
     }
@@ -110,7 +141,7 @@ export class Batch {
     this.generation = 0;
 
     let draw = {
-      matrix : new Matrix4()
+      matrix: new Matrix4()
     }
     p.update_aabb(draw);
 
@@ -136,7 +167,7 @@ export class Batch {
     this.paths.push(p);
   }
 
-  remove(p : CanvasPath) {
+  remove(p: CanvasPath) {
     p._batch = undefined;
 
     if (!this.has(p)) {
@@ -172,14 +203,14 @@ export class Batch {
     this.gen_req = 0;
   }
 
-  has(p : CanvasPath) {
+  has(p: CanvasPath) {
     if (!p._batch_id)
       return false;
 
     return p._batch_id in this.path_idmap;
   }
 
-  checkViewport(draw : CanvasDraw2D) {
+  checkViewport(draw: CanvasDraw2D) {
     let canvas = draw.canvas;
     //let cv = this._getPaddedViewport(canvas);
 
@@ -189,13 +220,13 @@ export class Batch {
     p.sub(this._last_pan);
 
     let cv = {
-      pos  : new Vector2(),
-      size : new Vector2([canvas.width, canvas.height])
+      pos : new Vector2(),
+      size: new Vector2([canvas.width, canvas.height])
     };
 
     cv.pos[0] -= p[0];
     cv.pos[1] -= p[1];
-    
+
     let clip1 = math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
     let clip2 = math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
 
@@ -216,7 +247,7 @@ export class Batch {
       }
       return !!clip1 !== !!clip2;
     }
-    
+
     clip1.pos.floor();
     clip1.size.floor();
     clip2.pos.floor();
@@ -232,13 +263,13 @@ export class Batch {
     return bad;
   }
 
-  _getPaddedViewport(canvas, cpad=512) {
-    let dpi_scale = canvas.dpi_scale * this.dpi_scale;
+  _getPaddedViewport(canvas, cpad = 512) {
+    let dpi_scale = canvas.dpi_scale*this.dpi_scale;
     cpad /= dpi_scale;
 
     return {
-      pos  : new Vector2([-cpad, -cpad]),
-      size : new Vector2([canvas.width*canvas.dpi_scale + cpad*2, canvas.height*canvas.dpi_scale + cpad*2])
+      pos : new Vector2([-cpad, -cpad]),
+      size: new Vector2([canvas.width*canvas.dpi_scale + cpad*2, canvas.height*canvas.dpi_scale + cpad*2])
     }
   }
 
@@ -260,15 +291,12 @@ export class Batch {
     let canvas = draw.canvas, g = draw.g;
     if (debug) console.warn("generating batch of size " + this.paths.length);
 
-    let ok = false;
     let min = new Vector2([1e17, 1e17]);
     let max = new Vector2([-1e17, -1e17]);
 
-    let startmat = new Matrix4(draw.matrix);
-
     let zoom = draw.matrix.$matrix.m11;
 
-    function setMat(p, set_off=false) {
+    function setMat(p, set_off = false) {
       let mat = new Matrix4();
 
       if (set_off) {
@@ -297,7 +325,7 @@ export class Batch {
 
     this.realViewport = {
       pos : new Vector2(min),
-      size : new Vector2(max).sub(min)
+      size: new Vector2(max).sub(min)
     }
 
     //clip to something reasonably close to the viewport
@@ -331,26 +359,31 @@ export class Batch {
     max.load(min).add(box.size);
 
     this.viewport = {
-      pos  : new Vector2(box.pos),
-      size : new Vector2(box.size)
+      pos : new Vector2(box.pos),
+      size: new Vector2(box.size)
     }
 
     let width = ~~(max[0] - min[0]);
     let height = ~~(max[1] - min[1]);
-    
+
     //console.log("width/height", width, height);
 
-    let commands = [width, height];
+    let commands = this._commands.reset();
+    commands.push(width);
+    commands.push(height);
 
     for (let p of this.paths) {
       setMat(p, true);
 
-      p.gen(draw);
+      if (1 || !p._commands || p.recalc) {
+        p.genSmart(draw);
+      }
+
       let c2 = p._commands;
 
       draw.pop_transform();
 
-      for (let i=0; i<c2.length; i++) {
+      for (let i = 0; i < c2.length; i++) {
         commands.push(c2[i]);
       }
     }
@@ -361,16 +394,16 @@ export class Batch {
 
     //this._image = undefined;
     //this._image_off = undefined;
-    
+
     let renderid = render_idgen++;
-    
-    if (commands.length === 0) {
+
+    if (commands.length < 3) {
       this.gen_req = 0;
       return;
     }
-    
+
     //console.log(commands, commands[0], commands[1], commands.length);
-    commands = new Float64Array(commands);
+    commands = this._commands.finish();
 
     min = new Vector2(min);
 
@@ -410,10 +443,10 @@ export class Batch {
     }
 
     let canvas = draw.canvas, g = draw.g;
-    var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
+    let zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
     let offx = 0, offy = 0;
 
-    let scale = zoom / this._draw_zoom;
+    let scale = zoom/this._draw_zoom;
 
     //let viewport = this.realViewport;
 
@@ -432,7 +465,7 @@ export class Batch {
     if (this._image === undefined) {
       return;
     }
-    
+
     g.imageSmoothingEnabled = !!this.isBlurBatch;
 
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
@@ -476,19 +509,21 @@ export class Batch {
 
 let canvaspath_temp_vs = util.cachering.fromConstructor(Vector2, 512);
 let canvaspath_temp_mats = util.cachering.fromConstructor(Matrix4, 128);
+let last_print_time = util.time_ms();
 
 export class CanvasPath extends PathBase {
-  dead : boolean
-  recalc : number
-  _image_off : Array<number>
-  lastx : number
-  lasty : number
-  _size2 : Vector2
-  path_start_i : number
-  first : boolean
-  z   : number
-  nofill : boolean;
-  _mm : MinMax;
+  dead: boolean
+  recalc: number
+  _image_off: Array<number>
+  lastx: number
+  lasty: number
+  _size2: Vector2
+  path_start_i: number
+  first: boolean
+  z: number
+  nofill: boolean;
+  _mm: MinMax;
+  matrix: Matrix4;
 
   constructor() {
     super();
@@ -505,7 +540,7 @@ export class CanvasPath extends PathBase {
     this._render_id = render_idgen++;
     this._image = undefined;
     this._image_off = [0, 0];
-    
+
     this.lastx = 0;
     this.lasty = 0;
 
@@ -514,10 +549,11 @@ export class CanvasPath extends PathBase {
 
     this.canvas = undefined;
     this.g = undefined;
-    
+
     this.path_start_i = 2;
     this.first = true;
     this._mm = new MinMax(2);
+    this.matrix = new Matrix4();
   }
 
   pushFill() {
@@ -542,32 +578,38 @@ export class CanvasPath extends PathBase {
     this.nofill = true;
   }
 
-  update_aabb(draw, fast_mode=false) {
-    var tmp = canvaspath_temp_vs.next().zero();
-    var mm = this._mm;
-    var pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
+  update_aabb(draw, fast_mode = false) {
+    let tmp = canvaspath_temp_vs.next().zero();
+    let mm = this._mm;
+    let pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
     pad += this.stroke_extra*3;
-    
+
     mm.reset();
-    
+
     if (fast_mode) {
-      console.trace("FAST MODE!");
+      //console.trace("FAST MODE!");
     }
-    
-    var prev = -1;
-    var cs = this.commands, i = 0;
+
+    let prev = -1;
+    let cs = this.commands, i = 0;
     while (i < cs.length) {
-      var cmd = cs[i++];
-      var arglen = arglens[cmd];
-      
+      let cmd = cs[i++];
+      let arglen = arglens[cmd];
+
       if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
         continue;
       }
-      
-      for (var j=0; j<arglen; j += 2) {
-        tmp[0] = cs[i++]; tmp[1] = cs[i++];
+
+      if (cmd !== OPCODES.LINETO && cmd !== OPCODES.MOVETO && cmd !== OPCODES.CUBIC && cmd !== OPCODES.QUADRATIC && cmd !== OPCODES.ARC) {
+        i += arglen;
+        continue;
+      }
+
+      for (let j = 0; j < arglen; j += 2) {
+        tmp[0] = cs[i++];
+        tmp[1] = cs[i++];
 
         if (isNaN(tmp.dot(tmp))) {
           console.warn("NaN!");
@@ -575,30 +617,30 @@ export class CanvasPath extends PathBase {
         }
 
         tmp.multVecMatrix(draw.matrix);
-        
+
         mm.minmax(tmp);
       }
-      
+
       prev = cmd;
     }
-    
+
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
-    
+
     this.aabb[0].floor();
     this.aabb[1].ceil();
   }
-  
+
   beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
   }
-  
+
   closePath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(CLOSEPATH);
   }
-  
+
   undo() { //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
@@ -606,8 +648,8 @@ export class CanvasPath extends PathBase {
 
   _pushCmd() {
     let arglen = arguments.length;
-    
-    for (let i=0; i<arglen; i++) {
+
+    for (let i = 0; i < arglen; i++) {
       if (isNaN(arguments[i])) {
         console.warn("NaN!");
       }
@@ -615,40 +657,40 @@ export class CanvasPath extends PathBase {
       let arg = arguments[i];
       this.commands.push(arg);
     }
-    
+
     this.recalc = 1;
     this.first = false;
   }
-  
+
   moveTo(x, y) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
-  
+
   cubicTo(x2, y2, x3, y3, x4, y4) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
-  
+
   bezierTo(x2, y2, x3, y3) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
-  
+
   lineTo(x2, y2) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
     }
-    
+
     this._pushCmd(LINETO, x2, y2);
     this.lastx = x2;
     this.lasty = y2;
   }
-  
+
   destroy(draw) {
     if (this._batch) {
       this._batch.remove(this);
@@ -657,9 +699,9 @@ export class CanvasPath extends PathBase {
     this.canvas = this.g = undefined;
     this._image = this.commands = undefined;
   }
-  
+
   //renders into another path's canvas
-  genInto(draw, path, commands, clip_mode=false) {
+  genInto(draw, path, commands, clip_mode = false) {
     let oldc = this.canvas, oldg = this.g, oldaabb = this.aabb, oldsize = this.size;
 
     this.aabb = this._aabb2;
@@ -668,44 +710,42 @@ export class CanvasPath extends PathBase {
 
     this.size = this._size2;
     this.size.load(path.size);
-    
+
     this.gen_commands(draw, commands, undefined, true);
     //this.gen(draw, undefined, clip_mode);
-    
+
     this.canvas = oldc;
     this.g = oldg;
     this.aabb = oldaabb;
     this.size = oldsize;
   }
-  
-  gen_commands(draw, commands, _check_tag=0, clip_mode=false) {
-    let m = this.matrix.$matrix;
-    
+
+  gen_commands(draw, commands, _check_tag = 0, clip_mode = false) {
     let r = ~~(this.color[0]*255),
-      g = ~~(this.color[1]*255),
-      b = ~~(this.color[2]*255),
-      a = this.color[3];
-    
-    let commands2 = [];
-  
-    //commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
+        g = ~~(this.color[1]*255),
+        b = ~~(this.color[2]*255),
+        a = this.color[3];
+
     if (!clip_mode) {
-      commands2 = commands2.concat([OPCODES.FILLSTYLE, r, g, b, a]);
-      commands2 = commands2.concat([OPCODES.SETBLUR, this.blur]);
+      commands.push(OPCODES.FILLSTYLE);
+      commands.push(r);
+      commands.push(g);
+      commands.push(b);
+      commands.push(a);
+      commands.push(OPCODES.SETBLUR);
+      commands.push(this.blur);
     }
-    
-    commands2.push(OPCODES.BEGINPATH);
-  
-    commands2 = commands2.concat(this.commands);
+
+    commands.push(OPCODES.BEGINPATH);
+
+    for (let cmd of this.commands) {
+      commands.push(cmd);
+    }
 
     if (clip_mode) {
-      commands2.push(OPCODES.CLIP);
+      commands.push(OPCODES.CLIP);
     } else if (!this.nofill) {
-      commands2.push(OPCODES.FILL);
-    }
-
-    for (let c of commands2) {
-      commands.push(c);
+      commands.push(OPCODES.FILL);
     }
 
     return commands;
@@ -719,7 +759,7 @@ export class CanvasPath extends PathBase {
     //*
     let cs = this.commands;
 
-    for (let i=0; i<cs.length; i += cs[i+1]) {
+    for (let i = 0; i < cs.length; i += cs[i + 1]) {
       let cmd = cs[i];
 
       if (cmd !== LINETO && cmd !== MOVETO && cmd !== CUBICTO && cmd !== BEZIERTO) {
@@ -728,70 +768,116 @@ export class CanvasPath extends PathBase {
 
       let arglen = arglens[cmd];
 
-      for (let j=0; j<arglen; j += 2) {
-        let j2 = i+1+j;
+      for (let j = 0; j < arglen; j += 2) {
+        let j2 = i + 1 + j;
         let d = 1.0;
 
-        if (j2 >= cs.length-1 || j+1 >= arglen) {
+        if (j2 >= cs.length - 1 || j + 1 >= arglen) {
           break;
         }
 
         co[0] = cs[j2];
-        co[1] = cs[j2+1];
+        co[1] = cs[j2 + 1];
 
         co.multVecMatrix(matrix);
         co.mulScalar(d);
         co.addScalar(0.5);
         co.floor();
-        co.mulScalar(1.0 / d);
+        co.mulScalar(1.0/d);
         co.multVecMatrix(imat);
 
         cs[j2] = co[0];
-        cs[j2+1] = co[1];
+        cs[j2 + 1] = co[1];
       }
     }
     //*/
   }
 
-  gen(draw, _check_tag=0, clip_mode=false, independent=false) {
+  get recalc() {
+    return this.__recalc;
+  }
+
+  set recalc(v) {
+    if (v) {
+      this._commands = undefined;
+    }
+
+    if (0) {
+      if (util.time_ms() - last_print_time > 150) {
+        last_print_time = util.time_ms();
+        console.warn("recalc", v);
+      }
+    }
+
+    this.__recalc = v;
+  }
+
+  /* Attempts to avoid regenerating the final command list.*/
+  genSmart(draw) {
+    if (!this._commands || this.recalc) {
+      return this.gen(draw);
+    }
+
+    this.matrix.load(draw.matrix);
+
+    /* Find initial matrix opcode. */
+
+    let trans_i = -1;
+    let cmds = this._commands;
+    for (let i = 0; i < cmds.length; i++) {
+      if (cmds[i] === OPCODES.SETTRANSFORM) {
+        trans_i = i;
+        break;
+      }
+    }
+
+    if (trans_i === -1) {
+      console.error("Failed to find SETTRANSFORM");
+      return this.gen(draw);
+    }
+
+    /* Update matrix data. */
+
+    let m = this.matrix.$matrix;
+    let i = trans_i + 1;
+    cmds[i++] = m.m11;
+    cmds[i++] = m.m12;
+    cmds[i++] = m.m21;
+    cmds[i++] = m.m22;
+    cmds[i++] = m.m41;
+    cmds[i++] = m.m42;
+  }
+
+  gen(draw, _check_tag = 0, clip_mode = false, independent = false) {
     if (_check_tag && !this.recalc) {
       console.log("infinite loop in clip stack");
       return;
     }
-    
+
     this.recalc = 0;
-    
-    var do_clip = this.clip_paths.length > 0;
-    var do_blur = this.blur > 0.0;
-    
-    var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
-    
+
     this.update_aabb(draw);
-    
-    var w = this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]);
-    var h = this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]);
-    
+
+    let w = this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]);
+    let h = this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]);
+
     if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
-      var w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
-      var h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
-      var dw = w - w2, dh = h - h2;
-      
+      let w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+      let h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+      let dw = w - w2, dh = h - h2;
+
       this.aabb[0][0] += dw*0.5;
       this.aabb[0][1] += dh*0.5;
       this.aabb[1][0] -= dw*0.5;
       this.aabb[1][1] -= dh*0.5;
-      
+
       this.size[0] = w2;
       this.size[1] = h2;
-      
+
       w = w2, h = h2;
     }
 
-    if (1) {
-      var mat = canvaspath_draw_mat_tmps.next();
-      mat.load(draw.matrix);
-      this.matrix = mat;
-    }
+    this.matrix.load(draw.matrix);
 
     if (isNaN(w) || isNaN(h)) {
       console.log("NaN path size", w, h, this);
@@ -801,20 +887,27 @@ export class CanvasPath extends PathBase {
 
     let commands2 = independent ? [w, h] : [];
     let m = this.matrix.$matrix;
-    commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
+    //commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
+    commands2.push(OPCODES.SETTRANSFORM);
+    commands2.push(m.m11);
+    commands2.push(m.m12);
+    commands2.push(m.m21);
+    commands2.push(m.m22);
+    commands2.push(m.m41);
+    commands2.push(m.m42);
 
     commands2.push(OPCODES.SAVE);
 
-    for (var path of this.clip_paths) {
+    for (let path of this.clip_paths) {
       //console.log("CLIPPING!", path);
-      
+
       if (path.recalc) {
         if (debug) console.log("   clipping subgen!");
         path.gen(draw, 1);
       }
-      
+
       let oldc = path.canvas, oldg = path.g, oldaabb = path.aabb, oldsize = path.size;
-      
+
       path.genInto(draw, this, commands2, true);
     }
 
@@ -831,39 +924,39 @@ export class CanvasPath extends PathBase {
     this.off.zero();
     this.first = true;
   }
-  
-  draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g) {
+
+  draw(draw, offx = 0, offy = 0, canvas = draw.canvas, g = draw.g) {
     offx += this.off[0], offy += this.off[1];
-    
+
     if (this.recalc) {
       this.recalc = 0;
-      
+
       this.gen(draw);
     }
-    
+
     if (this._image === undefined) {
       return;
     }
-    
+
     g.imageSmoothingEnabled = false;
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
-    
-    g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
+
+    g.drawImage(this._image, this._image_off[0] + offx, this._image_off[1] + offy);
 
     g.beginPath();
-    g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-    g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+    g.rect(this._image_off[0] + offx, this._image_off[1] + offy, this._image.width, this._image.height);
+    g.rect(this._image_off[0] + offx, this._image_off[1] + offy, this._image.width, this._image.height);
     g.fillStyle = "rgba(0,255,0,0.4)";
     g.fill();
   }
-  
+
   update() {
     this.recalc = 1;
   }
 }
 
 export class Batches extends Array {
-  cur : number;
+  cur: number;
 
   constructor() {
     super();
@@ -874,7 +967,7 @@ export class Batches extends Array {
 
   getHead(onBatchDone) {
     if (this.drawlist.length > 0) {
-      return this.drawlist[this.drawlist.length-1];
+      return this.drawlist[this.drawlist.length - 1];
     }
 
     return this.requestBatch(onBatchDone);
@@ -894,8 +987,8 @@ export class Batches extends Array {
       this.cur++;
       this.push(b);
 
-      this.drawlist.push(this[this.length-1]);
-      ret = this[this.length-1];
+      this.drawlist.push(this[this.length - 1]);
+      ret = this[this.length - 1];
     }
 
     ret.isBlurBatch = false;
@@ -907,8 +1000,8 @@ export class Batches extends Array {
 
     this.drawlist.remove(batch);
 
-    if (this.cur > 0 && this.cur < this.length-1) {
-      let j = this.cur-1;
+    if (this.cur > 0 && this.cur < this.length - 1) {
+      let j = this.cur - 1;
 
       this[i] = this[j];
       this.cur--;
@@ -934,12 +1027,12 @@ export class Batches extends Array {
 }
 
 export class CanvasDraw2D extends VectorDraw {
-  path_idmap : Object
-  dosort : boolean
-  matstack : Array
-  matrix : Matrix4
-  _last_pan : Vector2
-  batches : Batches;
+  path_idmap: Object
+  dosort: boolean
+  matstack: Array
+  matrix: Matrix4
+  _last_pan: Vector2
+  batches: Batches;
 
   constructor() {
     super();
@@ -950,23 +1043,23 @@ export class CanvasDraw2D extends VectorDraw {
     this.paths = [];
     this.path_idmap = {};
     this.dosort = true;
-    
+
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
     this._last_pan = new Vector2();
-    
-    for (var i=0; i<this.matstack.length; i++) {
+
+    for (let i = 0; i < this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
     this.matstack.cur = 0;
-    
+
     this.canvas = undefined;
     this.g = undefined;
     this.batches = new Batches();
     this.onBatchDone = this.onBatchDone.bind(this);
   }
 
-  onBatchDone(batch : Batch) {
+  onBatchDone(batch: Batch) {
     let ok = true;
     for (let b of this.batches.drawlist) {
       if (b.pending) {
@@ -981,7 +1074,7 @@ export class CanvasDraw2D extends VectorDraw {
     }
   }
 
-  has_path(id : number, z : number, check_z : boolean=true) : boolean {
+  has_path(id: number, z: number, check_z: boolean = true): boolean {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -989,17 +1082,17 @@ export class CanvasDraw2D extends VectorDraw {
     if (!(id in this.path_idmap)) {
       return false;
     }
-    
-    var path = this.path_idmap[id];
+
+    let path = this.path_idmap[id];
     return check_z ? path.z === z : true;
   }
-  
+
   //creates new path if necessary.  z is required
-  get_path(id : number, z : number, check_z : boolean=true) : CanvasPath {
+  get_path(id: number, z: number, check_z: boolean = true): CanvasPath {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
-    
+
     if (!(id in this.path_idmap)) {
       this.path_idmap[id] = new CanvasPath();
       this.path_idmap[id].index = this.paths.length;
@@ -1007,27 +1100,27 @@ export class CanvasDraw2D extends VectorDraw {
 
       this.paths.push(this.path_idmap[id]);
     }
-    
-    var ret = this.path_idmap[id];
-    
+
+    let ret = this.path_idmap[id];
+
     if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
-    
+
     return ret;
   }
-  
+
   update() {
-    for (var path of this.paths) {
+    for (let path of this.paths) {
       path.update(this);
     }
   }
-  
+
   destroy() {
     this.batches.destroy();
 
-    for (var path of this.paths) {
+    for (let path of this.paths) {
       path.destroy(this);
     }
   }
@@ -1063,19 +1156,19 @@ export class CanvasDraw2D extends VectorDraw {
       this.__regen = 0;
 
       this.batches.destroy();
-      this.update();
+      //this.update();
     }
 
     let batch;
 
-    let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
+    let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length/vectordraw_jobs.manager.max_threads);
     //console.log("batch limit", blimit);
 
     batch = this.batches.getHead(this.onBatchDone);
 
-    var canvas = g.canvas;
-    var off = canvaspath_draw_vs.next();
-    
+    let canvas = g.canvas;
+    let off = canvaspath_draw_vs.next();
+
     let zoom = this.matrix.$matrix.m11;
 
     off.zero(); //load(this.pan).sub(this._last_pan);
@@ -1085,30 +1178,30 @@ export class CanvasDraw2D extends VectorDraw {
       this._last_zoom = zoom;
 
       for (let p of this.paths) {
-        p.recalc = 1;
+        //XXX p.recalc = 1;
       }
     }
-    
+
     //propagate clip users (once)
-    for (var path of this.paths) {
+    for (let path of this.paths) {
       if (!path.recalc) {
         continue;
       }
-      
-      for (var path2 of path.clip_users) {
+
+      for (let path2 of path.clip_users) {
         path2.recalc = 1;
       }
     }
-    
-    for (var path of this.paths) {
+
+    for (let path of this.paths) {
       if (!path.recalc) {
         path.off.add(off);
       }
     }
-    
+
     this.canvas = canvas;
     this.g = g;
-    
+
     if (this.dosort) {
       if (debug) console.log("SORT");
 
@@ -1119,14 +1212,14 @@ export class CanvasDraw2D extends VectorDraw {
         p._batch = undefined;
       }
 
-      this.paths.sort(function(a, b) {
+      this.paths.sort(function (a, b) {
         return a.z - b.z;
       });
 
       batch = this.batches.getHead(this.onBatchDone);
     }
-    
-    for (var path of this.paths) {      
+
+    for (let path of this.paths) {
       if (path.hidden) {
         if (path._batch) {
           path._batch.remove(path);
@@ -1148,8 +1241,8 @@ export class CanvasDraw2D extends VectorDraw {
       }
 
       if (!path._batch) {
-        let w1 = batch.patharea / (canvas.width*canvas.height);
-        let w2 = this.batches.length > 10 ? 1.0 / (this.batches.length - 9) : 0.0;
+        let w1 = batch.patharea/(canvas.width*canvas.height);
+        let w2 = this.batches.length > 10 ? 1.0/(this.batches.length - 9) : 0.0;
 
         if (needsblur) {
           if (!batch.isBlurBatch) {
@@ -1157,10 +1250,10 @@ export class CanvasDraw2D extends VectorDraw {
             batch.isBlurBatch = true;
             batch.dpi_scale = path.blur*zoom > 50 ? 0.1 : 0.25;
           } else {
-            let scale =path.blur*zoom > 50 ? 0.1 : 0.25;
+            let scale = path.blur*zoom > 50 ? 0.1 : 0.25;
             batch.dpi_scale = Math.min(batch.dpi_scale, scale);
           }
-        } else if (batch.isBlurBatch || (batch.paths.length * (1.0 + w1 * 4.0) > blimit)) {
+        } else if (batch.isBlurBatch || (batch.paths.length*(1.0 + w1*4.0) > blimit)) {
           batch = this.batches.requestBatch(this.onBatchDone);
         }
 
@@ -1171,7 +1264,7 @@ export class CanvasDraw2D extends VectorDraw {
         path._batch.regen = 1;
         path.recalc = 0;
       }
-      
+
       window.path1 = path;
       //path.draw(this);
     }
@@ -1180,7 +1273,7 @@ export class CanvasDraw2D extends VectorDraw {
     window.batches = this.batches;
 
     //console.log(batch.paths.length, batch._batch_id);
-    
+
     for (let batch of this.batches.drawlist) {
       batch.draw(this);
     }
@@ -1206,7 +1299,7 @@ export class CanvasDraw2D extends VectorDraw {
 
     return this.promise;
   }
-  
+
   //set draw matrix
   set_matrix(matrix) {
     super.set_matrix(matrix);

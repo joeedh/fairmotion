@@ -1,7 +1,7 @@
 //keep up to date with vectordraw_canvas2d_worker, at least until
 //I've gotten it hooked into the es6 runtime system and can import stuff
 
-export var OPCODES = {
+export const OPCODES = {
   LINESTYLE : 0,
   LINEWIDTH : 1,
   FILLSTYLE : 2,
@@ -28,7 +28,7 @@ export var OPCODES = {
   SETTRANSFORM : 23
 };
 
-export var MESSAGES = {
+export const MESSAGES = {
   NEW_JOB: 0,
   ADD_DATABLOCK: 1,
   SET_COMMANDS: 2,
@@ -42,7 +42,7 @@ export var MESSAGES = {
   WORKER_READY : 15
 };
 
-export var CompositeModes = {
+export let CompositeModes = {
   "source-over" : 0,
   "source-atop" : 1
 };

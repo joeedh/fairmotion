@@ -61,15 +61,11 @@ export class SplineLayer extends set {
     
     return ret;
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = new SplineLayer();
-    
-    reader(ret);
-    
-    return ret;
+
+  loadSTRUCT(reader) {
+    reader(this);
   }
-  
+
   afterSTRUCT(spline) {
     if (this.eids === undefined)
       return;

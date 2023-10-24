@@ -17,11 +17,11 @@ import {get_vtime} from '../core/animdata.js';
 
 import {iterpoints, MultiResLayer, MResFlags, has_multires} from './spline_multires.js';
 
-var spline_draw_cache_vs = cachering.fromConstructor(Vector2, 64);
-var spline_draw_trans_vs = cachering.fromConstructor(Vector2, 32);
+let spline_draw_cache_vs = cachering.fromConstructor(Vector2, 64);
+let spline_draw_trans_vs = cachering.fromConstructor(Vector2, 32);
 
-var PI = Math.PI;
-var pow                                                                        = Math.pow, cos = Math.cos, sin                                        = Math.sin, abs = Math.abs, floor = Math.floor,
+let PI = Math.PI;
+let pow                                                                        = Math.pow, cos = Math.cos, sin                                        = Math.sin, abs = Math.abs, floor = Math.floor,
     ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
 
 import {
@@ -44,23 +44,23 @@ window.FANCY_JOINS = true;
 
 //XXX
 //import * as vectordraw from 'vectordraw';
-//var VectorDraw = vectordraw.Canvas;
+//let VectorDraw = vectordraw.Canvas;
 
-var update_tmps_vs = new cachering(function () {
+let update_tmps_vs = new cachering(function () {
   return new Vector2();
 }, 64);
 
-var update_tmps_mats = new cachering(function () {
+let update_tmps_mats = new cachering(function () {
   return new Matrix4();
 }, 64);
 
 let update_join_vs = cachering.fromConstructor(Vector2, 64);
 
-var draw_face_vs = new cachering(function () {
+let draw_face_vs = new cachering(function () {
   return new Vector2();
 }, 32);
 
-var MAXCURVELEN = 10000;
+let MAXCURVELEN = 10000;
 
 export class DrawParams {
   constructor() {
@@ -79,7 +79,7 @@ export class DrawParams {
   }
 }
 
-var drawparam_cachering = new cachering(function () {
+let drawparam_cachering = new cachering(function () {
   return new DrawParams();
 }, 16);
 
@@ -325,8 +325,8 @@ export class SplineDrawer {
   setDrawer(drawer) {
     this.used_paths = {}
 
-    for (var k in this.drawer.path_idmap) {
-      var path = this.drawer.path_idmap[k];
+    for (let k in this.drawer.path_idmap) {
+      let path = this.drawer.path_idmap[k];
 
       this.drawer.remove(path);
     }
@@ -524,12 +524,12 @@ export class SplineDrawer {
     this.drawlist = drawlist;
     this.drawlist_layerids = drawlist_layerids;
 
-    var actlayer = spline.layerset.active;
+    let actlayer = spline.layerset.active;
 
-    var do_blur = !!(only_render || editor.enable_blur);
-    var draw_faces = !!(only_render || editor.draw_faces);
+    let do_blur = !!(only_render || editor.enable_blur);
+    let draw_faces = !!(only_render || editor.draw_faces);
 
-    var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
+    let recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
 
     recalc_all = recalc_all || spline.verts.length !== this.last_totvert;
     recalc_all = recalc_all || spline.segments.length !== this.last_totseg;
@@ -557,10 +557,10 @@ export class SplineDrawer {
 
     let drawMatrix = matrix;
 
-    var mat = update_tmps_mats.next();
+    let mat = update_tmps_mats.next();
     mat.load(matrix), matrix = mat;
 
-    var mat2 = update_tmps_mats.next();
+    let mat2 = update_tmps_mats.next();
 
     mat2.makeIdentity();
     mat2.translate(0.0, -master_g.height, 0.0);
@@ -574,8 +574,8 @@ export class SplineDrawer {
     //check if matrix scale or rotation have changed
     this.drawer.do_blur = editor.enable_blur;
 
-    var m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
-    var off = update_tmps_vs.next().zero();
+    let m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
+    let off = update_tmps_vs.next().zero();
 
     this.recalc_all = false;
 
@@ -585,7 +585,7 @@ export class SplineDrawer {
 
     if (!recalc_all) {
       //calculate translation offset
-      var a = update_tmps_vs.next().zero(), b = update_tmps_vs.next().zero();
+      let a = update_tmps_vs.next().zero(), b = update_tmps_vs.next().zero();
       a.multVecMatrix(this.drawer.matrix);
       b.multVecMatrix(matrix);
 
@@ -596,7 +596,7 @@ export class SplineDrawer {
 
 
     //update pan.  clear matrice's translation
-    var m = matrix.$matrix;
+    let m = matrix.$matrix;
     this.drawer.pan[0] = m.m41;
     this.drawer.pan[1] = m.m42;
     m.m41 = m.m42 = m.m43 = 0;
@@ -611,13 +611,13 @@ export class SplineDrawer {
       }
     }
 
-    var drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
+    let drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
       selectmode, zoom, undefined, off, spline, drawlist);
 
     let updateflags = (SplineFlags.REDRAW | SplineFlags.UPDATE);
 
-    for (var i = 0; i < drawlist.length; i++) {
-      var e = drawlist[i];
+    for (let i = 0; i < drawlist.length; i++) {
+      let e = drawlist[i];
       //e.finalz = i;
 
       let z = drawparams.z = i;
@@ -691,12 +691,12 @@ export class SplineDrawer {
     this.drawlist = drawlist;
     this.drawlist_layerids = drawlist_layerids;
 
-    var actlayer = spline.layerset.active;
+    let actlayer = spline.layerset.active;
 
-    var do_blur = !!(only_render || editor.enable_blur);
-    var draw_faces = !!(only_render || editor.draw_faces);
+    let do_blur = !!(only_render || editor.enable_blur);
+    let draw_faces = !!(only_render || editor.draw_faces);
 
-    var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
+    let recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
     recalc_all = recalc_all || (!!only_render !== !!this.only_render && (selectmode & SplineTypes.FACE));
     recalc_all = recalc_all || (selectmode !== this.last_selectmode && ((selectmode | this.last_selectmode) & SplineTypes.FACE));
 
@@ -729,10 +729,10 @@ export class SplineDrawer {
 
     let drawMatrix = matrix;
 
-    var mat = update_tmps_mats.next();
+    let mat = update_tmps_mats.next();
     mat.load(matrix), matrix = mat;
 
-    var mat2 = update_tmps_mats.next();
+    let mat2 = update_tmps_mats.next();
 
     mat2.makeIdentity();
     mat2.translate(0.0, -master_g.height, 0.0);
@@ -746,8 +746,8 @@ export class SplineDrawer {
     //check if matrix scale or rotation have changed
     this.drawer.do_blur = editor.enable_blur;
 
-    var m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
-    var off = update_tmps_vs.next().zero();
+    let m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
+    let off = update_tmps_vs.next().zero();
 
     this.recalc_all = false;
 
@@ -757,7 +757,7 @@ export class SplineDrawer {
 
     if (!recalc_all) {
       //calculate translation offset
-      var a = update_tmps_vs.next().zero(), b = update_tmps_vs.next().zero();
+      let a = update_tmps_vs.next().zero(), b = update_tmps_vs.next().zero();
       a.multVecMatrix(this.drawer.matrix);
       b.multVecMatrix(matrix);
 
@@ -771,7 +771,7 @@ export class SplineDrawer {
     let updateflags = (SplineFlags.REDRAW | SplineFlags.UPDATE);
 
     //update pan.  clear matrice's translation
-    var m = matrix.$matrix;
+    let m = matrix.$matrix;
     this.drawer.pan[0] = m.m41;
     this.drawer.pan[1] = m.m42;
     m.m41 = m.m42 = m.m43 = 0;
@@ -788,18 +788,30 @@ export class SplineDrawer {
       }
     }
 
-    var drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
+    let drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
       selectmode, zoom, undefined, off, spline, drawlist);
 
     let vset = new set();
 
-    for (let seg of spline.segments.visible) {
-      if (seg.flag & updateflags) {
-        vset.add(seg.v1);
-        vset.add(seg.v2);
+    for (let e of drawlist) {
+      if (e instanceof SplineStrokeGroup) {
+        for (let seg of e.segments) {
+          if (seg.flag & updateflags) {
+            vset.add(seg.v1);
+            vset.add(seg.v2);
+            seg.v1.flag |= SplineFlags.REDRAW;
+            seg.v2.flag |= SplineFlags.REDRAW;
+          }
+        }
+      } else if (e instanceof SplineSegment) {
+        const seg = e;
 
-        seg.v1.flag |= SplineFlags.REDRAW;
-        seg.v2.flag |= SplineFlags.REDRAW;
+        if (seg.flag & updateflags) {
+          vset.add(seg.v1);
+          vset.add(seg.v2);
+          seg.v1.flag |= SplineFlags.REDRAW;
+          seg.v2.flag |= SplineFlags.REDRAW;
+        }
       }
     }
 
@@ -809,8 +821,8 @@ export class SplineDrawer {
       }
     }
 
-    for (var i = 0; i < drawlist.length; i++) {
-      var e = drawlist[i];
+    for (let i = 0; i < drawlist.length; i++) {
+      let e = drawlist[i];
       //e.finalz = i;
 
       drawparams.z = i;
@@ -835,7 +847,7 @@ export class SplineDrawer {
         continue;
       }
 
-      var layerid = this.drawlist_layerids[i];
+      let layerid = this.drawlist_layerids[i];
 
       let bad = (e.flag & SplineFlags.HIDE);
       bad = bad || ((e.flag & SplineFlags.NO_RENDER) && e.type !== SplineTypes.VERTEX && (selectmode !== e.type || only_render));
@@ -853,7 +865,7 @@ export class SplineDrawer {
         continue;
       }
 
-      var visible = false;
+      let visible = false;
 
       for (let k in e.layers) {
         if (!(spline.layerset.get(k).flag & SplineLayerFlags.HIDE)) {
@@ -871,6 +883,8 @@ export class SplineDrawer {
       if (e.type === SplineTypes.FACE) {
         this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
       } else if (e.type === SplineTypes.VERTEX) {
+        vset.add(e);
+
         if (e.segments.length > 2) {
           for (let seg of e.segments) {
             this.update_vertex_join(seg, e, drawparams);
@@ -881,9 +895,9 @@ export class SplineDrawer {
       this.last_layer_id = this.drawlist_layerids[i];
     }
 
-    for (var k in this.drawer.path_idmap) {
+    for (let k in this.drawer.path_idmap) {
       if (!(k in this.used_paths)) {
-        var path = this.drawer.path_idmap[k];
+        let path = this.drawer.path_idmap[k];
 
         this.drawer.remove(path);
       }
@@ -904,13 +918,13 @@ export class SplineDrawer {
     }
 
     //for (let seg of spline.segments.visible) {
-    //  seg.flag &= ~SplineFlags.REDRAW;
+    // seg.flag &= ~SplineFlags.REDRAW;
     //}
   }
 
   get_path(id, z, check_z = true) {
     this.used_paths[id] = 1;
-    var path;
+    let path;
 
     if (!this.has_path(id, z, check_z)) {
       path = this.drawer.get_path(id, z, check_z);
@@ -1229,20 +1243,22 @@ export class SplineDrawer {
   addClipPathsToStrokeGroup(g, drawparams, path) {
     let fs = new Set();
     let z = drawparams.z;
+    let fz;
 
     for (let seg of g.segments) {
       if (!(seg.flag & SplineFlags.NO_RENDER) && (seg.mat.flag & MaterialFlags.MASK_TO_FACE)) {
-        var l = seg.l, _i = 0;
+        let l = seg.l, _i = 0;
 
         if (!l) {
           continue;
         }
 
-        do {
+        fz = seg.finalz;
 
+        do {
           fs.add(l.f);
 
-          //is face in front of segment, or not in drawlist (hidden)?
+          /* Is face in front of segment, or not in drawlist (hidden)? */
           if (fz > z) {
             l = l.radial_next;
             continue;
@@ -1257,8 +1273,8 @@ export class SplineDrawer {
       }
 
       for (let f of fs) {
-        var fz = f.finalz;
-        var path2 = this.get_path(f.eid, fz);
+        fz = f.finalz;
+        let path2 = this.get_path(f.eid, fz);
         path.add_clip_path(path2);
       }
     }
@@ -1858,27 +1874,26 @@ export class SplineDrawer {
 
     //if (!(f.flag & SplineFlags.DRAW_TEMP))
     //  return;
-    var lastco = draw_face_vs.next().zero();
-    var lastdv = draw_face_vs.next().zero();
+    let lastco = draw_face_vs.next().zero();
+    let lastdv = draw_face_vs.next().zero();
 
-    for (var path2 of f.paths) {
-      var first = true;
+    for (let path2 of f.paths) {
+      let first = true;
 
-      for (var l of path2) {
-        var seg = l.s;
-        var length = seg.length;
+      for (let l of path2) {
+        let seg = l.s;
 
-        var flip = seg.v1 !== l.v ? -1.0 : 1.0;
+        let flip = seg.v1 !== l.v ? -1.0 : 1.0;
 
-        var length = Math.min(seg.ks[KSCALE], MAXCURVELEN);
-        var steps = 6, s = flip < 0.0 ? 1.0 : 0.0;
+        let length = Math.min(seg.ks[KSCALE], MAXCURVELEN);
+        let steps = 6, s = flip < 0.0 ? 1.0 : 0.0;
 
-        var ds = (1.0/(steps - 1))*flip;
+        let ds = (1.0/(steps - 1))*flip;
 
-        for (var i = 0; i < steps; i++, s += ds) {
-          var co = seg.evaluate(s*0.9998 + 0.00001);
-          var dv = seg.derivative(s*0.9998 + 0.00001);
-          var k = seg.curvature(s*0.9998 + 0.00001);
+        for (let i = 0; i < steps; i++, s += ds) {
+          let co = seg.evaluate(s*0.9998 + 0.00001);
+          let dv = seg.derivative(s*0.9998 + 0.00001);
+          let k = seg.curvature(s*0.9998 + 0.00001);
 
           dv.mulScalar(ds/3.0);
 
@@ -1887,11 +1902,11 @@ export class SplineDrawer {
             path.moveTo(co[0], co[1]);
           } else {
             //*
-            if (i == 0 || abs(k) < 0.00001/zoom) {
+            if (i === 0 || abs(k) < 0.00001/zoom) {
               path.lineTo(co[0], co[1]);
             } else {
-              var midx = (lastco[0] + lastdv[0] + co[0] - dv[0])*0.5;
-              var midy = (lastco[1] + lastdv[1] + co[1] - dv[1])*0.5;
+              let midx = (lastco[0] + lastdv[0] + co[0] - dv[0])*0.5;
+              let midy = (lastco[1] + lastdv[1] + co[1] - dv[1])*0.5;
 
               path.cubicTo(lastco[0] + lastdv[0], lastco[1] + lastdv[1],
                 co[0] - dv[0], co[1] - dv[1],
@@ -1925,7 +1940,7 @@ export class SplineDrawer {
           });
         }
 
-        for (var path of this.paths) {
+        for (let path of this.paths) {
           if (path.hidden) {
             continue; //XXX eek!
           }

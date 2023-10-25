@@ -875,7 +875,7 @@ def t_ID(t):
         elif t2.value == "static":
           t2.type = "STATIC"
           
-        t.lexer._lexwithprev.push(t2)
+        t.lexer._lexwithprev.push_front(t2)
 
         t.type = "CLASS_PROP_PRE"
         t.value = ""
@@ -978,7 +978,7 @@ class LexWithPrev():
   def next(self):
     t = self.token()
     if t == None: raise StopIteration
-    
+
     return t
   
   def peek_i(self, i=0):
@@ -1024,6 +1024,7 @@ class LexWithPrev():
     if t is not None and t.lexpos >= 0 and t.lexpos < len(self.linemap):
         t.lineno = self.lineno = self.linemap[t.lexpos]
 
+    #print(t)
     return t
 
   def _token(self):
@@ -1152,8 +1153,8 @@ class LexWithPrev():
   def set_lexpos(self, lexpos):
     self.lexpos = lexpos
     self.lexer.lexpos = lexpos
-  
-  def push(self, tok):
+
+  def push_front(self, tok):
     if not hasattr(tok, "_comments"):
         tok._comments = ""
     if not hasattr(tok, "_comment"):

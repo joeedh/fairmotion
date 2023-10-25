@@ -209,9 +209,6 @@ def handle_semi_error(p):
   if cur == None:
     cur = tok
     
-  #print("p", prev)
-  #print("c", cur)
-  #print("t", tok)
   if type(prev) == list: prev = prev[0]
   if type(cur) == list: cur = cur[0]
   if type(tok) == list: tok = tok[0]
@@ -236,28 +233,26 @@ def handle_semi_error(p):
     if cur.type != "CLASS_PROP_PRE":
         ret = False
         p = p2
-        print("didn't handle semi error")
+
   #"""
 
   i = cur.lexer.lexpos
   ld = lex.lexer.lexdata
   lasttok = ""
 
-  #print(prev, cur, tok, ret, prev.lineno, cur.lineno, tok.lineno)
+  #print("semi", ret, cur, prev, lex.cur)
 
   if ret and not glob.g_tried_semi:
-    #"""
     t = LexToken()
     t.type = "SEMI"
     t.value = ";"
     t.lineno = lex.lineno
     t.lexpos = lex.lexpos
 
-    #"""
-    #lex.cur.lexpos = lex.lexpos
+    lex.push_front(lex.cur)
+    lex.push_front(t)
 
-    lex.push(lex.cur)
-    lex.push(t)
+    #print("=-======>", cur)
 
     parser._parser.errok()
     glob.g_error = False
@@ -266,6 +261,7 @@ def handle_semi_error(p):
     ret = False
     glob.g_error = True
     glob.g_error_pre = p
+    print("didn't handle semi error")
 
   return ret
   
@@ -3658,27 +3654,7 @@ def p_error(p):
   global cii
 
   if error_rule_stack > 0:
-    #parser._parser.errok()
     return
-    pass
-
-
-  """
-  #print(dir(parser._parser))
-  p2 = parser._parser
-  sys.stderr.write(termColor(p2.symstack, "blue") + "\n")
-
-  lt = LexToken()
-  lt.type = "LPAREN"
-  lt.value = "("
-  lt.lineno = p.lineno
-  lt.lexpos = p.lexpos
-
-  #p2.errok()
-
-  #return
-  #sys.exit()
-  #"""
 
   lex = get_lexer(p)
   
@@ -3687,59 +3663,6 @@ def p_error(p):
     p.lineno = lex._force_lexpos_line[1]
     p.line = lex._force_lexpos_line[1]
 
-  ### stack unwinding to fix error
-  ### with reserved words as identifiers,
-  ### e.g. class method names
-  if 0: #p and p.type == "LPAREN":
-    print(dir(parser._parser), "\n")
-    p2 = parser._parser
-    
-    print("::", p.lexer.prev, "\n")
-    prev = p2.symstack[-1]
-    sys.stdout.flush()
-    sys.stderr.flush()
-    
-    if prev and isinstance(prev, LexToken) and prev.type in ["GET", "SET", "STATIC"]:
-    #if p.lexer.prev.value in ["get", "set", "static"]:
-        #prev.type = "ID"
-
-        t = LexToken()
-        t.type = "LPAREN"
-        t.value = "("
-        t.lexpos = p.lexpos
-        t.lineno = p.lineno
-        p.lexer.push(t)
-        
-        t = LexToken()
-        t.type = "ID"
-        t.value = prev.value
-        t.lexpos = p.lexpos
-        t.lineno = p.lineno
-        p.lexer.push(t)
-
-        p2.errok()
-
-        prev.value = None
-        
-        print(p2.symstack, "\n")
-        print(p2.statestack, "\n")
-        print(p, "\n")
-        print("--------------", p2.action[p2.state], "\n\n")
-        
-        return
-
-  if 0: #p:
-    lexpos = p.lexpos if type(p.lexpos) == int else p.lexpos(0)
-    #lexpos = p.lexer.lexpos
-    if lexpos > 0 and lexpos > glob.g_lexpos:
-        glob.g_lexpos = lexpos
-
-  """
-  print(p.lexer.prev.lineno, p.lineno)
-  if p.lexer.prev.lineno < p.lineno or p.type == "RBRACKET":
-    yacc.errok()
-    return
-  """
   if glob.g_production_debug:
     if p == None:
       sys.stderr.write("in p_error\n")
@@ -3756,7 +3679,7 @@ def p_error(p):
       t.value = ";"
       t.lexpos = -1
       t.lineno = -1
-      glob.g_lexer.push(t)
+      glob.g_lexer.push_front(t)
       glob.g_tried_semi = True
       
       parser._parser.errok()
@@ -3771,8 +3694,7 @@ def p_error(p):
 
     if handle_semi_error(p):
       parser._parser.errok()
-      #yacc.errok()
-      
+
       glob.g_error = False
       if glob.g_production_debug or glob.g_semi_debug:
         linestr, colstr = err_find_line(p.lexer, p.lexpos);
@@ -3807,8 +3729,6 @@ def p_error(p):
     sline = p.lexer.lexpos
   
   sline = lexdata[sline-40:sline+1]
-  #print("Possible error at line " + str(line) + "\n" + str(sline))
-  #print_err(p)
 
 mod = sys.modules[__name__]
 for k in list(mod.__dict__.keys()):

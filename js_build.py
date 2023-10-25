@@ -234,7 +234,10 @@ class DataBase:
         self._open = True
         self.db = open_db(self.path)
         return self
-
+    
+    def sync(self):
+      self.db.sync()
+      
     def __exit__(self, exc1, exc2, exc3):
         self._open = False
         close_db(self.db)
@@ -795,7 +798,7 @@ def build_target(files):
 
             if len(failed_files) > 0: continue
 
-            if False and use_popen:
+            if use_popen:
               #shlex doesn't like backslashes
               if win32:
                 cmd = cmd.replace("\\", "/")
@@ -837,7 +840,6 @@ def build_target(files):
 
                 if failed_ret(ret):
                   failed_files.append(p[1])
-
 
             procs = newprocs
             note.sleep(0.05)

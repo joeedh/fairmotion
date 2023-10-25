@@ -957,7 +957,7 @@ es6_module_define('spline_selectops', ["../../curve/spline_draw.js", "../../curv
 }, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
 
 
-es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve/spline_types.js", "../../curve/spline_draw_new.js", "../../path.ux/scripts/pathux.js", "../../core/toolprops.js", "./spline_editops.js", "../../curve/spline.js"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../../curve/spline.js", "../../curve/spline_draw_new.js", "../../core/toolprops.js", "../../curve/spline_types.js", "../../core/toolops_api.js", "./spline_editops.js"], function _spline_createops_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
@@ -1192,7 +1192,6 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
       }
       for (let v of vset) {
           let valence=0;
-          console.log("============", v);
           for (let i=0; i<v.segments.length; i++) {
               let v2=v.segments[i].other_vert(v);
               console.log(v.eid, v2.segments[0].v1.eid, v2.segments[0].v2.eid);
@@ -1201,7 +1200,6 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
           }
           valmap[v.eid] = valence;
       }
-      console.log("VS.LENGTH", vs.length);
       if (vs.length===2) {
           let v=vs[0].segments.length>0 ? vs[0] : vs[1];
           let seg2=v.segments.length>0 ? v.segments[0] : undefined;
@@ -1219,8 +1217,6 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
       else 
         if (vs.length===3) {
           let f=spline.make_face([vs]);
-          f.z = max_z+1;
-          max_z++;
           spline.regen_sort();
           spline.faces.setselect(f, true);
           spline.set_active(f);
@@ -1233,8 +1229,6 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
           let path=walk(v);
           if (path.length>2) {
               let f=spline.make_face([path]);
-              f.z = max_z+1;
-              max_z++;
               spline.regen_sort();
               spline.faces.setselect(f, true);
               spline.set_active(f);
@@ -1245,8 +1239,6 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
           let path=walk(v);
           if (path.length>2) {
               let f=spline.make_face([path]);
-              f.z = max_z+1;
-              max_z++;
               spline.regen_sort();
               spline.faces.setselect(f, true);
               spline.set_active(f);

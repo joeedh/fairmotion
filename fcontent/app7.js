@@ -9544,7 +9544,7 @@ es6_module_define('spline_draw_sort', ["../config/config.js", "./spline_multires
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
 
 
-es6_module_define('spline', ["./spline_multires.js", "./solver.js", "../wasm/native_api.js", "../editors/viewport/view2d_editor.js", "../path.ux/scripts/pathux.js", "./spline_element_array.js", "./spline_math.js", "../core/lib_api.js", "./spline_types.js", "./spline_draw.js", "./spline_strokegroup.js", "./spline_query.js", "../editors/viewport/selectmode.js", "../core/struct.js", "../config/config.js", "./solver_new.js", "../core/toolops_api.js", "../path.ux/scripts/config/const.js", "../core/eventdag.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["./spline_draw.js", "../core/struct.js", "./spline_strokegroup.js", "../config/config.js", "./solver.js", "./solver_new.js", "./spline_multires.js", "../editors/viewport/selectmode.js", "../core/eventdag.js", "../core/toolops_api.js", "../path.ux/scripts/pathux.js", "./spline_query.js", "../wasm/native_api.js", "../core/lib_api.js", "./spline_math.js", "../editors/viewport/view2d_editor.js", "./spline_element_array.js", "./spline_types.js", "../path.ux/scripts/config/const.js"], function _spline_module(_es6_module) {
   "use strict";
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   const MMLEN=8;
@@ -10535,6 +10535,7 @@ es6_module_define('spline', ["./spline_multires.js", "./solver.js", "../wasm/nat
               vset[verts[j].eid] = 1;
           }
       }
+      let min_z;
       for (let i=0; i<vlists.length; i++) {
           let verts=vlists[i];
           let list=new SplineLoopPath();
@@ -10544,8 +10545,25 @@ es6_module_define('spline', ["./spline_multires.js", "./solver.js", "../wasm/nat
           let l=undefined, prevl=undefined;
           for (let j=0; j<verts.length; j++) {
               let v1=verts[j], v2=verts[(j+1)%verts.length];
+              let exists=this.find_segment(v1, v2);
               let s=this.make_segment(v1, v2, undefined, true);
               let l=this.make_loop();
+              if (!exists) {
+                  let select=false;
+                  outer: for (let i=0; i<2; i++) {
+                      let v=i ? s.v2 : s.v1;
+                      for (let s2 of v.segments) {
+                          if (s2.flag&SplineFlags.SELECT) {
+                              select = true;
+                              break outer;
+                          }
+                      }
+                  }
+                  if (select) {
+                      this.setselect(s, true);
+                  }
+              }
+              min_z = Math.min(min_z, s.z);
               l.v = v1;
               l.s = s;
               l.f = f;
@@ -10568,6 +10586,7 @@ es6_module_define('spline', ["./spline_multires.js", "./solver.js", "../wasm/nat
           } while (l!==list.l);
           
       }
+      f.z = min_z-1;
       return f;
     }
      make_loop() {

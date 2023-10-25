@@ -1,5 +1,5 @@
 
-es6_module_define('ui_theme', ["../config/const.js", "../path-controller/util/struct.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js"], function _ui_theme_module(_es6_module) {
+es6_module_define('ui_theme', ["../path-controller/util/struct.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js"], function _ui_theme_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var Vector3=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector3');
   var Vector4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector4');
@@ -116,6 +116,7 @@ es6_module_define('ui_theme', ["../config/const.js", "../path-controller/util/st
         ret[3] = 1.0;
         return ret;
     }
+    const hasAlpha=color.startsWith("rgba(");
     color = color.replace("rgba", "").replace("rgb", "").replace(/[\(\)]/g, "").trim().split(",");
     for (let i=0; i<color.length; i++) {
         ret[i] = parseFloat(color[i]);
@@ -123,8 +124,11 @@ es6_module_define('ui_theme', ["../config/const.js", "../path-controller/util/st
             ret[i]/=255;
         }
     }
-    if (color.length===3) {
-        color.push(1.0);
+    if (ret.length===3) {
+        ret.push(1.0);
+    }
+    if (!hasAlpha) {
+        ret[3] = 1.0;
     }
     return ret;
   }
@@ -342,7 +346,7 @@ ${indent}})`;
     }
     for (let k of sortkeys(theme1)) {
         let k2=k;
-        if (k.search("-")>=0||k.search(" ")>=0) {
+        if (k.search(/[- \t.]/)>=0) {
             k2 = "'"+k+"'";
         }
         s+="  "+k2+": ";
@@ -391,10 +395,10 @@ es6_module_define('units', ["../path-controller/units/units.js"], function _unit
 }, '/dev/fairmotion/src/path.ux/scripts/core/units.js');
 
 
-es6_module_define('docbrowser', ["../util/util.js", "../path-controller/util/simple_events.js", "../util/vectormath.js", "../config/const.js", "../core/ui_base.js", "../platforms/platform.js", "../path-controller/util/struct.js"], function _docbrowser_module(_es6_module) {
+es6_module_define('docbrowser', ["../config/const.js", "../util/vectormath.js", "../platforms/platform.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "../util/util.js", "../path-controller/util/struct.js"], function _docbrowser_module(_es6_module) {
   var pushModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'popModalLight');
-  var cconst=es6_import(_es6_module, '../config/const.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/util/struct.js', 'default');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -481,9 +485,21 @@ es6_module_define('docbrowser', ["../util/util.js", "../path-controller/util/sim
   _ESClass.register(DocsAPI);
   _es6_module.add_class(DocsAPI);
   DocsAPI = _es6_module.add_export('DocsAPI', DocsAPI);
-  window.PATHUX_DOCPATH = "../../simple_docsys/docsys_base.js";
-  window.PATHUX_DOC_CONFIG = "../simple_docsys/docs.config.js";
-  window.PATHUX_DOCPATH_PREFIX = "../simple_docsys/doc_build";
+  function getDocPaths() {
+    let ret={docpath: `${cconst.docEditorPath}/docsys_base.js`, 
+    doc_config: `${cconst.docEditorPath}/docs.config.js`, 
+    docpath_prefix: `${cconst.docEditorPath}/doc_build`}
+    if (window.PATHUX_DOCPATH) {
+        ret.docpath = window.PATHUX_DOCPATH;
+    }
+    if (window.PATHUX_DOC_CONFIG) {
+        ret.doc_config = window.PATHUX_DOC_CONFIG;
+    }
+    if (window.PATHUX_DOCPATH_PREFIX) {
+        ret.docpath_prefix = window.PATHUX_DOCPATH_PREFIX;
+    }
+    return ret;
+  }
   class ElectronAPI extends DocsAPI {
      constructor() {
       super();
@@ -495,14 +511,16 @@ es6_module_define('docbrowser', ["../util/util.js", "../path-controller/util/sim
           return this.ready;
       }
       this.first = false;
-      _es_dynamic_import(_es6_module, PATHUX_DOCPATH).then((docsys) =>        {
+      let $_t0gmpb=getDocPaths(), docpath=$_t0gmpb.docpath, doc_config=$_t0gmpb.doc_config, docpath_prefix=$_t0gmpb.docpath_prefix;
+      console.log(docpath);
+      _es_dynamic_import(_es6_module, docpath).then((docsys) =>        {
         let fs=require('fs');
         let marked=require('marked');
         let parse5=require('parse5');
         let pathmod=require('path');
         let jsdiff=require('diff');
         docsys = docsys.default(fs, marked, parse5, pathmod, jsdiff);
-        this.config = docsys.readConfig(PATHUX_DOC_CONFIG);
+        this.config = docsys.readConfig(doc_config);
         this.ready = true;
       });
       return this.ready;
@@ -696,14 +714,17 @@ DocHistory {
   class DocsBrowser extends UIBase {
      constructor() {
       super();
+      this._sourceData = undefined;
+      this.saveCallback = null;
+      this.handlesDocURL = true;
       this.pathuxBaseURL = location.href;
       this.editMode = false;
       this.history = new DocHistory();
-      this._prefix = cconst.docManualPath||PATHUX_DOCPATH_PREFIX;
+      this._prefix = cconst.docManualPath||getDocPaths().docpath_prefix;
       this.saveReq = 0;
       this.saveReqStart = util.time_ms();
       this._last_save = util.time_ms();
-      this.header = document.createElement("rowframe-x");
+      this.header = UIBase.createElement("rowframe-x");
       this.shadow.appendChild(this.header);
       this.doOnce(this.makeHeader);
       this.root = document.createElement("iframe");
@@ -761,12 +782,12 @@ DocHistory {
       this.makeHeader_intern();
     }
      makeHeader_intern() {
-      console.log("making header");
+      console.log("making header", this.header);
       this.header.clear();
       let check=this.header.check(undefined, "Edit Enabled");
       check.value = this.editMode;
       check.onchange = () =>        {
-        console.log("check click!", check.checked);
+        console.warn("set edit mode:", check.checked);
         this.setEditMode(check.checked);
       };
       if (!this.editMode) {
@@ -867,6 +888,13 @@ DocHistory {
       this.undoPost(arguments[0]);
     }
      loadSource(data) {
+      if (data.trim().length===0) {
+          return ;
+      }
+      if (!(data.trim().toLowerCase().startsWith("<!doctype html>"))) {
+          data = "<!doctype html>\n"+data;
+      }
+      this._sourceData = data;
       this.saveReq = 0;
       let cb=() =>        {
         if (this.root.readyState!=='loading') {
@@ -876,12 +904,14 @@ DocHistory {
           window.setTimeout(cb, 5);
         }
       };
+      console.log("DATA", data);
       this.root.setAttribute("srcDoc", data);
       this.root.onload = cb;
       this._doDocInit = true;
       this.contentDiv = undefined;
     }
      load(url) {
+      this._sourceData = undefined;
       this.history.push(url, url);
       this.saveReq = 0;
       this.currentPath = url;
@@ -916,6 +946,18 @@ DocHistory {
           return ;
       }
       visit(this.root.contentDocument.body);
+      if (!this.contentDiv) {
+          let body=this.root.contentDocument.body;
+          this.contentDiv = this.root.contentDocument.createElement("div");
+          this.contentDiv.setAttribute("class", "contents");
+          this.contentDiv.style["margin"] = "0px";
+          this.contentDiv.style["padding"] = "0px";
+          for (let node of Array.from(body.childNodes)) {
+              body.removeChild(node);
+              this.contentDiv.appendChild(node);
+          }
+          body.appendChild(this.contentDiv);
+      }
       if (this.contentDiv) {
           if (this.editMode) {
               this.disableLinks();
@@ -927,18 +969,25 @@ DocHistory {
        baseURL: this.currentPath, 
        documentBaseURL: location.href};
           let loc=globals.document.location;
-          if (loc.href==="about:srcdoc") {
-              loc.href = document.location.href;
+          if (loc.href==="about:srcdoc"&&this.currentPath&&this._sourceData===undefined) {
+              if (this.currentPath) {
+                  loc.href = this.currentPath;
+              }
           }
           let base=this.pathuxBaseURL;
           let base_url=platform.resolveURL("scripts/lib/tinymce", base);
           console.warn(window.haveElectron, "haveElectron", base_url);
           let tinymce=this.tinymce = globals.tinymce = window.tinymce = _tinymce(globals);
           let fixletter=() =>            {
+            if (!tinymce.baseURI.host) {
+                return ;
+            }
             if (window.haveElectron) {
                 if (process.platform==="win32") {
-                    console.warn("Fixing drive letter", tinymce.baseURI);
-                    tinymce.baseURI.host+=":";
+                    if (tinymce.baseURI.host.trim().length>0) {
+                        console.warn("Fixing drive letter", tinymce.baseURI);
+                        tinymce.baseURI.host+=":";
+                    }
                     tinymce.baseURL = tinymce.baseURI.source = tinymce.baseURI.toAbsolute();
                 }
             }
@@ -954,6 +1003,9 @@ DocHistory {
               }
             }});
           fixletter();
+          if (this.root.contentDocument.compatMode!=="CSS1Compat") {
+              throw new Error("Source document is missing <!doctype html>");
+          }
           tinymce.init({selector: "div.contents", 
        base_url: base_url, 
        paste_data_images: true, 
@@ -1407,7 +1459,7 @@ DocHistory {
       while (path.startsWith("/")) {
         path = path.slice(1, path.length);
       }
-      console.log("PATH", path, this._prefix);
+      console.error("PATH", path, this._prefix);
       if (!path)
         return ;
       if (path.startsWith(this._prefix)) {
@@ -1434,6 +1486,10 @@ DocHistory {
           }
       }
       this.report("Saving...", "yellow", 400);
+      if (this.saveCallback) {
+          this.saveCallback(this.root.contentDocument);
+          return ;
+      }
       let path=this.getDocPath();
       console.log("saving "+path);
       this.saveReq = 2;
@@ -1450,7 +1506,7 @@ DocHistory {
       });
     }
      updateCurrentPath() {
-      if (!this.contentDiv) {
+      if (!this.contentDiv||!this.handlesDocURL) {
           return ;
       }
       let href=this.root.contentDocument.location.href;
@@ -1496,7 +1552,7 @@ DocHistory {
       this.root.style["background-color"] = "grey";
     }
     static  newSTRUCT() {
-      return document.createElement("docs-browser-x");
+      return UIBase.createElement("docs-browser-x");
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -1560,7 +1616,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    TREE_EXPAND: a++, 
    TREE_COLLAPSE: a++, 
    ZOOM_OUT: a++, 
-   ZOOM_IN: a++}
+   ZOOM_IN: a++, 
+   LARGE_X: a++}
   Icons = _es6_module.add_export('Icons', Icons);
   Icons.ENUM_CHECKED = Icons.CHECKED;
   Icons.ENUM_UNCHECKED = Icons.UNCHECKED;
@@ -2037,7 +2094,7 @@ es6_module_define('context', ["../config/config.js", "../util/util.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/context.js');
 
 
-es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolprop_abstract.js", "./controller_abstract.js", "./controller_ops.js", "../toolsys/toolsys.js", "../util/parseutil.js", "../toolsys/toolpath.js", "../util/util.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["./controller_ops.js", "./controller_base.js", "../toolsys/toolpath.js", "./controller_abstract.js", "../util/parseutil.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolsys.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -3215,7 +3272,7 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
      hotkey: parts[HOTKEY] ? parts[HOTKEY].trim() : undefined}
     }
      getToolDef(toolpath) {
-      let $_t0vtnj=this._parsePathOverrides(toolpath), path=$_t0vtnj.path, uiname=$_t0vtnj.uiname, hotkey=$_t0vtnj.hotkey;
+      let $_t0ebua=this._parsePathOverrides(toolpath), path=$_t0ebua.path, uiname=$_t0ebua.uiname, hotkey=$_t0ebua.hotkey;
       let cls=this.parseToolPath(path);
       if (cls===undefined) {
           throw new DataPathError("unknown path \""+path+"\"");
@@ -3230,7 +3287,7 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
       return def;
     }
      getToolPathHotkey(ctx, toolpath) {
-      let $_t1pmic=this._parsePathOverrides(toolpath), path=$_t1pmic.path, uiname=$_t1pmic.uiname, hotkey=$_t1pmic.hotkey;
+      let $_t1cril=this._parsePathOverrides(toolpath), path=$_t1cril.path, uiname=$_t1cril.uiname, hotkey=$_t1cril.hotkey;
       if (hotkey) {
           return hotkey;
       }
@@ -3365,7 +3422,7 @@ es6_module_define('controller', ["../toolsys/toolprop.js", "./controller_base.js
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller.js');
 
 
-es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "./controller_base.js", "../toolsys/toolprop.js", "../toolsys/toolsys.js", "../util/util.js"], function _controller_abstract_module(_es6_module) {
+es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "../util/util.js", "./controller_base.js", "../toolsys/toolprop.js", "../toolsys/toolsys.js"], function _controller_abstract_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
@@ -3397,7 +3454,7 @@ es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "./
      execOrRedo(ctx, toolop, compareInputs=false) {
       return ctx.toolstack.execOrRedo(ctx, toolop, compareInputs);
     }
-     execTool(ctx, path, inputs={}, constructor_argument=undefined) {
+     execTool(ctx, path, inputs={}, constructor_argument=undefined, event=undefined) {
       return new Promise((accept, reject) =>        {
         let tool=path;
         try {
@@ -3412,7 +3469,7 @@ es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "./
         }
         accept(tool);
         try {
-          ctx.toolstack.execTool(ctx, tool);
+          ctx.toolstack.execTool(ctx, tool, event);
         }
         catch (error) {
             print_stack(error);
@@ -3648,7 +3705,7 @@ es6_module_define('controller_abstract', ["../toolsys/toolprop_abstract.js", "./
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_abstract.js');
 
 
-es6_module_define('controller_base', ["../util/vectormath.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js", "../util/util.js"], function _controller_base_module(_es6_module) {
+es6_module_define('controller_base', ["../util/vectormath.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_base_module(_es6_module) {
   var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop_abstract.js', 'PropTypes');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
@@ -3808,6 +3865,15 @@ es6_module_define('controller_base', ["../util/vectormath.js", "../toolsys/toolp
      rollerSlider() {
       this.data.flag&=~PropFlags.SIMPLE_SLIDER;
       this.data.flag|=PropFlags.FORCE_ROLLER_SLIDER;
+      return this;
+    }
+     checkStrip(state=true) {
+      if (state) {
+          this.data.flag|=PropFlags.FORCE_ENUM_CHECKBOXES;
+      }
+      else {
+        this.data.flag&=~PropFlags.FORCE_ENUM_CHECKBOXES;
+      }
       return this;
     }
      noUnits() {
@@ -3971,7 +4037,7 @@ es6_module_define('controller_base', ["../util/vectormath.js", "../toolsys/toolp
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_base.js');
 
 
-es6_module_define('controller_ops', ["../toolsys/toolprop.js", "./controller_base.js", "../toolsys/toolsys.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../toolsys/toolprop.js", "../toolsys/toolsys.js", "../util/util.js", "./controller_base.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -4040,11 +4106,14 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "./controller_bas
       if (rdef.subkey!==undefined&&(prop.type&mask)) {
           if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
               let i=datapath.length-1;
-              while (i>=0&&datapath[i]!=='[') {
+              while (i>=0&&datapath[i]!=='['&&datapath[i]!=='=') {
                 i--;
               }
               if (i>=0) {
-                  datapath = datapath.slice(0, i);
+                  if (!value&&prop.type===PropTypes.ENUM) {
+                      return undefined;
+                  }
+                  datapath = datapath.slice(0, i).trim();
               }
               tool.inputs.prop = new IntProperty();
           }
@@ -4228,7 +4297,7 @@ es6_module_define('controller_ops', ["../toolsys/toolprop.js", "./controller_bas
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller/controller_ops.js');
 
 
-es6_module_define('controller', ["./toolsys/toolpath.js", "./util/html5_fileapi.js", "./util/vectormath.js", "./controller/controller_abstract.js", "./controller/controller_ops.js", "./util/graphpack.js", "./controller/controller_base.js", "./extern/lz-string/lz-string.js", "./util/math.js", "./config/config.js", "./util/simple_events.js", "./curve/curve1d.js", "./util/colorutils.js", "./curve/curve1d_bspline.js", "./toolsys/toolprop.js", "./controller/context.js", "./util/parseutil.js", "./util/solver.js", "./curve/curve1d_base.js", "./util/util.js", "./util/struct.js", "./controller/controller.js", "./toolsys/toolsys.js", "./toolsys/toolprop_abstract.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["./toolsys/toolprop.js", "./curve/curve1d.js", "./util/vectormath.js", "./controller/controller_abstract.js", "./util/html5_fileapi.js", "./util/simple_events.js", "./toolsys/toolprop_abstract.js", "./extern/lz-string/lz-string.js", "./toolsys/toolsys.js", "./util/util.js", "./controller/context.js", "./util/math.js", "./curve/curve1d_base.js", "./util/parseutil.js", "./util/solver.js", "./controller/controller.js", "./toolsys/toolpath.js", "./config/config.js", "./util/struct.js", "./util/colorutils.js", "./controller/controller_ops.js", "./controller/controller_base.js", "./util/graphpack.js", "./curve/curve1d_bspline.js"], function _controller_module(_es6_module) {
   var ___controller_context_js=es6_import(_es6_module, './controller/context.js');
   for (let k in ___controller_context_js) {
       _es6_module.add_export(k, ___controller_context_js[k], true);
@@ -4322,11 +4391,14 @@ es6_module_define('controller', ["./toolsys/toolpath.js", "./util/html5_fileapi.
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/controller.js');
 
 
-es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../util/struct.js", "./curve1d_bspline.js", "./curve1d_basic.js", "../util/events.js", "../util/util.js", "./curve1d_anim.js"], function _curve1d_module(_es6_module) {
+es6_module_define('curve1d', ["./curve1d_anim.js", "../util/struct.js", "./curve1d_basic.js", "../util/events.js", "../util/vectormath.js", "./curve1d_base.js", "../util/util.js", "./curve1d_bspline.js"], function _curve1d_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
   var EventDispatcher=es6_import_item(_es6_module, '../util/events.js', 'EventDispatcher');
   let _ex_getCurve=es6_import_item(_es6_module, './curve1d_base.js', 'getCurve');
   _es6_module.add_export('getCurve', _ex_getCurve, true);
@@ -4334,7 +4406,6 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
   _es6_module.add_export('SplineTemplates', _ex_SplineTemplates, true);
   let _ex_SplineTemplateIcons=es6_import_item(_es6_module, './curve1d_bspline.js', 'SplineTemplateIcons');
   _es6_module.add_export('SplineTemplateIcons', _ex_SplineTemplateIcons, true);
-  var Vector2=vectormath.Vector2;
   es6_import(_es6_module, './curve1d_basic.js');
   es6_import(_es6_module, './curve1d_bspline.js');
   es6_import(_es6_module, './curve1d_anim.js');
@@ -4369,10 +4440,13 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
   var CURVE_VERSION=es6_import_item(_es6_module, './curve1d_base.js', 'CURVE_VERSION');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
   let _udigest=new util.HashDigest();
-  class Curve1D extends EventDispatcher {
+  class Curve1D  {
      constructor() {
-      super();
+      this._eventCBs = [];
       this.uiZoom = 1.0;
+      this.xRange = new Vector2().loadXY(0.0, 1.0);
+      this.yRange = new Vector2().loadXY(0.0, 1.0);
+      this.clipToRange = false;
       this.generators = [];
       this.VERSION = CURVE_VERSION;
       for (let gen of CurveConstructors) {
@@ -4394,6 +4468,60 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
           gen.fastmode = val;
       }
     }
+     on(type, cb, owner, cb_is_dead) {
+      if (cb_is_dead===undefined) {
+          cb_is_dead = () =>            {
+            return false;
+          };
+      }
+      this._eventCBs.push({type: type, 
+     cb: cb, 
+     owner: owner, 
+     dead: cb_is_dead, 
+     once: false});
+    }
+     off(type, cb) {
+      this._eventCBs = this._eventCBs.filter((cb) =>        {
+        return cb.cb!==cb;
+      });
+    }
+     once(type, cb, owner, cb_is_dead) {
+      this.on(type, cb, owner, cb_is_dead);
+      this._eventCBs[this._eventCBs.length-1].once = true;
+    }
+     subscribed(type, owner) {
+      for (let cb of this._eventCBs) {
+          if ((!type||cb.type===type)&&cb.owner===owner) {
+              return true;
+          }
+      }
+      return false;
+    }
+     _pruneEventCallbacks() {
+      this._eventCBs = this._eventCBs.filter((cb) =>        {
+        return !cb.dead();
+      });
+    }
+     _fireEvent(evt, data) {
+      this._pruneEventCallbacks();
+      for (let i=0; i<this._eventCBs.length; i++) {
+          let cb=this._eventCBs[i];
+          if (cb.type!==evt) {
+              continue;
+          }
+          try {
+            cb.cb(data);
+          }
+          catch (error) {
+              console.error(error.stack);
+              console.error(error.message);
+          }
+          if (cb.once) {
+              this._eventCBs.remove(cb);
+              i--;
+          }
+      }
+    }
      calcHashKey(digest=_udigest.reset()) {
       let d=digest;
       for (let g of this.generators) {
@@ -4410,23 +4538,56 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
       return gen1.equals(gen2);
     }
      load(b) {
-      if (b===undefined) {
+      if (b===undefined||b===this) {
           return ;
       }
-      let buf1=mySafeJSONStringify(b);
-      let buf2=mySafeJSONStringify(this);
-      if (buf1===buf2) {
-          return ;
+      let json=nstructjs.writeJSON(b, Curve1D);
+      let cpy=nstructjs.readJSON(json, Curve1D);
+      let activeCls=this.generators.active.constructor;
+      let oldGens=this.generators;
+      this.generators = cpy.generators;
+      this.generators.active = undefined;
+      for (let gen of cpy.generators) {
+          for (let gen2 of oldGens) {
+              if (gen2.constructor===gen.constructor&&gen2.load!==undefined) {
+                  cpy.generators[cpy.generators.indexOf(gen)] = gen2;
+                  if (gen2.constructor===activeCls) {
+                      this.generators.active = gen2;
+                  }
+                  gen2.parent = this;
+                  gen2.load(gen);
+                  gen = gen2;
+                  break;
+              }
+          }
+          if (gen.constructor===activeCls) {
+              this.generators.active = gen;
+          }
+          gen.parent = this;
       }
-      this.loadJSON(JSON.parse(buf1));
+      for (let k in json) {
+          if (k==="generators") {
+              continue;
+          }
+          if (k.startsWith("_")) {
+              continue;
+          }
+          let v=cpy[k];
+          if (typeof v==="number"||typeof v==="boolean"||typeof v==="string") {
+              this[k] = v;
+          }
+          else 
+            if (__instance_of(v, Vector2)||__instance_of(v, Vector3)||__instance_of(v, Vector4)||__instance_of(v, Matrix4)) {
+              this[k].load(v);
+          }
+      }
       this._on_change();
       this.redraw();
       return this;
     }
      copy() {
-      let ret=new Curve1D();
-      ret.loadJSON(JSON.parse(mySafeJSONStringify(this)));
-      return ret;
+      let json=nstructjs.writeJSON(this, Curve1D);
+      return nstructjs.readJSON(json, Curve1D);
     }
      _on_change() {
 
@@ -4451,7 +4612,10 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
       let ret={generators: [], 
      uiZoom: this.uiZoom, 
      VERSION: this.VERSION, 
-     active_generator: this.generatorType};
+     active_generator: this.generatorType, 
+     xRange: this.xRange, 
+     yRange: this.yRange, 
+     clipToRange: this.clipToRange};
       for (let gen of this.generators) {
           ret.generators.push(gen.toJSON());
       }
@@ -4470,6 +4634,7 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
           if (cls.define().typeName===type) {
               let gen=new cls();
               gen.type = type;
+              gen.parent = this;
               this.generators.push(gen);
               return gen;
           }
@@ -4497,6 +4662,13 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
      loadJSON(obj) {
       this.VERSION = obj.VERSION;
       this.uiZoom = parseFloat(obj.uiZoom)||this.uiZoom;
+      if (obj.xRange) {
+          this.xRange = new Vector2(obj.xRange);
+      }
+      if (obj.yRange) {
+          this.yRange = new Vector2(obj.yRange);
+      }
+      this.clipToRange = Boolean(obj.clipToRange);
       for (let gen of obj.generators) {
           let gen2=this.getGenerator(gen.type, false);
           if (!gen2||!(__instance_of(gen2, CurveTypeData))) {
@@ -4514,10 +4686,20 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
               this.generators.active = gen2;
           }
       }
+      if (this.VERSION<1.1) {
+          this.#patchRange();
+      }
       return this;
     }
      evaluate(s) {
-      return this.generators.active.evaluate(s);
+      if (this.clipToRange) {
+          s = Math.min(Math.max(s, this.xRange[0]), this.xRange[1]);
+      }
+      let f=this.generators.active.evaluate(s);
+      if (this.clipToRange) {
+          f = Math.min(Math.max(f, this.yRange[0]), this.yRange[1]);
+      }
+      return f;
     }
      integrate(s, quadSteps) {
       return this.generators.active.integrate(s, quadSteps);
@@ -4551,20 +4733,20 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
       g.lineTo(0, 1);
       g.strokeStyle = "green";
       g.stroke();
-      let f=0, steps=64;
-      let df=1/(steps-1);
+      let f=this.xRange[0], steps=64;
+      let df=(this.xRange[1]-this.xRange[0])/(steps-1);
       w = 6.0/sz;
       let curve=this.generators.active;
       g.beginPath();
       for (let i=0; i<steps; i++, f+=df) {
-          let val=curve.evaluate(f);
+          let val=this.evaluate(f);
           (i===0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
       }
       g.strokeStyle = "grey";
       g.stroke();
       if (this.overlay_curvefunc!==undefined) {
           g.beginPath();
-          f = 0.0;
+          f = this.xRange[0];
           for (let i=0; i<steps; i++, f+=df) {
               let val=this.overlay_curvefunc(f);
               (i===0 ? g.moveTo : g.lineTo).call(g, f, val, w, w);
@@ -4596,7 +4778,21 @@ es6_module_define('curve1d', ["./curve1d_base.js", "../util/vectormath.js", "../
               this.generators.active = gen;
           }
       }
+      for (let gen of this.generators) {
+          gen.parent = this;
+      }
+      if (this.VERSION<1.1) {
+          this.#patchRange();
+      }
       delete this._active;
+      this.VERSION = CURVE_VERSION;
+    }
+     #patchRange() {
+      let range=this.getGenerator("BSplineCurve").range;
+      if (range) {
+          this.xRange.load(range[0]);
+          this.yRange.load(range[1]);
+      }
     }
   }
   _ESClass.register(Curve1D);
@@ -4608,13 +4804,16 @@ Curve1D {
   _active     : string | obj.generators.active.type;
   VERSION     : float;
   uiZoom      : float;
+  xRange      : vec2;
+  yRange      : vec2;
+  clipToRange : bool;
 }
 `;
   nstructjs.register(Curve1D);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d.js');
 
 
-es6_module_define('curve1d_anim', ["./curve1d_base.js", "../util/struct.js", "../util/util.js", "./ease.js"], function _curve1d_anim_module(_es6_module) {
+es6_module_define('curve1d_anim', ["../util/util.js", "./curve1d_base.js", "./ease.js", "../util/struct.js"], function _curve1d_anim_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
@@ -4947,9 +5146,10 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
   var util=es6_import(_es6_module, '../util/util.js');
   const CurveConstructors=[];
   _es6_module.add_export('CurveConstructors', CurveConstructors);
-  const CURVE_VERSION=1.0;
+  const CURVE_VERSION=1.1;
   _es6_module.add_export('CURVE_VERSION', CURVE_VERSION);
-  const CurveFlags={SELECT: 1}
+  const CurveFlags={SELECT: 1, 
+   TRANSFORM: 2}
   _es6_module.add_export('CurveFlags', CurveFlags);
   const TangentModes={SMOOTH: 1, 
    BREAK: 2}
@@ -4977,6 +5177,7 @@ es6_module_define('curve1d_base', ["../util/struct.js", "../util/util.js"], func
   class CurveTypeData  {
      constructor() {
       this.type = this.constructor.define().typeName;
+      this.parent = undefined;
     }
     get  hasGUI() {
       throw new Error("get hasGUI(): implement me!");
@@ -5119,7 +5320,12 @@ CurveTypeData {
 }
 `;
   nstructjs.register(CurveTypeData);
-  function evalHermiteTable(table, t) {
+  const unitRange=[0, 1];
+  function evalHermiteTable(table, t, range) {
+    if (range===undefined) {
+        range = unitRange;
+    }
+    t = (t-range[0])/(range[1]-range[0]);
     let s=t*(table.length/4);
     let i=Math.floor(s);
     s-=i;
@@ -5129,11 +5335,15 @@ CurveTypeData {
     return a+(b-a)*s;
   }
   evalHermiteTable = _es6_module.add_export('evalHermiteTable', evalHermiteTable);
-  function genHermiteTable(evaluate, steps) {
+  function genHermiteTable(evaluate, steps, range) {
+    if (range===undefined) {
+        range = [0, 1];
+    }
     let table=new Array(steps);
-    let eps=1e-05;
-    let dt=(1.0-eps*4.001)/(steps-1);
-    let t=eps*4;
+    let $_t0uoun=range, min=$_t0uoun[0], max=$_t0uoun[1];
+    let eps=0.0001;
+    let dt=((max-min)-eps*4.001)/(steps-1);
+    let t=min+eps*4;
     let lastdv1, lastf3;
     for (let j=0; j<steps; j++, t+=dt) {
         let f2=evaluate(t-eps);
@@ -5157,7 +5367,7 @@ CurveTypeData {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_base.js');
 
 
-es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../util/vectormath.js", "./curve1d_base.js"], function _curve1d_basic_module(_es6_module) {
+es6_module_define('curve1d_basic', ["../util/struct.js", "../util/vectormath.js", "./curve1d_base.js", "../util/util.js"], function _curve1d_basic_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
   var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
@@ -5167,8 +5377,6 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
   var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
   var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
-  var genHermiteTable=es6_import_item(_es6_module, './curve1d_base.js', 'genHermiteTable');
-  var evalHermiteTable=es6_import_item(_es6_module, './curve1d_base.js', 'evalHermiteTable');
   var util=es6_import(_es6_module, '../util/util.js');
   let _udigest=new util.HashDigest();
   function feq(a, b) {
@@ -5179,7 +5387,8 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       super();
       this.equation = "x";
       this._last_equation = "";
-      this.hermite = undefined;
+      this._last_xrange = new Vector2();
+      this._func = undefined;
     }
     get  hasGUI() {
       return this.uidata!==undefined;
@@ -5193,6 +5402,8 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       let d=digest;
       super.calcHashKey(d);
       d.add(this.equation);
+      d.add(this.parent.xRange[0]);
+      d.add(this.parent.xRange[1]);
       return d.get();
     }
      equals(b) {
@@ -5235,28 +5446,48 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
       }
     }
      evaluate(s) {
-      if (!this.hermite||this._last_equation!==this.equation) {
+      let update=this.hermite||this._last_equation!==this.equation;
+      update = update||this._last_xrange.vectorDistance(this.parent.xRange)>0.0;
+      update = update||!this._func;
+      if (update) {
+          this._last_xrange.load(this.parent.xRange);
           this._last_equation = this.equation;
           this.updateTextBox();
+          this.#makeFunc();
           this._evaluate(0.0);
           if (this._haserror) {
               console.warn("ERROR!");
               return 0.0;
           }
-          let steps=32;
-          this.hermite = genHermiteTable((s) =>            {
-            return this._evaluate(s);
-          }, steps);
       }
-      return evalHermiteTable(this.hermite, s);
+      return this._func(s);
+    }
+     #makeFunc() {
+      this._func = undefined;
+      var sin=Math.sin, cos=Math.cos, pi=Math.PI, PI=Math.PI, e=Math.E, E=Math.E, tan=Math.tan, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, acos=Math.acos, asin=Math.asin, atan=Math.atan, cosh=Math.cos, sinh=Math.sinh, log=Math.log, pow=Math.pow, exp=Math.exp, sqrt=Math.sqrt, cbrt=Math.cbrt, min=Math.min, max=Math.max;
+      var func;
+      let code=`
+    func = function(x) {
+      return ${this.equation};
+    }
+    `;
+      try {
+        eval(code);
+        this._haserror = false;
+      }
+      catch (error) {
+          this._haserror = true;
+          console.warn("Compile error!", error.message);
+      }
+      this._func = func;
     }
      _evaluate(s) {
-      let sin=Math.sin, cos=Math.cos, pi=Math.PI, PI=Math.PI, e=Math.E, E=Math.E, tan=Math.tan, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, acos=Math.acos, asin=Math.asin, atan=Math.atan, cosh=Math.cos, sinh=Math.sinh, log=Math.log, pow=Math.pow, exp=Math.exp, sqrt=Math.sqrt, cbrt=Math.cbrt, min=Math.min, max=Math.max;
       try {
-        let x=s;
-        let ret=eval(this.equation);
+        let f=this._func(s);
         this._haserror = false;
-        return ret;
+        if (isNaN(f)) {
+            return 0.0;
+        }
       }
       catch (error) {
           this._haserror = true;
@@ -5502,10 +5733,11 @@ es6_module_define('curve1d_basic', ["../util/util.js", "../util/struct.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_basic.js');
 
 
-es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js", "./curve1d_base.js", "../config/config.js", "../util/struct.js"], function _curve1d_bspline_module(_es6_module) {
+es6_module_define('curve1d_bspline', ["../config/config.js", "../util/util.js", "../toolsys/toolsys.js", "../util/vectormath.js", "./curve1d_base.js", "../toolsys/toolprop.js", "../util/struct.js"], function _curve1d_bspline_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var config=es6_import_item(_es6_module, '../config/config.js', 'default');
+  var ToolOp=es6_import_item(_es6_module, '../toolsys/toolsys.js', 'ToolOp');
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
   let Vector2=vectormath.Vector2;
@@ -5523,8 +5755,8 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
   const templates={[SplineTemplates.CONSTANT]: [[1, 1], [1, 1]], 
    [SplineTemplates.LINEAR]: [[0, 0], [1, 1]], 
    [SplineTemplates.SHARP]: [[0, 0], [0.9999, 0.0001], [1, 1]], 
-   [SplineTemplates.SQRT]: [[0, 0], [0.05, 0.25], [0.33, 0.65], [1, 1]], 
-   [SplineTemplates.SMOOTH]: ["DEG", 2, [0, 0], [1.0/3.0, 0], [2.0/3.0, 1.0], [1, 1]], 
+   [SplineTemplates.SQRT]: [[0, 0], [0.05, 0.25], [0.15, 0.45], [0.33, 0.65], [1, 1]], 
+   [SplineTemplates.SMOOTH]: ["DEG", 3, [0, 0], [1.0/3.0, 0], [2.0/3.0, 1.0], [1, 1]], 
    [SplineTemplates.SMOOTHER]: ["DEG", 6, [0, 0], [1.0/2.25, 0], [2.0/3.0, 1.0], [1, 1]], 
    [SplineTemplates.SHARPER]: [[0, 0], [0.3, 0.03], [0.7, 0.065], [0.9, 0.16], [1, 1]], 
    [SplineTemplates.SPHERE]: [[0, 0], [0.01953, 0.23438], [0.08203, 0.43359], [0.18359, 0.625], [0.35938, 0.81641], [0.625, 0.97656], [1, 1]], 
@@ -5589,9 +5821,308 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
   var CurveFlags=es6_import_item(_es6_module, './curve1d_base.js', 'CurveFlags');
   var TangentModes=es6_import_item(_es6_module, './curve1d_base.js', 'TangentModes');
   var CurveTypeData=es6_import_item(_es6_module, './curve1d_base.js', 'CurveTypeData');
-  class Curve1DPoint extends Vector2 {
+  var BoolProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'BoolProperty');
+  var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
+  var FloatProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'FloatProperty');
+  var IntProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'IntProperty');
+  var StringProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'StringProperty');
+  var Vec2Property=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Vec2Property');
+  class Curve1dBSplineOpBase extends ToolOp {
+    static  tooldef() {
+      return {inputs: {dataPath: new StringProperty()}, 
+     outputs: {}}
+    }
+    _undo = undefined;
+     undoPre(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          this._undo = curve1d.copy();
+      }
+      else {
+        this._undo = undefined;
+      }
+    }
+     undo(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          curve1d.load(this._undo);
+          curve1d._fireEvent("update", curve1d);
+      }
+    }
+     getCurve1d(ctx) {
+      let $_t0cffj=this.getInputs(), dataPath=$_t0cffj.dataPath;
+      let curve1d;
+      try {
+        curve1d = ctx.api.getValue(ctx, dataPath);
+      }
+      catch (error) {
+          console.error(error.stack);
+          console.error(error.message);
+          console.error("Failed to lookup curve1d property at path ", dataPath);
+          return ;
+      }
+      return curve1d;
+    }
+     execPost(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          curve1d._fireEvent("update", curve1d);
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineOpBase);
+  _es6_module.add_class(Curve1dBSplineOpBase);
+  Curve1dBSplineOpBase = _es6_module.add_export('Curve1dBSplineOpBase', Curve1dBSplineOpBase);
+  class Curve1dBSplineResetOp extends Curve1dBSplineOpBase {
+    static  tooldef() {
+      return {toolpath: "curve1d.reset_bspline", 
+     inputs: ToolOp.inherit({}), 
+     outputs: {}}
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          curve1d.generators.active.reset();
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineResetOp);
+  _es6_module.add_class(Curve1dBSplineResetOp);
+  Curve1dBSplineResetOp = _es6_module.add_export('Curve1dBSplineResetOp', Curve1dBSplineResetOp);
+  ToolOp.register(Curve1dBSplineResetOp);
+  class Curve1dBSplineLoadTemplOp extends Curve1dBSplineOpBase {
+    static  tooldef() {
+      return {toolpath: "curve1d.bspline_load_template", 
+     inputs: ToolOp.inherit({template: new EnumProperty(SplineTemplates.SMOOTH, SplineTemplates)}), 
+     outputs: {}}
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      let $_t1phrw=this.getInputs(), template=$_t1phrw.template;
+      if (curve1d) {
+          curve1d.generators.active.loadTemplate(template);
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineLoadTemplOp);
+  _es6_module.add_class(Curve1dBSplineLoadTemplOp);
+  Curve1dBSplineLoadTemplOp = _es6_module.add_export('Curve1dBSplineLoadTemplOp', Curve1dBSplineLoadTemplOp);
+  ToolOp.register(Curve1dBSplineLoadTemplOp);
+  class Curve1dBSplineDeleteOp extends Curve1dBSplineOpBase {
+    static  tooldef() {
+      return {toolpath: "curve1d.bspline_delete_point", 
+     inputs: ToolOp.inherit({}), 
+     outputs: {}}
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          curve1d.generators.active.deletePoint();
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineDeleteOp);
+  _es6_module.add_class(Curve1dBSplineDeleteOp);
+  Curve1dBSplineDeleteOp = _es6_module.add_export('Curve1dBSplineDeleteOp', Curve1dBSplineDeleteOp);
+  ToolOp.register(Curve1dBSplineDeleteOp);
+  class Curve1dBSplineSelectOp extends Curve1dBSplineOpBase {
+    static  tooldef() {
+      return {toolpath: "curve1d.bspline_select_point", 
+     inputs: ToolOp.inherit({point: new IntProperty(-1), 
+      state: new BoolProperty(true), 
+      unique: new BoolProperty(true)}), 
+     outputs: {}}
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          let bspline=curve1d.generators.active;
+          let $_t2pthj=this.getInputs(), point=$_t2pthj.point, state=$_t2pthj.state, unique=$_t2pthj.unique;
+          for (let p of bspline.points) {
+              if (p.eid===point) {
+                  if (state) {
+                      p.flag|=CurveFlags.SELECT;
+                  }
+                  else {
+                    p.flag&=~CurveFlags.SELECT;
+                  }
+              }
+              else 
+                if (unique) {
+                  p.flag&=~CurveFlags.SELECT;
+              }
+          }
+          curve1d._fireEvent("select", bspline);
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineSelectOp);
+  _es6_module.add_class(Curve1dBSplineSelectOp);
+  Curve1dBSplineSelectOp = _es6_module.add_export('Curve1dBSplineSelectOp', Curve1dBSplineSelectOp);
+  ToolOp.register(Curve1dBSplineSelectOp);
+  class Curve1dBSplineAddOp extends Curve1dBSplineOpBase {
+    static  tooldef() {
+      return {toolpath: "curve1d.bspline_add_point", 
+     inputs: ToolOp.inherit({x: new FloatProperty(), 
+      y: new FloatProperty()}), 
+     outputs: {}}
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          let $_t3kidm=this.getInputs(), x=$_t3kidm.x, y=$_t3kidm.y;
+          curve1d.generators.active.addFromMouse(x, y);
+      }
+    }
+  }
+  _ESClass.register(Curve1dBSplineAddOp);
+  _es6_module.add_class(Curve1dBSplineAddOp);
+  Curve1dBSplineAddOp = _es6_module.add_export('Curve1dBSplineAddOp', Curve1dBSplineAddOp);
+  ToolOp.register(Curve1dBSplineAddOp);
+  class BSplineTransformOp extends ToolOp {
+     constructor() {
+      super();
+      this.first = true;
+      this.start_mpos = new Vector2();
+    }
+    static  tooldef() {
+      return {toolpath: "curve1d.transform_bspline", 
+     inputs: {dataPath: new StringProperty(), 
+      off: new Vec2Property(), 
+      dpi: new FloatProperty(1.0)}, 
+     is_modal: true, 
+     outputs: {}}
+    }
+    _undo = undefined;
+     storePoints(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          let bspline=curve1d.generators.active;
+          return Array.from(bspline.points).map((p) =>            {
+            return p.copy();
+          });
+      }
+      return [];
+    }
+     loadPoints(ctx, ps) {
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          let bspline=curve1d.generators.active;
+          for (let p1 of bspline.points) {
+              for (let p2 of ps) {
+                  if (p2.eid===p1.eid) {
+                      p1.co.load(p2.co);
+                      p1.rco.load(p2.rco);
+                      p1.sco.load(p2.sco);
+                  }
+              }
+          }
+          bspline.parent._fireEvent("transform", bspline);
+          bspline.recalc = RecalcFlags.ALL;
+          bspline.updateKnots();
+          bspline.update();
+          bspline.redraw();
+      }
+    }
+     undoPre(ctx) {
+      this._undo = this.storePoints(ctx);
+    }
+     undo(ctx) {
+      this.loadPoints(ctx, this._undo);
+    }
+     getCurve1d(ctx) {
+      let $_t4rwbf=this.getInputs(), dataPath=$_t4rwbf.dataPath;
+      let curve1d;
+      try {
+        curve1d = ctx.api.getValue(ctx, dataPath);
+      }
+      catch (error) {
+          console.error(error.stack);
+          console.error(error.message);
+          console.error("Failed to lookup curve1d property at path ", dataPath);
+          return ;
+      }
+      return curve1d;
+    }
+     finish(cancel=false) {
+      let ctx=this.modal_ctx;
+      this.modalEnd(cancel);
+      let curve1d=this.getCurve1d(ctx);
+      if (curve1d) {
+          curve1d.generators.active.fastmode = false;
+      }
+      if (cancel) {
+          this.undo(ctx);
+      }
+    }
+     on_pointerup(e) {
+      this.finish();
+    }
+     modalStart(ctx) {
+      super.modalStart(ctx);
+      let curve1d=this.getCurve1d(ctx);
+      if (!curve1d) {
+          console.log("Failed to get curve1d!");
+          return ;
+      }
+      let bspline=curve1d.generators.active;
+      for (let p of bspline.points) {
+          p.startco.load(p.co);
+      }
+    }
+     on_pointermove(e) {
+      let mpos=new Vector2().loadXY(e.x, e.y);
+      if (this.first) {
+          this.start_mpos.load(mpos);
+          this.first = false;
+          return ;
+      }
+      let curve1d=this.getCurve1d(this.modal_ctx);
+      if (curve1d) {
+          curve1d.generators.active.fastmode = true;
+      }
+      const $_t5osqi=this.getInputs(), dpi=$_t5osqi.dpi;
+      let off=new Vector2(mpos).sub(this.start_mpos).mulScalar(dpi);
+      off[1] = -off[1];
+      this.inputs.off.setValue(off);
+      const bspline=curve1d.generators.active;
+      for (let p of bspline.points) {
+          p.co.load(p.startco);
+      }
+      this.exec(this.modal_ctx);
+    }
+     on_pointerdown(e) {
+      this.finish();
+    }
+     exec(ctx) {
+      let curve1d=this.getCurve1d(ctx);
+      if (!curve1d) {
+          return ;
+      }
+      let bspline=curve1d.generators.active;
+      let $_t6ovvc=this.getInputs(), off=$_t6ovvc.off;
+      const xRange=curve1d.xRange, yRange=curve1d.yRange;
+      for (let p of bspline.points) {
+          if (p.flag&CurveFlags.SELECT) {
+              p.co.add(off);
+              p.co[0] = Math.min(Math.max(p.co[0], xRange[0]), xRange[1]);
+              p.co[1] = Math.min(Math.max(p.co[1], yRange[0]), yRange[1]);
+          }
+      }
+      bspline.parent._fireEvent("transform", bspline);
+      bspline.recalc = RecalcFlags.ALL;
+      bspline.updateKnots();
+      bspline.update();
+      bspline.redraw();
+    }
+  }
+  _ESClass.register(BSplineTransformOp);
+  _es6_module.add_class(BSplineTransformOp);
+  BSplineTransformOp = _es6_module.add_export('BSplineTransformOp', BSplineTransformOp);
+  ToolOp.register(BSplineTransformOp);
+  class Curve1DPoint  {
      constructor(co) {
-      super(co);
+      this.co = new Vector2(co);
       this.rco = new Vector2(co);
       this.sco = new Vector2(co);
       this.startco = new Vector2();
@@ -5600,11 +6131,41 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
       this.tangent = TangentModes.SMOOTH;
       Object.seal(this);
     }
+    get  0() {
+      throw new Error("Curve1DPoint get 0");
+    }
+    get  1() {
+      throw new Error("Curve1DPoint get 1");
+    }
+    set  0(v) {
+      this.co[0] = v;
+    }
+    set  1(v) {
+      this.co[1] = v;
+    }
+     load(b) {
+      this.eid = b.eid;
+      this.flag = b.flag;
+      this.tangent = b.tangent;
+      this.co.load(b.co);
+      this.rco.load(b.rco);
+      this.sco.load(b.sco);
+      this.startco.load(b.startco);
+      return this;
+    }
     set  deg(v) {
       console.warn("old file data detected");
     }
     static  fromJSON(obj) {
       let ret=new Curve1DPoint(obj);
+      if ("0" in obj) {
+          ret.co[0] = obj[0];
+          ret.co[1] = obj[1];
+      }
+      else {
+        ret.co.load(obj.co);
+      }
+      ret.startco.load(obj.startco);
       ret.eid = obj.eid;
       ret.flag = obj.flag;
       ret.tangent = obj.tangent;
@@ -5612,7 +6173,7 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
       return ret;
     }
      copy() {
-      let ret=new Curve1DPoint(this);
+      let ret=new Curve1DPoint(this.co);
       ret.tangent = this.tangent;
       ret.flag = this.flag;
       ret.eid = this.eid;
@@ -5622,17 +6183,17 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
       return ret;
     }
      toJSON() {
-      return {0: this[0], 
-     1: this[1], 
+      return {co: this.co, 
      eid: this.eid, 
      flag: this.flag, 
      tangent: this.tangent, 
-     rco: this.rco}
+     rco: this.rco, 
+     startco: this.startco}
     }
      loadSTRUCT(reader) {
       reader(this);
-      this.sco.load(this);
-      this.rco.load(this);
+      this.sco.load(this.co);
+      this.rco.load(this.co);
       splineCache.update(this);
     }
   }
@@ -5642,12 +6203,13 @@ es6_module_define('curve1d_bspline', ["../util/vectormath.js", "../util/util.js"
   
   Curve1DPoint.STRUCT = `
 Curve1DPoint {
-  0       : float;
-  1       : float;
+  co      : vec2;
+  rco     : vec2;
+  sco     : vec2;
+  startco : vec2;
   eid     : int;
   flag    : int;
   tangent : int;
-  rco     : vec2;
 }
 `;
   nstructjs.register(Curve1DPoint);
@@ -5711,17 +6273,18 @@ Curve1DPoint {
   _es6_module.add_class(BSplineCache);
   let splineCache=new BSplineCache();
   window._splineCache = splineCache;
+  let _idgen=1;
   class BSplineCurve extends CurveTypeData {
      constructor() {
       super();
+      this._bid = _idgen++;
+      this._degOffset = 0;
       this.cache_w = 0;
       this._last_cache_key = 0;
-      this._last_update_key = "";
       this.fastmode = false;
       this.points = [];
       this.length = 0;
       this.interpolating = false;
-      this.range = [new Vector2([0, 1]), new Vector2([0, 1])];
       this._ps = [];
       this.hermite = [];
       this.fastmode = false;
@@ -5754,17 +6317,14 @@ Curve1DPoint {
       super.calcHashKey(d);
       d.add(this.deg);
       d.add(this.interpolating);
+      d.add(this.points.length);
       for (let p of this.points) {
-          let x=~~(p[0]*1024);
-          let y=~~(p[1]*1024);
+          let x=~~(p.co[0]*1024);
+          let y=~~(p.co[1]*1024);
           d.add(x);
           d.add(y);
           d.add(p.tangent);
       }
-      d.add(this.range[0][0]);
-      d.add(this.range[0][1]);
-      d.add(this.range[1][0]);
-      d.add(this.range[1][1]);
       return d.get();
     }
      copyTo(b) {
@@ -5795,8 +6355,7 @@ Curve1DPoint {
       for (let i=0; i<this.points.length; i++) {
           let p1=this.points[i];
           let p2=b.points[i];
-          let dist=p1.vectorDistance(p2);
-          if (p1.vectorDistance(p2)>1e-05) {
+          if (p1.co.vectorDistance(p2.co)>1e-05) {
               return false;
           }
           if (p1.tangent!==p2.tangent) {
@@ -5814,10 +6373,9 @@ Curve1DPoint {
       let p=new Curve1DPoint();
       this.recalc = RecalcFlags.ALL;
       p.eid = this.eidgen.next();
-      p[0] = x;
-      p[1] = y;
-      p.sco.load(p);
-      p.rco.load(p);
+      p.co.loadXY(x, y);
+      p.sco.load(p.co);
+      p.rco.load(p.co);
       this.points.push(p);
       if (!no_update) {
           this.update();
@@ -5831,11 +6389,11 @@ Curve1DPoint {
      _sortPoints() {
       if (!this.interpolating) {
           for (let i=0; i<this.points.length; i++) {
-              this.points[i].rco.load(this.points[i]);
+              this.points[i].rco.load(this.points[i].co);
           }
       }
       this.points.sort(function (a, b) {
-        return a[0]-b[0];
+        return a.co[0]-b.co[0];
       });
       return this;
     }
@@ -5848,38 +6406,27 @@ Curve1DPoint {
       if (points.length<2) {
           return ;
       }
-      let a=points[0][0], b=points[points.length-1][0];
+      let a=points[0].co[0], b=points[points.length-1].co[0];
+      let degExtra=this.deg;
+      this._degOffset = -this.deg;
       for (let i=0; i<points.length-1; i++) {
           this._ps.push(points[i]);
       }
-      if (points.length<3) {
-          return ;
+      if (degExtra) {
+          let last=points.length-1;
+          for (let i=0; i<degExtra; i++) {
+              let p=points[last].copy();
+              this._ps.push(p);
+          }
       }
-      let l1=points[points.length-1];
-      let l2=points[points.length-2];
-      let p=l1.copy();
-      p.rco[0] = l1.rco[0]-4e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
-      p = l1.copy();
-      p.rco[0] = l1.rco[0]-3e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
-      p = l1.copy();
-      p.rco[0] = l1.rco[0]-1e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])/3.0;
-      this._ps.push(p);
-      p = l1.copy();
-      p.rco[0] = l1.rco[0]-1e-05;
-      p.rco[1] = l2.rco[1]+(l1.rco[1]-l2.rco[1])*2.0/3.0;
-      this._ps.push(p);
-      this._ps.push(l1);
       if (!this.interpolating) {
           for (let i=0; i<this._ps.length; i++) {
-              this._ps[i].rco.load(this._ps[i]);
+              this._ps[i].rco.load(this._ps[i].co);
           }
       }
       for (let i=0; i<points.length; i++) {
           let p=points[i];
-          let x=p[0], y=p[1];
+          let x=p.co[0], y=p.co[1];
           p.sco[0] = x;
           p.sco[1] = y;
       }
@@ -5892,8 +6439,7 @@ Curve1DPoint {
         }), 
      deg: this.deg, 
      interpolating: this.interpolating, 
-     eidgen: this.eidgen.toJSON(), 
-     range: this.range});
+     eidgen: this.eidgen.toJSON()});
       return ret;
     }
      loadJSON(obj) {
@@ -5932,7 +6478,6 @@ Curve1DPoint {
       let j=~~s;
       s-=j;
       j*=4;
-      return table[j]+(table[j+3]-table[j])*s;
       return bez4(table[j], table[j+1], table[j+2], table[j+3], s);
     }
      reset(empty=false) {
@@ -5946,6 +6491,7 @@ Curve1DPoint {
       this.recalc = 1;
       this.updateKnots();
       this.update();
+      this.redraw();
       return this;
     }
      regen_hermite(steps) {
@@ -5987,12 +6533,12 @@ Curve1DPoint {
     }
      solve_interpolating() {
       for (let p of this._ps) {
-          p.rco.load(p);
+          p.rco.load(p.co);
       }
       let points=this.points.concat(this.points);
       this._evaluate2(0.5);
       let error1=(p) =>        {
-        return this._evaluate(p[0])-p[1];
+        return this._evaluate(p.co[0])-p.co[1];
       };
       let error=(p) =>        {
         return error1(p);
@@ -6049,10 +6595,21 @@ Curve1DPoint {
           let t=eps*4;
           let lastdv1=0.0, lastf3=0.0;
           for (let j=0; j<steps; j++, t+=dt) {
-              let f2=this._basis(t-eps, i);
               let f3=this._basis(t, i);
-              let f4=this._basis(t+eps, i);
-              let dv1=(f4-f2)/(eps*2);
+              let dv1;
+              if (0) {
+                  let f2=this._basis(t-eps, i);
+                  let f4=this._basis(t+eps, i);
+                  dv1 = (f4-f2)/(eps*2);
+              }
+              else {
+                dv1 = this._dbasis(t, i);
+              }
+              if (isNaN(dv1)) {
+                  console.log("NaN!");
+                  debugger;
+                  dv1 = this._dbasis(t, i);
+              }
               dv1/=steps;
               if (j>0) {
                   let j2=j-1;
@@ -6065,6 +6622,49 @@ Curve1DPoint {
               lastf3 = f3;
           }
       }
+    }
+     _dbasis(t, i) {
+      let len=this._ps.length;
+      let ps=this._ps;
+      function safe_inv(n) {
+        return n===0 ? 0 : 1.0/n;
+      }
+      function bas(s, i, n) {
+        let kn=Math.min(Math.max(i+1, 0), len-1);
+        let knn=Math.min(Math.max(i+n, 0), len-1);
+        let knn1=Math.min(Math.max(i+n+1, 0), len-1);
+        let ki=Math.min(Math.max(i, 0), len-1);
+        if (n===0) {
+            return s>=ps[ki].rco[0]&&s<ps[kn].rco[0] ? 1 : 0;
+        }
+        else {
+          let a=(s-ps[ki].rco[0])*safe_inv(ps[knn].rco[0]-ps[ki].rco[0]+0.0001);
+          let b=(ps[knn1].rco[0]-s)*safe_inv(ps[knn1].rco[0]-ps[kn].rco[0]+0.0001);
+          return a*bas(s, i, n-1)+b*bas(s, i+1, n-1);
+        }
+      }
+      function dbas(s, j, n) {
+        let kn=Math.min(Math.max(j+1, 0), len-1);
+        let knn=Math.min(Math.max(j+n, 0), len-1);
+        let knn1=Math.min(Math.max(j+n+1, 0), len-1);
+        let ki=Math.min(Math.max(j, 0), len-1);
+        kn = ps[kn].rco[0];
+        knn = ps[knn].rco[0];
+        knn1 = ps[knn1].rco[0];
+        ki = ps[ki].rco[0];
+        if (n===0) {
+            return 0;
+        }
+        else {
+          let div=((ki-knn)*(kn-knn1));
+          if (div===0.0) {
+              return 0.0;
+          }
+          return (((ki-s)*dbas(s, j, n-1)-bas(s, j, n-1))*(kn-knn1)-((knn1-s)*dbas(s, j+1, n-1)-bas(s, j+1, n-1))*(ki-knn))/div;
+        }
+      }
+      let deg=this.deg;
+      return dbas(t, i+this._degOffset, deg);
     }
      _basis(t, i) {
       let len=this._ps.length;
@@ -6089,10 +6689,13 @@ Curve1DPoint {
       }
       let p=this._ps[i].rco, nk, pk;
       let deg=this.deg;
-      let b=bas(t, i-deg, deg);
+      let b=bas(t, i+this._degOffset, deg);
       return b;
     }
      evaluate(t) {
+      if (this.points.length===0) {
+          return 0.0;
+      }
       let a=this.points[0].rco, b=this.points[this.points.length-1].rco;
       if (t<a[0])
         return a[1];
@@ -6120,40 +6723,49 @@ Curve1DPoint {
     }
      _evaluate(t) {
       let start_t=t;
-      if (this.points.length>1) {
-          let a=this.points[0], b=this.points[this.points.length-1];
+      if (this.points.length===0) {
+          return 0;
       }
-      for (let i=0; i<35; i++) {
-          let df=0.0001;
-          let ret1=this._evaluate2(t<0.5 ? t : t-df);
-          let ret2=this._evaluate2(t<0.5 ? t+df : t);
-          let f1=Math.abs(ret1[0]-start_t);
-          let f2=Math.abs(ret2[0]-start_t);
-          let g=(f2-f1)/df;
-          if (f1===f2)
-            break;
-          if (f1===0.0||g===0.0)
-            return this._evaluate2(t)[1];
-          let fac=-(f1/g)*0.5;
-          if (fac===0.0) {
-              fac = 0.01;
+      let xmin=this.points[0].rco[0];
+      let xmax=this.points[this.points.length-1].rco[0];
+      let steps=this.fastmode ? 16 : 32;
+      let s=xmin, ds=(xmax-xmin)/(steps-1);
+      let miny;
+      let mins;
+      let mindx;
+      for (let i=0; i<steps; i++, s+=ds) {
+          let p=this._evaluate2(s);
+          let dx=Math.abs(p[0]-start_t);
+          if (mindx===undefined||dx<mindx) {
+              mindx = dx;
+              miny = p[1];
+              mins = s;
           }
-          else 
-            if (Math.abs(fac)>0.1) {
-              fac = 0.1*Math.sign(fac);
-          }
-          t+=fac;
-          let eps=1e-05;
-          t = Math.min(Math.max(t, eps), 1.0-eps);
       }
-      return this._evaluate2(t)[1];
+      let start=mins-ds, end=mins+ds;
+      s = mins;
+      for (let i=0; i<16; i++) {
+          let p=this._evaluate2(s);
+          if (p[0]>start_t) {
+              end = s;
+          }
+          else {
+            start = s;
+          }
+          s = (start+end)*0.5;
+          miny = p[1];
+      }
+      if (miny===undefined) {
+          miny = 0;
+      }
+      return miny;
     }
      _evaluate2(t) {
       let ret=eval2_rets.next();
       t*=0.9999999;
-      let totbasis=0;
       let sumx=0;
       let sumy=0;
+      let totbasis=0;
       for (let i=0; i<this._ps.length; i++) {
           let p=this._ps[i].rco;
           let b=this.basis(t, i);
@@ -6213,6 +6825,9 @@ Curve1DPoint {
       this.updateKnots();
       this.update();
       this.redraw();
+      if (this.parent) {
+          this.parent._fireEvent("update", this.parent);
+      }
     }
      on_touchmove(e) {
       this.mpos[0] = e.touches[0].pageX;
@@ -6226,14 +6841,35 @@ Curve1DPoint {
      on_touchcancel(e) {
       this.on_touchend(e);
     }
-     makeGUI(container, canvas, drawTransform) {
-      this.uidata = {start_mpos: new Vector2(), 
+     deletePoint() {
+      for (let i=0; i<this.points.length; i++) {
+          let p=this.points[i];
+          if (p.flag&CurveFlags.SELECT) {
+              this.points.remove(p);
+              i--;
+          }
+      }
+      this.updateKnots();
+      this.update();
+      this.regen_basis();
+      this.recalc = RecalcFlags.ALL;
+      this.redraw();
+    }
+     makeGUI(container, canvas, drawTransform, datapath, onSourceUpdate) {
+      console.warn(this._bid, "makeGUI", this.uidata, this.uidata ? this.uidata.start_mpos : undefined);
+      let start_mpos;
+      if (this.uidata) {
+          start_mpos = this.uidata.start_mpos;
+      }
+      this.uidata = {start_mpos: new Vector2(start_mpos), 
      transpoints: [], 
      dom: container, 
      canvas: canvas, 
      g: canvas.g, 
      transforming: false, 
-     draw_trans: drawTransform};
+     draw_trans: drawTransform, 
+     datapath: datapath};
+      console.warn("Building gui");
       canvas.addEventListener("touchstart", this.on_touchstart);
       canvas.addEventListener("touchmove", this.on_touchmove);
       canvas.addEventListener("touchend", this.on_touchend);
@@ -6247,7 +6883,14 @@ Curve1DPoint {
         let uiname=k[0]+k.slice(1, k.length).toLowerCase();
         uiname = uiname.replace(/_/g, " ");
         let icon=strip.iconbutton(-1, uiname, () =>          {
-          this.loadTemplate(SplineTemplates[k]);
+          if (datapath) {
+              row.ctx.api.execTool(row.ctx, "curve1d.bspline_load_template", {dataPath: datapath, 
+         template: SplineTemplates[k]});
+              onSourceUpdate();
+          }
+          else {
+            this.loadTemplate(SplineTemplates[k]);
+          }
         });
         icon.iconsheet = 0;
         icon.customIcon = SplineTemplateIcons[k];
@@ -6264,22 +6907,46 @@ Curve1DPoint {
         this.redraw();
       };
       let Icons=row.constructor.getIconEnum();
-      row.iconbutton(Icons.TINY_X, "Delete Point", () =>        {
-        for (let i=0; i<this.points.length; i++) {
-            let p=this.points[i];
-            if (p.flag&CurveFlags.SELECT) {
-                this.points.remove(p);
-                i--;
-            }
+      let icon=Icons.LARGE_X!==undefined ? Icons.LARGE_X : Icons.TINY_X;
+      if (Icons.LARGE_X===undefined) {
+          console.log(Icons);
+          console.error("Curve widget expects Icons.LARGE_X icon for delete button.");
+      }
+      row.iconbutton(icon, "Delete Point", () =>        {
+        if (datapath) {
+            row.ctx.api.execTool(row.ctx, "curve1d.bspline_delete_point", {dataPath: datapath});
         }
+        else {
+          this.deletePoint();
+        }
+        onSourceUpdate();
         fullUpdate();
       });
       row.button("Reset", () =>        {
-        this.reset();
+        if (datapath) {
+            row.ctx.api.execTool(row.ctx, "curve1d.reset_bspline", {dataPath: datapath});
+            onSourceUpdate();
+        }
+        else {
+          this.reset();
+        }
       });
-      let slider=row.simpleslider(undefined, "Degree", this.deg, 1, 6, 1, true, true, (slider) =>        {
-        this.deg = Math.floor(slider.value);
-        fullUpdate();
+      let slider=row.simpleslider(undefined, {name: "Degree", 
+     min: 1, 
+     max: 7, 
+     isInt: true, 
+     callback: (slider) =>          {
+          this.deg = Math.floor(slider.value);
+          fullUpdate();
+        }});
+      slider.setValue(this.deg);
+      let last_deg=this.deg;
+      slider.update.after(() =>        {
+        if (last_deg!==this.deg) {
+            console.log("degree update", this.deg);
+            last_deg = this.deg;
+            slider.setValue(this.deg);
+        }
       });
       slider.baseUnit = "none";
       slider.displayUnit = "none";
@@ -6290,35 +6957,6 @@ Curve1DPoint {
         this.interpolating = check.value;
         fullUpdate();
       };
-      let panel=container.panel("Range");
-      let xmin=panel.slider(undefined, "X Min", this.range[0][0], -10, 10, 0.1, false, undefined, (val) =>        {
-        this.range[0][0] = val.value;
-      });
-      let xmax=panel.slider(undefined, "X Max", this.range[0][1], -10, 10, 0.1, false, undefined, (val) =>        {
-        this.range[0][1] = val.value;
-      });
-      let ymin=panel.slider(undefined, "Y Min", this.range[1][0], -10, 10, 0.1, false, undefined, (val) =>        {
-        this.range[1][0] = val.value;
-      });
-      let ymax=panel.slider(undefined, "Y Max", this.range[1][1], -10, 10, 0.1, false, undefined, (val) =>        {
-        this.range[1][1] = val.value;
-      });
-      xmin.displayUnit = xmin.baseUnit = "none";
-      ymin.displayUnit = ymin.baseUnit = "none";
-      xmax.displayUnit = xmax.baseUnit = "none";
-      ymax.displayUnit = ymax.baseUnit = "none";
-      panel.closed = true;
-      container.update.after(() =>        {
-        let key=this.calcHashKey();
-        if (key!==this._last_update_key) {
-            this._last_update_key = key;
-            slider.setValue(this.deg);
-            xmin.setValue(this.range[0][0]);
-            xmax.setValue(this.range[0][1]);
-            ymin.setValue(this.range[1][0]);
-            ymax.setValue(this.range[1][1]);
-        }
-      });
       return this;
     }
      killGUI(container, canvas) {
@@ -6336,14 +6974,15 @@ Curve1DPoint {
       }
       return this;
     }
-     start_transform() {
-      this.uidata.transpoints = [];
+     start_transform(useSelected=true) {
+      let dpi=1.0/this.uidata.draw_trans[0];
       for (let p of this.points) {
-          if (p.flag&CurveFlags.SELECT) {
-              this.uidata.transpoints.push(p);
-              p.startco.load(p);
-          }
+          p.startco.load(p.co);
       }
+      let transform_op=new BSplineTransformOp();
+      transform_op.inputs.dataPath.setValue(this.uidata.datapath);
+      transform_op.inputs.dpi.setValue(dpi);
+      this.uidata.dom.ctx.api.execTool(this.uidata.dom.ctx, transform_op);
     }
      on_mousedown(e) {
       this.uidata.start_mpos.load(this.transform_mpos(e.x, e.y));
@@ -6361,24 +7000,72 @@ Curve1DPoint {
           else {
             this.points.highlight.flag^=CurveFlags.SELECT;
           }
-          this.uidata.transforming = true;
+          if (this.uidata.datapath) {
+              let state=e.shiftKey ? !(this.points.highlight.flag&CurveFlags.SELECT) : true;
+              this.uidata.dom.ctx.api.execTool(this.uidata.dom.ctx, "curve1d.bspline_select_point", {dataPath: this.uidata.datapath, 
+         state: state, 
+         unique: !e.shiftKey, 
+         point: this.points.highlight.eid});
+          }
           this.start_transform();
           this.updateKnots();
           this.update();
           this.redraw();
-          return ;
       }
       else {
-        let p=this.add(this.uidata.start_mpos[0], this.uidata.start_mpos[1]);
-        this.points.highlight = p;
+        let uidata=this.uidata;
+        if (this.uidata.datapath) {
+            let start_mpos=this.uidata.start_mpos;
+            this.uidata.dom.ctx.api.execTool(this.uidata.dom.ctx, "curve1d.bspline_add_point", {dataPath: this.uidata.datapath, 
+        x: start_mpos[0], 
+        y: start_mpos[1]});
+        }
+        else {
+          this.addFromMouse(this.uidata.start_mpos[0], this.uidata.start_mpos[1]);
+          this.parent._fire("update", this.parent);
+        }
         this.updateKnots();
         this.update();
         this.redraw();
-        this.points.highlight.flag|=CurveFlags.SELECT;
-        this.uidata.transforming = true;
-        this.uidata.transpoints = [this.points.highlight];
-        this.uidata.transpoints[0].startco.load(this.uidata.transpoints[0]);
+        this.uidata = uidata;
+        this.start_transform();
       }
+    }
+     load(b) {
+      if (this===b) {
+          return ;
+      }
+      this.recalc = RecalcFlags.ALL;
+      this.length = b.points.length;
+      this.points.length = 0;
+      this.eidgen = b.eidgen.copy();
+      this.deg = b.deg;
+      this.interpolating = b.interpolating;
+      for (let p of b.points) {
+          let p2=new Curve1DPoint();
+          p2.load(p);
+          if (p===b.points.highlight) {
+              this.points.highlight = p2;
+          }
+          this.points.push(p2);
+      }
+      this.updateKnots();
+      this.update();
+      this.redraw();
+      return this;
+    }
+     addFromMouse(x, y) {
+      let p=this.add(x, y);
+      p.startco.load(p.co);
+      this.points.highlight = p;
+      for (let p2 of this.points) {
+          p2.flag&=~CurveFlags.SELECT;
+      }
+      p.flag|=CurveFlags.SELECT;
+      this.updateKnots();
+      this.update();
+      this.redraw();
+      this.points.highlight.flag|=CurveFlags.SELECT;
     }
      do_highlight(x, y) {
       let trans=this.uidata.draw_trans;
@@ -6399,11 +7086,13 @@ Curve1DPoint {
     }
      do_transform(x, y) {
       let off=new Vector2([x, y]).sub(this.uidata.start_mpos);
+      let xRange=this.parent.xRange;
+      let yRange=this.parent.yRange;
       for (let i=0; i<this.uidata.transpoints.length; i++) {
           let p=this.uidata.transpoints[i];
-          p.load(p.startco).add(off);
-          p[0] = Math.min(Math.max(p[0], this.range[0][0]), this.range[0][1]);
-          p[1] = Math.min(Math.max(p[1], this.range[1][0]), this.range[1][1]);
+          p.co.load(p.startco).add(off);
+          p.co[0] = Math.min(Math.max(p.co[0], xRange[0]), xRange[1]);
+          p.co[1] = Math.min(Math.max(p.co[1], yRange[0]), yRange[1]);
       }
       this.updateKnots();
       this.update();
@@ -6471,12 +7160,15 @@ Curve1DPoint {
       this.uidata.g = g;
       this.uidata.draw_trans = draw_trans;
       let sz=draw_trans[0], pan=draw_trans[1];
-      g.lineWidth*=3.0;
-      for (let ssi=0; ssi<2; ssi++) {
+      g.lineWidth*=1.5;
+      let strokeStyle=g.strokeStyle;
+      for (let ssi=0; ssi<1; ssi++) {
           break;
+          let steps=512;
           for (let si=0; si<this.points.length; si++) {
               g.beginPath();
               let f=0;
+              let df=1.0/(steps-1);
               for (let i=0; i<steps; i++, f+=df) {
                   let totbasis=0;
                   for (let j=0; j<this.points.length; j++) {
@@ -6485,11 +7177,11 @@ Curve1DPoint {
                   let val=this.basis(f, si);
                   if (ssi)
                     val/=(totbasis===0 ? 1 : totbasis);
-                  (i===0 ? g.moveTo : g.lineTo).call(g, f, ssi ? val : val*0.5, w, w);
+                  (i===0 ? g.moveTo : g.lineTo).call(g, f, ssi ? val : val*0.5);
               }
               let color, alpha=this.points[si]===this.points.highlight ? 1.0 : 0.7;
               if (ssi) {
-                  color = "rgba(105, 25, 5,"+alpha+")";
+                  color = "rgba(205, 125, 5,"+alpha+")";
               }
               else {
                 color = "rgba(25, 145, 45,"+alpha+")";
@@ -6498,6 +7190,7 @@ Curve1DPoint {
               g.stroke();
           }
       }
+      g.strokeStyle = strokeStyle;
       g.lineWidth/=3.0;
       let w=0.03;
       for (let p of this.points) {
@@ -6520,6 +7213,14 @@ Curve1DPoint {
      loadSTRUCT(reader) {
       reader(this);
       super.loadSTRUCT(reader);
+      if (this.highlightPoint>=0) {
+          for (let p of this.points) {
+              if (p.eid===this.highlightPoint) {
+                  this.points.highlight = p;
+              }
+          }
+          delete this.highlightPoint;
+      }
       this.updateKnots();
       this.recalc = RecalcFlags.ALL;
     }
@@ -6527,11 +7228,11 @@ Curve1DPoint {
   _ESClass.register(BSplineCurve);
   _es6_module.add_class(BSplineCurve);
   BSplineCurve.STRUCT = nstructjs.inherit(BSplineCurve, CurveTypeData)+`
-  points        : array(Curve1DPoint);
-  deg           : int;
-  eidgen        : IDGen;
-  interpolating : bool;
-  range         : array(vec2);
+  points         : array(Curve1DPoint);
+  highlightPoint : int | this.points.highlight ? this.points.highlight.eid : -1;
+  deg            : int;
+  eidgen         : IDGen;
+  interpolating  : bool;
 }
 `;
   nstructjs.register(BSplineCurve);
@@ -6609,7 +7310,7 @@ Curve1DPoint {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/curve/curve1d_bspline.js');
 
 
-es6_module_define('curve1d_utils', ["../toolsys/toolprop.js", "./curve1d_base.js"], function _curve1d_utils_module(_es6_module) {
+es6_module_define('curve1d_utils', ["./curve1d_base.js", "../toolsys/toolprop.js"], function _curve1d_utils_module(_es6_module) {
   var CurveConstructors=es6_import_item(_es6_module, './curve1d_base.js', 'CurveConstructors');
   var EnumProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'EnumProperty');
   function makeGenEnum() {
@@ -7286,7 +7987,7 @@ es6_module_define('test', [], function _test_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/extern/lz-string/test.js');
 
 
-es6_module_define('toolpath', ["../util/util.js", "./toolsys.js", "../util/parseutil.js", "../controller/controller_base.js"], function _toolpath_module(_es6_module) {
+es6_module_define('toolpath', ["../controller/controller_base.js", "../util/util.js", "../util/parseutil.js", "./toolsys.js"], function _toolpath_module(_es6_module) {
   var ToolClasses=es6_import_item(_es6_module, './toolsys.js', 'ToolClasses');
   var ToolOp=es6_import_item(_es6_module, './toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, './toolsys.js', 'ToolFlags');
@@ -7405,7 +8106,7 @@ es6_module_define('toolpath', ["../util/util.js", "./toolsys.js", "../util/parse
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolpath.js');
 
 
-es6_module_define('toolprop', ["../util/vectormath.js", "../util/struct.js", "./toolprop_abstract.js", "../curve/curve1d.js", "../util/util.js", "../../core/units.js"], function _toolprop_module(_es6_module) {
+es6_module_define('toolprop', ["../util/vectormath.js", "../util/struct.js", "../../core/units.js", "../util/util.js", "./toolprop_abstract.js", "../curve/curve1d.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -9281,7 +9982,7 @@ es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_a
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/toolsys/toolprop_abstract.js');
 
 
-es6_module_define('toolsys', ["../util/simple_events.js", "../controller/controller_base.js", "./toolprop.js", "../util/events.js", "../util/struct.js", "../util/util.js"], function _toolsys_module(_es6_module) {
+es6_module_define('toolsys', ["../util/struct.js", "../util/util.js", "../util/events.js", "../controller/controller_base.js", "./toolprop.js", "../util/simple_events.js"], function _toolsys_module(_es6_module) {
   "use strict";
   var nstructjs=es6_import_item(_es6_module, '../util/struct.js', 'default');
   var events=es6_import(_es6_module, '../util/events.js');
@@ -9447,6 +10148,7 @@ es6_module_define('toolsys', ["../util/simple_events.js", "../controller/control
   class ToolOp extends events.EventHandler {
      constructor() {
       super();
+      this._pointerId = undefined;
       this._overdraw = undefined;
       this.__memsize = undefined;
       var def=this.constructor.tooldef();
@@ -9828,7 +10530,12 @@ es6_module_define('toolsys', ["../util/simple_events.js", "../controller/control
         this._accept = accept;
         this._reject = reject;
         modalstack.push(this);
-        super.pushModal(ctx.screen);
+        if (this._pointerId!==undefined) {
+            super.pushPointerModal(ctx.screen, this._pointerId);
+        }
+        else {
+          super.pushModal(ctx.screen);
+        }
       });
       return this._promise;
     }
@@ -11169,890 +11876,4 @@ es6_module_define('cssutils', [], function _cssutils_module(_es6_module) {
   }
   matrix2css = _es6_module.add_export('matrix2css', matrix2css);
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/cssutils.js');
-
-
-es6_module_define('events', ["./util.js", "./simple_events.js"], function _events_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, './util.js');
-  var simple_events=es6_import(_es6_module, './simple_events.js');
-  let _ex_keymap=es6_import_item(_es6_module, './simple_events.js', 'keymap');
-  _es6_module.add_export('keymap', _ex_keymap, true);
-  let _ex_reverse_keymap=es6_import_item(_es6_module, './simple_events.js', 'reverse_keymap');
-  _es6_module.add_export('reverse_keymap', _ex_reverse_keymap, true);
-  let _ex_keymap_latin_1=es6_import_item(_es6_module, './simple_events.js', 'keymap_latin_1');
-  _es6_module.add_export('keymap_latin_1', _ex_keymap_latin_1, true);
-  class EventDispatcher  {
-     constructor() {
-      this._cbs = {};
-    }
-     _fireEvent(type, data) {
-      let stop=false;
-      data = {stopPropagation: function stopPropagation() {
-          stop = true;
-        }, 
-     data: data};
-      if (type in this._cbs) {
-          for (let cb of this._cbs[type]) {
-              cb(data);
-              if (stop) {
-                  break;
-              }
-          }
-      }
-    }
-     on(type, cb) {
-      if (!(type in this._cbs)) {
-          this._cbs[type] = [];
-      }
-      this._cbs[type].push(cb);
-      return this;
-    }
-     off(type, cb) {
-      if (!(type in this._cbs)) {
-          console.warn("event handler not in list", type, cb);
-          return this;
-      }
-      let stack=this._cbs[type];
-      if (stack.indexOf(cb)<0) {
-          console.warn("event handler not in list", type, cb);
-          return this;
-      }
-      stack.remove(cb);
-      return this;
-    }
-  }
-  _ESClass.register(EventDispatcher);
-  _es6_module.add_class(EventDispatcher);
-  EventDispatcher = _es6_module.add_export('EventDispatcher', EventDispatcher);
-  function copyMouseEvent(e) {
-    let ret={}
-    function bind(func, obj) {
-      return function () {
-        return this._orig.apply(func, arguments);
-      }
-    }
-    let exclude=new Set(["__proto__"]);
-    ret._orig = e;
-    for (let k in e) {
-        let v=e[k];
-        if (exclude.has(k)) {
-            continue;
-        }
-        if (typeof v=="function") {
-            v = bind(v);
-        }
-        ret[k] = v;
-    }
-    ret.ctrlKey = e.ctrlKey;
-    ret.shiftKey = e.shiftKey;
-    ret.altKey = e.altKey;
-    for (let i=0; i<2; i++) {
-        let key=i ? "targetTouches" : "touches";
-        if (e[key]) {
-            ret[key] = [];
-            for (let t of e[key]) {
-                let t2={};
-                ret[key].push(t2);
-                for (let k in t) {
-                    t2[k] = t[k];
-                }
-            }
-        }
-    }
-    return ret;
-  }
-  copyMouseEvent = _es6_module.add_export('copyMouseEvent', copyMouseEvent);
-  const DomEventTypes={on_mousemove: 'mousemove', 
-   on_mousedown: 'mousedown', 
-   on_mouseup: 'mouseup', 
-   on_touchstart: 'touchstart', 
-   on_touchcancel: 'touchcanel', 
-   on_touchmove: 'touchmove', 
-   on_touchend: 'touchend', 
-   on_mousewheel: 'mousewheel', 
-   on_keydown: 'keydown', 
-   on_keyup: 'keyup', 
-   on_pointerdown: 'pointerdown', 
-   on_pointermove: 'pointermove', 
-   on_pointercancel: 'pointercancel', 
-   on_pointerup: 'pointerup'}
-  _es6_module.add_export('DomEventTypes', DomEventTypes);
-  function getDom(dom, eventtype) {
-    if (eventtype.startsWith("key"))
-      return window;
-    return dom;
-  }
-  let modalStack=[];
-  modalStack = _es6_module.add_export('modalStack', modalStack);
-  function isModalHead(owner) {
-    return modalStack.length===0||modalStack[modalStack.length-1]===owner;
-  }
-  isModalHead = _es6_module.add_export('isModalHead', isModalHead);
-  class EventHandler  {
-     pushPointerModal(dom, pointerId) {
-      if (this._modalstate) {
-          console.warn("pushPointerModal called twiced!");
-          return ;
-      }
-      this._modalstate = simple_events.pushPointerModal(this, dom, pointerId);
-    }
-     pushModal(dom, _is_root) {
-      if (this._modalstate) {
-          console.warn("pushModal called twiced!");
-          return ;
-      }
-      this._modalstate = simple_events.pushModalLight(this);
-    }
-     popModal() {
-      if (this._modalstate!==undefined) {
-          let modalstate=this._modalstate;
-          simple_events.popModalLight(modalstate);
-          this._modalstate = undefined;
-      }
-    }
-  }
-  _ESClass.register(EventHandler);
-  _es6_module.add_class(EventHandler);
-  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
-  function pushModal(dom, handlers) {
-    console.warn("Deprecated call to pathux.events.pushModal; use api in simple_events.js instead");
-    let h=new EventHandler();
-    for (let k in handlers) {
-        h[k] = handlers[k];
-    }
-    handlers.popModal = () =>      {
-      return h.popModal(dom);
-    }
-    h.pushModal(dom, false);
-    return h;
-  }
-  pushModal = _es6_module.add_export('pushModal', pushModal);
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
-
-
-es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
-  var vectormath=es6_import(_es6_module, './vectormath.js');
-  var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
-  var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
-  var token=es6_import_item(_es6_module, './parseutil.js', 'token');
-  var parser=es6_import_item(_es6_module, './parseutil.js', 'parser');
-  var PUTLParseError=es6_import_item(_es6_module, './parseutil.js', 'PUTLParseError');
-  let tk=(n, r, f) =>    {
-    return new tokdef(n, r, f);
-  }
-  let count=(str, match) =>    {
-    let c=0;
-    do {
-      let i=str.search(match);
-      if (i<0) {
-          break;
-      }
-      c++;
-      str = str.slice(i+1, str.length);
-    } while (1);
-    
-    return c;
-  }
-  let tokens=[tk("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/), tk("NUM", /[0-9]+(\.[0-9]*)?/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /"[^"]*"/, (t) =>    {
-    let v=t.value;
-    t.lexer.lineno+=count(t.value, "\n");
-    return t;
-  }), tk("WS", /[ \t\n\r]/, (t) =>    {
-    t.lexer.lineno+=count(t.value, "\n");
-  }), tk("COMMA", /\,/), tk("COLON", /:/), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACKET", /\{/), tk("RBRACKET", /\}/), tk("DOT", /\./), tk("PLUS", /\+/), tk("MINUS", /\-/), tk("TIMES", /\*/), tk("DIVIDE", /\//), tk("EXP", /\*\*/), tk("LAND", /\&\&/), tk("BAND", /\&/), tk("LOR", /\|\|/), tk("BOR", /\|/), tk("EQUALS", /=/), tk("LEQUALS", /\<\=/), tk("GEQUALS", /\>\=/), tk("LTHAN", /\</), tk("GTHAN", /\>/), tk("MOD", /\%/), tk("XOR", /\^/), tk("BITINV", /\~/)];
-  let lex=new lexer(tokens, (t) =>    {
-    console.log("Token error");
-    return true;
-  });
-  let parse=new parser(lex);
-  let binops=new Set([".", "/", "*", "**", "^", "%", "&", "+", "-", "&&", "||", "&", "|", "<", ">", "==", "=", "<=", ">="]);
-  let precedence;
-  if (1) {
-      let table=[["**"], ["*", "/"], ["+", "-"], ["."], ["="], ["("], [")"]];
-      let pr={};
-      for (let i=0; i<table.length; i++) {
-          for (let c of table[i]) {
-              pr[c] = i;
-          }
-      }
-      precedence = pr;
-  }
-  function indent(n, chr) {
-    if (chr===undefined) {
-        chr = "  ";
-    }
-    let s="";
-    for (let i=0; i<n; i++) {
-        s+=chr;
-    }
-    return s;
-  }
-  class Node extends Array {
-     constructor(type) {
-      super();
-      this.type = type;
-      this.parent = undefined;
-    }
-     push(n) {
-      n.parent = this;
-      return super.push(n);
-    }
-     remove(n) {
-      let i=this.indexOf(n);
-      if (i<0) {
-          console.log(n);
-          throw new Error("item not in array");
-      }
-      while (i<this.length) {
-        this[i] = this[i+1];
-        i++;
-      }
-      n.parent = undefined;
-      this.length--;
-      return this;
-    }
-     insert(starti, n) {
-      let i=this.length-1;
-      this.length++;
-      if (n.parent) {
-          n.parent.remove(n);
-      }
-      while (i>starti) {
-        this[i] = this[i-1];
-        i--;
-      }
-      n.parent = this;
-      this[starti] = n;
-      return this;
-    }
-     replace(n, n2) {
-      if (n2.parent) {
-          n2.parent.remove(n2);
-      }
-      this[this.indexOf(n)] = n2;
-      n.parent = undefined;
-      n2.parent = this;
-      return this;
-    }
-     toString(t=0) {
-      let tab=indent(t, "-");
-      let typestr=this.type;
-      if (this.value!==undefined) {
-          typestr+=" : "+this.value;
-      }
-      else 
-        if (this.op!==undefined) {
-          typestr+=" ("+this.op+")";
-      }
-      let s=tab+typestr+" {\n";
-      for (let c of this) {
-          s+=c.toString(t+1);
-      }
-      s+=tab+"}\n";
-      return s;
-    }
-  }
-  _ESClass.register(Node);
-  _es6_module.add_class(Node);
-  Node = _es6_module.add_export('Node', Node);
-  function parseExpr(s) {
-    let p=parse;
-    function Value() {
-      let t=p.next();
-      if (t&&t.value==="(") {
-          t = p.next();
-      }
-      if (t===undefined) {
-          p.error(undefined, "Expected a value");
-          return ;
-      }
-      let n=new Node();
-      n.value = t.value;
-      if (t.type==="ID") {
-          n.type = "Ident";
-      }
-      else 
-        if (t.type==="NUM") {
-          n.type = "Number";
-      }
-      else 
-        if (t.type==="STRLIT") {
-          n.type = "StrLit";
-      }
-      else 
-        if (t.type==="MINUS") {
-          let t2=p.peek_i(0);
-          if (t2&&t2.type==="NUM") {
-              p.next();
-              n.type = "Number";
-              n.value = -t2.value;
-          }
-          else 
-            if (t2&&t2.type==="ID") {
-              p.next();
-              n.type = "Negate";
-              let n2=new Node();
-              n2.type = "Ident";
-              n2.value = t2.value;
-              n.push(n2);
-          }
-          else {
-            p.error(t, "Expected a value, not '"+t.value+"'");
-          }
-      }
-      else {
-        p.error(t, "Expected a value, not '"+t.value+"'");
-      }
-      return n;
-    }
-    function bin_next(depth) {
-      if (depth===undefined) {
-          depth = 0;
-      }
-      let a=p.peek_i(0);
-      let b=p.peek_i(1);
-      if (b&&b.value===")") {
-          b.type = a.type;
-          b.value = a.value;
-          p.next();
-          let c=p.peek_i(2);
-          if (c&&binops.has(c.value)) {
-              return {value: b, 
-         op: c.value, 
-         prec: -10}
-          }
-      }
-      if (b&&binops.has(b.value)) {
-          return {value: a, 
-       op: b.value, 
-       prec: precedence[b.value]}
-      }
-      else {
-        return Value(a);
-      }
-    }
-    function BinOp(left, depth) {
-      if (depth===undefined) {
-          depth = 0;
-      }
-      console.log(indent(depth)+"BinOp", left.toString());
-      let op=p.next();
-      let right;
-      let n;
-      let prec=precedence[op.value];
-      let r=bin_next(depth+1);
-      if (__instance_of(r, Node)) {
-          right = r;
-      }
-      else {
-        if (r.prec>prec) {
-            if (!n) {
-                n = new Node("BinOp");
-                n.op = op.value;
-                n.push(left);
-            }
-            n.push(Value());
-            return n;
-        }
-        else {
-          right = BinOp(Value(), depth+2);
-        }
-      }
-      n = new Node("BinOp", op);
-      n.op = op.value;
-      n.push(right);
-      n.push(left);
-      console.log("\n\n", n.toString(), "\n\n");
-      left = n;
-      console.log(n.toString());
-      return n;
-    }
-    function Start() {
-      let ret=Value();
-      while (!p.at_end()) {
-        let t=p.peek_i(0);
-        if (t===undefined) {
-            break;
-        }
-        console.log(t.toString());
-        if (binops.has(t.value)) {
-            console.log("binary op!");
-            ret = BinOp(ret);
-        }
-        else 
-          if (t.value===",") {
-            let n=new Node();
-            n.type = "ExprList";
-            p.next();
-            n.push(ret);
-            let n2=Start();
-            if (n2.type==="ExprList") {
-                for (let c of n2) {
-                    n.push(c);
-                }
-            }
-            else {
-              n.push(n2);
-            }
-            return n;
-        }
-        else 
-          if (t.value==="(") {
-            let n=new Node("FuncCall");
-            n.push(ret);
-            n.push(Start());
-            p.expect("RPAREN");
-            return n;
-        }
-        else 
-          if (t.value===")") {
-            return ret;
-        }
-        else {
-          console.log(ret.toString());
-          p.error(t, "Unexpected token "+t.value);
-        }
-      }
-      return ret;
-    }
-    function Run() {
-      let ret=[];
-      while (!p.at_end()) {
-        ret.push(Start());
-      }
-      return ret;
-    }
-    p.start = Run;
-    return p.parse(s);
-  }
-  parseExpr = _es6_module.add_export('parseExpr', parseExpr);
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/expr.js');
-
-
-es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./solver.js"], function _graphpack_module(_es6_module) {
-  "use strict";
-  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
-  var math=es6_import(_es6_module, './math.js');
-  var util=es6_import(_es6_module, './util.js');
-  var Constraint=es6_import_item(_es6_module, './solver.js', 'Constraint');
-  var Solver=es6_import_item(_es6_module, './solver.js', 'Solver');
-  let idgen=0;
-  class PackNodeVertex extends Vector2 {
-     constructor(node, co) {
-      super(co);
-      this.node = node;
-      this._id = idgen++;
-      this.edges = [];
-      this._absPos = new Vector2();
-    }
-    get  absPos() {
-      this._absPos.load(this).add(this.node.pos);
-      return this._absPos;
-    }
-     [Symbol.keystr]() {
-      return this._id;
-    }
-  }
-  _ESClass.register(PackNodeVertex);
-  _es6_module.add_class(PackNodeVertex);
-  PackNodeVertex = _es6_module.add_export('PackNodeVertex', PackNodeVertex);
-  class PackNode  {
-     constructor() {
-      this.pos = new Vector2();
-      this.vel = new Vector2();
-      this.oldpos = new Vector2();
-      this._id = idgen++;
-      this.size = new Vector2();
-      this.verts = [];
-    }
-     [Symbol.keystr]() {
-      return this._id;
-    }
-  }
-  _ESClass.register(PackNode);
-  _es6_module.add_class(PackNode);
-  PackNode = _es6_module.add_export('PackNode', PackNode);
-  function copyGraph(nodes) {
-    let ret=[];
-    let idmap={}
-    for (let n of nodes) {
-        let n2=new PackNode();
-        n2._id = n._id;
-        n2.pos.load(n.pos);
-        n2.vel.load(n.vel);
-        n2.size.load(n.size);
-        n2.verts = [];
-        idmap[n2._id] = n2;
-        for (let v of n.verts) {
-            let v2=new PackNodeVertex(n2, v);
-            v2._id = v._id;
-            idmap[v2._id] = v2;
-            n2.verts.push(v2);
-        }
-        ret.push(n2);
-    }
-    for (let n of nodes) {
-        for (let v of n.verts) {
-            let v2=idmap[v._id];
-            for (let v3 of v.edges) {
-                v2.edges.push(idmap[v3._id]);
-            }
-        }
-    }
-    return ret;
-  }
-  function getCenter(nodes) {
-    let cent=new Vector2();
-    for (let n of nodes) {
-        cent.add(n.pos);
-    }
-    if (nodes.length===0)
-      return cent;
-    cent.mulScalar(1.0/nodes.length);
-    return cent;
-  }
-  function loadGraph(nodes, copy) {
-    let idmap={}
-    for (let i=0; i<nodes.length; i++) {
-        nodes[i].pos.load(copy[i].pos);
-        nodes[i].oldpos.load(copy[i].oldpos);
-        nodes[i].vel.load(copy[i].vel);
-    }
-  }
-  function graphGetIslands(nodes) {
-    let islands=[];
-    let visit1=new util.set();
-    let rec=(n, island) =>      {
-      island.push(n);
-      visit1.add(n);
-      for (let v of n.verts) {
-          for (let e of v.edges) {
-              let n2=e.node;
-              if (n2!==n&&!visit1.has(n2)) {
-                  rec(n2, island);
-              }
-          }
-      }
-    }
-    for (let n of nodes) {
-        if (visit1.has(n)) {
-            continue;
-        }
-        let island=[];
-        islands.push(island);
-        rec(n, island);
-    }
-    return islands;
-  }
-  graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
-  function graphPack(nodes, margin_or_args, steps, updateCb) {
-    if (margin_or_args===undefined) {
-        margin_or_args = 15;
-    }
-    if (steps===undefined) {
-        steps = 10;
-    }
-    if (updateCb===undefined) {
-        updateCb = undefined;
-    }
-    let margin=margin_or_args;
-    let speed=1.0;
-    if (typeof margin==="object") {
-        let args=margin;
-        margin = args.margin??15;
-        steps = args.steps??10;
-        updateCb = args.updateCb;
-        speed = args.speed??1.0;
-    }
-    let orignodes=nodes;
-    nodes = copyGraph(nodes);
-    let decay=1.0;
-    let decayi=0;
-    let min=new Vector2().addScalar(1e+17);
-    let max=new Vector2().addScalar(-1e+17);
-    let tmp=new Vector2();
-    for (let n of nodes) {
-        min.min(n.pos);
-        tmp.load(n.pos).add(n.size);
-        max.max(tmp);
-    }
-    let size=new Vector2(max).sub(min);
-    for (let n of nodes) {
-        n.pos[0]+=(Math.random()-0.5)*5.0/size[0]*speed;
-        n.pos[1]+=(Math.random()-0.5)*5.0/size[1]*speed;
-    }
-    let nodemap={}
-    for (let n of nodes) {
-        n.vel.zero();
-        nodemap[n._id] = n;
-        for (let v of n.verts) {
-            nodemap[v._id] = v;
-        }
-    }
-    let visit=new util.set();
-    let verts=new util.set();
-    let isect=[];
-    let disableEdges=false;
-    function edge_c(params) {
-      let $_t0nqql=params, v1=$_t0nqql[0], v2=$_t0nqql[1], restlen=$_t0nqql[2];
-      if (disableEdges)
-        return 0;
-      return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
-    }
-    let p1=new Vector2();
-    let p2=new Vector2();
-    let s1=new Vector2();
-    let s2=new Vector2();
-    function loadBoxes(n1, n2, margin1) {
-      if (margin1===undefined) {
-          margin1 = margin;
-      }
-      p1.load(n1.pos);
-      p2.load(n2.pos);
-      s1.load(n1.size);
-      s2.load(n2.size);
-      p1.subScalar(margin1);
-      p2.subScalar(margin1);
-      s1.addScalar(margin1*2.0);
-      s2.addScalar(margin1*2.0);
-    }
-    let disableArea=false;
-    function area_c(params) {
-      let $_t1dvbn=params, n1=$_t1dvbn[0], n2=$_t1dvbn[1];
-      if (disableArea)
-        return 0.0;
-      loadBoxes(n1, n2);
-      let a1=n1.size[0]*n1.size[1];
-      let a2=n2.size[0]*n2.size[1];
-      return math.aabb_overlap_area(p1, s1, p2, s2);
-      return (math.aabb_overlap_area(p1, s1, p2, s2)/(a1+a2));
-    }
-    let lasterr, besterr, best;
-    let err;
-    let islands=graphGetIslands(nodes);
-    let fakeVerts=[];
-    for (let island of islands) {
-        let n=island[0];
-        let fv=new PackNodeVertex(n);
-        fakeVerts.push(fv);
-    }
-    let solveStep1=(gk) =>      {
-      if (gk===undefined) {
-          gk = 1.0;
-      }
-      let solver=new Solver();
-      isect.length = 0;
-      visit = new util.set();
-      if (fakeVerts.length>1) {
-          for (let i=1; i<fakeVerts.length; i++) {
-              let v1=fakeVerts[0];
-              let v2=fakeVerts[i];
-              let rlen=1.0;
-              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2, rlen]);
-              con.k = 0.25;
-              solver.add(con);
-          }
-      }
-      for (let n1 of nodes) {
-          for (let v of n1.verts) {
-              verts.add(v);
-              for (let v2 of v.edges) {
-                  if (v2._id<v._id)
-                    continue;
-                  let rlen=n1.size.vectorLength()*0.0;
-                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2, rlen]);
-                  con.k = 1.0;
-                  solver.add(con);
-              }
-          }
-          for (let n2 of nodes) {
-              if (n1===n2)
-                continue;
-              let key=Math.min(n1._id, n2._id)+":"+Math.max(n1._id, n2._id);
-              if (visit.has(key))
-                continue;
-              loadBoxes(n1, n2);
-              let area=math.aabb_overlap_area(p1, s1, p2, s2);
-              if (area>0.01) {
-                  let size=decay*(n1.size.vectorLength()+n2.size.vectorLength())*speed;
-                  n1.pos[0]+=(Math.random()-0.5)*size;
-                  n1.pos[1]+=(Math.random()-0.5)*size;
-                  n2.pos[0]+=(Math.random()-0.5)*size;
-                  n2.pos[1]+=(Math.random()-0.5)*size;
-                  isect.push([n1, n2]);
-                  visit.add(key);
-              }
-          }
-          for (let /*unprocessed ExpandNode*/[n1, n2] of isect) {
-              let con=new Constraint("area_c", area_c, [n1.pos, n2.pos], [n1, n2]);
-              solver.add(con);
-              con.k = 1.0;
-          }
-      }
-      return solver;
-    }
-    let i=1;
-    let solveStep=(gk) =>      {
-      if (gk===undefined) {
-          gk = 0.5;
-      }
-      let solver=solveStep1();
-      if (i%40===0.0) {
-          let c1=getCenter(nodes);
-          let rfac=1000.0;
-          if (best)
-            loadGraph(nodes, best);
-          for (let n of nodes) {
-              n.pos[0]+=(Math.random()-0.5)*rfac*speed;
-              n.pos[1]+=(Math.random()-0.5)*rfac*speed;
-              n.vel.zero();
-          }
-          let c2=getCenter(nodes);
-          c1.sub(c2);
-          for (let n of nodes) {
-              n.pos.add(c1);
-          }
-      }
-      let err=1e+17;
-      for (let n of nodes) {
-          n.oldpos.load(n.pos);
-          n.pos.addFac(n.vel, 0.5);
-      }
-      disableEdges = false;
-      disableArea = true;
-      solver.solve(1, gk);
-      disableEdges = true;
-      disableArea = false;
-      for (let j=0; j<10; j++) {
-          solver = solveStep1();
-          err = solver.solve(10, gk*speed);
-      }
-      for (let n of nodes) {
-          n.vel.load(n.pos).sub(n.oldpos);
-      }
-      disableEdges = false;
-      disableArea = true;
-      err = 0.0;
-      for (let con of solver.constraints) {
-          err+=con.evaluate(true);
-      }
-      disableEdges = false;
-      disableArea = false;
-      lasterr = err;
-      let add=Math.random()*besterr*Math.exp(-i*0.1);
-      if (besterr===undefined||err<besterr+add) {
-          best = copyGraph(nodes);
-          besterr = err;
-      }
-      i++;
-      return err;
-    }
-    for (let j=0; j<steps; j++) {
-        solveStep();
-        decayi++;
-        decay = Math.exp(-decayi*0.1);
-    }
-    min.zero().addScalar(1e+17);
-    max.zero().addScalar(-1e+17);
-    for (let node of (best ? best : nodes)) {
-        min.min(node.pos);
-        p2.load(node.pos).add(node.size);
-        max.max(p2);
-    }
-    for (let node of (best ? best : nodes)) {
-        node.pos.sub(min);
-    }
-    loadGraph(orignodes, best ? best : nodes);
-    if (updateCb) {
-        if (nodes._timer!==undefined) {
-            window.clearInterval(nodes._timer);
-        }
-        nodes._timer = window.setInterval(() =>          {
-          let time=util.time_ms();
-          while (util.time_ms()-time<50) {
-            let err=solveStep();
-          }
-          if (cconst.DEBUG.boxPacker) {
-              console.log("err", (besterr/nodes.length).toFixed(2), (lasterr/nodes.length).toFixed(2), "isects", isect.length);
-          }
-          if (best)
-            loadGraph(orignodes, best);
-          if (updateCb()===false) {
-              clearInterval(nodes._timer);
-              return ;
-          }
-        }, 100);
-        let timer=nodes._timer;
-        return {stop: () =>            {
-            if (best)
-              loadGraph(nodes, best);
-            window.clearInterval(timer);
-            nodes._timer = undefined;
-          }}
-    }
-  }
-  graphPack = _es6_module.add_export('graphPack', graphPack);
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/graphpack.js');
-
-
-es6_module_define('html5_fileapi', [], function _html5_fileapi_module(_es6_module) {
-  function saveFile(data, filename, exts, mime) {
-    if (filename===undefined) {
-        filename = "unnamed";
-    }
-    if (exts===undefined) {
-        exts = [];
-    }
-    if (mime===undefined) {
-        mime = "application/x-octet-stream";
-    }
-    let blob=new Blob([data], {type: mime});
-    let url=URL.createObjectURL(blob);
-    let a=document.createElement("a");
-    a.setAttribute("href", url);
-    a.setAttribute("download", filename);
-    a.click();
-  }
-  saveFile = _es6_module.add_export('saveFile', saveFile);
-  function loadFile(filename, exts) {
-    if (filename===undefined) {
-        filename = "unnamed";
-    }
-    if (exts===undefined) {
-        exts = [];
-    }
-    let input=document.createElement("input");
-    input.type = "file";
-    exts = exts.join(",");
-    input.setAttribute("accept", exts);
-    return new Promise((accept, reject) =>      {
-      input.onchange = function (e) {
-        if (this.files===undefined||this.files.length!==1) {
-            reject("file load error");
-            return ;
-        }
-        let file=this.files[0];
-        let reader=new FileReader();
-        reader.onload = function (e2) {
-          accept(e2.target.result);
-        }
-        reader.readAsArrayBuffer(file);
-      }
-      input.click();
-    });
-  }
-  loadFile = _es6_module.add_export('loadFile', loadFile);
-  window._testLoadFile = function (exts) {
-    if (exts===undefined) {
-        exts = ["*.*"];
-    }
-    loadFile(undefined, exts).then((data) =>      {
-      console.log("got file data:", data);
-    });
-  }
-  window._testSaveFile = function () {
-    let buf=_appstate.createFile();
-    saveFile(buf, "unnamed.w3d", [".w3d"]);
-  }
-}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/html5_fileapi.js');
 

@@ -859,7 +859,7 @@ es6_module_define('iconsheet', [], function _iconsheet_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/simple/iconsheet.js');
 
 
-es6_module_define('menubar', ["../core/ui_base.js", "./editor.js", "../screen/ScreenArea.js", "../path-controller/controller.js"], function _menubar_module(_es6_module) {
+es6_module_define('menubar', ["../core/ui_base.js", "../screen/ScreenArea.js", "./editor.js", "../path-controller/controller.js"], function _menubar_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, './editor.js', 'Editor');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var nstructjs=es6_import_item(_es6_module, '../path-controller/controller.js', 'nstructjs');
@@ -958,7 +958,7 @@ es6_module_define('setup', [], function _setup_module(_es6_module) {
 }, '/dev/fairmotion/src/path.ux/scripts/simple/setup.js');
 
 
-es6_module_define('simple', ["./context_class.js", "./app.js", "./icons.js", "../widgets/ui_menu.js", "./editor.js", "./menubar.js", "./setup.js", "./iconsheet.js", "./file.js"], function _simple_module(_es6_module) {
+es6_module_define('simple', ["./editor.js", "./icons.js", "./app.js", "./context_class.js", "./file.js", "../widgets/ui_menu.js", "./setup.js", "./menubar.js", "./iconsheet.js"], function _simple_module(_es6_module) {
   var app=es6_import(_es6_module, './app.js');
   var editor=es6_import(_es6_module, './editor.js');
   var ___app_js=es6_import(_es6_module, './app.js');
@@ -1038,7 +1038,7 @@ es6_module_define('events', ["../path-controller/util/events.js"], function _eve
 }, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
 
 
-es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./solver.js"], function _graphpack_module(_es6_module) {
+es6_module_define('graphpack', ["./solver.js", "./util.js", "./vectormath.js", "./math.js"], function _graphpack_module(_es6_module) {
   "use strict";
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
@@ -1183,7 +1183,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./
     let isect=[];
     let disableEdges=false;
     function edge_c(params) {
-      let $_t0wkub=params, v1=$_t0wkub[0], v2=$_t0wkub[1];
+      let $_t0grmr=params, v1=$_t0grmr[0], v2=$_t0grmr[1];
       if (disableEdges)
         return 0;
       return v1.absPos.vectorDistance(v2.absPos);
@@ -1207,7 +1207,7 @@ es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./math.js", "./
     }
     let disableArea=false;
     function area_c(params) {
-      let $_t1foiu=params, n1=$_t1foiu[0], n2=$_t1foiu[1];
+      let $_t1vmqi=params, n1=$_t1vmqi[0], n2=$_t1vmqi[1];
       if (disableArea)
         return 0.0;
       loadBoxes(n1, n2);
@@ -1389,7 +1389,7 @@ es6_module_define('nstructjs', ["../path-controller/util/nstructjs.js"], functio
 }, '/dev/fairmotion/src/path.ux/scripts/util/nstructjs.js');
 
 
-es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./util.js", "./vectormath.js", "./math.js", "../core/ui.js"], function _ScreenOverdraw_module(_es6_module) {
+es6_module_define('ScreenOverdraw', ["../core/ui.js", "./math.js", "./vectormath.js", "../core/ui_base.js", "./util.js"], function _ScreenOverdraw_module(_es6_module) {
   "use strict";
   const SVG_URL='http://www.w3.org/2000/svg';
   _es6_module.add_export('SVG_URL', SVG_URL);
@@ -1480,7 +1480,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./util.js", "./vecto
       this.shadow.appendChild(style);
       this.zindex_base = 1000;
     }
-     startNode(node, screen) {
+     startNode(node, screen, cssPosition="relative") {
       if (screen) {
           this.screen = screen;
           this.ctx = screen.ctx;
@@ -1489,7 +1489,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./util.js", "./vecto
           node.appendChild(this);
       }
       this.style["z-index"] = this.zindex_base;
-      this.style["position"] = "relative";
+      this.style["position"] = cssPosition;
       this.style["margin"] = this.style["padding"] = "0px";
       this.style["width"] = "100%";
       this.style["height"] = "100%";
@@ -1783,7 +1783,7 @@ es6_module_define('vectormath', ["../path-controller/util/vectormath.js"], funct
 }, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
 
 
-es6_module_define('dragbox', ["../core/ui.js", "../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/simple_events.js"], function _dragbox_module(_es6_module) {
+es6_module_define('dragbox', ["../core/ui_base.js", "../path-controller/util/simple_events.js", "../core/ui_theme.js", "../core/ui.js"], function _dragbox_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
@@ -1972,7 +1972,7 @@ es6_module_define('dragbox', ["../core/ui.js", "../core/ui_base.js", "../core/ui
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
 
 
-es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../path-controller/util/struct.js", "../core/ui.js", "../core/ui_base.js", "../core/ui_theme.js"], function _theme_editor_module(_es6_module) {
+es6_module_define('theme_editor', ["../core/ui_base.js", "../screen/ScreenArea.js", "../core/ui_theme.js", "../path-controller/util/struct.js", "../core/ui.js"], function _theme_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var nstructjs=es6_import(_es6_module, '../path-controller/util/struct.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
@@ -2269,7 +2269,7 @@ es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../path-controlle
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
 
 
-es6_module_define('ui_button', ["../path-controller/toolsys/toolsys.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../path-controller/controller/controller.js", "../core/ui_base.js", "../path-controller/util/events.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../path-controller/controller/controller.js", "../config/const.js", "../path-controller/toolsys/toolprop.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -2635,13 +2635,13 @@ es6_module_define('ui_button', ["../path-controller/toolsys/toolsys.js", "../pat
     }
      init() {
       let dpi=this.getDPI();
-      let width=~~(this.getDefault("width"));
-      let height=~~(this.getDefault("height"));
-      this.dom.style["width"] = width+"px";
-      this.dom.style["height"] = height+"px";
+      let width=~~(this.getDefault("width")*dpi);
+      let height=~~(this.getDefault("height")*dpi);
+      this.dom.width = width;
+      this.dom.height = height;
+      this.dom.style["width"] = (width/dpi)+"px";
+      this.dom.style["height"] = (height/dpi)+"px";
       this.dom.style["padding"] = this.dom.style["margin"] = "0px";
-      this.dom.width = Math.ceil(width*dpi);
-      this.dom.height = Math.ceil(parsepx(this.dom.style["height"])*dpi);
       this._name = undefined;
       this.updateName();
       this.bindEvents();
@@ -2726,16 +2726,18 @@ es6_module_define('ui_button', ["../path-controller/toolsys/toolsys.js", "../pat
       }
     }
      updateDefaultSize() {
+      const dpi=UIBase.getDPI();
       let height=~~(this.getDefault("height"))+this.getDefault("padding");
       let size=this.getDefault("DefaultText").size*1.33;
       if (height===undefined||size===undefined||isNaN(height)||isNaN(size)) {
           return ;
       }
-      height = ~~Math.max(height, size);
-      height = height+"px";
-      if (height!==this.style["height"]) {
-          this.style["height"] = height;
-          this.dom.style["height"] = height;
+      height = ~~(Math.max(height, size)*dpi);
+      let cssHeight=(height/dpi)+"px";
+      if (cssHeight!==this.style["height"]) {
+          this.style["height"] = cssHeight;
+          this.dom.style["height"] = cssHeight;
+          this.dom.height = height;
           this._repos_canvas();
           this._redraw();
       }
@@ -2919,7 +2921,7 @@ es6_module_define('ui_button', ["../path-controller/toolsys/toolsys.js", "../pat
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
 
 
-es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../path-controller/util/events.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
+es6_module_define('ui_colorpicker', ["../path-controller/util/events.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../core/ui.js", "../core/ui_base.js"], function _ui_colorpicker_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -3538,7 +3540,7 @@ es6_module_define('ui_colorpicker', ["../path-controller/util/util.js", "../path
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
 
 
-es6_module_define('ui_colorpicker2', ["../screen/area_wrangler.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/events.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../path-controller/util/colorutils.js", "../config/const.js", "../core/ui_base.js", "../core/ui.js"], function _ui_colorpicker2_module(_es6_module) {
+es6_module_define('ui_colorpicker2', ["../path-controller/util/colorutils.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/simple_events.js", "../config/const.js", "../path-controller/util/events.js", "../screen/area_wrangler.js", "../core/ui.js"], function _ui_colorpicker2_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -4738,7 +4740,7 @@ es6_module_define('ui_colorpicker2', ["../screen/area_wrangler.js", "../path-con
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker2.js');
 
 
-es6_module_define('ui_container', ["../core/ui.js", "../core/ui_base.js", "../path-controller/controller/controller.js"], function _ui_container_module(_es6_module) {
+es6_module_define('ui_container', ["../core/ui_base.js", "../path-controller/controller/controller.js", "../core/ui.js"], function _ui_container_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var DataAPI=es6_import_item(_es6_module, '../path-controller/controller/controller.js', 'DataAPI');
@@ -5061,10 +5063,12 @@ es6_module_define('ui_container', ["../core/ui.js", "../core/ui_base.js", "../pa
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_container.js');
 
 
-es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../path-controller/curve/curve1d_utils.js", "../path-controller/toolsys/toolprop.js", "../path-controller/curve/curve1d.js"], function _ui_curvewidget_module(_es6_module) {
+es6_module_define('ui_curvewidget', ["../path-controller/toolsys/toolprop.js", "../path-controller/curve/curve1d_utils.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../path-controller/curve/curve1d.js"], function _ui_curvewidget_module(_es6_module) {
   var Curve1DProperty=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'Curve1DProperty');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var saveUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'saveUIData');
+  var loadUIData=es6_import_item(_es6_module, '../core/ui_base.js', 'loadUIData');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
   var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -5080,25 +5084,39 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
       this._on_draw = this._on_draw.bind(this);
       this.drawTransform = [1.0, [0, 0]];
       this._value = new Curve1D();
-      this._value.on("draw", this._on_draw);
+      this.checkCurve1dEvents();
+      let in_onchange=false;
       this._value._on_change = (msg) =>        {
-        if (this.onchange) {
-            this.onchange(this._value);
+        if (in_onchange) {
+            return ;
         }
-        if (this.hasAttribute("datapath")) {
-            let path=this.getAttribute("datapath");
-            if (this._value!==undefined) {
-                let val=this.getPathValue(this.ctx, path);
-                if (val) {
-                    val.load(this._value);
+        in_onchange = true;
+        try {
+          if (this.onchange) {
+              this.onchange(this._value);
+          }
+          if (this.hasAttribute("datapath")) {
+              let path=this.getAttribute("datapath");
+              if (this._value!==undefined) {
+                  let val=this.getPathValue(this.ctx, path);
+                  if (val) {
+                      val.load(this._value);
+                      this.setPathValue(this.ctx, path, val);
+                  }
+                  else {
+                    val = this._value.copy();
                     this.setPathValue(this.ctx, path, val);
-                }
-                else {
-                  val = this._value.copy();
-                  this.setPathValue(this.ctx, path, val);
-                }
+                  }
+              }
+          }
+        }
+        catch (error) {
+            if (window.DEBUG&&window.DEBUG.datapath) {
+                console.error(error.stack);
+                console.error(error.message);
             }
         }
+        in_onchange = false;
       };
       this._gen_type = undefined;
       this._lastGen = undefined;
@@ -5108,6 +5126,57 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
       this.canvas.g = this.g;
       window.cw = this;
       this.shadow.appendChild(this.canvas);
+    }
+     checkCurve1dEvents() {
+      if (!this._value.subscribed("draw", this)) {
+          this._value.on("draw", this._on_draw, this, () =>            {
+            return !this.isConnected;
+          });
+      }
+      if (this.ctx&&this.hasAttribute("datapath")) {
+          let curve1d;
+          try {
+            curve1d = this.ctx.api.getValue(this.ctx, this.getAttribute("datapath"));
+          }
+          catch (error) {
+              if (window.DEBUG&&window.DEBUG.datapath) {
+                  console.error(error.stack);
+                  console.error(error.message);
+              }
+          }
+          if (!curve1d) {
+              this.disabled = true;
+              return ;
+          }
+          if (this.disabled) {
+              this.disabled = false;
+          }
+          if (!curve1d.subscribed(undefined, this)) {
+              curve1d.on("select", (bspline1) =>                {
+                let bspline2=this._value.getGenerator("BSplineCurve");
+                for (let i=0; i<bspline1.points.length; i++) {
+                    bspline2.points[i].flag = bspline1.points[i].flag;
+                }
+                bspline2.redraw();
+              });
+              curve1d.on("transform", (bspline1) =>                {
+                let bspline2=this._value.getGenerator("BSplineCurve");
+                for (let i=0; i<bspline1.points.length; i++) {
+                    bspline2.points[i].co.load(bspline1.points[i].co);
+                }
+                bspline2.update();
+                bspline2.updateKnots();
+                bspline2.redraw();
+              });
+              curve1d.on("update", () =>                {
+                console.log("datapath curve1d update!");
+                this._value.load(curve1d);
+                this.rebuild();
+              }, this, () =>                {
+                return !this.isConnected;
+              });
+          }
+      }
     }
     get  value() {
       return this._value;
@@ -5159,6 +5228,53 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
         this._redraw();
       }).iconsheet = 0;
       this.container = this.col();
+      let panel=this.panel("Range");
+      let clipCheck=panel.check(undefined, "Clip To Range");
+      clipCheck.onchange = (val) =>        {
+        this._value.clipToRange = val;
+        this._on_change();
+        this._redraw();
+      };
+      clipCheck.checked = this._value.clipToRange;
+      let xmin=panel.slider(undefined, "X Min", this._value.xRange[0], -10, 10, 0.1, false, undefined, (val) =>        {
+        this._value.xRange[0] = val.value;
+        this._on_change();
+        this._redraw();
+      });
+      let xmax=panel.slider(undefined, "X Max", this._value.xRange[1], -10, 10, 0.1, false, undefined, (val) =>        {
+        this._value.xRange[1] = val.value;
+        this._on_change();
+        this._redraw();
+      });
+      let ymin=panel.slider(undefined, "Y Min", this._value.yRange[0], -10, 10, 0.1, false, undefined, (val) =>        {
+        this._value.yRange[0] = val.value;
+        this._on_change();
+        this._redraw();
+      });
+      let ymax=panel.slider(undefined, "Y Max", this._value.yRange[1], -10, 10, 0.1, false, undefined, (val) =>        {
+        this._value.yRange[1] = val.value;
+        this._on_change();
+        this._redraw();
+      });
+      let last_update_key="";
+      this.container.update.after(() =>        {
+        const xRange=this._value.xRange;
+        const yRange=this._value.yRange;
+        let key=""+xRange[0]+":"+xRange[1]+":"+yRange[0]+":"+yRange[1]+":"+this._value.clipToRange;
+        clipCheck.checked = this._value.clipToRange;
+        if (key!==last_update_key) {
+            last_update_key = key;
+            xmin.setValue(xRange[0]);
+            xmax.setValue(xRange[1]);
+            ymin.setValue(yRange[0]);
+            ymax.setValue(yRange[1]);
+        }
+      });
+      xmin.displayUnit = xmin.baseUnit = "none";
+      ymin.displayUnit = ymin.baseUnit = "none";
+      xmax.displayUnit = xmax.baseUnit = "none";
+      ymax.displayUnit = ymax.baseUnit = "none";
+      panel.closed = false;
     }
      setCSS() {
       super.setCSS();
@@ -5210,6 +5326,8 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
       if (ctx===undefined||this.container===undefined) {
           return ;
       }
+      this.checkCurve1dEvents();
+      let uidata=saveUIData(this.container, "curve1d");
       this._gen_type = this.value.generatorType;
       let col=this.container;
       if (this._lastGen!==undefined) {
@@ -5220,8 +5338,21 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
       this.dropbox.setValue(this.value.generatorType);
       this.dropbox.onchange = onchange;
       col.clear();
+      let onSourceUpdate=() =>        {
+        if (!this.hasAttribute("datapath")) {
+            return ;
+        }
+        let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+        this._value.load(val);
+        this.rebuild();
+      };
+      let dpath=this.hasAttribute("datapath") ? this.getAttribute("datapath") : undefined;
       let gen=this.value.generators.active;
-      gen.makeGUI(col, this.canvas);
+      gen.makeGUI(col, this.canvas, this.drawTransform, dpath, onSourceUpdate);
+      loadUIData(this.container, uidata);
+      for (let i=0; i<4; i++) {
+          col.flushUpdate();
+      }
       this._lastGen = gen;
       this._redraw();
     }
@@ -5250,6 +5381,7 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
     }
      update() {
       super.update();
+      this.checkCurve1dEvents();
       this.updateDataPath();
       this.updateSize();
       this.updateGenUI();
@@ -5266,7 +5398,7 @@ es6_module_define('ui_curvewidget', ["../core/ui_base.js", "../core/ui.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_curvewidget.js');
 
 
-es6_module_define('ui_dialog', ["../screen/ScreenArea.js", "../path-controller/util/simple_events.js"], function _ui_dialog_module(_es6_module) {
+es6_module_define('ui_dialog', ["../path-controller/util/simple_events.js", "../screen/ScreenArea.js"], function _ui_dialog_module(_es6_module) {
   var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
   var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
   function makePopupArea(area_class, screen, args) {
@@ -5308,7 +5440,7 @@ es6_module_define('ui_dialog', ["../screen/ScreenArea.js", "../path-controller/u
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
 
 
-es6_module_define('ui_lasttool', ["../path-controller/toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/controller/controller.js"], function _ui_lasttool_module(_es6_module) {
+es6_module_define('ui_lasttool', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../path-controller/toolsys/toolsys.js", "../path-controller/controller/controller.js"], function _ui_lasttool_module(_es6_module) {
   var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -5462,7 +5594,7 @@ es6_module_define('ui_lasttool', ["../path-controller/toolsys/toolprop.js", "../
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_lasttool.js');
 
 
-es6_module_define('ui_listbox', ["./ui_table.js", "../path-controller/toolsys/toolsys.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../path-controller/util/util.js"], function _ui_listbox_module(_es6_module) {
+es6_module_define('ui_listbox', ["../path-controller/util/vectormath.js", "../path-controller/toolsys/toolsys.js", "../core/ui.js", "./ui_table.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/util/events.js"], function _ui_listbox_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -5652,7 +5784,7 @@ es6_module_define('ui_listbox', ["./ui_table.js", "../path-controller/toolsys/to
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
 
 
-es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "../config/const.js", "../path-controller/util/util.js", "../path-controller/controller.js", "../core/ui_base.js", "../path-controller/util/events.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../path-controller/util/events.js", "../path-controller/controller.js", "../config/const.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -7015,7 +7147,7 @@ es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/simple_
       }
       else 
         if (typeof item==="object") {
-          let $_t0slih=item, name=$_t0slih.name, callback=$_t0slih.callback, hotkey=$_t0slih.hotkey, icon=$_t0slih.icon, tooltip=$_t0slih.tooltip;
+          let $_t0lcno=item, name=$_t0lcno.name, callback=$_t0lcno.callback, hotkey=$_t0lcno.hotkey, icon=$_t0lcno.icon, tooltip=$_t0lcno.tooltip;
           let id2=item.id!==undefined ? item.id : id++;
           if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
               hotkey = hotkey.buildString();
@@ -7064,7 +7196,7 @@ es6_module_define('ui_menu', ["./ui_button.js", "../path-controller/util/simple_
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
 
 
-es6_module_define('ui_noteframe', ["../path-controller/util/util.js", "../core/ui_base.js", "../core/ui.js"], function _ui_noteframe_module(_es6_module) {
+es6_module_define('ui_noteframe', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/util.js"], function _ui_noteframe_module(_es6_module) {
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var ui=es6_import(_es6_module, '../core/ui.js');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
@@ -7344,7 +7476,7 @@ es6_module_define('ui_noteframe', ["../path-controller/util/util.js", "../core/u
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
 
 
-es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "./theme_editor.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/util/simple_events.js", "../core/ui_theme.js", "../path-controller/util/util.js", "../core/ui.js", "./ui_widgets.js", "../core/units.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../core/units.js", "./theme_editor.js", "../core/ui.js", "../core/ui_theme.js", "../path-controller/util/vectormath.js", "../config/const.js", "../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../core/ui_base.js", "./ui_widgets.js", "../path-controller/toolsys/toolprop.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -7436,7 +7568,6 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       this.range = [-1e+17, 1e+17];
       this.isInt = false;
       this.editAsBaseUnit = undefined;
-      this._redraw();
     }
     get  value() {
       return this._value;
@@ -7460,6 +7591,14 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
      style: "numslider", 
      parentStyle: "button", 
      havePickClipboard: true}
+    }
+     updateWidth(force=false) {
+      let dpi=UIBase.getDPI();
+      let wid=~~(this.getDefault("width")*dpi);
+      if (force||wid!==this._last_width) {
+          this._last_width = wid;
+          this.setCSS();
+      }
     }
      updateDataPath() {
       if (!this.hasAttribute("datapath")) {
@@ -7497,6 +7636,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
           this._redraw();
           this.setCSS();
       }
+      this.updateWidth();
       super.update();
       updateSliderFromDom(this);
     }
@@ -7522,6 +7662,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
           this.popModal();
       }
       this.mdown = false;
+      this._pressed = false;
       tbox.ctx = this.ctx;
       tbox._init();
       tbox.decimalPlaces = this.decimalPlaces;
@@ -7588,6 +7729,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         e.preventDefault();
         if (this.disabled) {
             this.mdown = false;
+            this._pressed = false;
             e.stopPropagation();
             return ;
         }
@@ -7595,6 +7737,8 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
             return ;
         }
         this.mdown = true;
+        this._pressed = true;
+        this._redraw();
         if (e.shiftKey) {
             e.preventDefault();
             e.stopPropagation();
@@ -7633,6 +7777,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       this.addEventListener("dblclick", (e) =>        {
         this.setMpos(e);
         this.mdown = false;
+        this._pressed = false;
         if (this.disabled||this.overArrow(e.x, e.y)) {
             e.preventDefault();
             e.stopPropagation();
@@ -7650,6 +7795,8 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       }, {capture: true});
       this.addEventListener("pointerup", (e) =>        {
         this.mdown = false;
+        this._pressed = false;
+        this._redraw();
       });
       this.addEventListener("pointerover", (e) =>        {
         this.setMpos(e);
@@ -7747,6 +7894,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
     }
      dragStart(e) {
       this.mdown = false;
+      this._pressed = true;
       if (this.disabled)
         return ;
       if (this.modalRunning) {
@@ -7829,6 +7977,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         }};
       this.pushModal(handlers);
       cancel = (restore_value) =>        {
+        this._pressed = false;
         if (restore_value) {
             this.value = startvalue;
             this.updateWidth();
@@ -7839,28 +7988,57 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         this.popModal();
       };
     }
-     setCSS() {
+    get  _pressed() {
+      return this.__pressed;
+    }
+    set  _pressed(v) {
+      if (!v) {
+          window.setTimeout(() =>            {
+            let redraw=this.__pressed;
+            this.__pressed = false;
+            if (redraw) {
+                this._redraw();
+            }
+          }, 100);
+      }
+      else {
+        this.__pressed = v;
+      }
+    }
+     setCSS(unused_setBG, fromRedraw) {
       let dpi=this.getDPI();
       let ts=this.getDefault("DefaultText").size*UIBase.getDPI();
-      let dd=this.isInt ? 5 : this.decimalPlaces+8;
       let label=this._genLabel();
       let tw=ui_base.measureText(this, label, {size: ts, 
      font: this.getDefault("DefaultText")}).width/dpi;
-      tw = Math.max(tw+this._getArrowSize()*0, this.getDefault("width"));
+      tw = Math.max(tw+this._getArrowSize()*1, this.getDefault("width"));
       tw+=ts;
       tw = ~~tw;
+      let w, h;
       if (this.vertical) {
-          this.style["width"] = this.dom.style["width"] = this.getDefault("height")+"px";
-          this.style["height"] = tw+"px";
-          this.dom.style["height"] = tw+"px";
+          w = this.getDefault("height");
+          h = tw;
       }
       else {
-        this.style["height"] = this.dom.style["height"] = this.getDefault("height")+"px";
-        this.style["width"] = tw+"px";
-        this.dom.style["width"] = tw+"px";
+        h = this.getDefault("height");
+        w = tw;
       }
-      this._repos_canvas();
-      this._redraw();
+      w = ~~(w*dpi);
+      h = ~~(h*dpi);
+      this.style["width"] = this.dom.style["width"] = (w/dpi)+"px";
+      this.style["height"] = this.dom.style["height"] = (h/dpi)+"px";
+      this.dom.width = w;
+      this.dom.height = h;
+      if (!fromRedraw) {
+          this._repos_canvas();
+          this._redraw();
+      }
+    }
+     _repos_canvas() {
+
+    }
+     updateDefaultSize() {
+
     }
      updateName(force) {
       if (!this.hasAttribute("name")) {
@@ -7893,26 +8071,61 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         if (this._name) {
             text = this._name+": "+text;
         }
+        else 
+          if (this.hasAttribute("name")) {
+            text = ""+this.getAttribute("name")+": "+text;
+        }
       }
       return text;
     }
-     _redraw() {
+     _redraw(fromCSS) {
+      if (!fromCSS) {
+          this.setCSS(undefined, true);
+      }
       let g=this.g;
       let canvas=this.dom;
       let dpi=this.getDPI();
       let disabled=this.disabled;
-      let r=this.getDefault("border-radius");
+      let over=!this._modaldata&&this.overArrow(this.mpos[0], this.mpos[1]);
+      let subkey=undefined;
+      let pressed=this._pressed&&!over;
+      if (this._highlight&&pressed) {
+          subkey = "highlight-pressed";
+      }
+      else 
+        if (this._highlight) {
+          subkey = "highlight";
+      }
+      else 
+        if (pressed) {
+          subkey = "pressed";
+      }
+      let getDefault=(key, backupval, subkey2) =>        {
+        if (backupval===undefined) {
+            backupval = undefined;
+        }
+        if (subkey2===undefined) {
+            subkey2 = subkey;
+        }
+        if (subkey2==="highlight-pressed"&&!this.hasClassSubDefault(subkey2, key, false)) {
+            return this.getSubDefault("pressed", key, undefined, backupval);
+        }
+        if (!subkey2) {
+            return this.getDefault(key, undefined, backupval);
+        }
+        else {
+          return this.getSubDefault(subkey2, key, undefined, backupval);
+        }
+      };
+      let r=getDefault("border-radius");
       if (this.isInt) {
           r*=0.25;
       }
-      let boxbg=this.getDefault(this._highlight ? "BoxHighlight" : "background-color");
-      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "fill", disabled ? this.getDefault("DisabledBG") : boxbg);
-      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "stroke", disabled ? this.getDefault("DisabledBG") : this.getDefault("border-color"));
-      r*=dpi;
-      let pad=this.getDefault("padding");
-      let ts=this.getDefault("DefaultText").size;
+      let boxbg=getDefault("background-color");
+      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "fill", disabled ? getDefault("DisabledBG") : boxbg);
+      ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, r, "stroke", disabled ? getDefault("DisabledBG") : getDefault("border-color"));
+      let ts=getDefault("DefaultText").size;
       let text=this._genLabel();
-      let tw=ui_base.measureText(this, text, this.dom, this.g).width;
       let cx=ts+this._getArrowSize();
       let cy=this.dom.height/2;
       this.dom.font = undefined;
@@ -7922,30 +8135,70 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
           g.rotate(th);
           ui_base.drawText(this, cx, -ts*0.5, text, {canvas: this.dom, 
        g: this.g, 
-       size: ts});
+       size: ts, 
+       font: getDefault("DefaultText")});
           g.restore();
       }
       else {
         ui_base.drawText(this, cx, cy+ts/2, text, {canvas: this.dom, 
       g: this.g, 
-      size: ts});
+      size: ts, 
+      font: getDefault("DefaultText")});
       }
-      let arrowcolor=this.getDefault("arrow-color")||"33%";
-      arrowcolor = arrowcolor.trim();
-      if (arrowcolor.endsWith("%")) {
-          arrowcolor = arrowcolor.slice(0, arrowcolor.length-1).trim();
-          let perc=parseFloat(arrowcolor)/100.0;
-          let c=css2color(this.getDefault("arrow-color"));
-          let f=1.0-(c[0]+c[1]+c[2])*perc;
-          f = ~~(f*255);
-          arrowcolor = `rgba(${f},${f},${f},0.95)`;
+      let parseArrowColor=(arrowcolor) =>        {
+        arrowcolor = arrowcolor.trim();
+        if (arrowcolor.endsWith("%")) {
+            arrowcolor = arrowcolor.slice(0, arrowcolor.length-1).trim();
+            let perc=parseFloat(arrowcolor)/100.0;
+            let c=css2color(this.getDefault("background-color"));
+            let f=(c[0]+c[1]+c[2])*perc;
+            f = ~~(f*255);
+            arrowcolor = `rgba(${f},${f},${f},0.95)`;
+        }
+        return arrowcolor;
+      };
+      let arrowcolor_base;
+      let arrowcolor;
+      arrowcolor_base = this.getDefault("arrow-color");
+      arrowcolor_base = parseArrowColor(arrowcolor_base);
+      if (this._pressed&&this._highlight) {
+          arrowcolor = this.getSubDefault("highlight-pressed", "arrow-color", null, undefined, false);
+          if (!arrowcolor) {
+              arrowcolor = this.getSubDefault("pressed", "arrow-color");
+          }
+          if (!arrowcolor) {
+              arrowcolor = "33%";
+          }
       }
-      arrowcolor = css2color(arrowcolor);
-      let higharrow=css2color(this.getDefault("BoxHighlight"));
-      higharrow.interp(arrowcolor, 0.5);
-      arrowcolor = color2css(arrowcolor);
-      higharrow = color2css(higharrow);
-      let over=this._highlight ? this.overArrow(this.mpos[0], this.mpos[1]) : 0;
+      else 
+        if (this._pressed) {
+          arrowcolor = this.getSubDefault("pressed", "arrow-color", "arrow-color", "33%");
+      }
+      else 
+        if (this._highlight) {
+          if (!this.hasClassSubDefault("highlight", "arrow-color", false)) {
+              if (this.hasClassSubDefault("highlight", "background-color", false)) {
+                  arrowcolor = this.getSubDefault("highlight", "background-color");
+              }
+              else {
+                arrowcolor = this.getDefault("BoxHighlight");
+              }
+              arrowcolor = css2color(arrowcolor);
+              let base=this.getSubDefault("pressed", "arrow-color", undefined, "33%");
+              base = css2color(base);
+              arrowcolor.interp(base, 0.25);
+              arrowcolor = color2css(arrowcolor);
+          }
+          else {
+            arrowcolor = this.getSubDefault("highlight", "arrow-color");
+          }
+      }
+      else {
+        arrowcolor = getDefault("arrow-color", "33%");
+      }
+      if (this._pressed) {
+      }
+      arrowcolor = parseArrowColor(arrowcolor);
       let d=7, w=canvas.width, h=canvas.height;
       let sz=this._getArrowSize();
       if (this.vertical) {
@@ -7953,13 +8206,13 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
           g.moveTo(w*0.5, d);
           g.lineTo(w*0.5+sz*0.5, d+sz);
           g.lineTo(w*0.5-sz*0.5, d+sz);
-          g.fillStyle = over<0 ? higharrow : arrowcolor;
+          g.fillStyle = over<0 ? arrowcolor : arrowcolor_base;
           g.fill();
           g.beginPath();
           g.moveTo(w*0.5, h-d);
           g.lineTo(w*0.5+sz*0.5, h-sz-d);
           g.lineTo(w*0.5-sz*0.5, h-sz-d);
-          g.fillStyle = over>0 ? higharrow : arrowcolor;
+          g.fillStyle = over>0 ? arrowcolor : arrowcolor_base;
           g.fill();
       }
       else {
@@ -7967,13 +8220,13 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         g.moveTo(d, h*0.5);
         g.lineTo(d+sz, h*0.5+sz*0.5);
         g.lineTo(d+sz, h*0.5-sz*0.5);
-        g.fillStyle = over<0 ? higharrow : arrowcolor;
+        g.fillStyle = over<0 ? arrowcolor : arrowcolor_base;
         g.fill();
         g.beginPath();
         g.moveTo(w-d, h*0.5);
         g.lineTo(w-sz-d, h*0.5+sz*0.5);
         g.lineTo(w-sz-d, h*0.5-sz*0.5);
-        g.fillStyle = over>0 ? higharrow : arrowcolor;
+        g.fillStyle = over>0 ? arrowcolor : arrowcolor_base;
         g.fill();
       }
       g.fill();
@@ -7994,8 +8247,6 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       this.editAsBaseUnit = undefined;
       this.canvas = document.createElement("canvas");
       this.g = this.canvas.getContext("2d");
-      this.canvas.style["width"] = this.getDefault("width")+"px";
-      this.canvas.style["height"] = this.getDefault("height")+"px";
       this.canvas.style["pointer-events"] = "none";
       this.highlight = false;
       this.isInt = false;
@@ -8276,11 +8527,12 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       return [x, boxw*0.5, boxw*0.5];
     }
      setCSS() {
-      this.canvas.style["width"] = "min-contents";
-      this.canvas.style["min-width"] = this.getDefault("width")+"px";
-      this.canvas.style["height"] = this.getDefault("height")+"px";
-      this.canvas.height = this.getDefault("height")*UIBase.getDPI();
+      const dpi=UIBase.getDPI();
       this.style["min-width"] = this.getDefault("width")+"px";
+      this.style["width"] = this.getDefault("width")+"px";
+      this.canvas.style["width"] = ""+(this.canvas.width/dpi)+"px";
+      this.canvas.style["height"] = ""+(this.canvas.height/dpi)+"px`";
+      this.canvas.height = this.getDefault("height")*UIBase.getDPI();
       this._redraw();
     }
      updateSize() {
@@ -8292,8 +8544,8 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
           return ;
       }
       let dpi=UIBase.getDPI();
-      let w=~~(rect.width*dpi), h=~~(rect.height*dpi);
       let canvas=this.canvas;
+      let w=~~(rect.width*dpi), h=~~(rect.height*dpi);
       if (w!==canvas.width||h!==canvas.height) {
           this.canvas.width = w;
           this.canvas.height = h;
@@ -8341,7 +8593,21 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       this._numslider = undefined;
       this.textbox.overrideDefault("width", this.getDefault("TextBoxWidth"));
       this.textbox.setAttribute("class", "numslider_simple_textbox");
+      this.textbox.startSelected = true;
       this._last_value = undefined;
+    }
+    get  addLabel() {
+      if (this.hasAttribute("add-label")) {
+          let val=(""+this.getAttribute("add-label")).toLowerCase();
+          return val==="true"||val==="yes";
+      }
+      return this.getDefault("addLabel");
+    }
+    set  addLabel(v) {
+      this.setAttribute("add-label", v ? "true" : "false");
+      if (this.addLabel&&!this.l) {
+          this.doOnce(this.rebuild);
+      }
     }
     get  labelOnTop() {
       let ret=this._labelOnTop;
@@ -8478,16 +8744,18 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
         this.container = this;
       }
       if (this.hasAttribute("name")) {
-          this._name = this.hasAttribute("name");
+          this._name = this.getAttribute("name");
       }
       else {
         this._name = "slider";
       }
-      this.l = this.container.label(this._name);
-      this.l.overrideClass("numslider_textbox");
-      this.l.font = "TitleText";
-      this.l.style["display"] = "float";
-      this.l.style["position"] = "relative";
+      if (this.addLabel) {
+          this.l = this.container.label(this._name);
+          this.l.overrideClass("numslider_textbox");
+          this.l.font = "TitleText";
+          this.l.style["display"] = "float";
+          this.l.style["position"] = "relative";
+      }
       let strip=this.container.row();
       strip.add(this.numslider);
       let path=this.hasAttribute("datapath") ? this.getAttribute("datapath") : undefined;
@@ -8585,7 +8853,9 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       }
       if (name!==this._name) {
           this._name = name;
-          this.l.text = name;
+          if (this.l) {
+              this.l.text = name;
+          }
       }
     }
      updateLabelOnTop() {
@@ -8666,6 +8936,16 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
       return {tagname: "numslider-textbox-x", 
      style: "numslider_textbox"}
     }
+     update() {
+      super.update();
+      if (this.hasAttribute("name")) {
+          let name=this.getAttribute("name");
+          if (name!==this.numslider.name) {
+              this.numslider.setAttribute("name", name);
+              this.numslider._redraw();
+          }
+      }
+    }
      _redraw() {
       this.numslider._redraw();
     }
@@ -8677,7 +8957,7 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../path-controller/to
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
 
 
-es6_module_define('ui_panel', ["../path-controller/util/util.js", "./ui_widgets.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/html5_fileapi.js", "../path-controller/util/vectormath.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["./ui_widgets.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/vectormath.js", "../path-controller/util/html5_fileapi.js"], function _ui_panel_module(_es6_module) {
   var CSSFont=es6_import_item(_es6_module, '../core/ui_base.js', 'CSSFont');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -9012,7 +9292,7 @@ es6_module_define('ui_panel', ["../path-controller/util/util.js", "./ui_widgets.
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_panel.js');
 
 
-es6_module_define('ui_progress', ["../path-controller/util/util.js", "../path-controller/util/simple_events.js", "../core/ui_base.js"], function _ui_progress_module(_es6_module) {
+es6_module_define('ui_progress', ["../core/ui_base.js", "../path-controller/util/util.js", "../path-controller/util/simple_events.js"], function _ui_progress_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var keymap=es6_import_item(_es6_module, '../path-controller/util/simple_events.js', 'keymap');
@@ -9179,7 +9459,7 @@ es6_module_define('ui_progress', ["../path-controller/util/util.js", "../path-co
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_progress.js');
 
 
-es6_module_define('ui_richedit', ["../path-controller/util/util.js", "../core/ui.js", "../core/ui_base.js", "./ui_textbox.js", "../path-controller/util/simple_events.js"], function _ui_richedit_module(_es6_module) {
+es6_module_define('ui_richedit', ["../path-controller/util/simple_events.js", "../core/ui_base.js", "../path-controller/util/util.js", "./ui_textbox.js", "../core/ui.js"], function _ui_richedit_module(_es6_module) {
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -9462,7 +9742,7 @@ es6_module_define('ui_richedit', ["../path-controller/util/util.js", "../core/ui
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
 
 
-es6_module_define('ui_table', ["../path-controller/util/util.js", "./ui_curvewidget.js", "../core/ui.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "./ui_widgets.js", "../path-controller/util/vectormath.js"], function _ui_table_module(_es6_module) {
+es6_module_define('ui_table', ["./ui_curvewidget.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../path-controller/toolsys/toolprop.js", "../core/ui.js", "../core/ui_base.js", "./ui_widgets.js"], function _ui_table_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -9639,7 +9919,7 @@ es6_module_define('ui_table', ["../path-controller/util/util.js", "./ui_curvewid
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
 
 
-es6_module_define('ui_tabs', ["../core/ui.js", "../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../path-controller/util/events.js"], function _ui_tabs_module(_es6_module) {
+es6_module_define('ui_tabs', ["../core/ui_base.js", "../path-controller/util/vectormath.js", "../path-controller/util/util.js", "../core/ui.js", "../path-controller/util/events.js"], function _ui_tabs_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -9703,7 +9983,6 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../core/ui_base.js", "../path-co
         this.parentWidget.on_pointerup(e);
       });
       this.addEventListener("keydown", (e) =>        {
-        console.log(e.keyCode, this._id);
         switch (e.keyCode) {
           case keymap.Enter:
           case keymap.Space:
@@ -10959,7 +11238,7 @@ es6_module_define('ui_tabs', ["../core/ui.js", "../core/ui_base.js", "../path-co
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_tabs.js');
 
 
-es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../path-controller/util/util.js", "../core/units.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../path-controller/util/events.js", "../config/const.js"], function _ui_textbox_module(_es6_module) {
+es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../config/const.js", "../core/units.js", "../path-controller/util/events.js", "../path-controller/util/util.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js"], function _ui_textbox_module(_es6_module) {
   "use strict";
   var units=es6_import(_es6_module, '../core/units.js');
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
@@ -11038,6 +11317,13 @@ es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../pat
         }
       });
     }
+    get  startSelected() {
+      let b=(""+this.getAttribute("start-selected")).toLowerCase();
+      return b==="yes"||b==="true"||b==="on"||b==="1";
+    }
+    set  startSelected(v) {
+      this.setAttribute("start-selected", v ? "true" : "false");
+    }
     get  realtime() {
       let ret=this.getAttribute("realtime");
       if (!ret) {
@@ -11061,6 +11347,9 @@ es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../pat
       this.setAttribute('modal', val ? 'true' : 'false');
     }
      _startModal() {
+      if (this.startSelected) {
+          this.select();
+      }
       console.warn("textbox modal");
       if (this._modal) {
           this._endModal(true);
@@ -11150,11 +11439,20 @@ es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../pat
       if (this.getDefault("background-color")) {
           this.dom.style["background-color"] = this.getDefault("background-color");
       }
+      this.style["border-radius"] = this.getDefault("border-radius")+"px";
+      this.dom.style["border-radius"] = this.getDefault("border-radius")+"px";
+      let bwid=this.getDefault("border-width");
+      let bcolor=this.getDefault("border-color");
+      let bstyle=this.getDefault("border-style");
+      let border=`${bwid}px ${bstyle} ${bcolor}`;
+      this.style["border"] = border;
+      this.style["border-color"] = bcolor;
       if (this._focus) {
           this.dom.style["border"] = `2px dashed ${this.getDefault('focus-border-color')}`;
       }
       else {
-        this.dom.style["border"] = "none";
+        this.dom.style["border"] = border;
+        this.dom.style["border-color"] = bcolor;
       }
       if (this.style["font"]) {
           this.dom.style["font"] = this.style["font"];
@@ -11366,7 +11664,7 @@ es6_module_define('ui_textbox', ["./ui_button.js", "../core/ui_base.js", "../pat
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_textbox.js');
 
 
-es6_module_define('ui_treeview', ["../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/math.js", "../path-controller/util/vectormath.js", "../core/ui.js", "../util/ScreenOverdraw.js", "../path-controller/util/simple_events.js"], function _ui_treeview_module(_es6_module) {
+es6_module_define('ui_treeview', ["../util/ScreenOverdraw.js", "../core/ui_base.js", "../core/ui_theme.js", "../path-controller/util/simple_events.js", "../core/ui.js", "../path-controller/util/math.js", "../path-controller/util/vectormath.js"], function _ui_treeview_module(_es6_module) {
   es6_import(_es6_module, '../util/ScreenOverdraw.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');

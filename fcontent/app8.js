@@ -1,5 +1,5 @@
 
-es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_table.js", "../core/struct.js"], function _spline_multires_module(_es6_module) {
+es6_module_define('spline_multires', ["./spline_base.js", "../core/struct.js", "../util/binomial_table.js"], function _spline_multires_module(_es6_module) {
   "use strict";
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -51,7 +51,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
   var _format=["TX", "TY", "TVX", "TVY", "TSEG", "TS", "TT", "TA", "TFLAG", "TID", "TLEVEL", "TSUPPORT", "TBASIS", "TDEGREE", "TNEXT"];
   _format = _es6_module.add_export('_format', _format);
   var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
-  var $p_gSLX_recalc_offset;
+  var $p_g4na_recalc_offset;
   class BoundPoint  {
     
      constructor() {
@@ -79,9 +79,9 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       var co=seg._evalwrap.evaluate(this.s);
       this.offset[0] = this[0]-co[0];
       this.offset[1] = this[1]-co[1];
-      $p_gSLX_recalc_offset[0] = this[0];
-      $p_gSLX_recalc_offset[1] = this[1];
-      var sta=seg._evalwrap.global_to_local($p_gSLX_recalc_offset, undefined, this.s);
+      $p_g4na_recalc_offset[0] = this[0];
+      $p_g4na_recalc_offset[1] = this[1];
+      var sta=seg._evalwrap.global_to_local($p_g4na_recalc_offset, undefined, this.s);
       this.t = sta[1];
       this.a = sta[2];
     }
@@ -172,7 +172,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       return this.data[this.i+TNEXT];
     }
   }
-  var $p_gSLX_recalc_offset=new Vector3([0, 0, 0]);
+  var $p_g4na_recalc_offset=new Vector3([0, 0, 0]);
   _ESClass.register(BoundPoint);
   _es6_module.add_class(BoundPoint);
   BoundPoint = _es6_module.add_export('BoundPoint', BoundPoint);
@@ -272,8 +272,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       t = 0.0;
     return t;
   }
-  var $sum_m2F8_evaluate;
-  var $ks_UJLm_evaluate;
+  var $sum_joRX_evaluate;
+  var $ks_0OcR_evaluate;
   class MultiResEffector extends CurveEffect {
      constructor(owner) {
       super();
@@ -287,18 +287,18 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
       n.normalize();
       n.mulScalar(10.0);
       var co=this.prior.evaluate(s);
-      $sum_m2F8_evaluate.zero();
+      $sum_joRX_evaluate.zero();
       var i=0;
       for (var p in this.mr.points(0)) {
-          $ks_UJLm_evaluate[i] = p.s;
+          $ks_0OcR_evaluate[i] = p.s;
           i++;
       }
       for (var p in this.mr.points(0)) {
           var w=crappybasis(s, p.s, p.support, p.degree);
           if (isNaN(w))
             continue;
-          $sum_m2F8_evaluate[0]+=p.offset[0]*w;
-          $sum_m2F8_evaluate[1]+=p.offset[1]*w;
+          $sum_joRX_evaluate[0]+=p.offset[0]*w;
+          $sum_joRX_evaluate[1]+=p.offset[1]*w;
       }
       for (var i=0; i<2; i++) {
           var next=i ? this.next : this.prev;
@@ -319,17 +319,17 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
                     s2 = -next.rescale(this, 1.0-s);
                   }
                   var w=crappybasis(s2, ps, support, p.degree);
-                  $sum_m2F8_evaluate[0]+=p.offset[0]*w;
-                  $sum_m2F8_evaluate[1]+=p.offset[1]*w;
+                  $sum_joRX_evaluate[0]+=p.offset[0]*w;
+                  $sum_joRX_evaluate[1]+=p.offset[1]*w;
               }
           }
       }
-      co.add($sum_m2F8_evaluate);
+      co.add($sum_joRX_evaluate);
       return co;
     }
   }
-  var $sum_m2F8_evaluate=new Vector3();
-  var $ks_UJLm_evaluate=new Array(2000);
+  var $sum_joRX_evaluate=new Vector3();
+  var $ks_0OcR_evaluate=new Array(2000);
   _ESClass.register(MultiResEffector);
   _es6_module.add_class(MultiResEffector);
   MultiResEffector = _es6_module.add_export('MultiResEffector', MultiResEffector);
@@ -351,8 +351,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     active : double | obj.active == undefined ? -1 : obj.active;
   }
 `;
-  var $_co_qE7j_add_point;
-  var $sta_Vx4W_recalc_worldcos_level;
+  var $_co_qsIn_add_point;
+  var $sta_2RD__recalc_worldcos_level;
   class MultiResLayer extends CustomDataLayer {
      constructor(size=16) {
       super(this);
@@ -441,7 +441,7 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
      points(level) {
       return this.points_iter_cache.next().cache_init(this, level);
     }
-     add_point(level, co=$_co_qE7j_add_point) {
+     add_point(level, co=$_co_qsIn_add_point) {
       this._freecur+=TTOT-(this._freecur%TTOT);
       var i=this._freecur;
       if (this._freecur+TTOT>=this._size) {
@@ -496,11 +496,11 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     }
      recalc_worldcos_level(seg, level) {
       for (var p in this.points(level)) {
-          $sta_Vx4W_recalc_worldcos_level[0] = p.s;
-          $sta_Vx4W_recalc_worldcos_level[1] = p.t;
-          $sta_Vx4W_recalc_worldcos_level[2] = p.a;
-          var co=seg._evalwrap.local_to_global($sta_Vx4W_recalc_worldcos_level);
-          var co2=seg._evalwrap.evaluate($sta_Vx4W_recalc_worldcos_level[0]);
+          $sta_2RD__recalc_worldcos_level[0] = p.s;
+          $sta_2RD__recalc_worldcos_level[1] = p.t;
+          $sta_2RD__recalc_worldcos_level[2] = p.a;
+          var co=seg._evalwrap.local_to_global($sta_2RD__recalc_worldcos_level);
+          var co2=seg._evalwrap.evaluate($sta_2RD__recalc_worldcos_level[0]);
           p[0] = co[0];
           p[1] = co[1];
           p.offset[0] = co[0]-co2[0];
@@ -532,8 +532,8 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
      sharedClass: MultiResGlobal}
     }
   }
-  var $_co_qE7j_add_point=[0, 0];
-  var $sta_Vx4W_recalc_worldcos_level=[0, 0, 0];
+  var $_co_qsIn_add_point=[0, 0];
+  var $sta_2RD__recalc_worldcos_level=[0, 0, 0];
   _ESClass.register(MultiResLayer);
   _es6_module.add_class(MultiResLayer);
   MultiResLayer = _es6_module.add_export('MultiResLayer', MultiResLayer);
@@ -599,14 +599,14 @@ es6_module_define('spline_multires', ["./spline_base.js", "../util/binomial_tabl
     return index+eid*mul;
   }
   compose_id = _es6_module.add_export('compose_id', compose_id);
-  var $ret_ofBl_decompose_id=[0, 0];
+  var $ret_ZFB2_decompose_id=[0, 0];
   function decompose_id(id) {
     var mul=(1<<24);
     var eid=Math.floor(id/mul);
     id-=eid*mul;
-    $ret_ofBl_decompose_id[0] = eid;
-    $ret_ofBl_decompose_id[1] = id;
-    return $ret_ofBl_decompose_id;
+    $ret_ZFB2_decompose_id[0] = eid;
+    $ret_ZFB2_decompose_id[1] = id;
+    return $ret_ZFB2_decompose_id;
   }
   decompose_id = _es6_module.add_export('decompose_id', decompose_id);
   var _test_id_start=0;
@@ -835,7 +835,7 @@ SplineStrokeGroup {
           stroke = _color1.load(stroke2);
         }
         let mask_to_face2=seg.mat.flag&MaterialFlags.MASK_TO_FACE;
-        if (mask_to_face!==undefined&&mask_to_face2!==mask_to_face) {
+        if (mask_to_face!==undefined&&!!mask_to_face2!==!!mask_to_face) {
             return 3;
         }
         else {
@@ -1100,43 +1100,57 @@ SplineStrokeGroup {
 }, '/dev/fairmotion/src/curve/spline_strokegroup.js');
 
 
-es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], function _solver_new_module(_es6_module) {
+es6_module_define('solver_new', ["./spline_base.js", "./spline_math.js"], function _solver_new_module(_es6_module) {
   "USE_PREPROCESSOR";
   var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
   var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
-  var acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
-  var $tan_83Kt_solve=new Vector3();
+  let acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
+  const TAN_C=(seg1, seg2, s1, s2, order, doflip) =>    {
+    let ta=seg1.derivative(s1, order), tb=seg2.derivative(s2, order);
+    if (doflip<0.0)
+      tb.negate();
+    ta.normalize();
+    tb.normalize();
+    let _d=Math.min(Math.max(ta.dot(tb), -1.0), 1.0);
+    return acos(_d);
+  }
+  const HARD_TAN_C=(seg1, s1, goal, order) =>    {
+    let ta=seg1.derivative(s1, order).normalize();
+    let _d=Math.min(Math.max(ta.dot(goal), -1.0), 1.0);
+    return acos(_d);
+  }
+  let _solver_static_tan=new Vector3();
   function solve(spline, order, steps, gk, do_inc, edge_segs) {
-    var pairs=[];
-    var CBREAK=SplineFlags.BREAK_CURVATURES;
-    var TBREAK=SplineFlags.BREAK_TANGENTS;
+    let pairs=[];
+    let CBREAK=SplineFlags.BREAK_CURVATURES;
+    let TBREAK=SplineFlags.BREAK_TANGENTS;
     function reset_edge_segs() {
-      for (var j=0; do_inc&&j<edge_segs.length; j++) {
-          var seg=edge_segs[j];
-          var ks=seg.ks;
-          for (var k=0; k<ks.length; k++) {
+      for (let j=0; do_inc&&j<edge_segs.length; j++) {
+          let seg=edge_segs[j];
+          let ks=seg.ks;
+          for (let k=0; k<ks.length; k++) {
               ks[k] = seg._last_ks[k];
           }
       }
     }
-    var eps=0.0001;
-    for (var i=0; i<spline.handles.length; i++) {
-        var h=spline.handles[i], seg1=h.owning_segment, v=h.owning_vertex;
+    let eps=0.0001;
+    for (let i=0; i<spline.handles.length; i++) {
+        let h=spline.handles[i], seg1=h.owning_segment, v=h.owning_vertex;
         if (do_inc&&!((v.flag)&SplineFlags.UPDATE))
           continue;
         if (!(h.flag&SplineFlags.USE_HANDLES)&&v.segments.length<=2)
           continue;
-        if (h.hpair!=undefined&&(h.flag&SplineFlags.AUTO_PAIRED_HANDLE)) {
-            var seg2=h.hpair.owning_segment;
-            var s1=v===seg1.v1 ? eps : 1.0-eps, s2=v==seg2.v1 ? eps : 1.0-eps;
-            var thresh=5;
+        if (h.hpair!==undefined&&(h.flag&SplineFlags.AUTO_PAIRED_HANDLE)) {
+            let seg2=h.hpair.owning_segment;
+            let s1=v===seg1.v1 ? eps : 1.0-eps, s2=v===seg2.v1 ? eps : 1.0-eps;
+            let thresh=5;
             if (seg1.v1.vectorDistance(seg1.v2)<thresh||seg2.v1.vectorDistance(seg2.v2)<thresh)
               continue;
-            var d1=seg1.v1.vectorDistance(seg1.v2);
-            var d2=seg2.v1.vectorDistance(seg2.v2);
-            var ratio=Math.min(d1/d2, d2/d1);
+            let d1=seg1.v1.vectorDistance(seg1.v2);
+            let d2=seg2.v1.vectorDistance(seg2.v2);
+            let ratio=Math.min(d1/d2, d2/d1);
             if (isNaN(ratio))
               ratio = 0.0;
             pairs.push(v);
@@ -1144,12 +1158,12 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
             pairs.push(seg2);
             pairs.push(s1);
             pairs.push(s2);
-            pairs.push((s1<0.5)==(s2<0.5) ? -1 : 1);
+            pairs.push((s1<0.5)===(s2<0.5) ? -1 : 1);
             pairs.push(ratio);
         }
         else 
           if (!(h.flag&SplineFlags.AUTO_PAIRED_HANDLE)) {
-            var s1=v==seg1.v1 ? 0 : 1;
+            let s1=v===seg1.v1 ? 0 : 1;
             pairs.push(v);
             pairs.push(seg1);
             pairs.push(undefined);
@@ -1159,25 +1173,25 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
             pairs.push(1);
         }
     }
-    var PSLEN=7;
-    for (var i=0; i<spline.verts.length; i++) {
-        var v=spline.verts[i];
+    let PSLEN=7;
+    for (let i=0; i<spline.verts.length; i++) {
+        let v=spline.verts[i];
         if (do_inc&&!((v.flag)&SplineFlags.UPDATE))
           continue;
-        if (v.segments.length!=2)
+        if (v.segments.length!==2)
           continue;
         if (v.flag&TBREAK)
           continue;
-        var seg1=v.segments[0], seg2=v.segments[1];
-        var s1=v===seg1.v1 ? 0 : 1, s2=v==seg2.v1 ? 0 : 1;
+        let seg1=v.segments[0], seg2=v.segments[1];
+        let s1=v===seg1.v1 ? 0 : 1, s2=v===seg2.v1 ? 0 : 1;
         seg1.evaluate(0.5, order);
         seg2.evaluate(0.5, order);
-        var thresh=5;
+        let thresh=5;
         if (seg1.v1.vectorDistance(seg1.v2)<thresh||seg2.v1.vectorDistance(seg2.v2)<thresh)
           continue;
-        var d1=seg1.v1.vectorDistance(seg1.v2);
-        var d2=seg2.v1.vectorDistance(seg2.v2);
-        var ratio=Math.min(d1/d2, d2/d1);
+        let d1=seg1.v1.vectorDistance(seg1.v2);
+        let d2=seg2.v1.vectorDistance(seg2.v2);
+        let ratio=Math.min(d1/d2, d2/d1);
         if (isNaN(ratio))
           ratio = 0.0;
         pairs.push(v);
@@ -1185,34 +1199,35 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
         pairs.push(seg2);
         pairs.push(s1);
         pairs.push(s2);
-        pairs.push((s1==0.0)==(s2==0.0) ? -1 : 1);
+        pairs.push((s1===0.0)===(s2===0.0) ? -1 : 1);
         pairs.push(ratio);
     }
-    var glist=[];
-    for (var i=0; i<pairs.length/PSLEN; i++) {
+    let glist=[];
+    for (let i=0; i<pairs.length/PSLEN; i++) {
         glist.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
-    var klist1=[];
-    for (var i=0; i<pairs.length/PSLEN; i++) {
+    let klist1=[];
+    for (let i=0; i<pairs.length/PSLEN; i++) {
         klist1.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
-    var klist2=[];
-    for (var i=0; i<pairs.length/PSLEN; i++) {
+    let klist2=[];
+    for (let i=0; i<pairs.length/PSLEN; i++) {
         klist2.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
-    var gs=new Array(order);
-    var df=3e-05;
-    var err=0.0;
-    if (pairs.length==0)
+    let gs=new Array(order);
+    let df=3e-05;
+    let err=0.0;
+    if (pairs.length===0)
       return ;
-    for (var si=0; si<steps; si++) {
-        var i=0;
-        var plen=pairs.length;
+    for (let si=0; si<steps; si++) {
+        let i=0;
+        let plen=pairs.length;
         if (isNaN(err)||isNaN(plen))
           break;
         if (si>0&&err/plen<0.1)
           break;
-        var di=0;
+        const tan=_solver_static_tan;
+        let di=0;
         if (si%2) {
             di = -PSLEN*2;
             i = plen-PSLEN;
@@ -1220,100 +1235,82 @@ es6_module_define('solver_new', ["./spline_math.js", "./spline_base.js"], functi
         reset_edge_segs();
         err = 0.0;
         while (i<plen&&i>=0) {
-          var cnum=Math.floor(i/PSLEN);
-          var v=pairs[i++], seg1=pairs[i++], seg2=pairs[i++];
-          var s1=pairs[i++], s2=pairs[i++], doflip=pairs[i++];
-          var ratio=pairs[i++];
+          let cnum=Math.floor(i/PSLEN);
+          let v=pairs[i++], seg1=pairs[i++], seg2=pairs[i++];
+          let s1=pairs[i++], s2=pairs[i++], doflip=pairs[i++];
+          let ratio=pairs[i++];
           i+=di;
-          for (var ci=0; ci<2; ci++) {
-              if (0&&seg2!=undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
-                  var sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
-                  var i1=s1*(order-1), i2=s2*(order-1);
-                  var k1=seg1.ks[i1], k2=seg2.ks[i2];
-                  var k=((k1/sz1)+(k2/sz2*doflip))/2.0;
+          for (let ci=0; ci<2; ci++) {
+              if (0&&seg2!==undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
+                  let sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
+                  let i1=s1*(order-1), i2=s2*(order-1);
+                  let k1=seg1.ks[i1], k2=seg2.ks[i2];
+                  let k=((k1/sz1)+(k2/sz2*doflip))/2.0;
                   seg1.ks[i1] = seg1.ks[i1]+(k*sz1-seg1.ks[i1])*1;
                   seg2.ks[i2] = seg2.ks[i2]+(k*doflip*sz2-seg2.ks[i2])*1;
               }
-              if (seg2!=undefined) {
-                  var ta=seg1.derivative(s1, order), tb=seg2.derivative(s2, order);
-                  if (doflip<0.0)
-                    tb.negate();
-                  ta.normalize();
-                  tb.normalize();
-                  var _d=Math.min(Math.max(ta.dot(tb), -1.0), 1.0);
-                  var r=acos(_d);
-                  
+              let r;
+              if (seg2!==undefined) {
+                  r = TAN_C(seg1, seg2, s1, s2, order, doflip);
               }
               else {
-                var h=seg1.handle(v);
-                $tan_83Kt_solve.load(h).sub(v).normalize();
-                if (v==seg1.v2)
-                  $tan_83Kt_solve.negate();
-                var ta=seg1.derivative(s1, order).normalize();
-                var _d=Math.min(Math.max(ta.dot($tan_83Kt_solve), -1.0), 1.0);
-                var r=acos(_d);
-                
+                let h=seg1.handle(v);
+                tan.load(h).sub(v).normalize();
+                if (v===seg1.v2)
+                  tan.negate();
+                r = HARD_TAN_C(seg1, s1, tan, order);
               }
               if (r<0.0001)
                 continue;
               err+=r;
-              var totgs=0.0;
-              var gs=glist[cnum];
-              var seglen=(seg2==undefined) ? 1 : 2;
-              for (var sj=0; sj<seglen; sj++) {
-                  var seg=sj ? seg2 : seg1;
-                  for (var j=0; j<order; j++) {
-                      var orig=seg.ks[j];
+              let totgs=0.0;
+              let gs=glist[cnum];
+              let seglen=(seg2===undefined) ? 1 : 2;
+              for (let sj=0; sj<seglen; sj++) {
+                  let seg=sj ? seg2 : seg1;
+                  for (let j=0; j<order; j++) {
+                      let orig=seg.ks[j];
                       seg.ks[j]+=df;
-                      if (seg2!=undefined) {
-                          var ta=seg1.derivative(s1, order), tb=seg2.derivative(s2, order);
-                          if (doflip<0.0)
-                            tb.negate();
-                          ta.normalize();
-                          tb.normalize();
-                          var _d=Math.min(Math.max(ta.dot(tb), -1.0), 1.0);
-                          var r2=acos(_d);
-                          
+                      let r2;
+                      if (seg2!==undefined) {
+                          r2 = TAN_C(seg1, seg2, s1, s2, order, doflip);
                       }
                       else {
-                        var ta=seg1.derivative(s1, order).normalize();
-                        var _d=Math.min(Math.max(ta.dot($tan_83Kt_solve), -1.0), 1.0);
-                        var r2=acos(_d);
-                        
+                        r2 = HARD_TAN_C(seg1, s1, tan, order);
                       }
-                      var g=(r2-r)/df;
+                      let g=(r2-r)/df;
                       gs[sj*order+j] = g;
                       totgs+=g*g;
                       seg.ks[j] = orig;
                   }
               }
-              if (totgs==0.0)
+              if (totgs===0.0)
                 continue;
               r/=totgs;
-              var unstable=ratio<0.1;
-              for (var sj=0; sj<seglen; sj++) {
-                  var seg=sj ? seg2 : seg1;
-                  for (var j=0; j<order; j++) {
-                      var g=gs[sj*order+j];
-                      if (order>2&&unstable&&(j==0||j==order-1)) {
+              let unstable=ratio<0.1;
+              for (let sj=0; sj<seglen; sj++) {
+                  let seg=sj ? seg2 : seg1;
+                  for (let j=0; j<order; j++) {
+                      let g=gs[sj*order+j];
+                      if (order>2&&unstable&&(j===0||j===order-1)) {
                       }
                       seg.ks[j]+=-r*g*gk;
                   }
               }
-              if (seg2!=undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
-                  var sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
-                  var i1=s1*(order-1), i2=s2*(order-1);
-                  var k1=seg1.ks[i1], k2=seg2.ks[i2];
-                  var k=((k1/sz1)+(k2/sz2*doflip))/2.0;
+              if (seg2!==undefined&&ratio>0.1&&!(v.flag&CBREAK)) {
+                  let sz1=seg1.ks[KSCALE], sz2=seg2.ks[KSCALE];
+                  let i1=s1*(order-1), i2=s2*(order-1);
+                  let k1=seg1.ks[i1], k2=seg2.ks[i2];
+                  let k=((k1/sz1)+(k2/sz2*doflip))/2.0;
                   seg1.ks[i1] = seg1.ks[i1]+(k*sz1-seg1.ks[i1])*1;
                   seg2.ks[i2] = seg2.ks[i2]+(k*doflip*sz2-seg2.ks[i2])*1;
               }
           }
         }
-        for (var j=0; j<edge_segs.length; j++) {
-            var seg=edge_segs[j];
-            var ks=seg.ks;
-            for (var k=0; k<ks.length; k++) {
+        for (let j=0; j<edge_segs.length; j++) {
+            let seg=edge_segs[j];
+            let ks=seg.ks;
+            for (let k=0; k<ks.length; k++) {
                 seg.ks[k] = seg._last_ks[k];
             }
         }
@@ -1377,6 +1374,7 @@ VectorVertex {
       }
       path.clip_users.add(this);
       this.clip_paths.add(path);
+      this.recalc = 1;
     }
      reset_clip_paths() {
       if (this.clip_paths.length>0) {
@@ -1576,7 +1574,7 @@ VectorVertex {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
 
 
-es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_jobs_base.js", "../util/mathlib.js", "../config/config.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/math.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/math.js", "../util/mathlib.js", "../config/config.js", "../path.ux/scripts/util/util.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -1644,7 +1642,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
     
     
     
-    
+    #last_pan = new Vector2();
     
     
     
@@ -1660,7 +1658,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       this.path_idmap = {};
       this.regen = 1;
       this.gen_req = 0;
-      this._last_pan = new Vector2();
+      this.#last_pan = new Vector2();
       this.viewport = {pos: [0, 0], 
      size: [1, 1]};
       this.realViewport = {pos: [0, 0], 
@@ -1732,7 +1730,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       let canvas=draw.canvas;
       let p=new Vector2(draw.pan);
       p[1] = draw.canvas.height-p[1];
-      p.sub(this._last_pan);
+      p.sub(this.#last_pan);
       let cv={pos: new Vector2(), 
      size: new Vector2([canvas.width, canvas.height])};
       cv.pos[0]-=p[0];
@@ -1766,7 +1764,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       }
       return bad;
     }
-     _getPaddedViewport(canvas, cpad=512) {
+     _getPaddedViewport(canvas, cpad=128) {
       let dpi_scale=canvas.dpi_scale*this.dpi_scale;
       cpad/=dpi_scale;
       return {pos: new Vector2([-cpad, -cpad]), 
@@ -1802,23 +1800,27 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
         draw.push_transform(mat, false);
         return mat;
       }
+      let blocking=false;
       for (let p of this.paths) {
-          let mat=setMat(p);
+          setMat(p);
+          if (p.recalc) {
+              blocking = true;
+          }
           p.update_aabb(draw);
           draw.pop_transform();
           min.min(p.aabb[0]);
           max.max(p.aabb[1]);
+      }
+      if (blocking) {
       }
       this.realViewport = {pos: new Vector2(min), 
      size: new Vector2(max).sub(min)};
       let min2=new Vector2(min);
       let size2=new Vector2(max);
       size2.sub(min2);
-      let cpad=512;
+      let cpad=128;
       let cv=this._getPaddedViewport(canvas, cpad);
       let box=math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
-      min2 = min2.floor();
-      size2 = size2.floor();
       if (!box) {
           if (this.isBlurBatch) {
               draw.pop_transform();
@@ -1836,9 +1838,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       commands.push(height);
       for (let p of this.paths) {
           setMat(p, true);
-          if (1||!p._commands||p.recalc) {
-              p.genSmart(draw);
-          }
+          p.genSmart(draw);
           let c2=p._commands;
           draw.pop_transform();
           for (let i=0; i<c2.length; i++) {
@@ -1858,7 +1858,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       let last_pan=new Vector2(draw.pan);
       last_pan[1] = draw.canvas.height-last_pan[1];
       this.pending = true;
-      vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) =>        {
+      vectordraw_jobs.manager.postRenderJob(renderid, commands, undefined, !blocking).then((data) =>        {
         this.pending = false;
         if (this.onRenderDone) {
             this.onRenderDone(this);
@@ -1866,14 +1866,14 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
         if (debug)
           console.warn("Got render result!");
         this.gen_req = 0;
-        this._last_pan.load(last_pan);
+        this.#last_pan.load(last_pan);
         this._image = data;
         this._image_off = min;
         this._draw_zoom = zoom;
         window.redraw_viewport();
       });
     }
-     draw(draw) {
+     check(draw) {
       if (this.paths.length===0) {
           return ;
       }
@@ -1881,12 +1881,15 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
           this.regen = 1;
           console.log("bad viewport");
       }
+    }
+     draw(draw) {
+      this.check(draw);
       let canvas=draw.canvas, g=draw.g;
       let zoom=draw.matrix.$matrix.m11;
       let offx=0, offy=0;
       let scale=zoom/this._draw_zoom;
-      offx = draw.pan[0]-this._last_pan[0]*scale;
-      offy = (draw.canvas.height-draw.pan[1])-this._last_pan[1]*scale;
+      offx = draw.pan[0]-this.#last_pan[0]*scale;
+      offy = (draw.canvas.height-draw.pan[1])-this.#last_pan[1]*scale;
       offx/=scale;
       offy/=scale;
       if (this.regen) {
@@ -1919,6 +1922,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
   let canvaspath_temp_mats=util.cachering.fromConstructor(Matrix4, 128);
   let last_print_time=util.time_ms();
   class CanvasPath extends PathBase {
+    
     
     
     
@@ -2315,7 +2319,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
     
     
     
-    
+    #last_pan = new Vector2();
     
      constructor() {
       super();
@@ -2326,7 +2330,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       this.dosort = true;
       this.matstack = new Array(256);
       this.matrix = new Matrix4();
-      this._last_pan = new Vector2();
+      this.#last_pan = new Vector2();
       for (let i=0; i<this.matstack.length; i++) {
           this.matstack[i] = new Matrix4();
       }
@@ -2395,7 +2399,10 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
      clear() {
       this.recalcAll();
     }
-     draw(g) {
+    get  isDrawing() {
+      return vectordraw_jobs.manager.haveJobs;
+    }
+     updateBatches(g) {
       if (!!this.do_blur!==!!this._last_do_blur) {
           this._last_do_blur = !!this.do_blur;
           this.regen = 1;
@@ -2417,23 +2424,35 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
       let off=canvaspath_draw_vs.next();
       let zoom=this.matrix.$matrix.m11;
       off.zero();
-      this._last_pan.load(this.pan);
+      this.#last_pan.load(this.pan);
       if (this._last_zoom!==zoom) {
           this._last_zoom = zoom;
           for (let p of this.paths) {
-
+              p.redraw = 1;
           }
       }
       for (let path of this.paths) {
-          if (!path.recalc) {
+          if (!path.recalc&&!path.redraw) {
               continue;
           }
           for (let path2 of path.clip_users) {
-              path2.recalc = 1;
+              if (path.recalc) {
+                  path2.recalc = 1;
+              }
+              else {
+                path2.redraw = 1;
+              }
+          }
+      }
+      let had_recalc=false;
+      for (let path of this.paths) {
+          if (path.recalc) {
+              path.redraw = true;
+              had_recalc = true;
           }
       }
       for (let path of this.paths) {
-          if (!path.recalc) {
+          if (!path.redraw) {
               path.off.add(off);
           }
       }
@@ -2459,15 +2478,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
               }
               continue;
           }
-          let blurlimit=25;
-          let needsblur=this.do_blur&&(path.blur*zoom>=blurlimit);
-          needsblur = needsblur&&path.clip_paths.length===0;
-          if (needsblur&&path._batch&&!path._batch.isBlurBatch) {
-              this.regen = 1;
-          }
-          if (!needsblur&&path._batch&&path._batch.isBlurBatch) {
-              this.regen = 1;
-          }
+          let needsblur=false;
           if (!path._batch) {
               let w1=batch.patharea/(canvas.width*canvas.height);
               let w2=this.batches.length>10 ? 1.0/(this.batches.length-9) : 0.0;
@@ -2488,14 +2499,20 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
               }
               batch.add(path);
           }
-          if (path.recalc&&path._batch) {
+          if (path._batch&&path.redraw) {
               path._batch.regen = 1;
-              path.recalc = 0;
+              path.redraw = false;
           }
-          window.path1 = path;
       }
-      window.batch = batch;
-      window.batches = this.batches;
+      for (let batch of this.batches.drawlist) {
+          batch.check(this);
+          if (batch.regen) {
+              batch.gen(this);
+          }
+      }
+    }
+     draw(g) {
+      this.updateBatches(g);
       for (let batch of this.batches.drawlist) {
           batch.draw(this);
       }
@@ -2527,7 +2544,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "./vectordraw_
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d.js');
 
 
-es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_path2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_path2d', ["./vectordraw_base.js", "../path.ux/scripts/pathux.js"], function _vectordraw_canvas2d_path2d_module(_es6_module) {
   var PathBase=es6_import_item(_es6_module, './vectordraw_base.js', 'PathBase');
   var VectorDraw=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorDraw');
   let MOVETO=0, LINETO=1, CUBICTO=2, QUADTO=3, RECT=4, SETLINEWIDTH=5, STROKE=6, FILL=7, CLIP=8;
@@ -2661,7 +2678,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js",
       this.need_aabb = false;
       this.matrix = draw ? draw.matrix||this.matrix : this.matrix;
       let matrix=this.matrix;
-      let $_t0keib=this.aabb, min=$_t0keib[0], max=$_t0keib[1];
+      let $_t0ebum=this.aabb, min=$_t0ebum[0], max=$_t0ebum[1];
       min.zero().addScalar(1e+17);
       max.zero().addScalar(-1e+17);
       let ok=false;
@@ -2707,7 +2724,7 @@ es6_module_define('vectordraw_canvas2d_path2d', ["../path.ux/scripts/pathux.js",
           }
       }
       let mat=matrix.$matrix;
-      let $_t1trps=this.off, offx=$_t1trps[0], offy=$_t1trps[1];
+      let $_t1iobs=this.off, offx=$_t1iobs[0], offy=$_t1iobs[1];
       g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41+offx, mat.m42+offy);
       let curi=0;
       let paths=this.paths;
@@ -3102,7 +3119,7 @@ es6_module_define('vectordraw_stub', ["../config/config.js", "./vectordraw_base.
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
 
 
-es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "../config/config.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -3506,7 +3523,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_simple.js');
 
 
-es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_skia_simple_module(_es6_module) {
+es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_skia_simple_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var VectorFlags=es6_import_item(_es6_module, './vectordraw_base.js', 'VectorFlags');
@@ -4008,7 +4025,7 @@ es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../util/ma
 }, '/dev/fairmotion/src/vectordraw/vectordraw_skia_simple.js');
 
 
-es6_module_define('vectordraw_svg', ["../util/mathlib.js", "../config/config.js", "./vectordraw_base.js"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -4586,17 +4603,14 @@ es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
 
 
-es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/scripts/util/simple_events.js", "../config/config.js", "../../platforms/platform.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["../config/config.js", "./vectordraw_jobs_base.js", "../../platforms/platform.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
   let MS=MESSAGES;
-  let Debug=0;
-  let freeze_while_drawing=false;
+  let Debug=false;
+  let FREEZE_WHILE_DRAWING=false;
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
   var config=es6_import(_es6_module, '../config/config.js');
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  var keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'keymap');
   let MAX_THREADS=platform.app.numberOfCPUs()+1;
   MAX_THREADS = Math.max(MAX_THREADS, 2);
   if (config.HTML5_APP_MODE||config.NO_RENDER_WORKERS) {
@@ -4636,7 +4650,7 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
       }
       if (ownerid in this.ownerid_msgid_map) {
           if (Debug)
-            console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
+            console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
           this.freezelvl--;
           let oldid=this.msgid_ownerid_map[ownerid];
           this.postMessage(MS.CANCEL_JOB, oldid);
@@ -4703,9 +4717,7 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
           delete this.callbacks[id];
           this.freezelvl--;
           if (Debug)
-            console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-          if (Debug)
-            console.log(cb, e.data.data[0]);
+            console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
           cb(e.data.data[0]);
           if (this.freezelvl<=0) {
               this.manager.on_thread_done(this);
@@ -4713,8 +4725,6 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
           }
           break;
       }
-      if (Debug)
-        console.log("event message in main thread", e);
     }
      tryLock(owner) {
       if (this.lock===0||this.owner===owner) {
@@ -4753,6 +4763,7 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
     
     
     
+    locked_drawing = false;
      constructor() {
       this.threads = [];
       this.drawing = false;
@@ -4787,19 +4798,19 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
         }
       }
     }
-     startDrawing() {
+     startDrawing(nonBlocking=false) {
       this.drawing = true;
       this.start_time = time_ms();
-      if (freeze_while_drawing) {
-          console.log("%cFreeze Drawing", "color : orange;");
-          window._block_drawing = true;
+      if (!nonBlocking&&FREEZE_WHILE_DRAWING) {
+          this.locked_drawing = true;
+          window._block_drawing++;
       }
     }
      endDrawing() {
       this.drawing = false;
-      if (freeze_while_drawing) {
-          console.log("%cUnfreeze Drawing", "color : orange;");
-          window._block_drawing = false;
+      if (this.locked_drawing) {
+          window._block_drawing--;
+          this.locked_drawing = false;
       }
     }
      spawnThread(source) {
@@ -4825,9 +4836,9 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
           return this.threads[ri];
       }
     }
-     postRenderJob(ownerid, commands, datablocks) {
-      if (!this.drawing&&freeze_while_drawing) {
-          this.startDrawing();
+     postRenderJob(ownerid, commands, datablocks, nonBlocking=false) {
+      if (!this.drawing) {
+          this.startDrawing(nonBlocking);
       }
       let thread;
       if (this.threads.length===0) {
@@ -4848,6 +4859,14 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
       let ret=thread.postRenderJob(ownerid, commands, datablocks);
       return ret;
     }
+    get  haveJobs() {
+      for (let thread2 of this.threads) {
+          if (thread2.freezelvl>0) {
+              return true;
+          }
+      }
+      return false;
+    }
      on_thread_done(thread) {
       let ok=true;
       for (let thread2 of this.threads) {
@@ -4860,7 +4879,7 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/s
           if (Debug)
             console.warn("thread done");
           window._all_draw_jobs_done();
-          if (this.drawing&&freeze_while_drawing) {
+          if (this.drawing) {
               this.endDrawing();
           }
           this.checkMemory();
@@ -4943,7 +4962,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
 
 
-es6_module_define('vectordraw', ["./vectordraw_skia_simple.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_canvas2d.js", "./vectordraw_stub.js", "./vectordraw_base.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_stub.js", "./vectordraw_canvas2d.js", "./vectordraw_canvas2d_path2d.js", "./vectordraw_svg.js", "./vectordraw_base.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_skia_simple.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -6205,7 +6224,7 @@ DrawMats {
 }, '/dev/fairmotion/src/webgl/webgl.js');
 
 
-es6_module_define('fbo', ["./simplemesh.js", "./webgl.js", "../path.ux/scripts/pathux.js"], function _fbo_module(_es6_module) {
+es6_module_define('fbo', ["../path.ux/scripts/pathux.js", "./simplemesh.js", "./webgl.js"], function _fbo_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector3');
@@ -6781,7 +6800,7 @@ void main(void) {
 }, '/dev/fairmotion/src/webgl/fbo.js');
 
 
-es6_module_define('shaders', ["./webgl.js", "../path.ux/scripts/pathux.js"], function _shaders_module(_es6_module) {
+es6_module_define('shaders', ["../path.ux/scripts/pathux.js", "./webgl.js"], function _shaders_module(_es6_module) {
   var ShaderProgram=es6_import_item(_es6_module, './webgl.js', 'ShaderProgram');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
   const RectShader={vertex: `precision mediump float;
@@ -6835,7 +6854,7 @@ void main() {
 }, '/dev/fairmotion/src/webgl/shaders.js');
 
 
-es6_module_define('simplemesh', ["../path.ux/scripts/pathux.js", "./shaders.js", "./webgl.js"], function _simplemesh_module(_es6_module) {
+es6_module_define('simplemesh', ["./shaders.js", "../path.ux/scripts/pathux.js", "./webgl.js"], function _simplemesh_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var math=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'math');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');

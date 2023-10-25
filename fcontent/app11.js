@@ -1,5 +1,5 @@
 
-es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw.js", "./spline_createops.js", "../../core/keymap.js", "./selectmode.js", "./spline_selectops.js", "../../curve/spline_types.js", "./transform.js", "../../core/animdata.js", "./transform_ops.js", "./view2d_editor.js", "./view2d_base.js", "../../core/lib_api.js", "../../core/toolops_api.js", "./spline_editops.js"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["./selectmode.js", "./view2d_editor.js", "../../core/toolops_api.js", "../../curve/spline_draw.js", "../../core/lib_api.js", "../events.js", "./spline_createops.js", "../../core/animdata.js", "./spline_selectops.js", "../../core/keymap.js", "../../curve/spline_types.js", "./transform.js", "./spline_editops.js", "./transform_ops.js", "./view2d_base.js"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, './spline_createops.js', 'ExtrudeVertOp');
   var spline_selectops=es6_import(_es6_module, './spline_selectops.js');
@@ -333,7 +333,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
             let tool=new SelectLinkedOp(true, ctx.view2d.selectmode);
             tool.inputs.vertex_eid.setValue(ret[0].eid);
             tool.inputs.mode.setValue("SELECT");
-            ctx.appstate.toolstack.exec_tool(tool);
+            ctx.appstate.toolstack.execTool(ctx, tool);
         }
       }, "Select Linked"));
       k.add(new HotKey("L", ["SHIFT"], function (ctx) {
@@ -343,7 +343,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
             let tool=new SelectLinkedOp(true);
             tool.inputs.vertex_eid.setValue(ret[0].eid);
             tool.inputs.mode.setValue("deselect");
-            ctx.appstate.toolstack.exec_tool(tool);
+            ctx.appstate.toolstack.execTool(ctx, tool);
         }
       }, "Select Linked"));
       k.add(new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"));
@@ -354,18 +354,18 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
         if (this2.selectmode&SelMask.SEGMENT) {
             console.log("kill segments");
             let op=new DeleteSegmentOp();
-            g_app_state.toolstack.exec_tool(op);
+            g_app_state.toolstack.execTool(ctx, op);
         }
         else 
           if (this2.selectmode&SelMask.FACE) {
             console.log("kill faces");
             let op=new DeleteFaceOp();
-            g_app_state.toolstack.exec_tool(op);
+            g_app_state.toolstack.execTool(ctx, op);
         }
         else {
           console.log("kill verts");
           let op=new DeleteVertOp();
-          g_app_state.toolstack.exec_tool(op);
+          g_app_state.toolstack.execTool(ctx, op);
         }
       }
       k.add(new HotKey("X", [], del_tool, "Delete"));
@@ -445,7 +445,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
               op.inputs.location.setValue(co);
               op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
               op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
-              g_app_state.toolstack.exec_tool(op);
+              g_app_state.toolstack.execTool(this.ctx, op);
               redraw_viewport();
           }
           else {
@@ -457,7 +457,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
                 if (list.highlight===undefined)
                   continue;
                 let op=new SelectOneOp(list.highlight, !event.shiftKey, !(list.highlight.flag&SplineFlags.SELECT), this.selectmode, true);
-                g_app_state.toolstack.exec_tool(op);
+                g_app_state.toolstack.execTool(this.ctx, op);
             }
           }
           this.start_mpos[0] = event.x;
@@ -546,7 +546,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
               op.inputs.proportional.setValue(true);
               op.inputs.propradius.setValue(ctx.view2d.propradius);
           }
-          g_app_state.toolstack.exec_tool(op);
+          g_app_state.toolstack.execTool(ctx, op);
           return ;
       }
       if (this.mdown)
@@ -617,7 +617,7 @@ es6_module_define('view2d_spline_ops', ["../events.js", "../../curve/spline_draw
 }, '/dev/fairmotion/src/editors/viewport/view2d_spline_ops.js');
 
 
-es6_module_define('view2d_object_ops', ["./view2d_editor.js", "./selectmode.js", "../../core/lib_api.js", "./view2d_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "./transform_ops.js"], function _view2d_object_ops_module(_es6_module) {
+es6_module_define('view2d_object_ops', ["./selectmode.js", "./transform_ops.js", "./view2d_editor.js", "../../core/lib_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "./view2d_base.js"], function _view2d_object_ops_module(_es6_module) {
   "use strict";
   var WidgetResizeOp=es6_import_item(_es6_module, './transform_ops.js', 'WidgetResizeOp');
   var WidgetRotateOp=es6_import_item(_es6_module, './transform_ops.js', 'WidgetRotateOp');
@@ -753,7 +753,7 @@ SceneObjectEditor {
 }, '/dev/fairmotion/src/editors/viewport/view2d_object_ops.js');
 
 
-es6_module_define('sceneobject_ops', ["../../core/toolops_api.js", "../../core/struct.js", "../../core/toolprops.js"], function _sceneobject_ops_module(_es6_module) {
+es6_module_define('sceneobject_ops', ["../../core/toolprops.js", "../../core/toolops_api.js", "../../core/struct.js"], function _sceneobject_ops_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
   var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
@@ -773,22 +773,22 @@ es6_module_define('sceneobject_ops', ["../../core/toolops_api.js", "../../core/s
 
 
 es6_module_define('view2d_base', [], function _view2d_base_module(_es6_module) {
-  var EditModes={VERT: 1, 
+  let EditModes={VERT: 1, 
    EDGE: 2, 
    HANDLE: 4, 
    FACE: 16, 
    OBJECT: 32, 
    GEOMETRY: 1|2|4|16}
   EditModes = _es6_module.add_export('EditModes', EditModes);
-  var EditorTypes={SPLINE: 1, 
+  let EditorTypes={SPLINE: 1, 
    OBJECT: 32}
   EditorTypes = _es6_module.add_export('EditorTypes', EditorTypes);
-  var SessionFlags={PROP_TRANSFORM: 1}
+  let SessionFlags={PROP_TRANSFORM: 1}
   SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
 }, '/dev/fairmotion/src/editors/viewport/view2d_base.js');
 
 
-es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./animdata.js", "../path.ux/scripts/util/struct.js", "./toolprops.js", "../curve/spline_element_array.js", "../curve/spline.js", "./struct.js"], function _animspline_module(_es6_module) {
+es6_module_define('animspline', ["../curve/spline.js", "./lib_api.js", "../curve/spline_types.js", "./toolprops.js", "../path.ux/scripts/util/struct.js", "./struct.js", "../curve/spline_element_array.js", "./animdata.js"], function _animspline_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -809,8 +809,8 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
   var SplineLayerFlags=es6_import_item(_es6_module, '../curve/spline_element_array.js', 'SplineLayerFlags');
   var SplineLayerSet=es6_import_item(_es6_module, '../curve/spline_element_array.js', 'SplineLayerSet');
   es6_import(_es6_module, '../path.ux/scripts/util/struct.js');
-  var restrictflags=RestrictFlags.NO_DELETE|RestrictFlags.NO_EXTRUDE|RestrictFlags.NO_CONNECT;
-  var vertanimdata_eval_cache=cachering.fromConstructor(Vector2, 512);
+  let restrictflags=RestrictFlags.NO_DELETE|RestrictFlags.NO_EXTRUDE|RestrictFlags.NO_CONNECT;
+  let vertanimdata_eval_cache=cachering.fromConstructor(Vector2, 512);
   var AnimChannel=es6_import_item(_es6_module, './animdata.js', 'AnimChannel');
   var AnimKey=es6_import_item(_es6_module, './animdata.js', 'AnimKey');
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
@@ -821,14 +821,14 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       this.ret = {done: false, 
      value: undefined};
       this.stop = false;
-      if (vd!=undefined)
+      if (vd!==undefined)
         VertexAnimIter.init(this, vd);
     }
      init(vd) {
       this.vd = vd;
       this.v = vd.startv;
       this.stop = false;
-      if (this.v!=undefined&&this.v.segments.length!=0)
+      if (this.v!==undefined&&this.v.segments.length!==0)
         this.s = this.v.segments[0];
       else 
         this.s = undefined;
@@ -840,21 +840,21 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return this;
     }
      next() {
-      var ret=this.ret;
-      if (this.vd.startv==undefined) {
+      let ret=this.ret;
+      if (this.vd.startv===undefined) {
           ret.done = true;
           ret.value = undefined;
           return ret;
       }
-      if (this.stop&&this.v==undefined) {
+      if (this.stop&&this.v===undefined) {
           ret.done = true;
           ret.value = undefined;
           return ret;
       }
       ret.value = this.v;
-      if (this.stop||this.s==undefined) {
+      if (this.stop||this.s===undefined) {
           this.v = undefined;
-          if (ret.value==undefined)
+          if (ret.value===undefined)
             ret.done = true;
           return ret;
       }
@@ -877,8 +877,8 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       this.ret = {done: false, 
      value: undefined};
       this.stop = false;
-      if (this.v!=undefined&&this.v.segments.length!=0)
-        if (vd!=undefined)
+      if (this.v!==undefined&&this.v.segments.length!==0)
+        if (vd!==undefined)
         SegmentAnimIter.init(this, vd);
     }
      init(vd) {
@@ -897,8 +897,8 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return this;
     }
      next() {
-      var ret=this.ret;
-      if (this.stop||this.s==undefined) {
+      let ret=this.ret;
+      if (this.stop||this.s===undefined) {
           ret.done = true;
           ret.value = undefined;
           return ret;
@@ -916,7 +916,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
   _ESClass.register(SegmentAnimIter);
   _es6_module.add_class(SegmentAnimIter);
   SegmentAnimIter = _es6_module.add_export('SegmentAnimIter', SegmentAnimIter);
-  var VDAnimFlags={SELECT: 1, 
+  let VDAnimFlags={SELECT: 1, 
    STEP_FUNC: 2, 
    HIDE: 4, 
    OWNER_IS_EDITABLE: 8}
@@ -940,7 +940,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       this.path_times = {};
       this.startv_eid = -1;
       if (pathspline!==undefined) {
-          var layer=pathspline.layerset.new_layer();
+          let layer=pathspline.layerset.new_layer();
           layer.flag|=SplineLayerFlags.HIDE;
           this.layerid = layer.id;
       }
@@ -953,7 +953,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return this.spline.eidmap[this.startv_eid];
     }
     set  startv(v) {
-      if (typeof v=="number") {
+      if (typeof v==="number") {
           this.startv_eid = v;
           return ;
       }
@@ -978,7 +978,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
     }
      _unset_layer() {
       if (this._start_layer_id!==undefined) {
-          var layer=this.spline.layerset.idmap[this._start_layer_id];
+          let layer=this.spline.layerset.idmap[this._start_layer_id];
           if (layer!==undefined)
             this.spline.layerset.active = layer;
       }
@@ -1029,13 +1029,13 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return this.sitercache.next().init(this);
     }
      find_seg(time) {
-      var v=this.startv;
+      let v=this.startv;
       if (v===undefined)
         return undefined;
       if (v.segments.length===0)
         return undefined;
-      var s=v.segments[0];
-      var lastv=v;
+      let s=v.segments[0];
+      let lastv=v;
       while (1) {
         lastv = v;
         v = s.other_vert(v);
@@ -1070,17 +1070,17 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           this.spline.regen_sort();
           this.spline.resolve = 1;
       }
-      var spline=this.spline;
-      var seg=this.find_seg(time);
+      let spline=this.spline;
+      let seg=this.find_seg(time);
       if (seg===undefined) {
-          var e=this.endv;
+          let e=this.endv;
           if (this._get_animdata(e).time===time) {
               update = update||e.vectorDistance(co)>0.01;
               e.load(co);
               e.flag|=SplineFlags.UPDATE;
           }
           else {
-            var nv=spline.make_vertex(co);
+            let nv=spline.make_vertex(co);
             this._get_animdata(nv).time = time;
             spline.make_segment(e, nv);
             spline.regen_sort();
@@ -1100,8 +1100,8 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
             seg.v2.flag|=SplineFlags.UPDATE;
         }
         else {
-          var ret=spline.split_edge(seg);
-          var nv=ret[1];
+          let ret=spline.split_edge(seg);
+          let nv=ret[1];
           spline.regen_sort();
           this._get_animdata(nv).time = time;
           update = true;
@@ -1113,13 +1113,13 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return update;
     }
     get  start_time() {
-      var v=this.startv;
+      let v=this.startv;
       if (v===undefined)
         return 0;
       return get_vtime(v);
     }
     get  end_time() {
-      var v=this.endv;
+      let v=this.endv;
       if (v===undefined)
         return 0;
       return get_vtime(v);
@@ -1127,15 +1127,15 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
      draw(g, matrix, alpha, time) {
       if (!(this.visible))
         return ;
-      var step_func=this.animflag&VDAnimFlags.STEP_FUNC;
-      var start=this.start_time, end=this.end_time;
+      let step_func=this.animflag&VDAnimFlags.STEP_FUNC;
+      let start=this.start_time, end=this.end_time;
       g.lineWidth = 2.0;
       g.strokeStyle = "rgba(100,100,100,"+alpha+")";
-      var dt=1.0;
-      var lastco=undefined;
+      let dt=1.0;
+      let lastco=undefined;
       let dv=new Vector4();
-      for (var t=start; t<end; t+=dt) {
-          var co=this.evaluate(t);
+      for (let t=start; t<end; t+=dt) {
+          let co=this.evaluate(t);
           dv.load(this.derivative(t));
           co.multVecMatrix(matrix);
           dv.multVecMatrix(matrix);
@@ -1158,9 +1158,9 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       }
     }
      derivative(time) {
-      var df=0.001;
-      var a=this.evaluate(time);
-      var b=this.evaluate(time+df);
+      let df=0.001;
+      let a=this.evaluate(time);
+      let b=this.evaluate(time+df);
       b.sub(a).mulScalar(1.0/df);
       return dvcache.next().load(b);
     }
@@ -1169,11 +1169,11 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           console.error("dead vertex anim key");
           return ;
       }
-      var v=this.startv;
-      var step_func=this.animflag&VDAnimFlags.STEP_FUNC;
+      let v=this.startv;
+      let step_func=this.animflag&VDAnimFlags.STEP_FUNC;
       if (v===undefined)
         return vertanimdata_eval_cache.next().zero();
-      var co=vertanimdata_eval_cache.next();
+      let co=vertanimdata_eval_cache.next();
       if (time<=get_vtime(v)) {
           co.load(v);
           return co;
@@ -1182,10 +1182,10 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           co.load(v);
           return co;
       }
-      var s=v.segments[0];
-      var lastv=v;
-      var lasts=s;
-      var lastv2=v;
+      let s=v.segments[0];
+      let lastv=v;
+      let lasts=s;
+      let lastv2=v;
       while (1) {
         lastv2 = lastv;
         lastv = v;
@@ -1200,18 +1200,18 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
         lasts = s;
         s = v.other_segment(s);
       }
-      var nextv=v, nextv2=v;
-      var alen1=s!==undefined ? s.length : 1, alen2=alen1;
-      var alen0=lasts!==undefined ? lasts.length : alen1, alen3=alen1;
+      let nextv=v, nextv2=v;
+      let alen1=s!==undefined ? s.length : 1, alen2=alen1;
+      let alen0=lasts!==undefined ? lasts.length : alen1, alen3=alen1;
       if (v.segments.length===2) {
-          var nexts=v.other_segment(s);
+          let nexts=v.other_segment(s);
           nextv = nexts.other_vert(v);
           alen2 = nexts.length;
           alen3 = alen2;
       }
       nextv2 = nextv;
       if (nextv2.segments.length===2) {
-          var nexts2=nextv2.other_segment(nexts);
+          let nexts2=nextv2.other_segment(nexts);
           nextv2 = nexts2.other_vert(nextv2);
           alen3 = nexts2.length;
       }
@@ -1219,24 +1219,27 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           co.load(v);
       }
       else {
-        var pt2=get_vtime(lastv2), pt=get_vtime(lastv), vt=get_vtime(v);
-        var nt=get_vtime(nextv), nt2=get_vtime(nextv2);
-        var t=(time-pt)/(vt-pt);
-        var a=pt, b, c, d=vt;
-        var arclength1=alen0;
-        var arclength2=alen1;
-        var arclength3=alen2;
-        var t0=pt2, t3=pt, t6=vt, t9=nt;
-        var t1=pt2+(pt-pt2)*(1.0/3.0);
-        var t8=vt+(nt-vt)*(2.0/3.0);
-        var b=(-(t0-t1)*(t3-t6)*arclength1+(t0-t3)*arclength2*t3)/((t0-t3)*arclength2);
-        var c=((t3-t6)*(t8-t9)*arclength3+(t6-t9)*arclength2*t6)/((t6-t9)*arclength2);
-        var r1=alen0/alen1;
-        var r2=alen1/alen2;
+        let pt2=get_vtime(lastv2), pt=get_vtime(lastv), vt=get_vtime(v);
+        let nt=get_vtime(nextv), nt2=get_vtime(nextv2);
+        let t=(time-pt)/(vt-pt);
+        let a=pt, b, c, d=vt;
+        let arclength1=alen0;
+        let arclength2=alen1;
+        let arclength3=alen2;
+        let t0=pt2, t3=pt, t6=vt, t9=nt;
+        let t1=pt2+(pt-pt2)*(1.0/3.0);
+        let t8=vt+(nt-vt)*(2.0/3.0);
+        b = (-(t0-t1)*(t3-t6)*arclength1+(t0-t3)*arclength2*t3)/((t0-t3)*arclength2);
+        c = ((t3-t6)*(t8-t9)*arclength3+(t6-t9)*arclength2*t6)/((t6-t9)*arclength2);
+        let r1=alen0/alen1;
+        let r2=alen1/alen2;
         b = pt+r1*(vt-pt2)/3.0;
         c = vt-r2*(nt-pt)/3.0;
-        var t0=a, t1=b, t2=c, t3=d;
-        var tt=-(3*(t0-t1)*t-t0+3*(2*t1-t2-t0)*t*t+(3*t2-t3-3*t1+t0)*t*t*t);
+        t0 = a;
+        t1 = b;
+        t2 = c;
+        t3 = d;
+        let tt=-(3*(t0-t1)*t-t0+3*(2*t1-t2-t0)*t*t+(3*t2-t3-3*t1+t0)*t*t*t);
         tt = Math.abs(tt);
         if (step_func) {
             t = time<vt ? 0.0 : 1.0;
@@ -1246,12 +1249,12 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return co;
     }
     get  endv() {
-      var v=this.startv;
+      let v=this.startv;
       if (v===undefined)
         return undefined;
       if (v.segments.length===0)
         return v;
-      var s=v.segments[0];
+      let s=v.segments[0];
       while (1) {
         v = s.other_vert(v);
         if (v.segments.length<2)
@@ -1261,9 +1264,9 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return v;
     }
      check_time_integrity() {
-      var lasttime=-100000;
-      for (var v of this.verts) {
-          var t=get_vtime(v);
+      let lasttime=-100000;
+      for (let v of this.verts) {
+          let t=get_vtime(v);
           if (t<lasttime) {
               console.log("Found timing integrity error for vertex", this.eid, "path vertex:", v.eid);
               this.regen_topology();
@@ -1274,14 +1277,14 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
       return false;
     }
      regen_topology() {
-      var spline=this.spline;
-      var verts=[];
-      var segs=new set();
-      var visit=new set();
-      var handles=[];
-      var lastv=undefined;
-      var hi=0;
-      for (var v of this.verts) {
+      let spline=this.spline;
+      let verts=[];
+      let segs=new set();
+      let visit=new set();
+      let handles=[];
+      let lastv=undefined;
+      let hi=0;
+      for (let v of this.verts) {
           if (visit.has(v)) {
               continue;
           }
@@ -1291,10 +1294,10 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           handles.push(undefined);
           hi+=2;
           v.flag|=SplineFlags.UPDATE;
-          for (var s of v.segments) {
+          for (let s of v.segments) {
               segs.add(s);
-              var v2=s.other_vert(v);
-              var h2=s.other_handle(s.handle(v));
+              let v2=s.other_vert(v);
+              let h2=s.other_handle(s.handle(v));
               if (v2===lastv) {
                   handles[hi-2] = h2;
               }
@@ -1304,31 +1307,31 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./lib_api.js", "./
           }
           lastv = v;
       }
-      if (verts.length==0) {
+      if (verts.length===0) {
           return ;
       }
       verts.sort(function (a, b) {
         return get_vtime(a)-get_vtime(b);
       });
-      for (var s of segs) {
+      for (let s of segs) {
           spline.kill_segment(s);
       }
       this.startv_eid = verts[0].eid;
-      for (var i=1; i<verts.length; i++) {
-          var s=spline.make_segment(verts[i-1], verts[i]);
+      for (let i=1; i<verts.length; i++) {
+          let s=spline.make_segment(verts[i-1], verts[i]);
           s.flag|=SplineFlags.UPDATE;
           s.h1.flag|=SplineFlags.UPDATE;
           s.h2.flag|=SplineFlags.UPDATE;
-          for (var k in s.v1.layers) {
+          for (let k in s.v1.layers) {
               spline.layerset.idmap[k].add(s);
           }
       }
-      var hi=0;
-      var lastv=undefined;
-      for (var v of verts) {
-          for (var s of v.segments) {
-              var v2=s.other_vert(v);
-              var h2=s.other_handle(s.handle(v));
+      hi = 0;
+      lastv = undefined;
+      for (let v of verts) {
+          for (let s of v.segments) {
+              let v2=s.other_vert(v);
+              let h2=s.other_handle(s.handle(v));
               if (v2===lastv&&handles[hi]!==undefined) {
                   h2.load(handles[hi]);
               }
@@ -1362,7 +1365,7 @@ VertexAnimData {
 }, '/dev/fairmotion/src/core/animspline.js');
 
 
-es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./lib_api.js", "./animdata.js", "./animspline", "../curve/spline_element_array.js", "../curve/spline_types.js", "./animspline.js", "../curve/spline_draw_new.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["../curve/spline.js", "../curve/spline_draw_new.js", "./lib_api.js", "../vectordraw/vectordraw.js", "./animdata.js", "./animspline.js", "./struct.js", "./animspline", "../curve/spline_types.js", "../curve/spline_element_array.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -1393,11 +1396,11 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
   for (let k in ___animspline) {
       _es6_module.add_export(k, ___animspline[k], true);
   }
-  var restrictflags=animspline.restrictflags;
-  var VertexAnimIter=animspline.VertexAnimIter;
-  var SegmentAnimIter=animspline.SegmentAnimIter;
-  var VDAnimFlags=animspline.VDAnimFlags;
-  var VertexAnimData=animspline.VertexAnimData;
+  let restrictflags=animspline.restrictflags;
+  let VertexAnimIter=animspline.VertexAnimIter;
+  let SegmentAnimIter=animspline.SegmentAnimIter;
+  let VDAnimFlags=animspline.VDAnimFlags;
+  let VertexAnimData=animspline.VertexAnimData;
   class SplineFrame  {
     
     
@@ -1408,7 +1411,7 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
       this.spline = undefined;
     }
     static  fromSTRUCT(reader) {
-      var ret=new SplineFrame();
+      let ret=new SplineFrame();
       reader(ret);
       return ret;
     }
@@ -1424,8 +1427,8 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
   }
 `;
   window.obj_values_to_array = function obj_values_to_array(obj) {
-    var ret=[];
-    for (var k in obj) {
+    let ret=[];
+    for (let k in obj) {
         ret.push(obj[k]);
     }
     return ret;
@@ -1447,22 +1450,22 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
     }
      load_iter() {
       this.iter = undefined;
-      var f=this.f;
+      let f=this.f;
       if (this.stage===0) {
-          var arr=new GArray();
-          for (var k in f.frames) {
-              var fr=f.frames[k];
+          let arr=new GArray();
+          for (let k in f.frames) {
+              let fr=f.frames[k];
               arr.push(fr.spline);
           }
           this.iter = arr[Symbol.iterator]();
       }
       else 
         if (this.stage===1) {
-          var arr=[];
-          for (var k in this.f.vertex_animdata) {
+          let arr=[];
+          for (let k in this.f.vertex_animdata) {
               if (this.sel_only) {
-                  var vdata=this.f.vertex_animdata[k];
-                  var v=this.f.spline.eidmap[k];
+                  let vdata=this.f.vertex_animdata[k];
+                  let v=this.f.spline.eidmap[k];
                   if (v===undefined||!(v.flag&SplineFlags.SELECT)||v.hidden) {
                       continue;
                   }
@@ -1485,12 +1488,12 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
       if (this.iter===undefined) {
           this.ret.done = true;
           this.ret.value = undefined;
-          var ret=this.ret;
+          let ret=this.ret;
           this.reset();
           return ret;
       }
-      var next=this.iter.next();
-      var ret=this.ret;
+      let next=this.iter.next();
+      let ret=this.ret;
       ret.value = next.value;
       ret.done = next.done;
       if (next.done) {
@@ -1518,7 +1521,7 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
       this.time = time;
     }
     static  fromSTRUCT(reader) {
-      var ret=new EidTimePair();
+      let ret=new EidTimePair();
       reader(ret);
       return ret;
     }
@@ -1537,11 +1540,11 @@ es6_module_define('frameset', ["./struct.js", "../vectordraw/vectordraw.js", "./
   function combine_eid_time(eid, time) {
     return new EidTimePair(eid, time);
   }
-  var split_eid_time_rets=new cachering(function () {
+  let split_eid_time_rets=new cachering(function () {
     return [0, 0];
   }, 64);
   function split_eid_time(t) {
-    var ret=split_eid_time_rets.next();
+    let ret=split_eid_time_rets.next();
     ret[0] = t.eid;
     ret[1] = t.time;
     return ret;
@@ -1585,7 +1588,7 @@ SplineKCacheItem {
       return this.cache[frame].hash===hash;
     }
      set(frame, spline) {
-      for (var eid in spline.eidmap) {
+      for (let eid in spline.eidmap) {
           this.revalidate(eid, frame);
       }
       let hash=this.calchash(spline);
@@ -1595,7 +1598,7 @@ SplineKCacheItem {
       this.invalid_eids.add(combine_eid_time(eid, time));
     }
      revalidate(eid, time) {
-      var t=combine_eid_time(time);
+      let t=combine_eid_time(time);
       this.invalid_eids.remove(t);
     }
      calchash(spline) {
@@ -1623,7 +1626,7 @@ SplineKCacheItem {
       if (ret===undefined) {
           delete this.cache[frame];
           console.log("bad kcache data for frame", frame);
-          for (var s of spline.segments) {
+          for (let s of spline.segments) {
               s.v1.flag|=SplineFlags.UPDATE;
               s.v2.flag|=SplineFlags.UPDATE;
               s.h1.flag|=SplineFlags.UPDATE;
@@ -1633,36 +1636,36 @@ SplineKCacheItem {
           spline.resolve = 1;
           return ;
       }
-      for (var eid in spline.eidmap) {
-          var t=combine_eid_time(eid, frame);
+      for (let eid in spline.eidmap) {
+          let t=combine_eid_time(eid, frame);
           if (!this.invalid_eids.has(t))
             continue;
           this.invalid_eids.remove(t);
-          var e=spline.eidmap[eid];
+          let e=spline.eidmap[eid];
           e.flag|=SplineFlags.UPDATE;
           spline.resolve = 1;
       }
     }
      _as_array() {
-      var ret=[];
-      for (var k in this.cache) {
+      let ret=[];
+      for (let k in this.cache) {
           ret.push(this.cache[k].data);
       }
       return ret;
     }
     static  fromSTRUCT(reader) {
-      var ret=new SplineKCache();
+      let ret=new SplineKCache();
       reader(ret);
-      var cache={};
-      var inv=new set();
+      let cache={};
+      let inv=new set();
       if (ret.invalid_eids!=undefined&&__instance_of(ret.invalid_eids, Array)) {
-          for (var i=0; i<ret.invalid_eids.length; i++) {
+          for (let i=0; i<ret.invalid_eids.length; i++) {
               inv.add(ret.invalid_eids[i]);
           }
       }
       if (ret.times) {
           ret.invalid_eids = inv;
-          for (var i=0; i<ret.cache.length; i++) {
+          for (let i=0; i<ret.cache.length; i++) {
               cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
           }
           delete ret.times;
@@ -1734,40 +1737,42 @@ SplineKCacheItem {
       return this.get_vdata(this.spline.verts.active.eid, true);
     }
      find_orphan_pathverts() {
-      var vset=new set();
-      var vset2=new set();
-      for (var v of this.spline.verts) {
+      let vset=new set();
+      let vset2=new set();
+      for (let v of this.spline.verts) {
           vset2.add(v.eid);
       }
-      for (var k in this.vertex_animdata) {
-          var vd=this.vertex_animdata[k];
+      for (let k in this.vertex_animdata) {
+          let vd=this.vertex_animdata[k];
           if (!vset2.has(k)) {
               delete this.vertex_animdata[k];
               continue;
           }
-          for (var v of vd.verts) {
+          for (let v of vd.verts) {
               vset.add(v.eid);
           }
       }
-      var totorphaned=0;
-      for (var v of this.pathspline.verts) {
+      let totorphaned=0;
+      for (let v of this.pathspline.verts) {
           if (!vset.has(v.eid)) {
               this.pathspline.kill_vertex(v);
               totorphaned++;
           }
       }
-      console.log("totorphaned: ", totorphaned);
+      if (totorphaned>0) {
+          console.log(`Killed ${totorphaned} orphaned animation verts.`);
+      }
     }
      has_coincident_verts(threshold, time_threshold) {
       threshold = threshold===undefined ? 2 : threshold;
       time_threshold = time_threshold===undefined ? 0 : time_threshold;
-      var ret=new set();
-      for (var k in this.vertex_animdata) {
-          var vd=this.vertex_animdata[k];
-          var lastv=undefined;
-          var lasttime=undefined;
-          for (var v of vd.verts) {
-              var time=get_vtime(v);
+      let ret=new set();
+      for (let k in this.vertex_animdata) {
+          let vd=this.vertex_animdata[k];
+          let lastv=undefined;
+          let lasttime=undefined;
+          for (let v of vd.verts) {
+              let time=get_vtime(v);
               if (lastv!==undefined&&lastv.vectorDistance(v)<threshold&&Math.abs(time-lasttime)<=time_threshold) {
                   console.log("Coincident vert!", k, v.eid, lastv.vectorDistance(v));
                   if (v.segments.length===2)
@@ -1787,8 +1792,8 @@ SplineKCacheItem {
           console.log("Invalid input to create_path_from_adjacent");
           return ;
       }
-      var v1=s.other_vert(v), v2=v.other_segment(s).other_vert(v);
-      var av1=this.get_vdata(v1.eid, false), av2=this.get_vdata(v2.eid, false);
+      let v1=s.other_vert(v), v2=v.other_segment(s).other_vert(v);
+      let av1=this.get_vdata(v1.eid, false), av2=this.get_vdata(v2.eid, false);
       if (av1===undefined&&av2===undefined) {
           console.log("no animation data to interpolate");
           return ;
@@ -1801,20 +1806,20 @@ SplineKCacheItem {
         if (av2===undefined) {
           av2 = av1;
       }
-      var av3=this.get_vdata(v.eid, true);
-      var keyframes=new set();
-      for (var v of av1.verts) {
+      let av3=this.get_vdata(v.eid, true);
+      let keyframes=new set();
+      for (let v of av1.verts) {
           keyframes.add(get_vtime(v));
       }
-      for (var v of av2.verts) {
+      for (let v of av2.verts) {
           keyframes.add(get_vtime(v));
       }
-      var co=new Vector2();
-      var oflag1=av1.animflag, oflag2=av2.animflag;
+      let co=new Vector2();
+      let oflag1=av1.animflag, oflag2=av2.animflag;
       av1.animflag&=VDAnimFlags.STEP_FUNC;
       av2.animflag&=VDAnimFlags.STEP_FUNC;
-      for (var time of keyframes) {
-          var co1=av1.evaluate(time), co2=av2.evaluate(time);
+      for (let time of keyframes) {
+          let co1=av1.evaluate(time), co2=av2.evaluate(time);
           co.load(co1).add(co2).mulScalar(0.5);
           av3.update(co, time);
       }
@@ -1824,18 +1829,18 @@ SplineKCacheItem {
     }
      set_visibility(vd_eid, state) {
       console.log("set called", vd_eid, state);
-      var vd=this.vertex_animdata[vd_eid];
+      let vd=this.vertex_animdata[vd_eid];
       if (vd===undefined)
         return ;
-      var layer=this.pathspline.layerset.idmap[vd.layerid];
-      var drawlayer=this.pathspline.layerset.idmap[this.templayerid];
+      let layer=this.pathspline.layerset.idmap[vd.layerid];
+      let drawlayer=this.pathspline.layerset.idmap[this.templayerid];
       vd.visible = !!state;
-      for (var v of vd.verts) {
+      for (let v of vd.verts) {
           if (state) {
               layer.remove(v);
               drawlayer.add(v);
               v.flag&=~(SplineFlags.GHOST|SplineFlags.HIDE);
-              for (var i=0; i<v.segments.length; i++) {
+              for (let i=0; i<v.segments.length; i++) {
                   layer.remove(v.segments[i]);
                   drawlayer.add(v.segments[i]);
                   v.segments[i].flag&=~(SplineFlags.GHOST|SplineFlags.HIDE);
@@ -1845,7 +1850,7 @@ SplineKCacheItem {
             drawlayer.remove(v);
             layer.add(v);
             v.flag|=SplineFlags.GHOST|SplineFlags.HIDE;
-            for (var i=0; i<v.segments.length; i++) {
+            for (let i=0; i<v.segments.length; i++) {
                 drawlayer.remove(v.segments[i]);
                 layer.add(v.segments[i]);
                 v.segments[i].flag|=SplineFlags.GHOST|SplineFlags.HIDE;
@@ -1861,21 +1866,21 @@ SplineKCacheItem {
      on_spline_select(element, state) {
       if (!this.switch_on_select)
         return ;
-      var vd=this.get_vdata(element.eid, false);
+      let vd=this.get_vdata(element.eid, false);
       if (vd===undefined)
         return ;
-      var hide=!(this.selectmode&element.type);
+      let hide=!(this.selectmode&element.type);
       hide = hide||!(element.flag&SplineFlags.SELECT);
       if (element.type===SplineTypes.HANDLE) {
           hide = hide||!element.use;
       }
-      var layer=this.pathspline.layerset.idmap[vd.layerid];
-      var drawlayer=this.pathspline.layerset.idmap[this.templayerid];
+      let layer=this.pathspline.layerset.idmap[vd.layerid];
+      let drawlayer=this.pathspline.layerset.idmap[this.templayerid];
       vd.visible = !hide;
-      for (var v of vd.verts) {
+      for (let v of vd.verts) {
           v.sethide(hide);
-          for (var i=0; i<v.segments.length; i++) {
-              var s=v.segments[i];
+          for (let i=0; i<v.segments.length; i++) {
+              let s=v.segments[i];
               s.sethide(hide);
               s.flag&=~(SplineFlags.GHOST|SplineFlags.HIDE);
               if (!hide&&!(drawlayer.id in s.layers)) {
@@ -1934,28 +1939,28 @@ SplineKCacheItem {
         console.log("update_visibility called");
       if (!this.switch_on_select)
         return ;
-      var selectmode=this.selectmode, show_paths=this.draw_anim_paths;
-      var drawlayer=this.pathspline.layerset.idmap[this.templayerid];
+      let selectmode=this.selectmode, show_paths=this.draw_anim_paths;
+      let drawlayer=this.pathspline.layerset.idmap[this.templayerid];
       if (drawlayer===undefined) {
           console.log("this.templayerid corruption", this.templayerid);
           this.templayerid = this.pathspline.layerset.new_layer().id;
           drawlayer = this.pathspline.layerset.idmap[this.templayerid];
       }
-      for (var v of this.pathspline.verts) {
+      for (let v of this.pathspline.verts) {
           if (!v.has_layer()) {
               drawlayer.add(v);
           }
           v.sethide(true);
       }
-      for (var h of this.pathspline.handles) {
+      for (let h of this.pathspline.handles) {
           if (!h.has_layer()) {
               drawlayer.add(h);
           }
           h.sethide(true);
       }
-      for (var k in this.vertex_animdata) {
-          var vd=this.vertex_animdata[k];
-          var v=this.spline.eidmap[k];
+      for (let k in this.vertex_animdata) {
+          let vd=this.vertex_animdata[k];
+          let v=this.spline.eidmap[k];
           if (vd.dead) {
               delete this.vertex_animdata[k];
               continue;
@@ -1963,12 +1968,12 @@ SplineKCacheItem {
           if (v===undefined) {
               continue;
           }
-          var hide=!(vd.eid in this.spline.eidmap)||!(v.flag&SplineFlags.SELECT);
+          let hide=!(vd.eid in this.spline.eidmap)||!(v.flag&SplineFlags.SELECT);
           hide = hide||!(v.type&selectmode)||!show_paths;
           vd.visible = !hide;
           if (!hide) {
           }
-          for (var v2 of vd.verts) {
+          for (let v2 of vd.verts) {
               if (!hide) {
                   v2.flag&=~(SplineFlags.GHOST|SplineFlags.HIDE);
               }
@@ -1982,7 +1987,7 @@ SplineKCacheItem {
               else {
                 drawlayer.remove(v2);
               }
-              for (var s of v2.segments) {
+              for (let s of v2.segments) {
                   s.sethide(hide);
                   if (!hide) {
                       s.flag&=~(SplineFlags.GHOST|SplineFlags.HIDE);
@@ -2003,10 +2008,10 @@ SplineKCacheItem {
       }
       else 
         if (ctx.spline===this.pathspline) {
-          var resolve=0;
-          for (var v of this.spline.points) {
+          let resolve=0;
+          for (let v of this.spline.points) {
               if (v.eid in this.vertex_animdata) {
-                  var vdata=this.get_vdata(v.eid, false);
+                  let vdata=this.get_vdata(v.eid, false);
                   v.load(vdata.evaluate(this.time));
                   v.flag&=~SplineFlags.FRAME_DIRTY;
                   v.flag|=SplineFlags.UPDATE;
@@ -2018,10 +2023,10 @@ SplineKCacheItem {
     }
      download() {
       console.trace("downloading. . .");
-      var resolve=0;
-      for (var v of this.spline.points) {
+      let resolve=0;
+      for (let v of this.spline.points) {
           if (v.eid in this.vertex_animdata) {
-              var vdata=this.get_vdata(v.eid, false);
+              let vdata=this.get_vdata(v.eid, false);
               v.load(vdata.evaluate(this.time));
               v.flag&=~SplineFlags.FRAME_DIRTY;
               v.flag|=SplineFlags.UPDATE;
@@ -2032,23 +2037,23 @@ SplineKCacheItem {
     }
      update_frame(force_update) {
       this.check_vdata_integrity();
-      var time=this.time;
-      var spline=this.spline;
+      let time=this.time;
+      let spline=this.spline;
       if (spline===undefined)
         return ;
       if (spline.resolve)
         spline.solve();
       this.kcache.set(time, spline);
-      var is_first=time<=1;
-      var found=false;
-      for (var v of spline.points) {
+      let is_first=time<=1;
+      let found=false;
+      for (let v of spline.points) {
           if (!(v.eid in spline.eidmap)) {
               found = true;
           }
-          var dofirst=is_first&&!(v.eid in this.vertex_animdata);
+          let dofirst=is_first&&!(v.eid in this.vertex_animdata);
           if (!(force_update||dofirst||(v.flag&SplineFlags.FRAME_DIRTY)))
             continue;
-          var vdata=this.get_vdata(v.eid);
+          let vdata=this.get_vdata(v.eid);
           let update=vdata.update(v, time);
           v.flag&=~SplineFlags.FRAME_DIRTY;
           if (update) {
@@ -2064,8 +2069,8 @@ SplineKCacheItem {
       this.check_vdata_integrity();
       if (this.frame!=undefined)
         return this.frame;
-      var frame=this.frame = new SplineFrame();
-      var spline=this.spline===undefined ? new Spline() : this.spline.copy();
+      let frame=this.frame = new SplineFrame();
+      let spline=this.spline===undefined ? new Spline() : this.spline.copy();
       spline.verts.select_listeners.addListener(this.on_spline_select, this);
       spline.handles.select_listeners.addListener(this.on_spline_select, this);
       spline.idgen = this.idgen;
@@ -2080,8 +2085,8 @@ SplineKCacheItem {
     }
      find_frame(time, off) {
       off = off===undefined ? 0 : off;
-      var flist=this.framelist;
-      for (var i=0; i<flist.length-1; i++) {
+      let flist=this.framelist;
+      for (let i=0; i<flist.length-1; i++) {
           if (flist[i]<=time&&flist[i+1]>time) {
               break;
           }
@@ -2094,9 +2099,9 @@ SplineKCacheItem {
       if (!window.inFromStruct&&_update_animation) {
           this.update_frame();
       }
-      var f=this.frames[0];
-      for (var v of this.spline.points) {
-          var vd=this.get_vdata(v.eid, false);
+      let f=this.frames[0];
+      for (let v of this.spline.points) {
+          let vd=this.get_vdata(v.eid, false);
           if (vd===undefined)
             continue;
           if (v.flag&SplineFlags.SELECT)
@@ -2111,11 +2116,11 @@ SplineKCacheItem {
       if (f===undefined) {
           f = this.insert_frame(time);
       }
-      var spline=f.spline;
+      let spline=f.spline;
       if (!window.inFromStruct&&_update_animation) {
-          for (var v of spline.points) {
-              var set_flag=v.eid in this.vertex_animdata;
-              var vdata=this.get_vdata(v.eid, false);
+          for (let v of spline.points) {
+              let set_flag=v.eid in this.vertex_animdata;
+              let vdata=this.get_vdata(v.eid, false);
               if (vdata===undefined)
                 continue;
               if (set_flag) {
@@ -2132,7 +2137,7 @@ SplineKCacheItem {
               else {
               }
           }
-          var set_update=true;
+          let set_update=true;
           if (this.kcache.has(time, spline)) {
               if (_DEBUG.timeChange)
                 console.log("found cached k data!");
@@ -2140,12 +2145,12 @@ SplineKCacheItem {
               set_update = false;
           }
           if (!set_update) {
-              for (var seg of spline.segments) {
+              for (let seg of spline.segments) {
                   if (seg.hidden)
                     continue;
                   seg.flag|=SplineFlags.REDRAW;
               }
-              for (var face of spline.faces) {
+              for (let face of spline.faces) {
                   if (face.hidden)
                     continue;
                   face.flag|=SplineFlags.REDRAW;
@@ -2160,12 +2165,12 @@ SplineKCacheItem {
           if (!window.inFromStruct)
             spline.solve();
       }
-      for (var s of spline.segments) {
+      for (let s of spline.segments) {
           if (s.hidden)
             continue;
           s.flag|=SplineFlags.UPDATE_AABB;
       }
-      for (var f of spline.segments) {
+      for (let f of spline.segments) {
           if (f.hidden)
             continue;
           f.flag|=SplineFlags.UPDATE_AABB;
@@ -2188,17 +2193,17 @@ SplineKCacheItem {
       return this.vertex_animdata[eid];
     }
      check_vdata_integrity(veid) {
-      var spline=this.pathspline;
-      var found=false;
+      let spline=this.pathspline;
+      let found=false;
       if (veid===undefined) {
           this.check_paths();
-          for (var k in this.vertex_animdata) {
-              var vd=this.vertex_animdata[k];
+          for (let k in this.vertex_animdata) {
+              let vd=this.vertex_animdata[k];
               found|=vd.check_time_integrity();
           }
       }
       else {
-        var vd=this.vertex_animdata[veid];
+        let vd=this.vertex_animdata[veid];
         if (vd===undefined) {
             console.log("Error: vertex ", veid, "not in frameset");
             return false;
@@ -2215,8 +2220,8 @@ SplineKCacheItem {
     }
      check_paths() {
       let update=false;
-      for (var k in this.vertex_animdata) {
-          var vd=this.vertex_animdata[k];
+      for (let k in this.vertex_animdata) {
+          let vd=this.vertex_animdata[k];
           if (vd.dead||!vd.startv) {
               delete this.vertex_animdata[k];
               update = true;
@@ -2235,25 +2240,25 @@ SplineKCacheItem {
     }
      rationalize_vdata_layers() {
       this.fix_anim_paths();
-      var spline=this.pathspline;
+      let spline=this.pathspline;
       spline.layerset = new SplineLayerSet();
-      var templayer=spline.layerset.new_layer();
+      let templayer=spline.layerset.new_layer();
       this.templayerid = templayer.id;
       spline.layerset.active = templayer;
-      for (var i=0; i<spline.elists.length; i++) {
-          var list=spline.elists[i];
+      for (let i=0; i<spline.elists.length; i++) {
+          let list=spline.elists[i];
           list.layerset = spline.layerset;
-          for (var e of list) {
+          for (let e of list) {
               e.layers = {};
           }
       }
-      for (var k in this.vertex_animdata) {
-          var vd=this.vertex_animdata[k];
-          var vlayer=spline.layerset.new_layer();
+      for (let k in this.vertex_animdata) {
+          let vd=this.vertex_animdata[k];
+          let vlayer=spline.layerset.new_layer();
           vlayer.flag|=SplineLayerFlags.HIDE;
           vd.layerid = vlayer.id;
-          for (var v of vd.verts) {
-              for (var i=0; i<v.segments.length; i++) {
+          for (let v of vd.verts) {
+              for (let i=0; i<v.segments.length; i++) {
                   vlayer.add(v.segments[i]);
               }
               vlayer.add(v);
@@ -2261,7 +2266,7 @@ SplineKCacheItem {
       }
     }
      draw(ctx, g, editor, matrix, redraw_rects, ignore_layers) {
-      var size=editor.size, pos=editor.pos;
+      let size=editor.size, pos=editor.pos;
       this.draw_anim_paths = editor.draw_anim_paths;
       this.selectmode = editor.selectmode;
       g.save();
@@ -2294,21 +2299,21 @@ SplineKCacheItem {
       for (v of this.pathspline.verts) {
 
       }
-      for (var h of this.pathspline.handles) {
+      for (let h of this.pathspline.handles) {
 
       }
-      for (var vd of this.vertex_animdata) {
+      for (let vd of this.vertex_animdata) {
           vd.spline = this.pathspline;
           if (vd.layerid===undefined) {
-              var layer=this.pathspline.layerset.new_layer();
+              let layer=this.pathspline.layerset.new_layer();
               layer.flag|=SplineLayerFlags.HIDE;
               vd.layerid = layer.id;
               if (vd.startv_eid!=undefined) {
-                  var v=this.pathspline.eidmap[vd.startv_eid];
-                  var s=v.segments[0];
+                  let v=this.pathspline.eidmap[vd.startv_eid];
+                  let s=v.segments[0];
                   v.layers = {};
                   v.layers[vd.layerid] = 1;
-                  var _c1=0;
+                  let _c1=0;
                   while (v.segments.length>0) {
                     v.layers = {};
                     v.layers[vd.layerid] = 1;
@@ -2336,11 +2341,11 @@ SplineKCacheItem {
       this.pathspline.is_anim_path = true;
       if (this.templayerid===undefined)
         this.templayerid = this.pathspline.layerset.new_layer().id;
-      var frames={};
-      var vert_animdata={};
-      var max_cur=this.idgen.cur_id;
-      var firstframe=undefined;
-      for (var i=0; i<this.frames.length; i++) {
+      let frames={};
+      let vert_animdata={};
+      let max_cur=this.idgen.cur_id;
+      let firstframe=undefined;
+      for (let i=0; i<this.frames.length; i++) {
           max_cur = Math.max(this.frames[i].spline.idgen.cur_id, max_cur);
           if (i===0)
             firstframe = this.frames[i];
@@ -2348,7 +2353,7 @@ SplineKCacheItem {
           frames[this.frames[i].time] = this.frames[i];
       }
       this.idgen.max_cur(max_cur);
-      for (var i=0; i<this.vertex_animdata.length; i++) {
+      for (let i=0; i<this.vertex_animdata.length; i++) {
           vert_animdata[this.vertex_animdata[i].eid] = this.vertex_animdata[i];
       }
       for (let k in vert_animdata) {
@@ -2359,7 +2364,7 @@ SplineKCacheItem {
       }
       this.frames = frames;
       this.pathspline.regen_sort();
-      var fk=this.cur_frame||0;
+      let fk=this.cur_frame||0;
       delete this.cur_frame;
       if (fk===undefined) {
           this.frame = firstframe;
@@ -2371,11 +2376,11 @@ SplineKCacheItem {
       }
       this.vertex_animdata = vert_animdata;
       if (this.framelist.length===0) {
-          for (var k in this.frames) {
+          for (let k in this.frames) {
               this.framelist.push(parseFloat(k));
           }
       }
-      for (k in this.frames) {
+      for (let k in this.frames) {
           this.frames[k].spline.verts.select_listeners.addListener(this.on_spline_select, this);
           this.frames[k].spline.handles.select_listeners.addListener(this.on_spline_select, this);
       }
@@ -2385,7 +2390,7 @@ SplineKCacheItem {
       window.inFromStruct = false;
     }
      make_pathspline() {
-      var spline=new Spline();
+      let spline=new Spline();
       spline.is_anim_path = true;
       spline.restrict = restrictflags;
       spline.verts.cdata.add_layer(TimeDataLayer, "time data");
@@ -2418,7 +2423,7 @@ SplineKCacheItem {
 }, '/dev/fairmotion/src/core/frameset.js');
 
 
-es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../editor_base.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -2698,7 +2703,7 @@ es6_module_define('SettingsEditor', ["../editor_base.js", "../../core/struct.js"
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 
 
-es6_module_define('data_api_define', ["../../curve/spline.js", "../../editors/viewport/view2d.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/selectmode.js", "../frameset.js", "../../scene/sceneobject.js", "../../curve/spline_base.js", "../../editors/settings/SettingsEditor.js", "../../editors/viewport/view2d_base.js", "../../editors/ops/ops_editor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../curve/spline_types.js", "../context.js", "../UserSettings.js", "../toolops_api.js", "../../editors/viewport/toolmodes/splinetool.js", "../../editors/curve/CurveEditor.js", "../../curve/spline_element_array.js", "../animdata.js", "../lib_api.js", "../../path.ux/scripts/pathux.js", "../toolprops.js", "../../editors/viewport/spline_createops.js", "../../scene/scene.js", "../imageblock.js", "../units.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../editors/viewport/view2d_base.js", "../../editors/viewport/selectmode.js", "../toolprops.js", "../animdata.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../../editors/ops/ops_editor.js", "../context.js", "../frameset.js", "../../curve/spline_types.js", "../../path.ux/scripts/pathux.js", "../../curve/spline_base.js", "../../curve/spline.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/curve/CurveEditor.js", "../UserSettings.js", "../imageblock.js", "../../scene/sceneobject.js", "../lib_api.js", "../toolops_api.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/viewport/toolmodes/splinetool.js", "../../scene/scene.js", "../../curve/spline_element_array.js"], function _data_api_define_module(_es6_module) {
   "use strict";
   var DataAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DataAPI');
   var buildToolSysAPI=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'buildToolSysAPI');
@@ -2933,13 +2938,17 @@ es6_module_define('data_api_define', ["../../curve/spline.js", "../../editors/vi
         window.redraw_viewport();
       }
       MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", prop_update);
-      MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", prop_update);
-      MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", prop_update);
+      MaterialStruct.float("linewidth", "linewidth", "linewidth").noUnits().range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).range(0, 10000).on("change", prop_update);
+      MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").noUnits().step(0.25).expRate(1.75).decimalPlaces(4).range(0.0, 10000.0).on("change", prop_update);
       MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({SELECT: "Select", 
      MASK_TO_FACE: "Mask To Face"}).descriptions({SELECT: "Select", 
-     MASK_TO_FACE: "Mask To Face"}).icons(DataTypes).on("change", prop_update);
+     MASK_TO_FACE: "Mask To Face"}).icons(DataTypes).on("change", function (newval, oldval) {
+        this.dataref.update();
+        g_app_state.ctx.spline.regen_sort();
+        window.redraw_viewport();
+      });
       MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", prop_update);
-      MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", prop_update);
+      MaterialStruct.float("blur", "blur", "Blur").noUnits().step(0.5).expRate(1.33).decimalPlaces(4).range(0, 10000).on("change", prop_update);
       MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", prop_update);
     }
     var ImageStruct=api.mapStruct(Image, true);
@@ -3649,14 +3658,14 @@ es6_module_define('data_api', ["../toolops_api.js"], function _data_api_module(_
         if (!isTool(cls))
           continue;
         let def=cls.tooldef();
-        if (def.apiname===undefined) {
-        }
         if (def.apiname)
           toolmap[def.apiname] = cls;
         if (def.toolpath)
           toolmap[def.toolpath] = cls;
         toollist.push(cls);
-        ToolOp.register(cls);
+        if (!ToolOp.isRegistered(cls)) {
+            ToolOp.register(cls);
+        }
     }
   }
   register_toolops = _es6_module.add_export('register_toolops', register_toolops);
@@ -5811,7 +5820,7 @@ es6_module_define('brush_base', [], function _brush_base_module(_es6_module) {
 }, '/dev/fairmotion/src/brush/brush_base.js');
 
 
-es6_module_define('brush_types', ["./brush_base.js", "../core/lib_api.js", "../path.ux/scripts/pathux.js"], function _brush_types_module(_es6_module) {
+es6_module_define('brush_types', ["../core/lib_api.js", "../path.ux/scripts/pathux.js", "./brush_base.js"], function _brush_types_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Curve1D=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Curve1D');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
@@ -6103,7 +6112,7 @@ brush.BrushTool {
 }, '/dev/fairmotion/src/brush/brush_types.js');
 
 
-es6_module_define('brush', ["./brush_types.js", "../path.ux/scripts/pathux.js", "../core/lib_api.js"], function _brush_module(_es6_module) {
+es6_module_define('brush', ["../core/lib_api.js", "../path.ux/scripts/pathux.js", "./brush_types.js"], function _brush_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
@@ -6157,7 +6166,7 @@ es6_module_define('brush', ["./brush_types.js", "../path.ux/scripts/pathux.js", 
 }, '/dev/fairmotion/src/brush/brush.js');
 
 
-es6_module_define('imagecanvas', ["../path.ux/scripts/pathux.js", "../graph/graph.js", "./imagecanvas_base.js", "../core/lib_api.js", "../core/eventdag.js"], function _imagecanvas_module(_es6_module) {
+es6_module_define('imagecanvas', ["./imagecanvas_base.js", "../core/lib_api.js", "../graph/graph.js", "../core/eventdag.js", "../path.ux/scripts/pathux.js"], function _imagecanvas_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var Curve1D=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Curve1D');
   var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector4');
@@ -6681,7 +6690,7 @@ es6_module_define('imagecanvas_draw', ["../path.ux/scripts/pathux.js"], function
 }, '/dev/fairmotion/src/paint/imagecanvas_draw.js');
 
 
-es6_module_define('imagecanvas_webgl', ["../webgl/fbo.js", "./imagecanvas_base.js", "../webgl/shaders.js", "../webgl/webgl.js", "../path.ux/scripts/pathux.js", "./imagecanvas.js", "../webgl/simplemesh.js"], function _imagecanvas_webgl_module(_es6_module) {
+es6_module_define('imagecanvas_webgl', ["./imagecanvas_base.js", "../path.ux/scripts/pathux.js", "../webgl/simplemesh.js", "../webgl/fbo.js", "./imagecanvas.js", "../webgl/shaders.js", "../webgl/webgl.js"], function _imagecanvas_webgl_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');

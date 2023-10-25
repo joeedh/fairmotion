@@ -1,4 +1,893 @@
 
+es6_module_define('events', ["./simple_events.js", "./util.js"], function _events_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, './util.js');
+  var simple_events=es6_import(_es6_module, './simple_events.js');
+  let _ex_keymap=es6_import_item(_es6_module, './simple_events.js', 'keymap');
+  _es6_module.add_export('keymap', _ex_keymap, true);
+  let _ex_reverse_keymap=es6_import_item(_es6_module, './simple_events.js', 'reverse_keymap');
+  _es6_module.add_export('reverse_keymap', _ex_reverse_keymap, true);
+  let _ex_keymap_latin_1=es6_import_item(_es6_module, './simple_events.js', 'keymap_latin_1');
+  _es6_module.add_export('keymap_latin_1', _ex_keymap_latin_1, true);
+  class EventDispatcher  {
+     constructor() {
+      this._cbs = {};
+    }
+     _fireEvent(type, data) {
+      let stop=false;
+      data = {stopPropagation: function stopPropagation() {
+          stop = true;
+        }, 
+     data: data};
+      if (type in this._cbs) {
+          for (let cb of this._cbs[type]) {
+              cb(data);
+              if (stop) {
+                  break;
+              }
+          }
+      }
+    }
+     on(type, cb) {
+      if (!(type in this._cbs)) {
+          this._cbs[type] = [];
+      }
+      this._cbs[type].push(cb);
+      return this;
+    }
+     off(type, cb) {
+      if (!(type in this._cbs)) {
+          console.warn("event handler not in list", type, cb);
+          return this;
+      }
+      let stack=this._cbs[type];
+      if (stack.indexOf(cb)<0) {
+          console.warn("event handler not in list", type, cb);
+          return this;
+      }
+      stack.remove(cb);
+      return this;
+    }
+  }
+  _ESClass.register(EventDispatcher);
+  _es6_module.add_class(EventDispatcher);
+  EventDispatcher = _es6_module.add_export('EventDispatcher', EventDispatcher);
+  function copyMouseEvent(e) {
+    let ret={}
+    function bind(func, obj) {
+      return function () {
+        return this._orig.apply(func, arguments);
+      }
+    }
+    let exclude=new Set(["__proto__"]);
+    ret._orig = e;
+    for (let k in e) {
+        let v=e[k];
+        if (exclude.has(k)) {
+            continue;
+        }
+        if (typeof v=="function") {
+            v = bind(v);
+        }
+        ret[k] = v;
+    }
+    ret.ctrlKey = e.ctrlKey;
+    ret.shiftKey = e.shiftKey;
+    ret.altKey = e.altKey;
+    for (let i=0; i<2; i++) {
+        let key=i ? "targetTouches" : "touches";
+        if (e[key]) {
+            ret[key] = [];
+            for (let t of e[key]) {
+                let t2={};
+                ret[key].push(t2);
+                for (let k in t) {
+                    t2[k] = t[k];
+                }
+            }
+        }
+    }
+    return ret;
+  }
+  copyMouseEvent = _es6_module.add_export('copyMouseEvent', copyMouseEvent);
+  const DomEventTypes={on_mousemove: 'mousemove', 
+   on_mousedown: 'mousedown', 
+   on_mouseup: 'mouseup', 
+   on_touchstart: 'touchstart', 
+   on_touchcancel: 'touchcanel', 
+   on_touchmove: 'touchmove', 
+   on_touchend: 'touchend', 
+   on_mousewheel: 'mousewheel', 
+   on_keydown: 'keydown', 
+   on_keyup: 'keyup', 
+   on_pointerdown: 'pointerdown', 
+   on_pointermove: 'pointermove', 
+   on_pointercancel: 'pointercancel', 
+   on_pointerup: 'pointerup'}
+  _es6_module.add_export('DomEventTypes', DomEventTypes);
+  function getDom(dom, eventtype) {
+    if (eventtype.startsWith("key"))
+      return window;
+    return dom;
+  }
+  let modalStack=[];
+  modalStack = _es6_module.add_export('modalStack', modalStack);
+  function isModalHead(owner) {
+    return modalStack.length===0||modalStack[modalStack.length-1]===owner;
+  }
+  isModalHead = _es6_module.add_export('isModalHead', isModalHead);
+  class EventHandler  {
+     constructor() {
+      this._modalstate = undefined;
+    }
+     pushPointerModal(dom, pointerId) {
+      if (this._modalstate) {
+          console.warn("pushPointerModal called twiced!");
+          return ;
+      }
+      this._modalstate = simple_events.pushPointerModal(this, dom, pointerId);
+    }
+     pushModal(dom, _is_root) {
+      if (this._modalstate) {
+          console.warn("pushModal called twiced!");
+          return ;
+      }
+      this._modalstate = simple_events.pushModalLight(this);
+    }
+     popModal() {
+      if (this._modalstate!==undefined) {
+          let modalstate=this._modalstate;
+          simple_events.popModalLight(modalstate);
+          this._modalstate = undefined;
+      }
+    }
+  }
+  _ESClass.register(EventHandler);
+  _es6_module.add_class(EventHandler);
+  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
+  function pushModal(dom, handlers) {
+    console.warn("Deprecated call to pathux.events.pushModal; use api in simple_events.js instead");
+    let h=new EventHandler();
+    for (let k in handlers) {
+        h[k] = handlers[k];
+    }
+    handlers.popModal = () =>      {
+      return h.popModal(dom);
+    }
+    h.pushModal(dom, false);
+    return h;
+  }
+  pushModal = _es6_module.add_export('pushModal', pushModal);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/events.js');
+
+
+es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
+  var vectormath=es6_import(_es6_module, './vectormath.js');
+  var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
+  var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
+  var token=es6_import_item(_es6_module, './parseutil.js', 'token');
+  var parser=es6_import_item(_es6_module, './parseutil.js', 'parser');
+  var PUTLParseError=es6_import_item(_es6_module, './parseutil.js', 'PUTLParseError');
+  let tk=(n, r, f) =>    {
+    return new tokdef(n, r, f);
+  }
+  let count=(str, match) =>    {
+    let c=0;
+    do {
+      let i=str.search(match);
+      if (i<0) {
+          break;
+      }
+      c++;
+      str = str.slice(i+1, str.length);
+    } while (1);
+    
+    return c;
+  }
+  let tokens=[tk("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/), tk("NUM", /[0-9]+(\.[0-9]*)?/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /"[^"]*"/, (t) =>    {
+    let v=t.value;
+    t.lexer.lineno+=count(t.value, "\n");
+    return t;
+  }), tk("WS", /[ \t\n\r]/, (t) =>    {
+    t.lexer.lineno+=count(t.value, "\n");
+  }), tk("COMMA", /\,/), tk("COLON", /:/), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACKET", /\{/), tk("RBRACKET", /\}/), tk("DOT", /\./), tk("PLUS", /\+/), tk("MINUS", /\-/), tk("TIMES", /\*/), tk("DIVIDE", /\//), tk("EXP", /\*\*/), tk("LAND", /\&\&/), tk("BAND", /\&/), tk("LOR", /\|\|/), tk("BOR", /\|/), tk("EQUALS", /=/), tk("LEQUALS", /\<\=/), tk("GEQUALS", /\>\=/), tk("LTHAN", /\</), tk("GTHAN", /\>/), tk("MOD", /\%/), tk("XOR", /\^/), tk("BITINV", /\~/)];
+  let lex=new lexer(tokens, (t) =>    {
+    console.log("Token error");
+    return true;
+  });
+  let parse=new parser(lex);
+  let binops=new Set([".", "/", "*", "**", "^", "%", "&", "+", "-", "&&", "||", "&", "|", "<", ">", "==", "=", "<=", ">="]);
+  let precedence;
+  if (1) {
+      let table=[["**"], ["*", "/"], ["+", "-"], ["."], ["="], ["("], [")"]];
+      let pr={};
+      for (let i=0; i<table.length; i++) {
+          for (let c of table[i]) {
+              pr[c] = i;
+          }
+      }
+      precedence = pr;
+  }
+  function indent(n, chr) {
+    if (chr===undefined) {
+        chr = "  ";
+    }
+    let s="";
+    for (let i=0; i<n; i++) {
+        s+=chr;
+    }
+    return s;
+  }
+  class Node extends Array {
+     constructor(type) {
+      super();
+      this.type = type;
+      this.parent = undefined;
+    }
+     push(n) {
+      n.parent = this;
+      return super.push(n);
+    }
+     remove(n) {
+      let i=this.indexOf(n);
+      if (i<0) {
+          console.log(n);
+          throw new Error("item not in array");
+      }
+      while (i<this.length) {
+        this[i] = this[i+1];
+        i++;
+      }
+      n.parent = undefined;
+      this.length--;
+      return this;
+    }
+     insert(starti, n) {
+      let i=this.length-1;
+      this.length++;
+      if (n.parent) {
+          n.parent.remove(n);
+      }
+      while (i>starti) {
+        this[i] = this[i-1];
+        i--;
+      }
+      n.parent = this;
+      this[starti] = n;
+      return this;
+    }
+     replace(n, n2) {
+      if (n2.parent) {
+          n2.parent.remove(n2);
+      }
+      this[this.indexOf(n)] = n2;
+      n.parent = undefined;
+      n2.parent = this;
+      return this;
+    }
+     toString(t=0) {
+      let tab=indent(t, "-");
+      let typestr=this.type;
+      if (this.value!==undefined) {
+          typestr+=" : "+this.value;
+      }
+      else 
+        if (this.op!==undefined) {
+          typestr+=" ("+this.op+")";
+      }
+      let s=tab+typestr+" {\n";
+      for (let c of this) {
+          s+=c.toString(t+1);
+      }
+      s+=tab+"}\n";
+      return s;
+    }
+  }
+  _ESClass.register(Node);
+  _es6_module.add_class(Node);
+  Node = _es6_module.add_export('Node', Node);
+  function parseExpr(s) {
+    let p=parse;
+    function Value() {
+      let t=p.next();
+      if (t&&t.value==="(") {
+          t = p.next();
+      }
+      if (t===undefined) {
+          p.error(undefined, "Expected a value");
+          return ;
+      }
+      let n=new Node();
+      n.value = t.value;
+      if (t.type==="ID") {
+          n.type = "Ident";
+      }
+      else 
+        if (t.type==="NUM") {
+          n.type = "Number";
+      }
+      else 
+        if (t.type==="STRLIT") {
+          n.type = "StrLit";
+      }
+      else 
+        if (t.type==="MINUS") {
+          let t2=p.peek_i(0);
+          if (t2&&t2.type==="NUM") {
+              p.next();
+              n.type = "Number";
+              n.value = -t2.value;
+          }
+          else 
+            if (t2&&t2.type==="ID") {
+              p.next();
+              n.type = "Negate";
+              let n2=new Node();
+              n2.type = "Ident";
+              n2.value = t2.value;
+              n.push(n2);
+          }
+          else {
+            p.error(t, "Expected a value, not '"+t.value+"'");
+          }
+      }
+      else {
+        p.error(t, "Expected a value, not '"+t.value+"'");
+      }
+      return n;
+    }
+    function bin_next(depth) {
+      if (depth===undefined) {
+          depth = 0;
+      }
+      let a=p.peek_i(0);
+      let b=p.peek_i(1);
+      if (b&&b.value===")") {
+          b.type = a.type;
+          b.value = a.value;
+          p.next();
+          let c=p.peek_i(2);
+          if (c&&binops.has(c.value)) {
+              return {value: b, 
+         op: c.value, 
+         prec: -10}
+          }
+      }
+      if (b&&binops.has(b.value)) {
+          return {value: a, 
+       op: b.value, 
+       prec: precedence[b.value]}
+      }
+      else {
+        return Value(a);
+      }
+    }
+    function BinOp(left, depth) {
+      if (depth===undefined) {
+          depth = 0;
+      }
+      console.log(indent(depth)+"BinOp", left.toString());
+      let op=p.next();
+      let right;
+      let n;
+      let prec=precedence[op.value];
+      let r=bin_next(depth+1);
+      if (__instance_of(r, Node)) {
+          right = r;
+      }
+      else {
+        if (r.prec>prec) {
+            if (!n) {
+                n = new Node("BinOp");
+                n.op = op.value;
+                n.push(left);
+            }
+            n.push(Value());
+            return n;
+        }
+        else {
+          right = BinOp(Value(), depth+2);
+        }
+      }
+      n = new Node("BinOp", op);
+      n.op = op.value;
+      n.push(right);
+      n.push(left);
+      console.log("\n\n", n.toString(), "\n\n");
+      left = n;
+      console.log(n.toString());
+      return n;
+    }
+    function Start() {
+      let ret=Value();
+      while (!p.at_end()) {
+        let t=p.peek_i(0);
+        if (t===undefined) {
+            break;
+        }
+        console.log(t.toString());
+        if (binops.has(t.value)) {
+            console.log("binary op!");
+            ret = BinOp(ret);
+        }
+        else 
+          if (t.value===",") {
+            let n=new Node();
+            n.type = "ExprList";
+            p.next();
+            n.push(ret);
+            let n2=Start();
+            if (n2.type==="ExprList") {
+                for (let c of n2) {
+                    n.push(c);
+                }
+            }
+            else {
+              n.push(n2);
+            }
+            return n;
+        }
+        else 
+          if (t.value==="(") {
+            let n=new Node("FuncCall");
+            n.push(ret);
+            n.push(Start());
+            p.expect("RPAREN");
+            return n;
+        }
+        else 
+          if (t.value===")") {
+            return ret;
+        }
+        else {
+          console.log(ret.toString());
+          p.error(t, "Unexpected token "+t.value);
+        }
+      }
+      return ret;
+    }
+    function Run() {
+      let ret=[];
+      while (!p.at_end()) {
+        ret.push(Start());
+      }
+      return ret;
+    }
+    p.start = Run;
+    return p.parse(s);
+  }
+  parseExpr = _es6_module.add_export('parseExpr', parseExpr);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/expr.js');
+
+
+es6_module_define('graphpack', ["./vectormath.js", "./util.js", "./solver.js", "./math.js"], function _graphpack_module(_es6_module) {
+  "use strict";
+  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
+  var math=es6_import(_es6_module, './math.js');
+  var util=es6_import(_es6_module, './util.js');
+  var Constraint=es6_import_item(_es6_module, './solver.js', 'Constraint');
+  var Solver=es6_import_item(_es6_module, './solver.js', 'Solver');
+  let idgen=0;
+  class PackNodeVertex extends Vector2 {
+     constructor(node, co) {
+      super(co);
+      this.node = node;
+      this._id = idgen++;
+      this.edges = [];
+      this._absPos = new Vector2();
+    }
+    get  absPos() {
+      this._absPos.load(this).add(this.node.pos);
+      return this._absPos;
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNodeVertex);
+  _es6_module.add_class(PackNodeVertex);
+  PackNodeVertex = _es6_module.add_export('PackNodeVertex', PackNodeVertex);
+  class PackNode  {
+     constructor() {
+      this.pos = new Vector2();
+      this.vel = new Vector2();
+      this.oldpos = new Vector2();
+      this._id = idgen++;
+      this.size = new Vector2();
+      this.verts = [];
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNode);
+  _es6_module.add_class(PackNode);
+  PackNode = _es6_module.add_export('PackNode', PackNode);
+  function copyGraph(nodes) {
+    let ret=[];
+    let idmap={}
+    for (let n of nodes) {
+        let n2=new PackNode();
+        n2._id = n._id;
+        n2.pos.load(n.pos);
+        n2.vel.load(n.vel);
+        n2.size.load(n.size);
+        n2.verts = [];
+        idmap[n2._id] = n2;
+        for (let v of n.verts) {
+            let v2=new PackNodeVertex(n2, v);
+            v2._id = v._id;
+            idmap[v2._id] = v2;
+            n2.verts.push(v2);
+        }
+        ret.push(n2);
+    }
+    for (let n of nodes) {
+        for (let v of n.verts) {
+            let v2=idmap[v._id];
+            for (let v3 of v.edges) {
+                v2.edges.push(idmap[v3._id]);
+            }
+        }
+    }
+    return ret;
+  }
+  function getCenter(nodes) {
+    let cent=new Vector2();
+    for (let n of nodes) {
+        cent.add(n.pos);
+    }
+    if (nodes.length===0)
+      return cent;
+    cent.mulScalar(1.0/nodes.length);
+    return cent;
+  }
+  function loadGraph(nodes, copy) {
+    let idmap={}
+    for (let i=0; i<nodes.length; i++) {
+        nodes[i].pos.load(copy[i].pos);
+        nodes[i].oldpos.load(copy[i].oldpos);
+        nodes[i].vel.load(copy[i].vel);
+    }
+  }
+  function graphGetIslands(nodes) {
+    let islands=[];
+    let visit1=new util.set();
+    let rec=(n, island) =>      {
+      island.push(n);
+      visit1.add(n);
+      for (let v of n.verts) {
+          for (let e of v.edges) {
+              let n2=e.node;
+              if (n2!==n&&!visit1.has(n2)) {
+                  rec(n2, island);
+              }
+          }
+      }
+    }
+    for (let n of nodes) {
+        if (visit1.has(n)) {
+            continue;
+        }
+        let island=[];
+        islands.push(island);
+        rec(n, island);
+    }
+    return islands;
+  }
+  graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
+  function graphPack(nodes, margin_or_args, steps, updateCb) {
+    if (margin_or_args===undefined) {
+        margin_or_args = 15;
+    }
+    if (steps===undefined) {
+        steps = 10;
+    }
+    if (updateCb===undefined) {
+        updateCb = undefined;
+    }
+    let margin=margin_or_args;
+    let speed=1.0;
+    if (typeof margin==="object") {
+        let args=margin;
+        margin = args.margin??15;
+        steps = args.steps??10;
+        updateCb = args.updateCb;
+        speed = args.speed??1.0;
+    }
+    let orignodes=nodes;
+    nodes = copyGraph(nodes);
+    let decay=1.0;
+    let decayi=0;
+    let min=new Vector2().addScalar(1e+17);
+    let max=new Vector2().addScalar(-1e+17);
+    let tmp=new Vector2();
+    for (let n of nodes) {
+        min.min(n.pos);
+        tmp.load(n.pos).add(n.size);
+        max.max(tmp);
+    }
+    let size=new Vector2(max).sub(min);
+    for (let n of nodes) {
+        n.pos[0]+=(Math.random()-0.5)*5.0/size[0]*speed;
+        n.pos[1]+=(Math.random()-0.5)*5.0/size[1]*speed;
+    }
+    let nodemap={}
+    for (let n of nodes) {
+        n.vel.zero();
+        nodemap[n._id] = n;
+        for (let v of n.verts) {
+            nodemap[v._id] = v;
+        }
+    }
+    let visit=new util.set();
+    let verts=new util.set();
+    let isect=[];
+    let disableEdges=false;
+    function edge_c(params) {
+      let $_t0mvbd=params, v1=$_t0mvbd[0], v2=$_t0mvbd[1], restlen=$_t0mvbd[2];
+      if (disableEdges)
+        return 0;
+      return Math.abs(v1.absPos.vectorDistance(v2.absPos)-restlen);
+    }
+    let p1=new Vector2();
+    let p2=new Vector2();
+    let s1=new Vector2();
+    let s2=new Vector2();
+    function loadBoxes(n1, n2, margin1) {
+      if (margin1===undefined) {
+          margin1 = margin;
+      }
+      p1.load(n1.pos);
+      p2.load(n2.pos);
+      s1.load(n1.size);
+      s2.load(n2.size);
+      p1.subScalar(margin1);
+      p2.subScalar(margin1);
+      s1.addScalar(margin1*2.0);
+      s2.addScalar(margin1*2.0);
+    }
+    let disableArea=false;
+    function area_c(params) {
+      let $_t1fkmq=params, n1=$_t1fkmq[0], n2=$_t1fkmq[1];
+      if (disableArea)
+        return 0.0;
+      loadBoxes(n1, n2);
+      let a1=n1.size[0]*n1.size[1];
+      let a2=n2.size[0]*n2.size[1];
+      return math.aabb_overlap_area(p1, s1, p2, s2);
+      return (math.aabb_overlap_area(p1, s1, p2, s2)/(a1+a2));
+    }
+    let lasterr, besterr, best;
+    let err;
+    let islands=graphGetIslands(nodes);
+    let fakeVerts=[];
+    for (let island of islands) {
+        let n=island[0];
+        let fv=new PackNodeVertex(n);
+        fakeVerts.push(fv);
+    }
+    let solveStep1=(gk) =>      {
+      if (gk===undefined) {
+          gk = 1.0;
+      }
+      let solver=new Solver();
+      isect.length = 0;
+      visit = new util.set();
+      if (fakeVerts.length>1) {
+          for (let i=1; i<fakeVerts.length; i++) {
+              let v1=fakeVerts[0];
+              let v2=fakeVerts[i];
+              let rlen=1.0;
+              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2, rlen]);
+              con.k = 0.25;
+              solver.add(con);
+          }
+      }
+      for (let n1 of nodes) {
+          for (let v of n1.verts) {
+              verts.add(v);
+              for (let v2 of v.edges) {
+                  if (v2._id<v._id)
+                    continue;
+                  let rlen=n1.size.vectorLength()*0.0;
+                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2, rlen]);
+                  con.k = 1.0;
+                  solver.add(con);
+              }
+          }
+          for (let n2 of nodes) {
+              if (n1===n2)
+                continue;
+              let key=Math.min(n1._id, n2._id)+":"+Math.max(n1._id, n2._id);
+              if (visit.has(key))
+                continue;
+              loadBoxes(n1, n2);
+              let area=math.aabb_overlap_area(p1, s1, p2, s2);
+              if (area>0.01) {
+                  let size=decay*(n1.size.vectorLength()+n2.size.vectorLength())*speed;
+                  n1.pos[0]+=(Math.random()-0.5)*size;
+                  n1.pos[1]+=(Math.random()-0.5)*size;
+                  n2.pos[0]+=(Math.random()-0.5)*size;
+                  n2.pos[1]+=(Math.random()-0.5)*size;
+                  isect.push([n1, n2]);
+                  visit.add(key);
+              }
+          }
+          for (let /*unprocessed ExpandNode*/[n1, n2] of isect) {
+              let con=new Constraint("area_c", area_c, [n1.pos, n2.pos], [n1, n2]);
+              solver.add(con);
+              con.k = 1.0;
+          }
+      }
+      return solver;
+    }
+    let i=1;
+    let solveStep=(gk) =>      {
+      if (gk===undefined) {
+          gk = 0.5;
+      }
+      let solver=solveStep1();
+      if (i%40===0.0) {
+          let c1=getCenter(nodes);
+          let rfac=1000.0;
+          if (best)
+            loadGraph(nodes, best);
+          for (let n of nodes) {
+              n.pos[0]+=(Math.random()-0.5)*rfac*speed;
+              n.pos[1]+=(Math.random()-0.5)*rfac*speed;
+              n.vel.zero();
+          }
+          let c2=getCenter(nodes);
+          c1.sub(c2);
+          for (let n of nodes) {
+              n.pos.add(c1);
+          }
+      }
+      let err=1e+17;
+      for (let n of nodes) {
+          n.oldpos.load(n.pos);
+          n.pos.addFac(n.vel, 0.5);
+      }
+      disableEdges = false;
+      disableArea = true;
+      solver.solve(1, gk);
+      disableEdges = true;
+      disableArea = false;
+      for (let j=0; j<10; j++) {
+          solver = solveStep1();
+          err = solver.solve(10, gk*speed);
+      }
+      for (let n of nodes) {
+          n.vel.load(n.pos).sub(n.oldpos);
+      }
+      disableEdges = false;
+      disableArea = true;
+      err = 0.0;
+      for (let con of solver.constraints) {
+          err+=con.evaluate(true);
+      }
+      disableEdges = false;
+      disableArea = false;
+      lasterr = err;
+      let add=Math.random()*besterr*Math.exp(-i*0.1);
+      if (besterr===undefined||err<besterr+add) {
+          best = copyGraph(nodes);
+          besterr = err;
+      }
+      i++;
+      return err;
+    }
+    for (let j=0; j<steps; j++) {
+        solveStep();
+        decayi++;
+        decay = Math.exp(-decayi*0.1);
+    }
+    min.zero().addScalar(1e+17);
+    max.zero().addScalar(-1e+17);
+    for (let node of (best ? best : nodes)) {
+        min.min(node.pos);
+        p2.load(node.pos).add(node.size);
+        max.max(p2);
+    }
+    for (let node of (best ? best : nodes)) {
+        node.pos.sub(min);
+    }
+    loadGraph(orignodes, best ? best : nodes);
+    if (updateCb) {
+        if (nodes._timer!==undefined) {
+            window.clearInterval(nodes._timer);
+        }
+        nodes._timer = window.setInterval(() =>          {
+          let time=util.time_ms();
+          while (util.time_ms()-time<50) {
+            let err=solveStep();
+          }
+          if (cconst.DEBUG.boxPacker) {
+              console.log("err", (besterr/nodes.length).toFixed(2), (lasterr/nodes.length).toFixed(2), "isects", isect.length);
+          }
+          if (best)
+            loadGraph(orignodes, best);
+          if (updateCb()===false) {
+              clearInterval(nodes._timer);
+              return ;
+          }
+        }, 100);
+        let timer=nodes._timer;
+        return {stop: () =>            {
+            if (best)
+              loadGraph(nodes, best);
+            window.clearInterval(timer);
+            nodes._timer = undefined;
+          }}
+    }
+  }
+  graphPack = _es6_module.add_export('graphPack', graphPack);
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/graphpack.js');
+
+
+es6_module_define('html5_fileapi', [], function _html5_fileapi_module(_es6_module) {
+  function saveFile(data, filename, exts, mime) {
+    if (filename===undefined) {
+        filename = "unnamed";
+    }
+    if (exts===undefined) {
+        exts = [];
+    }
+    if (mime===undefined) {
+        mime = "application/x-octet-stream";
+    }
+    let blob=new Blob([data], {type: mime});
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement("a");
+    a.setAttribute("href", url);
+    a.setAttribute("download", filename);
+    a.click();
+  }
+  saveFile = _es6_module.add_export('saveFile', saveFile);
+  function loadFile(filename, exts) {
+    if (filename===undefined) {
+        filename = "unnamed";
+    }
+    if (exts===undefined) {
+        exts = [];
+    }
+    let input=document.createElement("input");
+    input.type = "file";
+    exts = exts.join(",");
+    input.setAttribute("accept", exts);
+    return new Promise((accept, reject) =>      {
+      input.onchange = function (e) {
+        if (this.files===undefined||this.files.length!==1) {
+            reject("file load error");
+            return ;
+        }
+        let file=this.files[0];
+        let reader=new FileReader();
+        reader.onload = function (e2) {
+          accept(e2.target.result);
+        }
+        reader.readAsArrayBuffer(file);
+      }
+      input.click();
+    });
+  }
+  loadFile = _es6_module.add_export('loadFile', loadFile);
+  window._testLoadFile = function (exts) {
+    if (exts===undefined) {
+        exts = ["*.*"];
+    }
+    loadFile(undefined, exts).then((data) =>      {
+      console.log("got file data:", data);
+    });
+  }
+  window._testSaveFile = function () {
+    let buf=_appstate.createFile();
+    saveFile(buf, "unnamed.w3d", [".w3d"]);
+  }
+}, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/html5_fileapi.js');
+
+
 es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   function getImageData(image) {
@@ -29,7 +918,6 @@ es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
   }
   getImageData = _es6_module.add_export('getImageData', getImageData);
   function loadImageFile() {
-    let this2=this;
     return new Promise((accept, reject) =>      {
       let input=document.createElement("input");
       input.type = "file";
@@ -40,12 +928,12 @@ es6_module_define('image', ["./util.js"], function _image_module(_es6_module) {
         if (files.length==0)
           return ;
         var reader=new FileReader();
-        reader.onload = function (e) {
+        reader.onload = (e) =>          {
           var img=new Image();
           let dataurl=img.src = e.target.result;
           window._image_url = e.target.result;
           img.onload = (e) =>            {
-            this2.getImageData(img).then((data) =>              {
+            getImageData(img).then((data) =>              {
               data.dataurl = dataurl;
               accept(data);
             });
@@ -491,7 +1379,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     let p=dtvtmps.next().load(co);
     p.sub(v1);
     let planedis=-p.dot(no);
-    let $_t0dutf=calc_projection_axes(no), axis=$_t0dutf[0], axis2=$_t0dutf[1];
+    let $_t0bqwo=calc_projection_axes(no), axis=$_t0bqwo[0], axis2=$_t0bqwo[1];
     let p1=dtvtmps.next();
     let p2=dtvtmps.next();
     let p3=dtvtmps.next();
@@ -721,7 +1609,9 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     let l2=v2.vectorDistance(v3);
     let l3=v3.vectorDistance(v1);
     let s=(l1+l2+l3)/2.0;
-    return Math.sqrt(s*(s-l1)*(s-l2)*(s-l3));
+    s = s*(s-l1)*(s-l2)*(s-l3);
+    s = Math.max(s, 0);
+    return Math.sqrt(s);
   }
   tri_area = _es6_module.add_export('tri_area', tri_area);
   function aabb_overlap_area(pos1, size1, pos2, size2) {
@@ -1178,6 +2068,9 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
   }
   winding_axis = _es6_module.add_export('winding_axis', winding_axis);
   function winding(a, b, c, zero_z, tol) {
+    if (zero_z===undefined) {
+        zero_z = false;
+    }
     if (tol===undefined) {
         tol = 0.0;
     }
@@ -2263,7 +3156,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
   function lreport() {
   }
   function trilinear_v3(uvw, boxverts) {
-    let $_t1mhdb=uvw, u=$_t1mhdb[0], v=$_t1mhdb[1], w=$_t1mhdb[2];
+    let $_t1aghk=uvw, u=$_t1aghk[0], v=$_t1aghk[1], w=$_t1aghk[2];
     const a1x=boxverts[0][0], a1y=boxverts[0][1], a1z=boxverts[0][2];
     const b1x=boxverts[1][0]-a1x, b1y=boxverts[1][1]-a1y, b1z=boxverts[1][2]-a1z;
     const c1x=boxverts[2][0]-a1x, c1y=boxverts[2][1]-a1y, c1z=boxverts[2][2]-a1z;
@@ -2312,7 +3205,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     if (!boxfacecents) {
         boxfacecents = boxfaces_tmp;
         for (let i=0; i<6; i++) {
-            let $_t2oito=boxfaces_table[i], v1=$_t2oito[0], v2=$_t2oito[1], v3=$_t2oito[2], v4=$_t2oito[3];
+            let $_t2vvns=boxfaces_table[i], v1=$_t2vvns[0], v2=$_t2vvns[1], v3=$_t2vvns[2], v4=$_t2vvns[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2323,7 +3216,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
     if (!boxfacenormals) {
         boxfacenormals = boxfacenormals_tmp;
         for (let i=0; i<6; i++) {
-            let $_t3walw=boxfaces_table[i], v1=$_t3walw[0], v2=$_t3walw[1], v3=$_t3walw[2], v4=$_t3walw[3];
+            let $_t3cpko=boxfaces_table[i], v1=$_t3cpko[0], v2=$_t3cpko[1], v3=$_t3cpko[2], v4=$_t3cpko[3];
             v1 = boxverts[v1];
             v2 = boxverts[v2];
             v3 = boxverts[v3];
@@ -2375,7 +3268,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
         let mini=undefined;
         let mindis=trilinear_v3(uvw, boxverts).vectorDistanceSqr(p);
         for (let i=0; i<8; i++) {
-            let $_t4hoqp=wtable[i], t1=$_t4hoqp[0], t2=$_t4hoqp[1], t3=$_t4hoqp[2];
+            let $_t4gtah=wtable[i], t1=$_t4gtah[0], t2=$_t4gtah[1], t3=$_t4gtah[2];
             let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
             let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
             let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -2410,7 +3303,7 @@ es6_module_define('math', ["./util.js", "./vectormath.js"], function _math_modul
             lreport("mindis:", (mindis**0.5).toFixed(3));
             break;
         }
-        let $_t5umra=wtable[mini], t1=$_t5umra[0], t2=$_t5umra[1], t3=$_t5umra[2];
+        let $_t5wjut=wtable[mini], t1=$_t5wjut[0], t2=$_t5wjut[1], t3=$_t5wjut[2];
         let u2=t1[0]*u[0]+t1[1]*u[1]+t1[2]*u[2];
         let v2=t2[0]*v[0]+t2[1]*v[1]+t2[2]*v[2];
         let w2=t3[0]*w[0]+t3[1]*w[1]+t3[2]*w[2];
@@ -4318,7 +5211,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           packer_debug = function () {
             let tab=gen_tabstr$1(packdebug_tablevel);
             if (arguments.length>0) {
-                console.warn(tab);
+                console.warn(tab, ...arguments);
             }
             else {
               console.warn("Warning: undefined msg");

@@ -255,7 +255,7 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/core/jobs.js');
 
 
-es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], function _ajax_module(_es6_module) {
+es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   let profile_start=(name) =>    {  }
@@ -982,7 +982,7 @@ es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], functi
 }, '/dev/fairmotion/src/core/ajax.js');
 
 
-es6_module_define('raster', ["../config/config.js", "./icon.js"], function _raster_module(_es6_module) {
+es6_module_define('raster', ["./icon.js", "../config/config.js"], function _raster_module(_es6_module) {
   "use strict";
   var IconManager=es6_import_item(_es6_module, './icon.js', 'IconManager');
   var config=es6_import(_es6_module, '../config/config.js');
@@ -1016,7 +1016,7 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_vb84_viewport;
+  var $ret_9_nU_viewport;
   class RasterState  {
     
     
@@ -1050,10 +1050,10 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_vb84_viewport[0][0] = $ret_vb84_viewport[0][1] = 0.0;
-        $ret_vb84_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_vb84_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_vb84_viewport;
+        $ret_9_nU_viewport[0][0] = $ret_9_nU_viewport[0][1] = 0.0;
+        $ret_9_nU_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_9_nU_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_9_nU_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1118,14 +1118,14 @@ es6_module_define('raster', ["../config/config.js", "./icon.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_vb84_viewport=[[0, 0], [0, 0]];
+  var $ret_9_nU_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
 
 
-es6_module_define('imageblock', ["./struct.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "./toolops_api.js", "../editors/viewport/view2d_editor.js", "./lib_api.js", "../editors/viewport/selectmode.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "./struct.js", "../editors/viewport/view2d_editor.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "./lib_api.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1243,7 +1243,7 @@ ImageUser {
 }, '/dev/fairmotion/src/core/imageblock.js');
 
 
-es6_module_define('image_ops', ["../core/imageblock.js", "../core/struct.js", "../core/toolprops.js", "../core/fileapi/fileapi.js", "../path.ux/scripts/util/struct.js", "../core/frameset.js", "../config/config.js", "../curve/spline.js", "../core/lib_api.js", "../curve/spline_draw.js", "../path.ux/scripts/pathux.js", "../core/toolops_api.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../core/lib_api.js", "../core/imageblock.js", "../core/frameset.js", "../curve/spline_draw.js", "../core/toolops_api.js", "../core/struct.js", "../core/fileapi/fileapi.js", "../core/toolprops.js", "../curve/spline.js", "../path.ux/scripts/pathux.js", "../config/config.js", "../path.ux/scripts/util/struct.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1349,7 +1349,7 @@ es6_module_define('image_ops', ["../core/imageblock.js", "../core/struct.js", ".
 }, '/dev/fairmotion/src/image/image_ops.js');
 
 
-es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../datafiles/theme.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../util/strutils.js", "../editors/theme.js", "../config/config.js", "./keymap.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["./keymap.js", "../datafiles/theme.js", "../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/util/util.js", "../config/config.js", "../path.ux/scripts/core/ui_base.js", "../editors/theme.js", "../util/strutils.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1551,7 +1551,7 @@ ToolOpSettings {
           for (var i=0; i<blocks.length; i++) {
               if (blocks[i].type==="USET") {
                   settings = fstruct.read_object(blocks[i].data, AppSettings);
-                  console.log("  found settings:", settings);
+                  console.log("  found settings.");
               }
           }
           if (settings===undefined) {
@@ -1861,11 +1861,12 @@ AppSettings {
 }, '/dev/fairmotion/src/core/UserSettings.js');
 
 
-es6_module_define('context', ["../scene/scene.js", "../editors/ops/ops_editor.js", "../editors/viewport/view2d.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/settings/SettingsEditor.js", "../curve/spline.js", "../editors/editor_base.js", "../editors/curve/CurveEditor.js", "../editors/console/console.js", "../path.ux/scripts/pathux.js", "./lib_api.js", "./frameset.js", "../editors/dopesheet/DopeSheetEditor.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../path.ux/scripts/pathux.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/ops/ops_editor.js", "./lib_api.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/path-controller/controller/context.js", "../editors/editor_base.js", "./frameset.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../scene/scene.js", "../curve/spline.js", "../editors/settings/SettingsEditor.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/path-controller/controller/context.js', 'Context');
   var SavedToolDefaults=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'SavedToolDefaults');
   var DataAPI=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'DataAPI');
+  var DataLib=es6_import_item(_es6_module, './lib_api.js', 'DataLib');
   class BaseContextOverlay extends ContextOverlay {
      constructor(state=g_app_state) {
       super(state);
@@ -1995,6 +1996,7 @@ es6_module_define('context', ["../scene/scene.js", "../editors/ops/ops_editor.js
     
     
     
+    
      constructor(state=g_app_state) {
       super(state);
       this.reset(state);
@@ -2090,7 +2092,7 @@ es6_module_define('context', ["../scene/scene.js", "../editors/ops/ops_editor.js
 }, '/dev/fairmotion/src/core/context.js');
 
 
-es6_module_define('toolstack', ["./context.js", "./toolprops.js", "./toolops_api.js", "../path.ux/scripts/pathux.js", "./const.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["../path.ux/scripts/pathux.js", "./const.js", "./toolprops.js", "./toolops_api.js", "./context.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2421,7 +2423,7 @@ es6_module_define('toolstack', ["./context.js", "./toolprops.js", "./toolops_api
 }, '/dev/fairmotion/src/core/toolstack.js');
 
 
-es6_module_define('AppState', ["./ajax.js", "../editors/theme.js", "../editors/console/console.js", "./toolstack.js", "./toolops_api.js", "../editors/curve/CurveEditor.js", "./context.js", "./toolprops.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/menubar/MenuBar.js", "./fileapi/fileapi.js", "./startup/startup_file.js", "../config/config.js", "../editors/all.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./jobs.js", "../editors/material/MaterialEditor.js", "../editors/viewport/view2d_ops.js", "../editors/viewport/view2d.js", "./raster.js", "../path.ux/scripts/util/util.js", "./lib_utils.js", "../curve/spline_base.js", "./lib_api.js", "../editors/settings/SettingsEditor.js", "./struct.js", "../util/strutils.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../../platforms/platform.js", "./notifications.js", "../scene/scene.js", "../editors/ops/ops_editor.js", "./UserSettings.js", "../path.ux/scripts/config/const.js", "./startup/startup_file_example.js", "../editors/editor_base.js", "../path.ux/scripts/pathux.js", "./frameset.js", "../path.ux/scripts/core/ui_base.js", "../editors/dopesheet/DopeSheetEditor.js", "./const.js", "./data_api/data_api_define.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../path.ux/scripts/core/ui_base.js", "../editors/ops/ops_editor.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/screen/FrameManager.js", "./toolprops.js", "./startup/startup_file.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/screen/ScreenArea.js", "./lib_utils.js", "./struct.js", "../editors/console/console.js", "./notifications.js", "./context.js", "../editors/settings/SettingsEditor.js", "./data_api/data_api_define.js", "../path.ux/scripts/config/const.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../scene/scene.js", "../editors/theme.js", "./fileapi/fileapi.js", "./frameset.js", "../editors/viewport/view2d_ops.js", "./toolops_api.js", "./startup/startup_file_example.js", "../curve/spline_base.js", "./lib_api.js", "../editors/editor_base.js", "../util/strutils.js", "../config/config.js", "./raster.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/curve/CurveEditor.js", "./UserSettings.js", "./jobs.js", "../editors/menubar/MenuBar.js", "./const.js", "../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/pathux.js", "./toolstack.js", "./ajax.js", "../editors/all.js", "../../platforms/platform.js", "../editors/viewport/view2d.js"], function _AppState_module(_es6_module) {
   "use strict";
   var pathux_platform=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'platform');
   pathux_platform.getPlatformAsync().then((mod) =>    {
@@ -2774,7 +2776,7 @@ es6_module_define('AppState', ["./ajax.js", "../editors/theme.js", "../editors/c
     }
     g.reset_state();
     let op=new BasicFileOp();
-    g.toolstack.exec_tool(op);
+    g.toolstack.execTool(g.ctx, op);
     gen_screen(undefined, size[0], size[1]);
   }
   function output_startup_file() {
@@ -4258,7 +4260,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
 }, '/dev/fairmotion/src/core/video.js');
 
 
-es6_module_define('fileapi', ["./fileapi_chrome", "./fileapi_electron", "../../config/config.js", "./fileapi_html5"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["../../config/config.js", "./fileapi_html5", "./fileapi_electron", "./fileapi_chrome"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -4486,7 +4488,7 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
 }, '/dev/fairmotion/src/core/fileapi/fileapi_chrome.js');
 
 
-es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron/electron_api.js", "./fileapi_html5.js", "../../config/config.js"], function _fileapi_electron_module(_es6_module) {
+es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron/electron_api.js", "../../config/config.js", "./fileapi_html5.js"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../../config/config.js');
   var fileapi_html5=es6_import(_es6_module, './fileapi_html5.js');
@@ -4527,7 +4529,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (thisvar==undefined)
       thisvar = this;
     let default_path=get_base_dir(g_app_state.filepath);
-    let $_t0ukcm=require('electron'), ipcRenderer=$_t0ukcm.ipcRenderer;
+    let $_t0aqgn=require('electron'), ipcRenderer=$_t0aqgn.ipcRenderer;
     let onthen=(e) =>      {
       if (e.cancelled) {
           return ;
@@ -4621,7 +4623,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
     if (dialog===undefined) {
         dialog = require('electron').remote.dialog;
     }
-    let $_t1mtdd=require('electron'), ipcRenderer=$_t1mtdd.ipcRenderer;
+    let $_t1tjvj=require('electron'), ipcRenderer=$_t1tjvj.ipcRenderer;
     let onthen=(dialog_data) =>      {
       let canceled=dialog_data.canceled;
       let path=dialog_data.filePath;
@@ -4665,7 +4667,7 @@ es6_module_define('fileapi_electron', ["../../path.ux/scripts/platforms/electron
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
 
 
-es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline_base.js", "./lib_api.js", "./eventdag.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./lib_api.js", "./struct.js", "./eventdag.js", "../curve/spline_base.js", "./toolprops.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -4687,7 +4689,7 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
   _es6_module.add_export('AnimKeyTypes', AnimKeyTypes);
   const AnimKeyFlags={SELECT: 1}
   _es6_module.add_export('AnimKeyFlags', AnimKeyFlags);
-  var AnimInterpModes={STEP: 1, 
+  let AnimInterpModes={STEP: 1, 
    CATMULL: 2, 
    LINEAR: 4}
   AnimInterpModes = _es6_module.add_export('AnimInterpModes', AnimInterpModes);
@@ -4703,7 +4705,7 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       if (srcs.length>0) {
           this.owning_veid = srcs[0].owning_veid;
       }
-      for (var i=0; i<srcs.length; i++) {
+      for (let i=0; i<srcs.length; i++) {
           this.time+=srcs[i].time*ws[i];
       }
     }
@@ -4724,15 +4726,15 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
   }
 `;
   function get_vtime(v) {
-    var ret=v.cdata.get_layer(TimeDataLayer);
+    let ret=v.cdata.get_layer(TimeDataLayer);
     if (ret!==undefined)
       return ret.time;
     return -1;
   }
   get_vtime = _es6_module.add_export('get_vtime', get_vtime);
   function set_vtime(spline, v, time) {
-    var ret=v.cdata.get_layer(TimeDataLayer);
-    if (ret!=undefined) {
+    let ret=v.cdata.get_layer(TimeDataLayer);
+    if (ret!==undefined) {
         ret.time = time;
         spline.flagUpdateVertTime(v);
     }
@@ -4758,13 +4760,13 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       this.channel = undefined;
     }
      dag_get_datapath(ctx) {
-      var owner=this.channel.owner;
-      var path;
+      let owner=this.channel.owner;
+      let path;
       if (owner.lib_id<=-1) {
           path = owner.dag_get_datapath();
       }
       else {
-        var name=DataNames[owner.lib_type].toLowerCase();
+        let name=DataNames[owner.lib_type].toLowerCase();
         path = "datalib.items["+owner.lib_id+"]";
       }
       path+=".animkeys["+this.id+"]";
@@ -4775,7 +4777,7 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       this.channel.resort = true;
     }
     static  fromSTRUCT(reader) {
-      var ret=new AnimKey();
+      let ret=new AnimKey();
       reader(ret);
       return ret;
     }
@@ -4834,7 +4836,7 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       this.resort = false;
     }
      get_propcls() {
-      if (this.propcls==undefined) {
+      if (this.propcls===undefined) {
           switch (this.proptype) {
             case PropTypes.INT:
               this.propcls = IntProperty;
@@ -4850,14 +4852,14 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       if (this.resort) {
           this._do_resort();
       }
-      for (var i=0; i<this.keys.length; i++) {
-          if (this.keys[i].time==time) {
+      for (let i=0; i<this.keys.length; i++) {
+          if (this.keys[i].time===time) {
               this.keys[i].data.setValue(val);
               return this.keys[i];
           }
       }
-      var propcls=this.get_propcls();
-      var key=new AnimKey();
+      let propcls=this.get_propcls();
+      let key=new AnimKey();
       key.id = this.idgen.gen_id();
       this.idmap[key.id] = key;
       key.channel = this;
@@ -4872,23 +4874,23 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       if (this.resort) {
           this._do_resort();
       }
-      for (var i=0; i<this.keys.length; i++) {
-          var k=this.keys[i];
+      for (let i=0; i<this.keys.length; i++) {
+          let k=this.keys[i];
           if (k.time>time) {
               break;
           }
       }
-      var prev=i===0 ? this.keys[i] : this.keys[i-1];
-      var key=i===this.keys.length ? this.keys[this.keys.length-1] : this.keys[i];
-      var t;
+      let prev=i===0 ? this.keys[i] : this.keys[i-1];
+      let key=i===this.keys.length ? this.keys[this.keys.length-1] : this.keys[i];
+      let t;
       if (prev.time!==key.time) {
           t = (time-prev.time)/(key.time-prev.time);
       }
       else {
         t = 1.0;
       }
-      var a=prev.data.data, b=key.data.data;
-      var ret;
+      let a=prev.data.data, b=key.data.data;
+      let ret;
       if (key.mode===AnimInterpModes.STEP)
         ret = a;
       else 
@@ -4898,9 +4900,9 @@ es6_module_define('animdata', ["./toolprops.js", "./struct.js", "../curve/spline
       return ret;
     }
     static  fromSTRUCT(reader) {
-      var ret=new AnimChannel();
+      let ret=new AnimChannel();
       reader(ret);
-      for (var i=0; i<ret.keys.length; i++) {
+      for (let i=0; i<ret.keys.length; i++) {
           ret.keys[i].channel = ret;
       }
       return ret;
@@ -4937,7 +4939,7 @@ es6_module_define('config_defines', [], function _config_defines_module(_es6_mod
 }, '/dev/fairmotion/src/config/config_defines.js');
 
 
-es6_module_define('svg_export', ["../curve/spline_base.js", "../vectordraw/vectordraw_svg.js", "./mathlib.js", "../curve/spline_draw_new.js", "../curve/spline_draw.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../curve/spline_base.js", "../curve/spline_draw_new.js", "./mathlib.js", "../curve/spline_draw.js", "../vectordraw/vectordraw_svg.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -5023,7 +5025,7 @@ es6_module_define('simple_controller', ["../path-controller/controller/controlle
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
 
 
-es6_module_define('anim', ["../path-controller/curve/curve1d.js", "../path-controller/util/math.js", "../path-controller/util/vectormath.js", "./ui_theme.js", "../path-controller/util/util.js"], function _anim_module(_es6_module) {
+es6_module_define('anim', ["../path-controller/util/math.js", "../path-controller/util/vectormath.js", "../path-controller/curve/curve1d.js", "../path-controller/util/util.js", "./ui_theme.js"], function _anim_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Vector2');
   var Matrix4=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../path-controller/util/vectormath.js', 'Quat');
@@ -5425,7 +5427,7 @@ es6_module_define('aspect', [], function _aspect_module(_es6_module) {
             chain2[i] = chain[i];
         }
         for (let i=0; i<chain2.length; i++) {
-            let $_t0wprs=chain2[i], cb=$_t0wprs[0], node=$_t0wprs[1], once=$_t0wprs[2];
+            let $_t0eait=chain2[i], cb=$_t0eait[0], node=$_t0eait[1], once=$_t0eait[2];
             if (node) {
                 let isDead=!node.isConnected;
                 if (__instance_of(node, UIBase)) {
@@ -6112,7 +6114,7 @@ es6_module_define('theme', ["./ui_theme.js"], function _theme_module(_es6_module
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
 
 
-es6_module_define('ui', ["../path-controller/util/simple_events.js", "../path-controller/util/util.js", "../widgets/ui_widgets.js", "./ui_base.js", "../path-controller/controller/controller_base.js", "../core/units.js", "../path-controller/util/vectormath.js", "../path-controller/toolsys/toolprop.js", "./ui_theme.js", "../config/const.js", "../path-controller/util/html5_fileapi.js", "../widgets/ui_menu.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../path-controller/util/vectormath.js", "../core/units.js", "../widgets/ui_widgets.js", "../path-controller/util/simple_events.js", "../path-controller/toolsys/toolprop.js", "./ui_base.js", "../path-controller/util/html5_fileapi.js", "../path-controller/controller/controller_base.js", "./ui_theme.js", "../config/const.js", "../widgets/ui_menu.js", "../path-controller/util/util.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var units=es6_import(_es6_module, '../core/units.js');
@@ -7842,7 +7844,7 @@ es6_module_define('ui', ["../path-controller/util/simple_events.js", "../path-co
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
 
 
-es6_module_define('ui_base', ["../path-controller/util/vectormath.js", "../path-controller/util/math.js", "../path-controller/util/util.js", "./units.js", "../path-controller/util/simple_events.js", "../path-controller/controller/controller.js", "./ui_consts.js", "../icon_enum.js", "./theme.js", "./aspect.js", "../screen/area_wrangler.js", "./ui_theme.js", "./anim.js", "../path-controller/toolsys/toolprop.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["../path-controller/util/simple_events.js", "../path-controller/controller/controller.js", "./theme.js", "./anim.js", "./units.js", "../path-controller/util/math.js", "../path-controller/util/util.js", "../screen/area_wrangler.js", "../config/const.js", "./ui_consts.js", "./aspect.js", "./ui_theme.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/vectormath.js", "../util/colorutils.js", "../icon_enum.js"], function _ui_base_module(_es6_module) {
   var contextWrangler=es6_import_item(_es6_module, '../screen/area_wrangler.js', 'contextWrangler');
   let _ui_base=undefined;
   let TextBox=undefined;
@@ -8467,7 +8469,7 @@ ${selector}::-webkit-scrollbar-thumb {
         return ;
     }
     for (let item of new Set(setTimeoutQueue)) {
-        let $_t0grfd=item, cb=$_t0grfd.cb, timeout=$_t0grfd.timeout, time=$_t0grfd.time;
+        let $_t0uhqv=item, cb=$_t0uhqv.cb, timeout=$_t0uhqv.timeout, time=$_t0uhqv.time;
         if (util.time_ms()-time<timeout) {
             continue;
         }
@@ -9116,8 +9118,8 @@ ${selector}::-webkit-scrollbar-thumb {
         }
         return [i, p];
       };
-      let $_t1adhg=getPos(this, p1), i1=$_t1adhg[0], n1=$_t1adhg[1];
-      let $_t2gdpd=getPos(b, p2), i2=$_t2gdpd[0], n2=$_t2gdpd[1];
+      let $_t1imvc=getPos(this, p1), i1=$_t1imvc[0], n1=$_t1imvc[1];
+      let $_t2dlqa=getPos(b, p2), i2=$_t2dlqa[0], n2=$_t2dlqa[1];
       console.log("i1, i2, n1, n2", i1, i2, n1, n2);
       let tmp1=document.createElement("div");
       let tmp2=document.createElement("div");

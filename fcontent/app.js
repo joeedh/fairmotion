@@ -1080,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local", "../path.ux/scripts/config/const.js", "./config_local.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1120,8 +1120,6 @@ es6_module_define('config', ["./config_local", "../path.ux/scripts/config/const.
   IS_NODEJS = _es6_module.add_export('IS_NODEJS', IS_NODEJS);
   var USE_WASM=true;
   USE_WASM = _es6_module.add_export('USE_WASM', USE_WASM);
-  var USE_NACL=CHROME_APP_MODE;
-  USE_NACL = _es6_module.add_export('USE_NACL', USE_NACL);
   var NO_SERVER=true;
   NO_SERVER = _es6_module.add_export('NO_SERVER', NO_SERVER);
   var USE_HTML5_FILEAPI=NO_SERVER;
@@ -1355,7 +1353,6 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
             continue;
           this[k] = args[k];
       }
-      console.error("CC", ctrlconfig);
       ctrlconfig.setConfig(this);
     }}
   exports;
@@ -1364,7 +1361,6 @@ es6_module_define('const', ["../path-controller/config/config.js"], function _co
   window.DEBUG = exports.DEBUG;
   let cfg=document.getElementById("pathux-config");
   if (cfg) {
-      console.error("CONFIG CONFIG", cfg.innerText);
       exports.loadConstants(JSON.parse(cfg.innerText));
   }
 }, '/dev/fairmotion/src/path.ux/scripts/config/const.js');
@@ -1671,7 +1667,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/path-controller/util/polyfill.js');
 
-es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/lz-string.js", "./mobile-detect.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["../extern/lz-string/lz-string.js", "./polyfill.js", "./struct.js", "./mobile-detect.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -2021,7 +2017,7 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
   const console=new SmartConsole();
   _es6_module.add_export('console', console);
   globalThis.tm = 0.0;
-  var EmptySlot={}
+  let EmptySlot={}
   function getClassParent(cls) {
     let p=cls.prototype;
     if (p)
@@ -2100,11 +2096,11 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
     if (__instance_of(buf, ArrayBuffer)) {
         buf = new Uint8Array(buf);
     }
-    if (typeof buf=="string"||__instance_of(buf, String)) {
+    if (typeof buf==="string"||__instance_of(buf, String)) {
         return window.btoa(buf);
     }
-    var ret="";
-    for (var i=0; i<buf.length; i++) {
+    let ret="";
+    for (let i=0; i<buf.length; i++) {
         ret+=String.fromCharCode(buf[i]);
     }
     return btoa(ret);
@@ -2160,13 +2156,13 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
   }
   time_ms = _es6_module.add_export('time_ms', time_ms);
   function color2css(c) {
-    var ret=c.length==3 ? "rgb(" : "rgba(";
-    for (var i=0; i<3; i++) {
+    let ret=c.length===3 ? "rgb(" : "rgba(";
+    for (let i=0; i<3; i++) {
         if (i>0)
           ret+=",";
         ret+=~~(c[i]*255);
     }
-    if (c.length==4)
+    if (c.length===4)
       ret+=","+c[3];
     ret+=")";
     return ret;
@@ -2258,12 +2254,12 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
           this.gen = 0;
           window._cacherings.push(this);
       }
-      for (var i=0; i<size; i++) {
+      for (let i=0; i<size; i++) {
           this.push(func());
       }
     }
     static  fromConstructor(cls, size, isprivate=false) {
-      var func=function () {
+      let func=function () {
         return new cls();
       };
       return new cachering(func, size, isprivate);
@@ -2291,7 +2287,7 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return this;
     }
      next() {
-      var ret=this.ret;
+      let ret=this.ret;
       while (this.i<this.set.items.length&&this.set.items[this.i]===EmptySlot) {
         this.i++;
       }
@@ -2313,12 +2309,12 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       this.keys = {};
       this.freelist = [];
       this.length = 0;
-      if (typeof input=="string") {
+      if (typeof input==="string") {
           input = new String(input);
       }
       if (input!==undefined) {
           if (Symbol.iterator in input) {
-              for (var item of input) {
+              for (let item of input) {
                   this.add(item);
               }
           }
@@ -2330,7 +2326,7 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
           }
           else 
             if (__instance_of(input, Array)) {
-              for (var i=0; i<input.length; i++) {
+              for (let i=0; i<input.length; i++) {
                   this.add(input[i]);
               }
           }
@@ -2401,16 +2397,16 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return ret;
     }
      add(item) {
-      var key=item[Symbol.keystr]();
+      let key=item[Symbol.keystr]();
       if (key in this.keys)
         return ;
       if (this.freelist.length>0) {
-          var i=this.freelist.pop();
+          let i=this.freelist.pop();
           this.keys[key] = i;
           this.items[i] = item;
       }
       else {
-        var i=this.items.length;
+        let i=this.items.length;
         this.keys[key] = i;
         this.items.push(item);
       }
@@ -2420,14 +2416,14 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       this.remove(item, ignore_existence);
     }
      remove(item, ignore_existence) {
-      var key=item[Symbol.keystr]();
+      let key=item[Symbol.keystr]();
       if (!(key in this.keys)) {
           if (!ignore_existence) {
               console.warn("Warning, item", item, "is not in set");
           }
           return ;
       }
-      var i=this.keys[key];
+      let i=this.keys[key];
       this.freelist.push(i);
       this.items[i] = EmptySlot;
       delete this.keys[key];
@@ -2437,8 +2433,8 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return item[Symbol.keystr]() in this.keys;
     }
      forEach(func, thisvar) {
-      for (var i=0; i<this.items.length; i++) {
-          var item=this.items[i];
+      for (let i=0; i<this.items.length; i++) {
+          let item=this.items[i];
           if (item===EmptySlot)
             continue;
           thisvar!==undefined ? func.call(thisvar, item) : func(item);
@@ -2456,7 +2452,7 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
      value: undefined};
     }
      next() {
-      var items=this.hash._items;
+      let items=this.hash._items;
       if (this.i>=items.length) {
           this.ret.done = true;
           this.ret.value = undefined;
@@ -2472,7 +2468,7 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
   _ESClass.register(HashIter);
   _es6_module.add_class(HashIter);
   HashIter = _es6_module.add_export('HashIter', HashIter);
-  var _hash_null={}
+  let _hash_null={}
   class hashtable  {
      constructor() {
       this._items = [];
@@ -2483,8 +2479,8 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return new HashIter(this);
     }
      set(key, val) {
-      var key2=key[Symbol.keystr]();
-      var i;
+      let key2=key[Symbol.keystr]();
+      let i;
       if (!(key2 in this._keys)) {
           i = this._items.length;
           try {
@@ -2505,23 +2501,23 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       this._items[i+1] = val;
     }
      remove(key) {
-      var key2=key[Symbol.keystr]();
+      let key2=key[Symbol.keystr]();
       if (!(key2 in this._keys)) {
           console.warn("Warning, key not in hashtable:", key, key2);
           return ;
       }
-      var i=this._keys[key2];
+      let i=this._keys[key2];
       this._items[i] = _hash_null;
       this._items[i+1] = _hash_null;
       delete this._keys[key2];
       this.length--;
     }
      has(key) {
-      var key2=key[Symbol.keystr]();
+      let key2=key[Symbol.keystr]();
       return key2 in this._keys;
     }
      get(key) {
-      var key2=key[Symbol.keystr]();
+      let key2=key[Symbol.keystr]();
       if (!(key2 in this._keys)) {
           console.warn("Warning, item not in hash", key, key2);
           return undefined;
@@ -2532,9 +2528,9 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return this.set(key, val);
     }
      keys() {
-      var ret=[];
-      for (var i=0; i<this._items.length; i+=2) {
-          var key=this._items[i];
+      let ret=[];
+      for (let i=0; i<this._items.length; i+=2) {
+          let key=this._items[i];
           if (key!==_hash_null) {
               ret.push(key);
           }
@@ -2542,9 +2538,9 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return ret;
     }
      values() {
-      var ret=[];
-      for (var i=0; i<this._items.length; i+=2) {
-          var item=this._items[i+1];
+      let ret=[];
+      for (let i=0; i<this._items.length; i+=2) {
+          let item=this._items[i+1];
           if (item!==_hash_null) {
               ret.push(item);
           }
@@ -2552,10 +2548,10 @@ es6_module_define('util', ["./struct.js", "./polyfill.js", "../extern/lz-string/
       return ret;
     }
      forEach(cb, thisvar) {
-      if (thisvar==undefined)
+      if (thisvar===undefined)
         thisvar = self;
-      for (var k in this._keys) {
-          var i=this._keys[k];
+      for (let k in this._keys) {
+          let i=this._keys[k];
           cb.call(thisvar, k, this._items[i]);
       }
     }
@@ -2633,12 +2629,12 @@ IDGen {
   globalThis.get_callstack = get_callstack;
   globalThis.print_stack = print_stack;
   function fetch_file(path) {
-    var url=location.origin+"/"+path;
-    var req=new XMLHttpRequest();
+    let url=location.origin+"/"+path;
+    let req=new XMLHttpRequest();
     return new Promise(function (accept, reject) {
       req.open("GET", url);
       req.onreadystatechange = function (e) {
-        if (req.status==200&&req.readyState==4) {
+        if (req.status===200&&req.readyState===4) {
             accept(req.response);
         }
         else 
@@ -2674,14 +2670,14 @@ IDGen {
       this.index = 624;
       this.mt.fill(0, 0, this.mt.length);
       this.mt[0] = seed;
-      for (var i=1; i<624; i++) {
+      for (let i=1; i<624; i++) {
           this.mt[i] = _int32(1812433253*(this.mt[i-1]^this.mt[i-1]>>30)+i);
       }
     }
      extract_number() {
       if (this.index>=624)
         this.twist();
-      var y=this.mt[this.index];
+      let y=this.mt[this.index];
       y = y^y>>11;
       y = y^y<<7&2636928640;
       y = y^y<<15&4022730752;
@@ -2690,10 +2686,10 @@ IDGen {
       return _int32(y);
     }
      twist() {
-      for (var i=0; i<624; i++) {
-          var y=_int32((this.mt[i]&0x80000000)+(this.mt[(i+1)%624]&0x7fffffff));
+      for (let i=0; i<624; i++) {
+          let y=_int32((this.mt[i]&0x80000000)+(this.mt[(i+1)%624]&0x7fffffff));
           this.mt[i] = this.mt[(i+397)%624]^y>>1;
-          if (y%2!=0)
+          if (y%2!==0)
             this.mt[i] = this.mt[i]^0x9908b0df;
       }
       this.index = 0;
@@ -2702,7 +2698,7 @@ IDGen {
   _ESClass.register(MersenneRandom);
   _es6_module.add_class(MersenneRandom);
   MersenneRandom = _es6_module.add_export('MersenneRandom', MersenneRandom);
-  var _mt=new MersenneRandom(0);
+  let _mt=new MersenneRandom(0);
   function random() {
     return _mt.extract_number()/(1<<30);
   }
@@ -2720,9 +2716,9 @@ IDGen {
             return hash;
         }
     }
-    var hash=0;
-    for (var i=0; i<str.length; i++) {
-        var ch=str.charCodeAt(i);
+    let hash=0;
+    for (let i=0; i<str.length; i++) {
+        let ch=str.charCodeAt(i);
         hash = hash<0 ? -hash : hash;
         hash^=(ch*1103515245+12345)&MAXINT;
     }
@@ -2732,8 +2728,8 @@ IDGen {
     return hash;
   }
   strhash = _es6_module.add_export('strhash', strhash);
-  var hashsizes=[223, 383, 653, 1117, 1901, 3251, 5527, 9397, 15991, 27191, 46229, 78593, 133631, 227177, 38619, 656587, 1116209, 1897561, 3225883, 5484019, 9322861, 15848867, 26943089, 45803279, 77865577, 132371489, 225031553];
-  var FTAKEN=0, FKEY=1, FVAL=2, FTOT=3;
+  let hashsizes=[223, 383, 653, 1117, 1901, 3251, 5527, 9397, 15991, 27191, 46229, 78593, 133631, 227177, 38619, 656587, 1116209, 1897561, 3225883, 5484019, 9322861, 15848867, 26943089, 45803279, 77865577, 132371489, 225031553];
+  let FTAKEN=0, FKEY=1, FVAL=2, FTOT=3;
   class FastHash extends Array {
      constructor() {
       super();
@@ -2744,26 +2740,26 @@ IDGen {
       this.fill(0, 0, this.length);
     }
      resize(size) {
-      var table=this.slice(0, this.length);
+      let table=this.slice(0, this.length);
       this.length = size*FTOT;
       this.size = size;
       this.fill(0, 0, this.length);
-      for (var i=0; i<table.length; i+=FTOT) {
+      for (let i=0; i<table.length; i+=FTOT) {
           if (!table[i+FTAKEN])
             continue;
-          var key=table[i+FKEY], val=table[i+FVAL];
+          let key=table[i+FKEY], val=table[i+FVAL];
           this.set(key, val);
       }
       return this;
     }
      get(key) {
-      var hash=typeof key=="string" ? strhash(key) : key;
-      hash = typeof hash=="object" ? hash.valueOf() : hash;
-      var probe=0;
-      var h=(hash+probe)%this.size;
-      var _i=0;
+      let hash=typeof key==="string" ? strhash(key) : key;
+      hash = typeof hash==="object" ? hash.valueOf() : hash;
+      let probe=0;
+      let h=(hash+probe)%this.size;
+      let _i=0;
       while (_i++<50000&&this[h*FTOT+FTAKEN]) {
-        if (this[h*FTOT+FKEY]==key) {
+        if (this[h*FTOT+FKEY]===key) {
             return this[h*FTOT+FVAL];
         }
         probe = (probe+1)*2;
@@ -2772,13 +2768,13 @@ IDGen {
       return undefined;
     }
      has(key) {
-      var hash=typeof key=="string" ? strhash(key) : key;
-      hash = typeof hash=="object" ? hash.valueOf() : hash;
-      var probe=0;
-      var h=(hash+probe)%this.size;
-      var _i=0;
+      let hash=typeof key==="string" ? strhash(key) : key;
+      hash = typeof hash==="object" ? hash.valueOf() : hash;
+      let probe=0;
+      let h=(hash+probe)%this.size;
+      let _i=0;
       while (_i++<50000&&this[h*FTOT+FTAKEN]) {
-        if (this[h*FTOT+FKEY]==key) {
+        if (this[h*FTOT+FKEY]===key) {
             return true;
         }
         probe = (probe+1)*2;
@@ -2787,16 +2783,16 @@ IDGen {
       return false;
     }
      set(key, val) {
-      var hash=typeof key=="string" ? strhash(key) : key;
-      hash = typeof hash=="object" ? hash.valueOf() : hash;
+      let hash=typeof key==="string" ? strhash(key) : key;
+      hash = typeof hash==="object" ? hash.valueOf() : hash;
       if (this.used>this.size/3) {
           this.resize(hashsizes[this.cursize++]);
       }
-      var probe=0;
-      var h=(hash+probe)%this.size;
-      var _i=0;
+      let probe=0;
+      let h=(hash+probe)%this.size;
+      let _i=0;
       while (_i++<50000&&this[h*FTOT+FTAKEN]) {
-        if (this[h*FTOT+FKEY]==key) {
+        if (this[h*FTOT+FKEY]===key) {
             this[h*FTOT+FVAL] = val;
             return ;
         }
@@ -2813,7 +2809,7 @@ IDGen {
   _es6_module.add_class(FastHash);
   FastHash = _es6_module.add_export('FastHash', FastHash);
   function test_fasthash() {
-    var h=new FastHash();
+    let h=new FastHash();
     console.log("bleh hash:", strhash("bleh"));
     h.set("bleh", 1);
     h.set("bleh", 2);
@@ -2834,10 +2830,10 @@ IDGen {
       input.addEventListener("change", function (e) {
         let files=this.files;
         console.log("got file", e, files);
-        if (files.length==0)
+        if (files.length===0)
           return ;
-        var reader=new FileReader();
-        var this2=this;
+        let reader=new FileReader();
+        let this2=this;
         reader.onload = (e) =>          {
           let data=e.target.result;
           let image=new Image();

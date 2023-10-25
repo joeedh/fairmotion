@@ -1,5 +1,5 @@
 
-es6_module_define('ui_widgets', ["./ui_button.js", "../config/const.js", "../core/ui_base.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/util.js", "../path-controller/controller/controller.js", "../path-controller/util/simple_events.js", "./ui_textbox.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../core/units.js"], function _ui_widgets_module(_es6_module) {
+es6_module_define('ui_widgets', ["./ui_button.js", "../config/const.js", "../path-controller/toolsys/toolsys.js", "../path-controller/util/events.js", "./ui_textbox.js", "../path-controller/toolsys/toolprop.js", "../path-controller/util/simple_events.js", "../core/ui_base.js", "../path-controller/util/util.js", "../core/units.js", "../path-controller/util/vectormath.js", "../path-controller/controller/controller.js"], function _ui_widgets_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../path-controller/util/util.js');
   var vectormath=es6_import(_es6_module, '../path-controller/util/vectormath.js');
@@ -806,7 +806,7 @@ es6_module_define('ui_widgets', ["./ui_button.js", "../config/const.js", "../cor
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
 
 
-es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js", "./ui_widgets.js", "./ui_richedit.js", "./ui_button.js", "../core/units.js", "../util/util.js", "../core/ui_base.js", "../path-controller/util/events.js"], function _ui_widgets2_module(_es6_module) {
+es6_module_define('ui_widgets2', ["./ui_button.js", "../util/util.js", "./ui_widgets.js", "../core/ui_base.js", "./ui_richedit.js", "../path-controller/util/events.js", "../path-controller/util/vectormath.js", "../core/units.js", "../core/ui.js", "../path-controller/toolsys/toolprop.js"], function _ui_widgets2_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './ui_richedit.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -908,7 +908,7 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
       this.value = new Vector3();
       this.sliders = [];
       this.hasUniformSlider = false;
-      this.packflag|=PackFlags.FORCE_ROLLER_SLIDER|PackFlags.NO_NUMSLIDER_TEXTBOX;
+      this.packflag|=PackFlags.FORCE_ROLLER_SLIDER;
       let makeParam=(key) =>        {
         Object.defineProperty(this, key, {get: function () {
             return this._getNumParam(key);
@@ -937,6 +937,7 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
       makeParam("baseUnit");
       makeParam("displayUnit");
       makeParam("step");
+      makeParam("slideSpeed");
       makeParam("expRate");
       makeParam("stepIsRelative");
       window.vp = this;
@@ -983,9 +984,13 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
        step: this.step||0.001, 
        is_int: this.isInt, 
        packflag: this.packflag});
+          slider.addLabel = false;
+          slider.labelOnTop = false;
           slider.axis = i;
           let this2=this;
           slider.baseUnit = this.baseUnit;
+          slider.slideSpeed = this.slideSpeed;
+          slider.decimalPlaces = this.decimalPlaces;
           slider.displayUnit = this.displayUnit;
           slider.isInt = this.isInt;
           slider.range = this.__range;
@@ -1015,6 +1020,8 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
           row._prepend(uslider);
           uslider.range = this.range;
           uslider.baseUnit = this.baseUnit;
+          uslider.slideSpeed = this.slideSpeed;
+          uslider.decimalPlaces = this.decimalPlaces;
           uslider.displayUnit = this.displayUnit;
           uslider.expRate = this.expRate;
           uslider.step = this.step;
@@ -1132,7 +1139,9 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
             }
         }
       };
+      loadNumParam("decimalPlaces");
       loadNumParam("baseUnit");
+      loadNumParam("slideSpeed");
       loadNumParam("displayUnit");
       loadNumParam("decimalPlaces");
       loadNumParam("isInt");
@@ -1308,7 +1317,7 @@ es6_module_define('ui_widgets2', ["../path-controller/util/vectormath.js", "../c
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets2.js');
 
 
-es6_module_define('xmlpage', ["../core/ui.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../widgets/ui_numsliders.js", "../widgets/ui_menu.js", "../util/util.js"], function _xmlpage_module(_es6_module) {
+es6_module_define('xmlpage', ["../util/util.js", "../widgets/ui_menu.js", "../path-controller/toolsys/toolprop.js", "../core/ui_base.js", "../core/ui.js", "../widgets/ui_numsliders.js"], function _xmlpage_module(_es6_module) {
   var isNumber=es6_import_item(_es6_module, '../path-controller/toolsys/toolprop.js', 'isNumber');
   let pagecache=new Map();
   var PackFlags=es6_import_item(_es6_module, '../core/ui_base.js', 'PackFlags');
@@ -2139,7 +2148,7 @@ es6_module_define('all', ["./pentool.js", "./splinetool.js"], function _all_modu
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
 
 
-es6_module_define('pentool', ["./toolmode.js", "../../../core/keymap.js", "../../../path.ux/scripts/pathux.js", "../../../curve/spline_types.js", "../../../path.ux/scripts/util/util.js", "../../../core/toolops_api.js"], function _pentool_module(_es6_module) {
+es6_module_define('pentool', ["../../../curve/spline_types.js", "./toolmode.js", "../../../path.ux/scripts/pathux.js", "../../../path.ux/scripts/util/util.js", "../../../core/keymap.js", "../../../core/toolops_api.js"], function _pentool_module(_es6_module) {
   "use strict";
   var SplineTypes=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFlags');
@@ -2206,7 +2215,7 @@ es6_module_define('pentool', ["./toolmode.js", "../../../core/keymap.js", "../..
       console.log("pointer down", e);
     }
      on_pointermove(e) {
-      let $_t0nmcn=this.getInputs(), limit=$_t0nmcn.limit, lineWidth=$_t0nmcn.lineWidth, strokeColor=$_t0nmcn.strokeColor, mouseX=$_t0nmcn.mouseX, mouseY=$_t0nmcn.mouseY;
+      let $_t0twwt=this.getInputs(), limit=$_t0twwt.limit, lineWidth=$_t0twwt.lineWidth, strokeColor=$_t0twwt.strokeColor, mouseX=$_t0twwt.mouseX, mouseY=$_t0twwt.mouseY;
       if (mouseX>=0) {
           this.startMpos[0] = mouseX;
           this.startMpos[1] = mouseY;
@@ -2297,7 +2306,7 @@ es6_module_define('pentool', ["./toolmode.js", "../../../core/keymap.js", "../..
      exec(ctx) {
       let spline=ctx.frameset.spline;
       let lastv;
-      let $_t1fvvl=this.getInputs(), lineWidth=$_t1fvvl.lineWidth, strokeColor=$_t1fvvl.strokeColor;
+      let $_t1jppv=this.getInputs(), lineWidth=$_t1jppv.lineWidth, strokeColor=$_t1jppv.strokeColor;
       for (let p of this.inputs.points) {
           let newv=spline.make_vertex(p);
           this.onPointCreate(spline, newv, lastv, lineWidth, strokeColor);
@@ -2598,7 +2607,7 @@ es6_module_define('pentool', ["./toolmode.js", "../../../core/keymap.js", "../..
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
 
 
-es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js", "../../../core/toolops_api.js", "../spline_editops.js", "../spline_selectops.js", "../view2d_editor.js", "../../../path.ux/scripts/util/util.js", "../view2d_ops.js", "../transform_ops.js", "../selectmode.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_createops.js", "../transform.js", "../../../path.ux/scripts/pathux.js", "../../../core/keymap.js", "../../../curve/spline_types.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../view2d_ops.js", "../spline_createops.js", "../selectmode.js", "../../../curve/spline_types.js", "../transform_ops.js", "../../../path.ux/scripts/util/util.js", "../../../core/keymap.js", "./toolmode.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/pathux.js", "../view2d_editor.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_selectops.js", "../spline_editops.js", "../transform.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var ExtrudeVertOp=es6_import_item(_es6_module, '../spline_createops.js', 'ExtrudeVertOp');
@@ -2716,18 +2725,18 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
         if (this2.selectmode&SelMask.SEGMENT) {
             console.log("kill segments");
             let op=new DeleteSegmentOp();
-            g_app_state.toolstack.exec_tool(op);
+            g_app_state.toolstack.execTool(ctx, op);
         }
         else 
           if (this2.selectmode&SelMask.FACE) {
             console.log("kill faces");
             let op=new DeleteFaceOp();
-            g_app_state.toolstack.exec_tool(op);
+            g_app_state.toolstack.execTool(ctx, op);
         }
         else {
           console.log("kill verts");
           let op=new DeleteVertOp();
-          g_app_state.toolstack.exec_tool(op);
+          g_app_state.toolstack.execTool(ctx, op);
         }
       }
       this.keymap = new KeyMap("view2d:spline", [new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Move Up"), new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Move Down"), new HotKey("G", [], "spline.translate(datamode='selectmode')"), new HotKey("S", [], "spline.scale(datamode='selectmode')"), new HotKey("R", [], "spline.rotate(datamode='selectmode')"), new HotKey("S", ["SHIFT"], "spline.shift_time()"), new HotKey("A", [], "spline.toggle_select_all(mode='SELECT')|Select All"), new HotKey("A", ["ALT"], "spline.toggle_select_all(mode='DESELECT')|Select None"), new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"), new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"), new HotKey("G", [], "spline.hide(selmode='selectmode' ghost=1)|Ghost Selection"), new HotKey("G", [], "spline.unhide(selmode='selectmode' ghost=1)|Unghost Selection"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", [], "spline.select_linked_pick(mode='SELECT')|Select Linked"), new HotKey("L", ["SHIFT"], "spline.select_linked_pick(mode='DESELECT')|Deselect Linked"), new HotKey("B", [], "spline.toggle_break_tangents()|Toggle Break-Tangents"), new HotKey("B", ["SHIFT"], "spline.toggle_break_curvature()|Toggle Break-Curvature"), new HotKey("X", [], del_tool, "Delete"), new HotKey("Delete", [], del_tool, "Delete"), new HotKey("Backspace", [], del_tool, "Delete"), new HotKey("D", [], "spline.dissolve_verts()|Dissolve Vertices"), new HotKey("D", ["SHIFT"], "spline.duplicate_transform()|Duplicate"), new HotKey("F", [], "spline.make_edge_face()|Create Face/Edge"), new HotKey("E", [], "spline.split_edges()|Split Segments"), new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"), new HotKey("C", [], "view2d.circle_select()|Circle Select"), new HotKey("Z", [], function (ctx) {
@@ -2754,12 +2763,11 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
       if (this._do_touch_undo(event)) {
           return true;
       }
-      console.warn(event, "splinetool mousedown");
       let spline=this.ctx.spline;
       let toolmode=this.ctx.view2d.toolmode;
       this.start_mpos[0] = event.x;
       this.start_mpos[1] = event.y;
-      this.updateHighlight(event.x, event.y, event.pointerType==="mouse");
+      this.updateHighlight(event.x, event.y, event.pointerType!=="mouse");
       if (this.highlight_spline!==undefined&&this.highlight_spline!==spline) {
           this._clear_undo_touch(false);
           console.log("spline switch!");
@@ -2791,7 +2799,7 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
               op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
               op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
               this._clear_undo_touch(true);
-              g_app_state.toolstack.exec_tool(op);
+              g_app_state.toolstack.execTool(this.ctx, op);
               redraw_viewport();
               ret = true;
           }
@@ -2805,7 +2813,7 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
                 if (list.highlight===undefined)
                   continue;
                 let op=new SelectOneOp(list.highlight, !event.shiftKey, !(list.highlight.flag&SplineFlags.SELECT), this.selectmode, true);
-                g_app_state.toolstack.exec_tool(op);
+                g_app_state.toolstack.execTool(this.ctx, op);
                 ret = true;
                 break;
             }
@@ -2873,41 +2881,44 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
       return closest;
     }
      updateHighlight(x, y, was_touch) {
+      if (this.ctx.state.modalstate===ModalStates.TRANSFORMING) {
+          return ;
+      }
       let toolmode=this.ctx.view2d.toolmode;
       let limit;
       if (this.ctx.view2d.selectmode&SelMask.SEGMENT) {
           limit = 55;
       }
       else {
-        limit = (util.isMobile()||was_touch) ? 55 : 15;
+        limit = (util.isMobile()||was_touch) ? 25 : 15;
       }
-      limit*=1.5;
       limit*=UIBase.getDPI();
       if (toolmode===ToolModes.SELECT)
         limit*=3;
       let ret=this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
+      let redraw=false;
       if (ret!==undefined) {
           if (ret[0]!==this.highlight_spline&&this.highlight_spline!==undefined) {
               this.highlight_spline.clear_highlight();
+              redraw = true;
           }
           this.highlight_spline = ret[0];
           this.highlight_spline.clear_highlight();
-          window.redraw_viewport();
       }
       else {
         if (this.highlight_spline!==undefined) {
             this.highlight_spline.clear_highlight();
-            window.redraw_viewport();
+            redraw = true;
         }
         this.highlight_spline = undefined;
       }
       if (this.highlight_spline&&ret&&ret[1]) {
           let list=this.highlight_spline.get_elist(ret[1].type);
-          let redraw=list.highlight!==ret[1];
+          redraw|=list.highlight!==ret[1];
           list.highlight = ret[1];
-          if (redraw) {
-              window.redraw_viewport();
-          }
+      }
+      if (redraw) {
+          window.redraw_viewport();
       }
     }
      _do_touch_undo(event) {
@@ -2960,7 +2971,7 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
                 this.ctx.toolstack.undo();
             }
           });
-          g_app_state.toolstack.exec_tool(op);
+          g_app_state.toolstack.execTool(this.ctx, op);
       }
     }
      _clear_undo_touch(cancel=false) {
@@ -2986,8 +2997,7 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
       return [this.keymap];
     }
     static  buildEditMenu() {
-      let ops=["spline.toggle_manual_handles()", "spline.split_edges()", "spline.delete_faces()", "spline.delete_segments()", "spline.delete_verts()", "spline.dissolve_verts()", "spline.make_edge_face()", "spline.split_edges()", "spline.mirror_verts()", "spline.duplicate_transform()", "spline.disconnect_handles()", "spline.connect_handles()", "spline.unhide()", "spline.hide()", "spline.toggle_select_all(mode='SELECT')|Select All|A", "spline.toggle_select_all(mode='DESELECT')|Deselect All|Alt-A", "view2d.circle_select()", "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked|L", "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked|Shift+L"];
-      return ops;
+      return ["spline.toggle_manual_handles()", "spline.split_edges()", "spline.delete_faces()", "spline.delete_segments()", "spline.delete_verts()", "spline.dissolve_verts()", "spline.make_edge_face()", "spline.split_edges()", "spline.mirror_verts()", "spline.duplicate_transform()", "spline.disconnect_handles()", "spline.connect_handles()", "spline.unhide()", "spline.hide()", "spline.toggle_select_all(mode='SELECT')|Select All", "spline.toggle_select_all(mode='DESELECT')|Deselect All", "view2d.circle_select()", "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked::L", "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked::Shift+L"];
     }
      delete_menu(event) {
       let view2d=this.view2d;
@@ -3013,7 +3023,7 @@ es6_module_define('splinetool', ["./toolmode.js", "../../../curve/spline_draw.js
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
 
 
-es6_module_define('toolmode', ["../../../path.ux/scripts/pathux.js", "../../../core/eventdag.js", "../../../core/keymap.js"], function _toolmode_module(_es6_module) {
+es6_module_define('toolmode', ["../../../core/keymap.js", "../../../core/eventdag.js", "../../../path.ux/scripts/pathux.js"], function _toolmode_module(_es6_module) {
   var NodeBase=es6_import_item(_es6_module, '../../../core/eventdag.js', 'NodeBase');
   var KeyMap=es6_import_item(_es6_module, '../../../core/keymap.js', 'KeyMap');
   var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
@@ -3143,7 +3153,7 @@ ToolMode {
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/toolmode.js');
 
 
-es6_module_define('struct', ["../util/parseutil.js", "./toolops_api.js", "../path.ux/scripts/pathux.js"], function _struct_module(_es6_module) {
+es6_module_define('struct', ["../path.ux/scripts/pathux.js", "./toolops_api.js", "../util/parseutil.js"], function _struct_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var PUTL=es6_import(_es6_module, '../util/parseutil.js');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
@@ -3183,6 +3193,7 @@ es6_module_define('struct', ["../util/parseutil.js", "./toolops_api.js", "../pat
   _data : array(byte) | this ? this : [];
 }`;
   nstructjs.register(arraybufferCompat);
+  nstructjs.setWarningMode(0);
   nstructjs.setDebugMode(false);
   window.istruct = nstructjs.manager;
   function patch_dataref_type(buf) {
@@ -3353,41 +3364,41 @@ mat4_intern {
 
 es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_module) {
   "use strict";
-  var $rets_mNGR_derivative;
-  var $rets_t9pL_normal;
+  let clothoid_dv_rets=cachering.fromConstructor(Vector2, 16);
+  let clothoid_no_rets=cachering.fromConstructor(Vector2, 16);
   class ClothoidInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
     }
     static  derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
+      let df=0.0001;
+      let a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
+      let b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_mNGR_derivative.next().load(b);
+      return clothoid_dv_rets.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
+      let df=0.0001;
+      let a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
+      let b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_t9pL_normal.next().load(b);
+      return clothoid_no_rets.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
-      var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
+      let dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
+      let dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
       return (dv1[0]*dv2[1]-dv2[1]*dv1[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
     }
     static  curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature(p1, p2, t1, t2, k1, k2, s+df, cdata);
+      let df=0.0001;
+      let a=this.curvature(p1, p2, t1, t2, k1, k2, s, cdata);
+      let b=this.curvature(p1, p2, t1, t2, k1, k2, s+df, cdata);
       return (b-a)/df;
     }
     static  curvature_dv2(p1, p2, t1, t2, k1, k2, s, cdata) {
-      var df=0.0001;
-      var a=this.curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata);
-      var b=this.curvature_dv(p1, p2, t1, t2, k1, k2, s+df, cdata);
+      let df=0.0001;
+      let a=this.curvature_dv(p1, p2, t1, t2, k1, k2, s, cdata);
+      let b=this.curvature_dv(p1, p2, t1, t2, k1, k2, s+df, cdata);
       return (b-a)/df;
     }
     static  closest_point(p1, p2, t1, t2, k1, k2, p, cdata) {
@@ -3397,8 +3408,6 @@ es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_modul
 
     }
   }
-  var $rets_mNGR_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_t9pL_normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(ClothoidInterface);
   _es6_module.add_class(ClothoidInterface);
   var CurveInterfaces=es6_import_item(_es6_module, './curvebase.js', 'CurveInterfaces');
@@ -3439,8 +3448,8 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   _ESClass.register(CurveData);
   _es6_module.add_class(CurveData);
   CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_CX9P_derivative;
-  var $rets_l7_J_normal;
+  var $rets_ZFk2_derivative;
+  var $rets_eqla_normal;
   class CurveInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
@@ -3450,14 +3459,14 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
       var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_CX9P_derivative.next().load(b);
+      return $rets_ZFk2_derivative.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
       var df=0.0001;
       var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_l7_J_normal.next().load(b);
+      return $rets_eqla_normal.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
       var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -3483,22 +3492,22 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
 
     }
   }
-  var $rets_CX9P_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_l7_J_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_ZFk2_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_eqla_normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(CurveInterface);
   _es6_module.add_class(CurveInterface);
 }, '/dev/fairmotion/src/curve/curvebase.js');
 
 
 es6_module_define('bspline', [], function _bspline_module(_es6_module) {
-  var _bspline=undefined;
-  var _i=0;
-  var IW=_i++;
-  var IDV1=_i++;
-  var IDV2=_i++;
-  var IDV3=_i++;
-  var IDV4=_i++;
-  var ITOT=_i;
+  let _bspline=undefined;
+  let _i=0;
+  let IW=_i++;
+  let IDV1=_i++;
+  let IDV2=_i++;
+  let IDV3=_i++;
+  let IDV4=_i++;
+  let ITOT=_i;
   function Table(size, start, end, ds) {
     this.start = start;
     this.end = end;
@@ -3523,10 +3532,10 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     this.ds9 = ds*ds*ds*ds*ds*ds*ds*ds*ds;
   }
   Table = _es6_module.add_export('Table', Table);
-  var cache={}
+  let cache={}
   window.NO_CACHE = false;
-  var uniform_vec=new Array(1024);
-  for (var i=0; i<uniform_vec.length; i++) {
+  let uniform_vec=new Array(1024);
+  for (let i=0; i<uniform_vec.length; i++) {
       uniform_vec[i] = i;
   }
   class BasisCache  {
@@ -3535,7 +3544,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       this.recalc = 1;
       this.tables = [];
       this.dpad = 1;
-      if (knots!=undefined) {
+      if (knots!==undefined) {
           this.gen(knots);
       }
     }
@@ -3545,9 +3554,9 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
           return ;
       }
       this.tables = [];
-      var start_time=time_ms();
+      let start_time=time_ms();
       console.log("start generating tables");
-      var sz=14;
+      let sz=14;
       if (degree<3)
         sz = 128;
       else 
@@ -3555,43 +3564,43 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         sz = 40;
       this.size = sz;
       this.degree = degree;
-      var dpad=this.dpad;
-      for (var i=-degree-dpad; i<ks.length+degree+dpad; i++) {
-          var j1=Math.max(0, i-degree-dpad);
-          var j2=Math.min(ks.length-1, i+degree+dpad);
-          if (i==-degree-dpad)
+      let dpad=this.dpad;
+      for (let i=-degree-dpad; i<ks.length+degree+dpad; i++) {
+          let j1=Math.max(0, i-degree-dpad);
+          let j2=Math.min(ks.length-1, i+degree+dpad);
+          if (i===-degree-dpad)
             j1 = 0;
-          var tstart=ks[j1];
-          var tend=ks[j2];
-          var ds=(tend-tstart)/(this.size-1.0);
-          var table=new Table(this.size, tstart, tend, ds);
+          let tstart=ks[j1];
+          let tend=ks[j2];
+          let ds=(tend-tstart)/(this.size-1.0);
+          let table=new Table(this.size, tstart, tend, ds);
           this.tables.push(table);
       }
       this.recalc = 0;
-      if (ks.length==0)
+      if (ks.length===0)
         return ;
-      var start=ks[0], end=ks[ks.length-1];
-      var s=start, steps=this.size, ds=(end-start)/(steps-1.0);
+      let start=ks[0], end=ks[ks.length-1];
+      let s=start, steps=this.size, ds=(end-start)/(steps-1.0);
       this.start = start;
       this.end = end;
-      var df=1e-05;
-      var lastk=ks[ks.length-1];
-      var dpad=this.dpad;
-      for (var j=-degree-dpad; j<ks.length+degree+dpad; j++) {
-          var j1=Math.min(Math.max(j+degree+dpad, 0), this.tables.length-1);
-          var table=this.tables[j1];
+      let df=1e-05;
+      let lastk=ks[ks.length-1];
+      dpad = this.dpad;
+      for (let j=-degree-dpad; j<ks.length+degree+dpad; j++) {
+          let j1=Math.min(Math.max(j+degree+dpad, 0), this.tables.length-1);
+          let table=this.tables[j1];
           start = table.start, end = table.end, ds = table.ds;
-          var ac=0.0;
-          for (var i=0, s2=start; i<steps; i++, s2+=ds) {
-              var s=s2;
+          let ac=0.0;
+          for (let i=0, s2=start; i<steps; i++, s2+=ds) {
+              let s=s2;
               s = min(lastk-1e-08, s);
-              var table=this.tables[j+degree+dpad];
-              var dv, dv2, dv3, dv4;
+              let table=this.tables[j+degree+dpad];
+              let dv, dv2, dv3, dv4;
               dv = dv2 = dv3 = dv4 = 0.0;
-              var w=table.w[i] = basis(s, j, degree, ks);
+              let w=table.w[i] = basis(s, j, degree, ks);
               table.t[ac++] = w;
-              var s2=s;
-              var dv=basis_dv(s2, j, degree, ks, 1);
+              let s2=s;
+              dv = basis_dv(s2, j, degree, ks, 1);
               table.t[ac++] = dv;
               if (this.degree>2) {
                   dv2 = basis_dv(s, j, degree, ks, 2);
@@ -3625,7 +3634,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       this.recalc = 1;
     }
      basis(s, j, n, ks, no_cache) {
-      var origs=s;
+      let origs=s;
       if (NO_CACHE||(no_cache!==undefined&&no_cache)) {
           return basis(s, j, n, ks, true);
       }
@@ -3633,35 +3642,34 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
           this.gen(ks, n);
       }
       j = min(max(j+n+this.dpad, 0), this.tables.length-1);
-      var table=this.tables[j];
-      var start=table.start, end=table.end, ds=table.ds;
+      let table=this.tables[j];
+      let start=table.start, end=table.end, ds=table.ds;
       if (s<start||s>=end)
         return 0.0;
-      var div=(end-start);
-      var tsize=this.size;
+      let div=(end-start);
+      let tsize=this.size;
       s = (s-start)/div;
       s = min(max(s, 0.0), 1.0)*(tsize-1.0);
-      var t=s;
+      let t=s;
       s = floor(s);
       s = min(max(s, 0.0), tsize-1);
       t-=s;
-      var s2=min(s+1, tsize);
-      var ac1=s*ITOT;
-      var ac2=s2*ITOT;
-      var tb=table.t;
-      var w1, w2, dv1a, dv2a, dv3a, dv4a, dv1b, dv2b, dv3b, dv4b;
-      var w1=table.w[s], dv1a=table.dv[s], dv2a=table.dv2[s], dv3a=table.dv3[s], dv4a=table.dv4[s];
-      var w2=table.w[s2], dv1b=table.dv[s2], dv2b=table.dv2[s2], dv3b=table.dv3[s2], dv4b=table.dv4[s2];
-      var t2=1.0-t;
-      var t3=t;
+      let s2=min(s+1, tsize);
+      let ac1=s*ITOT;
+      let ac2=s2*ITOT;
+      let tb=table.t;
+      let w1=table.w[s], dv1a=table.dv[s], dv2a=table.dv2[s], dv3a=table.dv3[s], dv4a=table.dv4[s];
+      let w2=table.w[s2], dv1b=table.dv[s2], dv2b=table.dv2[s2], dv3b=table.dv3[s2], dv4b=table.dv4[s2];
+      let t2=1.0-t;
+      let t3=t;
       t*=ds;
       t2*=-ds;
-      var eps=1e-06;
+      let eps=1e-06;
       t3 = (t3*(1.0-eps*2.0))+eps;
       s = t3*ds;
-      var s2=s*s, s3=s*s*s, s4=s2*s2, s5=s4*s, s6=s3*s3, s7=s6*s, s8=s7*s;
-      var ds2=ds*ds, ds3=ds*ds*ds, ds4=ds3*ds, ds5=ds4*ds, ds6=ds5*ds, ds7=ds6*ds, ds8=ds7*ds;
-      var polynomial=((((dv3a*s3+6*w1+3*dv2a*s2+6*dv1a*s)*ds5+3*(2*ds3*dv3a+ds3*dv3b+20*ds2*dv2a-14*ds2*dv2b+90*ds*dv1a+78*ds*dv1b+168*w1-168*w2)*s5)*ds-(4*ds3*dv3a+3*ds3*dv3b+45*ds2*dv2a-39*ds2*dv2b+216*ds*dv1a+204*ds*dv1b+420*w1-420*w2)*s6)*ds+((dv3a+dv3b)*ds3+120*(w1-w2)+12*(dv2a-dv2b)*ds2+60*(dv1a+dv1b)*ds)*s7-((4*dv3a+dv3b)*ds3+210*(w1-w2)+15*(2*dv2a-dv2b)*ds2+30*(4*dv1a+3*dv1b)*ds)*ds3*s4)/(6*ds7);
+      s2 = s*s, s3 = s*s*s, s4 = s2*s2, s5 = s4*s, s6 = s3*s3, s7 = s6*s, s8 = s7*s;
+      let ds2=ds*ds, ds3=ds*ds*ds, ds4=ds3*ds, ds5=ds4*ds, ds6=ds5*ds, ds7=ds6*ds, ds8=ds7*ds;
+      let polynomial=((((dv3a*s3+6*w1+3*dv2a*s2+6*dv1a*s)*ds5+3*(2*ds3*dv3a+ds3*dv3b+20*ds2*dv2a-14*ds2*dv2b+90*ds*dv1a+78*ds*dv1b+168*w1-168*w2)*s5)*ds-(4*ds3*dv3a+3*ds3*dv3b+45*ds2*dv2a-39*ds2*dv2b+216*ds*dv1a+204*ds*dv1b+420*w1-420*w2)*s6)*ds+((dv3a+dv3b)*ds3+120*(w1-w2)+12*(dv2a-dv2b)*ds2+60*(dv1a+dv1b)*ds)*s7-((4*dv3a+dv3b)*ds3+210*(w1-w2)+15*(2*dv2a-dv2b)*ds2+30*(4*dv1a+3*dv1b)*ds)*ds3*s4)/(6*ds7);
       if (isNaN(polynomial)) {
           return 0;
       }
@@ -3671,9 +3679,9 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   _ESClass.register(BasisCache);
   _es6_module.add_class(BasisCache);
   BasisCache = _es6_module.add_export('BasisCache', BasisCache);
-  var basis_dv_cache=new cachering(function () {
-    var ret=new Array(32);
-    for (var i=0; i<ret.length; i++) {
+  let basis_dv_cache=new cachering(function () {
+    let ret=new Array(32);
+    for (let i=0; i<ret.length; i++) {
         ret[i] = 0.0;
     }
     ret.j = undefined;
@@ -3681,21 +3689,21 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     ret.init = function (j, n) {
       this.j = j;
       this.n = n;
-      for (var i=0; i<this.length; i++) {
+      for (let i=0; i<this.length; i++) {
           this[i] = 0;
       }
     }
     return ret;
   }, 64);
   function basis_dv(s, j, n, ks, dvn) {
-    if (dvn==undefined)
+    if (dvn===undefined)
       dvn = 1;
     return compiled_basis_dv(s, j, n, ks, dvn);
-    if (dvn==0) {
+    if (dvn===0) {
         return basis(s, j, n, ks);
     }
-    var klen=ks.length;
-    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    let klen=ks.length;
+    let j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
     j1 = min(max(j1, 0.0), klen-1);
     j2 = min(max(j2, 0.0), klen-1);
     jn = min(max(jn, 0.0), klen-1);
@@ -3705,9 +3713,9 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     }
     else 
       if (0&&n<=1) {
-        var j3=min(max(j+2, 0.0), klen-1);
-        var j4=min(max(j+3, 0.0), klen-1);
-        var ret=0.0;
+        let j3=min(max(j+2, 0.0), klen-1);
+        let j4=min(max(j+3, 0.0), klen-1);
+        let ret=0.0;
         if (s>=ks[j1]&&s<ks[j2])
           ret = 1.0/(ks[j2]-ks[j1]);
         else 
@@ -3716,18 +3724,18 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         return ret;
     }
     else {
-      var kj1=ks[j1];
-      var kj2=ks[j2];
-      var kjn=ks[jn]+1e-10;
-      var kjn1=ks[jn1]+1e-10;
-      var div=((kj1-kjn)*(kj2-kjn1));
-      if (div==0.0) {
+      let kj1=ks[j1];
+      let kj2=ks[j2];
+      let kjn=ks[jn]+1e-10;
+      let kjn1=ks[jn1]+1e-10;
+      let div=((kj1-kjn)*(kj2-kjn1));
+      if (div===0.0) {
           div = 0.0;
       }
-      var lastdv=basis_dv(s, j, n-1, ks, dvn-1);
-      var ret=((kj1-s)*basis_dv(s, j, n-1, ks, dvn)-dvn*basis_dv(s, j, n-1, ks, dvn-1))*(kj2-kjn1);
+      let lastdv=basis_dv(s, j, n-1, ks, dvn-1);
+      let ret=((kj1-s)*basis_dv(s, j, n-1, ks, dvn)-dvn*basis_dv(s, j, n-1, ks, dvn-1))*(kj2-kjn1);
       ret-=((kjn1-s)*basis_dv(s, j+1, n-1, ks, dvn)-dvn*basis_dv(s, j+1, n-1, ks, dvn-1))*(kj1-kjn);
-      if (div!=0.0)
+      if (div!==0.0)
         ret/=div;
       else 
         ret/=0.0001;
@@ -3735,7 +3743,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     }
   }
   basis_dv = _es6_module.add_export('basis_dv', basis_dv);
-  var min=Math.min, max=Math.max;
+  let min=Math.min, max=Math.max;
   let dtmp=new Array(64);
   let ktmp=new Array(64);
   function deBoor(k, x, knots, controls, degree) {
@@ -3761,8 +3769,8 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         no_cache = false;
     }
     return compiled_basis(s, j, n, ks);
-    var klen=ks.length;
-    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    let klen=ks.length;
+    let j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
     j1 = min(max(j1, 0.0), klen-1);
     j2 = min(max(j2, 0.0), klen-1);
     jn = min(max(jn, 0.0), klen-1);
@@ -3771,11 +3779,11 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         return s>=ks[j1]&&s<ks[j2];
     }
     else {
-      var A=s-ks[j1];
-      var div=ks[jn]-ks[j1];
+      let A=s-ks[j1];
+      let div=ks[jn]-ks[j1];
       div+=1e-05;
       A = (A/div)*basis(s, j, n-1, ks);
-      var B=ks[jn1]-s;
+      let B=ks[jn1]-s;
       div = ks[jn1]-ks[j2];
       div+=1e-05;
       B = (B/div)*basis(s, j+1, n-1, ks);
@@ -3784,13 +3792,13 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   basis = _es6_module.add_export('basis', basis);
   function uniform_basis_intern(s, j, n) {
-    var ret=basis(s, j, n, uniform_vec);
-    if (n==0) {
+    let ret=basis(s, j, n, uniform_vec);
+    if (n===0) {
         return (s>=j&&s<j+1) ? 1.0 : 0.0;
     }
     else {
-      var A=(s-j)/n;
-      var B=(n+j+1-s)/n;
+      let A=(s-j)/n;
+      let B=(n+j+1-s)/n;
       return uniform_basis(s, j, n-1)*A+uniform_basis(s, j+1, n-1)*B;
     }
   }
@@ -3804,61 +3812,61 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   function uniform_basis(s, j, n, len) {
     uniform_vec.length = len===undefined ? 1024 : len;
     return basis(s, j, n, uniform_vec);
-    var hash=s+j*100.0+n*10000.0;
-    var ret=get_hash(hash);
-    if (ret==undefined) {
+    let hash=s+j*100.0+n*10000.0;
+    let ret=get_hash(hash);
+    if (ret===undefined) {
         ret = uniform_basis_intern(s, j, n);
         set_hash(hash, ret);
     }
     return ret;
   }
   uniform_basis = _es6_module.add_export('uniform_basis', uniform_basis);
-  var toHash2_stack=new Array(4096);
-  var toHash2_stack_2=new Float64Array(4096);
-  var toHash2_stack_3=new Float64Array(4096);
-  var _str_prejit=new Array(4096);
-  var strpre=8;
-  var RNDLEN=1024;
-  var rndtab=new Float64Array(RNDLEN);
-  for (var i=0; i<rndtab.length; i++) {
+  let toHash2_stack=new Array(4096);
+  let toHash2_stack_2=new Float64Array(4096);
+  let toHash2_stack_3=new Float64Array(4096);
+  let _str_prejit=new Array(4096);
+  let strpre=8;
+  let RNDLEN=1024;
+  let rndtab=new Float64Array(RNDLEN);
+  for (let i=0; i<rndtab.length; i++) {
       rndtab[i] = Math.random()*0.99999999;
   }
   function precheck(key) {
-    var s1="";
-    var seed=key.length%RNDLEN;
+    let s1="";
+    let seed=key.length%RNDLEN;
     seed = floor(rndtab[seed]*RNDLEN);
-    var klen=key.length;
-    for (var i=0; i<strpre; i++) {
+    let klen=key.length;
+    for (let i=0; i<strpre; i++) {
         s1+=key[floor(rndtab[seed]*klen)];
         seed = (seed+1)%RNDLEN;
     }
     return s1;
   }
-  var _vbuf=new Uint8Array(8);
-  var _view=new DataView(_vbuf.buffer);
-  var _fview=new Float32Array(_vbuf.buffer);
-  var _iview=new Int32Array(_vbuf.buffer);
-  var _sview=new Int16Array(_vbuf.buffer);
+  let _vbuf=new Uint8Array(8);
+  let _view=new DataView(_vbuf.buffer);
+  let _fview=new Float32Array(_vbuf.buffer);
+  let _iview=new Int32Array(_vbuf.buffer);
+  let _sview=new Int16Array(_vbuf.buffer);
   function pack_float(f) {
-    var s="";
+    let s="";
     _fview[0] = f;
-    for (var i=0; i<4; i++) {
+    for (let i=0; i<4; i++) {
         s+=String.fromCharCode(_vbuf[i]);
     }
     return s;
   }
   function pack_int(f) {
-    var s="";
+    let s="";
     _iview[0] = f;
-    for (var i=0; i<4; i++) {
+    for (let i=0; i<4; i++) {
         s+=String.fromCharCode(_vbuf[i]);
     }
     return s;
   }
   function pack_short(f) {
-    var s="";
+    let s="";
     _sview[0] = f;
-    for (var i=0; i<2; i++) {
+    for (let i=0; i<2; i++) {
         s+=String.fromCharCode(_vbuf[i]);
     }
     return s;
@@ -3866,19 +3874,19 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   function pack_byte(f) {
     return String.fromCharCode(f);
   }
-  var tiny_strpool={}
-  var tiny_strpool_idgen=1;
+  let tiny_strpool={}
+  let tiny_strpool_idgen=1;
   function pack_str(f) {
-    var ret="";
+    let ret="";
     if (!(f in tiny_strpool)) {
         tiny_strpool[f] = tiny_strpool_idgen++;
     }
     return pack_short(tiny_strpool[f]);
   }
-  var tiny_strpool2={}
-  var tiny_strpool_idgen2=1;
+  let tiny_strpool2={}
+  let tiny_strpool_idgen2=1;
   function pack_op(f) {
-    var ret="";
+    let ret="";
     if (!(f in tiny_strpool2)) {
         tiny_strpool2[f] = tiny_strpool_idgen2++;
     }
@@ -3886,16 +3894,16 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   window.pack_float = pack_float;
   window.precheck = precheck;
-  var _str_prehash={}
-  var _str_idhash=window._str_idhash = {}
-  var _str_idhash_rev=window._str_idhash_rev = {}
-  var _str_idgen=0;
+  let _str_prehash={}
+  let _str_idhash=window._str_idhash = {}
+  let _str_idhash_rev=window._str_idhash_rev = {}
+  let _str_idgen=0;
   function spool(hash) {
     if (hash in _str_idhash) {
         return _str_idhash[hash];
     }
     else {
-      var ret=_str_idgen++;
+      let ret=_str_idgen++;
       _str_idhash[hash] = ret;
       _str_idhash_rev[ret] = hash;
       return ret;
@@ -3905,7 +3913,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     return _str_idhash_rev[id].length;
   }
   window.tot_symcls = 0.0;
-  var KILL_ZEROS=true;
+  let KILL_ZEROS=true;
   class symcls  {
      constructor(name_or_value, op) {
       this._id = tot_symcls++;
@@ -3924,50 +3932,50 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       this.id = undefined;
       this.ins = this.ins_ids = undefined;
       this.is_tag = this.is_root = undefined;
-      if (typeof name_or_value=="number"||typeof name_or_value=="boolean") {
+      if (typeof name_or_value==="number"||typeof name_or_value==="boolean") {
           this.value = name_or_value;
       }
       else 
-        if (typeof name_or_value=="string"||__instance_of(name_or_value, String)) {
+        if (typeof name_or_value==="string"||__instance_of(name_or_value, String)) {
           this.name = name_or_value;
       }
     }
      binop(b, op) {
-      if (typeof b=="string"||typeof b=="number"||typeof b=="boolean") {
+      if (typeof b==="string"||typeof b==="number"||typeof b==="boolean") {
           b = new symcls(b);
       }
-      var ret=new symcls();
-      var a=this;
-      if (a.value!=undefined&&b.value!=undefined&&a.a==undefined&&b.a==undefined) {
+      let ret=new symcls();
+      let a=this;
+      if (a.value!==undefined&&b.value!==undefined&&a.a===undefined&&b.a===undefined) {
           ret.value = eval(a.value+" "+op+" "+b.value);
           return ret;
       }
       ret.use_parens = true;
       ret.op = op;
-      if (KILL_ZEROS&&a.value!=undefined&&a.value==0.0&&(op=="*"||op=="/")) {
+      if (KILL_ZEROS&&a.value!==undefined&&a.value===0.0&&(op==="*"||op==="/")) {
           return sym(0);
       }
       else 
-        if (KILL_ZEROS&&b.value!=undefined&&b.value==0.0&&(op=="*")) {
+        if (KILL_ZEROS&&b.value!==undefined&&b.value===0.0&&(op==="*")) {
           return sym(0);
       }
       else 
-        if (KILL_ZEROS&&this.a==undefined&&this.value==0.0&&op=="+") {
+        if (KILL_ZEROS&&this.a===undefined&&this.value===0.0&&op==="+") {
           return b.copy();
       }
       else 
-        if (KILL_ZEROS&&b.a==undefined&&b.value==0.0&&(op=="+"||op=="-")) {
+        if (KILL_ZEROS&&b.a===undefined&&b.value===0.0&&(op==="+"||op==="-")) {
           return this.copy();
       }
       else 
-        if (this.value==1.0&&op=="*"&&this.a==undefined) {
+        if (this.value===1.0&&op==="*"&&this.a===undefined) {
           return b.copy();
       }
       else 
-        if (b.value==1.0&&(op=="*"||op=="/")&&b.a==undefined) {
+        if (b.value===1.0&&(op==="*"||op==="/")&&b.a===undefined) {
           return this.copy();
       }
-      if (this.b!=undefined&&this.b.value!=undefined&&b.value!=undefined&&op=="+") {
+      if (this.b!==undefined&&this.b.value!==undefined&&b.value!==undefined&&op==="+") {
           ret = this.copy();
           ret.b.value = this.b.value+b.value;
           return ret;
@@ -3979,36 +3987,36 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       return ret;
     }
      hash() {
-      if (this._hash==undefined) {
+      if (this._hash===undefined) {
           this._hash = spool(this.toHash());
       }
       return this._hash;
     }
      index(arg1) {
-      if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+      if (typeof arg1==="string"||__instance_of(arg1, String)||typeof arg1==="number"||typeof arg1==="boolean") {
           arg1 = sym(arg1);
       }
       else {
         arg1 = arg1.copy();
       }
-      var ret=sym();
+      let ret=sym();
       ret.op = "i";
       ret.a = this.copy();
       ret.b = arg1;
       return ret;
     }
      func(fname, arg1) {
-      if (typeof fname=="string"||__instance_of(fname, String)) {
+      if (typeof fname==="string"||__instance_of(fname, String)) {
           fname = sym(fname);
       }
-      var ret=sym();
-      if (arg1==undefined) {
+      let ret=sym();
+      if (arg1===undefined) {
           ret.a = fname.copy();
           ret.b = this.copy();
           ret.op = "c";
       }
       else {
-        if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+        if (typeof arg1==="string"||__instance_of(arg1, String)||typeof arg1==="number"||typeof arg1==="boolean") {
             arg1 = sym(arg1);
         }
         ret.a = this.copy();
@@ -4019,7 +4027,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       return ret;
     }
      copy(copy_strcache) {
-      var ret=new symcls();
+      let ret=new symcls();
       ret.name = this.name;
       ret.value = this.value;
       ret.use_parens = this.use_parens;
@@ -4032,7 +4040,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       else {
         ret._hash = ret._toString = undefined;
       }
-      if (this.a!=undefined) {
+      if (this.a!==undefined) {
           ret.a = this.a.copy(copy_strcache);
           ret.b = this.b.copy(copy_strcache);
           ret.a.parent = ret;
@@ -4062,32 +4070,32 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       this._toString = undefined;
       this._hash = undefined;
       this._last_h = undefined;
-      if (this.a!=undefined) {
+      if (this.a!==undefined) {
       }
     }
      toHash2() {
-      var stack=toHash2_stack, stack2=toHash2_stack_2, top=0;
-      var stack3=toHash2_stack_3;
+      let stack=toHash2_stack, stack2=toHash2_stack_2, top=0;
+      let stack3=toHash2_stack_3;
       stack[top] = this;
       stack2[top] = 0;
       stack3[top] = 0;
-      var ret="";
-      var _i=0;
+      let ret="";
+      let _i=0;
       while (top>=0) {
         if (_i>100000) {
             console.log("infinite loop!");
             break;
         }
-        var item=stack[top];
-        var stage=stack2[top];
-        var start=stack3[top];
+        let item=stack[top];
+        let stage=stack2[top];
+        let start=stack3[top];
         top--;
-        if (stage==0) {
+        if (stage===0) {
             ret+=item.name+"|";
-            ret+=(item.value!=undefined ? item.value : "")+"|";
+            ret+=(item.value!==undefined ? item.value : "")+"|";
             ret+=item.is_func+"|";
         }
-        if (item.a!=undefined&&stage==0) {
+        if (item.a!==undefined&&stage===0) {
             ret+=item.op+"$";
             top++;
             stack[top] = item;
@@ -4099,7 +4107,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
             stack3[top] = ret.length;
         }
         else 
-          if (item.b!=undefined&&stage==1) {
+          if (item.b!==undefined&&stage===1) {
             ret+="$";
             top++;
             stack[top] = item.b;
@@ -4110,14 +4118,14 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       return ret;
     }
      toHash3() {
-      var ret="";
-      if (this._last_h!=undefined) {
+      let ret="";
+      if (this._last_h!==undefined) {
           return this._last_h;
       }
       ret+=pack_str(this.name);
-      ret+=this.value!=undefined ? pack_short(this.value*15000) : "";
+      ret+=this.value!==undefined ? pack_short(this.value*15000) : "";
       ret+=pack_byte(this.is_func);
-      if (this.a!=undefined) {
+      if (this.a!==undefined) {
           ret+=pack_op(this.op);
           ret+=this.a.toHash3();
           ret+=this.b.toHash3();
@@ -4127,13 +4135,13 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     }
      toHash() {
       return this.toHash3();
-      var ret="";
-      if (this._last_h!=undefined) {
+      let ret="";
+      if (this._last_h!==undefined) {
       }
       ret+=this.name+"|";
-      ret+=(this.value!=undefined ? this.value : "")+"|";
+      ret+=(this.value!==undefined ? this.value : "")+"|";
       ret+=this.is_func+"|";
-      if (this.a!=undefined) {
+      if (this.a!==undefined) {
           ret+=this.op+"$";
           ret+=this.a.toHash()+"$";
           ret+=this.b.toHash()+"$";
@@ -4142,39 +4150,39 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       return ret;
     }
      toString() {
-      if (this._toString!=undefined) {
+      if (this._toString!==undefined) {
           return this._toString;
       }
-      var use_parens=this.use_parens;
-      var use_parens=use_parens&&!(this.parent!=undefined&&(this.parent.op=="i"||this.parent.op=="c"||this.parent.op.length>2));
-      use_parens = use_parens&&!(this.value!=undefined&&this.a==undefined);
-      use_parens = use_parens&&!(this.name!=undefined&&this.name!=""&&this.a==undefined);
-      var s=use_parens ? "(" : "";
-      if (this.a!=undefined&&this.op=="i") {
+      let use_parens=this.use_parens;
+      use_parens = use_parens&&!(this.parent!==undefined&&(this.parent.op==="i"||this.parent.op==="c"||this.parent.op.length>2));
+      use_parens = use_parens&&!(this.value!==undefined&&this.a===undefined);
+      use_parens = use_parens&&!(this.name!==undefined&&this.name!==""&&this.a===undefined);
+      let s=use_parens ? "(" : "";
+      if (this.a!==undefined&&this.op==="i") {
           return ""+this.a+"["+this.b+"]";
       }
       else 
-        if (this.a!=undefined&&this.is_func&&this.op!="c") {
+        if (this.a!==undefined&&this.is_func&&this.op!=="c") {
           s+=""+this.op+"("+this.a+", "+this.b+")";
       }
       else 
-        if (this.a!=undefined&&this.is_func&&this.op=="c") {
+        if (this.a!==undefined&&this.is_func&&this.op==="c") {
           s+=""+this.a+"("+this.b+")";
       }
       else 
-        if (this.a!=undefined&&this.op!="p") {
+        if (this.a!==undefined&&this.op!=="p") {
           s+=""+this.a+" "+this.op+" "+this.b;
       }
       else 
-        if (this.a!=undefined&&this.op=="p") {
+        if (this.a!==undefined&&this.op==="p") {
           return "pow("+this.a+", "+this.b+")";
       }
       else 
-        if (this.value!=undefined&&this.a==undefined) {
+        if (this.value!==undefined&&this.a===undefined) {
           s+=""+this.value;
       }
       else 
-        if (this.name!=undefined&&this.name!="") {
+        if (this.name!==undefined&&this.name!=="") {
           s+=this.name;
       }
       else {
@@ -4194,20 +4202,20 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   sym = _es6_module.add_export('sym', sym);
   function recurse2_a(n, root, map, haskeys, map2, subpart_i, symtags) {
     function recurse2(n, root) {
-      var key=n.hash();
+      let key=n.hash();
       if (map.has(key)) {
           n.tag = symtags.get(map2.get(key));
           n.tag.key = key;
           n.tag.is_tag = true;
           n.key = key;
-          if (root!=undefined&&n!==root) {
+          if (root!==undefined&&n!==root) {
               if (!haskeys.has(root.key)) {
                   haskeys.set(root.key, new hashtable());
               }
               haskeys.get(root.key).set(key, 1);
           }
       }
-      if (n.a!=undefined) {
+      if (n.a!==undefined) {
           recurse2(n.a, root);
           recurse2(n.b, root);
       }
@@ -4217,59 +4225,59 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   function optimize(tree) {
     tot_symcls = 0;
-    var start_tree=tree.copy(true);
+    let start_tree=tree.copy(true);
     function output() {
       console.log.apply(console, arguments);
     }
     function optimize_pass(tree, subpart_start_i) {
-      if (subpart_start_i==undefined)
+      if (subpart_start_i===undefined)
         subpart_start_i = 0;
-      var subpart_i=subpart_start_i;
-      var totstep=8;
-      var curstage=1;
+      let subpart_i=subpart_start_i;
+      let totstep=8;
+      let curstage=1;
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
-      var symtags=new hashtable();
-      var map=new hashtable();
-      var mapcount=new hashtable();
+      let symtags=new hashtable();
+      let map=new hashtable();
+      let mapcount=new hashtable();
       function recurse(n, depth) {
-        if (depth==undefined)
+        if (depth===undefined)
           depth = 0;
-        if (n.a==undefined)
+        if (n.a===undefined)
           return ;
-        var hash;
-        if (n.a!=undefined) {
-            var str=n.toHash();
+        let hash;
+        if (n.a!==undefined) {
+            let str=n.toHash();
             if (str.length<25) {
                 return ;
             }
         }
         if (depth>3) {
-            hash = hash==undefined ? n.hash() : hash;
+            hash = hash===undefined ? n.hash() : hash;
             map.set(hash, n.copy());
             if (!mapcount.has(hash)) {
                 mapcount.set(hash, 0);
             }
             mapcount.set(hash, mapcount.get(hash)+1);
         }
-        if (n.a!=undefined) {
+        if (n.a!==undefined) {
             recurse(n.a, depth+1);
         }
-        if (n.b!=undefined) {
+        if (n.b!==undefined) {
             recurse(n.b, depth+1);
         }
       }
       recurse(tree);
-      var keys=map.keys();
+      let keys=map.keys();
       keys.sort(function (a, b) {
         return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
       });
-      var map2=new hashtable();
+      let map2=new hashtable();
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
-      var keys3=[];
-      var i2=0;
-      var max_si=0;
+      let keys3=[];
+      let i2=0;
+      let max_si=0;
       function next() {
-        for (var i=0; i<keys.length; i++) {
+        for (let i=0; i<keys.length; i++) {
             if (mapcount.get(keys[i])<3) {
                 map.remove(keys[i]);
                 continue;
@@ -4282,15 +4290,15 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       next();
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
       keys = undefined;
-      var haskeys=new hashtable();
+      let haskeys=new hashtable();
       tree = recurse2_a(tree, undefined, map, haskeys, map2, subpart_i, symtags);
-      var keys3=map2.keys();
+      keys3 = map2.keys();
       keys3.sort(function (a, b) {
         return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
       });
       function recurse3(n, key) {
-        if (n.a!=undefined) {
-            if (n.a.tag!=undefined&&!n.a.is_tag&&n.a.key==key) {
+        if (n.a!==undefined) {
+            if (n.a.tag!==undefined&&!n.a.is_tag&&n.a.key===key) {
                 n.a.parent = undefined;
                 n.a = n.a.tag;
                 n.clear_toString();
@@ -4298,7 +4306,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
             else {
               recurse3(n.a, key);
             }
-            if (n.b.tag!=undefined&&!n.b.is_tag&&n.b.key==key) {
+            if (n.b.tag!==undefined&&!n.b.is_tag&&n.b.key===key) {
                 n.b.parent = undefined;
                 n.b = n.b.tag;
                 n.clear_toString();
@@ -4310,17 +4318,17 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         return n;
       }
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
-      for (var i=0; i<keys3.length; i++) {
+      for (let i=0; i<keys3.length; i++) {
           tree = recurse3(tree, keys3[i]);
       }
-      var exists=new hashtable();
+      let exists=new hashtable();
       function recurse4(n, key) {
         if (n.is_tag) {
             exists.set(n.key, true);
         }
-        if (n.is_tag&&n.key!=undefined&&n.key==key)
+        if (n.is_tag&&n.key!==undefined&&n.key===key)
           return true;
-        if (n.a!=undefined) {
+        if (n.a!==undefined) {
             if (recurse4(n.a, key))
               return true;
             if (recurse4(n.b, key))
@@ -4335,18 +4343,18 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       });
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
       output(keys3.length);
-      var last_time2=time_ms();
-      var haskeys=new hashtable();
+      let last_time2=time_ms();
+      haskeys = new hashtable();
       window.haskeys = haskeys;
-      for (var i=0; i<keys3.length; i++) {
+      for (let i=0; i<keys3.length; i++) {
           if (time_ms()-last_time2>500) {
               output("optimizing key", i+1, "of", keys3.length);
               last_time2 = time_ms();
           }
-          var n=map.get(keys3[i]);
-          var last_time=time_ms();
-          for (var j=0; j<keys3.length; j++) {
-              if (i==j)
+          let n=map.get(keys3[i]);
+          let last_time=time_ms();
+          for (let j=0; j<keys3.length; j++) {
+              if (i===j)
                 continue;
               if (time_ms()-last_time>500) {
                   output("  subkey part 1:", j+1, "of", keys3.length+", for", i+1);
@@ -4354,15 +4362,15 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
               }
               recurse2_a(n, n, map, haskeys, map2, subpart_i, symtags);
           }
-          for (var j=0; j<keys3.length; j++) {
-              var key=keys3[j];
-              if (i==j)
+          for (let j=0; j<keys3.length; j++) {
+              let key=keys3[j];
+              if (i===j)
                 continue;
               if (time_ms()-last_time>500) {
                   output("  subkey part 2", j+1, "of", keys3.length+", for", i+1);
                   last_time = time_ms();
               }
-              if (haskeys.get(n.key)==undefined||!(haskeys.get(n.key).has(key)))
+              if (haskeys.get(n.key)===undefined||!(haskeys.get(n.key).has(key)))
                 continue;
               recurse3(n, keys3[j]);
               recurse4(n, keys3[j]);
@@ -4371,27 +4379,27 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       }
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
       function tag(n, root) {
-        if (n!=root&&n.is_tag) {
-            var k=n.key;
-            if (k==root.key) {
+        if (n!==root&&n.is_tag) {
+            let k=n.key;
+            if (k===root.key) {
                 output("Cycle!", k, root.key);
                 throw RuntimeError("Cycle! "+k+", "+root.key);
                 return ;
             }
             root.ins.set(n.key, 1);
-            var id=map2.get(n.key);
+            let id=map2.get(n.key);
             root.ins_ids.set(id, id);
         }
-        if (n.a!=undefined) {
+        if (n.a!==undefined) {
             tag(n.a, root);
             tag(n.b, root);
         }
       }
       output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
-      var dag=[];
+      let dag=[];
       window.dag = dag;
       function visit_n(k) {
-        var n2=map.get(k);
+        let n2=map.get(k);
         if (!n2._done) {
             dagsort(n2);
         }
@@ -4410,35 +4418,35 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
             dag.push(n);
             n._done = true;
         }
-        if (n.a!=undefined) {
+        if (n.a!==undefined) {
             dagsort(n.a);
             dagsort(n.b);
         }
       }
-      for (var i=0; i<keys3.length; i++) {
-          var n=map.get(keys3[i]);
+      for (let i=0; i<keys3.length; i++) {
+          let n=map.get(keys3[i]);
           n.is_root = true;
           n.ins = new hashtable();
           n.ins_ids = new hashtable();
           n.id = map2.get(keys3[i]);
       }
-      for (var i=0; i<keys3.length; i++) {
-          var n=map.get(keys3[i]);
+      for (let i=0; i<keys3.length; i++) {
+          let n=map.get(keys3[i]);
           n._visit = n._done = false;
           n.key = keys3[i];
           tag(n, n);
       }
-      for (var i=0; i<keys3.length; i++) {
-          var n=map.get(keys3[i]);
+      for (let i=0; i<keys3.length; i++) {
+          let n=map.get(keys3[i]);
           if (!n._done) {
               dagsort(n);
           }
       }
-      var i1=0;
-      var header="";
-      for (var i=0; i<dag.length; i++) {
-          var n=dag[i];
-          var key=n.key;
+      let i1=0;
+      let header="";
+      for (let i=0; i<dag.length; i++) {
+          let n=dag[i];
+          let key=n.key;
           if (subpart_i>0||i>0)
             header+=", ";
           n.clear_toString();
@@ -4446,29 +4454,29 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
           header+="SUBPART"+map2.get(key)+" = "+""+n;
       }
       header+="\n";
-      var finals=header+""+tree;
+      let finals=header+""+tree;
       output("finished!");
       return [tree, finals, header, max_si];
     }
-    var si=0;
-    var header2="";
-    var r=optimize_pass(tree, si);
-    if (i>0&&header2.trim()!=""&&header2.trim()[header2.length-1]!=",")
+    let si=0;
+    let header2="";
+    let r=optimize_pass(tree, si);
+    if (i>0&&header2.trim()!==""&&header2.trim()[header2.length-1]!==",")
       header2+=", ";
     header2+=r[2];
     tree = r[0].copy();
     si+=r[3]+1;
     header2 = header2.trim();
-    if (header2.trim()!="")
-      header2 = "var "+header2+";\n";
-    var final2=header2+"\n  return "+tree+";\n";
-    var ret=undefined, func;
-    var code1="ret = function(s, j, n, ks, dvn) {"+final2+"};";
+    if (header2.trim()!=="")
+      header2 = "let "+header2+";\n";
+    let final2=header2+"\n  return "+tree+";\n";
+    let ret=undefined, func;
+    let code1="ret = function(s, j, n, ks, dvn) {"+final2+"};";
     code1 = splitline(code1);
     eval(code1);
     func = ret;
-    var func2=undefined;
-    var code2="ret = function(s, j, n, ks, dvn) {return "+(""+start_tree)+";};";
+    let func2=undefined;
+    let code2="ret = function(s, j, n, ks, dvn) {return "+(""+start_tree)+";};";
     code2 = splitline(code2);
     func = ret;
     eval(code2);
@@ -4476,7 +4484,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   optimize = _es6_module.add_export('optimize', optimize);
   function get_cache(k, v) {
-    var ret;
+    let ret;
     try {
       ret = JSON.parse(myLocalStorage["_store_"+k]);
     }
@@ -4484,7 +4492,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
         print_stack(error);
         return undefined;
     }
-    if (ret=="undefined") {
+    if (ret==="undefined") {
         return undefined;
     }
   }
@@ -4496,42 +4504,42 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   store_cache = _es6_module.add_export('store_cache', store_cache);
   window.store_cache = store_cache;
   window.test_sym = function test_sym() {
-    var x=sym("x");
+    let x=sym("x");
     x = x.binop(2, "*");
-    var degree=2, klen=10, j=2;
-    var dvn=1;
+    let degree=2, klen=10, j=2;
+    let dvn=1;
     KILL_ZEROS = false;
-    var tree=gen_basis_dv_code(j, degree, klen, dvn);
-    var start_tree=tree.copy();
+    let tree=gen_basis_dv_code(j, degree, klen, dvn);
+    let start_tree=tree.copy();
     KILL_ZEROS = true;
     tree = gen_basis_dv_code(j, degree, klen, dvn);
     window.tree_func = optimize(tree);
-    var skey=""+j+"|"+degree+"|"+klen+"|"+dvn;
+    let skey=""+j+"|"+degree+"|"+klen+"|"+dvn;
     store_cache(skey, tree_func[2]);
-    var tst=new Float32Array(10);
-    for (var i=0; i<tst.length; i++) {
+    let tst=new Float32Array(10);
+    for (let i=0; i<tst.length; i++) {
         tst[i] = i;
     }
-    var finals=tree_func[2];
+    let finals=tree_func[2];
     console.log("ratio: ", finals.replace(" ", "").replace("\n", "").length/(""+start_tree).replace(" ", "").replace("\n", "").length);
     window.test = function (s, j) {
       console.log("testing...");
-      if (j==undefined)
+      if (j===undefined)
         j = 3.0;
-      var func=window.tree_func[0];
-      var func2=basis_dv;
-      var time1=0;
-      var time2=0;
-      var steps=250, steps2=10;
-      for (var si=0; si<steps2; si++) {
-          var start_time=time_ms();
-          for (var i=0; i<steps; i++) {
-              var r1=func(s+i*0.0001, j, degree, tst);
+      let func=window.tree_func[0];
+      let func2=basis_dv;
+      let time1=0;
+      let time2=0;
+      let steps=250, steps2=10;
+      for (let si=0; si<steps2; si++) {
+          let start_time=time_ms();
+          for (let i=0; i<steps; i++) {
+              let r1=func(s+i*0.0001, j, degree, tst);
           }
           time1+=(time_ms()-start_time);
-          var start_time=time_ms();
-          for (var i=0; i<steps; i++) {
-              var r2=func2(s+i*0.0001, j, degree, tst, dvn);
+          start_time = time_ms();
+          for (let i=0; i<steps; i++) {
+              let r2=func2(s+i*0.0001, j, degree, tst, dvn);
           }
           time2+=(time_ms()-start_time);
       }
@@ -4540,15 +4548,15 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
       console.log(r1, r2, time1, time2);
       
     }
-    var dv_test=""+tree;
-    var dv_test2="";
-    var ci=0;
-    var set={"(": 0, 
+    let dv_test=""+tree;
+    let dv_test2="";
+    let ci=0;
+    let set={"(": 0, 
     ")": 0, 
     "+": 0, 
     "/": 0, 
     "*": 0}
-    for (var i=0; i<dv_test.length; i++, ci++) {
+    for (let i=0; i<dv_test.length; i++, ci++) {
         if (ci>79&&(dv_test[i] in set)) {
             dv_test2+="\n";
             ci = 0.0;
@@ -4559,14 +4567,14 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   window.sym = sym;
   function splitline(dv_test) {
-    var dv_test2="";
-    var ci=0;
-    var set={"(": 0, 
+    let dv_test2="";
+    let ci=0;
+    let set={"(": 0, 
     ")": 0, 
     "+": 0, 
     "/": 0, 
     "*": 0}
-    for (var i=0; i<dv_test.length; i++, ci++) {
+    for (let i=0; i<dv_test.length; i++, ci++) {
         if (ci>79&&(dv_test[i] in set)) {
             dv_test2+="\n";
             ci = 0.0;
@@ -4577,22 +4585,22 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   window.splitline = splitline;
   function gen_basis_code(j, n, klen, gen_reduce) {
-    var s=sym("s");
+    let s=sym("s");
     j = sym("j");
-    var ks=sym("ks");
+    let ks=sym("ks");
     return basis_sym_general(s, j, n, ks, gen_reduce);
   }
   gen_basis_code = _es6_module.add_export('gen_basis_code', gen_basis_code);
   function make_cache_table(maxknotsize, make_dvs) {
-    var basis_caches1=new Array(12);
-    for (var i=0; i<basis_caches1.length; i++) {
-        var arr=new Array(maxknotsize);
+    let basis_caches1=new Array(12);
+    for (let i=0; i<basis_caches1.length; i++) {
+        let arr=new Array(maxknotsize);
         basis_caches1[i] = arr;
-        for (var j=1; j<arr.length; j++) {
+        for (let j=1; j<arr.length; j++) {
             arr[j] = new Array(j);
             if (make_dvs) {
-                var arr2=arr[j];
-                for (var k=0; k<arr2.length; k++) {
+                let arr2=arr[j];
+                for (let k=0; k<arr2.length; k++) {
                     arr2[k] = new Array(5);
                 }
             }
@@ -4607,52 +4615,52 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   const DV_JADD=0.0;
   _es6_module.add_export('DV_JADD', DV_JADD);
   window.load_seven = function () {
-    for (var k in basis_json) {
-        var k1=k;
+    for (let k in basis_json) {
+        let k1=k;
         k = k.split("|");
         if (k.length<4)
           continue;
         console.log(k);
         if (k[1]==="7") {
             console.log("found!", k);
-            var hash=""+0+"|"+7+"|"+2+"|"+k[3];
+            let hash=""+0+"|"+7+"|"+2+"|"+k[3];
             myLocalStorage[hash] = basis_json[k1];
-            var ret;
+            let ret;
             console.log(hash, eval(basis_json[k1]));
         }
     }
   }
   window.save_local_storage = function () {
-    var ret=JSON.stringify(myLocalStorage);
-    var blob=new Blob([ret], {type: "application/binary"});
-    var url=URL.createObjectURL(blob);
+    let ret=JSON.stringify(myLocalStorage);
+    let blob=new Blob([ret], {type: "application/binary"});
+    let url=URL.createObjectURL(blob);
     console.log(url);
     window.open(url);
     return url;
   }
   function add_to_table_dv(j, n, klen, dvn, table) {
-    var hash=""+0+"|"+n+"|"+2+"|"+dvn;
-    var s=myLocalStorage[hash];
-    if (s==undefined||s=="undefined") {
-        var tree=gen_basis_dv_code(j, n, klen, dvn);
+    let hash=""+0+"|"+n+"|"+2+"|"+dvn;
+    let s=myLocalStorage[hash];
+    if (s===undefined||s==="undefined") {
+        let tree=gen_basis_dv_code(j, n, klen, dvn);
         s = optimize(tree)[2];
         console.log("storing basis function. . .");
         myLocalStorage[hash] = s;
     }
-    var ret;
+    let ret;
     eval(s);
     table[n][2][0][dvn] = ret;
     return ret;
   }
-  var zero=function (a, b, c, d, e) {
+  let zero=function (a, b, c, d, e) {
     return 0.0;
   }
   function get_basis_dv_func(j, n, klen, dvn) {
     if (dvn<=0) {
         return zero;
     }
-    var ret=basis_caches_dv[n][2][0][dvn];
-    if (ret==undefined) {
+    let ret=basis_caches_dv[n][2][0][dvn];
+    if (ret===undefined) {
         ret = add_to_table_dv(0, n, klen, dvn, basis_caches_dv);
     }
     return ret;
@@ -4660,16 +4668,16 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   get_basis_dv_func = _es6_module.add_export('get_basis_dv_func', get_basis_dv_func);
   window.get_basis_dv_func = get_basis_dv_func;
   function compiled_basis_dv(s, j, n, ks, dvn) {
-    var func=get_basis_dv_func(j, n, ks.length, dvn);
+    let func=get_basis_dv_func(j, n, ks.length, dvn);
     return func(s, j, n, ks, dvn);
   }
   compiled_basis_dv = _es6_module.add_export('compiled_basis_dv', compiled_basis_dv);
   function gen_basis_dv_code(j, degree, klen, dv, gen_reduce) {
-    var s=sym("s");
-    var n=degree;
+    let s=sym("s");
+    let n=degree;
     j = sym("j");
-    var ks=new Array(klen);
-    for (var i=0; i<klen; i++) {
+    let ks=new Array(klen);
+    for (let i=0; i<klen; i++) {
         ks[i] = gen_reduce ? sym("k"+(i+1)) : sym("ks").index(j);
     }
     ks = sym("ks");
@@ -4677,14 +4685,14 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   gen_basis_dv_code = _es6_module.add_export('gen_basis_dv_code', gen_basis_dv_code);
   function get_basis_func(j, n, klen) {
-    var KLEN=5;
-    var ret=basis_caches[n][KLEN][j];
+    let KLEN=5;
+    let ret=basis_caches[n][KLEN][j];
     if (ret===undefined) {
-        var hash="bs:"+n;
-        var s=myLocalStorage[hash];
+        let hash="bs:"+n;
+        let s=myLocalStorage[hash];
         if (s===undefined||s==="undefined") {
             console.log("storing basis function. . .");
-            var tree=gen_basis_code(j, n, klen);
+            let tree=gen_basis_code(j, n, klen);
             s = optimize(tree)[2];
             myLocalStorage[hash] = s;
         }
@@ -4695,7 +4703,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   get_basis_func = _es6_module.add_export('get_basis_func', get_basis_func);
   function compiled_basis(s, j, n, ks) {
-    var func=get_basis_func(j, n, ks.length);
+    let func=get_basis_func(j, n, ks.length);
     return func(s, j, n, ks);
   }
   compiled_basis = _es6_module.add_export('compiled_basis', compiled_basis);
@@ -4704,26 +4712,26 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   window._sym_do_clamping = true;
   window._sym_more_symbolic = false;
   function basis_sym(s, j, n, ks, gen_reduce) {
-    var klen=ks.length;
-    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    let klen=ks.length;
+    let j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
     j1 = _sym_do_clamping ? min(max(j1, 0.0), klen-1) : j1;
     j2 = _sym_do_clamping ? min(max(j2, 0.0), klen-1) : j2;
     jn = _sym_do_clamping ? min(max(jn, 0.0), klen-1) : jn;
     jn1 = _sym_do_clamping ? min(max(jn1, 0.0), klen-1) : jn1;
-    if (n==0) {
+    if (n===0) {
         return sym("(s >= ks["+j1+"] && s < ks["+j2+"])");
     }
     else {
-      var A=s.sub(ks[j1]);
-      var div=ks[jn].sub(ks[j1]);
-      var cancelA=div.binop(0.0, "!=");
-      if (_sym_eps1!=0.0)
+      let A=s.sub(ks[j1]);
+      let div=ks[jn].sub(ks[j1]);
+      let cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!==0.0)
         div = div.add(_sym_eps1);
       A = A.mul(basis_sym(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
-      var B=ks[jn1].sub(s);
+      let B=ks[jn1].sub(s);
       div = ks[jn1].sub(ks[j2]);
-      var cancelB=div.binop(0.0, "!=");
-      if (_sym_eps1!=0.0)
+      let cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!==0.0)
         div = div.add(_sym_eps1);
       B = B.mul(basis_sym(s, j+1, n-1, ks, gen_reduce)).div(div).mul(cancelB);
       return A.add(B);
@@ -4731,48 +4739,48 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   basis_sym = _es6_module.add_export('basis_sym', basis_sym);
   function basis_sym_general(s, j, n, ks, gen_reduce) {
-    var j1, j2, jn1, kn2;
+    let j1, j2, jn1, kn2;
     if (_sym_do_clamping) {
-        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
     }
     else {
       j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
     }
-    if (_sym_more_symbolic&&n==1) {
+    if (_sym_more_symbolic&&n===1) {
         return sym("lin("+j1+","+j2+","+jn1+")");
     }
     else 
-      if (_sym_more_symbolic&&n==0) {
+      if (_sym_more_symbolic&&n===0) {
         return j1.func("step", j2);
     }
-    if (n==0) {
-        var r1=s.binop(ks.index(j1), ">=");
-        var r2=s.binop(ks.index(j2), "<");
+    if (n===0) {
+        let r1=s.binop(ks.index(j1), ">=");
+        let r2=s.binop(ks.index(j2), "<");
         return r1.binop(r2, "&&");
-        var r1=s.sub(ks.index(j1));
-        var r2=ks.index(j2).sub(s);
-        var r1=s.sub(ks.index(j1));
-        var r2=ks.index(j2).sub(s);
-        var eps1=1e-06;
+        r1 = s.sub(ks.index(j1));
+        r2 = ks.index(j2).sub(s);
+        r1 = s.sub(ks.index(j1));
+        r2 = ks.index(j2).sub(s);
+        let eps1=1e-06;
         r1 = r1.add(eps1);
         r2 = r2.add(eps1);
         r1 = r1.div(r1.func("abs")).mul(0.5).add(0.5-eps1);
         r2 = r2.div(r2.func("abs")).mul(0.5).add(0.5+eps1);
     }
     else {
-      var A=s.sub(ks.index(j1));
-      var div=ks.index(jn).sub(ks.index(j1));
-      var cancelA=div.binop(0.0, "!=");
-      if (_sym_eps1!=undefined)
+      let A=s.sub(ks.index(j1));
+      let div=ks.index(jn).sub(ks.index(j1));
+      let cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!==undefined)
         div = div.add(_sym_eps1);
       A = A.mul(basis_sym_general(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
-      var B=ks.index(jn1).sub(s);
+      let B=ks.index(jn1).sub(s);
       div = ks.index(jn1).sub(ks.index(j2));
-      var cancelB=div.binop(0.0, "!=");
-      if (_sym_eps1!=undefined)
+      let cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!==undefined)
         div = div.add(_sym_eps1);
       B = B.mul(basis_sym_general(s, j.add(1), n-1, ks, gen_reduce)).div(div).mul(cancelB);
       return A.add(B);
@@ -4780,17 +4788,17 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   }
   basis_sym_general = _es6_module.add_export('basis_sym_general', basis_sym_general);
   function basis_dv_sym(s, j, n, ks, dvn, gen_reduce) {
-    if (dvn==0) {
+    if (dvn===0) {
         return basis_sym_general(s, j, n, ks, gen_reduce);
     }
-    var j1, j2, jn, jn1, j3, j4;
+    let j1, j2, jn, jn1, j3, j4;
     if (_sym_do_clamping) {
-        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var j3=j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
-        var j4=j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j3=j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        let j4=j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
     }
     else {
       j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
@@ -4801,25 +4809,25 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
     }
     else 
       if (n<=1) {
-        var div1="(0.000+(ks["+j3+"])-(ks["+j2+"]))";
-        var div2="(0.000+(ks["+j2+"])-(ks["+j1+"]))";
-        var b="(s >= ks["+j2+"] && s < ks["+j3+"]) ? (-1.0/"+div1+") : 0.0";
-        var s="(s >= ks["+j1+"] && s < ks["+j2+"]) ? (1.0/"+div2+") : ("+b+")";
+        let div1="(0.000+(ks["+j3+"])-(ks["+j2+"]))";
+        let div2="(0.000+(ks["+j2+"])-(ks["+j1+"]))";
+        let b="(s >= ks["+j2+"] && s < ks["+j3+"]) ? (-1.0/"+div1+") : 0.0";
+        let s="(s >= ks["+j1+"] && s < ks["+j2+"]) ? (1.0/"+div2+") : ("+b+")";
         return sym("("+s+")");
-        var r1=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
-        var r2=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
-        var ret=r1.sub(r2);
-        var div1=ks.index(j2).sub(ks.index(j1));
-        var div3=div1.add(div1.binop("0.0", "=="));
-        var div2=ks.index(j3).sub(ks.index(j2));
-        var div4=div2.add(div2.binop("0.0", "=="));
-        var cancel=div2.binop("0.0", "==").mul(div1.binop("0.0", "=="));
-        var r1=sym(1.0).div(div3).mul(div1.binop("0.0", "!="));
-        var r2=sym(-1.0).div(div4).mul(div2.binop("0.0", "!="));
-        var a=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
-        var b=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        let r1=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        let r2=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        let ret=r1.sub(r2);
+        div1 = ks.index(j2).sub(ks.index(j1));
+        let div3=div1.add(div1.binop("0.0", "=="));
+        div2 = ks.index(j3).sub(ks.index(j2));
+        let div4=div2.add(div2.binop("0.0", "=="));
+        let cancel=div2.binop("0.0", "==").mul(div1.binop("0.0", "=="));
+        r1 = sym(1.0).div(div3).mul(div1.binop("0.0", "!="));
+        r2 = sym(-1.0).div(div4).mul(div2.binop("0.0", "!="));
+        a = s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        b = s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
         return r1.mul(a).add(r2.mul(b));
-        var ret=0.0;
+        ret = 0.0;
         if (s>=ks[j1]&&s<ks[j2])
           ret = 1.0/(ks[j2]-ks[j1]);
         else 
@@ -4827,10 +4835,10 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
           ret = -1.0/(ks[j3]-ks[j2]);
     }
     else {
-      var kj1=ks.index(j1);
-      var kj2=ks.index(j2);
-      var kjn=ks.index(jn);
-      var kjn1=ks.index(jn1);
+      let kj1=ks.index(j1);
+      let kj2=ks.index(j2);
+      let kjn=ks.index(jn);
+      let kjn1=ks.index(jn1);
       kjn.add(_sym_eps2);
       if (!_sym_more_symbolic) {
           kj1 = kj1.sub(_sym_eps2);
@@ -4838,69 +4846,53 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
           kjn = kjn.add(_sym_eps2);
           kjn1 = kjn1.add(_sym_eps2);
       }
-      var div=kj1.sub(kjn).mul(kj2.sub(kjn1));
-      var cancel=div.func("abs").binop(0.0001, ">=");
+      let div=kj1.sub(kjn).mul(kj2.sub(kjn1));
+      let cancel=div.func("abs").binop(0.0001, ">=");
       if (!_sym_more_symbolic) {
           div = div.add(0.0);
       }
-      var ret=(kj1.sub(s).mul(basis_dv_sym(s, j, n-1, ks, dvn, gen_reduce)).sub(basis_dv_sym(s, j, n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      let ret=(kj1.sub(s).mul(basis_dv_sym(s, j, n-1, ks, dvn, gen_reduce)).sub(basis_dv_sym(s, j, n-1, ks, dvn-1, gen_reduce).mul(dvn)));
       ret = ret.mul(kj2.sub(kjn1));
-      var ret2=(kjn1.sub(s).mul(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn)).sub(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      let ret2=(kjn1.sub(s).mul(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn)).sub(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn-1, gen_reduce).mul(dvn)));
       ret2 = ret2.mul(kj1.sub(kjn));
       ret = ret.sub(ret2).div(div);
       return ret;
     }
   }
   basis_dv_sym = _es6_module.add_export('basis_dv_sym', basis_dv_sym);
-  var _jit=[0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905, 0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158, 0.8813679129816592, 0.1114522460848093, 0.6895110581535846, 0.6958548363763839, 0.3031193600036204, 0.37011902872473, 0.2962806692812592, 0.028554908465594053, 0.823489741422236, 0.46635359339416027, 0.32072878000326455, 0.790815538726747, 0.24832243379205465, 0.4548102973494679, 0.17482145293615758, 0.12876217160373926, 0.47663668682798743, 0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465, 0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474, 0.5500841496977955, 0.056078286841511726, 0.2025157359894365, 0.3545380241703242, 0.37520054122433066, 0.9240472037345171, 0.5759296049363911, 0.23126523662358522, 0.8160425815731287, 0.2655198322609067, 0.5174507955089211, 0.5305957165546715, 0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697, 0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936, 0.2482534891460091, 0.9248246876522899, 0.5719250738620758, 0.8759879691060632, 0.014760041143745184, 0.27814899617806077, 0.8179157497361302, 0.8425747095607221, 0.5784667218104005, 0.8781018694862723, 0.25768745923414826, 0.12491370760835707, 0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821, 0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208, 0.26263241469860077, 0.16050022304989398, 0.7419972626958042, 0.10826557059772313, 0.15192136517725885, 0.08435141341760755, 0.8828735174611211, 0.9579186830669641, 0.4730489938519895, 0.13362190243788064, 0.3206780105829239, 0.5988038030918688, 0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996, 0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383, 0.31904217251576483, 0.285037521738559, 0.25403662770986557, 0.20903456234373152, 0.8835178036242723, 0.8222054259385914, 0.5918245937209576];
+  let _jit=[0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905, 0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158, 0.8813679129816592, 0.1114522460848093, 0.6895110581535846, 0.6958548363763839, 0.3031193600036204, 0.37011902872473, 0.2962806692812592, 0.028554908465594053, 0.823489741422236, 0.46635359339416027, 0.32072878000326455, 0.790815538726747, 0.24832243379205465, 0.4548102973494679, 0.17482145293615758, 0.12876217160373926, 0.47663668682798743, 0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465, 0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474, 0.5500841496977955, 0.056078286841511726, 0.2025157359894365, 0.3545380241703242, 0.37520054122433066, 0.9240472037345171, 0.5759296049363911, 0.23126523662358522, 0.8160425815731287, 0.2655198322609067, 0.5174507955089211, 0.5305957165546715, 0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697, 0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936, 0.2482534891460091, 0.9248246876522899, 0.5719250738620758, 0.8759879691060632, 0.014760041143745184, 0.27814899617806077, 0.8179157497361302, 0.8425747095607221, 0.5784667218104005, 0.8781018694862723, 0.25768745923414826, 0.12491370760835707, 0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821, 0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208, 0.26263241469860077, 0.16050022304989398, 0.7419972626958042, 0.10826557059772313, 0.15192136517725885, 0.08435141341760755, 0.8828735174611211, 0.9579186830669641, 0.4730489938519895, 0.13362190243788064, 0.3206780105829239, 0.5988038030918688, 0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996, 0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383, 0.31904217251576483, 0.285037521738559, 0.25403662770986557, 0.20903456234373152, 0.8835178036242723, 0.8222054259385914, 0.5918245937209576];
   window._jit = _jit;
   window._jit_cur = 0;
 }, '/dev/fairmotion/src/curve/bspline.js');
 
 
-es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermite.js", "../config/config.js"], function _spline_math_module(_es6_module) {
-  "USE_PREPROCESSOR";
+es6_module_define('spline_math', ["../wasm/native_api.js", "../config/config.js", "./spline_math_hermite.js"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
-  var FEPS=1e-18;
-  var PI=Math.PI;
-  var sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
-  var cos=Math.cos, pow=Math.pow, abs=Math.abs;
-  var SPI2=Math.sqrt(PI/2);
+  let FEPS=1e-18;
+  let PI=Math.PI;
+  let sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
+  let cos=Math.cos, pow=Math.pow, abs=Math.abs;
+  let SPI2=Math.sqrt(PI/2);
   var math=es6_import(_es6_module, './spline_math_hermite.js');
-  var spiraltheta=math.spiraltheta;
+  let spiraltheta=math.spiraltheta;
   spiraltheta = _es6_module.add_export('spiraltheta', spiraltheta);
-  var spiralcurvature=math.spiralcurvature;
+  let spiralcurvature=math.spiralcurvature;
   spiralcurvature = _es6_module.add_export('spiralcurvature', spiralcurvature);
-  var spiralcurvature_dv=math.spiralcurvature_dv;
+  let spiralcurvature_dv=math.spiralcurvature_dv;
   spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
-  var approx=math.approx;
+  let approx=math.approx;
   approx = _es6_module.add_export('approx', approx);
-  var INT_STEPS=math.INT_STEPS;
+  let INT_STEPS=math.INT_STEPS;
   INT_STEPS = _es6_module.add_export('INT_STEPS', INT_STEPS);
-  var ORDER=math.ORDER;
+  let ORDER=math.ORDER;
   ORDER = _es6_module.add_export('ORDER', ORDER);
   var DISABLE_SOLVE=es6_import_item(_es6_module, '../config/config.js', 'DISABLE_SOLVE');
-  function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
-    if (DISABLE_SOLVE||window.DISABLE_SOLVE)
-      return ;
-    if (window.common!==undefined&&window.common.naclModule!==undefined) {
-        var draw_id=window.push_solve(spline);
-        return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
-    }
-    else {
-      return math.do_solve.apply(this, arguments);
-    }
-  }
   var native_api=es6_import(_es6_module, '../wasm/native_api.js');
   function do_solve() {
     if (DISABLE_SOLVE||window.DISABLE_SOLVE)
       return ;
-    if (config.USE_NACL) {
-        return do_solve_nacl.apply(this, arguments);
-    }
-    else 
-      if (!DEBUG.no_native&&config.USE_WASM&&native_api.isReady()) {
+    if (!DEBUG.no_native&&config.USE_WASM&&native_api.isReady()) {
         return native_api.do_solve.apply(this, arguments);
     }
     else {
@@ -4937,16 +4929,16 @@ es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermit
     if (order===undefined)
       order = ORDER;
     s*=0.99999999;
-    var eps=1e-09;
-    var ang, scale, start;
+    let eps=1e-09;
+    let ang, scale, start, end;
     if (!no_update) {
-        var start=approx(-0.5+eps, ks, order);
-        var end=approx(0.5-eps, ks, order);
+        start = approx(-0.5+eps, ks, order);
+        end = approx(0.5-eps, ks, order);
         end.sub(start);
-        var a1=atan2(end[0], end[1]);
-        var vec=eval_curve_vs.next();
+        let a1=atan2(end[0], end[1]);
+        let vec=eval_curve_vs.next();
         vec.load(v2).sub(v1);
-        var a2=atan2(vec[0], vec[1]);
+        let a2=atan2(vec[0], vec[1]);
         ang = a2-a1;
         scale = vec.vectorLength()/end.vectorLength();
         ks[KSCALE] = scale;
@@ -4961,7 +4953,7 @@ es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermit
       start[1] = ks[KSTARTY];
     }
     if (!angle_only) {
-        var co=approx(s, ks, order);
+        let co=approx(s, ks, order);
         co.sub(start).rot2d(-ang).mulScalar(scale).add(v1);
         return eval_ret_vs.next().load(co);
     }
@@ -4971,7 +4963,7 @@ es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermit
 }, '/dev/fairmotion/src/curve/spline_math.js');
 
 
-es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/util/vectormath.js", "./spline_base.js", "../core/toolops_api.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js", "./spline_base.js", "./solver.js", "../core/toolops_api.js"], function _spline_math_hermite_module(_es6_module) {
   "USE_PREPROCESSOR";
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
@@ -4979,28 +4971,29 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
   var solver=es6_import_item(_es6_module, './solver.js', 'solver');
   var constraint=es6_import_item(_es6_module, './solver.js', 'constraint');
   var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
-  var FEPS=1e-18;
-  var PI=Math.PI;
-  var sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
-  var cos=Math.cos, pow=Math.pow, abs=Math.abs;
-  var SPI2=Math.sqrt(PI/2);
-  var INCREMENTAL=true;
-  var ORDER=4;
+  let FEPS=1e-18;
+  let PI=Math.PI;
+  let sin=Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
+  let cos=Math.cos, pow=Math.pow, abs=Math.abs, floor=Math.floor, ceil=Math.ceil;
+  let mmax=Math.max, mmin=Math.min;
+  let SPI2=Math.sqrt(PI/2);
+  let INCREMENTAL=true;
+  let ORDER=4;
   ORDER = _es6_module.add_export('ORDER', ORDER);
-  var KSCALE=ORDER+1;
+  let KSCALE=ORDER+1;
   KSCALE = _es6_module.add_export('KSCALE', KSCALE);
-  var KANGLE=ORDER+2;
+  let KANGLE=ORDER+2;
   KANGLE = _es6_module.add_export('KANGLE', KANGLE);
-  var KSTARTX=ORDER+3;
+  let KSTARTX=ORDER+3;
   KSTARTX = _es6_module.add_export('KSTARTX', KSTARTX);
-  var KSTARTY=ORDER+4;
+  let KSTARTY=ORDER+4;
   KSTARTY = _es6_module.add_export('KSTARTY', KSTARTY);
-  var KSTARTZ=ORDER+5;
+  let KSTARTZ=ORDER+5;
   KSTARTZ = _es6_module.add_export('KSTARTZ', KSTARTZ);
   window.KSCALE = KSCALE;
-  var KTOTKS=ORDER+6;
+  let KTOTKS=ORDER+6;
   KTOTKS = _es6_module.add_export('KTOTKS', KTOTKS);
-  var INT_STEPS=4;
+  let INT_STEPS=4;
   INT_STEPS = _es6_module.add_export('INT_STEPS', INT_STEPS);
   function set_int_steps(steps) {
     INT_STEPS = steps;
@@ -5010,81 +5003,107 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
     return INT_STEPS;
   }
   get_int_steps = _es6_module.add_export('get_int_steps', get_int_steps);
-  var _approx_cache_vs=cachering.fromConstructor(Vector3, 32);
-  var mmax=Math.max, mmin=Math.min;
-  var mfloor=Math.floor, mceil=Math.ceil, abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos;
-  var polytheta_spower=function polytheta_spower(s, ks, order) {
-    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+  let _approx_cache_vs=cachering.fromConstructor(Vector3, 32);
+  const POLYTHETA_BEZ=(s, k1, k2, k3, k4) =>    {
+    return (-(((3*(s)-4)*k3-k4*(s))*(s)*(s)+((s)*(s)-2*(s)+2)*((s)-2)*k1-(3*(s)*(s)-8*(s)+6)*k2*(s))*(s))*0.25;
+  }
+  const POLYCURVATURE_BEZ=(s, k1, k2, k3, k4) =>    {
+    return (-(((3*((s)-1)*k3-k4*(s))*(s)-3*((s)-1)*((s)-1)*k2)*(s)+((s)-1)*((s)-1)*((s)-1)*k1));
+  }
+  const POLYCURVATURE_BEZ_DV=(s, k1, k2, k3, k4) =>    {
+    return (-3*(k1*(s)*(s)-2*k1*(s)+k1-3*k2*(s)*(s)+4*k2*(s)-k2+3*k3*(s)*(s)-2*k3*(s)-k4*(s)*(s)));
+  }
+  const POLYTHETA_SBEZ=(s, k1, k2, dv1_k1, dv1_k2) =>    {
+    let s2=s*s, s3=s2*s;
+    return (((((3*s-4)*dv1_k2-6*(s-2)*k2)*s+(3*s2-8*s+6)*dv1_k1)*s+6*(s3-2*s2+2)*k1)*s)/12;
+  }
+  const POLYCURVATURE_SBEZ=(s, k1, k2, dv1_k1, dv1_k2) =>    {
+    return (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1;
+  }
+  const POLYCURVATURE_SBEZ_DV=(s, k1, k2, dv1_k1, dv1_k2) =>    {
+    return (6*(k1-k2)*(s-1)+(3*s-2)*dv1_k2)*s+(3*s-1)*(s-1)*dv1_k1;
+  }
+  let polytheta_spower=function polytheta_spower(s, ks, order) {
+    let s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
     switch (order) {
       case 2:
-        var k1=ks[0], k2=ks[1];
+{        let k1=ks[0], k2=ks[1];
         return (-((s-2)*k1-k2*s)*s)/2.0;
+}
       case 4:
-        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+{        let k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
         return (((((3*s-4)*dv1_k2-6*(s-2)*k2)*s+(3*s2-8*s+6)*dv1_k1)*s+6*(s3-2*s2+2)*k1)*s)/12;
+}
       case 6:
-        var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+{        let k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
         return (-((((60*dv1_k2*s2-168*dv1_k2*s+120*dv1_k2-10*dv2_k2*s2+24*dv2_k2*s-15*dv2_k2-120*k2*s2+360*k2*s-300*k2)*s+(10*s3-36*s2+45*s-20)*dv2_k1)*s+12*(5*s4-16*s3+15*s2-5)*dv1_k1)*s+60*(2*s5-6*s4+5*s3-2)*k1)*s)/120;
+}
     }
   }
-  var polycurvature_spower=function polycurvature_spower(s, ks, order) {
-    var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
-    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+  let polycurvature_spower=function polycurvature_spower(s, ks, order) {
+    let k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+    let s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
     switch (order) {
       case 2:
-        var k1=ks[0], k2=ks[1];
+{        let k1=ks[0], k2=ks[1];
         return -((s-1)*k1-k2*s);
+}
       case 4:
-        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+{        let k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
         return (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1;
+}
       case 6:
-        return (-((((((s-1)*dv2_k1-dv2_k2*s)*(s-1)+2*(3*s-4)*dv1_k2*s)*s+2*(3*s+1)*(s-1)*(s-1)*dv1_k1)*(s-1)-2*(6*s2-15*s+10)*k2*s2)*s+2*(6*s2+3*s+1)*(s-1)*(s-1)*(s-1)*k1))/2.0;
+{        return (-((((((s-1)*dv2_k1-dv2_k2*s)*(s-1)+2*(3*s-4)*dv1_k2*s)*s+2*(3*s+1)*(s-1)*(s-1)*dv1_k1)*(s-1)-2*(6*s2-15*s+10)*k2*s2)*s+2*(6*s2+3*s+1)*(s-1)*(s-1)*(s-1)*k1))/2.0;
+}
     }
   }
-  var polycurvature_dv_spower=function polycurvature_spower(s, ks, order) {
-    var s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+  let polycurvature_dv_spower=function polycurvature_spower(s, ks, order) {
+    let s2=s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
     switch (order) {
       case 2:
-        var k1=ks[0], k2=ks[1];
+{        let k1=ks[0], k2=ks[1];
         return -(k1-k2);
+}
       case 4:
-        var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+{        let k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
         return (6*(k1-k2)*(s-1)+(3*s-2)*dv1_k2)*s+(3*s-1)*(s-1)*dv1_k1;
+}
       case 6:
-        var k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
+{        let k1=ks[0], dv1_k1=ks[1], dv2_k1=ks[2], dv2_k2=ks[3], dv1_k2=ks[4], k2=ks[5];
         return (-(((2*(30*(k1-k2)*(s-1)*(s-1)+(5*s-6)*(3*s-2)*dv1_k2)-(5*s-3)*(s-1)*dv2_k2)*s+(5*s-2)*(s-1)*(s-1)*dv2_k1)*s+2*(5*s+1)*(3*s-1)*(s-1)*(s-1)*dv1_k1))/2.0;
+}
     }
   }
-  var spower_funcs=[polytheta_spower, polycurvature_spower, polycurvature_dv_spower];
+  let spower_funcs=[polytheta_spower, polycurvature_spower, polycurvature_dv_spower];
   spower_funcs = _es6_module.add_export('spower_funcs', spower_funcs);
-  var approx_ret_cache=cachering.fromConstructor(Vector3, 42);
-  var abs=Math.abs;
-  var mmax=Math.max, mmin=Math.min;
+  let approx_ret_cache=cachering.fromConstructor(Vector3, 42);
+  const FAST_INT_STEPS=3;
+  const ONE_INT_STEPS=0.333333333;
   es6_import(_es6_module, '../path.ux/scripts/util/vectormath.js');
-  var acache=[new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  var acur=0;
-  var eval_curve_vs=cachering.fromConstructor(Vector2, 64);
-  var _eval_start=new Vector2();
+  let acache=[new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  let acur=0;
+  let eval_curve_vs=cachering.fromConstructor(Vector2, 64);
+  let _eval_start=new Vector2();
   function approx(s1, ks, order, dis, steps) {
     s1*=1.0-1e-07;
-    if (steps==undefined)
+    if (steps===undefined)
       steps = INT_STEPS;
-    var s=0, ds=s1/steps;
-    var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
-    var ret=approx_ret_cache.next();
+    let s=0, ds=s1/steps;
+    let ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
+    let ret=approx_ret_cache.next();
     ret[0] = ret[1] = 0.0;
-    var x=0, y=0;
-    var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
-    for (var i=0; i<steps; i++) {
-        var st=s+0.5;
-        var s2=st*st, s3=st*st*st, s4=s2*s2, s5=s4*st, s6=s5*st, s7=s6*st, s8=s7*st, s9=s8*st, s10=s9*st;
-        var th=(((((3*st-4)*dv1_k2-6*(st-2)*k2)*st+(3*s2-8*st+6)*dv1_k1)*st+6*(s3-2*s2+2)*k1)*st)/12;
-        var dx=sin(th), dy=cos(th);
-        var kt=(((st-1)*dv1_k1+dv1_k2*st)*(st-1)-(2*st-3)*k2*st)*st+(2*st+1)*(st-1)*(st-1)*k1;
-        var dkt=(6*(k1-k2)*(st-1)+(3*st-2)*dv1_k2)*st+(3*st-1)*(st-1)*dv1_k1;
-        var dk2t=(6*(k1-k2)*((st+0.0001)-1)+(3*(st+0.0001)-2)*dv1_k2)*(st+0.0001)+(3*(st+0.0001)-1)*((st+0.0001)-1)*dv1_k1;
+    let x=0, y=0;
+    let k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
+    for (let i=0; i<steps; i++) {
+        let st=s+0.5;
+        let s2=st*st, s3=st*st*st, s4=s2*s2, s5=s4*st, s6=s5*st, s7=s6*st, s8=s7*st, s9=s8*st, s10=s9*st;
+        let th=POLYTHETA_SBEZ(st, k1, k2, dv1_k1, dv1_k2);
+        let dx=sin(th), dy=cos(th);
+        let kt=POLYCURVATURE_SBEZ(st, k1, k2, dv1_k1, dv1_k2);
+        let dkt=POLYCURVATURE_SBEZ_DV(st, k1, k2, dv1_k1, dv1_k2);
+        let dk2t=POLYCURVATURE_SBEZ_DV((st+0.0001), k1, k2, dv1_k1, dv1_k2);
         dk2t = (dk2t-dkt)/(0.0001);
-        var kt2=kt*kt, kt3=kt*kt*kt;
+        let kt2=kt*kt, kt3=kt*kt*kt;
         x+=((5*(4*((dy*dkt-kt2*dx)*ds2+3*(dy*kt*ds+2*dx))+((dk2t-kt3)*dy-3*dkt*kt*dx)*ds3)-(((4*dk2t-kt3)*kt+3*dkt*dkt)*dx+6*dy*dkt*kt2)*ds4)*ds)/120;
         y+=(-(5*(4*((dy*kt2+dkt*dx)*ds2-3*(2*dy-kt*dx*ds))+((dk2t-kt3)*dx+3*dy*dkt*kt)*ds3)+(((4*dk2t-kt3)*kt+3*dkt*dkt)*dy-6*dkt*kt2*dx)*ds4)*ds)/120;
         s+=ds;
@@ -5094,24 +5113,22 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
     return ret;
   }
   approx = _es6_module.add_export('approx', approx);
-  var spiraltheta=polytheta_spower;
+  let spiraltheta=polytheta_spower;
   spiraltheta = _es6_module.add_export('spiraltheta', spiraltheta);
-  var spiralcurvature=polycurvature_spower;
+  let spiralcurvature=polycurvature_spower;
   spiralcurvature = _es6_module.add_export('spiralcurvature', spiralcurvature);
-  var spiralcurvature_dv=polycurvature_dv_spower;
+  let spiralcurvature_dv=polycurvature_dv_spower;
   spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
-  var ORDER=4;
-  ORDER = _es6_module.add_export('ORDER', ORDER);
   const con_cache={list: [], 
    used: 0}
   function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
-    var slv=new solver();
+    let slv=new solver();
     con_cache.used = 0;
     if (order===undefined)
       order = ORDER;
     if (gk===undefined)
       gk = 1.0;
-    var UPDATE=SplineFlags.UPDATE;
+    let UPDATE=SplineFlags.UPDATE;
     for (let seg of spline.segments) {
         let ok=(seg.v1.flag&SplineFlags.UPDATE)&&(seg.v2.flag&SplineFlags.UPDATE);
         for (let i=0; !ok&&i<2; i++) {
@@ -5125,7 +5142,7 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
             }
         }
         if (ok) {
-            for (var j=0; j<KTOTKS; j++) {
+            for (let j=0; j<KTOTKS; j++) {
                 seg._last_ks[j] = seg.ks[j];
             }
             seg.flag|=SplineFlags.TEMP_TAG;
@@ -5135,53 +5152,51 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
         }
     }
     function hard_tan_c(params) {
-      var seg=params[0], tan=params[1], s=params[2];
-      var dv=seg.derivative(s, order, undefined, true);
+      let seg=params[0], tan=params[1], s=params[2];
+      let dv=seg.derivative(s, order, undefined, true);
       dv.normalize();
-      var a1=Math.atan2(tan[0], tan[1]);
-      var a2=Math.atan2(dv[0], dv[1]);
-      var diff=Math.abs(a1-a2);
+      let a1=Math.atan2(tan[0], tan[1]);
+      let a2=Math.atan2(dv[0], dv[1]);
+      let diff=Math.abs(a1-a2);
       return abs(dv.vectorDistance(tan));
     }
     function tan_c(params) {
-      var seg1=params[0], seg2=params[1];
-      var v, s1=0, s2=0;
-      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+      let seg1=params[0], seg2=params[1];
+      let v, s1=0, s2=0;
+      if (seg1.v1===seg2.v1||seg1.v1===seg2.v2)
         v = seg1.v1;
       else 
-        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        if (seg1.v2===seg2.v1||seg1.v2===seg2.v2)
         v = seg1.v2;
       else 
         console.trace("EVIL INCARNATE!");
-      var eps=0.0001;
-      s1 = v==seg1.v1 ? eps : 1.0-eps;
-      s2 = v==seg2.v1 ? eps : 1.0-eps;
-      var t1=seg1.derivative(s1, order, undefined, true);
-      var t2=seg2.derivative(s2, order, undefined, true);
+      let eps=0.0001;
+      s1 = v===seg1.v1 ? eps : 1.0-eps;
+      s2 = v===seg2.v1 ? eps : 1.0-eps;
+      let t1=seg1.derivative(s1, order, undefined, true);
+      let t2=seg2.derivative(s2, order, undefined, true);
       t1.normalize();
       t2.normalize();
-      if (seg1.v1.eid==seg2.v1.eid||seg1.v2.eid==seg2.v2.eid) {
+      if (seg1.v1.eid===seg2.v1.eid||seg1.v2.eid===seg2.v2.eid) {
           t1.negate();
       }
-      var d=t1.dot(t2);
+      let d=t1.dot(t2);
       d = mmax(mmin(d, 1.0), -1.0);
       return acos(d);
-      var ret=abs(t1.vectorDistance(t2));
-      return ret;
     }
     function handle_curv_c(params) {
       if (order<4)
         return 0;
-      var seg1=params[0], seg2=params[1];
-      var h1=params[2], h2=params[3];
-      var len1=seg1.ks[KSCALE]-h1.vectorDistance(seg1.handle_vertex(h1));
-      var len2=seg2.ks[KSCALE]-h2.vectorDistance(seg2.handle_vertex(h2));
-      var k1i=h1==seg1.h1 ? 1 : order-2;
-      var k2i=h2==seg2.h1 ? 1 : order-2;
-      var k1=(len1!=0.0 ? 1.0/len1 : 0.0)*seg1.ks[KSCALE];
-      var k2=(len2!=0.0 ? 1.0/len2 : 0.0)*seg2.ks[KSCALE];
-      var s1=seg1.ks[k1i]<0.0 ? -1 : 1;
-      var s2=seg2.ks[k2i]<0.0 ? -1 : 1;
+      let seg1=params[0], seg2=params[1];
+      let h1=params[2], h2=params[3];
+      let len1=seg1.ks[KSCALE]-h1.vectorDistance(seg1.handle_vertex(h1));
+      let len2=seg2.ks[KSCALE]-h2.vectorDistance(seg2.handle_vertex(h2));
+      let k1i=h1===seg1.h1 ? 1 : order-2;
+      let k2i=h2===seg2.h1 ? 1 : order-2;
+      let k1=(len1!==0.0 ? 1.0/len1 : 0.0)*seg1.ks[KSCALE];
+      let k2=(len2!==0.0 ? 1.0/len2 : 0.0)*seg2.ks[KSCALE];
+      let s1=seg1.ks[k1i]<0.0 ? -1 : 1;
+      let s2=seg2.ks[k2i]<0.0 ? -1 : 1;
       if (isNaN(k1)||isNaN(k2)) {
           console.log("NaN 2!");
           return 0;
@@ -5194,15 +5209,15 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
       return 0;
     }
     function copy_c(params) {
-      var v=params[1], seg=params[0];
-      var s1=v===seg.v1 ? 0 : order-1;
-      var s2=v===seg.v1 ? order-1 : 0;
+      let v=params[1], seg=params[0];
+      let s1=v===seg.v1 ? 0 : order-1;
+      let s2=v===seg.v1 ? order-1 : 0;
       seg.ks[s1]+=(seg.ks[s2]-seg.ks[s1])*gk*0.5;
       return 0.0;
     }
     function get_ratio(seg1, seg2) {
-      var ratio=seg1.ks[KSCALE]/seg2.ks[KSCALE];
-      if (seg2.ks[KSCALE]==0.0) {
+      let ratio=seg1.ks[KSCALE]/seg2.ks[KSCALE];
+      if (seg2.ks[KSCALE]===0.0) {
           return 100000.0;
       }
       if (ratio>1.0)
@@ -5214,31 +5229,31 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
       return Math.pow(ratio, 2.0);
     }
     function curv_c_spower(params) {
-      var seg1=params[0], seg2=params[1];
-      var v, s1, s2;
+      let seg1=params[0], seg2=params[1];
+      let v, s1, s2;
       seg1.evaluate(0.5);
       seg2.evaluate(0.5);
-      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+      if (seg1.v1===seg2.v1||seg1.v1===seg2.v2)
         v = seg1.v1;
       else 
-        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        if (seg1.v2===seg2.v1||seg1.v2===seg2.v2)
         v = seg1.v2;
       else 
         console.trace("EVIL INCARNATE!");
-      var ratio=get_ratio(seg1, seg2);
-      var mfac=ratio*gk*0.7;
-      var s1=v===seg1.v1 ? 0 : order-1;
-      var s2=v===seg2.v1 ? 0 : order-1;
-      var sz1=seg1.ks[KSCALE];
-      var sz2=seg2.ks[KSCALE];
-      var k2sign=s1==s2 ? -1.0 : 1.0;
-      var ret=0.0;
-      for (var i=0; i<1; i++) {
-          var s1=v===seg1.v1 ? i : order-1-i;
-          var s2=v===seg2.v1 ? i : order-1-i;
-          var k1=seg1.ks[s1]/sz1;
-          var k2=k2sign*seg2.ks[s2]/sz2;
-          var goalk=(k1+k2)*0.5;
+      let ratio=get_ratio(seg1, seg2);
+      let mfac=ratio*gk*0.7;
+      s1 = v===seg1.v1 ? 0 : order-1;
+      s2 = v===seg2.v1 ? 0 : order-1;
+      let sz1=seg1.ks[KSCALE];
+      let sz2=seg2.ks[KSCALE];
+      let k2sign=s1===s2 ? -1.0 : 1.0;
+      let ret=0.0;
+      for (let i=0; i<1; i++) {
+          let s1=v===seg1.v1 ? i : order-1-i;
+          let s2=v===seg2.v1 ? i : order-1-i;
+          let k1=seg1.ks[s1]/sz1;
+          let k2=k2sign*seg2.ks[s2]/sz2;
+          let goalk=(k1+k2)*0.5;
           ret+=abs(k1-goalk)+abs(k2-goalk);
           seg1.ks[s1]+=(goalk*sz1-seg1.ks[s1])*mfac;
           seg2.ks[s2]+=(k2sign*goalk*sz2-seg2.ks[s2])*mfac;
@@ -5246,39 +5261,39 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
       return ret*5.0;
     }
     function curv_c_spower_basic(params) {
-      var seg1=params[0], seg2=params[1];
-      var v, s1=0, s2=0;
+      let seg1=params[0], seg2=params[1];
+      let v, s1=0, s2=0;
       seg1.evaluate(0.5);
       seg2.evaluate(0.5);
-      if (seg1.v1==seg2.v1||seg1.v1==seg2.v2)
+      if (seg1.v1===seg2.v1||seg1.v1===seg2.v2)
         v = seg1.v1;
       else 
-        if (seg1.v2==seg2.v1||seg1.v2==seg2.v2)
+        if (seg1.v2===seg2.v1||seg1.v2===seg2.v2)
         v = seg1.v2;
       else 
         console.trace("EVIL INCARNATE!");
-      var ratio=get_ratio(seg1, seg2);
-      var mfac=ratio*gk*0.7;
-      var s1=v===seg1.v1 ? 0 : order-1;
-      var s2=v===seg2.v1 ? 0 : order-1;
-      var sz1=seg1.ks[KSCALE];
-      var sz2=seg2.ks[KSCALE];
-      var k2sign=s1==s2 ? -1.0 : 1.0;
-      var ret=0.0;
-      var len=Math.floor(order/2);
-      for (var i=0; i<1; i++) {
-          var s1=v===seg1.v1 ? i : order-1-i;
-          var s2=v===seg2.v1 ? i : order-1-i;
-          var k1=seg1.ks[s1]/sz1;
-          var k2=k2sign*seg2.ks[s2]/sz2;
-          var goalk=(k1+k2)*0.5;
+      let ratio=get_ratio(seg1, seg2);
+      let mfac=ratio*gk*0.7;
+      s1 = v===seg1.v1 ? 0 : order-1;
+      s2 = v===seg2.v1 ? 0 : order-1;
+      let sz1=seg1.ks[KSCALE];
+      let sz2=seg2.ks[KSCALE];
+      let k2sign=s1===s2 ? -1.0 : 1.0;
+      let ret=0.0;
+      let len=Math.floor(order/2);
+      for (let i=0; i<1; i++) {
+          let s1=v===seg1.v1 ? i : order-1-i;
+          let s2=v===seg2.v1 ? i : order-1-i;
+          let k1=seg1.ks[s1]/sz1;
+          let k2=k2sign*seg2.ks[s2]/sz2;
+          let goalk=(k1+k2)*0.5;
           ret+=abs(k1-goalk)+abs(k2-goalk);
-          if (i==0) {
+          if (i===0) {
               seg1.ks[s1]+=(goalk*sz1-seg1.ks[s1])*mfac;
               seg2.ks[s2]+=(k2sign*goalk*sz2-seg2.ks[s2])*mfac;
           }
           else 
-            if (i==1) {
+            if (i===1) {
               seg1.ks[s1] = seg1.ks[order-1]-seg1.ks[0];
               seg2.ks[s2] = seg2.ks[order-1]-seg2.ks[0];
           }
@@ -5288,10 +5303,10 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
       }
       return ret;
     }
-    var curv_c=do_basic ? curv_c_spower_basic : curv_c_spower;
+    let curv_c=do_basic ? curv_c_spower_basic : curv_c_spower;
     for (let h of spline.handles) {
-        var seg=h.owning_segment;
-        var v=seg.handle_vertex(h);
+        let seg=h.owning_segment;
+        let v=seg.handle_vertex(h);
         let bad=!h.use;
         bad = bad||seg.v1.vectorDistance(seg.v2)<2;
         bad = bad||!((v.flag)&SplineFlags.UPDATE);
@@ -5299,18 +5314,18 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
         if (bad) {
             continue;
         }
-        var tan1=new Vector3(h).sub(seg.handle_vertex(h)).normalize();
+        let tan1=new Vector3(h).sub(seg.handle_vertex(h)).normalize();
         if (h===seg.h2)
           tan1.negate();
         if (isNaN(tan1.dot(tan1))||tan1.dot(tan1)===0.0) {
             console.log("NaN 4!");
             continue;
         }
-        var s=h===seg.h1 ? 0 : 1;
-        var do_tan=!((h.flag)&SplineFlags.BREAK_TANGENTS);
+        let s=h===seg.h1 ? 0 : 1;
+        let do_tan=!((h.flag)&SplineFlags.BREAK_TANGENTS);
         do_tan = do_tan&&!(h.flag&SplineFlags.AUTO_PAIRED_HANDLE);
         if (do_tan) {
-            var tc=new constraint("hard_tan_c", 0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
+            let tc=new constraint("hard_tan_c", 0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
             tc.k2 = 1.0;
             if (update_verts)
               update_verts.add(h);
@@ -5318,25 +5333,25 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
         }
         if (h.hpair===undefined)
           continue;
-        var ss1=seg, h2=h.hpair, ss2=h2.owning_segment;
+        let ss1=seg, h2=h.hpair, ss2=h2.owning_segment;
         if ((h.flag&SplineFlags.AUTO_PAIRED_HANDLE)&&!((seg.handle_vertex(h).flag&SplineFlags.BREAK_TANGENTS))) {
-            var tc=new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
+            let tc=new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
             tc.k2 = 0.8;
             if (update_verts)
               update_verts.add(h);
             slv.add(tc);
         }
-        var cc=new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
+        let cc=new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
         slv.add(cc);
-        var cc=new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
+        cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
         slv.add(cc);
         if (update_verts)
           update_verts.add(h);
     }
-    var limits={v_curve_limit: 12, 
+    let limits={v_curve_limit: 12, 
     v_tan_limit: 1}
-    var manual_w=0.08;
-    var manual_w_2=0.6;
+    let manual_w=0.08;
+    let manual_w_2=0.6;
     for (let v of spline.verts) {
         let bad=!(v.flag&SplineFlags.UPDATE);
         bad = bad||!(v.flag&SplineFlags.USE_HANDLES);
@@ -5418,7 +5433,7 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
           continue;
         if (v.flag&SplineFlags.USE_HANDLES)
           continue;
-        if (mindis==0.0) {
+        if (mindis===0.0) {
             bad = true;
         }
         else {
@@ -5487,39 +5502,39 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
     solve_pre(spline);
     spline.resolve = 0;
     solve_intern(spline, ORDER, undefined, 65, 1, 0);
-    for (var i=0; i<spline.segments.length; i++) {
-        var seg=spline.segments[i];
+    for (let i=0; i<spline.segments.length; i++) {
+        let seg=spline.segments[i];
         seg.evaluate(0.5, undefined, undefined, undefined, true);
-        for (var j=0; j<seg.ks.length; j++) {
+        for (let j=0; j<seg.ks.length; j++) {
             if (isNaN(seg.ks[j])) {
                 console.log("NaN!");
                 seg.ks[j] = 0;
             }
         }
-        if (g_app_state.modalstate!=ModalStates.TRANSFROMING) {
+        if (g_app_state.modalstate!==ModalStates.TRANSFROMING) {
             if ((seg.v1.flag&SplineFlags.UPDATE)||(seg.v2.flag&SplineFlags.UPDATE))
               seg.update_aabb();
         }
     }
-    for (var f of spline.faces) {
-        for (var path of f.paths) {
-            for (var l of path) {
+    for (let f of spline.faces) {
+        for (let path of f.paths) {
+            for (let l of path) {
                 if (l.v.flag&SplineFlags.UPDATE)
                   f.flag|=SplineFlags.UPDATE_AABB;
             }
         }
     }
     if (!spline.is_anim_path) {
-        for (var i=0; i<spline.handles.length; i++) {
-            var h=spline.handles[i];
+        for (let i=0; i<spline.handles.length; i++) {
+            let h=spline.handles[i];
             h.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
         }
-        for (var i=0; i<spline.verts.length; i++) {
-            var v=spline.verts[i];
+        for (let i=0; i<spline.verts.length; i++) {
+            let v=spline.verts[i];
             v.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
         }
     }
-    if (spline.on_resolve!=undefined) {
+    if (spline.on_resolve!==undefined) {
         spline.on_resolve();
         spline.on_resolve = undefined;
     }
@@ -5528,7 +5543,7 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../path.ux/scripts/uti
 }, '/dev/fairmotion/src/curve/spline_math_hermite.js');
 
 
-es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventdag.js", "./spline_types.js"], function _spline_element_array_module(_es6_module) {
+es6_module_define('spline_element_array', ["./spline_types.js", "../core/eventdag.js", "../core/struct.js"], function _spline_element_array_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
@@ -5536,7 +5551,7 @@ es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventda
   var CustomData=es6_import_item(_es6_module, './spline_types.js', 'CustomData');
   var CustomDataSet=es6_import_item(_es6_module, './spline_types.js', 'CustomDataSet');
   var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
-  var SplineLayerFlags={HIDE: 2, 
+  let SplineLayerFlags={HIDE: 2, 
    CAN_SELECT: 4, 
    MASK: 8}
   SplineLayerFlags = _es6_module.add_export('SplineLayerFlags', SplineLayerFlags);
@@ -5572,8 +5587,8 @@ es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventda
       delete e.layers[this.id];
     }
      _to_EIDs() {
-      var ret=[];
-      for (var e of this) {
+      let ret=[];
+      for (let e of this) {
           ret.push(e.eid);
       }
       return ret;
@@ -5584,9 +5599,9 @@ es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventda
      afterSTRUCT(spline) {
       if (this.eids===undefined)
         return ;
-      var corrupted=false;
-      for (var eid of this.eids) {
-          var e=spline.eidmap[eid];
+      let corrupted=false;
+      for (let eid of this.eids) {
+          let e=spline.eidmap[eid];
           if (e===undefined) {
               corrupted = true;
               continue;
@@ -5677,14 +5692,14 @@ SplineLayer {
       this._active = val;
     }
      new_layer() {
-      var ret=new SplineLayer();
+      let ret=new SplineLayer();
       ret.name = this.new_name();
       ret.id = this.idgen.gen_id();
       this.push(ret);
       return ret;
     }
      new_name() {
-      var name="Layer", i=1;
+      let name="Layer", i=1;
       while ((name+" "+i) in this.namemap) {
         i++;
       }
@@ -5693,7 +5708,7 @@ SplineLayer {
      validate_name(name) {
       if (!(name in this.namemap))
         return name;
-      var i=1;
+      let i=1;
       while ((name+" "+i) in this.namemap) {
         i++;
       }
@@ -5716,31 +5731,31 @@ SplineLayer {
       this.update_orders();
     }
      change_layer_order(layer, new_i) {
-      var start=this.indexOf(layer);
+      let start=this.indexOf(layer);
       if (start==undefined) {
           console.trace("Evil error in change_layer_order!", layer, new_i);
           return ;
       }
       if (new_i==start)
         return ;
-      var min=Math.min(new_i, start), max=Math.max(new_i, start);
-      var diff=max-min;
+      let min=Math.min(new_i, start), max=Math.max(new_i, start);
+      let diff=max-min;
       let idx=start;
       if (start>new_i) {
-          for (var i=0; i<diff; i++) {
+          for (let i=0; i<diff; i++) {
               if (idx<1)
                 break;
-              var t=this[idx];
+              let t=this[idx];
               this[idx] = this[idx-1];
               this[idx-1] = t;
               idx--;
           }
       }
       else {
-        for (var i=0; i<diff; i++) {
+        for (let i=0; i<diff; i++) {
             if (idx>=this.length-1)
               break;
-            var t=this[idx];
+            let t=this[idx];
             this[idx] = this[idx+1];
             this[idx+1] = t;
             idx++;
@@ -5749,7 +5764,7 @@ SplineLayer {
       this.update_orders();
     }
      update_orders() {
-      for (var i=0; i<this.length; i++) {
+      for (let i=0; i<this.length; i++) {
           this[i].order = i;
       }
     }
@@ -5763,7 +5778,7 @@ SplineLayer {
       this.active = this[i];
     }
      remove(layer) {
-      var i=this.indexOf(layer);
+      let i=this.indexOf(layer);
       super.remove(layer);
       delete this.namemap[layer.name];
       delete this.idmap[layer.id];
@@ -5772,7 +5787,7 @@ SplineLayer {
       this.update_orders();
     }
      pop_i(i) {
-      var layer=this[i];
+      let layer=this[i];
       super.pop_i(i);
       delete this.namemap[layer.name];
       delete this.idmap[layer.id];
@@ -5781,16 +5796,16 @@ SplineLayer {
       this.update_orders();
     }
      pop() {
-      var layer=super.pop();
+      let layer=super.pop();
       delete this.namemap[layer.name];
       delete this.idmap[layer.id];
       if (layer==this.active)
         this._new_active(this.length-1);
     }
     static  fromSTRUCT(reader) {
-      var ret=new SplineLayerSet();
+      let ret=new SplineLayerSet();
       reader(ret);
-      for (var i=0; i<ret._layers.length; i++) {
+      for (let i=0; i<ret._layers.length; i++) {
           if (!ret._layers[i].name) {
               console.log("Layer name corruption detected");
               ret._layers[i].name = "Layer "+(i+1);
@@ -5803,7 +5818,7 @@ SplineLayer {
       return ret;
     }
      afterSTRUCT(spline) {
-      for (var layer of this) {
+      for (let layer of this) {
           layer.afterSTRUCT(spline);
       }
     }
@@ -5825,7 +5840,7 @@ SplineLayer {
       this.free = [];
       this.cache = [];
       this.callback = callback;
-      for (var i=0; i<count; i++) {
+      for (let i=0; i<count; i++) {
           this.cache.push(callback());
           this.free.push(this.cache[this.cache.length-1]);
       }
@@ -5835,15 +5850,15 @@ SplineLayer {
           console.log("Error in IterCache!");
           return this.callback();
       }
-      for (var i=0; i<this.stack.length; i++) {
-          var iter=this.stack[i];
+      for (let i=0; i<this.stack.length; i++) {
+          let iter=this.stack[i];
           if (iter.is_done()) {
               this.stack.remove(iter);
               i--;
               this.free.push(iter);
           }
       }
-      var iter=this.free.pop();
+      let iter=this.free.pop();
       this.stack.push(iter);
       return iter;
     }
@@ -5946,19 +5961,19 @@ SplineLayer {
           this.ret.value = undefined;
           return this.ret;
       }
-      var actlayer=this.layerset.active.id;
+      let actlayer=this.layerset.active.id;
       function visible(e) {
         return !e.hidden&&actlayer in e.layers;
       }
-      var ret=undefined;
-      var good=false;
-      var c=0;
-      var iter=this.iter;
+      let ret=undefined;
+      let good=false;
+      let c=0;
+      let iter=this.iter;
       do {
         ret = iter.next();
         if (ret.done)
           break;
-        var e=ret.value;
+        let e=ret.value;
         good = visible(e);
         if (e.type==SplineTypes.HANDLE) {
             good = good||visible(e.owning_segment);
@@ -6024,19 +6039,19 @@ SplineLayer {
           this.ret.value = undefined;
           return this.ret;
       }
-      var actlayer=this.layerset.active.id;
+      let actlayer=this.layerset.active.id;
       function visible(e) {
         return !e.hidden;
       }
-      var ret=undefined;
-      var good=false;
-      var c=0;
-      var iter=this.iter;
+      let ret=undefined;
+      let good=false;
+      let c=0;
+      let iter=this.iter;
       do {
         ret = iter.next();
         if (ret.done)
           break;
-        var e=ret.value;
+        let e=ret.value;
         good = visible(e);
         if (e.type==SplineTypes.HANDLE) {
             good = good||visible(e.owning_segment);
@@ -6133,7 +6148,7 @@ SplineLayer {
       })();
     }
      dag_get_datapath() {
-      var tname;
+      let tname;
       switch (this.type) {
         case SplineTypes.VERTEX:
           tname = "verts";
@@ -6148,16 +6163,16 @@ SplineLayer {
           tname = "faces";
           break;
       }
-      var suffix="."+tname;
-      var name="drawspline";
-      for (var i=0; i<this.cdata.layers.length; i++) {
+      let suffix="."+tname;
+      let name="drawspline";
+      for (let i=0; i<this.cdata.layers.length; i++) {
           if (this.cdata.layers[i].name==="TimeDataLayer")
             name = "pathspline";
       }
       return "frameset."+name+suffix;
     }
      remove_undefineds() {
-      for (var i=0; i<this.length; i++) {
+      for (let i=0; i<this.length; i++) {
           if (this[i]==undefined) {
               this.pop_i(this[i]);
               i--;
@@ -6169,7 +6184,7 @@ SplineLayer {
           console.trace("Warning, undefined in ElementArray.swap(): a, b:", a, b);
           return ;
       }
-      var i1=this.indexOf(a), i2=this.indexOf(b);
+      let i1=this.indexOf(a), i2=this.indexOf(b);
       if (i1<0||i2<0) {
           console.log(i1, i2, a, b);
           throw new Error("Elements not in list");
@@ -6178,12 +6193,12 @@ SplineLayer {
       this[i1] = b;
     }
      on_layer_add(layer, i) {
-      for (var e of this) {
+      for (let e of this) {
           e.cdata.on_add(layercls, i);
       }
     }
      on_layer_del(layer, i) {
-      for (var e of this) {
+      for (let e of this) {
           e.cdata.on_del(layercls, i);
       }
     }
@@ -6216,7 +6231,7 @@ SplineLayer {
     }
      remove(e, soft_error=false) {
       e.onDestroy();
-      var idx=this.indexOf(e);
+      let idx=this.indexOf(e);
       if (idx<0) {
           throw new Error("Element not in list");
       }
@@ -6229,8 +6244,8 @@ SplineLayer {
       delete this.local_idmap[e.eid];
       this[idx] = this[this.length-1];
       this.length--;
-      for (var k in e.layers) {
-          var layer=this.layerset.idmap[k];
+      for (let k in e.layers) {
+          let layer=this.layerset.idmap[k];
           if (layer!=undefined) {
               layer.remove(e);
           }
@@ -6257,7 +6272,7 @@ SplineLayer {
       if (selchange) {
           this.dag_update("on_select_change", this.type);
       }
-      var changed=!!(e.flag&SplineFlags.SELECT)!=!!state;
+      let changed=!!(e.flag&SplineFlags.SELECT)!=!!state;
       if (state) {
           if (this.active===undefined)
             this.active = e;
@@ -6279,22 +6294,22 @@ SplineLayer {
       }
     }
      clear_selection() {
-      for (var i=0; i<this.length; i++) {
+      for (let i=0; i<this.length; i++) {
           this.setselect(this[i], false);
       }
     }
      select_all() {
-      for (var i=0; i<this.length; i++) {
+      for (let i=0; i<this.length; i++) {
           this.setselect(this[i], true);
       }
     }
     static  fromSTRUCT(reader) {
-      var ret=new ElementArray();
+      let ret=new ElementArray();
       reader(ret);
       ret.cdata.owner = ret;
-      var active=ret.active;
+      let active=ret.active;
       ret.active = undefined;
-      for (var i=0; i<ret.arr.length; i++) {
+      for (let i=0; i<ret.arr.length; i++) {
           GArray.prototype.push.call(ret, ret.arr[i]);
           if (ret.arr[i].eid==active) {
               ret.active = ret.arr[i];
@@ -6311,10 +6326,10 @@ SplineLayer {
       this.local_idmap = {};
       this.layerset = layerset;
       this.spline = spline;
-      var selected=new ElementArraySet();
+      let selected=new ElementArraySet();
       selected.layerset = layerset;
-      for (var i=0; i<this.selected.length; i++) {
-          var eid=this.selected[i];
+      for (let i=0; i<this.selected.length; i++) {
+          let eid=this.selected[i];
           if (!(eid in idmap)) {
               console.log("WARNING: afterSTRUCT: eid", eid, "not in eidmap!", Object.keys(idmap));
               continue;
@@ -6322,7 +6337,7 @@ SplineLayer {
           selected.add(idmap[this.selected[i]]);
       }
       this.selected = selected;
-      for (var e of this) {
+      for (let e of this) {
           this.local_idmap[e.eid] = e;
           if (e.cdata===undefined) {
               e.cdata = this.cdata.gen_edata();
@@ -6352,7 +6367,7 @@ SplineLayer {
 }, '/dev/fairmotion/src/curve/spline_element_array.js');
 
 
-es6_module_define('spline_base', ["../core/eventdag.js", "../path.ux/scripts/pathux.js", "../core/struct.js", "../core/toolprops.js", "../util/mathlib.js"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["../path.ux/scripts/pathux.js", "../util/mathlib.js", "../core/eventdag.js", "../core/toolprops.js", "../core/struct.js"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
   let acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -6588,7 +6603,7 @@ es6_module_define('spline_base', ["../core/eventdag.js", "../path.ux/scripts/pat
     shared_data : array(abstract(Object));
   }
 `;
-  var $srcs2_hkLU_interp;
+  var $srcs2_hr4Q_interp;
   class CustomDataSet extends Array {
      constructor() {
       super();
@@ -6614,15 +6629,15 @@ es6_module_define('spline_base', ["../core/eventdag.js", "../path.ux/scripts/pat
 
     }
      interp(srcs, ws) {
-      while ($srcs2_hkLU_interp.length<srcs.length) {
-        $srcs2_hkLU_interp.push(0);
+      while ($srcs2_hr4Q_interp.length<srcs.length) {
+        $srcs2_hr4Q_interp.push(0);
       }
-      $srcs2_hkLU_interp.length = srcs.length;
+      $srcs2_hr4Q_interp.length = srcs.length;
       for (let i=0; i<this.length; i++) {
           for (let j=0; j<srcs.length; j++) {
-              $srcs2_hkLU_interp[j] = srcs[j][i];
+              $srcs2_hr4Q_interp[j] = srcs[j][i];
           }
-          this[i].interp($srcs2_hkLU_interp, ws);
+          this[i].interp($srcs2_hr4Q_interp, ws);
       }
     }
      copy(src) {
@@ -6638,7 +6653,7 @@ es6_module_define('spline_base', ["../core/eventdag.js", "../path.ux/scripts/pat
       delete this.arr;
     }
   }
-  var $srcs2_hkLU_interp=[];
+  var $srcs2_hr4Q_interp=[];
   _ESClass.register(CustomDataSet);
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
@@ -7133,7 +7148,7 @@ SplineElement {
 }, '/dev/fairmotion/src/curve/spline_base.js');
 
 
-es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/native_api.js", "../util/bezier.js", "./spline_base.js", "../config/config.js", "../core/struct.js", "./spline_base", "../core/eventdag.js", "../path.ux/scripts/pathux.js", "../core/toolprops.js", "../editors/viewport/selectmode.js", "../core/toolprops_iter.js", "./spline_multires.js", "../util/mathlib.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["./bspline.js", "../core/eventdag.js", "./spline_multires.js", "./spline_base", "../editors/viewport/selectmode.js", "../path.ux/scripts/pathux.js", "./spline_math.js", "../core/toolprops.js", "../core/toolprops_iter.js", "../wasm/native_api.js", "./spline_base.js", "../core/struct.js", "../util/mathlib.js", "../util/bezier.js", "../config/config.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -7681,25 +7696,25 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
       l4 = l3;
       let w3=this.w1*this.mat.linewidth;
       let s3=this.shift1;
-      let $_t0qfue=walk(), w2=$_t0qfue[0], s2=$_t0qfue[1];
+      let $_t0qhtl=walk(), w2=$_t0qhtl[0], s2=$_t0qhtl[1];
       l2 = len;
-      let $_t1kjke=walk(), w1=$_t1kjke[0], s1=$_t1kjke[1];
+      let $_t1rnqv=walk(), w1=$_t1rnqv[0], s1=$_t1rnqv[1];
       l1 = len;
-      let $_t2krfq=walk(), w0=$_t2krfq[0], s0=$_t2krfq[1];
+      let $_t2haia=walk(), w0=$_t2haia[0], s0=$_t2haia[1];
       l0 = len;
-      let $_t3snbq=walk(), w0b=$_t3snbq[0], s0b=$_t3snbq[1];
+      let $_t3umvq=walk(), w0b=$_t3umvq[0], s0b=$_t3umvq[1];
       l0b = len;
       seg = this;
       v = this.v2;
       let w4=this.w2*this.mat.linewidth;
       let s4=this.shift2;
-      let $_t4dike=walk(), w5=$_t4dike[0], s5=$_t4dike[1];
+      let $_t4rqow=walk(), w5=$_t4rqow[0], s5=$_t4rqow[1];
       l5 = len;
-      let $_t5twlw=walk(), w6=$_t5twlw[0], s6=$_t5twlw[1];
+      let $_t5hjdj=walk(), w6=$_t5hjdj[0], s6=$_t5hjdj[1];
       l6 = len;
-      let $_t6fwce=walk(), w7=$_t6fwce[0], s7=$_t6fwce[1];
+      let $_t6hwmo=walk(), w7=$_t6hwmo[0], s7=$_t6hwmo[1];
       l7 = len;
-      let $_t7dguc=walk(), w8=$_t7dguc[0], s8=$_t7dguc[1];
+      let $_t7cmra=walk(), w8=$_t7cmra[0], s8=$_t7cmra[1];
       l8 = len;
       seg = this;
       let ks=bstmp1;
@@ -8436,7 +8451,7 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_g3cf_update_winding;
+  var $cent_ix6j_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -8452,14 +8467,14 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_g3cf_update_winding.zero();
+      $cent_ix6j_update_winding.zero();
       for (var l of this) {
-          $cent_g3cf_update_winding.add(l.v);
+          $cent_ix6j_update_winding.add(l.v);
       }
-      $cent_g3cf_update_winding.mulScalar(1.0/this.totvert);
+      $cent_ix6j_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_g3cf_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_ix6j_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -8490,7 +8505,7 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
       return ret;
     }
   }
-  var $cent_g3cf_update_winding=new Vector3();
+  var $cent_ix6j_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -8501,7 +8516,7 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
     winding : int;
   }
 `;
-  var $minmax_atCO_update_aabb;
+  var $minmax_FUFd_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -8524,17 +8539,17 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_atCO_update_aabb.reset();
+      $minmax_FUFd_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_atCO_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_atCO_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_atCO_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_atCO_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_FUFd_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_FUFd_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_FUFd_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_FUFd_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_atCO_update_aabb.min);
-      this._aabb[1].load($minmax_atCO_update_aabb.max);
+      this._aabb[0].load($minmax_FUFd_update_aabb.min);
+      this._aabb[1].load($minmax_FUFd_update_aabb.max);
     }
     get  aabb() {
       if (this.flag&SplineFlags.UPDATE_AABB)
@@ -8551,7 +8566,7 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_atCO_update_aabb=new MinMax(3);
+  var $minmax_FUFd_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
@@ -8769,7 +8784,7 @@ es6_module_define('spline_types', ["./bspline.js", "./spline_math.js", "../wasm/
 }, '/dev/fairmotion/src/curve/spline_types.js');
 
 
-es6_module_define('spline_query', ["../path.ux/scripts/util/math.js", "./spline_base.js", "./spline_multires.js", "../editors/viewport/selectmode.js"], function _spline_query_module(_es6_module) {
+es6_module_define('spline_query', ["./spline_base.js", "../editors/viewport/selectmode.js", "../path.ux/scripts/util/math.js", "./spline_multires.js"], function _spline_query_module(_es6_module) {
   var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
   var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
   var compose_id=es6_import_item(_es6_module, './spline_multires.js', 'compose_id');
@@ -8926,7 +8941,7 @@ es6_module_define('spline_query', ["../path.ux/scripts/util/math.js", "./spline_
 }, '/dev/fairmotion/src/curve/spline_query.js');
 
 
-es6_module_define('spline_draw', ["./spline_types.js", "./spline_draw_sort.js", "../config/config.js", "../editors/viewport/selectmode.js", "../util/vectormath.js", "./spline_draw_sort", "./spline_element_array.js", "../core/animdata.js", "./spline_draw_new.js", "../util/mathlib.js", "./spline_math.js", "../editors/viewport/view2d_editor.js"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["./spline_types.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "../core/animdata.js", "../util/vectormath.js", "./spline_element_array.js", "./spline_math.js", "./spline_draw_sort.js", "./spline_draw_new.js", "../util/mathlib.js", "../editors/viewport/selectmode.js", "./spline_draw_sort"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -9225,7 +9240,7 @@ es6_module_define('spline_draw', ["./spline_types.js", "./spline_draw_sort.js", 
 }, '/dev/fairmotion/src/curve/spline_draw.js');
 
 
-es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "./spline_math.js", "./spline_types.js", "../core/evillog.js", "../config/config.js", "./spline_element_array.js", "../core/animdata.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
+es6_module_define('spline_draw_sort', ["../config/config.js", "./spline_multires.js", "./spline_types.js", "../editors/viewport/view2d_editor.js", "./spline_element_array.js", "../core/animdata.js", "./spline_math.js", "../util/mathlib.js", "../editors/viewport/selectmode.js", "../core/evillog.js"], function _spline_draw_sort_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -9244,10 +9259,10 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
   var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
   var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
   var evillog=es6_import_item(_es6_module, '../core/evillog.js', 'evillog');
-  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
-  var PI=Math.PI;
-  var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
+  let spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
+  let spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
+  let PI=Math.PI;
+  let pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
   var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
@@ -9276,52 +9291,55 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
   }, 2);
   function sort_layer_segments(layer, spline) {
     const lists=_sort_layer_segments_lists;
-    var list=lists.next();
+    let list=lists.next();
     list.length = 0;
-    var visit={}
-    var layerid=layer.id;
-    var topogroup_idgen=0;
-    function recurse(seg) {
+    let visit={}
+    let layerid=layer.id;
+    let topogroup_idgen=0;
+    function recurse(seg, start_seg) {
+      if (start_seg===undefined) {
+          start_seg = seg;
+      }
       if (seg.eid in visit) {
           return ;
       }
       visit[seg.eid] = 1;
       seg.topoid = topogroup_idgen;
-      for (var i=0; i<2; i++) {
-          var v=i ? seg.v2 : seg.v1;
+      for (let i=0; i<2; i++) {
+          let v=i ? seg.v2 : seg.v1;
           if (v.segments.length!==2)
             continue;
-          for (var j=0; j<v.segments.length; j++) {
-              var s2=v.segments[j];
-              if (!(s2.eid in visit)) {
-                  recurse(s2);
+          for (let seg2 of v.segments) {
+              if (!(seg2.eid in visit)) {
+                  recurse(seg2, start_seg);
               }
           }
       }
-      if (!s.hidden||(s.flag&SplineFlags.GHOST))
-        list.push(seg);
+      if (!seg.hidden||(seg.flag&SplineFlags.GHOST)) {
+          list.push(seg);
+      }
     }
     if (1) {
-        for (var s of layer) {
-            if (s.type!==SplineTypes.SEGMENT)
+        for (let seg of layer) {
+            if (seg.type!==SplineTypes.SEGMENT)
               continue;
-            if (!(layerid in s.layers))
+            if (!(layerid in seg.layers))
               continue;
-            if (s.v1.segments.length===2&&s.v2.segments.length===2)
+            if (seg.v1.segments.length===2&&seg.v2.segments.length===2)
               continue;
-            if (!(s.eid in visit)) {
+            if (!(seg.eid in visit)) {
                 topogroup_idgen++;
-                recurse(s);
+                recurse(seg);
             }
         }
-        for (var s of layer) {
-            if (s.type!==SplineTypes.SEGMENT)
+        for (let seg of layer) {
+            if (seg.type!==SplineTypes.SEGMENT)
               continue;
-            if (!(layerid in s.layers))
+            if (!(layerid in seg.layers))
               continue;
-            if (!(s.eid in visit)) {
+            if (!(seg.eid in visit)) {
                 topogroup_idgen++;
-                recurse(s);
+                recurse(seg);
             }
         }
     }
@@ -9330,13 +9348,13 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
   sort_layer_segments = _es6_module.add_export('sort_layer_segments', sort_layer_segments);
   function redo_draw_sort(spline) {
     spline.redoSegGroups();
-    var min_z=100000000000000.0;
-    var max_z=-100000000000000.0;
-    var layerset=spline.layerset;
+    let min_z=100000000000000.0;
+    let max_z=-100000000000000.0;
+    let layerset=spline.layerset;
     if (_DEBUG.drawsort) {
         console.log("start sort");
     }
-    var time=time_ms();
+    let time=time_ms();
     let gmap=new Map();
     let gsmap=new Map();
     let gi=0;
@@ -9373,7 +9391,7 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
     for (let seg of spline.segments) {
         seg.updateCoincident();
     }
-    for (var f of spline.faces) {
+    for (let f of spline.faces) {
         if (f.hidden&&!(f.flag&SplineFlags.GHOST))
           continue;
         if (isNaN(f.z))
@@ -9381,7 +9399,7 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
         max_z = Math.max(max_z, f.z+1);
         min_z = Math.min(min_z, f.z);
     }
-    for (var s of spline.segments) {
+    for (let s of spline.segments) {
         if (s.hidden&&!(s.flag&SplineFlags.GHOST))
           continue;
         if (isNaN(s.z))
@@ -9405,15 +9423,15 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
                 console.trace("infinite loop!");
                 break;
             }
-            var fz=calc_z(l.f);
+            let fz=calc_z(l.f);
             f_max_z = f_max_z===undefined ? fz : Math.max(f_max_z, fz);
             l = l.radial_next;
           } while (l!==e.l);
           
           return f_max_z+1;
       }
-      var layer=0;
-      for (var k in e.layers) {
+      let layer=0;
+      for (let k in e.layers) {
           layer = k;
           break;
       }
@@ -9426,32 +9444,32 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
       return layer.order*(max_z-min_z)+(z-min_z);
     }
     function get_layer(e) {
-      for (var k in e.layers) {
+      for (let k in e.layers) {
           return k;
       }
       return undefined;
     }
-    var dl=spline.drawlist = [];
-    var ll=spline.draw_layerlist = [];
+    let dl=spline.drawlist = [];
+    let ll=spline.draw_layerlist = [];
     spline._layer_maxz = max_z;
-    for (var f of spline.faces) {
+    for (let f of spline.faces) {
         f.finalz = -1;
         if (f.hidden&&!(f.flag&SplineFlags.GHOST))
           continue;
         dl.push(f);
     }
-    var visit={}
-    for (var i=0; i<spline.layerset.length; i++) {
-        var layer=spline.layerset[i];
-        var elist=sort_layer_segments(layer, spline);
-        for (var j=0; j<elist.length; j++) {
-            var s=elist[j];
+    let visit={}
+    for (let i=0; i<spline.layerset.length; i++) {
+        let layer=spline.layerset[i];
+        let elist=sort_layer_segments(layer, spline);
+        for (let j=0; j<elist.length; j++) {
+            let s=elist[j];
             if (!(s.eid in visit))
               dl.push(elist[j]);
             visit[s.eid] = 1;
         }
     }
-    for (var s of spline.segments) {
+    for (let s of spline.segments) {
         s.finalz = -1;
         if (s.hidden&&!(s.flag&SplineFlags.GHOST))
           continue;
@@ -9459,8 +9477,8 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
             dl.push(s);
         }
     }
-    var zs={}
-    for (var e of dl) {
+    let zs={}
+    for (let e of dl) {
         zs[e.eid] = calc_z(e);
     }
     if (!spline.is_anim_path) {
@@ -9468,9 +9486,9 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
           return zs[a.eid]-zs[b.eid];
         });
     }
-    for (var i=0; i<dl.length; i++) {
-        var lk=undefined;
-        for (var k in dl[i].layers) {
+    for (let i=0; i<dl.length; i++) {
+        let lk=undefined;
+        for (let k in dl[i].layers) {
             lk = k;
             break;
         }
@@ -9503,7 +9521,7 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
         }
         spline.drawlist = list2;
     }
-    for (var i=0; i<spline.drawlist.length; i++) {
+    for (let i=0; i<spline.drawlist.length; i++) {
         if (spline.drawlist[i]===undefined) {
             let j=i;
             console.warn("corrupted drawlist; fixing...");
@@ -9526,7 +9544,7 @@ es6_module_define('spline_draw_sort', ["./spline_multires.js", "../editors/viewp
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
 
 
-es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_types.js", "../editors/viewport/selectmode.js", "../path.ux/scripts/config/const.js", "./spline_query.js", "./spline_draw.js", "./spline_multires.js", "../path.ux/scripts/pathux.js", "./spline_element_array.js", "./spline_strokegroup.js", "../core/lib_api.js", "../core/eventdag.js", "../core/toolops_api.js", "../config/config.js", "./solver.js", "../wasm/native_api.js", "../editors/viewport/view2d_editor.js", "./solver_new.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["./spline_multires.js", "./solver.js", "../wasm/native_api.js", "../editors/viewport/view2d_editor.js", "../path.ux/scripts/pathux.js", "./spline_element_array.js", "./spline_math.js", "../core/lib_api.js", "./spline_types.js", "./spline_draw.js", "./spline_strokegroup.js", "./spline_query.js", "../editors/viewport/selectmode.js", "../core/struct.js", "../config/config.js", "./solver_new.js", "../core/toolops_api.js", "../path.ux/scripts/config/const.js", "../core/eventdag.js"], function _spline_module(_es6_module) {
   "use strict";
   var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
   const MMLEN=8;
@@ -9542,6 +9560,7 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
   var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
   var SplineQuery=es6_import_item(_es6_module, './spline_query.js', 'SplineQuery');
   var draw_spline=es6_import_item(_es6_module, './spline_draw.js', 'draw_spline');
+  var redo_draw_sort=es6_import_item(_es6_module, './spline_draw.js', 'redo_draw_sort');
   var solve=es6_import_item(_es6_module, './solver_new.js', 'solve');
   var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
   var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
@@ -9687,7 +9706,7 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
       this._vert_rem_set = new set();
       this._vert_time_set = new set();
       this._debug_id = debug_id_gen++;
-      this._pending_solve = undefined;
+      this.pending_solve = undefined;
       this._resolve_after = undefined;
       this.solving = undefined;
       this.actlevel = 0;
@@ -9749,6 +9768,14 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
       for (let h of this.handles) {
           h.flag|=SplineFlags.UPDATE;
       }
+    }
+     check_sort() {
+      if (!this.drawlist||(this.recalc&RecalcFlags.DRAWSORT)) {
+          redo_draw_sort(this);
+      }
+    }
+     queue_redraw() {
+      window.redraw_viewport();
     }
      regen_sort() {
       this.updateGen++;
@@ -10830,16 +10857,16 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
       let dag_trigger=function () {
         this2.dag_update("on_solve", true);
       };
-      if (this._pending_solve!==undefined&&force_queue) {
+      if (this.pending_solve!==undefined&&force_queue) {
           let this2=this;
-          this._pending_solve = this._pending_solve.then(function () {
+          this.pending_solve = this.pending_solve.then(function () {
             this2.solve();
           });
           this.solving = true;
-          return this._pending_solve;
+          return this.pending_solve;
       }
       else 
-        if (this._pending_solve!==undefined) {
+        if (this.pending_solve!==undefined) {
           let do_accept;
           let promise=new Promise(function (accept, reject) {
             do_accept = function () {
@@ -10852,9 +10879,9 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
           return promise;
       }
       else {
-        this._pending_solve = this.solve_intern(steps, gk);
+        this.pending_solve = this.solve_intern(steps, gk);
         this.solving = true;
-        return this._pending_solve;
+        return this.pending_solve;
       }
     }
      on_destroy() {
@@ -10896,39 +10923,26 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
           });
       }
       if (!DEBUG.no_native&&config.USE_WASM&&native_api.isReady()) {
+          window._block_drawing++;
           let ret=native_api.do_solve(SplineFlags, this, steps, gk, true);
           ret.then(function () {
-            this2._pending_solve = undefined;
+            window._block_drawing--;
+            this2.pending_solve = undefined;
             this2.solving = false;
             this2._do_post_solve();
             dag_trigger();
             if (this2._resolve_after) {
                 let cb=this2._resolve_after;
                 this2._resolve_after = undefined;
-                this2._pending_solve = this2.solve_intern().then(function () {
+                this2.pending_solve = this2.solve_intern().then(function () {
                   cb.call(this2);
                 });
                 this2.solving = true;
             }
-          });
-          return ret;
-      }
-      else 
-        if (!DEBUG.no_native&&config.USE_NACL&&window.common!==undefined&&window.common.naclModule!==undefined) {
-          let ret=do_solve(SplineFlags, this, steps, gk, true);
-          ret.then(function () {
-            this2._pending_solve = undefined;
-            this2.solving = false;
-            this2._do_post_solve();
-            dag_trigger();
-            if (this2._resolve_after) {
-                let cb=this2._resolve_after;
-                this2._resolve_after = undefined;
-                this2._pending_solve = this2.solve_intern().then(function () {
-                  cb.call(this2);
-                });
-                this2.solving = true;
-            }
+          }).catch((error) =>            {
+            window._block_drawing--;
+            console.error(error.stack);
+            console.error(error.message);
           });
           return ret;
       }
@@ -10939,11 +10953,12 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
             accept();
           }
         });
+        window._block_drawing++;
         let this2=this;
-        let timer=window.setInterval(function () {
-          window.clearInterval(timer);
+        window.setTimeout(function () {
+          window._block_drawing--;
           do_solve(SplineFlags, this2, steps, gk);
-          this2._pending_solve = undefined;
+          this2.pending_solve = undefined;
           this2.solving = false;
           do_accept();
           this2._do_post_solve();
@@ -10951,7 +10966,7 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
           if (this2._resolve_after) {
               let cb=this2._resolve_after;
               this2._resolve_after = undefined;
-              this2._pending_solve = this2.solve_intern().then(function () {
+              this2.pending_solve = this2.solve_intern().then(function () {
                 cb.call(this2);
               });
               this2.solving = true;
@@ -11345,7 +11360,7 @@ es6_module_define('spline', ["../core/struct.js", "./spline_math.js", "./spline_
           else {
             this.solvePromise = this.solve().then(() =>              {
               this.solvePromise = undefined;
-              window.redraw_viewport();
+              this.queue_redraw();
             });
             this.solveTimeout = util.time_ms();
           }

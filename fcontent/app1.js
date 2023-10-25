@@ -3545,14 +3545,28 @@ window.init_redraw_globals = function init_redraw_globals() {
         return ;
     }
     delete outstanding_solves[id];
-    redraw_viewport();
   }
   let redraw_viewport_promise=undefined;
   let animreq2;
   window._all_draw_jobs_done = function () {
     animreq2 = undefined;
   }
-  window._block_drawing = false;
+  if (0) {
+      let block;
+      Object.defineProperty(window, "_block_drawing", {get: function get() {
+          return block;
+        }, 
+     set: function set(v) {
+          if (v===0) {
+              console.warn("redraw block clear");
+          }
+          else {
+            console.warn("redraw block set", v);
+          }
+          block = v;
+        }});
+  }
+  window._block_drawing = 0;
   window._wait_for_draw = false;
   window.complete_viewport_draw = function (tries) {
     if (tries===undefined) {
@@ -3577,6 +3591,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     spline.drawer = new _SplineDrawer(spline);
     window.redraw_viewport();
   }
+  window.redraw_viewport_lock = 0;
   window.redraw_viewport = function () {
     if (animreq!==undefined) {
         return redraw_viewport_promise;
@@ -3587,8 +3602,34 @@ window.init_redraw_globals = function init_redraw_globals() {
         if (!g_app_state||!g_app_state.screen) {
             return ;
         }
-        if (window._block_drawing) {
+        if (window._block_drawing>0) {
+            window.redraw_viewport();
             return ;
+        }
+        if (0) {
+            let ctx=g_app_state.ctx;
+            let frameset=ctx.frameset;
+            let spline=ctx.spline;
+            if (spline.solving) {
+                window.redraw_viewport();
+                return ;
+            }
+            for (let sarea of ctx.screen.sareas) {
+                if (sarea.area.constructor.define().areaname!=="view2d_editor") {
+                    continue;
+                }
+                let view2d=sarea.area;
+                if (spline.drawer) {
+                    let g=view2d.get_fg_canvas().g;
+                    spline.check_sort();
+                    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(), [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
+                    spline.drawer.drawer.updateBatches(g);
+                }
+            }
+            if (window._block_drawing>0) {
+                window.redraw_viewport();
+                return ;
+            }
         }
         let screen=g_app_state.screen;
         for (let sarea of screen.sareas) {
@@ -3644,7 +3685,7 @@ class MyLocalStorage_ChromeApp  {
     this.cache = {};
   }
    set(key, val) {
-    var obj={};
+    let obj={};
     obj[key] = val;
     chrome.storage.local.set(obj);
     this.cache[key] = val;
@@ -3653,18 +3694,18 @@ class MyLocalStorage_ChromeApp  {
     return this.cache[key];
   }
    getAsync(key) {
-    var this2=this;
+    let this2=this;
     return new Promise(function (accept, reject) {
       chrome.storage.local.get(key, function (value) {
-        if (chrome.runtime.lastError!=undefined) {
+        if (chrome.runtime.lastError!==undefined) {
             this2.cache[key] = null;
             reject(chrome.runtime.lastError.string);
         }
         else {
-          if (value!={}&&value!=undefined&&key in value) {
+          if (value!=={}&&value!==undefined&&key in value) {
               value = value[key];
           }
-          if (typeof value=="object")
+          if (typeof value==="object")
             value = JSON.stringify(value);
           this2.cache[key] = value;
           accept(value);
@@ -3701,7 +3742,7 @@ window._ensure_thedimens = function () {
 window.startup_intern = function startup() {
   load_modules();
   if (window.CHROME_APP_MODE) {
-      var config=_es6_get_module("config", true);
+      let config=_es6_get_module("config", true);
       config.exports.HAVE_EVAL = false;
   }
   window.imagecanvas_webgl = _es6_get_module("imagecanvas_webgl", true);
@@ -3717,35 +3758,30 @@ window.startup_intern = function startup() {
   document.oncontextmenu = function () {
     return false;
   }
-  if (window.g_app_state===undefined) {
-      console.log(_es6_get_module(_rootpath_src+"src/core/data_api/data_api.js").exports);
-      let $_t0mack=_es6_get_module(_rootpath_src+"src/core/data_api/data_api.js").exports, register_toolops=$_t0mack.register_toolops;
-      register_toolops();
-      startup_report("parsing serialization scripts...");
-      init_struct_packer();
-      startup_report("loading icons and theme...");
-      init_pathux();
-      startup_report("initializing data api...");
-      let body=document.body;
-      window.g_app_state = new AppState(undefined, undefined, undefined);
-      let w=window.innerWidth, h=window.innerHeight;
-      g_app_state.size = [w, h];
-      startup_report("create event dag...");
-      init_event_graph(g_app_state.ctx);
-      startup_report("loading new scene file...");
-      gen_default_file([w, h]);
-      g_app_state.session.validate_session();
-      init_event_system();
-      init_redraw_globals_2();
-  }
+  let $_t0fjjw=_es6_get_module(_rootpath_src+"src/core/data_api/data_api.js").exports, register_toolops=$_t0fjjw.register_toolops;
+  register_toolops();
+  startup_report("parsing serialization scripts...");
+  init_struct_packer();
+  startup_report("loading icons and theme...");
+  init_pathux();
+  startup_report("initializing data api...");
+  window.g_app_state = new AppState(undefined, undefined, undefined);
+  let w=window.innerWidth, h=window.innerHeight;
+  g_app_state.size = [w, h];
+  startup_report("create event dag...");
+  init_event_graph(g_app_state.ctx);
+  startup_report("loading new scene file...");
+  gen_default_file([w, h]);
+  g_app_state.session.validate_session();
+  init_event_system();
+  init_redraw_globals_2();
 };
 function init_pathux() {
   let ui_base=_es6_get_module("ui_base", true).exports;
-  let $_t1mfuq=ui_base, iconmanager=$_t1mfuq.iconmanager, setTheme=$_t1mfuq.setTheme, setIconMap=$_t1mfuq.setIconMap;
+  let $_t1lsch=ui_base, iconmanager=$_t1lsch.iconmanager, setTheme=$_t1lsch.setTheme, setIconMap=$_t1lsch.setIconMap;
   let theme=_es6_get_module(_rootpath_src+"src/editors/theme.js").exports.theme;
   let config=_es6_get_module(_rootpath_src+"src/config/config.js").exports;
   let cconst=_es6_get_module(_rootpath_src+"src/path.ux/scripts/config/const.js").default_export;
-  console.error("THEME", theme);
   let cfg=Object.assign({}, config.PathUXConstants);
   if (config.DEBUG) {
       cfg = Object.assign(cfg, config.DEBUG);
@@ -3767,19 +3803,19 @@ function init_event_system() {
   window.setInterval(function () {
     if (window.redraw_start_times===undefined)
       return ;
-    for (var k in window.redraw_start_times) {
-        var t=window.redraw_start_times[k];
+    for (let k in window.redraw_start_times) {
+        let t=window.redraw_start_times[k];
         if (time_ms()-t>1500) {
             pop_solve(k);
         }
     }
   }, 32);
-  var config=_es6_get_module(_rootpath_src+"src/config/config.js");
+  let config=_es6_get_module(_rootpath_src+"src/config/config.js");
   function gen_keystr(key, keystate) {
-    if (typeof key=="number") {
+    if (typeof key==="number") {
         key = String.fromCharCode(key);
     }
-    var s=key.toUpperCase();
+    let s=key.toUpperCase();
     if (keystate.shift)
       s = "SHIFT-"+s;
     if (keystate.alt)
@@ -3788,7 +3824,7 @@ function init_event_system() {
       s = "CTRL-"+s;
     return s;
   }
-  var key_exclude_list={}, ke=key_exclude_list;
+  let key_exclude_list={}, ke=key_exclude_list;
   ke[gen_keystr("O", {shift: false, 
    alt: false, 
    ctrl: true})] = 0;
@@ -3838,10 +3874,10 @@ function init_event_system() {
    alt: false, 
    ctrl: true})] = 0;
   window._handle_key_exclude = function handle_key_exclude(e) {
-    var kc=charmap[e.keyCode];
+    let kc=charmap[e.keyCode];
     if (kc===undefined)
       kc = "";
-    var keystr=gen_keystr(kc, {shift: e.shiftKey, 
+    let keystr=gen_keystr(kc, {shift: e.shiftKey, 
     alt: e.altKey, 
     ctrl: e.ctrlKey});
     keystr = keystr.toString().toUpperCase();
@@ -9784,16 +9820,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_kUN1=new GArray();
+var $lst_NS05=new GArray();
 function cached_list(iter) {
-  $lst_kUN1.reset();
+  $lst_NS05.reset();
   var i=0;
   for (var item of iter) {
-      $lst_kUN1.push(item);
+      $lst_NS05.push(item);
       i++;
   }
-  $lst_kUN1.length = i;
-  return $lst_kUN1;
+  $lst_NS05.length = i;
+  return $lst_NS05;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -11207,6 +11243,8 @@ dataref {
     
     
     
+    
+    
      constructor() {
       this.id = 0;
       this.datalists = new hashtable();
@@ -11676,7 +11714,7 @@ DataLib {
 }, '/dev/fairmotion/src/core/lib_api.js');
 
 
-es6_module_define('lib_api_typedefine', ["../scene/scene.js", "./imageblock.js", "./lib_api.js", "../curve/spline.js", "./frameset.js"], function _lib_api_typedefine_module(_es6_module) {
+es6_module_define('lib_api_typedefine', ["./lib_api.js", "./imageblock.js", "./frameset.js", "../scene/scene.js", "../curve/spline.js"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, '../scene/scene.js', 'Scene');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
@@ -11685,7 +11723,7 @@ es6_module_define('lib_api_typedefine', ["../scene/scene.js", "./imageblock.js",
 }, '/dev/fairmotion/src/core/lib_api_typedefine.js');
 
 
-es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.ux/scripts/util/vectormath.js"], function _mathlib_module(_es6_module) {
+es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "./vectormath.js", "../core/struct.js"], function _mathlib_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './vectormath.js');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -11760,12 +11798,12 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_V9VS_get_rect_points=new Array(4);
-  var $_cs8_OmVl_get_rect_points=new Array(8);
+  var $_cs4_EzFl_get_rect_points=new Array(4);
+  var $_cs8_aaOT_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_V9VS_get_rect_points;
+        cs = $_cs4_EzFl_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -11773,7 +11811,7 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_OmVl_get_rect_points;
+        cs = $_cs8_aaOT_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11810,15 +11848,15 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_K4yJ_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_ytGt_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_K4yJ_simple_tri_aabb_isect[0] = v1;
-    $vs_K4yJ_simple_tri_aabb_isect[1] = v2;
-    $vs_K4yJ_simple_tri_aabb_isect[2] = v3;
+    $vs_ytGt_simple_tri_aabb_isect[0] = v1;
+    $vs_ytGt_simple_tri_aabb_isect[1] = v2;
+    $vs_ytGt_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_K4yJ_simple_tri_aabb_isect[j][i]<min[i]||$vs_K4yJ_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_ytGt_simple_tri_aabb_isect[j][i]<min[i]||$vs_ytGt_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -11952,42 +11990,42 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_WX5v_aabb_isect_line_2d=new Vector2();
-  var $ssize_TMBZ_aabb_isect_line_2d=new Vector2();
-  var $sv1_MNaO_aabb_isect_line_2d=new Vector2();
-  var $ps_4bKf_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_Z9hT_aabb_isect_line_2d=[0, 0];
-  var $smax_ZliU_aabb_isect_line_2d=new Vector2();
-  var $sv2_qdkY_aabb_isect_line_2d=new Vector2();
-  var $l2_E0AY_aabb_isect_line_2d=[0, 0];
+  var $smin_ab60_aabb_isect_line_2d=new Vector2();
+  var $ssize_RnVf_aabb_isect_line_2d=new Vector2();
+  var $sv1_nduY_aabb_isect_line_2d=new Vector2();
+  var $ps_7IP0_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_UO0R_aabb_isect_line_2d=[0, 0];
+  var $smax_W3Mm_aabb_isect_line_2d=new Vector2();
+  var $sv2_dxbv_aabb_isect_line_2d=new Vector2();
+  var $l2_tzu9_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_WX5v_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_ZliU_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_ab60_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_W3Mm_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_ZliU_aabb_isect_line_2d.sub($smin_WX5v_aabb_isect_line_2d);
-    $ssize_TMBZ_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_WX5v_aabb_isect_line_2d, $smax_ZliU_aabb_isect_line_2d, min, $ssize_TMBZ_aabb_isect_line_2d))
+    $smax_W3Mm_aabb_isect_line_2d.sub($smin_ab60_aabb_isect_line_2d);
+    $ssize_RnVf_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_ab60_aabb_isect_line_2d, $smax_W3Mm_aabb_isect_line_2d, min, $ssize_RnVf_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_TMBZ_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_RnVf_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_TMBZ_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_RnVf_aabb_isect_line_2d))
           return true;
     }
-    $ps_4bKf_aabb_isect_line_2d[0] = min;
-    $ps_4bKf_aabb_isect_line_2d[1][0] = min[0];
-    $ps_4bKf_aabb_isect_line_2d[1][1] = max[1];
-    $ps_4bKf_aabb_isect_line_2d[2] = max;
-    $ps_4bKf_aabb_isect_line_2d[3][0] = max[0];
-    $ps_4bKf_aabb_isect_line_2d[3][1] = min[1];
-    $l1_Z9hT_aabb_isect_line_2d[0] = v1;
-    $l1_Z9hT_aabb_isect_line_2d[1] = v2;
+    $ps_7IP0_aabb_isect_line_2d[0] = min;
+    $ps_7IP0_aabb_isect_line_2d[1][0] = min[0];
+    $ps_7IP0_aabb_isect_line_2d[1][1] = max[1];
+    $ps_7IP0_aabb_isect_line_2d[2] = max;
+    $ps_7IP0_aabb_isect_line_2d[3][0] = max[0];
+    $ps_7IP0_aabb_isect_line_2d[3][1] = min[1];
+    $l1_UO0R_aabb_isect_line_2d[0] = v1;
+    $l1_UO0R_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_4bKf_aabb_isect_line_2d[i], b=$ps_4bKf_aabb_isect_line_2d[(i+1)%4];
-        $l2_E0AY_aabb_isect_line_2d[0] = a;
-        $l2_E0AY_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_Z9hT_aabb_isect_line_2d, $l2_E0AY_aabb_isect_line_2d))
+        var a=$ps_7IP0_aabb_isect_line_2d[i], b=$ps_7IP0_aabb_isect_line_2d[(i+1)%4];
+        $l2_tzu9_aabb_isect_line_2d[0] = a;
+        $l2_tzu9_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_UO0R_aabb_isect_line_2d, $l2_tzu9_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -12102,25 +12140,25 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_Rr9b_normal_tri=new Vector3();
-  var $e3_PkNf_normal_tri=new Vector3();
-  var $e2_yI4e_normal_tri=new Vector3();
+  var $e1_iRKS_normal_tri=new Vector3();
+  var $e3_oC_F_normal_tri=new Vector3();
+  var $e2_3lsI_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    VSUB($e1_Rr9b_normal_tri, v2, v1);
-    VSUB($e2_yI4e_normal_tri, v3, v1);
-    VCROSS($e3_PkNf_normal_tri, $e1_Rr9b_normal_tri, $e2_yI4e_normal_tri);
-    VNORMALIZE($e3_PkNf_normal_tri);
-    return $e3_PkNf_normal_tri;
+    VSUB($e1_iRKS_normal_tri, v2, v1);
+    VSUB($e2_3lsI_normal_tri, v3, v1);
+    VCROSS($e3_oC_F_normal_tri, $e1_iRKS_normal_tri, $e2_3lsI_normal_tri);
+    VNORMALIZE($e3_oC_F_normal_tri);
+    return $e3_oC_F_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_jYmt_normal_quad=new Vector3();
+  var $n2_aeyV_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    VLOAD($n2_jYmt_normal_quad, n);
+    VLOAD($n2_aeyV_normal_quad, n);
     n = normal_tri(v1, v3, v4);
-    VADD($n2_jYmt_normal_quad, $n2_jYmt_normal_quad, n);
-    VNORMALIZE($n2_jYmt_normal_quad);
-    return $n2_jYmt_normal_quad;
+    VADD($n2_aeyV_normal_quad, $n2_aeyV_normal_quad, n);
+    VNORMALIZE($n2_aeyV_normal_quad);
+    return $n2_aeyV_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var lis_rets3=cachering.fromConstructor(Vector3, 64);
@@ -12487,9 +12525,9 @@ es6_module_define('mathlib', ["./vectormath.js", "../core/struct.js", "../path.u
         }
     }
   }
-  var $_cent_nD30=new Vector3();
+  var $_cent_YOG4=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_nD30.zero();
+    var cent=$_cent_YOG4.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {

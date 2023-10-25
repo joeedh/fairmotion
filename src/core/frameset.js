@@ -106,10 +106,10 @@ class AllSplineIter {
           let vdata = this.f.vertex_animdata[k];
           let v = this.f.spline.eidmap[k];
 
-          //if (v != undefined && (v.flag & SplineFlags.SELECT) && v.type != SplineTypes.HANDLE)
+          //if (v  !== undefined && (v.flag & SplineFlags.SELECT) && v.type  !== SplineTypes.HANDLE)
           //  console.log("EID", k, "SPLINE", this.f.vertex_animdata[k].spline._debug_id, "HIDDEN", v.hidden, "TYPE", v.type);
 
-          if (v === undefined || !(v.flag & SplineFlags.SELECT) || v.hidden) { // || (v.type != SplineTypes.VERTEX)) {
+          if (v === undefined || !(v.flag & SplineFlags.SELECT) || v.hidden) { // || (v.type  !== SplineTypes.VERTEX)) {
             continue;
           }
         }
@@ -354,7 +354,7 @@ export class SplineKCache {
 
     let inv = new set();
 
-    if (ret.invalid_eids != undefined &&
+    if (ret.invalid_eids  !== undefined &&
       ret.invalid_eids instanceof Array) {
       for (let i = 0; i < ret.invalid_eids.length; i++) {
         inv.add(ret.invalid_eids[i]);
@@ -640,7 +640,7 @@ export class SplineFrameSet extends DataBlock {
       hide = hide || !element.use;
     }
 
-    //if (state) { // !!(vd.flag & SplineFlags.HIDE) != !!hide) {
+    //if (state) { // !!(vd.flag & SplineFlags.HIDE)  !== !!hide) {
     //window.redraw_viewport();
     //}
 
@@ -908,7 +908,7 @@ export class SplineFrameSet extends DataBlock {
     this.check_vdata_integrity();
 
     //for now, let's not allow multiple topologies
-    if (this.frame != undefined)
+    if (this.frame  !== undefined)
       return this.frame;
 
     let frame = this.frame = new SplineFrame();
@@ -992,7 +992,7 @@ export class SplineFrameSet extends DataBlock {
       }
     }
     
-    if (flist[i] != time)
+    if (flist[i]  !== time)
       i++;
     
     if (i === flist.length) {
@@ -1039,7 +1039,7 @@ export class SplineFrameSet extends DataBlock {
 
     let spline = f.spline; //.copy();
 
-    if (!window.inFromStruct && _update_animation) { //time != f.time) {
+    if (!window.inFromStruct && _update_animation) { //time  !== f.time) {
       for (let v of spline.points) {
         let set_flag = v.eid in this.vertex_animdata;
 
@@ -1080,7 +1080,7 @@ export class SplineFrameSet extends DataBlock {
               l.f.flag |= SplineFlags.REDRAW;
               
               l = l.radial_next;
-            } while (l != ss.l);
+            } while (l  !== ss.l);
           }
           //*/
         }
@@ -1147,7 +1147,7 @@ export class SplineFrameSet extends DataBlock {
   }
 
   get_vdata(eid, auto_create = true): VertexAnimData {
-    if (typeof eid != "number") {
+    if (typeof eid  !== "number") {
       throw new Error("Expected a number for eid");
     }
 
@@ -1301,7 +1301,7 @@ export class SplineFrameSet extends DataBlock {
     reader(this);
     super.loadSTRUCT(reader);
 
-    //XXX kcache is being buggy, for now, don't load from disk
+    //XXX kcache is being buggy, for now don't load from disk
     this.kcache = new SplineKCache();
 
     if (this.kcache === undefined) {
@@ -1313,13 +1313,6 @@ export class SplineFrameSet extends DataBlock {
       this.pathspline = this.make_pathspline();
     }
 
-    for (v of this.pathspline.verts) {
-      // v.flag |= SplineFlags.UPDATE;
-    }
-    for (let h of this.pathspline.handles) {
-      // h.flag |= SplineFlags.UPDATE;
-    }
-
     for (let vd of this.vertex_animdata) {
       vd.spline = this.pathspline;
 
@@ -1329,7 +1322,7 @@ export class SplineFrameSet extends DataBlock {
 
         vd.layerid = layer.id;
 
-        if (vd.startv_eid != undefined) {
+        if (vd.startv_eid  !== undefined) {
           let v = this.pathspline.eidmap[vd.startv_eid];
           let s = v.segments[0];
 

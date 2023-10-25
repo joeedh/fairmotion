@@ -85,6 +85,8 @@ export class PathBase {
     
     path.clip_users.add(this);
     this.clip_paths.add(path);
+
+    this.recalc = 1;
   }
   
   reset_clip_paths() {

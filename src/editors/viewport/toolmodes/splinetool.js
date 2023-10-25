@@ -225,15 +225,13 @@ export class SplineToolMode extends ToolMode {
       return true;
     }
 
-    console.warn(event, "splinetool mousedown")
-
     let spline = this.ctx.spline;
     let toolmode = this.ctx.view2d.toolmode;
 
     this.start_mpos[0] = event.x;
     this.start_mpos[1] = event.y;
 
-    this.updateHighlight(event.x, event.y, event.pointerType === "mouse");
+    this.updateHighlight(event.x, event.y, event.pointerType !== "mouse");
 
     if (this.highlight_spline !== undefined && this.highlight_spline !== spline) {
       this._clear_undo_touch(false);
@@ -397,6 +395,10 @@ export class SplineToolMode extends ToolMode {
   }
 
   updateHighlight(x, y, was_touch) {
+    if (this.ctx.state.modalstate === ModalStates.TRANSFORMING) {
+      return;
+    }
+
     let toolmode = this.ctx.view2d.toolmode;
     let limit;
 
@@ -404,46 +406,28 @@ export class SplineToolMode extends ToolMode {
       limit = 55;
     } else {
 
-      limit = (util.isMobile() || was_touch) ? 55 : 15;
+      limit = (util.isMobile() || was_touch) ? 25 : 15;
     }
 
-    limit *= 1.5;
     limit *= UIBase.getDPI();
     if (toolmode === ToolModes.SELECT) limit *= 3;
 
     let ret = this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
 
-    //console.log(ret, this.ctx.view2d.selectmode);
-
+    let redraw = false;
 
     if (ret !== undefined) {
-      //console.log(ret[1].type);
-
       if (ret[0] !== this.highlight_spline && this.highlight_spline !== undefined) {
         this.highlight_spline.clear_highlight();
-
-        /*
-        for (let list of this.highlight_spline.elists) {
-          if (list.highlight != undefined) {
-            redraw_element(list.highlight, this.view2d);
-          }
-        }//*/
+        redraw = true;
       }
 
       this.highlight_spline = ret[0];
       this.highlight_spline.clear_highlight();
-      window.redraw_viewport();
-
-      /*
-      for (let list of this.highlight_spline.elists) {
-        if (list.highlight != undefined) {
-          redraw_element(list.highlight, this.view2d);
-        }
-      }//*/
     } else {
       if (this.highlight_spline !== undefined) {
         this.highlight_spline.clear_highlight();
-        window.redraw_viewport();
+        redraw = true;
       }
 
       this.highlight_spline = undefined;
@@ -452,14 +436,13 @@ export class SplineToolMode extends ToolMode {
     if (this.highlight_spline && ret && ret[1]) {
       let list = this.highlight_spline.get_elist(ret[1].type);
 
-      let redraw = list.highlight !== ret[1];
+      redraw |= list.highlight !== ret[1];
 
       list.highlight = ret[1];
+    }
 
-      if (redraw) {
-        window.redraw_viewport();
-      }
-      //redraw_element(ret[1]);
+    if (redraw) {
+      window.redraw_viewport();
     }
   }
 
@@ -569,7 +552,7 @@ export class SplineToolMode extends ToolMode {
   }
 
   static buildEditMenu() {
-    let ops = [
+    return [
       "spline.toggle_manual_handles()",
       "spline.split_edges()",
       "spline.delete_faces()",
@@ -584,14 +567,12 @@ export class SplineToolMode extends ToolMode {
       "spline.connect_handles()",
       "spline.unhide()",
       "spline.hide()",
-      "spline.toggle_select_all(mode='SELECT')|Select All|A",
-      "spline.toggle_select_all(mode='DESELECT')|Deselect All|Alt-A",
+      "spline.toggle_select_all(mode='SELECT')|Select All",
+      "spline.toggle_select_all(mode='DESELECT')|Deselect All",
       "view2d.circle_select()",
-      "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked|L",
-      "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked|Shift+L"
+      "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked::L",
+      "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked::Shift+L"
     ];
-
-    return ops;
   }
 
   delete_menu(event) {

@@ -19,7 +19,7 @@ import {DataBlock, DataTypes} from '../core/lib_api.js';
 import {SessionFlags} from '../editors/viewport/view2d_editor.js';
 import {SelMask} from '../editors/viewport/selectmode.js';
 import {SplineQuery} from './spline_query.js';
-import {draw_spline} from './spline_draw.js';
+import {draw_spline, redo_draw_sort} from './spline_draw.js';
 import {solve} from './solver_new.js';
 import {ModalStates} from '../core/toolops_api.js';
 import {DataPathNode} from '../core/eventdag.js';
@@ -300,6 +300,16 @@ export class Spline extends DataBlock {
     for (let h of this.handles) {
       h.flag |= SplineFlags.UPDATE;
     }
+  }
+
+  check_sort() {
+    if (!this.drawlist || (this.recalc & RecalcFlags.DRAWSORT)) {
+      redo_draw_sort(this);
+    }
+  }
+
+  queue_redraw() {
+    window.redraw_viewport();
   }
 
   regen_sort() {
@@ -2414,7 +2424,7 @@ export class Spline extends DataBlock {
       } else {
         this.solvePromise = this.solve().then(() => {
           this.solvePromise = undefined;
-          window.redraw_viewport();
+          this.queue_redraw();
         });
 
         this.solveTimeout = util.time_ms();

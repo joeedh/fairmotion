@@ -208,7 +208,6 @@ export class TransSplineVert extends TransDataType {
     }
 
     spline.resolve = 1;
-    window.redraw_viewport();
   }
 
   static update(ctx : ToolContext, td : TransData) {

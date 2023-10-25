@@ -12,11 +12,11 @@
       <excludeFolder url="file://$MODULE_DIR$/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/site" />
       <excludeFolder url="file://$MODULE_DIR$/src/path.ux/docs/file/scripts/platforms" />
-      <excludeFolder url="file://$MODULE_DIR$/src/path.ux/scripts/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/temp" />
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/tsrc/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/src/path.ux/docs/class/scripts/platforms" />
+      <excludeFolder url="file://$MODULE_DIR$/src/path.ux/dist" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

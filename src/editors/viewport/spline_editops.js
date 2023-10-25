@@ -732,14 +732,16 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     let selmode = this.inputs.selmode.getValue();
     
     if (isNaN(off)) off = 0.0;
-  
-    console.log("change face z! selmode:", selmode, "off", off);
-    
+
+    let typestr = "";
+
     if (selmode & SplineTypes.VERTEX) {
       selmode |=  SplineTypes.SEGMENT;
     }
     
     if (selmode & SplineTypes.FACE) {
+      typestr += "face ";
+
       for (let f of spline.faces.selected.editable(ctx)) {
         if (isNaN(f.z)) f.z = 0.0;
         
@@ -750,6 +752,8 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     }
     
     if (selmode & (SplineTypes.SEGMENT|SplineTypes.VERTEX)) {
+      typestr += "segment ";
+
       for (let s of spline.segments.selected.editable(ctx)) {
         if (isNaN(s.z)) s.z = 0.0;
         
@@ -758,7 +762,9 @@ export class ChangeFaceZ extends SplineLocalToolOp {
         s.z += off;
       }
     }
-    
+
+    console.log("change", typestr, "z! selmode:", selmode, "off", off);
+
     spline.regen_sort();
     window.redraw_viewport();
   }

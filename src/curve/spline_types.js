@@ -2,8 +2,8 @@
 
 import {ENABLE_MULTIRES} from '../config/config.js';
 
-var PI                                                        = Math.PI, abs = Math.abs, sqrt                        = Math.sqrt, floor = Math.floor,
-    ceil                                                      = Math.ceil, sin                                     = Math.sin, cos = Math.cos, acos = Math.acos,
+var PI                                                        = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
+    ceil                                                      = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
     asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
 
 import * as bspline from './bspline.js';
@@ -813,7 +813,6 @@ export class SplineSegment extends SplineElement {
   _material_update(spline) {
     if (spline && spline.segmentNeedsResort(this)) {
       console.log("segment material flagged resort!");
-
       spline.regen_sort();
     }
 

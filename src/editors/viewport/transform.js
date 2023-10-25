@@ -284,20 +284,16 @@ export class TransformOp extends ToolOp {
 
     let this2 = this;
 
-    redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
-
-    if (!ctx.spline.solving) {
-      if (force_solve && !ctx.spline.solving) { //ha!
-        redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
-      } else if (force_solve) {
-        ctx.spline.pending_solve.then(function () {
-          redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
-        });
-      }
-    } else if (force_solve) {
+    if (force_solve && !ctx.spline.solving) {
       ctx.spline.solve(undefined, undefined, force_solve).then(function () {
-        redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
+        ctx.spline.queue_redraw();
       });
+    } else if (ctx.spline.solving) {
+      ctx.spline.pending_solve.then(() => {
+        ctx.spline.queue_redraw();
+      });
+    } else {
+      ctx.spline.queue_redraw();
     }
   }
 
@@ -355,7 +351,7 @@ export class TransformOp extends ToolOp {
       case 88: //xkey
       case 89: //ykey
         this.inputs.constraint_axis.data.zero();
-        this.inputs.constraint_axis.data[event.keyCode == 89 ? 1 : 0] = 1;
+        this.inputs.constraint_axis.data[event.keyCode === 89 ? 1 : 0] = 1;
         this.inputs.constrain.setValue(true);
 
         this.exec(this.modal_ctx);
@@ -498,8 +494,6 @@ export class TranslateOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
-
-    window.redraw_viewport();
   }
 }
 
@@ -578,8 +572,6 @@ export class NonUniformScaleOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
-
-    window.redraw_viewport();
   }
 }
 
@@ -677,8 +669,6 @@ export class ScaleOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
-
-    window.redraw_viewport();
   }
 }
 
@@ -754,7 +744,5 @@ export class RotateOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
-
-    window.redraw_viewport();
   }
 }

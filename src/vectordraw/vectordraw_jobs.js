@@ -1,14 +1,14 @@
 "use strict";
 
 import {MESSAGES} from './vectordraw_jobs_base.js';
+
 let MS = MESSAGES;
 
-let Debug = 0;
-let FREEZE_WHILE_DRAWING = true;
+let Debug = false;
+let FREEZE_WHILE_DRAWING = false;
 
 import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
-import {pushModalLight, popModalLight, keymap} from "../path.ux/scripts/util/simple_events.js";
 
 let MAX_THREADS = platform.app.numberOfCPUs() + 1;
 
@@ -23,88 +23,88 @@ window.MAX_THREADS = MAX_THREADS;
 
 //uses web workers
 export class Thread {
-  dead              : boolean
-  ready             : boolean
-  lock              : number
-  callbacks         : Object
-  ownerid_msgid_map : Object
-  msgid_ownerid_map : Object
-  cancelset         : Set
-  freezelvl         : number;
+  dead: boolean
+  ready: boolean
+  lock: number
+  callbacks: Object
+  ownerid_msgid_map: Object
+  msgid_ownerid_map: Object
+  cancelset: Set
+  freezelvl: number;
 
-  constructor(worker : Worker, id : number, manager : ThreadManager) {
+  constructor(worker: Worker, id: number, manager: ThreadManager) {
     this.id = id;
     this.manager = manager;
     this.worker = worker;
     this.dead = false;
     this.queue = []; //message queue
     this.ready = false;
-    
+
     this.lock = 0;
     this.owner = undefined;
-    
+
     this.msgstate = undefined;
-    
+
     worker.onmessage = this.onmessage.bind(this);
-    
+
     this.ondone = null;
-    
+
     this.callbacks = {};
     this.ownerid_msgid_map = {};
     this.msgid_ownerid_map = {};
     this.cancelset = new Set();
-    
+
     this.freezelvl = 0;
   }
-  
+
   cancelRenderJob(ownerid) {
     if (this.cancelset.has(ownerid)) {
       return;
     }
-    
+
     if (ownerid in this.ownerid_msgid_map) {
-      if (Debug) console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
+      if (Debug) console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
       this.freezelvl--;
-      
+
       let oldid = this.msgid_ownerid_map[ownerid];
-    
+
       this.postMessage(MS.CANCEL_JOB, oldid);
-      
+
       delete this.ownerid_msgid_map[ownerid];
       delete this.msgid_ownerid_map[oldid];
     } else {
       if (Debug) console.log("Bad owner id", ownerid);
     }
   }
-  
+
   //cancels any previous thread from ownerid
   postRenderJob(ownerid, commands, datablocks) {
     let id = this.manager._rthread_idgen++;
     if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
     this.freezelvl++;
-  
+
     this.ownerid_msgid_map[ownerid] = id;
     this.msgid_ownerid_map[id] = ownerid;
-    
+
     this.postMessage(MS.NEW_JOB, id, undefined);
     this.postMessage(MS.SET_COMMANDS, id, [commands.buffer]);
-    
+
     if (datablocks !== undefined) {
       for (let block of datablocks) {
         this.postMessage(MS.ADD_DATABLOCK, id, [block]);
       }
     }
-    
+
     return new Promise((accept, reject) => {
       let callback = (data) => {
         accept(data);
       }
-  
+
       this.callbacks[id] = callback;
       this.postMessage(MS.RUN, id);
     });
   }
-  
+
   clearOutstandingJobs() {
     this.freezelvl = 0;
     this.postMessage(MS.CLEAR_QUEUE, 0);
@@ -112,7 +112,7 @@ export class Thread {
     this.msgid_ownerid_map = {};
     this.ownerid_msgid_map = {};
   }
-  
+
   onmessage(e) {
     switch (e.data.type) {
       case MS.WORKER_READY:
@@ -122,28 +122,28 @@ export class Thread {
         break;
       case MS.RESULT:
         let id = e.data.msgid;
-        
+
         if (!(id in this.callbacks)) {
           if (Debug) console.warn("Renderthread callback not found for: ", id);
           return;
         }
-        
+
         let ownerid = this.msgid_ownerid_map[id];
         if (ownerid === undefined) { //message was cancelled!
           if (Debug) console.log("failed to find owner for", id, this);
           return;
         }
-        
+
         delete this.ownerid_msgid_map[ownerid];
         delete this.msgid_ownerid_map[id];
-        
+
         let cb = this.callbacks[id];
         delete this.callbacks[id];
         this.freezelvl--;
-  
-        if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-        
-        if (Debug) console.log(cb, e.data.data[0]);
+
+        if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
+
+        //if (Debug) console.log(cb, e.data.data[0]);
         cb(e.data.data[0]);
 
         if (this.freezelvl <= 0) {
@@ -153,37 +153,37 @@ export class Thread {
 
         break;
     }
-  
-    if (Debug) console.log("event message in main thread", e);
+
+    //if (Debug) console.log("event message in main thread", e);
   }
-  
+
   tryLock(owner) {
     if (this.lock === 0 || this.owner === owner) {
       return true;
     }
-    
+
     return false;
   }
-  
+
   tryUnlock(owner) {
     if (this.lock === 0 || this.owner !== owner) {
       return false;
     }
-    
+
     this.owner = undefined;
     this.lock = 0;
-    
+
     return true;
   }
-  
+
   postMessage(type, msgid, transfers) {
     this.worker.postMessage({
-      type  : type,
-      msgid : msgid,
-      data  : transfers
+      type : type,
+      msgid: msgid,
+      data : transfers
     }, transfers);
   }
-  
+
   close() {
     if (this.worker !== undefined) {
       this.worker.terminate();
@@ -195,10 +195,11 @@ export class Thread {
 }
 
 export class ThreadManager {
-  drawing : boolean
-  thread_idmap : Object
-  _idgen : number
-  _rthread_idgen : number;
+  drawing: boolean
+  thread_idmap: Object
+  _idgen: number
+  _rthread_idgen: number;
+  locked_drawing: boolean = false;
 
   constructor() {
     this.threads = [];
@@ -208,29 +209,29 @@ export class ThreadManager {
     this._rthread_idgen = 0;
     this.max_threads = MAX_THREADS;
     this.start_time = undefined;
-    
+
     //make thread timeout checker
     window.setInterval(() => {
       if (this.drawing && time_ms() - this.start_time > 750) {
         console.log("Draw timed out; aborting draw freeze");
         this.endDrawing();
       }
-      
+
       return;
     }, 750)
   }
-  
+
   setMaxThreads(n) {
     if (n === undefined || typeof n != "number" || n < 0) {
       throw new Error("n must be a number");
     }
-    
+
     this.max_threads = n;
     while (this.threads.length > n) {
       let thread = this.threads.pop();
       thread.worker.terminate();
     }
-    
+
     while (this.threads.length < n) {
       if (config.HAVE_SKIA) {
         this.spawnThread("vectordraw_skia_worker.js");
@@ -239,64 +240,66 @@ export class ThreadManager {
       }
     }
   }
-  
-  startDrawing() {
+
+  startDrawing(nonBlocking = false) {
     this.drawing = true;
     this.start_time = time_ms();
-    
-    if (FREEZE_WHILE_DRAWING) {
+
+    if (!nonBlocking && FREEZE_WHILE_DRAWING) {
+      this.locked_drawing = true;
       //console.log("%cFreeze Drawing", "color : orange;");
       window._block_drawing++;
     }
   }
-  
+
   endDrawing() {
     this.drawing = false;
 
-    if (FREEZE_WHILE_DRAWING) {
+    if (this.locked_drawing) {
       //console.log("%cUnfreeze Drawing", "color : orange;");
       window._block_drawing--;
+      this.locked_drawing = false;
     }
   }
-  
+
   spawnThread(source) {
     let worker = new Worker(source);
     let thread = new Thread(worker, this._idgen++, this);
-    
+
     this.thread_idmap[thread.id] = thread;
     this.threads.push(thread);
-    
+
     return thread;
   }
-  
+
   endThread(thread) {
     if (thread.worker === undefined) {
       console.warn("Double call to ThreadManager.endThread()");
       return;
     }
-    
+
     this.threads.remove(thread);
     delete this.thread_idmap[thread.id];
-    
+
     thread.close();
   }
-  
+
   getRandomThread() {
     while (1) {
-      let ri = ~~(Math.random() * this.threads.length * 0.99999);
-      
+      let ri = ~~(Math.random()*this.threads.length*0.99999);
+
       if (this.threads[ri].ready)
         return this.threads[ri];
     }
   }
-  
-  postRenderJob(ownerid, commands : array<float>, datablocks) {
-    if (!this.drawing && FREEZE_WHILE_DRAWING) {
-      this.startDrawing();
+
+  postRenderJob(ownerid, commands: array<float>, datablocks, nonBlocking = false) {
+    if (!this.drawing) {
+      this.startDrawing(nonBlocking);
     }
 
     let thread;
-    
+
     //we want at last one gpu-capable render thread
     if (this.threads.length === 0) {
       thread = this.spawnThread("vectordraw_canvas2d_worker.js");
@@ -304,43 +307,53 @@ export class ThreadManager {
       thread.ready = true; //canvas2d worker starts out in ready state
 
       //*
-      for (let i=0; i<this.max_threads-1; i++) {
+      for (let i = 0; i < this.max_threads - 1; i++) {
         if (config.HAVE_SKIA) {
           this.spawnThread("vectordraw_skia_worker.js");
         } else {
           this.spawnThread("vectordraw_canvas2d_worker.js");
         }
       }
-      
+
       //*/
     } else {
       thread = this.getRandomThread();
     }
-  
+
     let ret = thread.postRenderJob(ownerid, commands, datablocks);
 
     return ret;
   }
-  
+
+  get haveJobs() {
+    for (let thread2 of this.threads) {
+      if (thread2.freezelvl > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   on_thread_done(thread) {
     let ok = true;
-    
+
     for (let thread2 of this.threads) {
       if (thread2.freezelvl > 0) {
         ok = false;
         break;
       }
     }
-    
+
     if (ok) {
       if (Debug) console.warn("thread done");
-      
+
       window._all_draw_jobs_done();
-      
-      if (this.drawing && FREEZE_WHILE_DRAWING) {
+
+      if (this.drawing) {
         this.endDrawing();
       }
-      
+
       this.checkMemory();
     }
   }
@@ -355,19 +368,19 @@ export class ThreadManager {
       //console.log("Memory in use:", (memory/1024/1024).toFixed(1));
     })
   }
-  
+
   cancelAllJobs() {
     //kill all threads, we'll re-spawn new ones as needed
     for (let thread of this.threads) {
       thread.clearOutstandingJobs();
-      
+
       this.on_thread_done(thread);
     }
-    
+
     //this.threads = [];
     //this.thread_idmap = {};
   }
-  
+
   cancelRenderJob(ownerid) {
     for (let thread of this.threads) {
       if (ownerid in thread.ownerid_msgid_map) {
@@ -381,8 +394,8 @@ export var manager = new ThreadManager();
 
 export function test() {
   let thread = manager.spawnThread("vectordraw_canvas2d_worker.js");
-  
+
   thread.postMessage("yay", [new ArrayBuffer(512)]);
-  
+
   return thread;
 }

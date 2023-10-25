@@ -89,7 +89,7 @@ export class TransData {
 
     this.minmax = new MinMax(2);
 
-    for (var t of this.types) {
+    for (let t of this.types) {
       if (datamode & t.selectmode) {
         t.gen_data(ctx, this, this.data);
       }
@@ -98,7 +98,7 @@ export class TransData {
     if (this.doprop)
       this.calc_propweights();
 
-    for (var d of this.data) {
+    for (let d of this.data) {
       d.type.aabb(ctx, this, d, this.minmax, true);
     }
 
@@ -122,14 +122,14 @@ export class TransData {
   calc_propweights(radius : number = this.propradius) {
     this.propradius = radius;
 
-    for (var t of this.types) {
+    for (let t of this.types) {
       if (t.selectmode & this.datamode)
         t.calc_prop_distances(this.ctx, this, this.data);
     }
 
-    var r = radius;
-    for (var tv of this.data) {
-      if (tv.dis == -1)
+    let r = radius;
+    for (let tv of this.data) {
+      if (tv.dis === -1)
         continue;
 
       tv.w = tv.dis > r ? 0 : 1.0 - tv.dis/r;

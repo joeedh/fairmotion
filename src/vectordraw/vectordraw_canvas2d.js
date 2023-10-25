@@ -29,7 +29,7 @@ const canvaspath_draw_vs = util.cachering.fromConstructor(Vector2, 32);
 
 const MOVETO = OPCODES.MOVETO, BEZIERTO = OPCODES.QUADRATIC, LINETO = OPCODES.LINETO, BEGINPATH = OPCODES.BEGINPATH,
       CUBICTO                                                                                   = OPCODES.CUBIC, CLOSEPATH                                                        = OPCODES.CLOSEPATH, LINEWIDTH = OPCODES.LINEWIDTH,
-      LINESTYLE                                                                                 = OPCODES.LINESTYLE, STROKE                                                     = OPCODES.STROKE, FILL = OPCODES.FILL;
+      LINESTYLE                                                                                 = OPCODES.LINESTYLE, STROKE                                                     = OPCODES.STROKE, FILL                              = OPCODES.FILL;
 
 let arglens = {};
 
@@ -311,14 +311,28 @@ export class Batch {
     }
 
 
+    let blocking = false;
+
     for (let p of this.paths) {
       setMat(p);
+
+      if (p.recalc) {
+        blocking = true;
+      }
 
       p.update_aabb(draw);
       draw.pop_transform();
 
       min.min(p.aabb[0]);
       max.max(p.aabb[1]);
+    }
+
+    /* Only block if the actual path geometry changed;
+       redraws from pans and zooms can reuse the existing
+       buffers.
+    */
+    if (blocking) {
+      //  console.log("blocking");
     }
 
     this.realViewport = {
@@ -361,9 +375,7 @@ export class Batch {
     for (let p of this.paths) {
       setMat(p, true);
 
-      if (1 || !p._commands || p.recalc) {
-        p.genSmart(draw);
-      }
+      p.genSmart(draw);
 
       let c2 = p._commands;
 
@@ -394,7 +406,8 @@ export class Batch {
 
     this.pending = true;
 
-    vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) => {
+    //blocking = false;
+    vectordraw_jobs.manager.postRenderJob(renderid, commands, undefined, !blocking).then((data) => {
       this.pending = false;
 
       if (this.onRenderDone) {
@@ -410,11 +423,12 @@ export class Batch {
       this._image = data;
       this._image_off = min;
       this._draw_zoom = zoom;
+
       window.redraw_viewport();
     });
   }
 
-  draw(draw) {
+  check(draw) {
     if (this.paths.length === 0) {
       return;
     }
@@ -423,6 +437,10 @@ export class Batch {
       this.regen = 1;
       console.log("bad viewport");
     }
+  }
+
+  draw(draw) {
+    this.check(draw);
 
     let canvas = draw.canvas, g = draw.g;
     let zoom = draw.matrix.$matrix.m11; /* Scale should always be uniform, I think. */
@@ -482,6 +500,7 @@ let last_print_time = util.time_ms();
 export class CanvasPath extends PathBase {
   dead: boolean
   recalc: number
+  redraw: boolean
   _image_off: Array<number>
   lastx: number
   lasty: number
@@ -1106,7 +1125,11 @@ export class CanvasDraw2D extends VectorDraw {
     this.recalcAll();
   }
 
-  draw(g) {
+  get isDrawing() {
+    return vectordraw_jobs.manager.haveJobs;
+  }
+
+  updateBatches(g) {
     if (!!this.do_blur !== !!this._last_do_blur) {
       this._last_do_blur = !!this.do_blur;
       this.regen = 1;
@@ -1146,23 +1169,36 @@ export class CanvasDraw2D extends VectorDraw {
       this._last_zoom = zoom;
 
       for (let p of this.paths) {
-        //XXX p.recalc = 1;
+        p.redraw = 1;
       }
     }
 
     //propagate clip users (once)
     for (let path of this.paths) {
-      if (!path.recalc) {
+      if (!path.recalc && !path.redraw) {
         continue;
       }
 
       for (let path2 of path.clip_users) {
-        path2.recalc = 1;
+        if (path.recalc) {
+          path2.recalc = 1;
+        } else {
+          path2.redraw = 1;
+        }
+      }
+    }
+
+    let had_recalc = false;
+
+    for (let path of this.paths) {
+      if (path.recalc) {
+        path.redraw = true;
+        had_recalc = true;
       }
     }
 
     for (let path of this.paths) {
-      if (!path.recalc) {
+      if (!path.redraw) {
         path.off.add(off);
       }
     }
@@ -1196,17 +1232,17 @@ export class CanvasDraw2D extends VectorDraw {
         continue;
       }
 
-      let blurlimit = 25;
-      let needsblur = this.do_blur && (path.blur*zoom >= blurlimit);
-      needsblur = needsblur && path.clip_paths.length === 0;
+      /*let blurlimit = 25;
+       let needsblur = path.blur > blurlimit;
+       needsblur = needsblur && path.clip_paths.length === 0;
 
-      if (needsblur && path._batch && !path._batch.isBlurBatch) {
-        this.regen = 1;
-      }
+       if (path._batch && Boolean(path._batch.isBlurBatch) !== Boolean(needsblur)) {
+          path.redraw = true;
+       }
+      */
 
-      if (!needsblur && path._batch && path._batch.isBlurBatch) {
-        this.regen = 1;
-      }
+      //XXX This is not working, see above lines
+      let needsblur = false;
 
       if (!path._batch) {
         let w1 = batch.patharea/(canvas.width*canvas.height);
@@ -1228,19 +1264,23 @@ export class CanvasDraw2D extends VectorDraw {
         batch.add(path);
       }
 
-      if (path.recalc && path._batch) {
+      if (path._batch && path.redraw) {
         path._batch.regen = 1;
-        path.recalc = 0;
+        path.redraw = false;
       }
-
-      window.path1 = path;
-      //path.draw(this);
     }
 
-    window.batch = batch;
-    window.batches = this.batches;
+    for (let batch of this.batches.drawlist) {
+      batch.check(this);
+      if (batch.regen) {
+        batch.gen(this);
+      }
+    }
+  }
 
-    //console.log(batch.paths.length, batch._batch_id);
+  draw(g) {
+    //return;
+    this.updateBatches(g);
 
     for (let batch of this.batches.drawlist) {
       batch.draw(this);

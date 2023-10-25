@@ -1,4 +1,4 @@
-export var SelMask = {
+export let SelMask = {
   VERTEX   : 1,
   HANDLE   : 2,
   SEGMENT  : 4,
@@ -8,7 +8,7 @@ export var SelMask = {
   OBJECT   : 32
 };
 
-export var ToolModes = {
+export let ToolModes = {
   SELECT : 1,
   APPEND : 2,
   RESIZE : 3,

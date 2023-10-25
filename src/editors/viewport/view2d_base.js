@@ -1,5 +1,5 @@
 //try to keep in sync with SplineTypes
-export var EditModes = {
+export let EditModes = {
   VERT     : 1,
   EDGE     : 2,
   HANDLE   : 4,
@@ -9,11 +9,11 @@ export var EditModes = {
 };
 
 //XXX no longer used?
-export var EditorTypes = {
+export let EditorTypes = {
   SPLINE : 1,
   OBJECT : 32
 };
 
-export var SessionFlags = {
+export let SessionFlags = {
   PROP_TRANSFORM : 1
 };

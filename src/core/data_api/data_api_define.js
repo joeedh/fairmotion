@@ -299,9 +299,9 @@ export function makeAPI(api = new DataAPI()) {
 
     MaterialStruct.color4("fillcolor", "fillcolor", "fill")
       .on("change", prop_update);
-    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4)
+    MaterialStruct.float("linewidth", "linewidth", "linewidth").noUnits().range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).range(0, 10000)
       .on("change", prop_update);
-    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4)
+    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").noUnits().step(0.25).expRate(1.75).decimalPlaces(4).range(0.0, 10000.0)
       .on("change", prop_update);
     MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
       SELECT      : "Select",
@@ -310,9 +310,15 @@ export function makeAPI(api = new DataAPI()) {
       SELECT      : "Select",
       MASK_TO_FACE: "Mask To Face"
     }).icons(DataTypes)
-      .on("change", prop_update);
+      .on("change", function (newval, oldval) {
+        //console.log(newval, oldval, this, this.dataref);
+
+        this.dataref.update();
+        g_app_state.ctx.spline.regen_sort();
+        window.redraw_viewport();
+      });
     MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", prop_update);
-    MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4)
+    MaterialStruct.float("blur", "blur", "Blur").noUnits().step(0.5).expRate(1.33).decimalPlaces(4).range(0, 10000)
       .on("change", prop_update);
     MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke")
       .on("change", prop_update);

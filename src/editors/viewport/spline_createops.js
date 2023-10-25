@@ -7,7 +7,7 @@ import {RestrictFlags} from '../../curve/spline.js';
 import {SplineLocalToolOp} from './spline_editops.js';
 import {SplineDrawData} from "../../curve/spline_draw_new.js";
 
-export var ExtrudeModes = {
+export let ExtrudeModes = {
   SMOOTH      : 0,
   LESS_SMOOTH : 1,
   BROKEN      : 2
@@ -48,26 +48,26 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
   }
   
   /*undo_pre(ctx) {
-    var spline = ctx.spline;
+    let spline = ctx.spline;
     
-    var ud = this._undo = {
+    let ud = this._undo = {
       selstate    : [],
       active_vert : undefined,
       eid_range   : [-1, -1]
     }
     
-    ud.active_vert = spline.verts.active != undefined ? spline.verts.active.eid : -1;
-    for (var v of spline.verts.selected) {
+    ud.active_vert = spline.verts.active !== undefined ? spline.verts.active.eid : -1;
+    for (let v of spline.verts.selected) {
       ud.selstate.push(v.eid);
     }
   }
   
   undo(ctx) {
-    var ud = this._undo;
-    var spline = ctx.spline;
+    let ud = this._undo;
+    let spline = ctx.spline;
     
-    var v = spline.eidmap[ud.eid];
-    if (v == undefined) {
+    let v = spline.eidmap[ud.eid];
+    if (v === undefined) {
       console.trace("YEEK!");
     }
     
@@ -75,18 +75,18 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     console.log("RANGE", ud.eid_range[0], ud.eid_range[1]);
     
     spline.kill_vertex(v);
-    for (var eid in ud.selstate) {
+    for (let eid in ud.selstate) {
       spline.verts.setselect(spline.eidmap[eid], true);
     }
     
-    for (var i=ud.eid_range[1]; i>=ud.eid_range[0]; i--) {
+    for (let i=ud.eid_range[1]; i>=ud.eid_range[0]; i--) {
       console.log("  freeing ", i);
       //spline.idgen.free_id(i);
     }
     
     console.log("UEND EID", spline.idgen.cur_id);
     
-    var active = spline.eidmap[ud.active_vert];
+    let active = spline.eidmap[ud.active_vert];
     spline.verts.active = active;
     
     window.redraw_viewport();
@@ -95,44 +95,44 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
   exec(ctx) {
     console.log("Extrude vertex op");
 
-    var spline = ctx.spline;
+    let spline = ctx.spline;
     
-    var layer = spline.layerset.active;
+    let layer = spline.layerset.active;
     
     //find max z for later user
-    var max_z = 1;
-    for (var f of spline.faces) {
+    let max_z = 1;
+    for (let f of spline.faces) {
       if (!(layer.id in f.layers)) continue;
       
       max_z = Math.max(f.z, max_z);
     }
     
-    var max_z_seg = max_z+1;
-    for (var s of spline.segments) {
+    let max_z_seg = max_z+1;
+    for (let s of spline.segments) {
       if (!(layer.id in s.layers)) continue;
       
       max_z_seg = Math.max(max_z_seg, s.z);
     }
     
-    var co = this.inputs.location.data;
+    let co = this.inputs.location.data;
     console.log("co", co);
-    var actvert = spline.verts.active;
+    let actvert = spline.verts.active;
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
+    for (let i=0; i<spline.verts.length; i++) {
+      let v = spline.verts[i];
       spline.verts.setselect(v, false);
     }
     
-    var start_eid = spline.idgen.cur_id;
+    let start_eid = spline.idgen.cur_id;
     
-    var v = spline.make_vertex(co);
+    let v = spline.make_vertex(co);
     console.log("v", v);
 
-    var smode = this.inputs.mode.get_value();
+    let smode = this.inputs.mode.get_value();
     
-    if (smode == ExtrudeModes.LESS_SMOOTH)
+    if (smode === ExtrudeModes.LESS_SMOOTH)
       v.flag |= SplineFlags.BREAK_CURVATURES;
-    else if (smode == ExtrudeModes.BROKEN)
+    else if (smode === ExtrudeModes.BROKEN)
       v.flag |= SplineFlags.BREAK_TANGENTS;
       
     this.outputs.vertex.setValue(v.eid);
@@ -143,10 +143,10 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
         !((spline.restrict & RestrictFlags.VALENCE2) && actvert.segments.length >= 2))
     {
       if (actvert.segments.length === 2) {
-        var v2 = actvert;
+        let v2 = actvert;
 
         //auto-pair handles on original line
-        var h1 = v2.segments[0].handle(v2), h2 = v2.segments[1].handle(v2);
+        let h1 = v2.segments[0].handle(v2), h2 = v2.segments[1].handle(v2);
         spline.connect_handles(h1, h2);
         
         h1.flag |= SplineFlags.AUTO_PAIRED_HANDLE;
@@ -157,7 +157,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
 
       let width = actvert.segments.length > 0 ? actvert.width : 1.0;
 
-      var seg = spline.make_segment(actvert, v);
+      let seg = spline.make_segment(actvert, v);
       seg.z = max_z_seg;
 
       seg.w1 = width;
@@ -166,14 +166,14 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
       console.log("creating segment");
       
       if (actvert.segments.length > 1) {
-        var seg2 = actvert.segments[0];
+        let seg2 = actvert.segments[0];
         seg.mat.load(seg2.mat);
         //seg.mat.linewidth = actvert.segments[0].mat.linewidth;
       } else {
         seg.mat.linewidth = this.inputs.linewidth.data;
         
-        var color = this.inputs.stroke.data;
-        for (var i=0; i<4; i++) {
+        let color = this.inputs.stroke.data;
+        for (let i=0; i<4; i++) {
           seg.mat.strokecolor[i] = color[i];
         }
       }
@@ -191,7 +191,7 @@ export class CreateEdgeOp extends SplineLocalToolOp {
   constructor(linewidth) {
     super();
     
-    if (linewidth != undefined)
+    if (linewidth !== undefined)
       this.inputs.linewidth.setValue(linewidth);
   }
   
@@ -216,22 +216,22 @@ export class CreateEdgeOp extends SplineLocalToolOp {
   exec(ctx) {
     console.log("create edge op!");
 
-    var spline = ctx.spline;
-    var sels = [];
+    let spline = ctx.spline;
+    let sels = [];
     
     //find max z for later user
-    var max_z = 1;
-    for (var f of spline.faces) {
+    let max_z = 1;
+    for (let f of spline.faces) {
       max_z = Math.max(f.z, max_z);
     }
     
-    var max_z_seg = max_z+1;
-    for (var s of spline.segments) {
+    let max_z_seg = max_z+1;
+    for (let s of spline.segments) {
       max_z_seg = Math.max(max_z_seg, s.z);
     }
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
+    for (let i=0; i<spline.verts.length; i++) {
+      let v = spline.verts[i];
       
       if (v.hidden) continue;
       
@@ -239,12 +239,12 @@ export class CreateEdgeOp extends SplineLocalToolOp {
       sels.push(v);
     }
     
-    if (sels.length != 2) return;
+    if (sels.length !== 2) return;
     
     sels[0].flag |= SplineFlags.UPDATE;      
     sels[1].flag |= SplineFlags.UPDATE;      
     
-    var seg = spline.make_segment(sels[0], sels[1]);
+    let seg = spline.make_segment(sels[0], sels[1]);
     seg.z = max_z_seg;
     seg.mat.linewidth = this.inputs.linewidth.data;
     
@@ -256,7 +256,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
   constructor(linewidth) {
     super();
     
-    if (linewidth != undefined)
+    if (linewidth !== undefined)
       this.inputs.linewidth.setValue(linewidth);
   }
   
@@ -281,40 +281,40 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
   exec(ctx) {
     console.log("create edge op!");
 
-    var spline = ctx.spline;
-    var layer = spline.layerset.active;
+    let spline = ctx.spline;
+    let layer = spline.layerset.active;
     
-    var sels = [];
+    let sels = [];
     
     //find max z for later user
-    var max_z = 1;
-    for (var f of spline.faces) {
+    let max_z = 1;
+    for (let f of spline.faces) {
       if (!(layer.id in f.layers)) continue;
       
       max_z = Math.max(f.z, max_z);
     }
     
-    var max_z_seg = max_z+1;
-    for (var s of spline.segments) {
+    let max_z_seg = max_z+1;
+    for (let s of spline.segments) {
       if (!(layer.id in s.layers)) continue;
       
       max_z_seg = Math.max(max_z_seg, s.z);
     }
     
-    var vs = [];
-    var valmap = {};
-    var vset = new set();
-    var doneset = new set();
+    let vs = [];
+    let valmap = {};
+    let vset = new set();
+    let doneset = new set();
     
     function walk(v) {
-      var stack = [v];
-      var path = [];
+      let stack = [v];
+      let path = [];
       
       if (doneset.has(v)) return path;
       if (!vset.has(v)) return path;
       
       while (stack.length > 0) {
-        var v = stack.pop();
+        let v = stack.pop();
         
         if (doneset.has(v)) break;
         
@@ -323,8 +323,8 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
         
         if (valmap[v.eid] > 2) break;
         
-        for (var i=0; i<v.segments.length; i++) {
-          var v2 = v.segments[i].other_vert(v);
+        for (let i=0; i<v.segments.length; i++) {
+          let v2 = v.segments[i].other_vert(v);
           if (!doneset.has(v2) && vset.has(v2)) {
             stack.push(v2);
           }
@@ -334,7 +334,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       return path;
     }
     
-    for (var v of spline.verts.selected) {
+    for (let v of spline.verts.selected) {
       if (v.hidden) continue;
       
       v.flag |= SplineFlags.UPDATE;
@@ -343,13 +343,13 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       vset.add(v);
     }
     
-    for (var v of vset) {
-      var valence = 0;
+    for (let v of vset) {
+      let valence = 0;
       
       console.log("============", v);
       
-      for (var i=0; i<v.segments.length; i++) {
-        var v2 = v.segments[i].other_vert(v);
+      for (let i=0; i<v.segments.length; i++) {
+        let v2 = v.segments[i].other_vert(v);
         
         console.log(v.eid, v2.segments[0].v1.eid, v2.segments[0].v2.eid);
         
@@ -361,13 +361,13 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
         
     console.log("VS.LENGTH", vs.length);
-    if (vs.length == 2) {
-      var v = vs[0].segments.length > 0 ? vs[0] : vs[1];
-      var seg2 = v.segments.length > 0 ? v.segments[0] : undefined;
+    if (vs.length === 2) {
+      let v = vs[0].segments.length > 0 ? vs[0] : vs[1];
+      let seg2 = v.segments.length > 0 ? v.segments[0] : undefined;
       
-      var e = spline.make_segment(vs[0], vs[1]);
+      let e = spline.make_segment(vs[0], vs[1]);
       
-      if (seg2 != undefined) {
+      if (seg2 !== undefined) {
         e.mat.load(seg2.mat);
       } else {
         e.mat.linewidth = this.inputs.linewidth.data;
@@ -377,8 +377,8 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       
       spline.regen_render();
       return;
-    } else if (vs.length == 3) {
-      var f = spline.make_face([vs]);
+    } else if (vs.length === 3) {
+      let f = spline.make_face([vs]);
       
       f.z = max_z+1;
       max_z++;
@@ -391,12 +391,12 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
     
     //do 1-valence verts first
-    for (var v of vset) {
-      if (valmap[v.eid] != 1) continue;
-      var path = walk(v);
+    for (let v of vset) {
+      if (valmap[v.eid] !== 1) continue;
+      let path = walk(v);
       
       if (path.length > 2) {
-        var f = spline.make_face([path]);
+        let f = spline.make_face([path]);
         
         f.z = max_z+1;
         max_z++;
@@ -409,11 +409,11 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
     
     //now do 2-valence verts, which should only belong to closed loops now
-    for (var v of vset) {
-      var path = walk(v);
+    for (let v of vset) {
+      let path = walk(v);
       
       if (path.length > 2) {
-        var f = spline.make_face([path]);
+        let f = spline.make_face([path]);
       
         f.z = max_z+1;
         max_z++;
@@ -459,9 +459,9 @@ export class ImportJSONOp extends ToolOp {
   exec(ctx) {
     console.log("import json spline op!");
 
-    var spline = ctx.spline;
+    let spline = ctx.spline;
     
-    var obj = JSON.parse(this.inputs.strdata.data);
+    let obj = JSON.parse(this.inputs.strdata.data);
     
     spline.import_json(obj);
     spline.regen_render();

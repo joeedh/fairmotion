@@ -147,7 +147,7 @@ export function vertexIsSplit(spline, v, segments = v.segments) {
     }
 
     let mask_to_face2 = seg.mat.flag & MaterialFlags.MASK_TO_FACE;
-    if (mask_to_face !== undefined && mask_to_face2 !== mask_to_face) {
+    if (mask_to_face !== undefined && !!mask_to_face2 !== !!mask_to_face) {
       return 3;
     } else {
       mask_to_face = mask_to_face2;

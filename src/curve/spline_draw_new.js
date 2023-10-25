@@ -449,6 +449,10 @@ export class SplineDrawer {
     let len1 = t1.vectorLength() + t2.vectorLength();
     let lw2 = seg.mat.linewidth2;
 
+    if (seg.mat.linewidth2 === 0) {
+      return;
+    }
+
     t1.normalize();
     t2.normalize();
     let th = Math.acos(t1.dot(t2));
@@ -1270,6 +1274,8 @@ export class SplineDrawer {
           }
           l = l.radial_next;
         } while (l !== seg.l);
+      } else {
+        path.reset_clip_paths();
       }
 
       for (let f of fs) {

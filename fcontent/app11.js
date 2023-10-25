@@ -1365,7 +1365,7 @@ VertexAnimData {
 }, '/dev/fairmotion/src/core/animspline.js');
 
 
-es6_module_define('frameset', ["../curve/spline.js", "../curve/spline_draw_new.js", "./lib_api.js", "../vectordraw/vectordraw.js", "./animdata.js", "./animspline.js", "./struct.js", "./animspline", "../curve/spline_types.js", "../curve/spline_element_array.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["./struct.js", "../curve/spline_element_array.js", "./animdata.js", "./lib_api.js", "./animspline.js", "../curve/spline.js", "../curve/spline_types.js", "../vectordraw/vectordraw.js", "../curve/spline_draw_new.js", "./animspline"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -1658,7 +1658,7 @@ SplineKCacheItem {
       reader(ret);
       let cache={};
       let inv=new set();
-      if (ret.invalid_eids!=undefined&&__instance_of(ret.invalid_eids, Array)) {
+      if (ret.invalid_eids!==undefined&&__instance_of(ret.invalid_eids, Array)) {
           for (let i=0; i<ret.invalid_eids.length; i++) {
               inv.add(ret.invalid_eids[i]);
           }
@@ -2067,7 +2067,7 @@ SplineKCacheItem {
     }
      insert_frame(time) {
       this.check_vdata_integrity();
-      if (this.frame!=undefined)
+      if (this.frame!==undefined)
         return this.frame;
       let frame=this.frame = new SplineFrame();
       let spline=this.spline===undefined ? new Spline() : this.spline.copy();
@@ -2184,7 +2184,7 @@ SplineKCacheItem {
       this.vertex_animdata = {};
     }
      get_vdata(eid, auto_create=true) {
-      if (typeof eid!="number") {
+      if (typeof eid!=="number") {
           throw new Error("Expected a number for eid");
       }
       if (auto_create&&!(eid in this.vertex_animdata)) {
@@ -2296,19 +2296,13 @@ SplineKCacheItem {
       if (this.pathspline===undefined) {
           this.pathspline = this.make_pathspline();
       }
-      for (v of this.pathspline.verts) {
-
-      }
-      for (let h of this.pathspline.handles) {
-
-      }
       for (let vd of this.vertex_animdata) {
           vd.spline = this.pathspline;
           if (vd.layerid===undefined) {
               let layer=this.pathspline.layerset.new_layer();
               layer.flag|=SplineLayerFlags.HIDE;
               vd.layerid = layer.id;
-              if (vd.startv_eid!=undefined) {
+              if (vd.startv_eid!==undefined) {
                   let v=this.pathspline.eidmap[vd.startv_eid];
                   let s=v.segments[0];
                   v.layers = {};

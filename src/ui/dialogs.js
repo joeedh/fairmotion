@@ -465,7 +465,7 @@ export class FileOpenRecentOp extends ToolOp {
       loadop.inputs.path.set_data(id);
       
       dialog.end();
-      g_app_state.toolstack.exec_tool(loadop);
+      g_app_state.toolstack.execTool(loadop);
     }
     
     dialog.call(g_app_state.screen.mpos);
@@ -991,7 +991,7 @@ export var import_json = window.import_json = function import_json() {
       var obj = JSON.parse(reader.result);
       
       var tool = new ImportJSONOp(reader.result);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
     }
     
     reader.readAsText(f);

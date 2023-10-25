@@ -142,12 +142,12 @@ class LayerPanel extends Container {
       }
 
       console.log("Changing layers!", id);ChangeLayerOp
-      g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
+      g_app_state.toolstack.execTool(new ChangeLayerOp(id));
     }
     let row = this.row();
 
     row.iconbutton(Icons.SMALL_PLUS, "Add Layer", () => {
-      g_app_state.toolstack.exec_tool(new AddLayerOp());
+      g_app_state.toolstack.execTool(new AddLayerOp());
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SCROLL_UP, "Move Up", () => {
@@ -156,7 +156,7 @@ class LayerPanel extends Container {
       var layer = spline.layerset.active;
 
       var tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SCROLL_DOWN, "Move Down", () => {
@@ -165,7 +165,7 @@ class LayerPanel extends Container {
       var layer = spline.layerset.active;
 
       var tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SMALL_MINUS, "Remove Layer", () => {
@@ -176,7 +176,7 @@ class LayerPanel extends Container {
         return;
 
       tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
       this.rebuild();
     }, undefined);
 
@@ -228,7 +228,7 @@ class LayerPanel extends Container {
 
     var this2 = this;
     add.callback = function() {
-      g_app_state.toolstack.exec_tool(new AddLayerOp());
+      g_app_state.toolstack.execTool(new AddLayerOp());
     }
 
     del.callback = function() {
@@ -239,7 +239,7 @@ class LayerPanel extends Container {
         return;
 
       tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
     }
 
     var up = new UIButtonIcon(this.ctx, "Up", 30);
@@ -255,7 +255,7 @@ class LayerPanel extends Container {
       var layer = spline.layerset.active;
 
       var tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
       this2.rebuild();
     }
     up.callback = function() {
@@ -264,7 +264,7 @@ class LayerPanel extends Container {
       var layer = spline.layerset.active;
 
       var tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
       this2.rebuild();
     }
 
@@ -299,7 +299,7 @@ class LayerPanel extends Container {
       }
 
       console.log("Changing layers!");
-      g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
+      g_app_state.toolstack.execTool(new ChangeLayerOp(id));
     }
 
     var controls2 = this.col();
@@ -321,7 +321,7 @@ class LayerPanel extends Container {
 
       var tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
     }
 
     seldown.callback = function() {
@@ -335,7 +335,7 @@ class LayerPanel extends Container {
 
       var tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      g_app_state.toolstack.exec_tool(tool);
+      g_app_state.toolstack.execTool(tool);
     }
 
     var controls3 = this.col();
@@ -390,7 +390,6 @@ export class MaterialEditor extends Editor {
     if (name !== this._last_toolmode) {
       this._last_toolmode = name;
 
-      console.warn("Rebuilding properties editor");
       this.rebuild();
     }
   }

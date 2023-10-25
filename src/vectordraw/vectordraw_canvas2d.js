@@ -86,7 +86,7 @@ export class Batch {
   isBlurBatch: boolean
   regen: number
   gen_req: number
-  _last_pan: Vector2
+  #last_pan: Vector2 = new Vector2();
   viewport: Object
   realViewport: Object
   patharea: number;
@@ -106,7 +106,7 @@ export class Batch {
     this.regen = 1;
     this.gen_req = 0;
 
-    this._last_pan = new Vector2();
+    this.#last_pan = new Vector2();
 
     this.viewport = {
       pos : [0, 0],
@@ -217,7 +217,7 @@ export class Batch {
     let p = new Vector2(draw.pan);
 
     p[1] = draw.canvas.height - p[1];
-    p.sub(this._last_pan);
+    p.sub(this.#last_pan);
 
     let cv = {
       pos : new Vector2(),
@@ -263,7 +263,7 @@ export class Batch {
     return bad;
   }
 
-  _getPaddedViewport(canvas, cpad = 512) {
+  _getPaddedViewport(canvas, cpad = 128) {
     let dpi_scale = canvas.dpi_scale*this.dpi_scale;
     cpad /= dpi_scale;
 
@@ -312,9 +312,7 @@ export class Batch {
 
 
     for (let p of this.paths) {
-      let mat = setMat(p);
-
-      //p.round(draw.matrix);
+      setMat(p);
 
       p.update_aabb(draw);
       draw.pop_transform();
@@ -328,21 +326,15 @@ export class Batch {
       size: new Vector2(max).sub(min)
     }
 
-    //clip to something reasonably close to the viewport
+    /* Clip to something reasonably close to the viewport. */
     let min2 = new Vector2(min);
     let size2 = new Vector2(max);
     size2.sub(min2);
-    //min2.add(draw.pan);
 
-    let cpad = 512;
+    let cpad = 128;
 
     let cv = this._getPaddedViewport(canvas, cpad);
     let box = math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
-
-    min2 = min2.floor();
-    size2 = size2.floor();
-    //console.log(min2, size2, canvas.width, canvas.height);
-    //console.log("ISECT", box);
 
     if (!box) {
       if (this.isBlurBatch) {
@@ -350,10 +342,6 @@ export class Batch {
       }
       return;
     }
-
-    //box.pos.sub(draw.pan);
-
-    //console.warn("CV", cv.pos, cv.size, "=>", min2, size2, "=>", box.pos, box.size);
 
     min.load(box.pos);
     max.load(min).add(box.size);
@@ -365,8 +353,6 @@ export class Batch {
 
     let width = ~~(max[0] - min[0]);
     let height = ~~(max[1] - min[1]);
-
-    //console.log("width/height", width, height);
 
     let commands = this._commands.reset();
     commands.push(width);
@@ -392,9 +378,6 @@ export class Batch {
       draw.pop_transform();
     }
 
-    //this._image = undefined;
-    //this._image_off = undefined;
-
     let renderid = render_idgen++;
 
     if (commands.length < 3) {
@@ -402,7 +385,6 @@ export class Batch {
       return;
     }
 
-    //console.log(commands, commands[0], commands[1], commands.length);
     commands = this._commands.finish();
 
     min = new Vector2(min);
@@ -422,7 +404,7 @@ export class Batch {
       if (debug) console.warn("Got render result!");
       this.gen_req = 0;
 
-      this._last_pan.load(last_pan);
+      this.#last_pan.load(last_pan);
 
       //this.__image = undefined;
       this._image = data;
@@ -443,19 +425,15 @@ export class Batch {
     }
 
     let canvas = draw.canvas, g = draw.g;
-    let zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
+    let zoom = draw.matrix.$matrix.m11; /* Scale should always be uniform, I think. */
     let offx = 0, offy = 0;
 
     let scale = zoom/this._draw_zoom;
 
-    //let viewport = this.realViewport;
-
-    offx = draw.pan[0] - this._last_pan[0]*scale;
-    offy = (draw.canvas.height - draw.pan[1]) - this._last_pan[1]*scale;
+    offx = draw.pan[0] - this.#last_pan[0]*scale;
+    offy = (draw.canvas.height - draw.pan[1]) - this.#last_pan[1]*scale;
     offx /= scale;
     offy /= scale;
-
-    //window.pan = [draw.pan[0], draw.pan[1]]
 
     if (this.regen) {
       this.pending = true;
@@ -468,8 +446,6 @@ export class Batch {
 
     g.imageSmoothingEnabled = !!this.isBlurBatch;
 
-    //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
-
     if (this.paths.length === 0 && this.generation > 2) {
       this._image = undefined;
       return;
@@ -479,8 +455,6 @@ export class Batch {
       this.generation++;
     }
 
-    //scale = 1.2;
-    //XXX bypass patch methods
     g.save();
 
     g.scale(scale, scale);
@@ -498,12 +472,6 @@ export class Batch {
     //*/
 
     g.restore();
-    /*
-    if (g.resetTransform)
-      g.resetTransform();
-    else
-      g.resetTransform();
-    //*/
   }
 }
 
@@ -1031,7 +999,7 @@ export class CanvasDraw2D extends VectorDraw {
   dosort: boolean
   matstack: Array
   matrix: Matrix4
-  _last_pan: Vector2
+  #last_pan: Vector2 = new Vector2();
   batches: Batches;
 
   constructor() {
@@ -1046,7 +1014,7 @@ export class CanvasDraw2D extends VectorDraw {
 
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
-    this._last_pan = new Vector2();
+    this.#last_pan = new Vector2();
 
     for (let i = 0; i < this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
@@ -1171,8 +1139,8 @@ export class CanvasDraw2D extends VectorDraw {
 
     let zoom = this.matrix.$matrix.m11;
 
-    off.zero(); //load(this.pan).sub(this._last_pan);
-    this._last_pan.load(this.pan);
+    off.zero(); //load(this.pan).sub(this.#last_pan);
+    this.#last_pan.load(this.pan);
 
     if (this._last_zoom !== zoom) {
       this._last_zoom = zoom;

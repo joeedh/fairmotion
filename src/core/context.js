@@ -1,5 +1,6 @@
 import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
 import {SavedToolDefaults, DataAPI} from '../path.ux/scripts/pathux.js';
+import {DataLib} from './lib_api.js';
 
 export class BaseContextOverlay extends ContextOverlay {
   constructor(state = g_app_state) {
@@ -175,6 +176,7 @@ export class ViewContextOverlay extends ContextOverlay {
 }
 
 export class BaseContext extends Context {
+  datalib: DataLib;
   frameset: SplineFrameSet
   spline: Spline
   scene: Scene
@@ -188,11 +190,11 @@ export class BaseContext extends Context {
     this.reset(state);
   }
 
-  error(msg) {
+  error(msg: String) {
     g_app_state.notes.label("ERROR: " + msg);
   }
 
-  report(msg) {
+  report(msg: String) {
     g_app_state.notes.label(msg);
   }
 
@@ -200,7 +202,7 @@ export class BaseContext extends Context {
     this.pushOverlay(new BaseContextOverlay(state));
   }
 
-  saveProperty(key) {
+  saveProperty(key: String) {
     let v = this[key];
 
     function passthru(v) {
@@ -242,7 +244,7 @@ export class BaseContext extends Context {
     return lookup(v);
   }
 
-  loadProperty(ctx, key, val) {
+  loadProperty(ctx: FullContext, key: String, val) {
     if (val.type === "lookup") {
       return ctx[val.key];
     } else if (val.type === "path") {

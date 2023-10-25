@@ -372,7 +372,7 @@ export function toolop_menu(ctx, name, oplist) {
     if (op.flag & ToolFlags.USE_DEFAULT_INPUT)
       g_app_state.toolstack.default_inputs(new Context(), op);
     
-    ctx.toolstack.exec_tool(op);
+    ctx.toolstack.execTool(op);
   }
   
   var menu = new UIMenu(name, op_callback);

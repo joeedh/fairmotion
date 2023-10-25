@@ -422,7 +422,7 @@ window.gen_default_file = function gen_default_file(size = [512, 512], force_new
   g.reset_state();
 
   let op = new BasicFileOp();
-  g.toolstack.exec_tool(op);
+  g.toolstack.execTool(op);
 
   //set up screen UI
 

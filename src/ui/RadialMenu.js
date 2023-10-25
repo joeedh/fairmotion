@@ -916,7 +916,7 @@ function toolop_radial_menu(ctx, name, oplist) {
   var oplist_instance = []
   
   function op_callback(entry, id) {
-    ctx.toolstack.exec_tool(oplist_instance[id]);
+    ctx.toolstack.execTool(oplist_instance[id]);
   }
   
   var menu = new UIRadialMenu(name, op_callback);

@@ -218,8 +218,6 @@ function init_pathux() {
   let config = _es6_get_module(_rootpath_src + "src/config/config.js").exports;
   let cconst = _es6_get_module(_rootpath_src + "src/path.ux/scripts/config/const.js").default_export;
 
-  console.error("THEME", theme);
-
   let cfg = Object.assign({}, config.PathUXConstants);
   if (config.DEBUG) {
     cfg = Object.assign(cfg, config.DEBUG);

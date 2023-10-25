@@ -214,6 +214,9 @@ export class DataLib {
   idgen: EIDGen;
   lib_anim_idgen: EIDGen;
 
+  scenes: array<Scene>;
+  splines: array<Spline>;
+
   constructor() {
     this.id = 0;
     this.datalists = new hashtable();

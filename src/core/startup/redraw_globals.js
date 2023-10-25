@@ -117,7 +117,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     animreq2 = undefined;
   }
 
-  window._block_drawing = false;
+  window._block_drawing = 0;
 
   //if true, draw will enter double-buffered mode
   //for one frame
@@ -151,6 +151,8 @@ window.init_redraw_globals = function init_redraw_globals() {
     window.redraw_viewport();
   }
 
+  window.redraw_viewport_lock = 0;
+
   window.redraw_viewport = function() {
     if (animreq !== undefined) {
       return redraw_viewport_promise;
@@ -164,7 +166,8 @@ window.init_redraw_globals = function init_redraw_globals() {
           return;
         }
 
-        if (window._block_drawing) {
+        if (window._block_drawing > 0) {
+          window.redraw_viewport();
           return;
         }
 

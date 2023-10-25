@@ -133,17 +133,17 @@ export class SplineToolMode extends ToolMode {
         console.log("kill segments");
 
         let op = new DeleteSegmentOp();
-        g_app_state.toolstack.exec_tool(op);
+        g_app_state.toolstack.execTool(op);
       } else if (this2.selectmode & SelMask.FACE) {
         console.log("kill faces");
 
         let op = new DeleteFaceOp();
-        g_app_state.toolstack.exec_tool(op);
+        g_app_state.toolstack.execTool(op);
       } else {
         console.log("kill verts");
 
         let op = new DeleteVertOp();
-        g_app_state.toolstack.exec_tool(op);
+        g_app_state.toolstack.execTool(op);
       }
     }
 
@@ -278,7 +278,7 @@ export class SplineToolMode extends ToolMode {
         op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
 
         this._clear_undo_touch(true);
-        g_app_state.toolstack.exec_tool(op);
+        g_app_state.toolstack.execTool(op);
         redraw_viewport();
 
         ret = true;
@@ -299,7 +299,7 @@ export class SplineToolMode extends ToolMode {
             this.selectmode, true);
           //console.log("exec selectoneop op");
 
-          g_app_state.toolstack.exec_tool(op);
+          g_app_state.toolstack.execTool(op);
 
           ret = true;
           break;
@@ -537,7 +537,7 @@ export class SplineToolMode extends ToolMode {
         }
       });
 
-      g_app_state.toolstack.exec_tool(op);
+      g_app_state.toolstack.execTool(op);
     }
   }
 

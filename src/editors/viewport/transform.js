@@ -184,7 +184,7 @@ export class TransformOp extends ToolOp {
   }
 
   modalStart(ctx: FullContext) {
-    super.modalStart(ctx);
+    let promise = super.modalStart(ctx);
 
     this.first_viewport_redraw = true;
     ctx.state.pushModalState(ModalStates.TRANSFORMING);
@@ -195,6 +195,8 @@ export class TransformOp extends ToolOp {
 
     this.ensure_transdata(ctx);
     this.modalTemp = {};
+
+    return promise;
   }
 
   on_mousemove(event: MouseEvent) {
@@ -288,7 +290,7 @@ export class TransformOp extends ToolOp {
       if (force_solve && !ctx.spline.solving) { //ha!
         redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
       } else if (force_solve) {
-        ctx.spline._pending_solve.then(function () {
+        ctx.spline.pending_solve.then(function () {
           redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
         });
       }

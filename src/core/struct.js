@@ -39,7 +39,7 @@ arraybufferCompat.STRUCT = `arraybuffer {
 }`;
 
 nstructjs.register(arraybufferCompat);
-
+nstructjs.setWarningMode(0);
 nstructjs.setDebugMode(false);
 //nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" warnings
 

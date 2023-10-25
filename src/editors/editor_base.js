@@ -329,8 +329,6 @@ export class Editor extends Area {
     if (id in this.canvases) {
       canvas = this.canvases[id];
     } else {
-      console.log("creating new canvas", id, zindex);
-
       canvas = this.canvases[id] = document.createElement("canvas");
       canvas.g = this.canvases[id].getContext("2d");
 

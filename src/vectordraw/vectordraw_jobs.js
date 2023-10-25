@@ -4,7 +4,7 @@ import {MESSAGES} from './vectordraw_jobs_base.js';
 let MS = MESSAGES;
 
 let Debug = 0;
-let freeze_while_drawing = false;
+let FREEZE_WHILE_DRAWING = true;
 
 import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
@@ -244,40 +244,18 @@ export class ThreadManager {
     this.drawing = true;
     this.start_time = time_ms();
     
-    if (freeze_while_drawing) {
-      console.log("%cFreeze Drawing", "color : orange;");
-
-      window._block_drawing = true;
-
-      //console.warn("Implement me! freeze_while_drawing");
-      /*
-      if (!this._modalstate) {
-        this._modalstate = pushModalLight({
-          on_keydown: (e) => {
-            if (e.keyCode === keymap["Escape"]) {
-              popModalLight(this._modalstate);
-              this._modalstate = undefined;
-            }
-          }
-        });
-      }//*/
+    if (FREEZE_WHILE_DRAWING) {
+      //console.log("%cFreeze Drawing", "color : orange;");
+      window._block_drawing++;
     }
   }
   
   endDrawing() {
     this.drawing = false;
 
-    if (freeze_while_drawing) {
-      console.log("%cUnfreeze Drawing", "color : orange;");
-      window._block_drawing = false;
-
-      //console.warn("Implement me! freeze_while_drawing");
-
-      /*
-      if (this._modalstate) {
-        popModalLight(this._modalstate);
-        this._modalstate = undefined;
-      }//*/
+    if (FREEZE_WHILE_DRAWING) {
+      //console.log("%cUnfreeze Drawing", "color : orange;");
+      window._block_drawing--;
     }
   }
   
@@ -312,8 +290,8 @@ export class ThreadManager {
     }
   }
   
-  postRenderJob(ownerid, commands, datablocks) {
-    if (!this.drawing && freeze_while_drawing) {
+  postRenderJob(ownerid, commands : array<float>, datablocks) {
+    if (!this.drawing && FREEZE_WHILE_DRAWING) {
       this.startDrawing();
     }
 
@@ -359,7 +337,7 @@ export class ThreadManager {
       
       window._all_draw_jobs_done();
       
-      if (this.drawing && freeze_while_drawing) {
+      if (this.drawing && FREEZE_WHILE_DRAWING) {
         this.endDrawing();
       }
       

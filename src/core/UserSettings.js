@@ -238,7 +238,7 @@ export class AppSettings {
         for (var i=0; i<blocks.length; i++) {
           if (blocks[i].type === "USET") {
             settings = fstruct.read_object(blocks[i].data, AppSettings);
-            console.log("  found settings:", settings);
+            console.log("  found settings.");
           }
         }
         

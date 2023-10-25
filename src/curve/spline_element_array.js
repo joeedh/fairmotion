@@ -4,7 +4,7 @@ import {SplineFlags, SplineTypes, CustomDataLayer,
 
 import {DataPathNode} from '../core/eventdag.js';
 
-export var SplineLayerFlags = {
+export let SplineLayerFlags = {
   //SELECT     : 1,
   HIDE       : 2,
   CAN_SELECT : 4,
@@ -53,9 +53,9 @@ export class SplineLayer extends set {
   }
   
   _to_EIDs() {
-    var ret = [];
+    let ret = [];
     
-    for (var e of this) {
+    for (let e of this) {
       ret.push(e.eid);
     }
     
@@ -70,10 +70,10 @@ export class SplineLayer extends set {
     if (this.eids === undefined)
       return;
     
-    var corrupted = false;
+    let corrupted = false;
     
-    for (var eid of this.eids) {
-      var e = spline.eidmap[eid];
+    for (let eid of this.eids) {
+      let e = spline.eidmap[eid];
       if (e === undefined) {
         corrupted = true;
         continue;
@@ -190,7 +190,7 @@ export class SplineLayerSet extends Array {
   }
 
   new_layer() {
-    var ret = new SplineLayer();
+    let ret = new SplineLayer();
 
     ret.name = this.new_name();
     ret.id = this.idgen.gen_id();
@@ -201,7 +201,7 @@ export class SplineLayerSet extends Array {
   }
     
   new_name() {
-    var name = "Layer", i = 1;
+    let name = "Layer", i = 1;
     
     while ((name + " " + i) in this.namemap) {
       i++;
@@ -214,7 +214,7 @@ export class SplineLayerSet extends Array {
     if (!(name in this.namemap))
       return name;
 
-    var i = 1;
+    let i = 1;
     
     while ((name + " " + i) in this.namemap) {
       i++;
@@ -249,7 +249,7 @@ export class SplineLayerSet extends Array {
   }
   
   change_layer_order(layer, new_i) {
-    var start = this.indexOf(layer);
+    let start = this.indexOf(layer);
     
     if (start == undefined) {
       console.trace("Evil error in change_layer_order!", layer, new_i);
@@ -258,26 +258,26 @@ export class SplineLayerSet extends Array {
     
     if (new_i == start) return;
     
-    var min = Math.min(new_i, start), max = Math.max(new_i, start);
-    var diff = max-min;
+    let min = Math.min(new_i, start), max = Math.max(new_i, start);
+    let diff = max-min;
     
     let idx = start;
     
     if (start > new_i) {
-      for (var i=0; i<diff; i++) {
+      for (let i=0; i<diff; i++) {
         if (idx < 1) break;
         
-        var t = this[idx];
+        let t = this[idx];
         this[idx] = this[idx-1];
         this[idx-1] = t;
         idx--;
       }
     } else {
-      for (var i=0; i<diff; i++) {
+      for (let i=0; i<diff; i++) {
         if (idx >= this.length-1)
           break;
         
-        var t = this[idx];
+        let t = this[idx];
         this[idx] = this[idx+1];
         this[idx+1] = t;
         idx++;
@@ -288,7 +288,7 @@ export class SplineLayerSet extends Array {
   }
   
   update_orders() {
-    for (var i=0; i<this.length; i++) {
+    for (let i=0; i<this.length; i++) {
       this[i].order = i;
     }
   }
@@ -305,7 +305,7 @@ export class SplineLayerSet extends Array {
   }
   
   remove(layer) {
-    var i = this.indexOf(layer);
+    let i = this.indexOf(layer);
     
     super.remove(layer);
 
@@ -319,7 +319,7 @@ export class SplineLayerSet extends Array {
   }
   
   pop_i(i) {
-    var layer = this[i];
+    let layer = this[i];
 
     super.pop_i(i);
     
@@ -333,7 +333,7 @@ export class SplineLayerSet extends Array {
   }
   
   pop() {
-    var layer = super.pop();
+    let layer = super.pop();
     
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
@@ -343,10 +343,10 @@ export class SplineLayerSet extends Array {
   }
   
   static fromSTRUCT(reader) {
-    var ret = new SplineLayerSet();
+    let ret = new SplineLayerSet();
     reader(ret);
     
-    for (var i=0; i<ret._layers.length; i++) {
+    for (let i=0; i<ret._layers.length; i++) {
       if (!ret._layers[i].name) {
         console.log("Layer name corruption detected");
         ret._layers[i].name = "Layer " + (i+1);
@@ -363,7 +363,7 @@ export class SplineLayerSet extends Array {
   }
   
   afterSTRUCT(spline) {
-    for (var layer of this) {
+    for (let layer of this) {
       layer.afterSTRUCT(spline);
     }
   }
@@ -384,7 +384,7 @@ export class IterCache {
     this.cache = [];
     this.callback = callback;
     
-    for (var i=0; i<count; i++) {
+    for (let i=0; i<count; i++) {
       this.cache.push(callback());
       this.free.push(this.cache[this.cache.length-1]);
     }
@@ -397,8 +397,8 @@ export class IterCache {
     }
     
     //detect done iterators
-    for (var i=0; i<this.stack.length; i++) {
-      var iter = this.stack[i];
+    for (let i=0; i<this.stack.length; i++) {
+      let iter = this.stack[i];
       if (iter.is_done()) {
         this.stack.remove(iter);
         i--;
@@ -407,7 +407,7 @@ export class IterCache {
       }
     }
     
-    var iter = this.free.pop();
+    let iter = this.free.pop();
     this.stack.push(iter);
     return iter;
   }
@@ -530,21 +530,21 @@ export class SelectedEditableIter {
       return this.ret;
     }
     
-    var actlayer = this.layerset.active.id;
+    let actlayer = this.layerset.active.id;
     
     function visible(e) {
       return !e.hidden && actlayer in e.layers;
     }
     
-    var ret = undefined;
-    var good = false;
-    var c = 0;
-    var iter = this.iter;
+    let ret = undefined;
+    let good = false;
+    let c = 0;
+    let iter = this.iter;
     do {
       ret = iter.next();
       if (ret.done) break;
       
-      var e = ret.value;
+      let e = ret.value;
       
       good = visible(e);
       if (e.type == SplineTypes.HANDLE) {
@@ -621,21 +621,21 @@ export class SelectedEditableAllLayersIter {
       return this.ret;
     }
 
-    var actlayer = this.layerset.active.id;
+    let actlayer = this.layerset.active.id;
 
     function visible(e) {
       return !e.hidden;
     }
 
-    var ret = undefined;
-    var good = false;
-    var c = 0;
-    var iter = this.iter;
+    let ret = undefined;
+    let good = false;
+    let c = 0;
+    let iter = this.iter;
     do {
       ret = iter.next();
       if (ret.done) break;
 
-      var e = ret.value;
+      let e = ret.value;
 
       good = visible(e);
       if (e.type == SplineTypes.HANDLE) {
@@ -771,7 +771,7 @@ export class ElementArray<T> extends Array<T> {
 
 
   dag_get_datapath() {
-    var tname;
+    let tname;
     switch (this.type) {
       case SplineTypes.VERTEX:
         tname = "verts";
@@ -788,16 +788,16 @@ export class ElementArray<T> extends Array<T> {
     }
     
     //wells, it should end in. . .
-    var suffix = "."+tname;
+    let suffix = "."+tname;
     
     //hrm, prefix should be either spline.ctx.frameset.drawspline, 
     //or spline.ctx.frameset.pathspline
     
     //test for presence of customdata time layer, I guess;
     
-    var name = "drawspline";
+    let name = "drawspline";
     
-    for (var i=0; i<this.cdata.layers.length; i++) {
+    for (let i=0; i<this.cdata.layers.length; i++) {
       if (this.cdata.layers[i].name === "TimeDataLayer")
         name = "pathspline";
     }
@@ -806,7 +806,7 @@ export class ElementArray<T> extends Array<T> {
   }
 
   remove_undefineds() {
-    for (var i=0; i<this.length; i++) {
+    for (let i=0; i<this.length; i++) {
       if (this[i] == undefined) {
         this.pop_i(this[i]);
         i--;
@@ -826,7 +826,7 @@ export class ElementArray<T> extends Array<T> {
       return;
     }
     
-    var i1 = this.indexOf(a), i2 = this.indexOf(b);
+    let i1 = this.indexOf(a), i2 = this.indexOf(b);
     if (i1 < 0 || i2 < 0) {
       console.log(i1, i2, a, b);
       throw new Error("Elements not in list")
@@ -838,14 +838,14 @@ export class ElementArray<T> extends Array<T> {
   
   //this is a customdata layer callbacks, not layer layer callbacks
   on_layer_add(layer, i) {
-    for (var e of this) {
+    for (let e of this) {
       e.cdata.on_add(layercls, i);
     }
   }
   
   //this is a customdata layer callbacks, not layer layer callbacks
   on_layer_del(layer, i) {
-    for (var e of this) {
+    for (let e of this) {
       e.cdata.on_del(layercls, i);
     }
   }
@@ -886,7 +886,7 @@ export class ElementArray<T> extends Array<T> {
   remove(e : T, soft_error=false) {
     e.onDestroy();
     
-    var idx = this.indexOf(e);
+    let idx = this.indexOf(e);
     
     if (idx < 0) {
       throw new Error("Element not in list");
@@ -917,8 +917,8 @@ export class ElementArray<T> extends Array<T> {
     //Array.prototype.remove.call(this, e, soft_error);
     
     //remove from all layer lists
-    for (var k in e.layers) {
-      var layer = this.layerset.idmap[k];
+    for (let k in e.layers) {
+      let layer = this.layerset.idmap[k];
       
       if (layer != undefined) {
         layer.remove(e);
@@ -949,7 +949,7 @@ export class ElementArray<T> extends Array<T> {
       this.dag_update("on_select_change", this.type);
     }
 
-    var changed = !!(e.flag & SplineFlags.SELECT) != !!state;
+    let changed = !!(e.flag & SplineFlags.SELECT) != !!state;
     
     if (state) {
       if (this.active === undefined)
@@ -978,28 +978,28 @@ export class ElementArray<T> extends Array<T> {
   }
   
   clear_selection() {
-    for (var i=0; i<this.length; i++) {
+    for (let i=0; i<this.length; i++) {
       this.setselect(this[i], false);
     }
   }
   
   select_all() {
-    for (var i=0; i<this.length; i++) {
+    for (let i=0; i<this.length; i++) {
       this.setselect(this[i], true);
     }
   }
   
   static fromSTRUCT(reader) {
-    var ret = new ElementArray();
+    let ret = new ElementArray();
     
     reader(ret);
     
     ret.cdata.owner = ret;
     
-    var active = ret.active;
+    let active = ret.active;
     ret.active = undefined;
     
-    for (var i=0; i<ret.arr.length; i++) {
+    for (let i=0; i<ret.arr.length; i++) {
       GArray.prototype.push.call(ret, ret.arr[i]);
       
       if (ret.arr[i].eid == active) {
@@ -1020,11 +1020,11 @@ export class ElementArray<T> extends Array<T> {
     this.layerset = layerset;
     this.spline = spline;
     
-    var selected = new ElementArraySet();
+    let selected = new ElementArraySet();
     selected.layerset = layerset;
     
-    for (var i=0; i<this.selected.length; i++) {
-      var eid = this.selected[i];
+    for (let i=0; i<this.selected.length; i++) {
+      let eid = this.selected[i];
       
       if (!(eid in idmap)) {
         console.log("WARNING: afterSTRUCT: eid", eid, "not in eidmap!", Object.keys(idmap));
@@ -1039,7 +1039,7 @@ export class ElementArray<T> extends Array<T> {
     //patch old files
     //console.log(this.cdata);
     
-    for (var e of this) {
+    for (let e of this) {
       this.local_idmap[e.eid] = e;
       
       if (e.cdata === undefined) {

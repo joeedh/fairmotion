@@ -43,9 +43,7 @@ export function do_solve() {
   if (DISABLE_SOLVE || window.DISABLE_SOLVE)
     return;
 
-  if (config.USE_NACL) {
-    return do_solve_nacl.apply(this, arguments);
-  } else if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {
+  if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {
     return native_api.do_solve.apply(this, arguments);
   } else {
     return math.do_solve.apply(this, arguments);

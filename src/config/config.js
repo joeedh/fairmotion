@@ -40,7 +40,6 @@ export var ICONPATH = PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent
 export var IS_NODEJS = ELECTRON_APP_MODE;
 
 export var USE_WASM = true;
-export var USE_NACL = CHROME_APP_MODE;
 //old (from all-shape days ~2011) server mode is no longer supported
 export var NO_SERVER = true; //CHROME_APP_MODE || PHONE_APP_MODE || ELECTRON_APP_MODE;
 

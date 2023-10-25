@@ -153,8 +153,6 @@ export class MenuBar extends Editor {
   }
 
   buildEditMenu(flush = true) {
-    console.warn("rebuilding edit menu");
-
     this.editMenuDef.length = 0;
 
     this.editMenuDef.push(["Undo", function () {

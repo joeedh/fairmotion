@@ -132,7 +132,7 @@ export class Screen extends UIFrame {
   split_areas() {
     console.log("split areas", this);
     
-    g_app_state.toolstack.exec_tool(new SplitAreasTool(this));
+    g_app_state.toolstack.execTool(new SplitAreasTool(this));
     
     /*
     var c = this.children[0]

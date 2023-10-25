@@ -205,7 +205,7 @@ export class Spline extends DataBlock {
 
     this._debug_id = debug_id_gen++;
 
-    this._pending_solve = undefined;
+    this.pending_solve = undefined;
     this._resolve_after = undefined;
     this.solving = undefined;
 
@@ -733,7 +733,7 @@ export class Spline extends DataBlock {
     h2.hpair = h1;
   }
 
-  export_ks() : Uint8Array {
+  export_ks(): Uint8Array {
     let size = this.segments.length*ORDER + 1;
     let ret = new Float32Array(size);
     let i = 1;
@@ -741,7 +741,7 @@ export class Spline extends DataBlock {
     ret[0] = 0; //version
 
     for (let seg of this.segments) {
-      for (let j=0; j<ORDER; j++) {
+      for (let j = 0; j < ORDER; j++) {
         ret[i++] = seg.ks[j];
       }
     }
@@ -749,7 +749,7 @@ export class Spline extends DataBlock {
     return new Uint8Array(ret.buffer);
   }
 
-  import_ks(data : Uint8Array) {
+  import_ks(data: Uint8Array) {
     let i = 1;
 
     data = new Float32Array(data.buffer);
@@ -757,7 +757,7 @@ export class Spline extends DataBlock {
     let version = data[0];
 
     for (let seg of this.segments) {
-      for (let j=0; j<ORDER; j++) {
+      for (let j = 0; j < ORDER; j++) {
         seg.ks[j] = data[i++];
       }
     }
@@ -1756,16 +1756,16 @@ export class Spline extends DataBlock {
       this2.dag_update("on_solve", true);
     }
 
-    if (this._pending_solve !== undefined && force_queue) {
+    if (this.pending_solve !== undefined && force_queue) {
       let this2 = this;
 
-      this._pending_solve = this._pending_solve.then(function () {
+      this.pending_solve = this.pending_solve.then(function () {
         this2.solve();
       });
       this.solving = true;
 
-      return this._pending_solve;
-    } else if (this._pending_solve !== undefined) {
+      return this.pending_solve;
+    } else if (this.pending_solve !== undefined) {
       let do_accept;
 
       let promise = new Promise(function (accept, reject) {
@@ -1780,10 +1780,10 @@ export class Spline extends DataBlock {
 
       return promise;
     } else {
-      this._pending_solve = this.solve_intern(steps, gk);
+      this.pending_solve = this.solve_intern(steps, gk);
       this.solving = true;
 
-      return this._pending_solve;
+      return this.pending_solve;
     }
   }
 
@@ -1839,10 +1839,13 @@ export class Spline extends DataBlock {
     }
 
     if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {
+      window._block_drawing++;
       let ret = native_api.do_solve(SplineFlags, this, steps, gk, true);
 
       ret.then(function () {
-        this2._pending_solve = undefined;
+        window._block_drawing--;
+
+        this2.pending_solve = undefined;
         this2.solving = false;
         this2._do_post_solve();
 
@@ -1852,33 +1855,16 @@ export class Spline extends DataBlock {
           let cb = this2._resolve_after;
           this2._resolve_after = undefined;
 
-          this2._pending_solve = this2.solve_intern().then(function () {
+          this2.pending_solve = this2.solve_intern().then(function () {
             cb.call(this2);
           });
           this2.solving = true;
         }
-      });
+      }).catch(error => {
+        window._block_drawing--;
 
-      return ret;
-    } else if (!DEBUG.no_native && config.USE_NACL && window.common !== undefined && window.common.naclModule !== undefined) {
-      let ret = do_solve(SplineFlags, this, steps, gk, true);
-
-      ret.then(function () {
-        this2._pending_solve = undefined;
-        this2.solving = false;
-        this2._do_post_solve();
-
-        dag_trigger();
-
-        if (this2._resolve_after) {
-          let cb = this2._resolve_after;
-          this2._resolve_after = undefined;
-
-          this2._pending_solve = this2.solve_intern().then(function () {
-            cb.call(this2);
-          });
-          this2.solving = true;
-        }
+        console.error(error.stack);
+        console.error(error.message);
       });
 
       return ret;
@@ -1891,12 +1877,14 @@ export class Spline extends DataBlock {
         }
       });
 
+      window._block_drawing++;
+
       let this2 = this;
-      let timer = window.setInterval(function () {
-        window.clearInterval(timer);
+      window.setTimeout(function () {
+        window._block_drawing--;
 
         do_solve(SplineFlags, this2, steps, gk);
-        this2._pending_solve = undefined;
+        this2.pending_solve = undefined;
         this2.solving = false;
 
         do_accept();
@@ -1908,7 +1896,7 @@ export class Spline extends DataBlock {
           let cb = this2._resolve_after;
           this2._resolve_after = undefined;
 
-          this2._pending_solve = this2.solve_intern().then(function () {
+          this2.pending_solve = this2.solve_intern().then(function () {
             cb.call(this2);
           });
           this2.solving = true;

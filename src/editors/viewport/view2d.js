@@ -279,7 +279,7 @@ export class View2DHandler extends Editor {
     }, "Toggle Proportional Transform"));
 
     k.add(new HotKey("K", [], function (ctx: FullContext) {
-      g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
+      g_app_state.toolstack.execTool(new CurveRootFinderTest());
     }));
 
     k.add(new HotKey("Right", [], function (ctx: FullContext) {
@@ -1300,7 +1300,7 @@ export class View2DHandler extends Editor {
       if (g_app_state.screen.tottouch > 1) {
         this2._mstart = null;
         cancel_func();
-        //XXX g_app_state.toolstack.exec_tool(new ViewRotateZoomPanOp());
+        //XXX g_app_state.toolstack.execTool(new ViewRotateZoomPanOp());
       }
 
       if (this._mstart != null) {
@@ -1320,7 +1320,7 @@ export class View2DHandler extends Editor {
         }
 
         top.cancel_callback = switch_on_multitouch;
-        g_app_state.toolstack.exec_tool(top);
+        g_app_state.toolstack.execTool(top);
         this._mstart = null;
 
         return;

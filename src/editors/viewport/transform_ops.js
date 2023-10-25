@@ -198,7 +198,7 @@ export class WidgetResizeOp extends TransformOp {
       toolop.inputs.use_pivot.setValue(true);
       toolop.inputs.pivot.setValue(co);
       
-      view2d.ctx.toolstack.exec_tool(toolop);
+      view2d.ctx.toolstack.execTool(toolop);
       
       return true;
     }
@@ -227,7 +227,7 @@ export class WidgetResizeOp extends TransformOp {
       toolop.inputs.constrain.setValue(true);
       toolop.inputs.constraint_axis.setValue(new Vector3([1, 0, 0]));
       
-      view2d.ctx.toolstack.exec_tool(toolop);
+      view2d.ctx.toolstack.execTool(toolop);
       
       return true;
     }
@@ -251,7 +251,7 @@ export class WidgetResizeOp extends TransformOp {
       toolop.inputs.constrain.setValue(true);
       toolop.inputs.constraint_axis.setValue(new Vector3([0, 1, 0]));
     
-      view2d.ctx.toolstack.exec_tool(toolop);
+      view2d.ctx.toolstack.execTool(toolop);
     
       return true;
     }
@@ -405,7 +405,7 @@ export class WidgetRotateOp extends TransformOp {
       toolop.inputs.use_pivot.setValue(true);
       toolop.inputs.pivot.setValue(co);
       
-      view2d.ctx.toolstack.exec_tool(toolop);
+      view2d.ctx.toolstack.execTool(toolop);
       
       return true;
     }
@@ -429,7 +429,7 @@ export class WidgetRotateOp extends TransformOp {
       toolop.inputs.constrain.setValue(true);
       toolop.inputs.constraint_axis.setValue(new Vector3([0, 1, 0]));
       
-      view2d.ctx.toolstack.exec_tool(toolop);
+      view2d.ctx.toolstack.execTool(toolop);
       
       return true;
     }

@@ -35,17 +35,15 @@ export function register_toolops() {
 
     let def = cls.tooldef();
 
-    if (def.apiname === undefined) {
-      //console.warn(cls.name + ": tooldef is missing apiname member (abstract class?)");
-      //continue;
-    }
-
     if (def.apiname)
       toolmap[def.apiname] = cls;
     if (def.toolpath)
       toolmap[def.toolpath] = cls
 
     toollist.push(cls);
-    ToolOp.register(cls);
+
+    if (!ToolOp.isRegistered(cls)) {
+      ToolOp.register(cls);
+    }
   }
 }

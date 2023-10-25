@@ -10,7 +10,7 @@ const UMAX = ((1<<16) - 1)
 const UMUL = 2
 
 const PI                                                        = Math.PI, abs                                         = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
-      ceil                                                      = Math.ceil, sin = Math.sin, cos                     = Math.cos, acos = Math.acos,
+      ceil                                                      = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
       asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
 
 import * as spline_multires from './spline_multires.js';
@@ -1345,6 +1345,8 @@ export class Spline extends DataBlock {
       }
     }
 
+    let min_z;
+
     for (let i = 0; i < vlists.length; i++) {
       let verts = vlists[i];
       let list = new SplineLoopPath();
@@ -1357,8 +1359,31 @@ export class Spline extends DataBlock {
       for (let j = 0; j < verts.length; j++) {
         let v1 = verts[j], v2 = verts[(j + 1)%verts.length];
 
+        let exists = this.find_segment(v1, v2);
+
         let s = this.make_segment(v1, v2, undefined, true);
         let l = this.make_loop();
+
+        /* Propagate selection flags. */
+        if (!exists) {
+          let select = false;
+
+          outer: for (let i = 0; i < 2; i++) {
+            let v = i ? s.v2 : s.v1;
+            for (let s2 of v.segments) {
+              if (s2.flag & SplineFlags.SELECT) {
+                select = true;
+                break outer;
+              }
+            }
+          }
+
+          if (select) {
+            this.setselect(s, true);
+          }
+        }
+
+        min_z = Math.min(min_z, s.z);
 
         l.v = v1;
         l.s = s;
@@ -1384,6 +1409,9 @@ export class Spline extends DataBlock {
         l = l.next;
       } while (l !== list.l);
     }
+
+    /* Always put faces behind their segments. */
+    f.z = min_z - 1;
 
     return f;
   }

@@ -34,14 +34,16 @@ export class AppQuitOp extends ToolOp {
 
   }
 
-  static tooldef() { return {
-    toolpath : "appstate.quit",
-    uiname   : "Exit",
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.quit",
+      uiname  : "Exit",
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+    }
+  }
 
-  exec(ctx : LockedContext) {
+  exec(ctx: LockedContext) {
     let {ipcRenderer} = require('electron');
     ipcRenderer.invoke('quit-fairmotion');
   }
@@ -56,25 +58,27 @@ export class FileOpenOp extends ToolOp {
 
   }
 
-  static tooldef() { return {
-    toolpath : "appstate.open",
-    uiname   : "Open",
-    inputs   : {
-      path : new StringProperty("", "path", "File Path", "File Path")
-    },
-    outputs  : {},
-    icon     : Icons.RESIZE,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.open",
+      uiname  : "Open",
+      inputs  : {
+        path: new StringProperty("", "path", "File Path", "File Path")
+      },
+      outputs : {},
+      icon    : Icons.RESIZE,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
-  exec(ctx : LockedContext) {
+  exec(ctx: LockedContext) {
     console.log("File open");
 
 //    if (config.USE_HTML5_FILEAPI) {
 
-    open_file(function(buf : ArrayBuffer, fname : string, filepath : string) {
+    open_file(function (buf: ArrayBuffer, fname: string, filepath: string) {
       console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
 
       if (filepath !== undefined) {
@@ -87,25 +91,28 @@ export class FileOpenOp extends ToolOp {
 
     return;
   }
+
 //  }
 }
 
 
 export class OpenRecentOp extends ToolOp {
-  constructor(do_progress=true) {
+  constructor(do_progress = true) {
     super();
   }
 
-  static tooldef() { return {
-    toolpath  : "appstate.open_recent",
-    uiname   : "Open Recent",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.open_recent",
+      uiname  : "Open Recent",
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
   exec(ctx) {
     console.error("Implement me!");
@@ -115,24 +122,26 @@ export class OpenRecentOp extends ToolOp {
 
 
 export class FileSaveAsOp extends ToolOp {
-  do_progress : boolean;
+  do_progress: boolean;
 
-  constructor(do_progress=true) {
+  constructor(do_progress = true) {
     super();
 
     this.do_progress = true;
   }
 
-  static tooldef() { return {
-    toolpath  : "appstate.save_as",
-    uiname   : "Save As",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.save_as",
+      uiname  : "Save As",
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
   exec(ctx) {
     console.log("File save As");
@@ -150,24 +159,26 @@ export class FileSaveAsOp extends ToolOp {
 
 
 export class FileSaveOp extends ToolOp {
-  do_progress : boolean;
+  do_progress: boolean;
 
-  constructor(do_progress=true) {
+  constructor(do_progress = true) {
     super();
 
     this.do_progress = true;
   }
 
-  static tooldef() { return {
-    toolpath  : "appstate.save",
-    uiname   : "Save",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.save",
+      uiname  : "Save",
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
   exec(ctx) {
     console.log("File save");
@@ -202,18 +213,20 @@ export class FileSaveSVGOp extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    toolpath  : "appstate.export_svg",
-    uiname   : "Export SVG",
-    inputs   : {
-      path : new StringProperty("", "path", "File Path", "File Path")
-    },
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+  static tooldef() {
+    return {
+      toolpath: "appstate.export_svg",
+      uiname  : "Export SVG",
+      inputs  : {
+        path: new StringProperty("", "path", "File Path", "File Path")
+      },
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
   exec(ctx) {
     console.log("Export SVG");
@@ -233,15 +246,15 @@ export class FileSaveSVGOp extends ToolOp {
       }
 
       if (name.endsWith(".fmo"))
-        name = name.slice(0, name.length-4);
+        name = name.slice(0, name.length - 4);
     } else {
       name = "document";
     }
 
-    var blob = new Blob([buf], {type : "text/svg+xml"});
+    var blob = new Blob([buf], {type: "text/svg+xml"});
 
     if (config.CHROME_APP_MODE) {
-      save_with_dialog(buf, undefined, "SVG", ["svg"], function() {
+      save_with_dialog(buf, undefined, "SVG", ["svg"], function () {
         error_dialog(ctx, "Could not write file", undefined, true);
       });
     } else {
@@ -259,35 +272,37 @@ export class FileSaveB64Op extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    toolpath  : "appstate.export_al3_b64",
-    uiname   : "Export Base64",
-    description : "Export a base64-encoded .fmo file",
-    inputs   : {
-      path : new StringProperty("", "path", "File Path", "File Path")
-    },
-    outputs  : {},
+  static tooldef() {
+    return {
+      toolpath   : "appstate.export_al3_b64",
+      uiname     : "Export Base64",
+      description: "Export a base64-encoded .fmo file",
+      inputs     : {
+        path: new StringProperty("", "path", "File Path", "File Path")
+      },
+      outputs    : {},
 
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.NO_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
+      icon    : -1,
+      is_modal: false,
+      undoflag: UndoFlags.NO_UNDO,
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
+    }
+  }
 
   exec(ctx) {
     console.log("Export AL3-B64");
 
     //compression is off, for now
     var buf = g_app_state.create_user_file_new({
-      compress : true
+      compress: true
     });
     buf = b64encode(new Uint8Array(buf.buffer));
 
     //line wrap
     var buf2 = ""
-    for (var i=0; i<buf.length; i++) {
+    for (var i = 0; i < buf.length; i++) {
       buf2 += buf[i];
-      if (((i+1)%79) == 0) {
+      if (((i + 1)%79) == 0) {
         buf2 += "\n";
       }
     }
@@ -316,11 +331,12 @@ export class FileSaveB64Op extends ToolOp {
     }
 
     var this2 = this;
+
     function finish(job, owner) {
       if (DEBUG.netio)
         console.log("finished uploading");
-      var url = "/api/files/get?path=/"+this2._path + "&";
-      url += "accessToken="+g_app_state.session.tokens.access;
+      var url = "/api/files/get?path=/" + this2._path + "&";
+      url += "accessToken=" + g_app_state.session.tokens.access;
 
       if (DEBUG.netio)
         console.log(url)
@@ -341,10 +357,10 @@ export class FileSaveB64Op extends ToolOp {
       this2._path = path;
 
       var token = g_app_state.session.tokens.access;
-      var url = "/api/files/upload/start?accessToken="+token+"&path="+path
-      var url2 = "/api/files/upload?accessToken="+token;
+      var url = "/api/files/upload/start?accessToken=" + token + "&path=" + path
+      var url2 = "/api/files/upload?accessToken=" + token;
 
-      call_api(upload_file, {data:byte_data, url:url, chunk_url:url2}, finish, error, status);
+      call_api(upload_file, {data: byte_data, url: url, chunk_url: url2}, finish, error, status);
     }
 
     file_dialog("SAVE", new Context(), save_callback, true);
@@ -355,7 +371,8 @@ import {ImportJSONOp} from './viewport/spline_createops.js';
 
 var _dom_input_node = undefined;
 export var import_json = window.import_json = function import_json() {
-  global _dom_input_node;
+  global
+  _dom_input_node;
   console.log("import json!");
 
   if (_dom_input_node == undefined) {
@@ -366,7 +383,7 @@ export var import_json = window.import_json = function import_json() {
   var node = _dom_input_node;
   node.value = "";
 
-  node.onchange = function() {
+  node.onchange = function () {
     console.log("file select!", node.files);
     if (node.files.length == 0) return;
 
@@ -375,11 +392,11 @@ export var import_json = window.import_json = function import_json() {
     console.log("file", f);
 
     var reader = new FileReader();
-    reader.onload = function(data) {
+    reader.onload = function (data) {
       var obj = JSON.parse(reader.result);
 
       var tool = new ImportJSONOp(reader.result);
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(g_app_state.ctx, tool);
     }
 
     reader.readAsText(f);

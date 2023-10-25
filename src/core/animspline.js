@@ -4,161 +4,164 @@ import {STRUCT} from './struct.js';
 import {DataBlock, DataTypes} from './lib_api.js';
 import {Spline, RestrictFlags} from '../curve/spline.js';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../curve/spline_types.js';
-import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
-  AnimInterpModes, AnimKeyFlags} from './animdata.js';
+import {
+  TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
+  AnimInterpModes, AnimKeyFlags
+} from './animdata.js';
 import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
 
 import '../path.ux/scripts/util/struct.js';
 
-var restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
+let restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
   RestrictFlags.NO_CONNECT;
 
-var vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
+let vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 
 import {AnimChannel, AnimKey} from './animdata.js';
 import {PropTypes} from './toolprops.js';
 
 export class VertexAnimIter {
-  ret : Object
-  stop : boolean;
+  ret: Object
+  stop: boolean;
 
   constructor(vd) {
-    this.ret = {done : false, value : undefined};
+    this.ret = {done: false, value: undefined};
     this.stop = false;
-    
-    if (vd != undefined)
+
+    if (vd !== undefined)
       VertexAnimIter.init(this, vd);
   }
-  
+
   init(vd) {
     this.vd = vd;
     this.v = vd.startv;
     this.stop = false;
-    
-    if (this.v != undefined && this.v.segments.length != 0)
+
+    if (this.v !== undefined && this.v.segments.length !== 0)
       this.s = this.v.segments[0];
     else
       this.s = undefined;
-    
+
     this.ret.done = false;
     this.ret.value = undefined;
-    
+
     return this;
   }
-  
+
   [Symbol.iterator](self) {
     return this;
   }
-  
+
   next() {
-    var ret = this.ret;
-    
-    if (this.vd.startv == undefined) {
+    let ret = this.ret;
+
+    if (this.vd.startv === undefined) {
       ret.done = true;
       ret.value = undefined;
-      
+
       return ret;
     }
-    
-    if (this.stop && this.v == undefined) {
+
+    if (this.stop && this.v === undefined) {
       ret.done = true;
       ret.value = undefined;
-      
+
       return ret;
     }
-    
+
     ret.value = this.v;
-    
-    if (this.stop || this.s == undefined) {
+
+    if (this.stop || this.s === undefined) {
       this.v = undefined;
-      if (ret.value == undefined)
+      if (ret.value === undefined)
         ret.done = true;
       return ret;
     }
-    
+
     this.v = this.s.other_vert(this.v);
-    
+
     if (this.v.segments.length < 2) {
       this.stop = true;
       return ret;
     }
-    
+
     this.s = this.v.other_segment(this.s);
     return ret;
   }
 }
 
 export class SegmentAnimIter {
-  ret : Object
-  stop : boolean;
+  ret: Object
+  stop: boolean;
 
   constructor(vd) {
-    this.ret = {done : false, value : undefined};
+    this.ret = {done: false, value: undefined};
     this.stop = false;
-    
-    if (this.v != undefined && this.v.segments.length != 0)
-      if (vd != undefined)
+
+    if (this.v !== undefined && this.v.segments.length !== 0)
+      if (vd !== undefined)
         SegmentAnimIter.init(this, vd);
   }
-  
+
   init(vd) {
     this.vd = vd;
     this.v = vd.startv;
     this.stop = false;
-    
+
     if (this.v !== undefined)
       this.s = this.v.segments[0];
     else
       this.s = undefined;
-    
+
     this.ret.done = false;
     this.ret.value = undefined;
-    
+
     return this;
   }
-  
+
   [Symbol.iterator](self) {
     return this;
   }
-  
+
   next() {
-    var ret = this.ret;
-    
-    if (this.stop || this.s == undefined) {
+    let ret = this.ret;
+
+    if (this.stop || this.s === undefined) {
       ret.done = true;
       ret.value = undefined;
-      
+
       return ret;
     }
-    
+
     ret.value = this.s;
     this.v = this.s.other_vert(this.v);
-    
+
     if (this.v.segments.length < 2) {
       this.stop = true;
-      
+
       return ret;
     }
-    
+
     this.s = this.v.other_segment(this.s);
     return ret;
   }
 }
 
-export var VDAnimFlags = {
-  SELECT            : 1,
-  STEP_FUNC         : 2,
-  HIDE              : 4,
-  OWNER_IS_EDITABLE : 8 //owner is selected and visible
+export let VDAnimFlags = {
+  SELECT           : 1,
+  STEP_FUNC        : 2,
+  HIDE             : 4,
+  OWNER_IS_EDITABLE: 8 //owner is selected and visible
 };
 
 let dvcache = cachering.fromConstructor(Vector2, 256);
+
 export class VertexAnimData {
-  animflag : number
-  flag : number
-  visible : boolean
-  path_times : Object
-  cur_time : number;
+  animflag: number
+  flag: number
+  visible: boolean
+  path_times: Object
+  cur_time: number;
 
   constructor(eid, pathspline) {
     this.eid = eid;
@@ -166,112 +169,113 @@ export class VertexAnimData {
     this.dead = false;
 
     //this.timechannel = new AnimChannel(PropTypes.FLOAT, "Time", "");
-    
+
     //basically this is just used to detect if a new vertex needs to be added to the time channel
     //this.timechannel_verts = new set();
-    
+
     this.vitercache = cachering.fromConstructor(VertexAnimIter, 4);
     this.sitercache = cachering.fromConstructor(SegmentAnimIter, 4);
-    
+
     this.spline = pathspline;
-    
+
     this.animflag = 0;
     this.flag = 0; //holds selection and hide flags?
     this.visible = false;
-    
+
     //maps splinevert eid's to the times they occur at?
     //hrm. . .
     this.path_times = {};
     this.startv_eid = -1; //this.spline.make_vertex(new Vector2());
-    
+
     if (pathspline !== undefined) {
-      var layer = pathspline.layerset.new_layer();
+      let layer = pathspline.layerset.new_layer();
       layer.flag |= SplineLayerFlags.HIDE;
-      
+
       this.layerid = layer.id;
     }
-    
+
     this._start_layer_id = undefined;
     this.cur_time = 0;
   }
-/*
-  sync_vtime() {
-    let keymap = {};
-    let totkey = this.animchannel.keys.length;
-    
-    let totvert = 0;
-    let verts = [];
-    for (let v of this.verts) {
-      totvert++;
-      verts.push(v);
-    }
-    
-    let i = 0;
-    for (let v of this.verts) {
-      if (!this.timechannel_verts.has(v.eid)) {
-        let time = get_vtime(v);
-        let key = this.timechannel.update(time, i);
-        
-        key.owner_eid = v.eid;
-        keymap[key] = key;
-        
-        this.timechannel_verts.add(v.eid);
+
+  /*
+    sync_vtime() {
+      let keymap = {};
+      let totkey = this.animchannel.keys.length;
+
+      let totvert = 0;
+      let verts = [];
+      for (let v of this.verts) {
+        totvert++;
+        verts.push(v);
       }
-      
-      i++;
+
+      let i = 0;
+      for (let v of this.verts) {
+        if (!this.timechannel_verts.has(v.eid)) {
+          let time = get_vtime(v);
+          let key = this.timechannel.update(time, i);
+
+          key.owner_eid = v.eid;
+          keymap[key] = key;
+
+          this.timechannel_verts.add(v.eid);
+        }
+
+        i++;
+      }
+
+      i = 0;
+      for (let key of this.timechannel.keys) {
+        key.data.data *= totvert;
+        key.owner_eid = verts[i].eid;
+        i++;
+      }
     }
-    
-    i = 0;
-    for (let key of this.timechannel.keys) {
-      key.data.data *= totvert;
-      key.owner_eid = verts[i].eid;
-      i++;
-    }
-  }
-  //*/
+    //*/
 
   get startv() {
     if (this.startv_eid === -1) return undefined;
     return this.spline.eidmap[this.startv_eid];
   }
-  
+
   set startv(v) {
-    if (typeof v == "number") {
+    if (typeof v === "number") {
       this.startv_eid = v;
       return;
     }
-    
+
     if (v !== undefined) {
       this.startv_eid = v.eid;
     } else {
       this.startv_eid = -1;
     }
   }
-  
+
   _set_layer() {
     if (this.spline.layerset.active.id !== this.layerid)
       this._start_layer_id = this.spline.layerset.active.id;
-    
+
     if (this.layerid === undefined) {
       console.log("Error in _set_layer in VertexAnimData!!!");
       return;
     }
-    
+
     this.spline.layerset.active = this.spline.layerset.idmap[this.layerid]
   }
-  
+
   [Symbol.keystr]() {
     return this.eid;
   }
-  
+
   _unset_layer() {
     if (this._start_layer_id !== undefined) {
-      var layer = this.spline.layerset.idmap[this._start_layer_id];
-      
+      let layer = this.spline.layerset.idmap[this._start_layer_id];
+
       if (layer !== undefined)
         this.spline.layerset.active = layer;
     }
-    
+
     this._start_layer_id = undefined;
   }
 
@@ -318,59 +322,59 @@ export class VertexAnimData {
   get verts() {
     return this.vitercache.next().init(this);
   }
-  
+
   get segments() {
     return this.sitercache.next().init(this);
   }
-  
+
   find_seg(time) {
-    var v = this.startv;
+    let v = this.startv;
     //console.log("find_seg", v, time);
-    
+
     if (v === undefined) return undefined;
     if (v.segments.length === 0) return undefined;
-    
-    var s = v.segments[0];
-    var lastv = v;
-    
+
+    let s = v.segments[0];
+    let lastv = v;
+
     while (1) {
       lastv = v;
       v = s.other_vert(v);
-      
+
       //console.log("vtime!", get_vtime(v));
       if (get_vtime(v) > time) {
         return s;
       }
-      
+
       if (v.segments.length < 2) {
         lastv = v;
         break;
       }
-      
+
       s = v.other_segment(s);
     }
-    
+
     return undefined;
   }
-  
+
   _get_animdata(v) {
     let ret = v.cdata.get_layer(TimeDataLayer);
-    
+
     ret.owning_veid = this.eid;
     return ret;
   }
-  
+
   update(co, time) {
     this._set_layer();
     let update = false;
-    
+
     if (time < 0) {
       console.trace("ERROR! negative times not supported!");
-      
+
       this._unset_layer();
       return false;
     }
-    
+
     if (this.startv === undefined) {
       this.startv = this.spline.make_vertex(co);
       this._get_animdata(this.startv).time = 1;
@@ -379,23 +383,23 @@ export class VertexAnimData {
       this.spline.regen_sort();
       this.spline.resolve = 1;
     }
-    
-    var spline = this.spline;
-    var seg = this.find_seg(time);
-    
+
+    let spline = this.spline;
+    let seg = this.find_seg(time);
+
     if (seg === undefined) {
-      var e = this.endv;
-      
+      let e = this.endv;
+
       if (this._get_animdata(e).time === time) {
         update = update || e.vectorDistance(co) > 0.01;
         e.load(co);
         e.flag |= SplineFlags.UPDATE;
       } else {
-        var nv = spline.make_vertex(co);
-        
+        let nv = spline.make_vertex(co);
+
         this._get_animdata(nv).time = time;
         spline.make_segment(e, nv);
-        
+
         spline.regen_sort();
         update = true;
       }
@@ -409,11 +413,11 @@ export class VertexAnimData {
         seg.v2.load(co);
         seg.v2.flag |= SplineFlags.UPDATE;
       } else {
-        var ret = spline.split_edge(seg);
-        var nv = ret[1];
-        
+        let ret = spline.split_edge(seg);
+        let nv = ret[1];
+
         spline.regen_sort();
-        
+
         this._get_animdata(nv).time = time;
         update = true;
         nv.load(co);
@@ -425,155 +429,157 @@ export class VertexAnimData {
 
     return update;
   }
-  
+
   get start_time() {
-    var v = this.startv;
+    let v = this.startv;
     if (v === undefined) return 0;
-    
+
     return get_vtime(v);
   }
-  
+
   get end_time() {
-    var v = this.endv;
+    let v = this.endv;
     if (v === undefined) return 0;
-    
+
     return get_vtime(v);
   }
-  
+
   draw(g, matrix, alpha, time) {
     if (!(this.visible))
       return;
-    
-    var step_func = this.animflag & VDAnimFlags.STEP_FUNC;
-    
-    var start = this.start_time, end = this.end_time;
-    
+
+    let step_func = this.animflag & VDAnimFlags.STEP_FUNC;
+
+    let start = this.start_time, end = this.end_time;
+
     g.lineWidth = 2.0;
-    g.strokeStyle = "rgba(100,100,100,"+alpha+")";
-    
-    var dt = 1.0;
-    var lastco = undefined;
+    g.strokeStyle = "rgba(100,100,100," + alpha + ")";
+
+    let dt = 1.0;
+    let lastco = undefined;
     let dv = new Vector4();
-    
-    for (var t = start; t<end; t += dt) {
-      var co = this.evaluate(t);
+
+    for (let t = start; t < end; t += dt) {
+      let co = this.evaluate(t);
       dv.load(this.derivative(t));
 
       co.multVecMatrix(matrix);
       dv.multVecMatrix(matrix);
 
       dv.normalize().mulScalar(5);
-      let tmp = dv[0]; dv[0] = -dv[1]; dv[1] = tmp;
-      
+      let tmp = dv[0];
+      dv[0] = -dv[1];
+      dv[1] = tmp;
+
       g.beginPath();
-      
-      let green = Math.floor(((t - start)/(end - start))*255) ;
-      g.strokeStyle = "rgba(10, "+green+",10,"+alpha+")";
-      
-      /*if (t == start+dt)
+
+      let green = Math.floor(((t - start)/(end - start))*255);
+      g.strokeStyle = "rgba(10, " + green + ",10," + alpha + ")";
+
+      /*if (t === start+dt)
         g.strokeStyle = "rgba(100, 255, 140,"+alpha+")";
       else if (t >= end-dt)
         g.strokeStyle = "rgba(255, 140, 100,"+alpha+")";
       else
         g.strokeStyle = "rgba(0.0, 0.0, 0.0,"+alpha+")";
       */
-      
-      g.moveTo(co[0]-dv[0], co[1]-dv[1]);
-      g.lineTo(co[0]+dv[0], co[1]+dv[1]);
-      
+
+      g.moveTo(co[0] - dv[0], co[1] - dv[1]);
+      g.lineTo(co[0] + dv[0], co[1] + dv[1]);
+
       g.stroke();
-      
+
       if (lastco !== undefined) {
         g.moveTo(lastco[0], lastco[1]);
         g.lineTo(co[0], co[1]);
         g.stroke();
       }
-      
+
       lastco = co;
     }
   }
-  
+
   derivative(time) {
-    var df = 0.001;
-    var a = this.evaluate(time);
-    var b = this.evaluate(time+df);
-    
+    let df = 0.001;
+    let a = this.evaluate(time);
+    let b = this.evaluate(time + df);
+
     b.sub(a).mulScalar(1.0/df);
     return dvcache.next().load(b);
   }
-  
+
   evaluate(time) {
     if (this.dead) {
       console.error("dead vertex anim key");
       return;
     }
 
-    var v = this.startv;
-    var step_func = this.animflag & VDAnimFlags.STEP_FUNC;
-    
+    let v = this.startv;
+    let step_func = this.animflag & VDAnimFlags.STEP_FUNC;
+
     if (v === undefined)
       return vertanimdata_eval_cache.next().zero();
-    
-    var co = vertanimdata_eval_cache.next();
+
+    let co = vertanimdata_eval_cache.next();
     if (time <= get_vtime(v)) {
       co.load(v);
       return co;
     }
-    
+
     //console.log("eval 1", v);
-    
+
     if (v.segments.length === 0) {
       co.load(v);
       return co;
     }
-    
-    var s = v.segments[0];
-    var lastv = v;
-    var lasts = s;
-    var lastv2 = v;
-    
+
+    let s = v.segments[0];
+    let lastv = v;
+    let lasts = s;
+    let lastv2 = v;
+
     //console.log("eval 2", v);
-    
+
     while (1) {
       //console.log("  eval loop", get_vtime(v));
-      
+
       lastv2 = lastv;
       lastv = v;
       v = s.other_vert(v);
-      
+
       if (get_vtime(v) >= time) break;
-      
+
       if (v.segments.length < 2) {
         lastv2 = lastv;
         lastv = v;
         break;
       }
-      
+
       lasts = s;
       s = v.other_segment(s);
     }
-    
+
     //console.log("eval 3", get_vtime(v));
-    var nextv = v, nextv2 = v;
-    var alen1 = s !== undefined ? s.length : 1, alen2 = alen1;
-    var alen0 = lasts !== undefined ? lasts.length : alen1, alen3=alen1;
-    
+    let nextv = v, nextv2 = v;
+    let alen1 = s !== undefined ? s.length : 1, alen2 = alen1;
+    let alen0 = lasts !== undefined ? lasts.length : alen1, alen3 = alen1;
+
     if (v.segments.length === 2) {
-      var nexts = v.other_segment(s);
-      
+      let nexts = v.other_segment(s);
+
       nextv = nexts.other_vert(v);
       alen2 = nexts.length;
       alen3 = alen2;
     }
-    
+
     nextv2 = nextv;
     if (nextv2.segments.length === 2) {
-      var nexts2 = nextv2.other_segment(nexts);
+      let nexts2 = nextv2.other_segment(nexts);
       nextv2 = nexts2.other_vert(nextv2);
-      
+
       alen3 = nexts2.length;
     }
-    
+
     /*
     on factor;
     off period;
@@ -633,192 +639,195 @@ export class VertexAnimData {
     
     off fort;
     */
-    
+
     if (lastv === v || get_vtime(lastv) === time) {
       co.load(v);
     } else {
-      var pt2 = get_vtime(lastv2), pt = get_vtime(lastv), vt = get_vtime(v);
-      var nt = get_vtime(nextv), nt2 = get_vtime(nextv2);
-      
-      var t = (time - pt) / (vt-pt);
-      
-      var a=pt, b, c, d=vt;
-      var arclength1 = alen0;
-      var arclength2 = alen1;
-      var arclength3 = alen2;
-      
-      var t0 = pt2, t3 = pt, t6 = vt, t9 = nt;
-      
-      var t1 = pt2 + (pt - pt2)*(1.0/3.0);
-      var t8 = vt  + (nt -  vt)*(2.0/3.0);
-      
-      var b = (-(t0-t1)*(t3-t6)*arclength1+(t0-t3)*arclength2*t3)/((t0-t3)*arclength2);
-      var c = ((t3-t6)*(t8-t9)*arclength3+(t6-t9)*arclength2*t6)/((t6-t9)*arclength2);
-      
-      var r1 = alen0/alen1;
-      var r2 = alen1/alen2;
-      
+      let pt2 = get_vtime(lastv2), pt = get_vtime(lastv), vt = get_vtime(v);
+      let nt = get_vtime(nextv), nt2 = get_vtime(nextv2);
+
+      let t = (time - pt)/(vt - pt);
+
+      let a = pt, b, c, d = vt;
+      let arclength1 = alen0;
+      let arclength2 = alen1;
+      let arclength3 = alen2;
+
+      let t0 = pt2, t3 = pt, t6 = vt, t9 = nt;
+
+      let t1 = pt2 + (pt - pt2)*(1.0/3.0);
+      let t8 = vt + (nt - vt)*(2.0/3.0);
+
+      b = (-(t0 - t1)*(t3 - t6)*arclength1 + (t0 - t3)*arclength2*t3)/((t0 - t3)*arclength2);
+      c = ((t3 - t6)*(t8 - t9)*arclength3 + (t6 - t9)*arclength2*t6)/((t6 - t9)*arclength2);
+
+      let r1 = alen0/alen1;
+      let r2 = alen1/alen2;
+
       //console.log("r1, r2", r1.toFixed(3), r2.toFixed(3));
-      
+
       //b = pt + (vt-pt)*(1.0/3.0)*r1;
       //c = pt + (vt-pt)*(2.0/3.0)*r2;
       b = pt + r1*(vt - pt2)/3.0;
       c = vt - r2*(nt - pt)/3.0;
-      
+
       //if (b > pt-pt2) b = pt-pt2;
       //if (c > vt-pt)  c = vt-pt;
-      
-      var t0 = a, t1 = b, t2 = c, t3 = d;
-      var tt = -(3*(t0-t1)*t - t0 + 3*(2*t1-t2-t0)*t*t +
-        (3*t2-t3-3*t1 + t0)*t*t*t);
+
+      t0 = a;
+      t1 = b;
+      t2 = c;
+      t3 = d;
+      let tt = -(3*(t0 - t1)*t - t0 + 3*(2*t1 - t2 - t0)*t*t +
+        (3*t2 - t3 - 3*t1 + t0)*t*t*t);
       //*/
-      
+
       tt = Math.abs(tt);
       //t = (tt - pt) / (vt-pt);
-      
+
       if (step_func) {
         t = time < vt ? 0.0 : 1.0;
       }
       //t = 1.0;
-      
-      co.load(s.evaluate(lastv === s.v1 ? t : 1-t));
+
+      co.load(s.evaluate(lastv === s.v1 ? t : 1 - t));
     }
-    
+
     return co;
   }
-  
+
   get endv() {
-    var v = this.startv;
-    
+    let v = this.startv;
+
     if (v === undefined) return undefined;
     if (v.segments.length === 0) return v;
-    
-    var s = v.segments[0];
+
+    let s = v.segments[0];
     while (1) {
       v = s.other_vert(v);
-      
+
       if (v.segments.length < 2) break;
       s = v.other_segment(s);
     }
-    
+
     return v;
   }
-  
+
   check_time_integrity() {
-    var lasttime = -100000;
-    
-    for (var v of this.verts) {
-      var t = get_vtime(v);
-      
+    let lasttime = -100000;
+
+    for (let v of this.verts) {
+      let t = get_vtime(v);
+
       if (t < lasttime) {
         console.log("Found timing integrity error for vertex", this.eid, "path vertex:", v.eid);
         //set_vtime(g_app_state.ctx.frameset.pathspline, v, lasttime);
         this.regen_topology();
         return true;
       }
-      
+
       lasttime = t;
     }
-    
+
     return false;
   }
-  
+
   regen_topology() {
-    var spline = this.spline;
-    var verts = [];
-    var segs = new set();
-    var visit = new set();
-    
-    var handles = [];
-    var lastv = undefined;
-    var hi = 0;
-    
+    let spline = this.spline;
+    let verts = [];
+    let segs = new set();
+    let visit = new set();
+
+    let handles = [];
+    let lastv = undefined;
+    let hi = 0;
+
     //get flat list of verts, along with handles
-    for (var v of this.verts) {
+    for (let v of this.verts) {
       //check for duplicates
       if (visit.has(v)) {
         continue;
       }
-      
+
       visit.add(v);
       verts.push(v);
-      
+
       handles.push(undefined);
       handles.push(undefined);
       hi += 2;
-      
+
       v.flag |= SplineFlags.UPDATE;
-      
-      for (var s of v.segments) {
+
+      for (let s of v.segments) {
         segs.add(s);
-        
-        var v2 = s.other_vert(v);
-        var h2 = s.other_handle(s.handle(v));
-        
+
+        let v2 = s.other_vert(v);
+        let h2 = s.other_handle(s.handle(v));
+
         //keep track of handles
         if (v2 === lastv) {
-          handles[hi-2] = h2;
+          handles[hi - 2] = h2;
         } else {
-          handles[hi-1] = h2;
+          handles[hi - 1] = h2;
         }
       }
-      
+
       lastv = v;
     }
-    
-    if (verts.length == 0) {
+
+    if (verts.length === 0) {
       return;
     }
-    
+
     //sort by time
-    verts.sort(function(a, b) {
+    verts.sort(function (a, b) {
       return get_vtime(a) - get_vtime(b);
     });
-    
+
     //kill old segments
-    for (var s of segs) {
+    for (let s of segs) {
       spline.kill_segment(s);
     }
-    
+
     //set new start vertex
     this.startv_eid = verts[0].eid;
-    
+
     //create new segments
-    for (var i=1; i<verts.length; i++) {
-      var s = spline.make_segment(verts[i-1], verts[i]);
-      
+    for (let i = 1; i < verts.length; i++) {
+      let s = spline.make_segment(verts[i - 1], verts[i]);
+
       s.flag |= SplineFlags.UPDATE;
       s.h1.flag |= SplineFlags.UPDATE;
       s.h2.flag |= SplineFlags.UPDATE;
-      
-      for (var k in s.v1.layers) {
+
+      for (let k in s.v1.layers) {
         spline.layerset.idmap[k].add(s);
       }
     }
-    
+
     //migrate old handle data
-    
-    var hi = 0;
-    var lastv = undefined;
-    
-    for (var v of verts) {
-      for (var s of v.segments) {
-        var v2 = s.other_vert(v);
-        var h2 = s.other_handle(s.handle(v));
-        
+
+    hi = 0;
+    lastv = undefined;
+
+    for (let v of verts) {
+      for (let s of v.segments) {
+        let v2 = s.other_vert(v);
+        let h2 = s.other_handle(s.handle(v));
+
         //XXX note: technically we are accessing dead data here
         if (v2 === lastv && handles[hi] !== undefined) {
           h2.load(handles[hi]);
-        } else if (v2 !== lastv && handles[hi+1] !== undefined) {
-          h2.load(handles[hi+1]);
+        } else if (v2 !== lastv && handles[hi + 1] !== undefined) {
+          h2.load(handles[hi + 1]);
         }
       }
-      
+
       lastv = v;
       hi += 2;
     }
   }
-  
+
   loadSTRUCT(reader) {
     reader(this);
     //this.timechannel_verts = new set(this.timechannel_verts);

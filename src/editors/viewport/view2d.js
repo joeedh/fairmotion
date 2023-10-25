@@ -32,8 +32,8 @@ let _v3d_unstatic_temps = cachering.fromConstructor(Vector3, 512);
 let _v2d_unstatic_temps = cachering.fromConstructor(Vector2, 32);
 
 function delay_redraw(ms: number) {
-  var start_time = time_ms();
-  var timer = window.setInterval(function () {
+  let start_time = time_ms();
+  let timer = window.setInterval(function () {
     if (time_ms() - start_time < ms)
       return;
 
@@ -247,12 +247,12 @@ export class View2DHandler extends Editor {
   }
 
   define_keymap() {
-    var k = this.keymap;
+    let k = this.keymap;
 
-    var this2 = this;
+    let this2 = this;
     //cycle through select modes
     k.add(new HotKey("T", [], function (ctx: FullContext) {
-      var s = ctx.view2d.selectmode, s2;
+      let s = ctx.view2d.selectmode, s2;
 
       let hf = s & SelMask.HANDLE;
       s2 &= ~SelMask.HANDLE;
@@ -279,7 +279,7 @@ export class View2DHandler extends Editor {
     }, "Toggle Proportional Transform"));
 
     k.add(new HotKey("K", [], function (ctx: FullContext) {
-      g_app_state.toolstack.execTool(new CurveRootFinderTest());
+      g_app_state.toolstack.execTool(ctx, new CurveRootFinderTest());
     }));
 
     k.add(new HotKey("Right", [], function (ctx: FullContext) {
@@ -287,7 +287,7 @@ export class View2DHandler extends Editor {
       ctx.scene.change_time(ctx, ctx.scene.time + 1);
 
       window.redraw_viewport();
-      //var tool = new FrameChangeOp(ctx.scene.time+1);
+      //let tool = new FrameChangeOp(ctx.scene.time+1);
     }, "Next Frame"));
 
     k.add(new HotKey("Left", [], function (ctx: FullContext) {
@@ -295,7 +295,7 @@ export class View2DHandler extends Editor {
       ctx.scene.change_time(ctx, ctx.scene.time - 1);
 
       window.redraw_viewport();
-      //var tool = new FrameChangeOp(ctx.scene.time-1);
+      //let tool = new FrameChangeOp(ctx.scene.time-1);
     }, "Previous Frame"));
 
     /*k.add(new HotKey("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
@@ -382,7 +382,7 @@ export class View2DHandler extends Editor {
   }
 
   set_cameramat(mat: Matrix4 = undefined) {
-    var cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
+    let cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
 
     if (mat !== undefined)
       cam.load(mat);
@@ -547,8 +547,8 @@ export class View2DHandler extends Editor {
     //console.log(this.size);
     let buffer = window._wait_for_draw;
 
-    var canvas = this.get_fg_canvas();
-    var bgcanvas = this.get_bg_canvas();
+    let canvas = this.get_fg_canvas();
+    let bgcanvas = this.get_bg_canvas();
 
     if (buffer) {
       canvas = this.get_fg_canvas(this._flip ^ 1);
@@ -556,15 +556,15 @@ export class View2DHandler extends Editor {
     }
 
 
-    var g = this.drawg = canvas.g;
-    var bg_g = bgcanvas.g;
+    let g = this.drawg = canvas.g;
+    let bg_g = bgcanvas.g;
 
     if (bgcanvas !== undefined) {
       bgcanvas.style["backgroundColor"] = this.background_color.toCSS();
     }
 
-    var w = this.size[0];
-    var h = this.size[1];
+    let w = this.size[0];
+    let h = this.size[1];
 
     g._irender_mat = this.irendermat;
     bg_g._irender_mat = this.irendermat;
@@ -581,15 +581,15 @@ export class View2DHandler extends Editor {
 
     g.dpi_scale = this.dpi_scale;
 
-    var p1 = new Vector2([0, 0]); //this.pos[0], this.pos[1]]);
-    var p2 = new Vector2([this.size[0], this.size[1]]);
+    let p1 = new Vector2([0, 0]); //this.pos[0], this.pos[1]]);
+    let p2 = new Vector2([this.size[0], this.size[1]]);
     this.unproject(p1), this.unproject(p2);
 
-    var r = redraw_rects;
+    let r = redraw_rects;
 
     //*
     g.beginPath();
-    for (var i = 0; i < r.length; i += 4) {
+    for (let i = 0; i < r.length; i += 4) {
       g.moveTo(r[i], r[i + 1]);
       g.lineTo(r[i], r[i + 3]);
       g.lineTo(r[i + 2], r[i + 3]);
@@ -620,8 +620,8 @@ export class View2DHandler extends Editor {
 
 
     if (this.draw_video && this.video !== undefined) {
-      var frame = Math.floor(this.video_time);
-      var image = this.video.get(frame);
+      let frame = Math.floor(this.video_time);
+      let image = this.video.get(frame);
       if (image !== undefined) {
         //console.log("image", image);
 
@@ -631,8 +631,8 @@ export class View2DHandler extends Editor {
 
     //get_dom_image
     if (this.draw_bg_image && this.background_image.image !== undefined) {
-      var img = this.background_image.image.get_dom_image();
-      var iuser = this.background_image;
+      let img = this.background_image.image.get_dom_image();
+      let iuser = this.background_image;
 
       let off = new Vector2(iuser.off);
       let scale = new Vector2(iuser.scale);
@@ -697,21 +697,21 @@ export class View2DHandler extends Editor {
       this._draw_promise = promise;
     }
 
-    var frameset = this.ctx.frameset;
-    var spline = frameset.spline;
+    let frameset = this.ctx.frameset;
+    let spline = frameset.spline;
 
-    var actspline = this.ctx.spline;
-    var pathspline = this.ctx.frameset.pathspline;
+    let actspline = this.ctx.spline;
+    let pathspline = this.ctx.frameset.pathspline;
 
     if (this.draw_anim_paths) {
       if (this.only_render && pathspline.resolve) {
         pathspline.solve();
       } else if (!this.only_render) {
-        for (var v of spline.verts.selected) {
+        for (let v of spline.verts.selected) {
           if (!(v.eid in frameset.vertex_animdata)) continue;
 
-          var vdata = frameset.vertex_animdata[v.eid];
-          var alpha = vdata.spline === actspline ? 1.0 : 0.2;
+          let vdata = frameset.vertex_animdata[v.eid];
+          let alpha = vdata.spline === actspline ? 1.0 : 0.2;
 
           vdata.draw(g, matrix, alpha, this.ctx.frameset.time, redraw_rects);
         }
@@ -730,10 +730,10 @@ export class View2DHandler extends Editor {
 
     this.editor.ctx = this.ctx;
 
-    var fl = Math.floor;
-    for (var k in this.drawline_groups) {
-      for (var dl of this.drawline_groups[k]) {
-        var a = dl.clr[3] !== undefined ? dl.clr[3] : 1.0;
+    let fl = Math.floor;
+    for (let k in this.drawline_groups) {
+      for (let dl of this.drawline_groups[k]) {
+        let a = dl.clr[3] !== undefined ? dl.clr[3] : 1.0;
 
         g.strokeStyle = "rgba(" + fl(dl.clr[0]*255) + "," + fl(dl.clr[1]*255) + "," + fl(dl.clr[2]*255) + "," + a + ")";
         g.lineWidth = dl.width;
@@ -748,7 +748,7 @@ export class View2DHandler extends Editor {
     //r2[1][0] += r2[0][0];
     //r2[1][1] += r2[0][1];
     /*
-    for (var rect of this.widgets.get_render_rects(this.ctx, canvas, g)) {
+    for (let rect of this.widgets.get_render_rects(this.ctx, canvas, g)) {
       if (aabb_isect_2d(r2[0], r2[1], rect[0], rect[1])) {
         draw_widget = true;
         break;
@@ -842,7 +842,7 @@ export class View2DHandler extends Editor {
     tabs.style["height"] = "400px";
     tabs.float(1, 3*25*UIBase.getDPI(), 7);
 
-    var tools = tabs.tab("Tools", "Tools");
+    let tools = tabs.tab("Tools", "Tools");
     //*
     tools.prop("view2d.toolmode",
       PackFlags.USE_ICONS | PackFlags.VERTICAL | PackFlags.LARGE_ICON
@@ -851,12 +851,12 @@ export class View2DHandler extends Editor {
 
     tools.iconbutton(Icons.UNDO, "  Hotkey : CTRL-Z", () => {
       g_app_state.toolstack.undo();
-      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+      delay_redraw(50); //stupid hack to deal with async spline solve
     });
 
     tools.iconbutton(Icons.REDO, "  Hotkey : CTRL-SHIFT-Z", () => {
       g_app_state.toolstack.redo();
-      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+      delay_redraw(50); //stupid hack to deal with async spline solve
     });
 
 
@@ -901,8 +901,6 @@ export class View2DHandler extends Editor {
     let row = super.makeHeader(container);
 
     row.noMargins();
-
-    console.log("VIEW2D ctx:", this.ctx);
 
     row.prop("view2d.zoom");
     row.prop("view2d.edit_all_layers");
@@ -971,11 +969,11 @@ export class View2DHandler extends Editor {
     //  this.default_linewidth = 2.0;
     //}
 
-    if (this.pinned_paths != undefined && this.pinned_paths.length == 0)
+    if (this.pinned_paths !== undefined && this.pinned_paths.length === 0)
       this.pinned_paths = undefined;
 
     /*
-    if (this.editor == undefined) {
+    if (this.editor === undefined) {
       console.log("WARNING: corrupted View2DHandler sturct data");
       this.editor = this.editors[0];
     } else {
@@ -1026,21 +1024,21 @@ export class View2DHandler extends Editor {
   }
 
   get pin_paths() {
-    return this.pinned_paths != undefined;
+    return this.pinned_paths !== undefined;
   }
 
   set pin_paths(state) {
     if (!state) {
       this.pinned_paths = undefined;
-      if (this.ctx != undefined && this.ctx.frameset != undefined) {
+      if (this.ctx !== undefined && this.ctx.frameset !== undefined) {
         this.ctx.frameset.switch_on_select = true;
         this.ctx.frameset.update_visibility();
       }
     } else {
-      var spline = this.ctx.frameset.spline;
+      let spline = this.ctx.frameset.spline;
 
-      var eids = [];
-      for (var v of spline.verts.selected.editable(this.ctx)) {
+      let eids = [];
+      for (let v of spline.verts.selected.editable(this.ctx)) {
         eids.push(v.eid);
       }
 
@@ -1054,7 +1052,7 @@ export class View2DHandler extends Editor {
   }
 
   set draw_normals(val) {
-    if (val != this._draw_normals) {
+    if (val !== this._draw_normals) {
       this.draw_viewport = 1;
     }
 
@@ -1066,7 +1064,7 @@ export class View2DHandler extends Editor {
   }
 
   set draw_anim_paths(val) {
-    if (val != this._draw_anim_paths) {
+    if (val !== this._draw_anim_paths) {
       this.draw_viewport = 1;
     }
 
@@ -1078,7 +1076,7 @@ export class View2DHandler extends Editor {
   }
 
   set only_render(val) {
-    if (val != this._only_render) {
+    if (val !== this._only_render) {
       this.draw_viewport = 1;
     }
 
@@ -1086,7 +1084,7 @@ export class View2DHandler extends Editor {
   }
 
   _get_dl_group(group) {
-    if (group == undefined)
+    if (group === undefined)
       group = "main";
 
     if (!(group in this.drawline_groups)) {
@@ -1097,16 +1095,16 @@ export class View2DHandler extends Editor {
   }
 
   make_drawline(v1, v2, group = "main", color = undefined, width = 2) {
-    var drawlines = this._get_dl_group(group);
+    let drawlines = this._get_dl_group(group);
 
-    var dl = new drawline(v1, v2, group, color, width);
+    let dl = new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
 
     dl.onremove = this.kill_drawline.bind(this);
 
     let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 
-    var pad = 5;
+    let pad = 5;
 
     min[0] = Math.min(v1[0], v2[0]) - pad;
     min[1] = Math.min(v1[1], v2[1]) - pad;
@@ -1121,10 +1119,10 @@ export class View2DHandler extends Editor {
   kill_drawline(dl) {
     let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 
-    var drawlines = this._get_dl_group(dl.group);
-    var pad = 5;
+    let drawlines = this._get_dl_group(dl.group);
+    let pad = 5;
 
-    var v1 = dl.v1, v2 = dl.v2;
+    let v1 = dl.v1, v2 = dl.v2;
 
     min[0] = Math.min(v1[0], v2[0]) - pad;
     min[1] = Math.min(v1[1], v2[1]) - pad;
@@ -1137,7 +1135,7 @@ export class View2DHandler extends Editor {
   }
 
   reset_drawlines(group = "main") {
-    var drawlines = this._get_dl_group(group);
+    let drawlines = this._get_dl_group(group);
 
     drawlines.reset();
   }
@@ -1151,10 +1149,10 @@ export class View2DHandler extends Editor {
   }
 
   get_keymaps() {
-    var ret = [this.keymap];
+    let ret = [this.keymap];
 
-    var maps = this.editor.get_keymaps();
-    for (var i = 0; i < maps.length; i++) {
+    let maps = this.editor.get_keymaps();
+    for (let i = 0; i < maps.length; i++) {
       ret.push(maps[i]);
     }
 
@@ -1237,13 +1235,13 @@ export class View2DHandler extends Editor {
 
       if (this.editor.on_mousedown(event)) return;
 
-      var selfound = false;
-      var is_middle = event.button === 1 || (event.button === 2 && g_app_state.screen.ctrl);
+      let selfound = false;
+      let is_middle = event.button === 1 || (event.button === 2 && g_app_state.screen.ctrl);
 
-      var tottouch = event.touches ? event.touches.length : 0;
+      let tottouch = event.touches ? event.touches.length : 0;
 
       if (tottouch >= 2) {
-        var tool = new PanOp();
+        let tool = new PanOp();
 
         this.ctx.api.execTool(this.ctx, tool);
       } else if (is_middle && this.shift) {
@@ -1254,7 +1252,7 @@ export class View2DHandler extends Editor {
     }
 
     if (event.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
-      var tool = new PanOp();
+      let tool = new PanOp();
 
       this.ctx.api.execTool(this.ctx, tool);
       //this.rightclick_menu(event);
@@ -1291,20 +1289,20 @@ export class View2DHandler extends Editor {
 
     //console.log(event.x, event.y);
 
-    var mpos = new Vector3([event.x, event.y, 0])
+    let mpos = new Vector3([event.x, event.y, 0])
     this.mpos = mpos;
 
-    var this2 = this;
+    let this2 = this;
 
     function switch_on_multitouch(op: TranslateOp, event: MouseEvent, cancel_func: any) {
       if (g_app_state.screen.tottouch > 1) {
         this2._mstart = null;
         cancel_func();
-        //XXX g_app_state.toolstack.execTool(new ViewRotateZoomPanOp());
+        //XXX g_app_state.toolstack.execTool(this2.ctx, new ViewRotateZoomPanOp());
       }
 
-      if (this._mstart != null) {
-        var vec = new Vector2(this.mpos);
+      if (this._mstart !== null) {
+        let vec = new Vector2(this.mpos);
         vec.sub(this._mstart);
 
         /*handle drag translate*/
@@ -1312,7 +1310,7 @@ export class View2DHandler extends Editor {
           this._mstart = null;
           return; //XXX
 
-          var top = new TranslateOp(EditModes.GEOMETRY);
+          let top = new TranslateOp(EditModes.GEOMETRY);
 
           /*callback to cancel drag translate if
             multiple touch hotspots show up.
@@ -1320,7 +1318,7 @@ export class View2DHandler extends Editor {
         }
 
         top.cancel_callback = switch_on_multitouch;
-        g_app_state.toolstack.execTool(top);
+        g_app_state.toolstack.execTool(g_app_state.ctx, top);
         this._mstart = null;
 
         return;
@@ -1336,13 +1334,13 @@ export class View2DHandler extends Editor {
   //assumes event has had this._offset_mpos called on it
   /*
   _find_active(MouseEvent e) {
-    var mpos = [e.x, e.y];
+    let mpos = [e.x, e.y];
 
     static pos = [0, 0];
 
-    var found = false;
-    for (var i=this.children.length-1; i >= 0; i--) {
-      var c = this.children[i];
+    let found = false;
+    for (let i=this.children.length-1; i >= 0; i--) {
+      let c = this.children[i];
 
       pos[0] = c.pos[0], pos[1] = c.pos[1];
 
@@ -1356,13 +1354,13 @@ export class View2DHandler extends Editor {
 
       if (inrect_2d(mpos, pos, c.size)) {
         found = true;
-        if (this.active != c && this.active != undefined) {
+        if (this.active !== c && this.active !== undefined) {
           this.active.state &= ~UIFlags.HIGHLIGHT;
           this.active.on_inactive();
           this.active.do_recalc();
         }
 
-        if (this.active != c) {
+        if (this.active !== c) {
           //console.log("active", c.constructor.name);
 
           c.state |= UIFlags.HIGHLIGHT;
@@ -1375,7 +1373,7 @@ export class View2DHandler extends Editor {
       }
     }
 
-    if (!found && this.active != undefined) {
+    if (!found && this.active !== undefined) {
       //console.log("inactive", get_type_name(this))
       this.active.state &= ~UIFlags.HIGHLIGHT;
       this.active.on_inactive();
@@ -1398,7 +1396,7 @@ export class View2DHandler extends Editor {
   }
 
   updateDPI() {
-    if (this._last_dpi != UIBase.getDPI()) {
+    if (this._last_dpi !== UIBase.getDPI()) {
       window.redraw_viewport();
       this.setCSS();
     }
@@ -1523,7 +1521,7 @@ export class View2DHandler extends Editor {
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {
       this.video = video.manager.get("/video.mp4");
 
-      if (this.video_time != this.ctx.scene.time) {
+      if (this.video_time !== this.ctx.scene.time) {
         this.video_time = this.ctx.scene.time;
         window.force_viewport_redraw();
       }
@@ -1557,7 +1555,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   enable_blur       : bool;
   draw_faces        : bool;
   draw_video        : bool;
-  pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
+  pinned_paths      : array(int) | obj.pinned_paths !== undefined ? obj.pinned_paths : [];
   background_image  : ImageUser;
   background_color  : vec3;
   draw_bg_image     : int;

@@ -424,16 +424,16 @@ export class SplineEditor extends View2DEditor {
       
       if (selectmode === SelMask.MULTIRES) {
         let tool = new mr_selectops.ToggleSelectAll();
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(ctx, tool);
       } else if (selectmode & SelMask.MULTIRES) {
         let tool = new mr_selectops.ToggleSelectAll();
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(ctx, tool);
 
         let tool = new spline_selectops.ToggleSelectAllOp();
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(ctx, tool);
       } else {
         let tool = new spline_selectops.ToggleSelectAllOp();
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(ctx, tool);
       }
     }));*/
 
@@ -463,7 +463,7 @@ export class SplineEditor extends View2DEditor {
         tool.inputs.vertex_eid.setValue(ret[0].eid);
         tool.inputs.mode.setValue("SELECT");
         
-        ctx.appstate.toolstack.execTool(tool);
+        ctx.appstate.toolstack.execTool(ctx, tool);
       }
     }, "Select Linked"));
     
@@ -476,7 +476,7 @@ export class SplineEditor extends View2DEditor {
         tool.inputs.vertex_eid.setValue(ret[0].eid);
         tool.inputs.mode.setValue("deselect");
         
-        ctx.appstate.toolstack.execTool(tool);
+        ctx.appstate.toolstack.execTool(ctx, tool);
       }
     }, "Select Linked"));
     
@@ -491,17 +491,17 @@ export class SplineEditor extends View2DEditor {
         console.log("kill segments");
         
         let op = new DeleteSegmentOp();
-        g_app_state.toolstack.execTool(op);
+        g_app_state.toolstack.execTool(ctx, op);
       } else if (this2.selectmode & SelMask.FACE) {
         console.log("kill faces");
         
         let op = new DeleteFaceOp();
-        g_app_state.toolstack.execTool(op);
+        g_app_state.toolstack.execTool(ctx, op);
       } else {
         console.log("kill verts");
         
         let op = new DeleteVertOp();
-        g_app_state.toolstack.execTool(op);
+        g_app_state.toolstack.execTool(ctx, op);
       }
     }
     
@@ -626,7 +626,7 @@ export class SplineEditor extends View2DEditor {
         op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
         op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
         
-        g_app_state.toolstack.execTool(op);
+        g_app_state.toolstack.execTool(this.ctx, op);
         redraw_viewport();
       }  else {
         for (let i=0; i<spline.elists.length; i++) {
@@ -642,7 +642,7 @@ export class SplineEditor extends View2DEditor {
                                   this.selectmode, true);
           //console.log("exec selectoneop op");
           
-          g_app_state.toolstack.execTool(op);
+          g_app_state.toolstack.execTool(this.ctx, op);
         }
       }
       
@@ -769,7 +769,7 @@ export class SplineEditor extends View2DEditor {
         op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
       
-      g_app_state.toolstack.execTool(op);
+      g_app_state.toolstack.execTool(ctx, op);
       return;
     }
     

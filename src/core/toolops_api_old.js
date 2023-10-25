@@ -1431,7 +1431,7 @@ class WidgetToolOp extends ToolOp {
       mat.multiply(ctx.object.matrix);
     }
     */
-    g_app_state.toolstack.execTool(toolop);
+    g_app_state.toolstack.execTool(g_app_state.ctx, toolop);
   }
 }
 

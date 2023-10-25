@@ -1428,7 +1428,7 @@ export class SplineFrameSet extends DataBlock {
       }
     }
 
-    for (k in this.frames) {
+    for (let k in this.frames) {
       this.frames[k].spline.verts.select_listeners.addListener(this.on_spline_select, this);
       this.frames[k].spline.handles.select_listeners.addListener(this.on_spline_select, this);
     }

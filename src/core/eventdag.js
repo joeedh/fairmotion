@@ -1,7 +1,7 @@
 "use strict";
 
 //interface
-var _event_dag_idgen = undefined;
+let _event_dag_idgen = undefined;
 
 import '../util/vectormath.js';
 

@@ -11,19 +11,19 @@ document.body.style["margin"] = document.body.style["padding"] = "0px";
 /*
 if (window.mobilecheck === undefined) {
   window.mobilecheck = function mobilecheck() {
-    var str = navigator.userAgent + navigator.vendor;
+    let str = navigator.userAgent + navigator.vendor;
 
     function test(s) {
-      var ret = str.match(s)
-      if (ret == null || ret == undefined) return false;
-      if (ret.length == 0 || ret.length == undefined)
+      let ret = str.match(s)
+      if (ret === null || ret === undefined) return false;
+      if (ret.length === 0 || ret.length === undefined)
         return false;
 
       return true;
     }
 
     str = str.toLowerCase();
-    var ret = test("android") || test("mobile") || test("blackberry") || test("iphone")
+    let ret = test("android") || test("mobile") || test("blackberry") || test("iphone")
 
     return ret;
   }
@@ -59,7 +59,7 @@ class MyLocalStorage_ChromeApp {
   }
 
   set(key, val) {
-    var obj = {};
+    let obj = {};
     obj[key] = val;
 
     chrome.storage.local.set(obj);
@@ -71,19 +71,19 @@ class MyLocalStorage_ChromeApp {
   }
 
   getAsync(key) {
-    var this2 = this;
+    let this2 = this;
 
     return new Promise(function (accept, reject) {
       chrome.storage.local.get(key, function (value) {
-        if (chrome.runtime.lastError != undefined) {
+        if (chrome.runtime.lastError !== undefined) {
           this2.cache[key] = null;
           reject(chrome.runtime.lastError.string);
         } else {
-          if (value != {} && value != undefined && key in value) {
+          if (value !== {} && value !== undefined && key in value) {
             value = value[key];
           }
 
-          if (typeof value == "object")
+          if (typeof value === "object")
             value = JSON.stringify(value);
 
           this2.cache[key] = value;
@@ -112,7 +112,7 @@ window.startup = function startup() {
 
       //feed an on_resize event
       window.setTimeout(function () {
-        //var canvas = document.getElementById("canvas2d");
+        //let canvas = document.getElementById("canvas2d");
 
         window._ensure_thedimens();
         g_app_state.screen.on_resize([window.theWidth, window.theHeight]);
@@ -134,7 +134,7 @@ window.startup_intern = function startup() {
 
   /*
   try {
-    if (window.localStorage == undefined) {
+    if (window.localStorage === undefined) {
       window.myLocalStorage = {};
     } else {
       window.myLocalStorage = window.localStorage;
@@ -151,7 +151,7 @@ window.startup_intern = function startup() {
 
   if (window.CHROME_APP_MODE) {
     //set up some chrome app settings
-    var config = _es6_get_module("config", true);
+    let config = _es6_get_module("config", true);
     config.exports.HAVE_EVAL = false;
   }
 
@@ -173,41 +173,32 @@ window.startup_intern = function startup() {
     return false;
   };
 
-  //hrm, should probably remove this if check
-  //it was added for allshape, which had to deal
-  //with webgl context loss/regain cycles.
-  if (window.g_app_state === undefined) {
-    console.log(_es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports);
+  let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports;
+  register_toolops();
 
-    let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports;
-    register_toolops();
+  //initialize struct pack system
+  startup_report("parsing serialization scripts...");
+  init_struct_packer();
 
-    //initialize struct pack system
-    startup_report("parsing serialization scripts...");
-    init_struct_packer();
+  startup_report("loading icons and theme...");
+  init_pathux();
 
-    startup_report("loading icons and theme...");
-    init_pathux();
+  startup_report("initializing data api...");
 
-    startup_report("initializing data api...");
+  window.g_app_state = new AppState(undefined, undefined, undefined);
+  let w = window.innerWidth, h = window.innerHeight;
 
-    let body = document.body;
+  g_app_state.size = [w, h];
 
-    window.g_app_state = new AppState(undefined, undefined, undefined);
-    let w = window.innerWidth, h = window.innerHeight;
+  startup_report("create event dag...");
+  init_event_graph(g_app_state.ctx);
 
-    g_app_state.size = [w, h];
+  startup_report("loading new scene file...");
+  gen_default_file([w, h]);
 
-    startup_report("create event dag...");
-    init_event_graph(g_app_state.ctx);
-
-    startup_report("loading new scene file...");
-    gen_default_file([w, h]);
-
-    g_app_state.session.validate_session();
-    init_event_system();
-    init_redraw_globals_2();
-  }
+  g_app_state.session.validate_session();
+  init_event_system();
+  init_redraw_globals_2();
 }
 
 function init_pathux() {
@@ -252,8 +243,8 @@ function init_event_system() {
     if (window.redraw_start_times === undefined)
       return;
 
-    for (var k in window.redraw_start_times) {
-      var t = window.redraw_start_times[k];
+    for (let k in window.redraw_start_times) {
+      let t = window.redraw_start_times[k];
       /* don't let delayed redraw linger
          for more than one and a half seconds */
       if (time_ms() - t > 1500) {
@@ -269,16 +260,16 @@ function init_event_system() {
   //  }
   //}
 
-  var config = _es6_get_module(_rootpath_src + "src/config/config.js");
+  let config = _es6_get_module(_rootpath_src + "src/config/config.js");
 
   //start primary on_tick timer
 
   function gen_keystr(key, keystate) {
-    if (typeof key == "number") {
+    if (typeof key === "number") {
       key = String.fromCharCode(key)
     }
 
-    var s = key.toUpperCase()
+    let s = key.toUpperCase()
     if (keystate.shift)
       s = "SHIFT-" + s
     if (keystate.alt)
@@ -288,7 +279,7 @@ function init_event_system() {
     return s
   }
 
-  var key_exclude_list = {}, ke = key_exclude_list;
+  let key_exclude_list = {}, ke = key_exclude_list;
 
   ke[gen_keystr("O", {shift: false, alt: false, ctrl: true})] = 0;
   ke[gen_keystr("R", {shift: false, alt: false, ctrl: true})] = 0;
@@ -308,11 +299,11 @@ function init_event_system() {
   ke[gen_keystr("O", {shift: true, alt: false, ctrl: true})] = 0;
 
   window._handle_key_exclude = function handle_key_exclude(e) {
-    var kc = charmap[e.keyCode];
+    let kc = charmap[e.keyCode];
     if (kc === undefined)
       kc = "";
 
-    var keystr = gen_keystr(kc, {
+    let keystr = gen_keystr(kc, {
       shift: e.shiftKey,
       alt  : e.altKey, ctrl: e.ctrlKey
     })
@@ -323,7 +314,7 @@ function init_event_system() {
     }
   }
 
-  //var ce = document.getElementById("canvas2d_work");
+  //let ce = document.getElementById("canvas2d_work");
 
   window.addEventListener("keydown", (e) => {
     _handle_key_exclude(e);

@@ -78,13 +78,13 @@ class LayerPanel extends Container {
 
     super.update();
 
-    if (this.ctx == undefined) return;
+    if (this.ctx === undefined) return;
 
-    var spline = this.ctx.frameset.spline;
+    let spline = this.ctx.frameset.spline;
 
-    var do_rebuild = spline.layerset.length != this.last_total_layers;
-    //do_rebuild = do_rebuild || this.last_spline_path != this.ctx.splinepath;
-    do_rebuild = do_rebuild || spline.layerset.active.id != this.last_active_id;
+    let do_rebuild = spline.layerset.length !== this.last_total_layers;
+    //do_rebuild = do_rebuild || this.last_spline_path !== this.ctx.splinepath;
+    do_rebuild = do_rebuild || spline.layerset.active.id !== this.last_active_id;
 
     this.do_rebuild |= do_rebuild;
 
@@ -96,12 +96,12 @@ class LayerPanel extends Container {
   }
 
   rebuild() {
-    if (this.ctx == undefined) return;
+    if (this.ctx === undefined) return;
     this.do_rebuild = false;
 
     console.log("layers ui rebuild!");
 
-    var spline = this.ctx.frameset.spline;
+    let spline = this.ctx.frameset.spline;
 
     //this.last_spline_path = this.ctx.splinepath;
     this.last_total_layers = spline.layerset.length;
@@ -121,8 +121,8 @@ class LayerPanel extends Container {
 
     let listbox = this.listbox();
 
-    for (var i=spline.layerset.length-1; i>= 0; i--) {
-      var layer = spline.layerset[i];
+    for (let i=spline.layerset.length-1; i>= 0; i--) {
+      let layer = spline.layerset[i];
 
       let row = listbox.addItem(layer.name, layer.id);
       console.log("Adding item", layer.name);
@@ -134,80 +134,80 @@ class LayerPanel extends Container {
     }
 
     listbox.onchange = (id, item) => {
-      var layer = spline.layerset.idmap[id];
+      let layer = spline.layerset.idmap[id];
 
-      if (layer == undefined) {
+      if (layer === undefined) {
         console.log("Error!", arguments);
         return;
       }
 
       console.log("Changing layers!", id);ChangeLayerOp
-      g_app_state.toolstack.execTool(new ChangeLayerOp(id));
+      g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id));
     }
     let row = this.row();
 
     row.iconbutton(Icons.SMALL_PLUS, "Add Layer", () => {
-      g_app_state.toolstack.execTool(new AddLayerOp());
+      g_app_state.toolstack.execTool(this.ctx, new AddLayerOp());
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SCROLL_UP, "Move Up", () => {
       console.log("Shift layers up");
-      var ctx = new Context(), spline = ctx.frameset.spline;
-      var layer = spline.layerset.active;
+      let ctx = new Context(), spline = ctx.frameset.spline;
+      let layer = spline.layerset.active;
 
-      var tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.execTool(tool);
+      let tool = new ShiftLayerOrderOp(layer.id, 1);
+      g_app_state.toolstack.execTool(this.ctx, tool);
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SCROLL_DOWN, "Move Down", () => {
       console.log("Shift layers down");
-      var ctx = new Context(), spline = ctx.frameset.spline;
-      var layer = spline.layerset.active;
+      let ctx = new Context(), spline = ctx.frameset.spline;
+      let layer = spline.layerset.active;
 
-      var tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.execTool(tool);
+      let tool = new ShiftLayerOrderOp(layer.id, -1);
+      g_app_state.toolstack.execTool(this.ctx, tool);
       this.rebuild();
     }, undefined);
     row.iconbutton(Icons.SMALL_MINUS, "Remove Layer", () => {
-      var tool = new DeleteLayerOp();
-      var layer = this.ctx.spline.layerset.active;
+      let tool = new DeleteLayerOp();
+      let layer = this.ctx.spline.layerset.active;
 
-      if (layer == undefined)
+      if (layer === undefined)
         return;
 
       tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
       this.rebuild();
     }, undefined);
 
     row = this.row();
     row.button("Move Up", () => {
-      var lset = this.ctx.frameset.spline.layerset;
-      var oldl = lset.active;
+      let lset = this.ctx.frameset.spline.layerset;
+      let oldl = lset.active;
 
       console.log("oldl", oldl);
 
       if (oldl.order === lset.length-1) return;
-      var newl = lset[oldl.order+1];
+      let newl = lset[oldl.order+1];
 
-      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      this.ctx.toolstack.execTool(tool);
+      this.ctx.toolstack.execTool(this.ctx, tool);
 
     });
 
     row.button("Move Down", () => {
-      var lset = this.ctx.frameset.spline.layerset;
-      var oldl = lset.active;
+      let lset = this.ctx.frameset.spline.layerset;
+      let oldl = lset.active;
 
       console.log("oldl", oldl);
 
-      if (oldl.order == 0) return;
-      var newl = lset[oldl.order-1];
+      if (oldl.order === 0) return;
+      let newl = lset[oldl.order-1];
 
-      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      this.ctx.toolstack.execTool(tool);
+      this.ctx.toolstack.execTool(this.ctx, tool);
     });
 
     row.prop('frameset.drawspline.active_layer.flag[HIDE]');
@@ -218,53 +218,53 @@ class LayerPanel extends Container {
 
   _old() {
     return;
-    var controls = this.col();
+    let controls = this.col();
 
-    var add = new UIButtonIcon(this.ctx, "Add");
-    var del = new UIButtonIcon(this.ctx, "Delete");
+    let add = new UIButtonIcon(this.ctx, "Add");
+    let del = new UIButtonIcon(this.ctx, "Delete");
     add.icon = Icons.SMALL_PLUS;
     del.icon = Icons.SMALL_MINUS;
 
 
-    var this2 = this;
+    let this2 = this;
     add.callback = function() {
-      g_app_state.toolstack.execTool(new AddLayerOp());
+      g_app_state.toolstack.execTool(this.ctx, new AddLayerOp());
     }
 
     del.callback = function() {
-      var tool = new DeleteLayerOp();
-      var layer = this.ctx.spline.layerset.active;
+      let tool = new DeleteLayerOp();
+      let layer = this.ctx.spline.layerset.active;
 
-      if (layer == undefined)
+      if (layer === undefined)
         return;
 
       tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }
 
-    var up = new UIButtonIcon(this.ctx, "Up", 30);
-    var down = new UIButtonIcon(this.ctx, "Down", 29);
+    let up = new UIButtonIcon(this.ctx, "Up", 30);
+    let down = new UIButtonIcon(this.ctx, "Down", 29);
 
     up.icon = Icons.SCROLL_UP;
     down.icon = Icons.SCROLL_DOWN;
 
-    var this2 = this;
+    this2 = this;
     down.callback = function() {
       console.log("Shift layers down");
-      var ctx = new Context(), spline = ctx.frameset.spline;
-      var layer = spline.layerset.active;
+      let ctx = new Context(), spline = ctx.frameset.spline;
+      let layer = spline.layerset.active;
 
-      var tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.execTool(tool);
+      let tool = new ShiftLayerOrderOp(layer.id, -1);
+      g_app_state.toolstack.execTool(this.ctx, tool);
       this2.rebuild();
     }
     up.callback = function() {
       console.log("Shift layers up");
-      var ctx = new Context(), spline = ctx.frameset.spline;
-      var layer = spline.layerset.active;
+      let ctx = new Context(), spline = ctx.frameset.spline;
+      let layer = spline.layerset.active;
 
-      var tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.execTool(tool);
+      let tool = new ShiftLayerOrderOp(layer.id, 1);
+      g_app_state.toolstack.execTool(this.ctx, tool);
       this2.rebuild();
     }
 
@@ -275,70 +275,70 @@ class LayerPanel extends Container {
       down : down
     };
 
-    for (var k in this.controls) {
+    for (let k in this.controls) {
       controls.add(this.controls[k]);
     }
 
-    var list = this.list = new UIListBox();
+    let list = this.list = new UIListBox();
     list.size = [200, 250];
 
     this.add(list);
 
-    for (var i=spline.layerset.length-1; i>= 0; i--) {
-      var layer = spline.layerset[i];
+    for (let i=spline.layerset.length-1; i>= 0; i--) {
+      let layer = spline.layerset[i];
 
       list.add_item(layer.name, layer.id);
     }
 
     list.set_active(spline.layerset.active.id);
     list.callback = function(list, text, id) {
-      var layer = spline.layerset.idmap[id];
-      if (layer == undefined) {
+      let layer = spline.layerset.idmap[id];
+      if (layer === undefined) {
         console.log("Error!", arguments);
         return;
       }
 
       console.log("Changing layers!");
-      g_app_state.toolstack.execTool(new ChangeLayerOp(id));
+      g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id));
     }
 
-    var controls2 = this.col();
+    let controls2 = this.col();
     let selup = new UIButton(this.ctx, "Sel Up");
     let seldown = new UIButton(this.ctx, "Sel Down");
 
     controls2.add(selup);
     controls2.add(seldown);
 
-    var this2 = this;
+    this2 = this;
     selup.callback = function() {
-      var lset = this2.ctx.frameset.spline.layerset;
-      var oldl = lset.active;
+      let lset = this2.ctx.frameset.spline.layerset;
+      let oldl = lset.active;
 
       console.log("oldl", oldl);
 
-      if (oldl.order == lset.length-1) return;
-      var newl = lset[oldl.order+1];
+      if (oldl.order === lset.length-1) return;
+      let newl = lset[oldl.order+1];
 
-      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }
 
     seldown.callback = function() {
-      var lset = this2.ctx.frameset.spline.layerset;
-      var oldl = lset.active;
+      let lset = this2.ctx.frameset.spline.layerset;
+      let oldl = lset.active;
 
       console.log("oldl", oldl);
 
-      if (oldl.order == 0) return;
-      var newl = lset[oldl.order-1];
+      if (oldl.order === 0) return;
+      let newl = lset[oldl.order-1];
 
-      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }
 
-    var controls3 = this.col();
+    let controls3 = this.col();
     controls3.prop('frameset.drawspline.active_layer.flag');
 
     this.delayed_recalc = 4;
@@ -440,7 +440,7 @@ export class MaterialEditor extends Editor {
   }
 
   fillPanel(tabs : TabContainer) {
-    var ctx = this.ctx;
+    let ctx = this.ctx;
 
     let panel = tabs.tab("Fill");
     let panel2 = panel.panel("Fill Color");
@@ -465,7 +465,7 @@ export class MaterialEditor extends Editor {
   strokePanel(tabs : TabContainer) {
     let panel = tabs.tab("Stroke");
 
-    var ctx = this.ctx;
+    let ctx = this.ctx;
 
     //panel.packflag |= PackFlags.INHERIT_WIDTH;
     //panel.packflag |= PackFlags.NO_AUTO_SPACING;
@@ -511,8 +511,8 @@ export class MaterialEditor extends Editor {
   }
 
   layersPanel(tabs : TabContainer) {
-    var ctx = this.ctx;
-    var panel = tabs.tab("Layers");
+    let ctx = this.ctx;
+    let panel = tabs.tab("Layers");
 
     panel.add(document.createElement("layerpanel-x"));
     //return new LayerPanel(new Context());

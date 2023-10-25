@@ -1334,7 +1334,7 @@ export class DopeSheetEditor extends Editor {
         tool.inputs.unique.setValue(!event.shiftKey);
         tool.inputs.state.setValue(event.shiftKey ? !has_sel : true);
 
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(this.ctx, tool);
       } else {
         var ids = [];
 
@@ -1350,7 +1350,7 @@ export class DopeSheetEditor extends Editor {
         tool.inputs.unique.setValue(true);
         tool.inputs.state.setValue(true);
 
-        g_app_state.toolstack.execTool(tool);
+        g_app_state.toolstack.execTool(this.ctx, tool);
 
         //change time
         var time = Math.floor(this.unscaletime((event.x - this.pan[0] - this.time_zero_x)));
@@ -1368,7 +1368,7 @@ export class DopeSheetEditor extends Editor {
     } else if (event.button == 2) {
       console.log(event.x, event.y);
       var tool = new PanOp([event.x, event.y, 0], this);
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }
   }
 
@@ -1394,7 +1394,7 @@ export class DopeSheetEditor extends Editor {
         if (ids.length > 0) { //move verts
           this.mdown = false;
 
-          g_app_state.toolstack.execTool(op);
+          g_app_state.toolstack.execTool(this.ctx, op);
         } else { //change time
           var time = Math.floor(this.unscaletime((event.x - this.pan[0] - this.time_zero_x)));
           //console.log("chanve time!", time);
@@ -1976,7 +1976,7 @@ export class DopeSheetEditor extends Editor {
       var tool = new DeleteKeyOp();
       tool.inputs.phantom_ids.setValue(this2.get_all_ids());
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
@@ -2012,7 +2012,7 @@ export class DopeSheetEditor extends Editor {
 
       tool.inputs.side.setValue(false);
       tool.inputs.phantom_ids.setValue(this2.get_all_ids());
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("Right", ["CTRL"], "Select To Right"), new FuncKeyHandler(function(ctx) {
@@ -2020,7 +2020,7 @@ export class DopeSheetEditor extends Editor {
 
       tool.inputs.side.setValue(true);
       tool.inputs.phantom_ids.setValue(this2.get_all_ids());
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("G", [], "Translate"), new FuncKeyHandler(function(ctx) {
@@ -2037,7 +2037,7 @@ export class DopeSheetEditor extends Editor {
       }
 
       op.inputs.phantom_ids.setValue(ids);
-      g_app_state.toolstack.execTool(op);
+      g_app_state.toolstack.execTool(this.ctx, op);
     }));
 
     k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
@@ -2046,7 +2046,7 @@ export class DopeSheetEditor extends Editor {
 
       tool.inputs.phantom_ids.setValue(this2.get_all_ids());
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("K", [], "Column Select"), new FuncKeyHandler(function(ctx) {
@@ -2062,7 +2062,7 @@ export class DopeSheetEditor extends Editor {
       tool.inputs.state.setValue(true);
       tool.inputs.phantom_ids.setValue(ids);
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("K", ["SHIFT"], "Column Select"), new FuncKeyHandler(function(ctx) {
@@ -2078,7 +2078,7 @@ export class DopeSheetEditor extends Editor {
       tool.inputs.state.setValue(false);
       tool.inputs.phantom_ids.setValue(ids);
 
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(this.ctx, tool);
     }));
 
     k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {

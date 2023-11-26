@@ -19,21 +19,6 @@ export class MyLastToolPanel extends LastToolPanel {
     return ctx.toolstack.head;
   }
 
-  buildTool(ctx, tool, container) {
-    for (let k in tool.inputs) {
-      let prop = tool.inputs[k];
-
-      if (prop.flag & TPropFlags.PRIVATE) {
-        continue;
-      }
-
-      let apiname = prop.apiname || k;
-      let path = "last_tool." + apiname;
-
-      container.prop(path);
-    }
-  }
-
   static define() {return {
     tagname : 'last-tool-panel-fairmotion-x'
   }}

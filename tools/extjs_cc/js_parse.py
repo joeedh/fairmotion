@@ -47,7 +47,7 @@ precedence = (
   ("left", "COMMA"),
   ("left", "ASSIGN", "ASSIGNLSHIFT", "ASSIGNRSHIFT", "ASSIGNPLUS",
            "ASSIGNMINUS", "ASSIGNDIVIDE", "ASSIGNTIMES", "ASSIGNBOR",
-           "ASSIGNBAND", "ASSIGNBXOR", "ASSIGNMOD"),
+           "ASSIGNBAND", "ASSIGNBXOR", "ASSIGNMOD", "ASSIGNLOR", "ASSIGNLAND"),
   ("left", "QEST", "COLON"),
   ("left", "ARROW"), #note this is a "fictitious" token
   ("left", "BNEGATE"),
@@ -743,7 +743,6 @@ def p_template(p):
  
 def p_type_modifiers(p):
   '''type_modifiers : type_modifiers SIGNED
-                    | type_modifiers CONST
                     | GLOBAL
                     | VAR
                     | CONST
@@ -1233,6 +1232,7 @@ def p_simple_templatedeflist(p):
 def p_simple_var_decl(p):
   '''simple_var_decl : VAR id
                      | LET id
+                     | CONST id
                      | id
   '''
   
@@ -1261,7 +1261,9 @@ def p_cmplx_assign(p):
                   | ASSIGNMOD
                   | ASSIGNBOR 
                   | ASSIGNBAND 
-                  | ASSIGNBXOR 
+                  | ASSIGNBXOR
+                  | ASSIGNLOR
+                  | ASSIGNLAND
                   | ASSIGNLSHIFT
                   | ASSIGNRSHIFT
                   | ASSIGNRRSHIFT

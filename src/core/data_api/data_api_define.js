@@ -56,8 +56,7 @@ export function makeAPI(api = new DataAPI()) {
     FullContextStruct.struct("appstate.session.settings", "settings", "undefined", api.mapStruct(AppSettings, true));
     FullContextStruct.struct("object", "object", "undefined", api.mapStruct(SceneObject, true));
     FullContextStruct.struct("scene", "scene", "undefined", api.mapStruct(Scene, true));
-    /*WARNING: failed to resolve a class:  last_tool  */
-    FullContextStruct.struct("", "last_tool", "undefined", undefined);
+    FullContextStruct.struct("last_tool", "last_tool", "undefined", undefined);
     FullContextStruct.struct("appstate", "appstate", "undefined", api.mapStruct(AppState, true));
     FullContextStruct.list("appstate.toolstack.undostack", "operator_stack", [
       function getIter(api, list) {

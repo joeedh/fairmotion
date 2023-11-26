@@ -190,6 +190,10 @@ export class BaseContext extends Context {
     this.reset(state);
   }
 
+  get last_tool() {
+    return this.toolstack.head;
+  }
+
   error(msg: String) {
     g_app_state.notes.label("ERROR: " + msg);
   }

@@ -1,4 +1,4 @@
-import os, sys, traceback, struct, random, math, time, io, imp, os.path
+import os, sys, traceback, struct, random, math, time, io, os.path
 import ply_preprocessor_parse as ppp
 
 def preprocess_text_intern(data, filename, working_dir=None):

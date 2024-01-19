@@ -4,7 +4,7 @@ from js_cc import js_parse
 from js_global import Glob, glob
 from js_typed_classes import resolve_type
 
-import os, sys, os.path, struct, imp, shutil, time, random, math
+import os, sys, os.path, struct, shutil, time, random, math
 
 """
   okay.  basic  data model of typed objects:

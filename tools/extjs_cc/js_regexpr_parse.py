@@ -1,4 +1,4 @@
-import os, sys, os.path, time, random, math, io, struct, imp
+import os, sys, os.path, time, random, math, io, struct
 import ply.yacc as yacc
 import re
 from ply.lex import LexToken

@@ -3,7 +3,7 @@ from js_process_ast import traverse, traverse_i, null_node, \
                            kill_bad_globals
 from js_ast import *
 from js_cc import js_parse, unpack_for_c_loops, combine_if_else_nodes
-import sys, os, time, math, struct, io, imp
+import sys, os, time, math, struct, io
 
 typespace = None
 debug_gen = False

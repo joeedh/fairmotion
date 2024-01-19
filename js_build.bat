@@ -1,17 +1,27 @@
-if exist c:\python310\python.exe (
+if exist c:\python313\python.exe (
     echo "Found python"
-    set PYTHON=c:\python310
+    set PYTHON=c:\python313
 ) else (
-    if exist c:\python39\python.exe (
+    if exist c:\python312\python.exe (
          echo "Found python"
-         set PYTHON=c:\python39
+         set PYTHON=c:\python312
     ) else (
-        if exist c:\python38\python.exe (
+        if exist c:\python311\python.exe (
             echo "Found python"
-            set PYTHON=c:\python38
+            set PYTHON=c:\python311
         ) else (
-            echo "Error: could not find python"
-            exit /b -1
+            if exist c:\python310\python.exe (
+                echo "Found python"
+                set PYTHON=c:\python310
+            ) else (
+                if exist c:\python39\python.exe (
+                    echo "Found python"
+                    set PYTHON=c:\python39
+                ) else (
+                    echo "Error: could not find python"
+                    exit /b -1
+                )
+            )
         )
     )     
 )

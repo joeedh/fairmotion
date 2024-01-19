@@ -5,22 +5,14 @@ import traceback
 
 from platforms import util as util
 
-THENOTE = "note"
-NOTETITLE = "Build System"
-
-#make sure not system is initialize before anything else
-note.showNote(THENOTE, NOTETITLE, "Build system on");
-note.sleep(0.5);
-note.showNote(THENOTE, NOTETITLE, "Yay");
-note.hideNote(THENOTE)
-
 import os, sys, os.path, time, random, math
-import shelve, struct, io, imp, ctypes, re
+import shelve, struct, io, ctypes, re
 import subprocess, shlex, signal
 from ctypes import *
-import imp, runpy
+import runpy
 from math import floor
 import zipfile
+import importlib.abc
 
 _makedirs = os.makedirs
 
@@ -88,8 +80,12 @@ def modimport(name):
   cwd = os.path.abspath(os.path.normpath(os.getcwd()))
   path = cwd + sep + name + ".py"
 
-  mfile = open(path, "r")
-  mod = imp.load_module(name, mfile, path, ('.py', 'r', imp.PY_SOURCE)) #runpy.run_path(cwd + sep + path + ".py")
+  #mod = imp.load_module(name, mfile, path, ('.py', 'r', imp.PY_SOURCE)) #runpy.run_path(cwd + sep + path + ".py")
+  #mod = importlib.abc.FileLoader.exec_module(name, path)
+  #mod.load_module(name)
+  sys.stdout.flush()
+  
+  mod = importlib.import_module(name)
 
   return mod
 
@@ -101,13 +97,17 @@ except:
 def config_tryimp(name):
   try:
     mod = modimport(name)
-  except (IOError, FileNotFoundError):
-    return {}
+  except (IOError, FileNotFoundError, ModuleNotFoundError):
+    return None
   return mod.__dict__
+
+modimport("platforms.build_local")
 
 config_dict2 = config_tryimp("js_sources")
 config_dict = config_tryimp("build_local")
-
+if not config_dict:
+  config_dict = config_tryimp("platforms.build_local")
+ 
 def validate_cfg(val, vtype):
   if vtype == "bool":
     if type(val) == str:
@@ -164,6 +164,15 @@ db_path = getcorecfg("db_path", ".build_db/", "string")
 build_path = addslash(build_path)
 target_path = addslash(target_path)
 db_path = addslash(db_path)
+
+THENOTE = "note"
+NOTETITLE = "Build System"
+
+#make sure not system is initialize before anything else
+note.showNote(THENOTE, NOTETITLE, "Build system on");
+note.sleep(0.5);
+note.showNote(THENOTE, NOTETITLE, "Yay");
+note.hideNote(THENOTE)
 
 if not os.path.exists(db_path):
   os.mkdir(db_path)

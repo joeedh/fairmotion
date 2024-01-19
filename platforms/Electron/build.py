@@ -1,8 +1,8 @@
 import os, sys, os.path, time, random, math
-import shelve, struct, io, imp, ctypes, re
+import shelve, struct, io, ctypes, re
 import subprocess, shlex, signal
 from ctypes import *
-import imp, runpy
+import runpy
 from math import floor
 from .. import util
 

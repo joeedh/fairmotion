@@ -21,8 +21,8 @@ let spline_draw_cache_vs = cachering.fromConstructor(Vector2, 64);
 let spline_draw_trans_vs = cachering.fromConstructor(Vector2, 32);
 
 let PI = Math.PI;
-let pow                                                                        = Math.pow, cos = Math.cos, sin                                        = Math.sin, abs = Math.abs, floor = Math.floor,
-    ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
+let pow = Math.pow, cos = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,
+  ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
 
 import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex,

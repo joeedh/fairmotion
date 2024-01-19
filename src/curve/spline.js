@@ -9,9 +9,9 @@ const UARR = Uint16Array
 const UMAX = ((1<<16) - 1)
 const UMUL = 2
 
-const PI                                                        = Math.PI, abs                                         = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
-      ceil                                                      = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
-      asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
+const PI = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
+  ceil = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
+  asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
 
 import * as spline_multires from './spline_multires.js';
 import {STRUCT} from '../core/struct.js';

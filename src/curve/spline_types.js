@@ -2,9 +2,9 @@
 
 import {ENABLE_MULTIRES} from '../config/config.js';
 
-var PI                                                        = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
-    ceil                                                      = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
-    asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
+var PI = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
+  ceil = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
+  asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
 
 import * as bspline from './bspline.js';
 
@@ -22,9 +22,9 @@ import {STRUCT} from '../core/struct.js';
 import * as math from '../util/mathlib.js';
 import {DataPathNode, NodeBase} from '../core/eventdag.js';
 
-var abs                                                     = Math.abs, acos = Math.acos, asin = Math.asin,
-    atan2 = Math.atan2, PI = Math.PI, sqrt = Math.sqrt, pow = Math.pow,
-    log                                                     = Math.log;
+var abs = Math.abs, acos = Math.acos, asin = Math.asin,
+  atan2 = Math.atan2, PI = Math.PI, sqrt = Math.sqrt, pow = Math.pow,
+  log = Math.log;
 
 export * from './spline_base';
 
@@ -963,7 +963,7 @@ export class SplineSegment extends SplineElement {
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
   closest_point(p: Vector2, mode: ClosestModes, fast: boolean = false,
-                widthSide                                     = undefined): ClosestPointRecord {
+                widthSide = undefined): ClosestPointRecord {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }

@@ -563,9 +563,10 @@ export class VertexAnimData {
     let nextv = v, nextv2 = v;
     let alen1 = s !== undefined ? s.length : 1, alen2 = alen1;
     let alen0 = lasts !== undefined ? lasts.length : alen1, alen3 = alen1;
-
+    let nexts;
+  
     if (v.segments.length === 2) {
-      let nexts = v.other_segment(s);
+      nexts = v.other_segment(s);
 
       nextv = nexts.other_vert(v);
       alen2 = nexts.length;
@@ -653,7 +654,7 @@ export class VertexAnimData {
       let arclength2 = alen1;
       let arclength3 = alen2;
 
-      let t0 = pt2, t3 = pt, t6 = vt, t9 = nt;
+      let t0 = pt2, t2, t3 = pt, t6 = vt, t9 = nt;
 
       let t1 = pt2 + (pt - pt2)*(1.0/3.0);
       let t8 = vt + (nt - vt)*(2.0/3.0);

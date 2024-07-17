@@ -510,6 +510,9 @@ export class View2DHandler extends Editor {
   }
 
   drawWebgl(gl, canvas) {
+    if (!gl) {
+      return
+    }
     let dpi = window.devicePixelRatio;
 
     this.glPos.load(this.pos).mulScalar(dpi).floor();

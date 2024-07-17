@@ -398,6 +398,13 @@ export function initWebGL() {
     depth                : true
   });
 
+  if (!gl) {
+    console.error('Failed to initialized webgl')
+    canvas.remove()
+    canvas = undefined
+    return
+  }
+
   gl.canvas = canvas;
 
   let ext = gl.getExtension("OES_texture_half_float");
@@ -483,6 +490,10 @@ export function initWebGL() {
 let size_update_key = "";
 
 export function updateSize() {
+  if (!canvas) {
+    return
+  }
+
   let dpi = devicePixelRatio;
 
   let w = ~~(window.innerWidth*dpi);

@@ -20,7 +20,7 @@ except:
 
 pathux = []
 for path in glob.glob("src/path.ux/scripts/**", recursive=True):
-    if not path.lower().endswith(".js"):
+    if not path.lower().endswith(".js") and not path.lower().endswith(".cjs") and not path.lower().endswith(".mjs"):
         continue
     if "_old" in os.path.split(path)[1].lower():
         continue

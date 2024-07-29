@@ -842,13 +842,17 @@ def p_var_decl_no_list(p):
       p[0] = p[1]
       scope_add(p[1].val, p[1])
     else:
-      if type(p[1]) not in [VarDeclNode, IdentNode]:
+      if type(p[1]) not in [VarDeclNode, IdentNode, BindingArg]:
         glob.g_error_pre = p
         glob.g_error = True
         print_err(p, False)
         raiseSyntaxError(p[1], "Invalid variable declaration")
-        
+      
       p[0] = VarDeclNode(ExprNode([]));
+      if type(p[1]) == BindingArg:
+        p[1] = IdentNode(p[1].val)
+        p[0].spread = True
+        
       p[0].val = p[1].val if not isinstance(p[1], IdentNode) else p[1].val
       p[0].type = UnknownTypeNode()
       p[0].add(p[0].type)
@@ -1140,6 +1144,7 @@ def p_var_type_simple(p):
                       | CHAR
                       | BYTE
                       | INFERRED
+                      | TRIPLEDOT id_var_type
                       | var_type_simple template_ref
   '''
   p[0] = p[1]
@@ -1147,6 +1152,7 @@ def p_var_type_simple(p):
 def p_var_type(p):
   ''' var_type : var_type id_var_type
                | id_var_type
+               | TRIPLEDOT id_var_type
                | SHORT
                | DOUBLE
                | CHAR
@@ -1169,6 +1175,9 @@ def p_var_type(p):
     if type(p[0]) == str:
         p[0] = IdentNode(p[0])
   elif len(p) == 3:
+    if type(p[1]) == str and p[1] == '...':
+        p[0] = BindingArg(p[2])
+        return
     if type(p[2]) == TemplateNode:
       if type(p[1]) not in [IdentNode, VarDeclNode]:
         glob.g_error_pre = p
@@ -2305,12 +2314,14 @@ def p_objlit_key(p):
 def p_obj_lit_list(p):
   r'''
     obj_lit_list : objlit_key COLON expr
+                 | TRIPLEDOT id
                  | id
                  | objlit_function
                  | obj_lit_list COMMA objlit_function
                  | obj_lit_list COMMA objlit_key COLON expr
                  | obj_lit_list COMMA id
                  | obj_lit_list COMMA
+                 | obj_lit_list COMMA TRIPLEDOT ID
   '''
   
   set_parse_globals(p)
@@ -2324,7 +2335,7 @@ def p_obj_lit_list(p):
   elif len(p) == 2:
     p[0] = ObjLitNode()
 
-    if type(p[1]) == ObjLitSetGet:
+    if type(p[1]) == ObjLitSetGet or type(p[1]) == BindingArg:
       p[0].add(p[1])
     else:
       p[0].add(AssignNode(IdentNode(p[1].name), p[1]))
@@ -2338,7 +2349,14 @@ def p_obj_lit_list(p):
     else:
       p[0].add(AssignNode(IdentNode(p[3].name), p[3]))
   elif len(p) == 3:
+    if p[1] == '...':
+        p[0] = ObjLitNode()
+        p[0].add(BindingArg(p[2]))
+    else:
+        p[0] = p[1]
+  elif len(p) == 5:
     p[0] = p[1]
+    p[0].add(BindingArg(p[4]))
   elif len(p) == 6:
     p[0] = p[1]
     p[0].add(AssignNode(p[3], p[5]))
@@ -2772,7 +2790,7 @@ def p_expr(p):
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode,
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
-                        TemplateNode, ExprListNode, ClassNode, TypedClassNode, IdentNode]:
+                        TemplateNode, ExprListNode, ClassNode, TypedClassNode, IdentNode, BindingArg, IdentNode]:
         p[0] = p[1]
       elif type(p[1]) in [float, int, HexInt]:
         p[0] = NumLitNode(p[1])
@@ -2786,6 +2804,7 @@ def p_expr(p):
 #functions
 def p_expr_no_list(p):
     '''expr_no_list : NUMBER
+            | TRIPLEDOT id
             | strlit
             | id
             | id_colon
@@ -2871,6 +2890,8 @@ def p_expr_no_list(p):
       elif type(p[2]) == TemplateNode:
         p[0] = TypeRefNode(p[1])
         p[0].template = p[2]
+      elif type(p[1]) == str and p[1] == '...':
+        p[0] = BindingArg(p[2])
     elif len(p) == 2:
       if type(p[1]) in [RegExprNode, FuncCallNode, StrLitNode, TypeofNode,
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode, 

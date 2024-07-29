@@ -403,7 +403,8 @@ class VarDeclNode(IdentNode):
 
     if type(name) == IdentNode:
       name = name.val
-
+    
+    self.spread = False
     self.modifiers = set()
     self.val = name
     self.suppress_modifiers = False
@@ -477,6 +478,9 @@ class VarDeclNode(IdentNode):
         s += "var "
       elif "static" in self.modifiers and type(self.parent) != VarDeclNode: 
         s += "static "
+        
+    if self.spread:
+        s += '...'
     s += str(self.val)
     
     s = self.s(s)
@@ -1074,7 +1078,7 @@ class ObjLitNode (Node):
       if i > 0: 
         s += self.s(", \n" + tab + " ")
       
-      if type(c) == ObjLitSetGet:
+      if type(c) == ObjLitSetGet or type(c) == BindingArg:
         s += c.gen_js(tlevel+1)
       else:
         s += c[0].gen_js(tlevel+1) + self.s(": ") + c[1].gen_js(tlevel+1)

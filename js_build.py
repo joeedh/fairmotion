@@ -541,6 +541,8 @@ class Handler (object):
 
 handlers = {
   r'.*\.js\b' : Handler(jcc_handler),
+  r'.*\.cjs\b' : Handler(jcc_handler),
+  r'.*\.mjs\b' : Handler(jcc_handler),
   r'.*\.html\.in\b' : Handler(tcc_handler),
   r'.*\.html\b' : Handler(cp_handler, can_popen=False),
   r'.*\.png\b' : Handler(cp_handler, can_popen=False),

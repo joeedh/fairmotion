@@ -66,6 +66,10 @@ export class HandleBase {
 
 HandleBase;
 
+/* Was `static` inside ManipHandle.update(). */
+const _ManipHandle_update_min = new Vector2(),
+  _ManipHandle_update_max = new Vector2();
+
 export class ManipHandle extends HandleBase {
   transparent: boolean
   linewidth: number
@@ -133,8 +137,8 @@ export class ManipHandle extends HandleBase {
   update() {
     let p = this._redraw_pad;
 
-    static
-    min = new Vector2(), max = new Vector2();
+    const min = _ManipHandle_update_min,
+      max = _ManipHandle_update_max;
 
     min[0] = this._min[0] - p;
     min[1] = this._min[1] - p;
@@ -226,6 +230,10 @@ export class ManipHandle extends HandleBase {
   }
 }
 
+/* Was `static` inside ManipCircle.update(). */
+const _ManipCircle_update_min = new Vector2(),
+  _ManipCircle_update_max = new Vector2();
+
 export class ManipCircle extends HandleBase {
   p: Vector2
   transparent: boolean
@@ -288,8 +296,8 @@ export class ManipCircle extends HandleBase {
   update() {
     let p = this._redraw_pad;
 
-    static
-    min = new Vector2(), max = new Vector2();
+    const min = _ManipCircle_update_min,
+      max = _ManipCircle_update_max;
 
     min[0] = this._min[0] - p;
     min[1] = this._min[1] - p;
@@ -580,6 +588,9 @@ export class Manipulator {
   }
 }
 
+/* Was `static` inside ManipulatorManager.get_render_rects(). */
+const _ManipulatorManager_get_render_rects_nil = [];
+
 export class ManipulatorManager {
   view2d: View2DHandler
   stack: array<Manipulator>
@@ -599,8 +610,7 @@ export class ManipulatorManager {
   }
 
   get_render_rects(ctx, canvas, g) {
-    static
-    nil = [];
+    const nil = _ManipulatorManager_get_render_rects_nil;
 
     if (this.active !== undefined) {
       return this.active.get_render_rects(ctx, canvas, g);

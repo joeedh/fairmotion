@@ -217,3 +217,164 @@ here isn't mistaken for a real regression.
 
 **Phase 4.1 exit check:** `python js_build.py` finishes, vitest 6/6, playwright
 17/17, all baselines unchanged. The de-transpile is behavior-preserving.
+
+# Phase 3 — esbuild
+
+Almost every failure in this phase has the same root cause, so it is worth stating
+once: **the legacy loader evaluated module bodies lazily, esbuild evaluates them
+eagerly.** `_es6_module.add_module()` only *registered* a body; it ran the first
+time something called `_es6_get_module()`, which in practice was long after the
+document had parsed and after `startup()` had installed its globals. An esbuild
+IIFE runs every module body the instant the `<script>` executes. Anything that
+used to be true "by the time my module body runs" is no longer true.
+
+## Symptom: `document.body` is null in `startup.js` at module scope
+
+Cause: eager evaluation. The bundle's `<script>` tags are in `<head>`.
+Found by: playwright `openApp()` timing out, then a raw `page.on("pageerror")` probe.
+Fix: `writeHtml()` emits every tag with `defer`. `defer` preserves document order
+and moves execution to after parsing, which is exactly the old timing.
+
+## Symptom: `ReferenceError: myLocalStorage is not defined`
+
+Cause: `config.js` and `const.js` read `myLocalStorage.use_canvas2d` at *module*
+scope, and `startup()` used to install it before any module body ran.
+Found by: the stack pointed into config.js's top level, not into a function.
+Fix: new `src/core/startup/localstorage.js`, a pre-bundle classic script that
+installs `window.myLocalStorage` (both the LS and ChromeApp backends moved out of
+`startup.js` verbatim). It is the last entry in `GLOBAL_SCRIPTS`.
+
+## Symptom: wasm 404 at `fcontent/http://localhost:5050//fcontent/built_wasm.wasm`
+
+Cause: `built_wasm.js` passes `wasmBinaryPath` through emscripten's `locateFile()`,
+which prepends `scriptDirectory`. `scriptDirectory` is derived from
+`document.currentScript` — which the legacy build left null, because module bodies
+ran from a callback rather than during script execution. It is non-null now, so the
+absolute URL got a `fcontent/` prefix bolted onto its front.
+Found by: reading the failing URL literally; the doubled prefix names the cause.
+Fix: `src/wasm/load_wasm.js` sets `wasmBinaryPath = "built_wasm.wasm"`, relative.
+`locateFile()` then resolves it correctly in both targets.
+
+## Symptom: `_DataRefProperty:data: Unknown struct DataRef` from `init_struct_packer`
+
+Cause: `window.defined_classes` was empty of app classes. Nothing in the *source*
+ever fills that list — the transpiler's `create_class_list` pass emitted
+`_ESClass.register(Foo)` after every class it saw (`js_process_ast.py:720`, gated on
+`glob.g_register_classes`). `init_struct_packer()` and `init_toolop_structs()` both
+walk that list, so with no registrations nstructjs knows no app structs at all.
+Found by: `window.defined_classes` in a probe held only the two dozen classes from
+the pre-bundle global scripts, then grepping the transpiler for who ever pushed to it.
+Fix: `classRegistryPlugin` in `buildtools/esbuild.mjs`. It parses each file with the
+TypeScript parser (already a devDependency), collects top-level class declarations,
+and appends `_ESClass.register(Name);` to the end of the module. End-of-module is
+safe — every top-level class is initialized by then and nothing reads the list
+during evaluation.
+
+## Symptom: `SplineLoopPath:loops: Unknown struct SplineLoop` — but SplineLoop *was* registered
+
+Cause: esbuild renames colliding top-level symbols when it merges 400 modules into
+one scope, and it lowers `class Foo` to `var Foo = class _Foo`. That makes
+`Foo.name === "_Foo"`, and `STRUCT.inherit(cls, parent)` writes `cls.name` straight
+into the STRUCT script. The struct was registered — under the name `_SplineLoop`.
+Found by: `Object.keys(window.istruct.structs).filter(k => k.startsWith("SplineLoop"))`
+returned `["SplineLoopPath"]` while `defined_classes` contained no `SplineLoop`
+either. Both symptoms are the same renamed `.name`.
+Fix: `keepNames: true`. This is not cosmetic — `cls.name` is part of the on-disk
+file format here, so a bundler rename would silently change what files are written.
+
+## Symptom: `screen.area.split` and seven other tools vanished from the registered tool list
+
+Cause: those are path.ux ToolOps whose own `registerTool()` calls are commented out
+upstream (`FrameManager_ops.js:309,540,1101`). They only ever got registered because
+`js_sources.py:21` globbed **every** `.js` under `src/path.ux/scripts` into the
+transpiler, so they landed in `defined_classes` too and fairmotion's
+`register_toolops()` picked them up.
+Found by: the datapath baseline diff — it named the exact eight missing toolpaths.
+Fix: `classRegistryPlugin` covers path.ux as well; only `node_modules` and the
+vendored tinymce are skipped.
+
+## Symptom: `Cannot read properties of undefined (reading 'calledRun')` when loading a .fmo
+
+Cause: `native_api.js` did `import * as wasm_mod; let wasm = wasm_mod.Module;`, but
+`built_wasm.js`'s only export is `export default Module = {}`. esbuild says so
+outright — `Import "Module" will always be undefined` — the old loader was laxer.
+Found by: reading the build warnings that were already scrolling past.
+Fix: `wasm_mod.default`. It is the same live object emscripten mutates in place.
+
+## Symptom: `export * from './fileapi_chrome.js'` inside an if/else
+
+Cause: the transpiler allowed it; real ESM does not — `export` is only legal at
+module top level.
+Found by: esbuild parse error.
+Fix: `fileapi.js` imports all three backends unconditionally (the old build
+concatenated all three into the bundle anyway) and dispatches per call through a
+`forward(name)` helper. Same behavior, legal syntax.
+
+## Symptom: `ReferenceError: ES6Module is not defined` in the addon loader
+
+Cause: `addon_api.js` borrowed `ES6Module` from `src/core/startup/module.js`, part of
+the legacy loader being deleted.
+Found by: the stack.
+Fix: a local `AddonModule` class in `addon_api.js`. The loader only ever used it as a
+plain record — `name/path/callback/exports/deps/loaded/addon`.
+
+## Symptom: `ReferenceError: node is not defined` in `new EventSocket`
+
+Cause: a plain typo in `eventdag.js:504` — `this.node = node` in a constructor whose
+parameter is named `owner`. Present since d17adf7, and it would have thrown under the
+old build too; `kill_bad_globals` only ever checked *assignments* to undeclared
+globals, never reads.
+Found by: the port surfaced it because the dag path now runs to completion.
+Fix: `this.node = owner`.
+
+## Symptom: deleting the old `tsconfig.json` broke startup, with no error in the build
+
+Cause: esbuild reads `tsconfig.json` too. The old one said `target: es6`, which made
+esbuild pick `useDefineForClassFields: false`. With the file gone and `target: es2022`,
+it defaults to **true** — and then every bare `foo: Type;` field declaration (this
+codebase is full of them, purely as annotation) becomes a real `[[Define]]` that
+overwrites whatever the constructor or `super()` already stored.
+Found by: the app stopped starting immediately after `git rm tsconfig.json`, with a
+clean build log.
+Fix: the new `tsconfig.json` sets `useDefineForClassFields: false` explicitly. Treat
+that file as build configuration, not just typechecker configuration.
+
+## Symptom: `Cannot set property canvas of #<WebGLRenderingContext> which has only a getter`
+
+Cause: `"strict": true` in the new tsconfig implies `alwaysStrict`, and esbuild then
+emits `"use strict"` for the bundle. The transpiler produced sloppy-mode output, and
+the app relies on it — it monkey-patches read-only WebGL constants
+(`gl.COLOR_ATTACHMENT0`, `gl.HALF_FLOAT`, `gl.MIN`/`MAX`) onto live contexts, where
+sloppy mode silently drops the write.
+Found by: three different "which has only a getter" TypeErrors appearing one after
+another as each was fixed — a sign the class of problem was wider than the sites.
+Fix: `"alwaysStrict": false`, so runtime semantics match the old build. Strict *type*
+checking stays on for phase 5. Two of the sites were genuinely dead and were removed
+anyway: `gl.canvas = canvas` (readonly accessor that already returns it) and
+`AppState.js`'s manual re-binding of path.ux's `platform` export, which ESM's live
+bindings now do by themselves.
+
+## Symptom: `EEXIST: symlink` then `ERR_FS_CP_NON_DIR_TO_DIR` copying `canvaskit-wasm`
+
+Cause: pnpm's `node_modules/canvaskit-wasm` is a symlink into `.pnpm/`, and
+`fs.cpSync` runs its src/dest kind check *before* it dereferences.
+Found by: the second error naming "non dir to dir" for what looked like two dirs.
+Fix: `copyDir()` does `rmSync(dst)` then `cpSync(fs.realpathSync(src), dst,
+{recursive: true, dereference: true, force: true})`.
+
+## Symptom: stale `app0.js` … `app11.js` served alongside the new bundle
+
+Cause: leftovers from the old build's split output, still in `dist/html5app`.
+Found by: listing the output directory.
+Fix: `esbuild.mjs` `rmSync`s the whole target directory before building. The tree is
+entirely generated; nothing in it is worth preserving.
+
+## Known, not fixed: `preload script must have absolute path`
+
+`platforms/Electron/main.js:123` passes `preload: "preload.js"`. Electron requires an
+absolute path. This is unchanged from before the port and the app runs regardless;
+recorded so it is not mistaken for build fallout.
+
+**Phase 3 exit check:** `pnpm build` and `pnpm build:electron` both succeed, `pnpm serv`
+serves a working app, `pnpm electron` launches and answers over CDP, vitest 6/6,
+playwright 17/17 with every recorded baseline unchanged.

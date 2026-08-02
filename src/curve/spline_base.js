@@ -70,7 +70,7 @@ export const IsectModes = {
 };
 
 export class empty_class {
-  static fromSTRUCT(reader: function) {
+  static fromSTRUCT(reader: Function) {
     let ret = new empty_class();
     reader(ret);
     return ret;
@@ -150,7 +150,7 @@ export class CustomData {
   callbacks: Object
   startmap: Object;
 
-  constructor(owner: any, layer_add_callback: function, layer_del_callback: function) {
+  constructor(owner: any, layer_add_callback: Function, layer_del_callback: Function) {
     this.owner = owner; //owning ElementArray
 
     this.callbacks = {
@@ -247,7 +247,7 @@ export class CustomData {
     return i;
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
 
     //we saved instances; turn back to class constructors
@@ -296,6 +296,9 @@ CustomData.STRUCT = `
   }
 `
 
+/* Was `static` inside CustomDataSet.interp(). */
+const _CustomDataSet_interp_srcs2 = [];
+
 export class CustomDataSet extends Array<CustomDataLayer> {
   constructor() {
     super();
@@ -329,8 +332,7 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   }
 
   interp(srcs: Array<CustomDataSet>, ws: Array<float>) {
-    static
-    srcs2 = [];
+    const srcs2 = _CustomDataSet_interp_srcs2;
     while (srcs2.length < srcs.length) {
       srcs2.push(0);
     }
@@ -352,7 +354,7 @@ export class CustomDataSet extends Array<CustomDataLayer> {
     }
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
 
     for (let i = 0; i < this.arr.length; i++) {
@@ -510,7 +512,7 @@ export class SplineElement extends DataPathNode {
     }
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
   }
 

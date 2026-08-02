@@ -2008,7 +2008,7 @@ export class Spline extends DataBlock {
     g.closePath();
   }
 
-  forEachPoint(cb: function, thisvar: any) {
+  forEachPoint(cb: Function, thisvar: any) {
     for (let si = 0; si < 2; si++) {
       let list = si ? this.handles : this.verts;
       let last_len = list.length;
@@ -2475,7 +2475,7 @@ export class Spline extends DataBlock {
       draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
     super.loadSTRUCT(reader);
 

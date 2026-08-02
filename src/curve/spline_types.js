@@ -1711,6 +1711,10 @@ class SplineLoopPathIter {
   }
 }
 
+/* Were `static` inside SplineLoopPath.update_winding() and .update_aabb(). */
+const _SplineLoopPath_update_winding_cent = new Vector3();
+const _SplineLoopPath_update_aabb_minmax = new MinMax(3);
+
 export class SplineLoopPath {
   winding: number;
 
@@ -1730,8 +1734,7 @@ export class SplineLoopPath {
   }
 
   update_winding() {
-    static
-    cent = new Vector3();
+    const cent = _SplineLoopPath_update_winding_cent;
 
     cent.zero();
     for (var l of this) {
@@ -1822,8 +1825,7 @@ export class SplineFace extends SplineElement {
   update_aabb() {
     this.flag &= ~SplineFlags.UPDATE_AABB;
 
-    static
-    minmax = new MinMax(3);
+    const minmax = _SplineLoopPath_update_aabb_minmax;
 
     minmax.reset();
     for (var path of this.paths) {

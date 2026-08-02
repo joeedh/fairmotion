@@ -371,8 +371,6 @@ import {ImportJSONOp} from './viewport/spline_createops.js';
 
 var _dom_input_node = undefined;
 export var import_json = window.import_json = function import_json() {
-  global
-  _dom_input_node;
   console.log("import json!");
 
   if (_dom_input_node == undefined) {

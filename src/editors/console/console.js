@@ -103,7 +103,7 @@ export class ConsoleCommand {
         this.command = cmd;
     }
 
-    loadSTRUCT(reader : function) {
+    loadSTRUCT(reader : Function) {
         reader(this);
     }
 }
@@ -1085,7 +1085,7 @@ export class ConsoleEditor extends Editor {
         return document.createElement("console-editor-x");
     }
 
-    loadSTRUCT(reader : function) {
+    loadSTRUCT(reader : Function) {
         reader(this);
         super.loadSTRUCT(reader);
 

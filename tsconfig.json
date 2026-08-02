@@ -1,9 +1,34 @@
 {
-    "compilerOptions": {
-        "outDir": "./built",
-        "target": "es6"
-    },
-    "include": [
-        "./tsrc/**/*"
-    ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022", "WebWorker"],
+    "types": [],
+
+    /*
+     * Load-bearing for the runtime, not just the typechecker: esbuild reads it
+     * too. Nearly every class here writes its fields in the constructor and
+     * declares them bare (`foo: Type;`) purely as annotation. Under
+     * define semantics those declarations become real [[Define]] slots that
+     * overwrite whatever the constructor -- or a super() call -- already set.
+     */
+    "useDefineForClassFields": false,
+
+    /*
+     * Also load-bearing for the runtime: esbuild emits "use strict" when this
+     * is on. The old transpiler produced sloppy-mode output, and the app leans
+     * on it -- it monkey-patches read-only WebGL constants onto live contexts,
+     * for one. Turning it on is a separate job from the port.
+     */
+    "alwaysStrict": false,
+
+    "strict": true,
+    "strictNullChecks": true
+  },
+  "include": ["src/**/*.ts", "platforms/**/*.ts", "playwright/**/*.ts", "buildtools/**/*.mjs"],
+  "exclude": ["src/path.ux", "node_modules", "dist"]
 }

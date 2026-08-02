@@ -131,7 +131,7 @@ export class DataRef extends Array {
     return b !== undefined && b[0] === this[0];
   }
 
-  static fromSTRUCT(reader: function) {
+  static fromSTRUCT(reader: Function) {
     var ret = new DataRef(0);
 
     reader(ret);
@@ -666,7 +666,7 @@ export class DataBlock {
     return "DB" + this._hash_id;
   }
 
-  lib_adduser(user: Object, name: string, remfunc: function) {
+  lib_adduser(user: Object, name: string, remfunc: Function) {
     //remove_lib should be optional?
 
     var ref = new UserRef()
@@ -712,7 +712,7 @@ export class DataBlock {
   afterSTRUCT() {
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
 
     var map = {};
@@ -751,7 +751,7 @@ export class _DictKey {
     this.val = val;
   }
 
-  static fromSTRUCT(reader: function) {
+  static fromSTRUCT(reader: Function) {
     let ret = new _DictKey();
     reader(ret);
     return ret;
@@ -797,9 +797,7 @@ export class DataRefListIter<T> extends ToolIter {
     this.lst = lst;
     this.i = 0;
     this.datalib = ctx.datalib;
-    this.ret = undefined
-  :
-    IterRet<T>;
+    this.ret = undefined;
     this.init = true;
   }
 

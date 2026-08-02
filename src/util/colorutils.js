@@ -8,7 +8,7 @@
 //takes four float arrays for clr and hsv
 //returns either new hue (ret[0]), or last_hue
 
-export function rgba_to_hsva(clr, Array<float>ret=undefined, last_hue=0)
+export function rgba_to_hsva(clr, ret=undefined, last_hue=0)
 {
   var r =clr[0], g = clr[1], b = clr[2], a = clr[3];
 	var min, max, delta;

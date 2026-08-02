@@ -1,11 +1,9 @@
 "use strict";
 
-/* extjs doesn't support dynamic binding, manually
-*  bind pathux.platform.platform*/
-import {platform as pathux_platform} from '../path.ux/scripts/pathux.js';
-pathux_platform.getPlatformAsync().then(mod => {
-  pathux_platform.platform = mod;
-});
+/* path.ux's platform.js assigns its own exported `platform` binding once the
+   dynamic import resolves. The old module emulation had no live bindings, so
+   this file used to re-assign it from outside; ESM namespaces are sealed, so
+   that is now both unnecessary and a strict-mode TypeError. */
 
 import '../editors/all.js';
 
@@ -291,9 +289,7 @@ class UserSession {
   settings: AppSettings;
 
   constructor() {
-    this.tokens = {}
-  :
-    ObjectMap;
+    this.tokens = {};
     this.username = "user";
     this.password = "";
     this.is_logged_in = true; //false;
@@ -413,8 +409,6 @@ window.gen_default_file = function gen_default_file(size = [512, 512], force_new
   html5_fileapi.reset();
 
   let g = g_app_state;
-  global
-  startup_file;
 
   if (!force_new && load_default_file(g)) {
     return;

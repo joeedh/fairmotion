@@ -405,7 +405,8 @@ export function initWebGL() {
     return
   }
 
-  gl.canvas = canvas;
+  /* gl.canvas is a readonly accessor that already returns this canvas; the
+     assignment was a silent no-op in sloppy mode and throws in strict. */
 
   let ext = gl.getExtension("OES_texture_half_float");
   gl.getExtension("OES_texture_half_float_linear");

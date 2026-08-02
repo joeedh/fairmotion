@@ -151,7 +151,7 @@ export class DBList extends GArray {
   }
 
   //note that this doesn't set datablock user linkages.
-  data_link(block: DataBLock, getblock: function, getblock_us: function) {
+  data_link(block: DataBLock, getblock: Function, getblock_us: Function) {
     for (var i = 0; i < this.length; i++) {
       this[i] = getblock(this[i]);
       this.idmap[this[i].lib_id] = this[i];

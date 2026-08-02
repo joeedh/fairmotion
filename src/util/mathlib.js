@@ -281,7 +281,7 @@ export class MinMax {
     }
   }
   
-  static fromSTRUCT(reader : function) {
+  static fromSTRUCT(reader : Function) {
     var ret = new MinMax();
     
     reader(ret);

@@ -1,6 +1,8 @@
 import * as wasm_mod from './built_wasm.js';
 
-let wasm = wasm_mod.Module;
+/* built_wasm.js is generated emscripten output; its only export is the default,
+   which is the live Module object emscripten mutates in place. */
+let wasm = wasm_mod.default;
 
 export let wasmModule = wasm;
 

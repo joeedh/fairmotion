@@ -1,4 +1,15 @@
-"not_a_module"
+"use strict";
+
+import * as config from '../../config/config.js';
+import * as imagecanvas_webgl from '../../paint/imagecanvas_webgl.js';
+import {register_toolops} from '../data_api/data_api.js';
+import {theme} from '../../editors/theme.js';
+import {charmap} from '../../editors/events.js';
+import {AppState} from '../AppState.js';
+
+import {iconmanager, setTheme, setIconMap} from '../../path.ux/scripts/core/ui_base.js';
+import cconst from '../../path.ux/scripts/config/const.js';
+import * as FrameManager from '../../path.ux/scripts/screen/FrameManager.js';
 
 Object.defineProperty(window, "CTX", {
   get: function () {
@@ -30,78 +41,10 @@ if (window.mobilecheck === undefined) {
 }
 //*/
 
-//localstorage variant
-class MyLocalStorage_LS {
-  set(key: string, val: string) {
-    localStorage[key] = val;
-  }
-
-  getCached(key) {
-    return localStorage[key];
-  }
-
-  getAsync(key) {
-    return new Promise(function (accept, reject) {
-      if (key in localStorage && localStorage[key] !== undefined) {
-        accept(localStorage[key]);
-      }
-    });
-  }
-
-  hasCached(key) {
-    return key in localStorage;
-  }
-}
-
-class MyLocalStorage_ChromeApp {
-  constructor() {
-    this.cache = {};
-  }
-
-  set(key, val) {
-    let obj = {};
-    obj[key] = val;
-
-    chrome.storage.local.set(obj);
-    this.cache[key] = val;
-  }
-
-  getCached(key) {
-    return this.cache[key];
-  }
-
-  getAsync(key) {
-    let this2 = this;
-
-    return new Promise(function (accept, reject) {
-      chrome.storage.local.get(key, function (value) {
-        if (chrome.runtime.lastError !== undefined) {
-          this2.cache[key] = null;
-          reject(chrome.runtime.lastError.string);
-        } else {
-          if (value !== {} && value !== undefined && key in value) {
-            value = value[key];
-          }
-
-          if (typeof value === "object")
-            value = JSON.stringify(value);
-
-          this2.cache[key] = value;
-          accept(value);
-        }
-      });
-    });
-  }
-
-  hasCached(key) {
-    return key in this.cache;
-  }
-}
-
 window.startup = function startup() {
-  //set up myLocalStorage
+  /* window.myLocalStorage is installed by the pre-bundle classic script
+     src/core/startup/localstorage.js — config.js reads it at module scope. */
   if (window.CHROME_APP_MODE) {
-    window.myLocalStorage = new MyLocalStorage_ChromeApp();
     window.myLocalStorage.getAsync("session"); //preload session data
     window.myLocalStorage.getAsync("startup_file"); //startup_file too
     window.myLocalStorage.getAsync("_settings"); //user settings
@@ -119,7 +62,6 @@ window.startup = function startup() {
       }, 200);
     }, 450);
   } else {
-    window.myLocalStorage = new MyLocalStorage_LS();
     startup_intern();
   }
 }
@@ -147,23 +89,15 @@ window.startup_intern = function startup() {
 
   //return;
 
-  load_modules();
-
-  if (window.CHROME_APP_MODE) {
-    //set up some chrome app settings
-    let config = _es6_get_module("config", true);
-    config.exports.HAVE_EVAL = false;
-  }
-
-  window.imagecanvas_webgl = _es6_get_module("imagecanvas_webgl", true);
-  imagecanvas_webgl.exports.initWebGL();
+  window.imagecanvas_webgl = imagecanvas_webgl;
+  imagecanvas_webgl.initWebGL();
 
   window.setTimeout(() => {
     window.redraw_webgl();
   }, 500);
 
-  init_theme();
-  init_redraw_globals();
+  window.init_theme();
+  window.init_redraw_globals();
 
   //remove default mouse handlers (especially right click)
   document.onselectstart = function () {
@@ -173,12 +107,11 @@ window.startup_intern = function startup() {
     return false;
   };
 
-  let {register_toolops} = _es6_get_module(_rootpath_src + "src/core/data_api/data_api.js").exports;
   register_toolops();
 
   //initialize struct pack system
   startup_report("parsing serialization scripts...");
-  init_struct_packer();
+  window.init_struct_packer();
 
   startup_report("loading icons and theme...");
   init_pathux();
@@ -191,24 +124,17 @@ window.startup_intern = function startup() {
   g_app_state.size = [w, h];
 
   startup_report("create event dag...");
-  init_event_graph(g_app_state.ctx);
+  window.init_event_graph(g_app_state.ctx);
 
   startup_report("loading new scene file...");
-  gen_default_file([w, h]);
+  window.gen_default_file([w, h]);
 
   g_app_state.session.validate_session();
   init_event_system();
-  init_redraw_globals_2();
+  window.init_redraw_globals_2();
 }
 
 function init_pathux() {
-  let ui_base = _es6_get_module("ui_base", true).exports;
-  let {iconmanager, setTheme, setIconMap} = ui_base;
-
-  let theme = _es6_get_module(_rootpath_src + "src/editors/theme.js").exports.theme;
-  let config = _es6_get_module(_rootpath_src + "src/config/config.js").exports;
-  let cconst = _es6_get_module(_rootpath_src + "src/path.ux/scripts/config/const.js").default_export;
-
   let cfg = Object.assign({}, config.PathUXConstants);
   if (config.DEBUG) {
     cfg = Object.assign(cfg, config.DEBUG);
@@ -228,8 +154,6 @@ function init_pathux() {
 }
 
 function init_event_system() {
-  let FrameManager = es6_get_module_meta(_rootpath_src + "src/path.ux/scripts/screen/FrameManager.js").exports;
-
   FrameManager.startEvents(() => {
     return g_app_state ? g_app_state.screen : undefined;
   });
@@ -259,8 +183,6 @@ function init_event_system() {
   //    g_app_state.screen.listen();
   //  }
   //}
-
-  let config = _es6_get_module(_rootpath_src + "src/config/config.js");
 
   //start primary on_tick timer
 

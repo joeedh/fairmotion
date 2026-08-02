@@ -417,8 +417,10 @@ export function parentify(node) {
   return node;
 }
 
+/* esprima is a UMD bundle loaded as a plain script; it sets window.esprima.
+   The old module emulation exposed it as the global `_esprima`. */
 export function compile(code) {
-  return parentify(_esprima.parse(code).body);
+  return parentify(window.esprima.parse(code).body);
 }
 
 export function exec(ast, scope1) {

@@ -59,7 +59,7 @@ export function test_utf8()
   return true;
 }
 
-export function truncate_utf8(Array<byte>arr, maxlen)
+export function truncate_utf8(arr, maxlen)
 {
   var len = Math.min(arr.length, maxlen);
   

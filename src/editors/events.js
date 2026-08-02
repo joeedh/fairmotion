@@ -385,7 +385,7 @@ export class VelocityPan extends EventHandler {
     this.mpos = new Vector2();
 
     this.start_time = 0;
-    this.owner = undefined : EventHandler;
+    this.owner = undefined;
     
     this.coasting = false;
     this.panning = false;

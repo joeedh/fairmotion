@@ -596,11 +596,11 @@ export class PenToolMode extends ToolMode {
   }
 
 
-  dataLink(scene: Scene, getblock: function, getblock_us: function) {
+  dataLink(scene: Scene, getblock: Function, getblock_us: Function) {
     this.ctx = g_app_state.ctx;
   }
 
-  loadSTRUCT(reader: function) {
+  loadSTRUCT(reader: Function) {
     reader(this);
   }
 }

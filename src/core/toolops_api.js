@@ -156,12 +156,9 @@ export const ToolFlags = {
 //genereated STRUCT/fromSTRUCT should be identical with
 //ToolOp.STRUCT/fromSTRUCT, except for the change in class name.
 window.init_toolop_structs = function () {
-  global
-  defined_classes;
-
-  for (let i = 0; i < defined_classes.length; i++) {
+  for (let i = 0; i < window.defined_classes.length; i++) {
     //only consider classes that inherit from ToolOpAbstract
-    let cls = defined_classes[i];
+    let cls = window.defined_classes[i];
     let ok = false;
     let is_toolop = false;
 

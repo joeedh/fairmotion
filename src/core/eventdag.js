@@ -501,7 +501,7 @@ export class EventSocket {
     this.type = type;
 
     this.name = name;
-    this.node = node;
+    this.node = owner;
 
     this.datatype = datatype;
     this.data = undefined;

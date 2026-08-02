@@ -13,19 +13,21 @@ if (config.IS_NODEJS) {
 
   window.wasmBinaryFile = undefined;
 
+  /* Assigning the exported `var` is enough — ESM export bindings are live, so
+     the old explicit add_export() calls are gone. */
   wasm_binary = window.solverwasm_binary = fs.readFileSync(config.ORIGIN + "/fcontent/built_wasm.wasm");
-  _es6_module.add_export('wasm_binary', wasm_binary);
 } else {
-  let path = config.ORIGIN + "/fcontent/built_wasm.wasm";
-
-  exports.wasmBinaryPath = path;
-  _es6_module.add_export('wasmBinaryPath', path);
+  /* Relative on purpose: built_wasm.js runs this through emscripten's
+     locateFile(), which prepends the directory app.js was loaded from --
+     fcontent/ in both targets. An absolute URL got that prefix too and 404'd.
+     The legacy build got away with it only because its lazy module evaluation
+     left document.currentScript null, so scriptDirectory stayed empty. */
+  wasmBinaryPath = "built_wasm.wasm";
   /*
   fetch(origin + "/fcontent/built_wasm.wasm").then((res) => {
     return res.arrayBuffer();
   }).then((data) => {
     wasm_binary = window.solverwasm_binary = data;
-    _es6_module.add_export('wasm_binary', wasm_binary);
     console.log("loaded spline solver wasm binary");
   });*/
 }

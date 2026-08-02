@@ -4,7 +4,7 @@ export var toolmap = {};
 export var toollist = [];
 
 export function register_toolops() {
-  function isTool(t : function) {
+  function isTool(t : Function) {
     if (t.tooldef === undefined || !t.hasOwnProperty("tooldef") || t.tooldef === ToolOp.tooldef)
       return false;
 

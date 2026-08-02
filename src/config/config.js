@@ -16,6 +16,12 @@ export let PathUXConstants = {
 
 export var ORIGIN = location.origin;
 
+/* Real ESM namespace objects are sealed, so platform.js can no longer write
+   `config.ORIGIN = x` the way it did under the old module emulation. */
+export function setOrigin(origin) {
+  ORIGIN = origin;
+}
+
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
 
 export var NO_RENDER_WORKERS = false;
@@ -127,8 +133,15 @@ for (var k in _DEBUG) {
 if (DEBUG && DEBUG.force_mobile)
   window.IsMobile = true;
 
+/* The per-platform config.js files used to overwrite arbitrary exports of this
+   module. ESM bindings are read-only from outside, so only keys with an explicit
+   setter can be overridden; ORIGIN is the only one any platform ships. */
 if (window._platform_config) {
-  for (let k in _platform_config) {
-    exports[k] = _platform_config[k];
+  for (let k in window._platform_config) {
+    if (k === "ORIGIN") {
+      setOrigin(window._platform_config[k]);
+    } else {
+      console.warn("config: platform override for '" + k + "' is not settable");
+    }
   }
 }

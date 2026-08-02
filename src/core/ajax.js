@@ -554,7 +554,7 @@ export class unpack_ctx {
 //function NetJobStatus(job, owner, status) : NetStatus;
 
 window.NetStatus = function NetStatus() {
-  this.progress = 0 : float;
+  this.progress = 0;
   this.status_msg = "";
   this.cancel = false;
   this._client_control = false; //client api code is controlling this NetStatus, not XMLHttpRequest callbacks

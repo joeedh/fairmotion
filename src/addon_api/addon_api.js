@@ -523,11 +523,27 @@ window._testParseFile = function() {
 }
 
 
+/* The addon loader is its own tiny module registry, unrelated to how the app
+   itself is bundled. It used to borrow ES6Module from the legacy loader in
+   core/startup/module.js, which only ever supplied these fields. */
+class AddonModule {
+  constructor(name, path) {
+    this.name = name;
+    this.path = path;
+
+    this.callback = undefined;
+    this.exports = {};
+    this.deps = [];
+    this.loaded = false;
+    this.addon = undefined;
+  }
+}
+
 export const modules = {};
 export const pathstack = ["."];
 
 for (let k in builtins) {
-  let mod = new ES6Module(k, k);
+  let mod = new AddonModule(k, k);
   mod.loaded = true;
   mod.exports = builtins[k];
   modules[k] = mod;
@@ -582,7 +598,7 @@ export function loadModule(path, addon) {
   window._addon_define = function _addon_define(fileid, path, deps, func) {
     console.log("ADDON DEFINE CALLED!");
 
-    let module = new ES6Module(_splitpath(path)[1], path);
+    let module = new AddonModule(_splitpath(path)[1], path);
     module.callback = func;
 
     let file = filestates[fileid];

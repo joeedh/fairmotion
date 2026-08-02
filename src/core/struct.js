@@ -100,7 +100,7 @@ let vecpatches = [];
 
 function makeVecPatch(cls, size, name) {
   let dummycls = {
-    fromSTRUCT(reader : function) {
+    fromSTRUCT(reader : Function) {
       let ret = new cls();
       reader(ret);
       return ret;

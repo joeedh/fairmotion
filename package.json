@@ -1,5 +1,45 @@
 {
+  "name": "fairmotion",
+  "version": "0.1.0",
+  "description": "2D vector animation app",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node buildtools/esbuild.mjs",
+    "build:electron": "node buildtools/esbuild.mjs --electron",
+    "watch": "node buildtools/esbuild.mjs --watch",
+    "serv": "node buildtools/serv.mjs",
+    "electron": "node buildtools/electron.mjs",
+    "cdp": "node buildtools/cdp.mjs",
+    "typecheck": "npx tsgo --noEmit",
+    "format": "node node_modules/@pathtx/prettier/bin/prettier.cjs --log-level warn --cache --write \"src/**/*.ts\"",
+    "format:check": "node node_modules/@pathtx/prettier/bin/prettier.cjs --log-level warn --cache --check \"src/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "playwright": "npx playwright test"
+  },
   "dependencies": {
     "canvaskit-wasm": "^0.16.2"
+  },
+  "devDependencies": {
+    "@pathtx/prettier": "3.3.0-dev",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "@typescript/native-preview": "7.0.0-dev.20260406.1",
+    "diff": "^5.2.2",
+    "electron": "^43.0.0",
+    "esbuild": "^0.28.0",
+    "happy-dom": "^20.9.0",
+    "marked": "^12.0.2",
+    "parse5": "6.0.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.7"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
   }
 }

@@ -183,6 +183,9 @@ import {
 } from './struct.js';
 //#endif
 
+/* Publishes window.__fm for playwright and cdp.mjs. */
+import './debug_api.js';
+
 export let FileFlags = {COMPRESSED_LZSTRING: 1};
 
 export class FileData {

@@ -41,7 +41,6 @@ dynamic_modules = {
 sources = [
   "src/html/unit_test.html",
   "src/html/main.html",
-  "src/html/module_test.html",
   "src/core/startup/coverage.js",
   "src/core/evillog.js",
   "src/util/polyfill_fairmotion.js",
@@ -56,7 +55,6 @@ sources = [
   "tools/utils/crypto/sha1.js",
   "tools/utils/libs/lz-string/libs/base64-string-v1.1.0.js",
   "tools/utils/libs/lz-string/libs/lz-string-1.3.3.js",
-  #"src/util/jslzjb.js",
   "src/core/startup/startup_file_example.js",
   "src/core/startup/startup_file.js",
   "src/core/startup/redraw_globals.js",
@@ -65,14 +63,10 @@ sources = [
   "tools/utils/libs/node_modules/esprima/esprima.js",
   
   "src/core/eventmanager.js",
-  #"src/util/base_vector.js",
   "src/datafiles/icon_enum.js",
-  #"src/util/vector.js",
-#	"src/core/J3DIMath.js",
 	"src/util/utils.js",
   "src/util/binomial_table.js",
   "src/util/strutils.js",
-  #"src/util/save_as.js",
 	"src/core/lib_api.js",
 	"src/core/lib_api_typedefine.js",
 	"src/util/mathlib.js",
@@ -85,6 +79,7 @@ sources = [
   "src/core/imageblock.js",
   "src/image/image_ops.js",
   "src/core/UserSettings.js",
+  "src/core/debug_api.js",
     "src/core/context.js",
     "src/core/toolstack.js",
 	"src/core/AppState.js",
@@ -216,13 +211,8 @@ sources = [
   ##"src/ui/UIWidgets_special.js",
   ##"src/ui/UIWidgets_special2.js",
   ##"src/ui/UITabPanel.js",
-  ##"src/core/utildefine.js",
   ##"src/ui/dialog.js",
   ##"src/ui/dialogs.js",
-  ##"src/windowmanager/FrameManager.js",
-  ##"src/windowmanager/FrameManager_ops.js",
-  ##"src/windowmanager/ScreenArea.js",
-  ##"src/windowmanager/ScreenBorder.js",
   
   "src/editors/viewport/view2d_editor.js",
   "src/editors/viewport/view2d_object.js",
@@ -257,9 +247,6 @@ sources = [
   "src/core/keymap.js",
 
   "src/graph/graph.js",
-#  "src/graph/graph_class.js",
-#  "src/graph/graph_datapath.js",
-#  "src/graph/graph_spatial.js",
   "src/graph/graphsockets.js",
 
   "src/brush/brush_base.js",
@@ -287,7 +274,6 @@ copy_targets = {
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
-   "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
    "tinymce.js"              : "src/path.ux/scripts/lib/tinymce/tinymce.js",
 }
 

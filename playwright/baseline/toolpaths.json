@@ -28,6 +28,7 @@
   "editor.import_old_json",
   "editor.paste_pose",
   "image.load_image",
+  "listbox.set_active",
   "pen.stroke",
   "scene.change_frame",
   "screen.area.drag",

@@ -863,11 +863,15 @@ export class View2DHandler extends Editor {
     });
 
 
-    let tool = tools.tool("view2d.circle_select(mode='SELECT' selectmode='selectmode')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
+    /* No selectmode arg: it was never an input, only something
+       SelectOpBase.invoke() read out of args, and path.ux's parseArgs() now
+       rejects names with no matching input. Omitting it takes the same
+       invoke() branch, which reads ctx.selectmode. */
+    let tool = tools.tool("view2d.circle_select(mode='SELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
     tool.icon = Icons.CIRCLE_SEL_ADD;
     tool.description = "Select control points in a circle";
 
-    tool = tools.tool("view2d.circle_select(mode='DESELECT' selectmode='selectmode')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
+    tool = tools.tool("view2d.circle_select(mode='DESELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
     tool.icon = Icons.CIRCLE_SEL_SUB;
     tool.description = "Deselect control points in a circle";
 

@@ -60,7 +60,14 @@ export class SplineVertex extends SplineElement {
 
   constructor(co) {
     super(SplineTypes.VERTEX);
-    Vector2.prototype.initVector2.apply(this, arguments);
+
+    /* SplineVertex is not a Vector2 subclass -- it borrows the methods through
+       mixin(SplineVertex, Vector2) below and sets up the instance state itself.
+       This used to call Vector2.prototype.initVector2, which path.ux dropped
+       when vectormath moved to a class factory; these two lines are what it
+       did. The `co` copy just below is the rest of it. */
+    this.length = 2;
+    this[0] = this[1] = 0.0;
 
     this._no_warning = false;
 

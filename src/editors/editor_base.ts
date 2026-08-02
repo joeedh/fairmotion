@@ -1,4 +1,5 @@
-import {Area, areaclasses, contextWrangler, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {Area, contextWrangler, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {areaclasses} from '../path.ux/scripts/screen/area_base.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';

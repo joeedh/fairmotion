@@ -370,8 +370,8 @@ export class SplineEditor extends View2DEditor {
     
     col.toolop("spline.split_pick_edge_transform()");
   
-    col.toolop("spline.change_face_z(offset=1, selmode='selectmode')", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
-    col.toolop("spline.change_face_z(offset=-1, selmode='selectmode')", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
+    col.toolop("spline.change_face_z(offset=1)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
+    col.toolop("spline.change_face_z(offset=-1)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
 
     col.prop("view2d.draw_anim_paths");
     
@@ -407,14 +407,14 @@ export class SplineEditor extends View2DEditor {
   define_keymap() {
     let k = this.keymap;
     
-    k.add(new HotKey("PageUp", [], "spline.change_face_z(offset=1 selmode='selectmode')|Send Face Up"));
-    k.add(new HotKey("PageDown", [], "spline.change_face_z(offset=-1 selmode='selectmode')|Send Face Down"));
+    k.add(new HotKey("PageUp", [], "spline.change_face_z(offset=1)|Send Face Up"));
+    k.add(new HotKey("PageDown", [], "spline.change_face_z(offset=-1)|Send Face Down"));
 
-    k.add(new HotKey("G", [], "spline.translate(datamode='selectmode')|Translate"));
-    k.add(new HotKey("S", [], "spline.scale(datamode='selectmode')|Scale"));
+    k.add(new HotKey("G", [], "spline.translate()|Translate"));
+    k.add(new HotKey("S", [], "spline.scale()|Scale"));
     k.add(new HotKey("S", ["SHIFT"], "spline.shift_time()|Scale Time"));
                
-    k.add(new HotKey("R", [], "spline.rotate(datamode='selectmode')|Rotate"));
+    k.add(new HotKey("R", [], "spline.rotate()|Rotate"));
     
     k.add(new HotKey("A", [], "spline.toggle_select_all()|Select Linked"));
     /*
@@ -439,11 +439,11 @@ export class SplineEditor extends View2DEditor {
 
     k.add(new HotKey("A", ["ALT"], "editor.playback()|Animation Playback"));
 
-    k.add(new HotKey("H", [], "spline.hide(selmode='selectmode')|Hide Selection"));
-    k.add(new HotKey("H", ["ALT"], "spline.unhide(selmode='selectmode')|Reveal Selection"));
+    k.add(new HotKey("H", [], "spline.hide()|Hide Selection"));
+    k.add(new HotKey("H", ["ALT"], "spline.unhide()|Reveal Selection"));
 
-    k.add(new HotKey("G", ["CTRL"], "spline.hide(selmode='selectmode', ghost=1)|Ghost Selection"));
-    k.add(new HotKey("G", ["ALT"], "spline.unhide(selmode='selectmode', ghost=1)|Unghost Selection"));
+    k.add(new HotKey("G", ["CTRL"], "spline.hide(ghost=1)|Ghost Selection"));
+    k.add(new HotKey("G", ["ALT"], "spline.unhide(ghost=1)|Unghost Selection"));
     
     /*k.add(new HotKey("C", [], "Connect Handles"),
                "spline.connect_handles()");

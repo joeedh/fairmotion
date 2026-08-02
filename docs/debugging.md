@@ -424,3 +424,100 @@ into the target root. `bundle: false` keeps them classic scripts; their
 warnings; the electron app answers over CDP with `tools=96 editors=10 errors=[]`;
 vitest 6/6; playwright 17/17 with every recorded baseline unchanged. The
 typechecker has deliberately not been consulted — `npx tsgo --noEmit` is phase 5.
+
+# Phase 1 — path.ux submodule bump
+
+`9df41b29` → `dc7c558d`, 205 commits, with the nested `scripts/path-controller`
+submodule going `257cb82` → `60da442`. Ran last rather than first: step 2 of the
+plan anticipated that upstream would be `.ts` by now and that the esbuild switch
+would have to be pulled forward, and it did.
+
+Two local uncommitted edits inside the submodules were reverted before the bump
+and are not needed after it: a commented-out `import './mobile-detect.cjs'` in
+`path-controller/util/util.js` (upstream ships `mobile-detect.ts` now) and a
+`simple_docsys/package-lock.json` drift.
+
+## Symptom: `Could not resolve "nstructjs"`
+
+Cause: `path-controller/util/nstructjs.ts` is now a two-line re-export of the real
+`nstructjs` npm package instead of a vendored copy. path.ux lists it in its own
+devDependencies; fairmotion resolves modules from its own `node_modules`.
+Found by: the esbuild resolve error names the bare specifier.
+Fix: `pnpm add nstructjs@^0.8.7`.
+
+## Symptom: `No matching export for import "areaclasses"`
+
+Cause: `areaclasses` moved from `screen/area_wrangler` and `screen/ScreenArea` to
+`screen/area_base`.
+Found by: esbuild bundle errors naming both import sites.
+Fix: repointed `src/core/debug_api.ts` and `src/editors/editor_base.ts`.
+
+## Symptom: `ReferenceError: Buffer is not defined` at module scope
+
+Cause: `classRegistryPlugin` appended `_ESClass.register(Buffer)` for the
+`declare class Buffer` in `platforms/electron/electron_api.ts`. `declare class` is
+an ambient type declaration — erased, so there is no binding to register. Nothing
+in fairmotion used `declare class` before the bump, so the plugin had never met one.
+Found by: a raw `page.on("pageerror")` probe; the stack pointed at the module
+initializer, not at any call site.
+Fix: the plugin skips class declarations carrying the `declare` modifier.
+
+## Symptom: `Error: unknown argument selectmode` / `expected a number for a number property`
+
+Cause: `ToolOp.parseArgs()` now validates every parsed toolpath argument — the name
+must match a declared input, and the value goes through that property's
+`parseArg()`. The old `parseToolPath` just parsed the string into a map and handed
+it to `invoke()`.
+That exposed a long-standing idiom in fairmotion's hotkeys and toolbars:
+`spline.translate(datamode='selectmode')`, `spline.hide(selmode='selectmode')`,
+`view2d.circle_select(mode='SELECT' selectmode='selectmode')` and 17 more. The
+value is the *string* `'selectmode'`, not a reference to anything — there is no
+"read this from context" syntax in the toolpath parser and there never was. Every
+one of these was passing a string into an `IntProperty`, so `selmode & FLAG`
+evaluated to 0 and the tool quietly did nothing.
+Found by: playwright, in `SettingsEditor.buildHotKeys` (which parses every hotkey
+string to build labels) and in `View2DHandler.makeToolbars`.
+Fix: dropped the argument at all 20 sites. The tools now use their declared
+defaults — `SelectOpBase.invoke()` falls back to `ctx.selectmode` when `selectmode`
+is absent, which is what the idiom was reaching for, and `spline.hide`/`unhide`/
+`change_face_z` get their real defaults instead of 0. For the transform ops the
+default is 0, so those are unchanged.
+
+## Symptom: `Cannot read properties of undefined (reading 'apply')` loading any .fmo
+
+Cause: `SplineVertex`'s constructor called
+`Vector2.prototype.initVector2.apply(this, arguments)`. path.ux's vectormath is a
+class factory now (`createVector2(Array | Float32Array)`) and the per-instance
+`initVectorN` helpers are gone; the constructor does the work.
+`SplineVertex` is not a `Vector2` — it borrows the methods through
+`mixin(SplineVertex, Vector2)` and has to set up the instance state itself.
+Found by: the .fmo specs; the stack named `new SplineVertex`.
+Fix: inlined what `initVector2` did — `this.length = 2; this[0] = this[1] = 0.0;`.
+The `co` copy that follows was already there.
+
+## Note: `tinymce.js`, `icogen.js` and the DYNAMIC_MODULES copies are gone
+
+`scripts/lib/tinymce/tinymce.js` is `tinymce.cjs` now and `docbrowser.ts` imports
+it itself, so esbuild bundles it; `electron_api` and `docbrowser` are reached
+through ordinary imports (`platforms/platform.ts` uses a dynamic `import()`, which
+the IIFE inlines). All three copy steps were silently no-oping against paths that
+no longer exist — `copyFile()` returns false when the source is missing — so they
+were removed rather than repointed. `platforms/Electron/index.html` still sets
+`window.TINYMCE_PATH`; it is inert now.
+
+## Baseline changes
+
+Re-recorded with `FM_UPDATE_BASELINE=1`. Every change is an addition:
+
+- `datapaths.json` 927 → 945 paths. Not one path was removed. The 18 new ones are
+  all `toolDefaults.*` entries upstream added.
+- `toolpaths.json` gains `listbox.set_active` (96 → 97 tools).
+- `errors-load-love-and-thunder-fmo.json` *loses* `"Datapath error"`. The remaining
+  `"Had to add object to datalib during file conversion SceneObject"` is unchanged.
+
+**Phase 1 exit check:** app runs, all 17 playwright specs pass, vitest 6/6, the
+datapath sweep resolves and reads 945 paths (no fewer than phase 0's 927), both
+`.fmo` files load and re-save, and the electron build answers over CDP with
+`tools=97 editors=10`. Build warnings dropped 35 → 22 as upstream added the
+exports the old bundle was warning about. No `.update.after` / `.setCSS.after`
+aspect calls remain anywhere in fairmotion's sources — that audit came back empty.

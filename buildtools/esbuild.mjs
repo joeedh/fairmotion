@@ -59,12 +59,6 @@ const WORKERS = [
   "src/vectordraw/vectordraw_skia_worker.ts",
 ];
 
-/* path.ux modules the app fetches at runtime rather than importing. */
-const DYNAMIC_MODULES = {
-  "electron/electron_api.js": "src/path.ux/scripts/platforms/electron/electron_api.js",
-  "docbrowser/docbrowser.js": "src/path.ux/scripts/docbrowser/docbrowser.js",
-};
-
 /* Node builtins reachable only from the electron code paths. In the html5
    bundle these become throwing stubs, which is what they were before. */
 const NODE_EXTERNALS = [
@@ -148,12 +142,7 @@ function copyAssets() {
   mkdirp(globalsDir);
 
   copyFile("src/datafiles/iconsheet.svg", path.join(fcontent, "iconsheet.svg"));
-  copyFile("src/path.ux/scripts/lib/tinymce/tinymce.js", path.join(fcontent, "tinymce.js"));
   copyFile("src/wasm/_built_wasm.wasm", path.join(fcontent, "built_wasm.wasm"));
-
-  for (const [dst, src] of Object.entries(DYNAMIC_MODULES)) {
-    copyFile(src, path.join(fcontent, dst));
-  }
 
   copyDir("addons", path.join(target.outDir, "addons"));
 
@@ -161,7 +150,6 @@ function copyAssets() {
     for (const f of ["config.js", "main.js", "preload.js", "package.json"]) {
       copyFile("platforms/Electron/" + f, path.join(target.outDir, f));
     }
-    copyFile("src/path.ux/scripts/platforms/electron/icogen.js", path.join(target.outDir, "icogen.js"));
     copyDir("node_modules/canvaskit-wasm", path.join(target.outDir, "node_modules/canvaskit-wasm"));
   } else {
     for (const f of ["config.js", "nodeserver.js", "package.json"]) {
@@ -205,9 +193,15 @@ const classRegistryPlugin = {
 
       const names = [];
       for (const stmt of sourceFile.statements) {
-        if (ts.isClassDeclaration(stmt) && stmt.name) {
-          names.push(stmt.name.text);
+        if (!ts.isClassDeclaration(stmt) || !stmt.name) {
+          continue;
         }
+        /* `declare class` is an ambient type declaration. It is erased, so
+           there is no binding left to register. */
+        if (stmt.modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword)) {
+          continue;
+        }
+        names.push(stmt.name.text);
       }
 
       if (names.length === 0) {

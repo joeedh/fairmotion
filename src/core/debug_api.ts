@@ -4,7 +4,7 @@
    Playwright reaches it with page.evaluate; buildtools/cdp.mjs reaches the
    same object in an electron build over CDP. One API, both modes. */
 
-import {areaclasses} from '../path.ux/scripts/screen/area_wrangler.js';
+import {areaclasses} from '../path.ux/scripts/screen/area_base.js';
 import {ToolClasses} from '../path.ux/scripts/path-controller/toolsys/toolsys.js';
 import {unpack_ctx} from './ajax.js';
 

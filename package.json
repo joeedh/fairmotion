@@ -19,7 +19,8 @@
     "playwright": "npx playwright test"
   },
   "dependencies": {
-    "canvaskit-wasm": "^0.16.2"
+    "canvaskit-wasm": "^0.16.2",
+    "nstructjs": "^0.8.7"
   },
   "devDependencies": {
     "@pathtx/prettier": "3.3.0-dev",

@@ -11,6 +11,9 @@ importers:
       canvaskit-wasm:
         specifier: ^0.16.2
         version: 0.16.2
+      nstructjs:
+        specifier: ^0.8.7
+        version: 0.8.7
     devDependencies:
       '@pathtx/prettier':
         specifier: 3.3.0-dev
@@ -439,6 +442,19 @@ packages:
   '@vitest/utils@4.1.10':
     resolution: {integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==}
 
+  acorn-walk@7.2.0:
+    resolution: {integrity: sha512-OPdCF6GsMIP+Az+aWfAAOEt2/+iVDKE7oy6lJ098aoe59oAmK76qV6Gw60SbZ8jHuG2wH058GF4pLFbYamYrVA==}
+    engines: {node: '>=0.4.0'}
+
+  acorn@7.4.1:
+    resolution: {integrity: sha512-nQyp0o1/mNdbTO1PO6kHkwSrmgZ0MT/jCCpNiwbUjGoRN4dlBhqJtoQuCnEOKzgTVwg0ZWiCoQy6SxMebQVh8A==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
+  almond@0.3.3:
+    resolution: {integrity: sha512-Eh5QhyxrKnTI0OuGpwTRvzRrnu1NF3F2kbQJRwpXj/uMy0uycwqw2/RhdDrD1cBTD1JFFHFrxGIU8HQztowR0g==}
+    engines: {node: '>=0.4.0'}
+
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
@@ -617,6 +633,9 @@ packages:
     resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  nstructjs@0.8.7:
+    resolution: {integrity: sha512-7ctMcZ1bX08CbfPCpUC9aFV52s8V3ZLW1RVedAMs0RESDLlbynv5sBBa8Z9tbzRaKrgQ9Aa2iMsoKyZAT7OCHQ==}
 
   obug@2.1.4:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
@@ -1099,6 +1118,12 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
+  acorn-walk@7.2.0: {}
+
+  acorn@7.4.1: {}
+
+  almond@0.3.3: {}
+
   assertion-error@2.0.1: {}
 
   buffer-image-size@0.6.4:
@@ -1251,6 +1276,12 @@ snapshots:
   ms@2.1.3: {}
 
   nanoid@3.3.16: {}
+
+  nstructjs@0.8.7:
+    dependencies:
+      acorn: 7.4.1
+      acorn-walk: 7.2.0
+      almond: 0.3.3
 
   obug@2.1.4: {}
 

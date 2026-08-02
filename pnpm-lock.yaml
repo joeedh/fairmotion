@@ -1,0 +1,22 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      canvaskit-wasm:
+        specifier: ^0.16.2
+        version: 0.16.2
+
+packages:
+
+  canvaskit-wasm@0.16.2:
+    resolution: {integrity: sha512-0rmzT33Li/WV6Mi5+W374Higfq7ffTtsCZi1WhvfaTyRzgPwaurH6hXy537gv93dgyte7z1f6etDsnsqY0t1Jg==}
+
+snapshots:
+
+  canvaskit-wasm@0.16.2: {}

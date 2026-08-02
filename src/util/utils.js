@@ -83,12 +83,15 @@ class CanIter {
   }
 }
 
-var int debug_int_1 = 0;
+var debug_int_1 = 0;
+
+/* Was `static` inside cachering.fromConstructor(). */
+const _fromConstructor_args = [];
 
 class cachering extends Array {
   _cur : number;
 
-  constructor (createcallback : Function, int count=32) {
+  constructor (createcallback : Function, count=32) {
     super(count);
 
     if (!createcallback) {
@@ -111,8 +114,8 @@ class cachering extends Array {
     return ret;
   }
   
-  static fromConstructor(cls, int count=32) {
-    static args = [];
+  static fromConstructor(cls, count=32) {
+    const args = _fromConstructor_args;
     args.length = 0;
     
     for (var i=1; i<arguments.length; i++) {
@@ -134,7 +137,7 @@ class cachering extends Array {
 };
 
 class GArray extends Array {
-  constructor(Object input) {
+  constructor(input) {
     super()
 
     if (input != undefined) {
@@ -144,7 +147,7 @@ class GArray extends Array {
     }
   }
   
-  slice(int a, int b) : GArray {
+  slice(a, b) : GArray {
     var ret = Array.prototype.slice.call(this, a, b);
     if (!(ret instanceof GArray))
       ret = new GArray(ret);
@@ -152,7 +155,7 @@ class GArray extends Array {
     return ret;
   }
   
-  pack(Array<byte> data) {
+  pack(data) {
     _ajax.pack_int(data, this.length);
     
     for (var i=0; i<this.length; i++) {
@@ -160,7 +163,7 @@ class GArray extends Array {
     }
   }
   
-  has(T item) : Boolean {
+  has(item) : Boolean {
     return this.indexOf(item) >= 0;
   }
   
@@ -188,7 +191,7 @@ class GArray extends Array {
   }
 
   //inserts *before* index
-  insert(int index, T item) {
+  insert(index, item) {
     for (var i=this.length; i > index; i--) {
       this[i] = this[i-1];
     }
@@ -197,11 +200,11 @@ class GArray extends Array {
     this.length++;
   }
 
-  prepend(T item) {
+  prepend(item) {
     this.insert(0, item);
   }
 
-  pop_i(int idx=-1) {
+  pop_i(idx=-1) {
     if (idx < 0)
       idx += this.length;
    
@@ -216,8 +219,8 @@ class GArray extends Array {
     return ret;
   }
   
-  remove(T item, Boolean ignore_existence) { //ignore_existence defaults to false
-    var int idx = this.indexOf(item);
+  remove(item, ignore_existence) { //ignore_existence defaults to false
+    var idx = this.indexOf(item);
     
     if (ignore_existence == undefined)
       ignore_existence = false;
@@ -241,8 +244,8 @@ class GArray extends Array {
     this.length -= 1;
   }
 
-  replace(T olditem, T newitem) { 
-    var int idx = this.indexOf(olditem);
+  replace(olditem, newitem) { 
+    var idx = this.indexOf(olditem);
     
     if (idx < 0 || idx == undefined) {
       console.trace("Yeek! Item " + olditem + " not in array");
@@ -300,10 +303,9 @@ class GArray extends Array {
 
 
 //turn defined_classes into a GArray, now that we've defined it (garray)
-global defined_classes;
 window.defined_classes = new GArray(window.defined_classes);
 
-function obj_value_iter(Object obj) {
+function obj_value_iter(obj) {
   this.ret = {done : false, value : undefined};
   this.obj = obj;
   this.iter = Iterator(obj);
@@ -325,7 +327,7 @@ function obj_value_iter(Object obj) {
 
 
 //turns any iterator into an array
-function list<T>(Iterator<T> iter) : GArray<T> {
+function list<T>(iter) : GArray<T> {
   var lst = new GArray<T>();
 
   var i = 0;
@@ -353,10 +355,14 @@ function time_func(func, steps=10) {
   return times;
 }
 
+/* Was `static` inside cached_list(); the transpiler hoisted it to module scope,
+   so the cache persists across calls. Written without <T> — T isn't in scope here. */
+const _cached_list_lst = new GArray();
+
 //turns any iterator into a (cached) array
-function cached_list<T>(Iterator<T> iter) : GArray<T> {
-  static lst = new GArray<T>();
-  
+function cached_list<T>(iter) : GArray<T> {
+  const lst = _cached_list_lst;
+
   lst.reset();
   
   var i = 0;
@@ -371,7 +377,7 @@ function cached_list<T>(Iterator<T> iter) : GArray<T> {
 }
 
 
-var Function g_list = list;
+var g_list = list;
 
 class eid_list extends GArray {
   constructor(iter : GeoArrayIter) {
@@ -1172,8 +1178,6 @@ class StupidRandom2 {
   }
   
   random() {
-    global _sran_tab;
-    
     var tab = _sran_tab;
     var i = this.i;
     
@@ -1192,9 +1196,9 @@ class StupidRandom2 {
   }
 }
 
-var StupidRandom2 seedrand = new StupidRandom2();
+var seedrand = new StupidRandom2();
 
-function get_nor_zmatrix(Vector3 no)
+function get_nor_zmatrix(no)
 {
   var axis = new Vector3();
   var cross = new Vector3();
@@ -1375,7 +1379,7 @@ function copy_into(dst, src) {
   return dst;
 }
 
-var Array<float> __v3d_g_s = [];
+var __v3d_g_s = [];
 function get_spiral(size)
 {
   if (__v3d_g_s.length == size*size)
@@ -1445,7 +1449,7 @@ function get_spiral(size)
 }
   
 //ltypeof function, that handles object instances of basic types
-var ObjMap<String> _bt_h = {
+var _bt_h = {
   "String" : "string",
   "RegExp" : "regexp",
   "Number" : "number",

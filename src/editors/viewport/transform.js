@@ -251,7 +251,7 @@ export class TransformOp extends ToolOp {
     min1.load(minmax.min);
     max1.load(minmax.max);
     //console.log("d", min1[0], min1[1], max1[0], max1[1]);
-    //static calc_draw_aabb(Context, TransData td, MinMax minmax) {
+    //static calc_draw_aabb(Context, td, minmax) {
 
     minmax.reset();
     for (var i = 0; i < td.types.length; i++) {

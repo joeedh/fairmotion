@@ -161,3 +161,59 @@ Kept despite showing as unreferenced:
 
 175 `.js` files remain under `src/` (excluding `path.ux`). Baseline re-run after the
 deletions: playwright 17 passed, vitest 6 passed, every recorded baseline byte-identical.
+
+# Phase 4 — de-transpile
+
+## Symptom: `add_point(level, co)` silently got `undefined` for `co` when the `static` was moved into the function body
+
+Cause: `spline_multires.js`'s `MultiResLayer.add_point` was written
+`add_point(level, co=co)` where the inner `co` was a `static` local. That only ever
+worked because the transpiler hoists `static` locals to *module* scope — a default
+parameter expression cannot reference a variable declared later in its own body.
+Found by: reading `process_static_vars` in `tools/extjs_cc/js_process_ast.py:2549`
+after noticing the odd self-referential default.
+Fix: hoisted to `const _add_point_co = [0, 0];` at module scope and changed the
+signature to `add_point(level, co=_add_point_co)`. This is the proof that the
+hoisting is load-bearing, not cosmetic — a naive in-body `const` would have broken it.
+
+## Symptom: three `static x = ...` grep hits could not be de-transpiled — the surrounding code made no sense
+
+Cause: they were inside `/* */` comment blocks
+(`dopesheet_transdata.js:76,99` and `view2d.js:1342`).
+Found by: opening each site rather than trusting the grep line.
+Fix: left untouched. Any future sweep for transpiler syntax has to read context;
+a line-oriented match over this codebase has a real comment false-positive rate.
+
+## Symptom: `): Type` return annotations looked like more transpiler syntax to strip
+
+Cause: they are not. `function f(a, b) : Vector2 {` is valid TypeScript. Only the
+C-style *parameter* form `f(Vector2 a)` is invalid.
+Found by: pasting both forms into a `.ts` file and reading the diagnostics — the
+parameter form raises TS1005, the return form is accepted.
+Fix: stripped parameters only (266 of them), left every return annotation in place.
+The `int`/`float`/`double`/`byte`/`short` names in those returns still have to be
+mapped to `number` before the typechecker is turned on in phase 5; see
+`docs/research/stripped-type-annotations.md`.
+
+## Symptom: `global x;` looked like it needed a real import, but the identifiers had no module that owned them
+
+Cause: `global x;` emits **nothing**. `VarDeclNode` in the transpiler's codegen
+(`js_process_ast.py:1322`) returns immediately when `"global" in node.modifiers`.
+The statement exists only to silence `kill_bad_globals`' "Undeclared global" check.
+Found by: reading the codegen instead of guessing from the name.
+Fix: deleted all 7 declarations. Where the identifier was genuinely a `window.*`
+global (`defined_classes`, `istruct`, `g_theme`, `uicolors`) the bare references
+were qualified with `window.`; where it was already a module-scope `var` in the
+same file (`_b64str`, `_sran_tab`) deleting the line was sufficient.
+
+## Symptom: `python js_build.py` failed on `src/core/units.js` once, then succeeded unchanged on the next run
+
+Cause: not diagnosed. `js_cc.py` on that file alone compiles clean, and two
+subsequent full builds both finish. The legacy build compiles in parallel worker
+processes and the failure carried no message.
+Found by: re-running.
+Fix: none — the build system is deleted in phase 3. Recorded so a one-off failure
+here isn't mistaken for a real regression.
+
+**Phase 4.1 exit check:** `python js_build.py` finishes, vitest 6/6, playwright
+17/17, all baselines unchanged. The de-transpile is behavior-preserving.

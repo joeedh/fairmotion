@@ -12,8 +12,15 @@ import {
   TransDataType, TransDataItem
 } from '../transdata.js';
 
+/* Were `static` inside MResTransData's static methods; each method had its own,
+   so they stay separate here. */
+const _apply_co = new Vector3();
+const _calc_draw_aabb_co = new Vector3();
+const _calc_draw_aabb_co2 = [0, 0, 0];
+const _aabb_co = new Vector3();
+
 export class MResTransData extends TransDataType {
-  static gen_data(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static gen_data(ctx, td, data) {
     var doprop = td.doprop;
     var proprad = td.propradius;
     
@@ -47,8 +54,8 @@ export class MResTransData extends TransDataType {
     }
   }
   
-  static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
-    static co = new Vector3();
+  static apply(ctx, td, item, mat, w) {
+    const co = _apply_co;
     var p = item.data;
 
     if (w == 0.0) return;
@@ -69,7 +76,7 @@ export class MResTransData extends TransDataType {
     p.mr.recalc_wordscos(seg);
   }
   
-  static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
+  static undo_pre(ctx, td, undo_obj) {
     var ud = [];
     var spline = ctx.spline;
     var actlayer = spline.layerset.active;
@@ -95,7 +102,7 @@ export class MResTransData extends TransDataType {
     undo_obj.mr_undo = ud;
   }
   
-  static undo(ToolContext ctx, ObjLit undo_obj) {
+  static undo(ctx, undo_obj) {
     var ud = undo_obj.mr_undo;
     var spline = ctx.spline;
     
@@ -117,19 +124,19 @@ export class MResTransData extends TransDataType {
     }
   }
   
-  static update(ToolContext ctx, TransData td) {
+  static update(ctx, td) {
   }
   
-  static calc_prop_distances(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static calc_prop_distances(ctx, td, data) {
   }
   
   //this one gets a modal context
-  static calc_draw_aabb(Context ctx, TransData td, MinMax minmax) {
-    static co = new Vector3();
+  static calc_draw_aabb(ctx, td, minmax) {
+    const co = _calc_draw_aabb_co;
     co.zero();
     var pad = 15;
-    
-    static co2 = [0, 0, 0];
+
+    const co2 = _calc_draw_aabb_co2;
     function do_minmax(co) {
       co2[0] = co[0]-pad;
       co2[1] = co[1]-pad;
@@ -180,8 +187,8 @@ export class MResTransData extends TransDataType {
     }
   }
   
-  static aabb(ToolContext ctx, TransData td, TransDataItem item, MinMax minmax, selected_only) {
-    static co = new Vector3();
+  static aabb(ctx, td, item, minmax, selected_only) {
+    const co = _aabb_co;
     co.zero();
     
     for (var i=0; i<td.data.length; i++) {

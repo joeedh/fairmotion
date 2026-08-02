@@ -58,8 +58,8 @@ export class UnitAttr {
 export class Unit {
   attrs : UnitAttr;
 
-  constructor(Array<String> suffices, float cfactor, 
-              int grid_subd_1, int grid_subd_2=grid_subd_1, ObjectMap attrs={}) 
+  constructor(suffices, cfactor, 
+              grid_subd_1, grid_subd_2=grid_subd_1, attrs={}) 
   {
     this.cfactor = cfactor;
     this.suffix_list = suffices;

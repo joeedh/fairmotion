@@ -1,12 +1,16 @@
 "use strict";
 
+/* Was `static` inside IconManager.enum_to_xy(); hoisted to module scope, which
+   is what the transpiler did with it. */
+const _enum_to_xy_ret = [0, 0];
+
 export class IconManager {
   size : Vector2
   cellsize : Vector2
   ready : boolean;
 
-  constructor(WebGLRenderingContext gl, String sheet_path, 
-              Array<float> imgsize, Array<float> iconsize) 
+  constructor(gl, sheet_path, 
+              imgsize, iconsize) 
   {
     this.path = sheet_path;
     this.size = new Vector2(imgsize);
@@ -17,7 +21,7 @@ export class IconManager {
     this.ready = false;
   }
   
-  load(WebGLRenderingContext gl) {
+  load(gl) {
     //load texture
     //this.tex = gl.createTexture();
     this.tex = {};
@@ -40,16 +44,16 @@ export class IconManager {
     }
   }
   
-  get_tile(int tile) : Array<float> {
+  get_tile(tile) : Array<float> {
     var ret = [];
     this.gen_tile(tile, ret);
     
     return ret;
   }
   
-  enum_to_xy(int tile) {
-    static ret = [0, 0];
-    
+  enum_to_xy(tile) {
+    const ret = _enum_to_xy_ret;
+
     var size = this.size;
     var cellsize = this.cellsize;
     
@@ -66,7 +70,7 @@ export class IconManager {
     return ret;
   }
   
-  gen_tile(int tile, Array<float> texcos) {
+  gen_tile(tile, texcos) {
     var size = this.size;
     var cellsize = this.cellsize;
     

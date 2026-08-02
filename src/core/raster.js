@@ -43,6 +43,9 @@ class CacheStack extends Array {
 /*this function stores 2d render state *only*.  
   3d transformation stacks and the like should
   be handled where they are needed.*/
+/* Was `static` inside RasterState's viewport getter. */
+const _viewport_ret = [[0, 0], [0, 0]];
+
 export class RasterState {
   pos : Array<number>
   iconsheet : IconManager
@@ -63,7 +66,7 @@ export class RasterState {
     this.scissor_stack = new CacheStack(4)
   }
     
-  on_gl_lost(WebGLRenderingContext gl) {
+  on_gl_lost(gl) {
     this.pos = [0, 0];
     
     this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
@@ -81,8 +84,8 @@ export class RasterState {
   }
   
   get viewport() {
-    static ret = [[0, 0], [0, 0]];
-    
+    const ret = _viewport_ret;
+
     //check if we're inside a viewport
     if (this.viewport_stack.length > 0) {
       return this.viewport_stack[this.viewport_stack.length-1];

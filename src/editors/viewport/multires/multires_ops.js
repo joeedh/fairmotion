@@ -14,6 +14,9 @@ import {ensure_multires, MResFlags, BoundPoint, MultiResLayer,
         compose_id, decompose_id, has_multires, iterpoints
        } from '../../../curve/spline_multires.js';
 
+/* Was `static` inside CreateMResPoint.exec(). */
+const _exec_vec = new Vector3();
+
 export class CreateMResPoint extends SplineLocalToolOp {
   constructor(seg, co) {
     super("create_mres_point", "Add Detail Point", "", -1);
@@ -37,7 +40,7 @@ export class CreateMResPoint extends SplineLocalToolOp {
     var seg = spline.eidmap[this.inputs.segment.data];
     var co = this.inputs.co.data;
     
-    static vec = new Vector3();
+    const vec = _exec_vec;
     var flag = MResFlags.SELECT;
     
     var mr = seg.cdata.get_layer(MultiResLayer);

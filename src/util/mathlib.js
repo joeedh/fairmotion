@@ -101,13 +101,18 @@ if (FLOAT_MIN != FLOAT_MIN || FLOAT_MAX != FLOAT_MAX) {
   console.log("Floating-point 16-bit system detected!");
 }
 
+/* Was `static` inside get_rect_points(); the transpiler hoisted these to module
+   scope and they are reused across calls. */
+const _get_rect_points_cs4 = new Array(4);
+const _get_rect_points_cs8 = new Array(8);
+
 export function get_rect_points(p, size)
 {
   var cs;
-  
-  static _cs4 = new Array(4);
-  static _cs8 = new Array(8);
-  
+
+  const _cs4 = _get_rect_points_cs4;
+  const _cs8 = _get_rect_points_cs8;
+
   if (p.length == 2) {
     cs = _cs4;
     
@@ -157,9 +162,11 @@ export function get_rect_lines(p, size)
   }
 }
 
+const _simple_tri_aabb_isect_vs = [0, 0, 0];
+
 export function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-  static vs = [0, 0, 0];
-  
+  const vs = _simple_tri_aabb_isect_vs;
+
   vs[0] = v1; vs[1] = v2; vs[2] = v3;
   for (var i=0; i<3; i++) {
     var isect = true;
@@ -316,10 +323,17 @@ export function inrect_2d(p, pos, size) {
   return p[0] >= pos[0] && p[0] <= pos[0]+size[0] && p[1] >= pos[1] && p[1] <= pos[1]+size[1];
 }
 
+const _aabb_isect_line_2d_smin = new Vector2(), _aabb_isect_line_2d_smax = new Vector2();
+const _aabb_isect_line_2d_ssize = new Vector2();
+const _aabb_isect_line_2d_sv1 = new Vector2();
+const _aabb_isect_line_2d_sv2 = new Vector2();
+const _aabb_isect_line_2d_ps = [new Vector2(), new Vector2(), new Vector2()];
+const _aabb_isect_line_2d_l1 = [0, 0], _aabb_isect_line_2d_l2 = [0, 0];
+
 export function aabb_isect_line_2d(v1, v2, min, max) {
-  static smin = new Vector2(), smax = new Vector2();
-  static ssize = new Vector2();
-  
+  const smin = _aabb_isect_line_2d_smin, smax = _aabb_isect_line_2d_smax;
+  const ssize = _aabb_isect_line_2d_ssize;
+
   for (var i=0; i<2; i++) {
     smin[i] = Math.min(min[i], v1[i]);
     smax[i] = Math.max(max[i], v2[i]);
@@ -337,16 +351,16 @@ export function aabb_isect_line_2d(v1, v2, min, max) {
     if (inrect_2d(v2, min, ssize)) return true;
   }
   
-  static sv1 = new Vector2();
-  static sv2 = new Vector2();
-  static ps = [new Vector2(), new Vector2(), new Vector2()];
-  
+  const sv1 = _aabb_isect_line_2d_sv1;
+  const sv2 = _aabb_isect_line_2d_sv2;
+  const ps = _aabb_isect_line_2d_ps;
+
   ps[0] = min;
   ps[1][0] = min[0]; ps[1][1] = max[1];
   ps[2] = max;
   ps[3][0] = max[0]; ps[3][1] = min[1];
   
-  static l1 = [0, 0], l2 = [0, 0];
+  const l1 = _aabb_isect_line_2d_l1, l2 = _aabb_isect_line_2d_l2;
   l1[0] = v1; l1[1] = v2;
   
   for (var i=0; i<4; i++) {
@@ -390,7 +404,7 @@ export function aabb_isect_2d(pos1, size1, pos2, size2) {
   return ret == 2;
 }
 
-function expand_rect2d(Array<float> pos, Array<float> size, Array<float> margin) {
+function expand_rect2d(pos, size, margin) {
   pos[0] -= Math.floor(margin[0]);
   pos[1] -= Math.floor(margin[1]);
   size[0] += Math.floor(margin[0]*2.0);
@@ -522,9 +536,11 @@ export function convex_quad(v1, v2, v3, v4) {
     return line_line_cross([v1, v3], [v2, v4]);
 }
 
+const _normal_tri_e1 = new Vector3(), _normal_tri_e2 = new Vector3(), _normal_tri_e3 = new Vector3();
+
 export function normal_tri(v1, v2, v3) {
-  static e1 = new Vector3(), e2 = new Vector3(), e3 = new Vector3();
-  
+  const e1 = _normal_tri_e1, e2 = _normal_tri_e2, e3 = _normal_tri_e3;
+
    /*
   e1.load(v2).sub(v1);
   e2.load(v3).sub(v1);
@@ -546,10 +562,12 @@ export function normal_tri(v1, v2, v3) {
   // */
 }
 
+const _normal_quad_n2 = new Vector3();
+
 export function normal_quad(v1, v2, v3, v4) {
   var n = normal_tri(v1, v2, v3)
-  static n2 = new Vector3();
-  
+  const n2 = _normal_quad_n2;
+
   VLOAD(n2, n);
   n = normal_tri(v1, v3, v4);
   VADD(n2, n2, n);
@@ -1000,9 +1018,11 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   }
 }
 
+const _get_boundary_winding_cent = new Vector3();
+
 function get_boundary_winding(points) {
-  static _cent = new Vector3();
-  
+  const _cent = _get_boundary_winding_cent;
+
   var cent = _cent.zero();
   
   if (points.length == 0)
@@ -1084,8 +1104,8 @@ export class PlaneOps {
     return convex_quad(v1, v2, v3, v4);
   }
   
-  line_isect(Array<float> v1, Array<float> v2, 
-             Array<float> v3, Array<float> v4) : Array<float> 
+  line_isect(v1, v2, 
+             v3, v4) : Array<float> 
   {
     var ax = this.axis;
     var orig1=v1, orig2=v2;
@@ -1246,12 +1266,12 @@ class Mat4Stack {
     this.update_func = undefined;
   }
 
-  set_internal_matrix(Matrix4 mat, update_func) {
+  set_internal_matrix(mat, update_func) {
     this.update_func = update_func;
     this.matrix = mat;
   }
 
-  reset(Matrix4 mat) {
+  reset(mat) {
     this.matrix.load(mat);
     this.stack = [];
     
@@ -1259,13 +1279,13 @@ class Mat4Stack {
       this.update_func();
   }
 
-  load(Matrix4 mat) {
+  load(mat) {
     this.matrix.load(mat);
     if (this.update_func != undefined)
       this.update_func();
   }
 
-  multiply(Matrix4 mat) {
+  multiply(mat) {
     this.matrix.multiply(mat);
     if (this.update_func != undefined)
       this.update_func();

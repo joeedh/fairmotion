@@ -159,7 +159,7 @@ ToggleSelectAll.inputs = {
  */
 
 export class SelectOneOp extends SelectOpBase {
-  constructor(int pid=undefined, unique=true, mode=true, int level=0) {
+  constructor(pid=undefined, unique=true, mode=true, level=0) {
     super(level, "Select One", "select one element");
     
     this.inputs.unique.set_data(unique);

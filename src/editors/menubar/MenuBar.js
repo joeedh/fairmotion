@@ -10,7 +10,7 @@ import {startup_file} from '../../core/startup/startup_file.js';
 import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
 
 /*
-  gen_file_menu(Context ctx, uimenulabel)
+  gen_file_menu(ctx, uimenulabel)
   {
     return toolop_menu(ctx, "",
       [
@@ -53,7 +53,7 @@ import * as electron_api from '../../path.ux/scripts/platforms/electron/electron
     return menu;
   }
 
-  gen_tools_menu(Context ctx, uimenulabel)
+  gen_tools_menu(ctx, uimenulabel)
   {
     return toolop_menu(ctx, "", []);
   }

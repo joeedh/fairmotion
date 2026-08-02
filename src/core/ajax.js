@@ -90,7 +90,7 @@ export function get_endian() {
 export var little_endian = get_endian();
 
 //this seems suspect
-function str_to_uint8(String str) : Uint8Array
+function str_to_uint8(str) : Uint8Array
 {
   var uint8 = [];
   
@@ -107,7 +107,7 @@ function str_to_uint8(String str) : Uint8Array
 var _static_byte = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]);
 var _static_view = new DataView(_static_byte.buffer);
 
-export function pack_int(Array<byte> data, int i, lendian=false)
+export function pack_int(data, i, lendian=false)
 {
   profile_start("pack_int");
   
@@ -127,7 +127,7 @@ export function pack_int(Array<byte> data, int i, lendian=false)
 }
 
 
-export function pack_short(Array<byte> data, short i, lendian=false)
+export function pack_short(data, i, lendian=false)
 {
   profile_start("pack_short");
   _static_view.setInt16(0, i);
@@ -145,12 +145,12 @@ export function pack_short(Array<byte> data, short i, lendian=false)
   profile_end("pack_short");
 }
 
-export function pack_byte(Array<byte> data, byte i)
+export function pack_byte(data, i)
 {
   data.push(i);
 }
 
-export function pack_float(Array<byte> data, float f, Boolean lendian=false)
+export function pack_float(data, f, lendian=false)
 {
   profile_start("pack_float");
   _static_view.setFloat32(0, f);
@@ -167,7 +167,7 @@ export function pack_float(Array<byte> data, float f, Boolean lendian=false)
   profile_end("pack_float");
 }
 
-export function pack_double(Array<byte> data, float f, Boolean lendian)
+export function pack_double(data, f, lendian)
 {
   profile_start("pack_double");
   
@@ -186,7 +186,7 @@ export function pack_double(Array<byte> data, float f, Boolean lendian)
   profile_end("pack_double");
 }
 
-export function pack_vec2(Array<byte> data, Vector2 vec, Boolean lendian=false)
+export function pack_vec2(data, vec, lendian=false)
 {
   profile_start("pack_vec2");
   
@@ -197,7 +197,7 @@ export function pack_vec2(Array<byte> data, Vector2 vec, Boolean lendian=false)
   profile_end("pack_vec2");
 }
 
-export function pack_vec3(Array<byte> data, Vector3 vec, lendian=false)
+export function pack_vec3(data, vec, lendian=false)
 {
   profile_start("pack_vec3");
   
@@ -209,7 +209,7 @@ export function pack_vec3(Array<byte> data, Vector3 vec, lendian=false)
   profile_end("pack_vec3");
 }
 
-export function pack_vec4(Array<byte> data, Vector4 vec, lendian=false)
+export function pack_vec4(data, vec, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -220,7 +220,7 @@ export function pack_vec4(Array<byte> data, Vector4 vec, lendian=false)
 }
 
 
-export function pack_quat(Array<byte> data, Quat vec, lendian=false)
+export function pack_quat(data, vec, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -230,7 +230,7 @@ export function pack_quat(Array<byte> data, Quat vec, lendian=false)
   //discard pack records from composite pack
 }
 
-export function pack_mat4(Array<byte> data, Matrix4 mat, lendian=false)
+export function pack_mat4(data, mat, lendian=false)
 {
   profile_start("pack_mat4");
   var m = mat.getAsArray();
@@ -242,7 +242,7 @@ export function pack_mat4(Array<byte> data, Matrix4 mat, lendian=false)
   profile_end("pack_mat4");
 }
 
-export function pack_dataref(Array<byte> data, DataBlock b, lendian=false)
+export function pack_dataref(data, b, lendian=false)
 {
   if (b != undefined) {
     pack_int(data, b.lib_id, lendian);
@@ -260,7 +260,7 @@ export function pack_dataref(Array<byte> data, DataBlock b, lendian=false)
 }
 
 var _static_sbuf_ss = new Array(32);
-export function pack_static_string(Array<byte> data, String str, int length)
+export function pack_static_string(data, str, length)
 {
   profile_start("pack_static_string");
   
@@ -323,7 +323,7 @@ register_test(test_str_packers);
 
 var _static_sbuf = new Array(32);
 /*strings are packed as 32-bit unicode codepoints*/
-export function pack_string(Array<byte> data, String str)
+export function pack_string(data, str)
 {
   profile_start("pack_string");
   
@@ -340,7 +340,7 @@ export function pack_string(Array<byte> data, String str)
   profile_end("pack_string");
 }
 
-export function unpack_bytes(DataView data, unpack_ctx uctx, int len)
+export function unpack_bytes(data, uctx, len)
 {
   var ret = new DataView(data.buffer.slice(uctx.i, uctx.i+len));
   uctx.i += len;
@@ -348,7 +348,7 @@ export function unpack_bytes(DataView data, unpack_ctx uctx, int len)
   return ret;
 }
 
-export function unpack_array(DataView data, unpack_ctx uctx, Function unpacker)
+export function unpack_array(data, uctx, unpacker)
 {
   var len = unpack_int(data, uctx);
   var list = new Array(len);
@@ -360,7 +360,7 @@ export function unpack_array(DataView data, unpack_ctx uctx, Function unpacker)
   return list;
 }
 
-export function unpack_garray(DataView data, unpack_ctx uctx, Function unpacker)
+export function unpack_garray(data, uctx, unpacker)
 {
   var len = unpack_int(data, uctx);
   var list = new GArray();
@@ -372,7 +372,7 @@ export function unpack_garray(DataView data, unpack_ctx uctx, Function unpacker)
   return list;
 }
 
-export function unpack_dataref(DataView data, unpack_ctx uctx) : int
+export function unpack_dataref(data, uctx) : int
 {
   var block_id = unpack_int(data, uctx);
   var lib_id = unpack_int(data, uctx);
@@ -380,7 +380,7 @@ export function unpack_dataref(DataView data, unpack_ctx uctx) : int
   return new DataRef(block_id, lib_id);
 }
 
-export function unpack_byte(DataView data, unpack_ctx uctx) : byte
+export function unpack_byte(data, uctx) : byte
 {
   var ret = data.getUint8(uctx.i);
   uctx.i += 1;
@@ -388,7 +388,7 @@ export function unpack_byte(DataView data, unpack_ctx uctx) : byte
   return ret;  
 }
 
-export function unpack_int(DataView data, unpack_ctx uctx) : int
+export function unpack_int(data, uctx) : int
 {
   var ret = data.getInt32(uctx.i);
 
@@ -396,7 +396,7 @@ export function unpack_int(DataView data, unpack_ctx uctx) : int
   return ret;
 }
 
-export function unpack_short(DataView data, unpack_ctx uctx) : int
+export function unpack_short(data, uctx) : int
 {
   var ret = data.getInt16(uctx.i);
 
@@ -404,7 +404,7 @@ export function unpack_short(DataView data, unpack_ctx uctx) : int
   return ret;
 }
 
-export function unpack_float(DataView data, unpack_ctx uctx) : float
+export function unpack_float(data, uctx) : float
 {
   var ret = data.getFloat32(uctx.i);
   
@@ -412,7 +412,7 @@ export function unpack_float(DataView data, unpack_ctx uctx) : float
   return ret;
 }
 
-export function unpack_double(DataView data, unpack_ctx uctx) : float
+export function unpack_double(data, uctx) : float
 {
   var ret = data.getFloat64(uctx.i);
   
@@ -420,7 +420,7 @@ export function unpack_double(DataView data, unpack_ctx uctx) : float
   return ret;
 }
 
-export function unpack_vec2(Array<byte> data, unpack_ctx uctx)
+export function unpack_vec2(data, uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -428,7 +428,7 @@ export function unpack_vec2(Array<byte> data, unpack_ctx uctx)
   return new Vector2([x, y]);
 }
 
-export function unpack_vec3(DataView data, unpack_ctx uctx) : Vector3
+export function unpack_vec3(data, uctx) : Vector3
 {
   var vec = new Vector3();
   
@@ -442,7 +442,7 @@ export function unpack_vec3(DataView data, unpack_ctx uctx) : Vector3
 }
 
 
-export function unpack_vec4(Array<byte> data, unpack_ctx uctx)
+export function unpack_vec4(data, uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -453,7 +453,7 @@ export function unpack_vec4(Array<byte> data, unpack_ctx uctx)
 }
 
 
-export function unpack_quat(Array<byte> data, unpack_ctx uctx)
+export function unpack_quat(data, uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -463,7 +463,7 @@ export function unpack_quat(Array<byte> data, unpack_ctx uctx)
   return new Quat([x, y, z, w]);
 }
 
-export function unpack_mat4(Array<byte> data, unpack_ctx uctx)
+export function unpack_mat4(data, uctx)
 {
   var m = new Array(16);
   
@@ -475,7 +475,7 @@ export function unpack_mat4(Array<byte> data, unpack_ctx uctx)
 }
 
 
-export function debug_unpack_bytes(DataView data, unpack_ctx uctx, int length) : String
+export function debug_unpack_bytes(data, uctx, length) : String
 {
   var s = "";
 
@@ -498,7 +498,7 @@ export function debug_unpack_bytes(DataView data, unpack_ctx uctx, int length) :
 }
 
 var _static_arr_uss = new Array(32);
-export function unpack_static_string(DataView data, unpack_ctx uctx, int length) : String
+export function unpack_static_string(data, uctx, length) : String
 {
   var str = "";
   
@@ -527,7 +527,7 @@ export function unpack_static_string(DataView data, unpack_ctx uctx, int length)
 }
 
 var _static_arr_us = new Array(32);
-export function unpack_string(DataView data, unpack_ctx uctx) : String
+export function unpack_string(data, uctx) : String
 {
   var str = ""
   

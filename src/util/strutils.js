@@ -59,7 +59,7 @@ export function test_utf8()
   return true;
 }
 
-export function truncate_utf8(Array<byte>arr, int maxlen)
+export function truncate_utf8(Array<byte>arr, maxlen)
 {
   var len = Math.min(arr.length, maxlen);
   
@@ -98,7 +98,6 @@ _b64_map["="] = 65;
 
 var _b64_arr = [0, 1, 2, 3];
 export function b64encode(arr, add_newlines=false, collimit=76) {
-  global _b64str;
   var s = "";
   var is_str = btypeof(arr) == "string";
   

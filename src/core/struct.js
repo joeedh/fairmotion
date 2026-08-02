@@ -163,19 +163,17 @@ nstructjs.STRUCT.prototype.parse_structs = function(buf : string, defined_classe
 };
 
 export function gen_struct_str() {
-  return nstructjs.write_scripts(istruct);
+  return nstructjs.write_scripts(window.istruct);
 }
 
 window.init_struct_packer = function() {
-  global defined_classes, istruct;
-
   init_toolop_structs();
 
   var errs = [];
 
   ////dataref\([a-zA-Z0-9_$]+\)/g
   let buf = "";
-  for (var cls of defined_classes) {
+  for (var cls of window.defined_classes) {
     if (cls.STRUCT) {
       cls.STRUCT = patch_dataref_type(cls.STRUCT);
       buf += cls.STRUCT + "\n";
@@ -197,7 +195,7 @@ window.init_struct_packer = function() {
     return false;
   }
 
-  for (var cls of defined_classes) {
+  for (var cls of window.defined_classes) {
     if (cls.name == "Matrix4UI" || cls.name == "Matrix4" || cls.name == "Vector3" || cls.name == "Vector4" || cls.name == "Vector2") {
       //XXX dumb, kind of locked into the custom vector STRUCT types that's not in nstructjs
       //since I now use the vectormath in path.ux, I have to specially make sure I don't
@@ -210,8 +208,8 @@ window.init_struct_packer = function() {
     }
 
     try {
-      if (cls.STRUCT !== undefined && !istruct.isRegistered(cls) && !isToolOp(cls)) {
-        istruct.register(cls);
+      if (cls.STRUCT !== undefined && !window.istruct.isRegistered(cls) && !isToolOp(cls)) {
+        window.istruct.register(cls);
       }
     } catch (err) {
       if (err instanceof PUTL.PUTLParseError) {

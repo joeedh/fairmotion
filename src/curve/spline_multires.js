@@ -96,6 +96,9 @@ var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
 
 //hrm, apparently doesn't help with chrome performance bug:
 //   "dont_put_props_in_prototype"
+/* Was `static` inside BoundPoint.recalc_offset(). */
+const _recalc_offset_p = new Vector3([0, 0, 0]);
+
 export class BoundPoint {
     offset : Object;
 
@@ -136,8 +139,8 @@ export class BoundPoint {
       this.offset[0] = this[0]-co[0];
       this.offset[1] = this[1]-co[1];
       
-      static p = new Vector3([0, 0, 0]);
-      
+      const p = _recalc_offset_p;
+
       p[0] = this[0];
       p[1] = this[1];
       
@@ -407,8 +410,12 @@ function crappybasis(s, k, support, degree) {
   return t;
 }
 
+/* Were `static` inside MultiResEffector.evaluate(). */
+const _evaluate_sum = new Vector3();
+const _evaluate_ks = new Array(2000);
+
 export class MultiResEffector extends CurveEffect {
-  constructor(MultiResLayer owner) {
+  constructor(owner) {
     super()
     this.mr = owner;
   }
@@ -420,10 +427,10 @@ export class MultiResEffector extends CurveEffect {
     n.mulScalar(10.0);
     
     var co = this.prior.evaluate(s);
-    static sum = new Vector3();
+    const sum = _evaluate_sum;
     sum.zero();
-    
-    static ks = new Array(2000);
+
+    const ks = _evaluate_ks;
     var i = 0;
     
     for (var p in this.mr.points(0)) {
@@ -491,6 +498,12 @@ MultiResGlobal.STRUCT = `
     active : double | obj.active == undefined ? -1 : obj.active;
   }
 `
+
+/* Were `static` inside MultiResLayer methods. `_add_point_co` has to live out
+   here: it is the default value of add_point()'s `co` parameter, which only
+   worked because the transpiler hoisted it to module scope. */
+const _add_point_co = [0, 0];
+const _recalc_worldcos_level_sta = [0, 0, 0];
 
 export class MultiResLayer extends CustomDataLayer {
   constructor(size=16) {
@@ -610,13 +623,12 @@ export class MultiResLayer extends CustomDataLayer {
     }
   }
   
-  points(int level) {
+  points(level) {
       return this.points_iter_cache.next().cache_init(this, level);
   }
   
-  add_point(int level, Array<float> co=_co) : BoundPoint {
-      static _co = [0, 0];
-      
+  add_point(level, co=_add_point_co) : BoundPoint {
+
       //enforce boundary alignment
       this._freecur += TTOT - (this._freecur % TTOT);
       
@@ -654,7 +666,7 @@ export class MultiResLayer extends CustomDataLayer {
       return add_point_cache.next().bind(this, i);
   }
   
-  get(int id, allocate_object=false) {
+  get(id, allocate_object=false) {
       if (allocate_object)
         return new BoundPoint().bind(this, id);
       else
@@ -665,7 +677,7 @@ export class MultiResLayer extends CustomDataLayer {
     return this._effector;
   }
   
-  resize(int newsize) {
+  resize(newsize) {
       if (newsize < this._size) return;
       newsize *= 2.0;
       
@@ -684,8 +696,8 @@ export class MultiResLayer extends CustomDataLayer {
   }
   
   recalc_worldcos_level(seg, level) { //seg is owning segment
-    static sta = [0, 0, 0];
-    
+    const sta = _recalc_worldcos_level_sta;
+
     for (var p in this.points(level)) {
       sta[0] = p.s; sta[1] = p.t; sta[2] = p.a;
       var co = seg._evalwrap.local_to_global(sta);
@@ -814,9 +826,11 @@ export function compose_id(eid, index) {
   return index + eid*mul;
 }
 
+const _decompose_id_ret = [0, 0];
+
 export function decompose_id(id) {
-  static ret = [0, 0];
-  
+  const ret = _decompose_id_ret;
+
   var mul = (1<<24);
   //gah can't use bit operators here
   var eid = Math.floor(id/mul);

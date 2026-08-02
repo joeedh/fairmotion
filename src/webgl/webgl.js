@@ -456,7 +456,7 @@ ${keyword2} ${type} v${attr};
     `
 
     let func = `
-${type} get_${attr}_layer(int i) {
+${type} get_${attr}_layer(i) {
   switch (i) {
     case 0:
       return ${attr}

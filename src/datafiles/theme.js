@@ -65,7 +65,7 @@ BoxColor4.STRUCT = `
 //box colors are colors applied to boxes, i.e. four colors
 //weighted box color
 export class BoxWColor extends BoxColor {
-  constructor(Array<float> color, Array<float> weights) {
+  constructor(color, weights) {
     super();
 
     if (color == undefined || weights == undefined) {
@@ -125,7 +125,7 @@ BoxWColor.STRUCT = `
 `;
 
 export class ThemePair {
-  constructor(String key, GArray value) {
+  constructor(key, value) {
     this.key = key;
     this.val = value;
   }
@@ -184,7 +184,7 @@ export class ColorTheme {
     return ret;
   }
   
-  patch(ColorTheme newtheme) {
+  patch(newtheme) {
     if (newtheme == undefined) 
       return;
     
@@ -336,9 +336,7 @@ export class Theme {
   //}
   
   gen_globals() {
-    global uicolors, colors3d;
-    
-    uicolors = this.ui.gen_colors();
+    window.uicolors = this.ui.gen_colors();
     //colors3d = this.view2d.gen_colors();
   }
 }
@@ -350,7 +348,6 @@ Theme.STRUCT = `
 `
 
 //globals
-global g_theme;
 window.init_theme = function() {
   window.UITheme.original = window.UITheme.copy();
   window.View2DTheme.original = window.View2DTheme.copy();

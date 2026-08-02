@@ -429,8 +429,8 @@ export class OldAppSettings {
   }
   
   download(on_finish=undefined) {
-    function finish(DataView data) {
-      function finish2(DataView data) {  
+    function finish(data) {
+      function finish2(data) {  
         console.log("loading settings data...");
         
         var ret = g_app_state.load_blocks(data);
@@ -459,15 +459,13 @@ export class OldAppSettings {
         }
         
         if (settings.theme != undefined) {
-          global g_theme;
-          
           console.log("loading theme");
           
           //add any new colors
-          g_theme.patch(settings.theme);
-          g_theme = settings.theme;
+          window.g_theme.patch(settings.theme);
+          window.g_theme = settings.theme;
           delete settings.theme;
-          g_theme.gen_globals();
+          window.g_theme.gen_globals();
         }
         
         g_app_state.session.settings = settings;
@@ -519,7 +517,7 @@ export class SettUploadManager {
     this.active = undefined;
   }
   
-  server_push(AppSettings settings) {
+  server_push(settings) {
     startup_report("writing settings");
     
     if (config.NO_SERVER) { //save to myLocalStorage
@@ -539,7 +537,7 @@ export class SettUploadManager {
     }
   }
   
-  finish(UploadJob job) {
+  finish(job) {
     job.done = true;
     this.active = undefined;
     
@@ -556,7 +554,7 @@ export class UploadJob {
   cancel : boolean
   done : boolean;
 
-  constructor(data, AppSettings settings=undefined) {
+  constructor(data, settings=undefined) {
     this.cancel = false;
     this.data = data;
     this.done = false;
@@ -564,7 +562,7 @@ export class UploadJob {
   }
 }
 
-function upload_settings(AppSettings settings, SettUploadManager uman) {
+function upload_settings(settings, uman) {
   var path = "/"+fairmotion_settings_filename;
   
   var data = settings.gen_file().buffer;

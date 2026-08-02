@@ -1336,7 +1336,7 @@ export class View2DHandler extends Editor {
 
   //assumes event has had this._offset_mpos called on it
   /*
-  _find_active(MouseEvent e) {
+  _find_active(e) {
     let mpos = [e.x, e.y];
 
     static pos = [0, 0];

@@ -853,7 +853,7 @@ export class SplineEditor extends View2DEditor {
   do_alt_select(event, mpos, view2d) {
   }
 
-  gen_edit_menu(Boolean add_title=false) {
+  gen_edit_menu(add_title=false) {
     let view2d = this.view2d;
     let ctx = new Context();
     

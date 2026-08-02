@@ -5,7 +5,7 @@ class TouchManager {
   idxmap : Object
   deltas : Object;
 
-  constructor(MyMouseEvent event) {
+  constructor(event) {
     this.pattern = new set(Object.keys(event.touches));
     this.idxmap = {};
     this.tot = event.touches.length;
@@ -21,7 +21,7 @@ class TouchManager {
     }
   }
   
-  update(MyMouseEvent event) {
+  update(event) {
     if (this.valid(event)) {
       for (var k in event.touches) {
         var t2 = event.touches[k];
@@ -36,15 +36,15 @@ class TouchManager {
     this.event = event;
   }
   
-  delta(int i) {
+  delta(i) {
     return this.deltas[this.idxmap[i]];
   }
   
-  get(int i) {
+  get(i) {
     return this.event.touches[this.idxmap[i]];
   }
   
-  valid(MyMouseEvent event=this.event) : Boolean {
+  valid(event=this.event) : Boolean {
     var keys = Object.keys(event.touches);
     if (keys.length != this.pattern.length) return false;
     

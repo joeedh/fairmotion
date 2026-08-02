@@ -16,25 +16,25 @@ class TransKey {
 }
 
 export class TransDopeSheetType {
-  static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
+  static apply(ctx, td, item, mat, w) {
   }
   
-  static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
+  static undo_pre(ctx, td, undo_obj) {
   }
   
-  static undo(ToolContext ctx, ObjLit undo_obj) {
+  static undo(ctx, undo_obj) {
   }
   
-  static update(ToolContext ctx, TransData td) {
+  static update(ctx, td) {
     var fs = ctx.frameset;
 
     fs.check_vdata_integrity();
   }
   
-  static calc_prop_distances(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static calc_prop_distances(ctx, td, data) {
   }
   
-  static gen_data(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static gen_data(ctx, td, data) {
     var doprop = td.doprop;
     var proprad = td.propradius;
     
@@ -71,7 +71,7 @@ export class TransDopeSheetType {
   }
   
   //this one gets a modal context
-  static calc_draw_aabb(ctx, TransData td, MinMax minmax) {
+  static calc_draw_aabb(ctx, td, minmax) {
     /*
     static vec = new Vector2();
     vec[0] = 0;
@@ -94,7 +94,7 @@ export class TransDopeSheetType {
     }*/
   }
   
-  static aabb(ToolContext ctx, TransData td, TransDataItem item, MinMax minmax, selected_only) {
+  static aabb(ctx, td, item, minmax, selected_only) {
     /*
     static vec = new Vector2();
     vec[0] = 0;

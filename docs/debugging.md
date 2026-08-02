@@ -378,3 +378,49 @@ recorded so it is not mistaken for build fallout.
 **Phase 3 exit check:** `pnpm build` and `pnpm build:electron` both succeed, `pnpm serv`
 serves a working app, `pnpm electron` launches and answers over CDP, vitest 6/6,
 playwright 17/17 with every recorded baseline unchanged.
+
+# Phase 4 — de-transpile and rename to .ts
+
+182 files renamed with `git mv`: every `.js` under `src/` except the `src/path.ux`
+submodule (174), plus the 8 `platforms/` modules the bundle actually imports.
+Import specifiers were left as `.js` throughout — esbuild rewrites `./foo.js` to
+`./foo.ts` when resolving from a TypeScript file, and so does `moduleResolution:
+"bundler"`, so both the bundler and the typechecker follow them unchanged.
+
+Everything else keeping its `.js` extension is deliberate, and each for the same
+reason — it is named by *path* rather than by import specifier, so a rename would
+have to be matched by an edit somewhere else:
+
+- `platforms/Electron/{config,main,preload}.js` and `platforms/html5/{config,nodeserver}.js`
+  are copied verbatim into `dist/` and loaded by Electron/Node directly.
+- `tools/utils/**` vendored libraries (sha1, lz-string, esprima) appear in
+  `GLOBAL_SCRIPTS` as literal paths.
+- `platforms/PhoneGap/appfiles/**` is a checked-in Cordova app, not our source.
+- `addons/` is copied to the output tree and loaded at runtime by filename.
+
+## Symptom: `_ESClass is not defined`, only while loading a .fmo
+
+Cause: the two `src/vectordraw/*_worker.ts` files used to be `copyFile`d into the
+output verbatim. Once renamed they had to be transpiled instead, and the build
+handed them the same options as everything else — including `classRegistryPlugin`,
+which appends `_ESClass.register(Foo)` for every top-level class. Those files run
+in a worker global that has never loaded `typesystem.ts`, so `_ESClass` is not
+there.
+Found by: the `files.spec.ts` error baseline; only the two .fmo-loading specs
+failed, which pointed at the vectordraw job workers rather than the page.
+Fix: `buildWorkers()` builds them without the plugin. Their classes were never in
+`defined_classes` under the old build either — it copied both files through
+untouched.
+
+## Note: workers are built now, not copied
+
+`new Worker("vectordraw_canvas2d_worker.js")` in `vectordraw_jobs.ts` names the
+output file, so `buildWorkers()` writes `path.basename(f).replace(/\.ts$/, ".js")`
+into the target root. `bundle: false` keeps them classic scripts; their
+`"not_a_module"` / `"use strict"` prologue survives as a directive prologue.
+
+**Phase 4 exit check:** no `.js` remains under `src/` outside the submodule;
+`pnpm build` and `pnpm build:electron` both succeed with the same 35 pre-existing
+warnings; the electron app answers over CDP with `tools=96 editors=10 errors=[]`;
+vitest 6/6; playwright 17/17 with every recorded baseline unchanged. The
+typechecker has deliberately not been consulted — `npx tsgo --noEmit` is phase 5.

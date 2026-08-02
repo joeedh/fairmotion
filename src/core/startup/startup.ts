@@ -43,7 +43,7 @@ if (window.mobilecheck === undefined) {
 
 window.startup = function startup() {
   /* window.myLocalStorage is installed by the pre-bundle classic script
-     src/core/startup/localstorage.js — config.js reads it at module scope. */
+     src/core/startup/localstorage.ts — config.ts reads it at module scope. */
   if (window.CHROME_APP_MODE) {
     window.myLocalStorage.getAsync("session"); //preload session data
     window.myLocalStorage.getAsync("startup_file"); //startup_file too

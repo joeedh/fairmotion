@@ -7,7 +7,7 @@
  *   node buildtools/esbuild.mjs --dev        sourcemaps, no minify
  *
  * Replaces js_build.py + tools/extjs_cc. The app is one IIFE bundle built from
- * src/entry_point.js; a handful of files that predate ES modules are emitted
+ * src/entry_point.ts; a handful of files that predate ES modules are emitted
  * as separate classic scripts because the bundle reads their globals.
  */
 import esbuild from "esbuild";
@@ -36,23 +36,27 @@ const opts = {
  * typesystem.js declares `defined_classes`, utils.js replaces it with a GArray.
  */
 const GLOBAL_SCRIPTS = [
-  "src/core/startup/coverage.js",
-  "src/util/polyfill_fairmotion.js",
-  "src/core/startup/typelogger.js",
-  "src/core/startup/typesystem.js",
+  "src/core/startup/coverage.ts",
+  "src/util/polyfill_fairmotion.ts",
+  "src/core/startup/typelogger.ts",
+  "src/core/startup/typesystem.ts",
   "tools/utils/crypto/sha1.js",
   "tools/utils/libs/lz-string/libs/base64-string-v1.1.0.js",
   "tools/utils/libs/lz-string/libs/lz-string-1.3.3.js",
   "tools/utils/libs/node_modules/esprima/esprima.js",
-  "src/core/startup/redraw_globals.js",
-  "src/util/utils.js",
-  "src/core/startup/localstorage.js",
+  "src/core/startup/redraw_globals.ts",
+  "src/util/utils.ts",
+  "src/core/startup/localstorage.ts",
 ];
 
-/* Loaded by filename from a Worker constructor, so they can't be bundled. */
+/*
+ * Loaded by filename from a Worker constructor, so they can't be bundled.
+ * `new Worker("vectordraw_canvas2d_worker.js")` in vectordraw_jobs.ts names the
+ * output, so these are transpiled to the target root under their old extension.
+ */
 const WORKERS = [
-  "src/vectordraw/vectordraw_canvas2d_worker.js",
-  "src/vectordraw/vectordraw_skia_worker.js",
+  "src/vectordraw/vectordraw_canvas2d_worker.ts",
+  "src/vectordraw/vectordraw_skia_worker.ts",
 ];
 
 /* path.ux modules the app fetches at runtime rather than importing. */
@@ -149,10 +153,6 @@ function copyAssets() {
 
   for (const [dst, src] of Object.entries(DYNAMIC_MODULES)) {
     copyFile(src, path.join(fcontent, dst));
-  }
-
-  for (const w of WORKERS) {
-    copyFile(w, path.join(target.outDir, path.basename(w)));
   }
 
   copyDir("addons", path.join(target.outDir, "addons"));
@@ -255,10 +255,32 @@ async function buildGlobals() {
   );
 }
 
+/*
+ * Classic scripts (`"not_a_module"`), so bundle:false -- same treatment as the
+ * globals, only the output lands at the target root under the name the Worker
+ * constructor asks for.
+ *
+ * No classRegistryPlugin: these run in their own worker global, where nothing
+ * has loaded typesystem.js, so `_ESClass` does not exist. Their classes were
+ * never in `defined_classes` either -- the old build copied these two files
+ * through untouched.
+ */
+async function buildWorkers() {
+  return Promise.all(
+    WORKERS.map((f) =>
+      esbuild.context({
+        ...shared,
+        entryPoints: [f],
+        outfile    : path.join(target.outDir, path.basename(f).replace(/\.ts$/, ".js")),
+      })
+    )
+  );
+}
+
 async function buildApp() {
   return esbuild.context({
     ...shared,
-    entryPoints: ["src/entry_point.js"],
+    entryPoints: ["src/entry_point.ts"],
     outfile    : path.join(fcontent, "app.js"),
     bundle     : true,
     format     : "iife",
@@ -271,7 +293,7 @@ async function buildApp() {
    Python build (app0.js .. app11.js) would otherwise linger forever. */
 fs.rmSync(target.outDir, {recursive: true, force: true});
 
-const contexts = [...(await buildGlobals()), await buildApp()];
+const contexts = [...(await buildGlobals()), ...(await buildWorkers()), await buildApp()];
 
 copyAssets();
 

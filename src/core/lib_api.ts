@@ -228,7 +228,7 @@ export class DataList<T extends DataBlock = DataBlock> {
     this.active = undefined;
   }
 
-  [Symbol.iterator](): GArrayIter<T> {
+  [Symbol.iterator]() {
     return this.list[Symbol.iterator]();
   }
 

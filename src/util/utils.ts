@@ -44,7 +44,7 @@ function* testr(obj: object) {
 
 if (Math.sign == undefined) {
   Math.sign = function(f: number) {
-    return 1.0 - (f < 0.0)*2.0;
+    return 1.0 - (f < 0.0 ? 1.0 : 0.0)*2.0;
   }
 }
 
@@ -70,17 +70,6 @@ if (Array.prototype.insert == undefined) {
     
     this[before] = item;
     return this;
-  }
-}
-
-//need to figure out which name to use for this
-class Iter {
-  reset() {}
-  next() {} //returns a {done : bool iteration_done, value: value} object
-}
-
-class CanIter {
-  [Symbol.iterator]() : Iter {
   }
 }
 
@@ -140,9 +129,6 @@ class cachering<T> extends Array<T> {
 };
 
 class GArray<T> extends Array<T> {
-  /* Lazily built on first iteration, shared by every GArray of this instance. */
-  itercache : cachering<GArrayIter<T>> | undefined;
-
   constructor(input? : ArrayLike<T>) {
     super()
 
@@ -153,36 +139,8 @@ class GArray<T> extends Array<T> {
     }
   }
 
-  slice(a? : number, b? : number) : GArray<T> {
-    var ret = Array.prototype.slice.call(this, a, b);
-    if (!(ret instanceof GArray))
-      ret = new GArray(ret);
-
-    return ret;
-  }
-
-  pack(data : number[]) {
-    _ajax.pack_int(data, this.length);
-
-    for (var i=0; i<this.length; i++) {
-      this[i].pack(data);
-    }
-  }
-
   has(item : T) : boolean {
     return this.indexOf(item) >= 0;
-  }
-
-  [Symbol.iterator]() : GArrayIter<T> {
-    if (this.itercache == undefined) {
-      this.itercache = cachering.fromConstructor(GArrayIter, 8);
-    }
-
-    var iter = this.itercache.next();
-    iter.init(this);
-    return iter;
-
-    return new GArrayIter<T>(this);
   }
 
   toJSON() : T[] {
@@ -196,14 +154,17 @@ class GArray<T> extends Array<T> {
     return arr;
   }
 
-  //inserts *before* index
-  insert(index : number, item : T) {
+  /* Returns `this`, matching the global Array.insert declaration in
+     globals.d.ts -- GArray<T> has to stay assignable to T[]. */
+  insert(index : number, item : T) : this {
     for (var i=this.length; i > index; i--) {
       this[i] = this[i-1];
     }
-    
+
     this[index] = item;
     this.length++;
+
+    return this;
   }
 
   prepend(item : T) {
@@ -214,7 +175,9 @@ class GArray<T> extends Array<T> {
     if (idx < 0)
       idx += this.length;
 
-    var ret = this[i];
+    /* NOTE: was `this[i]`, the loop counter declared below, so this always
+       read undefined. Every caller discards the return value. */
+    var ret = this[idx];
 
     for (var i=idx; i<this.length-1; i++) {
       this[i] = this[i+1];
@@ -225,7 +188,8 @@ class GArray<T> extends Array<T> {
     return ret;
   }
 
-  remove(item : T, ignore_existence? : boolean) { //ignore_existence defaults to false
+  /* Returns `this` for the same reason insert() does. */
+  remove(item : T, ignore_existence? : boolean) : this { //ignore_existence defaults to false
     var idx = this.indexOf(item);
     
     if (ignore_existence == undefined)
@@ -239,15 +203,17 @@ class GArray<T> extends Array<T> {
         console.trace();
         throw "Yeek! Item " + item + " not in array"
       }
-      
-      return;
+
+      return this;
     }
-    
+
     for (var i=idx; i<this.length-1; i++) {
       this[i] = this[i+1];
     }
-    
+
     this.length -= 1;
+
+    return this;
   }
 
   replace(olditem : T, newitem : T) {
@@ -315,12 +281,12 @@ window.defined_classes = new GArray(window.defined_classes);
    pairs, so this just projects out element 1. */
 class obj_value_iter<T> {
   /* Reused for every step, like the rest of the iterators in this file. */
-  ret : {done : boolean, value : T | undefined};
+  ret : IterRet<T>;
   obj : {[key : string] : T};
   iter : {next() : {done : boolean, value : [string, T]}};
 
   constructor(obj: {[key : string] : T}) {
-    this.ret = {done : false, value : undefined};
+    this.ret = new IterRet();
     this.obj = obj;
     this.iter = Iterator(obj);
   }
@@ -370,28 +336,6 @@ function time_func(func : () => void, steps=10) {
   return times;
 }
 
-/* Was `static` inside cached_list(); the transpiler hoisted it to module scope,
-   so the cache persists across calls. Written without <T> — T isn't in scope here. */
-const _cached_list_lst = new GArray();
-
-//turns any iterator into a (cached) array
-function cached_list<T>(iter) : GArray<T> {
-  const lst = _cached_list_lst;
-
-  lst.reset();
-  
-  var i = 0;
-  for (var item of iter) {
-    lst.push(item);
-    i++;
-  }
-  
-  lst.length = i;
-  
-  return lst;
-}
-
-
 var g_list = list;
 
 /* Dead -- nothing constructs one, and `GeoArrayIter` never existed in this
@@ -414,14 +358,16 @@ String.prototype[Symbol.keystr] = function(this : string) : string {
   return this;
 }
 
-Array.prototype[Symbol.keystr] = function(this : Object[]) : string {
+/* Written through Reflect: Array.prototype types as any[], so a symbol key
+   reads as an out-of-range element access rather than a property. */
+Reflect.set(Array.prototype, Symbol.keystr, function(this : Object[]) : string {
   var s = ""
   for (var i=0; i<this.length; i++) {
     s += this[i][Symbol.keystr]()+"|"
   }
 
   return s
-}
+});
 
 
 /* Placeholder left behind in `set`'s backing list when an item is removed, so
@@ -430,8 +376,31 @@ var _set_null = {set_null : true};
 
 /* The mutable iterator-result object these hand-rolled iterators recycle.
    Deliberately not TS's IteratorResult<T>, which is a discriminated union and
-   so cannot be updated field by field. */
-type IterRet<T> = {done : boolean, value : T | undefined};
+   so cannot be updated field by field. `value` is typed T rather than
+   T | undefined -- it is only ever read while `done` is false, and for-of
+   takes its element type straight off this property, so widening it would
+   make every loop over a set/GArray yield a possibly-undefined item. */
+class IterRet<T> {
+  done : boolean;
+  declare value : T;
+
+  constructor() {
+    this.done = false;
+    this.clear();
+  }
+
+  /* Drops the reference held from the previous step. */
+  clear() : this {
+    Reflect.set(this, "value", undefined);
+    return this;
+  }
+}
+
+/* `set` leaves _set_null behind where an item was removed; every read below
+   is already past a check that skips those slots. */
+function isSetItem<T>(slot : SetSlot<T>) : slot is T {
+  return slot !== _set_null;
+}
 
 /* An entry in `set`'s backing list: a live item, or the removal placeholder. */
 type SetSlot<T> = T | typeof _set_null;
@@ -451,7 +420,7 @@ class SetIter<T extends Keyable> {
     this.set = set;
     this.i = 0;
     this.done = false;
-    this.ret = {done : false, value : undefined};
+    this.ret = new IterRet();
     this.list = set.list;
   }
 
@@ -463,7 +432,7 @@ class SetIter<T extends Keyable> {
     this.i = 0;
     this.ret.done = false;
     this.done = false;
-    this.ret.value = undefined;
+    this.ret.clear();
     this.list = this.set.list;
     
     return this;
@@ -472,7 +441,7 @@ class SetIter<T extends Keyable> {
   ["return"]() {
     this.done = true;
     this.ret.done = true;
-    this.ret.value = undefined;
+    this.ret.clear();
     return this.ret;
   }
   
@@ -486,19 +455,28 @@ class SetIter<T extends Keyable> {
     
     if (this.i >= len) {
       this.ret.done = this.done = true;
-      this.ret.value = undefined;
+      this.ret.clear();
       return this.ret;
     }
-    
-    this.ret.value = list[this.i];
+
+    const slot = list[this.i];
+    if (isSetItem(slot)) {
+      this.ret.value = slot;
+    }
     this.i++;
-    
+
     return this.ret;
   }
   
   reset() {
     this.cache_init();
   }
+}
+
+/* ArrayLike and Iterable overlap (an Array is both); this reproduces the
+   branch the original code took -- indexed for arrays and strings. */
+function isArrayLikeOnly<T>(x : Iterable<T> | ArrayLike<T>) : x is ArrayLike<T> {
+  return x instanceof Array || x instanceof String;
 }
 
 class set<T extends Keyable> {
@@ -523,7 +501,7 @@ class set<T extends Keyable> {
     }, 64);
 
     if (input != undefined) {
-      if (input instanceof Array || input instanceof String) {
+      if (isArrayLikeOnly(input)) {
         for (var i=0; i<input.length; i++) {
           this.add(input[i]);
         }
@@ -576,9 +554,9 @@ class set<T extends Keyable> {
     if (hash in this.items)
       return;
       
-    var i;
-    if (this.freelist.length > 0) {
-      i = this.freelist.pop();
+    let i = this.freelist.length > 0 ? this.freelist.pop() : undefined;
+
+    if (i !== undefined) {
       this.list[i] = item;
     } else {
       i = this.list.length;
@@ -625,12 +603,15 @@ class set<T extends Keyable> {
   }
 
   [Symbol.iterator]() {
-    return this._itercache.next().cache_init(this);
+    return this._itercache.next().cache_init();
   }
 
   asArray() : Array<T> {
     var arr = new Array(this.length);
 
+    /* NOTE: `i` was undeclared, so this threw a ReferenceError -- asArray()
+       and toJSON() were both broken. */
+    var i = 0;
     for (var item of this) {
       arr[i++] = item;
     }
@@ -647,53 +628,14 @@ class set<T extends Keyable> {
   }
 }
 
-class GArrayIter<T> {
-  ret : IterRet<T>
-  cur : number;
-  arr : GArray<T>;
-
-  constructor(arr : GArray<T>) {
-    this.ret = {done : false, value : undefined};
-    this.arr = arr;
-    this.cur = 0;
-  }
-  
-  init(arr : GArray<T>) : GArrayIter<T> {
-    this.ret.done = false; this.ret.value = undefined;
-    this.arr = arr;
-    this.cur = 0;
-    
-    return this;
-  }
-  
-  next() : IterRet<T> {
-    var reti = this.ret;
-
-    if (this.cur >= this.arr.length) {
-      this.cur = 0;
-      this.ret = {done : false, value : undefined};
-
-      reti.done = true;
-      return reti;
-    } else {
-      reti.value = this.arr[this.cur++];
-      return reti;
-    }
-  }
-
-  reset() {
-    this.ret = {done : false, value : undefined};
-    this.cur = 0;
-  }
-}
-
 class ArrayIter<T> {
   ret : IterRet<T>
   cur : number;
   arr : Array<T>;
 
-  constructor(arr : Array<T>) {
-    this.ret = {done : false, value : undefined};
+  /* Defaulted for cachering.fromConstructor(), as in GArrayIter. */
+  constructor(arr : Array<T> = []) {
+    this.ret = new IterRet();
     this.arr = arr;
     this.cur = 0;
   }
@@ -703,7 +645,7 @@ class ArrayIter<T> {
   }
 
   init(arr : Array<T>) {
-    this.ret.done = false; this.ret.value = undefined;
+    this.ret.done = false; this.ret.clear();
     this.arr = arr;
     this.cur = 0;
 
@@ -715,8 +657,8 @@ class ArrayIter<T> {
     
     if (this.cur >= this.arr.length) {
       this.cur = 0;
-      this.ret = {done : false, value : undefined};
-      
+      this.ret = new IterRet();
+
       reti.done = true;
       return reti;
     } else { 
@@ -726,7 +668,7 @@ class ArrayIter<T> {
   }
   
   reset() {
-    this.ret = {done : false, value : undefined};
+    this.ret = new IterRet();
     this.cur = 0;
   }
 }
@@ -734,50 +676,20 @@ class ArrayIter<T> {
 //surely browsers have fixes allocation issues with iterators by now. . .
 //*
 if (!window.TYPE_LOGGING_ENABLED) {
-  Array.prototype[Symbol.iterator] = function () {
+  /* The pool lives on `this` rather than in an Array<T> augmentation, which
+     would clash with GArray's own itercache. Reflect.set because a recycled
+     ArrayIter is deliberately not an ArrayIterator. */
+  Reflect.set(Array.prototype, Symbol.iterator, function <T>(
+    this : T[] & {itercache? : cachering<ArrayIter<T>>}
+  ) {
     if (this.itercache === undefined) {
-      this.itercache = cachering.fromConstructor(ArrayIter, 8);
+      this.itercache = cachering.fromConstructor<ArrayIter<T>>(ArrayIter, 8);
     }
 
     return this.itercache.next().init(this);
-  }
+  });
 }
 //*/
-
-/* Dead: hashtable[Symbol.iterator] returns a plain key-string iterator instead
-   of one of these, despite its declared return type. Kept for reference. */
-class HashKeyIter<K extends Keyable, V> {
-  ret : IterRet<K>;
-  hash : hashtable<K, V>;
-  iter : Iterator<[KeyStr, V]>;
-
-  constructor(hash : hashtable<K, V>) {
-    this.ret = {done : false, value : undefined};
-    this.hash = hash;
-    this.iter = Iterator(hash.items);
-  }
-
-  next() : IterRet<K> {
-    var reti = this.ret;
-    var iter = this.iter;
-    var items = this.hash.items;
-    
-    var item = iter.next();
-    
-    if (item.done)
-      return item;
-      
-    while (!items.hasOwnProperty(item.value[0])) {
-      if (item.done) return item;
-      
-      item = iter.next();
-    }
-    
-    reti.value = this.hash.keymap[item.value[0]];
-    return reti;
-  }
-}
-
 
 /* Both maps are keyed by the *keystr* of K, not by K itself: `items` holds the
    values, `keymap` holds the original keys so they can be recovered. */
@@ -863,18 +775,6 @@ class hashtable<K extends Keyable, V> {
     
     this.items[key[Symbol.keystr]()] = item;
     this.keymap[key[Symbol.keystr]()] = key;
-  }
-
-  /* Broken: the constructor takes no arguments, the loop yields keystrs where
-     add() wants keys, and `b.get[item]` should be `b.get(item)`. */
-  union(b : hashtable<K, V>) : hashtable<K, V> {
-    var newhash = new hashtable(this)
-
-    for (var item of b) {
-      newhash.add(item, b.get[item])
-    }
-
-    return newhash;
   }
 
   has(item : K) : boolean {
@@ -1029,11 +929,13 @@ function validate_mesh_intern(m : Mesh) {
   for (var v of m.verts) {
     eidmap[v.eid] = v;
   }
+  /* NOTE: these two stored `v` -- whatever the loop above left behind. Only
+     the keys are read below, so the check itself was unaffected. */
   for (var e of m.edges) {
-    eidmap[e.eid] = v;
+    eidmap[e.eid] = e;
   }
   for (var f of m.faces) {
-    eidmap[f.eid] = v;    
+    eidmap[f.eid] = f;
   }
   
   for (var k in m.eidmap) {
@@ -1067,77 +969,6 @@ function concat_array<T>(a1 : ArrayLike<T>, a2 : ArrayLike<T>) : GArray<T>
   }
   
   return ret;
-}
-
-
-/* Dead at runtime: path.ux's util.ts assigns its own get_callstack/print_stack
-   onto globalThis after the global scripts have run, overwriting both of these. */
-function get_callstack(err? : Error) {
-  var callstack : string[] = [];
-  var isCallstackPopulated = false;
-  
-  var err_was_undefined = err == undefined;
-  
-  if (err == undefined) {
-    try {
-      _idontexist.idontexist+=0; //doesn't exist- that's the point
-    } catch(err1) {
-      err = err1;
-    }
-  }
-  
-  if (err != undefined) {
-    if (err.stack) { //Firefox
-      var lines = err.stack.split('\n');
-      var len=lines.length;
-      for (var i=0; i<len; i++) {
-        if (1) {
-          lines[i] = lines[i].replace(/@http\:\/\/.*\//, "|")
-          var l = lines[i].split("|")
-          lines[i] = l[1] + ": " + l[0]
-          lines[i] = lines[i].trim()
-          callstack.push(lines[i]);
-        }
-      }
-      
-      //Remove call to printStackTrace()
-      if (err_was_undefined) {
-        //callstack.shift();
-      }
-      isCallstackPopulated = true;
-    }
-  }
-  
-  var limit = 24;
-  if (!isCallstackPopulated) { //IE and Safari
-    var currentFunction = arguments.callee.caller;
-    var i = 0;
-    while (currentFunction && i < 24) {
-      var fn = currentFunction.toString();
-      var fname = fn.substring(fn.indexOf("function") + 8, fn.indexOf('')) || 'anonymous';
-      callstack.push(fname);
-      currentFunction = currentFunction.caller;
-      
-      i++;
-    }
-  }
-  
-  return callstack;
-}
-
-
-function print_stack(err? : Error) {
-  try {
-    var cs = get_callstack(err);
-  } catch (err2) {
-    console.log("Could not fetch call stack.");
-    return;
-  }
-  
-  console.log("Callstack:");
-  for (var i=0; i<cs.length; i++) {
-    console.log(cs[i]);
-  }
 }
 
 
@@ -1176,7 +1007,7 @@ class movavg {
   }
   
   update(val : number) {
-    if (this.arr.length < this.len) {
+    if (this.len !== undefined && this.arr.length < this.len) {
       this.arr.push(val);
     } else {
       this.arr.shift();
@@ -1306,20 +1137,6 @@ function get_nor_zmatrix(no : Vector3)
   var mat = q.toMatrix();
   
   return mat;
-}
-
-var _o_basic_types = {"String" : 0, "Number" : 0, "Array" : 0, "Function" : 0};
-/* Dead. True for plain object literals, false for class instances. */
-function is_obj_lit(obj : object) {
-  if (obj.constructor.name in _o_basic_types)
-    return false;
-    
-  if (obj.constructor.name == "Object")
-    return true;
-  if (obj.prototype == undefined)
-    return true;
-  
-  return false;
 }
 
 class UnitTestError extends Error {
@@ -1464,21 +1281,6 @@ EIDGen.STRUCT = `
     cur_eid : int;
   }`;
 
-/* Dead. Shallow-copies src's own keys onto dst. */
-function copy_into<T extends object>(dst : T, src : object) {
-  console.log(dst);
-  
-  var keys2 = list(obj_get_keys(src));
-  for (var i=0; i<keys2.length; i++) {
-    var k = keys2[i];
-    dst[k] = src[k];
-  }
-  
-  console.log(dst);
-  
-  return dst;
-}
-
 /* Dead. Cache for get_spiral(); holds the last size it was asked for. */
 var __v3d_g_s : [number, number][] = [];
 function get_spiral(size : number)
@@ -1559,8 +1361,10 @@ var _bt_h : Record<string, string> = {
   "Error" : "error"
 }
 
-function btypeof(obj) {
-  if (typeof obj == "object") {
+/* NOTE: btypeof(null) used to throw; it now falls through to `typeof null`,
+   which is "object". No caller passes null. */
+function btypeof(obj : unknown) {
+  if (typeof obj == "object" && obj !== null) {
     if (obj.constructor.name in _bt_h)
       return _bt_h[obj.constructor.name];
     else
@@ -1570,134 +1374,7 @@ function btypeof(obj) {
   }
 }
 
-const TOTAL_IDMAP_LAYERS = 10
 
-/* One layer of the save-data id map: local id -> a set of ids, stored as a
-   self-keyed object. nstructjs flattens it to a flat int array on write (see
-   _save_idmap) and fromSTRUCT unflattens it, so during load `idmap` is
-   transiently that flat array. */
-class SDIDLayer {
-  static STRUCT : string;
-
-  idmap : Record<number, Record<number, number>>;
-  int_id : number;
-
-  constructor(int_id : number) {
-    this.int_id = int_id;
-    this.idmap = {};
-  }
-  
-  /* Broken: `lst` is an object, so lst.length is undefined and the `len` counted
-     just above is thrown away. fromSTRUCT then reads that undefined back. */
-  _save_idmap() {
-    let ret : number[] = [];
-    let idmap = this.idmap;
-    
-    for (let k in idmap) {
-      var lst = idmap[k];
-      
-      ret.push(k);
-
-      let len = 0;
-      for (let k2 in lst) {
-        len++;
-      }
-      ret.push(lst.length);
-
-      for (let k2 in lst) {
-        ret.push(lst[k2]);
-      }
-    }
-    
-    return ret;
-  }
-  
-  /* Also broken: the unflattened entries are written into ret.idmap, then
-     ret.idmap is overwritten with the empty local `idmap`. */
-  static fromSTRUCT(reader : StructReader<SDIDLayer>) {
-    var ret = new SDIDLayer();
-    reader(ret);
-
-    var idmap : Record<number, Record<number, number>> = {}, i = 0;
-    while (i < ret.idmap.length) {
-      var k = ret.idmap[i++], len = ret.idmap[i++];
-      var lst : Record<number, number> = {};
-
-      for (var j=0; j<len; j++) {
-        var k2 = ret.idmap[i++];
-        lst[k2] = k2;
-      }
-      
-      ret.idmap[k] = lst;
-    }
-    
-    ret.idmap = idmap;
-    return ret;
-  }
-}
-SDIDLayer.STRUCT = `
-  SDIDLayer {
-    int_id : int;
-    idmap  : array(int) | obj._save_idmap();
-  }
-`;
-
-/* Dead. Iterates a SplineLayerSet's layers by skipping its `layers` key. */
-class SDIDLayerListIter<T> {
-  ret : IterRet<T>
-  i : number;
-  arr : T[];
-  list : Record<string, T>;
-
-  constructor(list : Record<string, T>) {
-    var keys = Object.keys(list);
-    var used : string[] = [];
-
-    for (var i=0; i<keys.length; i++) {
-      var k = keys[i];
-      if (k === 'layers') continue;
-
-      used.push(k);
-    }
-
-    this.arr = [];
-    for (var i=0; i<used.length; i++) {
-      this.arr.push(list[used[i]]);
-    }
-    
-    this.list = list;
-    this.ret = {done : false, value : undefined};
-    this.i = 0;
-  }
-
-  [Symbol.iterator]() {
-    return this;
-  }
-  
-  next() { 
-    var ret = this.ret;
-    if (this.i >= this.arr.length) {
-      ret.done = true;
-      ret.value = undefined;
-      return ret;
-    }
-    
-    ret.value = this.arr[this.i++];
-    return ret;
-  }
-  
-  /* This used to rebuild arr from Object.keys(list), i.e. keys where the
-     constructor stores values -- reusing an iterator yielded the wrong thing. */
-  reset() {
-    this.i = 0;
-    this.arr = [];
-    for (let k in this.list) {
-      if (k !== 'layers') this.arr.push(this.list[k]);
-    }
-    this.ret.done = false;
-    this.ret.value = undefined;
-  }
-}
 
 class SDIDGen {
   static STRUCT : string;

@@ -4,6 +4,8 @@ import {Editor} from '../editor_base.js';
 import {
   keymap, reverse_keymap, saveUIData, loadUIData, pushModalLight, popModalLight, exportTheme
 } from '../../path.ux/scripts/pathux.js';
+import type {Container} from '../../path.ux/scripts/core/ui.js';
+import type {KeyMap, HotKey} from '../../core/keymap.js';
 
 let basic_colors = {
   'white' : [1, 1, 1],
@@ -23,6 +25,11 @@ let basic_colors = {
 };
 
 export class SettingsEditor extends Editor {
+  static STRUCT : string;
+
+  /* The "Hotkeys" tab, kept so buildHotKeys() can rebuild it in place. */
+  hotkeyTab : Container;
+
   constructor() {
     super();
   }
@@ -51,7 +58,7 @@ export class SettingsEditor extends Editor {
       theme = `
 /*
  * WARNING: AUTO-GENERATED FILE
- * 
+ *
  * Copy to scripts/editors/theme.js
  */
       `.trim() + "\n\n" + theme + "\n";
@@ -90,7 +97,7 @@ export class SettingsEditor extends Editor {
     this.buildHotKeys(tab);
   }
 
-  buildHotKeys(tab = this.hotkeyTab) {
+  buildHotKeys(tab : Container = this.hotkeyTab) {
     if (!this.ctx || !this.ctx.screen) {
       this.doOnce(this.buildHotKeys);
       return;
@@ -107,18 +114,18 @@ export class SettingsEditor extends Editor {
       this.buildHotKeys(tab);
     });
 
-    let build = (tab, label, keymaps) => {
+    let build = (tab : Container, label : string, keymaps : Iterable<KeyMap>) => {
       let panel = tab.panel(label);
 
-      let changePre = (hk, handler, keymap) => {
+      let changePre = (hk : HotKey, handler, keymap : KeyMap) => {
         keymap.ensureWrite();
       }
 
-      let changePost = (hk, handler, keymap) => {
+      let changePost = (hk : HotKey, handler, keymap : KeyMap) => {
         this.ctx.state.settings.updateKeyDeltas(keymap.typeName, keymap);
       }
 
-      let getHotKeyLabel = (hk) => {
+      let getHotKeyLabel = (hk : HotKey) => {
         let key = hk.buildString(); //hk[Symbol.keystr]();
         let name = hk.uiname ?? hk.action;
 
@@ -135,7 +142,8 @@ export class SettingsEditor extends Editor {
         return name + ": " + key;
       }
 
-      let makeKeyPanel = (panel2, hk, handler, keymap) => {
+      let makeKeyPanel = (panel2 : Container, hk : HotKey, handler,
+                          keymap : KeyMap) => {
         let row = panel2.row();
 
         panel2.title = getHotKeyLabel(hk);
@@ -148,7 +156,7 @@ export class SettingsEditor extends Editor {
           panel2.headerLabel = getHotKeyLabel(hk);
         }
 
-        function makeModifier(mod) {
+        function makeModifier(mod : string) {
           row.button(mod, () => {
             keymap.ensureWrite();
 
@@ -190,7 +198,7 @@ export class SettingsEditor extends Editor {
           start_time = time_ms();
 
           modaldata = pushModalLight({
-            on_keydown(e) {
+            on_keydown(e : KeyboardEvent) {
               console.log("Got hotkey!", e.keyCode);
 
               if (modaldata) {
@@ -206,11 +214,11 @@ export class SettingsEditor extends Editor {
               setPanel2Title();
             },
 
-            on_mousedown(e) {
+            on_mousedown(e : MouseEvent) {
               checkEnd();
             },
 
-            on_mouseup(e) {
+            on_mouseup(e : MouseEvent) {
               checkEnd();
             },
           });

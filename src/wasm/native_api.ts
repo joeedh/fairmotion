@@ -1,18 +1,26 @@
 import * as wasm_mod from './built_wasm.js';
+import type {WasmModule} from './load_wasm.js';
 
 /* built_wasm.js is generated emscripten output; its only export is the default,
    which is the live Module object emscripten mutates in place. */
-let wasm = wasm_mod.default;
+let wasm : WasmModule = wasm_mod.default;
 
 export let wasmModule = wasm;
 
-export let active_solves = {};
-export let solve_starttimes = {};
-export let solve_starttimes2 = {};
-export let solve_endtimes = {};
-export let active_jobs = {}
+/* spline._solve_id -> job id. A solve is live while it has an entry here. */
+export let active_solves : {[solveId : number] : number} = {};
+/* Job start time in ms, keyed by job id. */
+export let solve_starttimes : {[jobId : number] : number} = {};
+/* Start and end time of the last finished solve for a spline, keyed by
+   spline._solve_id, so a job can tell whether it was superseded. */
+export let solve_starttimes2 : {[solveId : number] : number} = {};
+export let solve_endtimes : {[solveId : number] : number} = {};
+/* job id -> spline._solve_id; the reverse of active_solves. */
+export let active_jobs : {[jobId : number] : number} = {}
 
 import {constraint, solver} from "../curve/solver.js";
+import type {Spline} from '../curve/spline.js';
+import type {SplineVertex, SplineSegment} from '../curve/spline_types.js';
 import {ModalStates} from '../core/toolops_api.js';
 import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
 import {build_solver, solve_pre} from '../curve/spline_math_hermite.js';
@@ -39,7 +47,49 @@ let last_call = undefined;
 let DEBUG = false;
 const FIXED_KS_FLAG = SplineFlags.FIXED_KS;
 
-export const callbacks = {};
+/* The status object a job shares with the message pump: the wasm reply lands
+   on `data`, and whatever the job produced on `value`. */
+export interface JobStatus {
+  msgid : number;
+  data : ArrayBuffer | undefined;
+  value? : () => void;
+}
+
+/* The hand-rolled iterator wasm_solve() returns in place of a generator. */
+export interface ApiJob {
+  ret : {done : boolean, value : (() => void) | undefined};
+  stage : number;
+  next() : {done : boolean, value : (() => void) | undefined};
+  stage0() : void;
+  stage1() : void;
+  [Symbol.iterator]() : ApiJob;
+}
+
+/* Optional per-call settings for call_api(). */
+export interface ApiCallParams {
+  callback? : (value : (() => void) | undefined) => void;
+  thisvar? : object;
+  error? : (error : Error) => void;
+  /* Whether only the newest job of this typeid should report back. */
+  only_latest? : boolean;
+  typeid? : number;
+}
+
+/* A job in flight. */
+interface ApiJobEntry {
+  job : ApiJob;
+  typeid : number | undefined;
+  only_latest : boolean;
+  callback : ((value : (() => void) | undefined) => void) | undefined;
+  thisvar : object | undefined;
+  error : ((error : Error) => void) | undefined;
+  status : JobStatus;
+  /* Set on jobs the clear_jobs_* helpers dropped. */
+  _skip? : number;
+}
+
+/* Keyed by message id; `for..in` over it hands the keys back as strings. */
+export const callbacks : {[msgid : string] : ApiJobEntry} = {};
 let msg_idgen = 0;
 let solve_idgen = 0;
 
@@ -86,10 +136,11 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   wasm._free(ptr);
 }
 
-export let messageQueue = [];
+/* Messages that arrived while queueUpMessages(true) was in force. */
+export let messageQueue : {type : number, msg : ArrayBuffer, ptr : number}[] = [];
 let queueMessages = false;
 
-export function queueUpMessages(state) {
+export function queueUpMessages(state : boolean) {
   queueMessages = state;
 }
 
@@ -105,7 +156,7 @@ export function flushQueue() {
 }
 
 //called from within wasm (C) code to post messages
-window._wasm_post_message = function(type, ptr, len) {
+window._wasm_post_message = function(type : number, ptr : number, len : number) {
   if (DEBUG) console.log("got wasm message", type, ptr, len);
   
   let message = wasm.HEAPU8.slice(ptr, ptr+len).buffer;
@@ -124,8 +175,10 @@ window._wasm_post_message = function(type, ptr, len) {
   }
 }
 
-let wv1, wv2, wks, wco;
-let pv1, pv2, pks, pco;
+/* Views into the wasm heap that evalCurve() marshals through, and the raw
+   pointers to the same memory. Allocated once by init_eval_mem(). */
+let wv1 : Float64Array, wv2 : Float64Array, wks : Float64Array, wco : Float64Array;
+let pv1 : number, pv2 : number, pks : number, pco : number;
 
 function init_eval_mem() {
   let ptr = wasm._malloc(8*3 + 8*16 + 8*3*2);
@@ -137,7 +190,7 @@ function init_eval_mem() {
   wco = new Float64Array(mem.buffer, ptr, 3); pco = ptr;
 }
 
-export function onSegmentDestroy(seg) {
+export function onSegmentDestroy(seg : SplineSegment) {
   if (seg.ks._has_wasm) {
     wasm._free(seg.ks.ptr);
     seg.ks = new Float64Array(16);
@@ -145,7 +198,7 @@ export function onSegmentDestroy(seg) {
 }
 
 /** make sure segment has wasm-allocate .ks */
-export function checkSegment(seg) {
+export function checkSegment(seg : SplineSegment) {
   if (!seg.ks._has_wasm) {
     let ks = seg.ks;
     let ptr2 = wasm._malloc(8*16);
@@ -163,7 +216,12 @@ export function checkSegment(seg) {
 }
 
 let evalrets = util.cachering.fromConstructor(Vector2, 64);
-export function evalCurve(seg, s, v1, v2, ks, no_update=false) {
+/* NOTE: spline_math.ts calls this with seven arguments, so its `angle_only`
+   arrives as `no_update` and its own `no_update` is dropped on the floor.
+   Left alone here -- fixing the arity changes what the solver is told. */
+export function evalCurve(seg : SplineSegment, s : number,
+                          v1 : SplineVertex | Vector2, v2 : SplineVertex | Vector2,
+                          ks : Float64Array, no_update = false) {
   if (!wv1) {
     init_eval_mem();
   }
@@ -195,7 +253,7 @@ export function evalCurve(seg, s, v1, v2, ks, no_update=false) {
   return ret;
 }
 
-export function postToWasm(type : int, msg : ArrayBuffer) {
+export function postToWasm(type : number, msg : ArrayBuffer) {
   
   if (!(msg instanceof ArrayBuffer)) {
     throw new Error("msg must be array buffer");
@@ -239,7 +297,7 @@ export const JobTypes = {
   SOLVE     : 1|2
 };
 
-export function clear_jobs_except_latest(typeid) {
+export function clear_jobs_except_latest(typeid : number) {
   let last = undefined;
   let lastk = undefined;
   
@@ -260,7 +318,7 @@ export function clear_jobs_except_latest(typeid) {
   }
 }
 
-export function clear_jobs_except_first(typeid) {
+export function clear_jobs_except_first(typeid : number) {
   let last = undefined;
   let lastk = undefined;
   
@@ -279,7 +337,7 @@ export function clear_jobs_except_first(typeid) {
   }
 }
 
-export function clear_jobs(typeid) {
+export function clear_jobs(typeid : number) {
   for (let k in callbacks) {
 
     let job = callbacks[k];
@@ -290,8 +348,18 @@ export function clear_jobs(typeid) {
   }
 }
 
-export function call_api(job, params=undefined) {
-  let callback, error, thisvar, typeid, only_latest=false;
+/* wasm_solve is the only job there is, so the arguments after `params` are
+   spelled out as its trailing parameters; the body forwards them by reading
+   `arguments`. */
+export function call_api(job : typeof wasm_solve, params? : ApiCallParams,
+                         spline? : Spline, cons? : constraint[],
+                         update_verts? : set<SplineVertex>, gk? : number,
+                         edge_segs? : set<SplineSegment>) {
+  let callback : ((value : (() => void) | undefined) => void) | undefined;
+  let error : ((error : Error) => void) | undefined;
+  let thisvar : object | undefined;
+  let typeid : number | undefined;
+  let only_latest = false;
   
   if (params !== undefined) {
     callback = params.callback;
@@ -301,13 +369,13 @@ export function call_api(job, params=undefined) {
     typeid = params.typeid;
   }
 
-  let postMessage = function(type, msg) {
+  let postMessage = function(type : number, msg : ArrayBuffer) {
     postToWasm(type, msg);
   }
 
   let id = msg_idgen++;
 
-  let status = {
+  let status : JobStatus = {
     msgid : id,
     data  : undefined
   }
@@ -348,7 +416,7 @@ export function call_api(job, params=undefined) {
 }
 
 
-export function start_message(type, msgid, endian) {
+export function start_message(type : number, msgid : number, endian : boolean) {
   let data = [];
   
   ajax.pack_int(data, type, endian);
@@ -357,12 +425,17 @@ export function start_message(type, msgid, endian) {
   return data;
 }
 
-export function start_message_new(writer, type, msgid, endian) {
+/* `endian` is accepted to match start_message(); TypedWriter is always
+   little-endian, so it is ignored. */
+export function start_message_new(writer : TypedWriter, type : number, msgid : number,
+                                  endian : boolean) {
   writer.int32(type);
   writer.int32(msgid);
 }
 
-function _unpacker(dview) {
+/* Dead, and broken: `endian` below is not in scope, so calling any of the
+   returned readers would throw. */
+function _unpacker(dview : DataView) {
   let b = 0;
   
   return {
@@ -385,9 +458,10 @@ function _unpacker(dview) {
 
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
-export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, return_promise=false) {
+export function do_solve(sflags : {[name : string] : number}, spline : Spline,
+                         steps : number, gk = 0.95, return_promise = false) {
   if (config.DISABLE_SOLVE) {
-    return new Promise((accept, reject) => {accept()});
+    return new Promise<void>((accept, reject) => {accept()});
   }
 
   let draw_id = push_solve(spline);
@@ -412,7 +486,9 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   solve_pre(spline);
 
 
-  let on_finish, on_reject, promise;
+  let on_finish : (() => void) | undefined;
+  let on_reject : (() => void) | undefined;
+  let promise : Promise<void> | undefined;
   
   if (return_promise) {
     promise = new Promise(function(resolve, reject) {
@@ -426,7 +502,8 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
     });
   }
   
-  function finish(unload) {
+  /* `unload` is the reader wrap_unload() built over the wasm reply. */
+  function finish(unload : () => void) {
     let start_time = solve_starttimes[job_id];
     
     window.pop_solve(draw_id);
@@ -525,10 +602,10 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   //return promise;
 
   call_api(wasm_solve, {
-    callback : function(value) {
+    callback : function(value : (() => void) | undefined) {
       //console.log("value", value);
       finish(value);
-    }, error : function(error) {
+    }, error : function(error : Error) {
       console.log("wasm solve error!");
       window.pop_solve(draw_id);
     },
@@ -541,11 +618,18 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
 
 window.wasm_do_solve = do_solve;
 
-function write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
-  let idxmap = {}
+/* NOTE: `gk` is accepted but never applied -- write_wasm_solve() below, the
+   version this replaced, scaled every constraint k by it. */
+function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : constraint[],
+                              update_verts : set<SplineVertex>,
+                              update_segs : set<SplineSegment>, gk : number,
+                              edge_segs : set<SplineSegment>) {
+  /* element eid -> its index in the packed vertex or segment array. */
+  let idxmap : {[eid : number] : number} = {}
 
   let i = 0;
-  function add_vert(v) {
+  /* Called with a second argument at the one call site; it is ignored. */
+  function add_vert(v : SplineVertex) {
     writer.int32(v.eid);
     writer.int32(v.flag);
     writer.float32(v[0]);
@@ -693,12 +777,18 @@ function write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, g
   return idxmap;
 }
 
-function write_wasm_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
+/* Dead: superseded by write_wasm_solve_new(). Kept because it is the only
+   record of the pre-TypedWriter packing layout, which the C side still
+   half-shares. */
+function write_wasm_solve(data : number[], spline : Spline, cons : constraint[],
+                          update_verts : set<SplineVertex>,
+                          update_segs : set<SplineSegment>, gk : number,
+                          edge_segs : set<SplineSegment>) {
   let endian = ajax.little_endian;
-  let idxmap = {}
+  let idxmap : {[eid : number] : number} = {}
 
   let i = 0;
-  function add_vert(v) {
+  function add_vert(v : SplineVertex) {
     ajax.pack_int(data, v.eid, endian);
     ajax.pack_int(data, v.flag, endian);
     ajax.pack_vec3(data, v, endian);
@@ -846,7 +936,7 @@ function write_wasm_solve(data, spline, cons, update_verts, update_segs, gk, edg
 }
 
 
-function _unload(spline, data) {
+function _unload(spline : Spline, data : DataView) {
   //handleMessage will have chopped off
   //the type/msgid header for us
 
@@ -877,7 +967,7 @@ function _unload(spline, data) {
     console.log("totseg:", totseg);
 }
 
-function wrap_unload(spline, data) {
+function wrap_unload(spline : Spline, data : DataView) {
   return function() {
     _unload(spline, data);
   }
@@ -885,9 +975,10 @@ function wrap_unload(spline, data) {
 
 //generator is manually unpacked for easier analysis
 //XXX rewrite this
-export function wasm_solve(postMessage : Function, status : Object, spline : Spline,
-                           cons : Array<constraint>, update_verts : set<SplineVertex>,
-                           gk : number, edge_segs : set<SplineSegment>)
+export function wasm_solve(postMessage : (type : number, msg : ArrayBuffer) => void,
+                           status : JobStatus, spline : Spline,
+                           cons : constraint[], update_verts : set<SplineVertex>,
+                           gk : number, edge_segs : set<SplineSegment>) : ApiJob
 {
   let ret = {};
   
@@ -937,7 +1028,7 @@ export function wasm_solve(postMessage : Function, status : Object, spline : Spl
     //build list of update segments
     let timestart = time_ms();
 
-    let update_segs = new set();
+    let update_segs = new set<SplineSegment>();
     for (let v of update_verts) {
       for (let i=0; i<v.segments.length; i++) {
         let s = v.segments[i];

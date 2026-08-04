@@ -8,6 +8,11 @@ import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
 import {startup_file} from '../../core/startup/startup_file.js';
 
 import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
+import type {Container, RowFrame} from '../../path.ux/scripts/core/ui.js';
+
+/* One entry of a path.ux menu definition: a toolpath string, Menu.SEP, a
+   [label, callback, hotkey?, icon?] tuple, or a submenu-building callback. */
+export type MenuEntry = string | symbol | unknown[] | (() => UIBase);
 
 /*
   gen_file_menu(ctx, uimenulabel)
@@ -27,7 +32,7 @@ import * as electron_api from '../../path.ux/scripts/platforms/electron/electron
       ]);
   }
 
-  gen_session_menu(ctx : Context, uimenulabel)
+  gen_session_menu(ctx, uimenulabel)
   {
     function callback(entry) {
       console.log(entry);
@@ -59,6 +64,13 @@ import * as electron_api from '../../path.ux/scripts/platforms/electron/electron
   }
  */
 export class MenuBar extends Editor {
+  static STRUCT : string;
+
+  /* Rebuilt from the active toolmode; handed to row.dynamicMenu(). */
+  editMenuDef : MenuEntry[];
+  /* Scene.toolmode_i the edit menu was last built for. */
+  _last_toolmode : number | undefined;
+
   constructor() {
     super();
 
@@ -152,12 +164,13 @@ export class MenuBar extends Editor {
     }
   }
 
-  buildEditMenu(flush = true) {
+  buildEditMenu(flush = true) : void {
     this.editMenuDef.length = 0;
 
     this.editMenuDef.push(["Undo", function () {
       g_app_state.toolstack.undo();
     }, "Ctrl + Z", Icons.UNDO]);
+    /* NOTE: the Redo entry calls undo(), a copy-paste of the entry above. */
     this.editMenuDef.push(["Redo", function () {
       g_app_state.toolstack.undo();
     }, "Ctrl + Shift + Z", Icons.REDO]);
@@ -178,8 +191,11 @@ export class MenuBar extends Editor {
     }
   }
 
-  finishMenu(row: RowFrame) {
-    function callback(entry) {
+  finishMenu(row : RowFrame) {
+    /* NOTE: `callback` is never referenced, and both it and the "Reset
+       Settings" handler below read a bare `ctx` that this module never
+       declares or imports. */
+    function callback(entry : {i : number}) {
       console.log(entry);
       if (entry.i === 0) {
         //note: this is an html5 function

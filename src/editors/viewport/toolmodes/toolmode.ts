@@ -1,16 +1,31 @@
 import {NodeBase} from "../../../core/eventdag.js";
 import {KeyMap} from '../../../core/keymap.js';
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
+import type {FullContext} from '../../../core/context.js';
+import type {View2DHandler} from '../view2d.js';
+import type {Container} from '../../../path.ux/scripts/core/ui.js';
+import type {DataAPI} from '../../../path.ux/scripts/path-controller/controller/controller.js';
+import type {Scene} from '../../../scene/scene.js';
+import type {DataBlock} from '../../../core/lib_api.js';
 
 export const ToolModeFlags = {
 
 };
 
-export const ToolModes = [];
+/* Every registered ToolMode subclass, plus a by-name index keyed on
+   toolDefine().name.  Scene keeps a parallel list of *instances* with the
+   same array-plus-map shape. */
+export type ToolModeClass = typeof ToolMode;
+
+export const ToolModes : ToolModeClass[] & {map : {[name : string] : ToolModeClass}} = [];
 ToolModes.map = {};
 
 export class ToolMode extends NodeBase {
+  static STRUCT : string;
+
   keymap : KeyMap;
+  /* Set by the owning View2DHandler once the mode goes active. */
+  ctx : FullContext | undefined;
 
   constructor() {
     super();
@@ -19,34 +34,36 @@ export class ToolMode extends NodeBase {
     this.keymap = new KeyMap("view2d:" + this.constructor.name);
   }
 
-  rightClickMenu(e, localX, localY, view2d) {
+  rightClickMenu(e : MouseEvent, localX : number, localY : number,
+                 view2d : View2DHandler) {
 
   }
 
   /** returns true on consuming the event */
-  on_mousedown(e, localX, localY) {
+  on_mousedown(e : MouseEvent, localX : number, localY : number) {
 
   }
 
   /** returns true on consuming the event */
-  on_mousemove(e, localX, localY) {
+  on_mousemove(e : MouseEvent, localX : number, localY : number) {
 
   }
 
   /** returns true on consuming the event */
-  on_mouseup(e, localX, localY) {
+  on_mouseup(e : MouseEvent, localX : number, localY : number) {
 
   }
 
-  do_select(event : Object, mpos : Vector3, view2d : View2DHandler, do_multiple : number) {
+  do_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler,
+            do_multiple : boolean) {
 
   }
 
-  do_alt_select(event, mpos, view2d) {
+  do_alt_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler) {
 
   }
 
-  draw(view2d) {
+  draw(view2d : View2DHandler) {
 
   }
 
@@ -67,23 +84,23 @@ export class ToolMode extends NodeBase {
 
   }
 
-  static buildEditMenu(container) {
+  static buildEditMenu(container : Container) {
 
   }
 
-  static buildSideBar(container) {
+  static buildSideBar(container : Container) {
 
   }
 
-  static buildHeader(container) {
+  static buildHeader(container : Container) {
 
   }
 
-  static buildProperties(container) {
+  static buildProperties(container : Container) {
 
   }
 
-  static defineAPI(api) {
+  static defineAPI(api : DataAPI) {
     let st = api.mapStruct(this, true);
 
     st.string("name", "constructor.name", "Name", "Name");
@@ -97,7 +114,7 @@ export class ToolMode extends NodeBase {
     }
   }
 
-  static register(cls) {
+  static register(cls : ToolModeClass) {
     if (cls.toolDefine === this.toolDefine) {
       throw new Error("you forgot to implement toolDefine()");
     }
@@ -142,21 +159,22 @@ export class ToolMode extends NodeBase {
     return [this.keymap]
   }
 
-  dataLink(scene, getblock, getblock_us) {
+  dataLink(scene : Scene, getblock : (ref) => DataBlock,
+           getblock_us : (ref) => DataBlock) {
 
 
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 }
 ToolMode.STRUCT = `
 ToolMode {
-  
+
 }`;
 
-export function initToolModeAPI(api) {
+export function initToolModeAPI(api : DataAPI) {
   for (let tool of ToolModes) {
     tool.defineAPI(api);
   }

@@ -5,12 +5,22 @@
 const _enum_to_xy_ret = [0, 0];
 
 export class IconManager {
+  /* Where the sheet image is fetched from. */
+  path : string;
+  /* Size of the whole sheet, and of one icon cell within it, in pixels. */
   size : Vector2
   cellsize : Vector2
+  /* Set once the sheet image has decoded. */
   ready : boolean;
+  /* The GL upload was commented out, so this holds the <img> and nothing else. */
+  tex : {image: HTMLImageElement};
+  /* Both are written once and never read; the texture upload they belonged to
+     is commented out in load(). */
+  te : Object;
+  texture : WebGLTexture | undefined;
 
-  constructor(gl, sheet_path, 
-              imgsize, iconsize) 
+  constructor(gl: WebGLRenderingContext, sheet_path: string,
+              imgsize: Array<number>, iconsize: Array<number>)
   {
     this.path = sheet_path;
     this.size = new Vector2(imgsize);
@@ -21,11 +31,10 @@ export class IconManager {
     this.ready = false;
   }
   
-  load(gl) {
+  load(gl: WebGLRenderingContext) {
     //load texture
     //this.tex = gl.createTexture();
-    this.tex = {};
-    this.tex.image = new Image();
+    this.tex = {image: new Image()};
     this.tex.image.src = this.path;
     
     this.te = {};
@@ -44,14 +53,14 @@ export class IconManager {
     }
   }
   
-  get_tile(tile) : Array<float> {
-    var ret = [];
+  get_tile(tile: number) : Array<float> {
+    var ret: float[] = [];
     this.gen_tile(tile, ret);
     
     return ret;
   }
   
-  enum_to_xy(tile) {
+  enum_to_xy(tile: number) {
     const ret = _enum_to_xy_ret;
 
     var size = this.size;
@@ -70,7 +79,7 @@ export class IconManager {
     return ret;
   }
   
-  gen_tile(tile, texcos) {
+  gen_tile(tile: number, texcos: float[]) {
     var size = this.size;
     var cellsize = this.cellsize;
     

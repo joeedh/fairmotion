@@ -37,13 +37,36 @@ let window_events = new Set(["keydown", "keyup", "keypress", "resize", "DOMMouse
 let document_events = new Set(["contextmenu", "selectstart", "input", "textinput"]);
 let custom_events = new Set(["draw"]);
 
+/* A structural clone of a DOM event: every plain-valued property copied across,
+   plus the two methods rebound to the original. `stopped` is this system's own
+   flag, set by the stopPropagation replacement bindDom() installs. */
+export interface CopiedEvent {
+  stopped: boolean;
+  stopPropagation: () => void;
+  preventDefault: () => void;
+  /* Stamped on while an event sits in the freeze queue. */
+  _event_type?: string;
+  [key: string]: unknown;
+}
+
+/* Listeners carry the type they were registered under, so
+   removeEventListener() can find their stack without being told. */
+export type EventCallback = ((e: CopiedEvent) => unknown) & {_event_type?: string};
+
+/* One entry of the modal stack: which listener types it pushed, and the
+   handler they dispatch to. */
+interface ModalData {
+  keys: string[];
+  owner?: EventHandler;
+}
+
 export class EventHandler {
-  pushModal(manager) {
-  
+  pushModal(manager: EventManager) {
+
   }
-  
-  popModal(manager) {
-  
+
+  popModal(manager: EventManager) {
+
   }
   
   _on_mousedown() {
@@ -55,8 +78,8 @@ export class EventHandler {
   }
 }
 
-export function copyEvent(event) {
-  let ret = {stopped : false};
+export function copyEvent(event: Event) {
+  let ret: CopiedEvent = {stopped : false};
   
   for (let k in event) {
     let v = event[k];
@@ -79,9 +102,15 @@ export function copyEvent(event) {
 export class EventManager {
   ready : boolean
   _freeze : number
-  stacks : Object
-  _callbacks : Object
-  modal_stack : Object;
+  /* Listener stacks, one per entry of `types`; the last one registered wins. */
+  stacks : {[type: string]: EventCallback[]}
+  _callbacks : {[type: string]: EventCallback}
+  /* Used as an array by pushModal()/popModal(), but built as `{}` -- see the
+     finding in docs/debugging.md. */
+  modal_stack : ModalData[];
+  /* Events parked while _freeze is non-zero, replayed by _handleQueue(). */
+  queue : CopiedEvent[];
+  dom : HTMLElement | undefined;
 
   constructor() {
     this.ready = false;
@@ -94,15 +123,15 @@ export class EventManager {
     this.dom = undefined;
   }
   
-  pushModal(handler) {
-    let modal_data = {
+  pushModal(handler: EventHandler) {
+    let modal_data: ModalData = {
       keys : []
     };
-    
-    let makecb = (type) => {
+
+    let makecb = (type: string) => {
       let key = "_on_" + type;
-      
-      return (e) => {
+
+      return (e: CopiedEvent) => {
         handler[key](e);
         e.stopPropagation();
         
@@ -142,7 +171,7 @@ export class EventManager {
     this._freeze++;
   }
   
-  fireEvent(type, data) {
+  fireEvent(type: string, data?: CopiedEvent) {
     if (data === undefined) {
       data = {};
     }
@@ -196,15 +225,15 @@ export class EventManager {
   }
   
   bindDom() {
-    let makecb = (type) => {
+    let makecb = (type: string) => {
       let stop = false;
-      
-      function mystop() {
+
+      function mystop(this: CopiedEvent) {
         stop = true;
         this.stopped = true;
       }
-      
-      return (e) => {
+
+      return (e: CopiedEvent) => {
         e = copyEvent(e);
         
         if (this._freeze) {
@@ -256,11 +285,11 @@ export class EventManager {
     }
   }
   
-  popEventListener(type) {
+  popEventListener(type: string) {
     return this.stacks[type].pop();
   }
-  
-  removeEventListener(handler) {
+
+  removeEventListener(handler: EventCallback) {
     if (handler === undefined || handler._event_type === undefined) {
       throw new Error("invalid handler " + handler);
     }
@@ -269,7 +298,7 @@ export class EventManager {
     this.stacks[type].remove(handler, false); //false is to not throw error if handler not in stack
   }
   
-  addEventListener(type, handler) {
+  addEventListener(type: string, handler: EventCallback) {
     handler._event_type = type;
     
     if (!(type in this.stacks)) {
@@ -280,7 +309,7 @@ export class EventManager {
     this.stacks[type].push(handler);
   }
   
-  init(dom) {
+  init(dom: HTMLElement) {
     this.dom = dom;
     
     for (let k of types) {

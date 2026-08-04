@@ -17,6 +17,17 @@ var _cross_vec2 = new Vector3();
 export var FLOAT_MIN = -1e21;
 export var FLOAT_MAX = 1e22
 
+/* Most of the geometry helpers below are called with both 2D and 3D vectors --
+   line_isect() even branches on `v1.length === 3` at runtime to tell which it
+   got -- so they take a vector union rather than a fixed width. They need real
+   vector methods (vectorDistance, dot, load...), not plain number[]. */
+type VecLike = Vector2 | Vector3;
+
+/* The helpers that only *index* their arguments are additionally called with
+   plain arrays and with Float32Array views. path.ux's vector classes are not
+   Array subclasses, so "a thing with numeric slots" has to be spelled out. */
+type Coord = VecLike | number[];
+
 /*a UI-friendly Matrix4 wrapper, that 
   likes to pretend it's a simple collection
   of [location, rotation-euler, size] 
@@ -24,8 +35,10 @@ export var FLOAT_MAX = 1e22
 
 import '../path.ux/scripts/util/vectormath.js';
 
+/* `loc` doubles as a copy-constructor argument: pass a Matrix4 and rot/size are
+   ignored. */
 export class Matrix4UI extends Matrix4 {
-  constructor(loc, rot=undefined, size=undefined) {
+  constructor(loc : Matrix4 | Coord, rot? : Coord, size? : Coord) {
     super();
 
     if (loc instanceof Matrix4) {
@@ -43,7 +56,7 @@ export class Matrix4UI extends Matrix4 {
     this.calc(loc, rot, size);
   }
   
-  calc(loc, rot, size) {
+  calc(loc : Coord, rot : Coord, size : Coord) {
     this.rotate(rot[0], rot[1], rot[2]);
     this.scale(size[0], size[1], size[2]);
     this.translate(loc[0], loc[1], loc[2]);
@@ -56,7 +69,7 @@ export class Matrix4UI extends Matrix4 {
     return t;
   }
   
-  set loc(loc) {
+  set loc(loc : Coord) {
     var l = new Vector3(), r = new Vector3(), s = new Vector3();
     
     this.decompose(l, r, s);
@@ -69,7 +82,7 @@ export class Matrix4UI extends Matrix4 {
     return t;
   }
   
-  set rot(rot) {
+  set rot(rot : Coord) {
     var l = new Vector3(), r = new Vector3(), s = new Vector3();
     
     this.decompose(l, r, s);
@@ -83,7 +96,7 @@ export class Matrix4UI extends Matrix4 {
     return t;
   }
   
-  set size(size) {
+  set size(size : Coord) {
     var l = new Vector3(), r = new Vector3(), s = new Vector3();
     
     this.decompose(l, r, s);
@@ -103,12 +116,14 @@ if (FLOAT_MIN != FLOAT_MIN || FLOAT_MAX != FLOAT_MAX) {
 
 /* Was `static` inside get_rect_points(); the transpiler hoisted these to module
    scope and they are reused across calls. */
-const _get_rect_points_cs4 = new Array(4);
-const _get_rect_points_cs8 = new Array(8);
+const _get_rect_points_cs4 : number[][] = new Array(4);
+const _get_rect_points_cs8 : number[][] = new Array(8);
 
-export function get_rect_points(p, size)
+/* Corners of a 2D or 3D box given as origin + size. The returned array is
+   reused between calls, and slot 0 aliases `p` itself. */
+export function get_rect_points(p : Coord, size : Coord)
 {
-  var cs;
+  var cs : number[][];
 
   const _cs4 = _get_rect_points_cs4;
   const _cs8 = _get_rect_points_cs8;
@@ -139,7 +154,9 @@ export function get_rect_points(p, size)
   return cs;
 }
 
-export function get_rect_lines(p, size)
+/* Broken for the 3D case: `l1.concat(l2)` does not mutate l1 and its result is
+   dropped, so the second face's four edges are missing from the result. */
+export function get_rect_lines(p : Coord, size : Coord)
 {
   var ps = get_rect_points(p, size);
   
@@ -162,9 +179,12 @@ export function get_rect_lines(p, size)
   }
 }
 
-const _simple_tri_aabb_isect_vs = [0, 0, 0];
+const _simple_tri_aabb_isect_vs : Coord[] = [];
 
-export function simple_tri_aabb_isect(v1, v2, v3, min, max) {
+/* True when any of the triangle's own vertices lies inside the box; this does
+   not detect a triangle that merely straddles it. */
+export function simple_tri_aabb_isect(v1 : Coord, v2 : Coord, v3 : Coord,
+                                      min : Coord, max : Coord) {
   const vs = _simple_tri_aabb_isect_vs;
 
   vs[0] = v1; vs[1] = v2; vs[2] = v3;
@@ -183,8 +203,22 @@ export function simple_tri_aabb_isect(v1, v2, v3, min, max) {
   return false;
 }
 
+/* Two shapes in one: with totaxis === 1 the bounds are plain numbers, otherwise
+   they are arrays of that length. `min`/`max` are the public values and read as
+   0 for the empty set; `_min`/`_max` are the working accumulators seeded to
+   FLOAT_MAX/FLOAT_MIN. */
 export class MinMax {
-  constructor(totaxis : int = 1) {
+  static STRUCT : string;
+
+  totaxis : number;
+  min : number | Coord;
+  max : number | Coord;
+  _min : number | Coord;
+  _max : number | Coord;
+  _static_mr_co : number[];
+  _static_mr_cs : Coord[];
+
+  constructor(totaxis : number = 1) {
     this.totaxis = totaxis;
     
     //we handle the empty set case by separating the 
@@ -238,7 +272,7 @@ export class MinMax {
     }
   }
   
-  minmax_rect(p : Array<float>, size : Array<float>) {
+  minmax_rect(p : Coord, size : Coord) {
     var totaxis = this.totaxis;
     
     var cs = this._static_mr_cs;
@@ -267,7 +301,8 @@ export class MinMax {
     }
   }
   
-  minmax(p : Array<float>) {
+  /* Takes a scalar when totaxis === 1 and a vector otherwise. */
+  minmax(p : number | Coord) {
     var totaxis = this.totaxis
     
     if (totaxis === 1) {
@@ -281,7 +316,7 @@ export class MinMax {
     }
   }
   
-  static fromSTRUCT(reader : Function) {
+  static fromSTRUCT(reader : StructReader<MinMax>) {
     var ret = new MinMax();
     
     reader(ret);
@@ -300,7 +335,8 @@ MinMax.STRUCT = `
   }
 `;
 
-export function winding(a, b, c) {
+/* Sign of the 2D cross product at b; true for counter-clockwise. */
+export function winding(a : Coord, b : Coord, c : Coord) {
   let dx1 = a[0]-b[0];
   let dy1 = a[1]-b[1];
 
@@ -313,7 +349,7 @@ export function winding(a, b, c) {
 
 //this specifically returns true in the case where two rectangles
 //share common borders
-export function inrect_2d(p, pos, size) {
+export function inrect_2d(p : Coord, pos : Coord, size : Coord) {
   if (p == undefined || pos == undefined || size == undefined) {
     console.trace();
     console.log("Bad paramters to inrect_2d()")
@@ -327,10 +363,13 @@ const _aabb_isect_line_2d_smin = new Vector2(), _aabb_isect_line_2d_smax = new V
 const _aabb_isect_line_2d_ssize = new Vector2();
 const _aabb_isect_line_2d_sv1 = new Vector2();
 const _aabb_isect_line_2d_sv2 = new Vector2();
-const _aabb_isect_line_2d_ps = [new Vector2(), new Vector2(), new Vector2()];
-const _aabb_isect_line_2d_l1 = [0, 0], _aabb_isect_line_2d_l2 = [0, 0];
+/* Broken: the loop below writes ps[3], but only three corners are allocated. */
+const _aabb_isect_line_2d_ps : VecLike[] = [new Vector2(), new Vector2(), new Vector2()];
+const _aabb_isect_line_2d_l1 : VecLike[] = [], _aabb_isect_line_2d_l2 : VecLike[] = [];
 
-export function aabb_isect_line_2d(v1, v2, min, max) {
+/* Dead -- nothing outside this file calls it, which is just as well given the
+   missing fourth corner above. */
+export function aabb_isect_line_2d(v1 : VecLike, v2 : VecLike, min : VecLike, max : VecLike) {
   const smin = _aabb_isect_line_2d_smin, smax = _aabb_isect_line_2d_smax;
   const ssize = _aabb_isect_line_2d_ssize;
 
@@ -375,7 +414,8 @@ export function aabb_isect_line_2d(v1, v2, min, max) {
   return false;
 }
 
-export function aabb_isect_minmax2d(_min1, _max1, _min2, _max2, margin=0) {
+export function aabb_isect_minmax2d(_min1 : Coord, _max1 : Coord,
+                                    _min2 : Coord, _max2 : Coord, margin=0) {
   var ret = 0;
   
   for (var i=0; i<2; i++) {
@@ -388,7 +428,8 @@ export function aabb_isect_minmax2d(_min1, _max1, _min2, _max2, margin=0) {
   return ret == 2;
 }
 
-export function aabb_isect_2d(pos1, size1, pos2, size2) {
+export function aabb_isect_2d(pos1 : Coord, size1 : Coord,
+                              pos2 : Coord, size2 : Coord) {
   var ret = 0;
   
   for (var i=0; i<2; i++) {
@@ -404,14 +445,16 @@ export function aabb_isect_2d(pos1, size1, pos2, size2) {
   return ret == 2;
 }
 
-function expand_rect2d(pos, size, margin) {
+/* Dead. */
+function expand_rect2d(pos : Coord, size : Coord, margin : Coord) {
   pos[0] -= Math.floor(margin[0]);
   pos[1] -= Math.floor(margin[1]);
   size[0] += Math.floor(margin[0]*2.0);
   size[1] += Math.floor(margin[1]*2.0);
 }
 
-function expand_line(l, margin) {
+/* Dead. Grows the segment by `margin` at both ends, in place. */
+function expand_line(l : VecLike[], margin : number) {
     var c = new Vector3();
     c.add(l[0]);
     c.add(l[1]);
@@ -435,7 +478,7 @@ function expand_line(l, margin) {
     return l;
 }
 
-function colinear(a, b, c) {
+function colinear(a : VecLike, b : VecLike, c : VecLike) {
     for (var i=0; i<3; i++) {
       _cross_vec1[i] = b[i] - a[i];
       _cross_vec2[i] = c[i] - a[i];
@@ -459,10 +502,14 @@ function colinear(a, b, c) {
     return _cross_vec1.dot(_cross_vec1) < limit;
 }
 
+/* Dead -- the commented-out expand_line() calls below were their only user. */
 var _llc_l1 = [new Vector3(), new Vector3()]
 var _llc_l2 = [new Vector3(), new Vector3()]
 
-export function line_line_cross(l1, l2) {
+/* Takes two *pairs* of points, not four points. spline_query.ts:132 calls it
+   with four separate vectors, which silently reads l1[0]/l1[1] off a Vector
+   and drops the other two arguments -- it wants line_line_cross4(). */
+export function line_line_cross(l1 : VecLike[], l2 : VecLike[]) {
     //if (margin == undefined) margin = 0;
     
     /*var l1 = [new Vector3(l1[0]), new Vector3(l1[1])];
@@ -524,7 +571,8 @@ export function line_line_cross4(v1 : Vector2, v2 : Vector2, v3 : Vector2, v4 : 
   return line_line_cross(_llc4_1, _llc4_2);
 }
 
-export function point_in_tri(p, v1, v2, v3) {
+/* Dead. */
+export function point_in_tri(p : Coord, v1 : Coord, v2 : Coord, v3 : Coord) {
     var w1 = winding(p, v1, v2);
     var w2 = winding(p, v2, v3);
     var w3 = winding(p, v3, v1);
@@ -532,13 +580,15 @@ export function point_in_tri(p, v1, v2, v3) {
     return w1 == w2 && w2 == w3;
 }
 
-export function convex_quad(v1, v2, v3, v4) {
+/* Dead. True when the diagonals cross, i.e. the quad is not self-overlapping. */
+export function convex_quad(v1 : VecLike, v2 : VecLike, v3 : VecLike, v4 : VecLike) {
     return line_line_cross([v1, v3], [v2, v4]);
 }
 
 const _normal_tri_e1 = new Vector3(), _normal_tri_e2 = new Vector3(), _normal_tri_e3 = new Vector3();
 
-export function normal_tri(v1, v2, v3) {
+/* Dead. Returns a shared scratch vector; copy it before the next call. */
+export function normal_tri(v1 : Coord, v2 : Coord, v3 : Coord) {
   const e1 = _normal_tri_e1, e2 = _normal_tri_e2, e3 = _normal_tri_e3;
 
    /*
@@ -564,7 +614,8 @@ export function normal_tri(v1, v2, v3) {
 
 const _normal_quad_n2 = new Vector3();
 
-export function normal_quad(v1, v2, v3, v4) {
+/* Dead. Average of the two triangle normals; also a shared scratch vector. */
+export function normal_quad(v1 : Coord, v2 : Coord, v3 : Coord, v4 : Coord) {
   var n = normal_tri(v1, v2, v3)
   const n2 = _normal_quad_n2;
 
@@ -580,10 +631,10 @@ var lis_rets3 = cachering.fromConstructor(Vector3, 64);
 var lis_rets2 = cachering.fromConstructor(Vector2, 64);
 
 var _li_vi = new Vector3()
-export function line_isect(v1 : Vector3, v2 : Vector3, v3 : Vector3, v4 : Vector3, calc_t : boolean) {  //calc_t is optional, defaults to false
-  if (calc_t === undefined) {
-    calc_t = false;
-  }
+/* Returns [point, COLINEAR|LINECROSS] and, when a parameter was asked for or
+   the inputs are 3D, a third element holding t along v1->v2. The point comes
+   from a 64-deep ring buffer, so it survives a few calls but not forever. */
+export function line_isect(v1 : VecLike, v2 : VecLike, v3 : VecLike, v4 : VecLike, calc_t = false) {
   
   //code may be copyright tainted; replace
   var div = (v2[0] - v1[0]) * (v4[1] - v3[1]) - (v2[1] - v1[1]) * (v4[0] - v3[0]);
@@ -622,16 +673,17 @@ var dtl_v4 = new Vector3()
 var dtl_v5 = new Vector3()
 var dtl_p = new Vector3()
 
-export function dist_to_line_v2(p, v1, v2)
+/* Distance from p to the *segment* v1..v2, flattened to the XY plane. The
+   arguments are copied into scratch vectors, so callers may pass 2D. */
+export function dist_to_line_v2(p_in : Coord, v1_in : Coord, v2_in : Coord)
 {
   var v3 = dtl_v3, v4 = dtl_v4;
   var v5 = dtl_v5;
   v5[2] = 0.0;
   
-  v1 = dtl_v1.load(v1);
-  v2 = dtl_v2.load(v2);
-  
-  p = dtl_p.load(p);
+  const v1 = dtl_v1.load(v1_in);
+  const v2 = dtl_v2.load(v2_in);
+  const p = dtl_p.load(p_in);
   
   v3.load(v1); v4.load(v2);
   v1[2] = v2[2] = v3[2] = v4[2] = p[2] = 0.0;
@@ -668,7 +720,8 @@ export function dist_to_line_v2(p, v1, v2)
   }
 }
 
-export function closest_point_on_line(p, v1, v2)
+/* Dead. Returns [point, distance-from-v1]. */
+export function closest_point_on_line(p : Vector3, v1 : Vector3, v2 : Vector3)
 {
   var v3 = dtl_v3, v4 = dtl_v4;
   var v5 = dtl_v5;
@@ -717,7 +770,9 @@ var _gtc_v2 = new Vector3();
 var _gtc_p12 = new Vector3()
 var _gtc_p22 = new Vector3()
 
-export function get_tri_circ(a, b, c) {
+/* Dead. Returns [centre, radius]; see the p2 comment below -- the second
+   bisector may be taken from the wrong edge midpoint. */
+export function get_tri_circ(a : Coord, b : Coord, c : Coord) {
     var e1 = _gtc_e1;
     var e2 = _gtc_e2;
     var e3 = _gtc_e3;
@@ -768,7 +823,8 @@ export function get_tri_circ(a, b, c) {
     return [cent, r];
 }
 
-export function gen_circle(m, origin, r, stfeps) {
+/* Dead. `m` is a half-edge Mesh, a class this codebase no longer has. */
+export function gen_circle(m, origin : Coord, r : number, stfeps : number) {
   var pi = Math.PI;
   
   var f = -pi/2;
@@ -793,7 +849,8 @@ export function gen_circle(m, origin, r, stfeps) {
   return verts;
 }
 
-function makeCircleMesh(gl, radius, stfeps) {
+/* Dead, and unusable: Mesh is undefined here. `gl` is accepted and ignored. */
+function makeCircleMesh(gl, radius : number, stfeps : number) {
   var mesh = new Mesh();
   
   var verts1 = gen_circle(mesh, new Vector3(), radius, stfeps);
@@ -805,7 +862,8 @@ function makeCircleMesh(gl, radius, stfeps) {
   return mesh;
 }
 
-export function minmax_verts(verts) {
+/* Dead. Returns [min, max] over the verts' coordinates. */
+export function minmax_verts(verts : Iterable<{co : Coord}>) {
   var min = new Vector3([1e12, 1e12, 1e12]);
   var max = new Vector3([-1e12, -1e12, -1e12]);
   
@@ -819,7 +877,8 @@ export function minmax_verts(verts) {
   return [min, max];
 }
 
-function unproject(vec, ipers, iview) {
+/* Dead, and module-local. */
+function unproject(vec : Coord, ipers : Matrix4, iview : Matrix4) {
   var newvec = new Vector3(vec);
   
   newvec.multVecMatrix(ipers);
@@ -828,7 +887,8 @@ function unproject(vec, ipers, iview) {
   return newvec;
 }
 
-function project(vec, pers, view) {
+/* Dead, and module-local. */
+function project(vec : Coord, pers : Matrix4, view : Matrix4) {
   var newvec = new Vector3(vec);
   
   newvec.multVecMatrix(pers);
@@ -839,8 +899,11 @@ function project(vec, pers, view) {
 
 var _sh_minv = new Vector3()
 var _sh_maxv = new Vector3()
-var _sh_start = []
-var _sh_end = []
+var _sh_start : number[] = []
+var _sh_end : number[] = []
+/* Dead, and an ES5-style constructor function -- every `this.x = ...` below is
+   untypable as written. It also keys on MeshTypes and half-edge geometry that
+   no longer exist. Left as-is; converting it to a class is a phase-7 job. */
 function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   if (cellsize == undefined)
     cellsize = 0.25;
@@ -1020,7 +1083,9 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
 
 const _get_boundary_winding_cent = new Vector3();
 
-function get_boundary_winding(points) {
+/* Dead. True when the polygon winds counter-clockwise about its centroid;
+   colinear spans are skipped so they cannot bias the average. */
+function get_boundary_winding(points : VecLike[]) {
   const _cent = _get_boundary_winding_cent;
 
   var cent = _cent.zero();
@@ -1071,14 +1136,18 @@ function get_boundary_winding(points) {
   for use on large, real-time operations like tesselation of
   complex polygons*/
 export class PlaneOps {
-  constructor(normal) {
+  /* A permutation of [0, 1, 2] that maps the plane's two dominant axes onto
+     x and y, so the flat 2D helpers above can be reused on a tilted plane. */
+  axis : number[];
+
+  constructor(normal : Coord) {
     var no = normal;
     this.axis = [0, 0, 0];
     
     this.reset_axis(normal);
   }
   
-  reset_axis(no) {
+  reset_axis(no : Coord) {
     var ax, ay, az;
     var nx=Math.abs(no[0]), ny=Math.abs(no[1]), nz=Math.abs(no[2]);
     
@@ -1093,7 +1162,7 @@ export class PlaneOps {
     this.axis = [ax, ay, az];
   }
   
-  convex_quad(v1, v2, v3, v4) {
+  convex_quad(v1 : Coord, v2 : Coord, v3 : Coord, v4 : Coord) {
     var ax = this.axis;
     
     v1 = new Vector3([v1[ax[0]], v1[ax[1]], v1[ax[2]]]);
@@ -1104,8 +1173,8 @@ export class PlaneOps {
     return convex_quad(v1, v2, v3, v4);
   }
   
-  line_isect(v1, v2, 
-             v3, v4) : Array<float> 
+  line_isect(v1 : Coord, v2 : Coord,
+             v3 : Coord, v4 : Coord)
   {
     var ax = this.axis;
     var orig1=v1, orig2=v2;
@@ -1125,7 +1194,7 @@ export class PlaneOps {
     return ret;
   }
   
-  line_line_cross(l1, l2) {
+  line_line_cross(l1 : Coord[], l2 : Coord[]) {
     var ax = this.axis;
     
     var v1=l1[0], v2=l1[1], v3=l2[0], v4=l2[1];
@@ -1137,7 +1206,7 @@ export class PlaneOps {
     return line_line_cross([v1, v2], [v3, v4]);
   }
   
-  winding(v1, v2, v3) {
+  winding(v1 : Coord, v2 : Coord, v3 : Coord) {
     var ax = this.axis
     
     if (v1 == undefined)
@@ -1150,7 +1219,7 @@ export class PlaneOps {
     return winding(v1, v2, v3);
   }
 
-  colinear(v1, v2, v3) {
+  colinear(v1 : Coord, v2 : Coord, v3 : Coord) {
     var ax = this.axis
     
     v1 = new Vector3([v1[ax[0]], v1[ax[1]], 0.0]);
@@ -1160,7 +1229,7 @@ export class PlaneOps {
     return colinear(v1, v2, v3);
   }
   
-  get_boundary_winding(points) {
+  get_boundary_winding(points : Coord[]) {
     var ax = this.axis
     var cent = new Vector3();
     
@@ -1192,7 +1261,10 @@ export class PlaneOps {
 }
 
 var _isrp_ret = new Vector3();
-function isect_ray_plane(planeorigin, planenormal, rayorigin, raynormal)
+/* Dead. `d` is computed and never used, and the plane is treated as passing
+   through planeorigin rather than at distance |planeorigin| along n. */
+function isect_ray_plane(planeorigin : Vector3, planenormal : Vector3,
+                         rayorigin : Vector3, raynormal : Vector3)
 {
   var p = planeorigin, n = planenormal;
   var r = rayorigin, v = raynormal;
@@ -1207,7 +1279,9 @@ function isect_ray_plane(planeorigin, planenormal, rayorigin, raynormal)
   return _isrp_ret;
 }
 
-function mesh_find_tangent(mesh, viewvec, offvec, projmat, verts) //verts is optional
+/* Dead -- half-edge meshes are gone from this codebase. `viewvec` is accepted
+   and ignored. */
+function mesh_find_tangent(mesh, viewvec : Coord, offvec : Coord, projmat : Matrix4, verts?)
 {
   if (verts == undefined) 
     verts = mesh.verts.selected;
@@ -1258,7 +1332,13 @@ function mesh_find_tangent(mesh, viewvec, offvec, projmat, verts) //verts is opt
   return tanav;
 }
 
+/* Dead. `matrix` may be an externally-owned Matrix4 handed over by
+   set_internal_matrix(), in which case update_func() notifies its owner. */
 class Mat4Stack {
+  stack : Matrix4[];
+  matrix : Matrix4;
+  update_func : (() => void) | undefined;
+
   constructor() {
     this.stack = []
     this.matrix = new Matrix4();
@@ -1266,12 +1346,12 @@ class Mat4Stack {
     this.update_func = undefined;
   }
 
-  set_internal_matrix(mat, update_func) {
+  set_internal_matrix(mat : Matrix4, update_func : () => void) {
     this.update_func = update_func;
     this.matrix = mat;
   }
 
-  reset(mat) {
+  reset(mat : Matrix4) {
     this.matrix.load(mat);
     this.stack = [];
     
@@ -1279,13 +1359,13 @@ class Mat4Stack {
       this.update_func();
   }
 
-  load(mat) {
+  load(mat : Matrix4) {
     this.matrix.load(mat);
     if (this.update_func != undefined)
       this.update_func();
   }
 
-  multiply(mat) {
+  multiply(mat : Matrix4) {
     this.matrix.multiply(mat);
     if (this.update_func != undefined)
       this.update_func();
@@ -1298,7 +1378,7 @@ class Mat4Stack {
   }
 
   //mat2 is optional
-  push(mat2) {
+  push(mat2? : Matrix4) {
     this.stack.push(new Matrix4(this.matrix));
     
     if (mat2 != undefined) {
@@ -1309,8 +1389,9 @@ class Mat4Stack {
     }
   }
 
+  /* Array.pop takes no argument; the index passed here is ignored. */
   pop() {
-    var mat = this.stack.pop(this.stack.length-1);
+    var mat = this.stack.pop();
     this.matrix.load(mat);
     
     if (this.update_func != undefined)
@@ -1322,8 +1403,16 @@ class Mat4Stack {
 
 //little subsystem to create Vector3's backed
 //with typed array views.  possibly stupid.
+/* Dead. `nsize2` is a positional alias for `nsize` that predates the default
+   parameter, so `new WrapperVecPool(4)` and `(undefined, 512, 4)` agree. */
 class WrapperVecPool {
-  constructor(nsize2, psize=512, nsize=3) {
+  pools : Float32Array[];
+  cur : number;
+  psize : number;
+  bytesize : number;
+  nsize : number;
+
+  constructor(nsize2? : number, psize=512, nsize=3) {
     if (nsize2 != undefined) nsize = nsize2;
     
     this.pools = [];
@@ -1359,8 +1448,18 @@ class WrapperVecPool {
 
 var test_vpool = new WrapperVecPool();
 
+/* Dead. A Vector3 whose three slots are accessors onto a Float32Array view,
+   so a pool can back many vectors with one buffer. Note that only slots 0-2
+   are redirected -- everything Vector3 does through its own storage still
+   uses the (unwritten) base slots. */
 class WVector3 extends Vector3 {
-  constructor(view, arg=undefined) {
+  static STRUCT : string;
+
+  view : Float32Array;
+  /* Populated by nstructjs during load and deleted again by loadSTRUCT. */
+  _vec? : number[];
+
+  constructor(view : Float32Array, arg? : number[]) {
     super(arg);
     this.view = view;
   }
@@ -1368,23 +1467,23 @@ class WVector3 extends Vector3 {
   get 0() {
     return this.view[0];
   }
-  set 0(n) {
+  set 0(n : number) {
     this.view[0] = n;
   }
   get 1() {
     return this.view[1];
   }
-  set 1(n) {
+  set 1(n : number) {
     this.view[1] = n;
   }
   get 2() {
     return this.view[2];
   }
-  set 2(n) {
+  set 2(n : number) {
     this.view[2] = n;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     this.load(this._vec);
@@ -1400,7 +1499,8 @@ WVector3 {
 var cos = Math.cos;
 var sin = Math.sin;
 
-export function rot2d(vec, A, axis=0) {
+/* Rotates in place by A radians; `axis` 1 reverses the direction. */
+export function rot2d(vec : Coord, A : number, axis=0) {
   var x = vec[0];
   var y = vec[1];
   

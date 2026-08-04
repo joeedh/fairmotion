@@ -3,11 +3,26 @@
 import * as config from '../../config/config.js';
 import * as fileapi_html5 from './fileapi_html5.js';
 import {wrapRemoteCallback} from '../../path.ux/scripts/platforms/electron/electron_api.js';
+import type {
+  FileData, FileErrorCallback, FileSuccessCallback, OpenFileCallback
+} from './fileapi.js';
 
-let fs;
+let fs: typeof import("fs");
 
 if (config.IS_NODEJS) {
   fs = require("fs");
+}
+
+/* What electron's show-open-dialog resolves to. Note that electron itself
+   spells the cancel flag `canceled`, with one L -- see docs/debugging.md. */
+interface OpenDialogResult {
+  cancelled?: boolean;
+  filePaths: string[];
+}
+
+interface SaveDialogResult {
+  canceled: boolean;
+  filePath: string;
 }
 
 export function reset() {
@@ -41,7 +56,9 @@ export function get_base_dir(path: string) {
   return path == "" ? undefined : path;
 }
 
-export function open_file(callback, thisvar, set_current_file, extslabel, exts, error_cb) {
+export function open_file(callback: OpenFileCallback, thisvar: Object,
+                          set_current_file: boolean, extslabel: string, exts: string[],
+                          error_cb: FileErrorCallback) {
   if (thisvar == undefined)
     thisvar = this; //should point to global object
 
@@ -58,12 +75,12 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
   //  dialog = require('electron').remote.dialog;
   //}
 
-  let onthen = e => {
+  let onthen = (e: OpenDialogResult) => {
     if (e.cancelled) {
       return;
     }
 
-    let path = e.filePaths;
+    let path: string | string[] | undefined = e.filePaths;
 
     if (path instanceof Array) {
       path = path[0];
@@ -118,7 +135,7 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
       callback(buf, fname, path);
   };
 
-  let oncatch = (error) => {
+  let oncatch = (error: Error) => {
     if (error_cb) {
       error_cb(error);
     }
@@ -136,7 +153,7 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
 }
 
 
-export function can_access_path(path) {
+export function can_access_path(path: string) {
   try {
     fs.accessSync(path, fs.constants.R_OK | fs.constants.W_OK);
     return true;
@@ -145,7 +162,8 @@ export function can_access_path(path) {
   }
 }
 
-export function save_file(data, path, error_cb, success_cb) {
+export function save_file(data: FileData, path: string,
+                          error_cb: FileErrorCallback, success_cb: FileSuccessCallback) {
   if (data instanceof DataView) {
     data = data.buffer;
   } else if (!(data instanceof ArrayBuffer) && data.buffer) {
@@ -173,7 +191,9 @@ export function save_file(data, path, error_cb, success_cb) {
   }
 }
 
-export function save_with_dialog(data, default_path, extslabel, exts, error_cb, success_cb) {
+export function save_with_dialog(data: FileData, default_path: string | undefined,
+                                 extslabel: string, exts: string[],
+                                 error_cb: FileErrorCallback, success_cb: FileSuccessCallback) {
   let dialog = require('electron').dialog;
   if (dialog === undefined) {
     dialog = require('electron').remote.dialog;
@@ -181,7 +201,7 @@ export function save_with_dialog(data, default_path, extslabel, exts, error_cb, 
 
   let {ipcRenderer} = require('electron');
 
-  let onthen = (dialog_data) => {
+  let onthen = (dialog_data: SaveDialogResult) => {
     let canceled = dialog_data.canceled;
     let path = dialog_data.filePath;
 
@@ -193,7 +213,7 @@ export function save_with_dialog(data, default_path, extslabel, exts, error_cb, 
     save_file(data, path, error_cb, success_cb);
   };
 
-  let oncatch = (error) => {
+  let oncatch = (error: Error) => {
     if (error_cb) {
       error_cb(error);
     }
@@ -212,7 +232,8 @@ export function save_with_dialog(data, default_path, extslabel, exts, error_cb, 
 
 
 //XXX refactor me!
-export function save_file_old(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+export function save_file_old(data: FileData, save_as_mode: boolean, set_current_file: boolean,
+                              extslabel: string, exts: string[], error_cb: FileErrorCallback) {
   if (config.CHROME_APP_MODE) {
     return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
   }

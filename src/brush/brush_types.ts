@@ -1,17 +1,32 @@
 import {nstructjs, Curve1D, util, FloatProperty} from '../path.ux/scripts/pathux.js';
+import type {DataAPI, ToolProperty} from '../path.ux/scripts/pathux.js';
 import {DataBlock} from '../core/lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
 import {DynamicFlags, DynamicInputs} from './brush_base.js';
 
-export const BrushTypes = {};
+/* A brush tool's parameter slots, keyed by the apiname stamped onto each
+   property in the BrushTool constructor. */
+export type BrushSlots = {[apiname : string] : ToolProperty};
+export type BrushToolClass = typeof BrushTool;
+
+/* typeName (upper-cased) -> index into BrushToolClasses. */
+export const BrushTypes : {[typeName : string] : number} = {};
 
 class NoInheritFlag {
-  constructor(def) {
+  def : BrushSlots;
+
+  constructor(def : BrushSlots) {
     this.def = def;
   }
 }
 
-export function buildSlots(cls) {
-  let ins = {};
+/* Walks the class chain merging brushDefine().inputs, nearest class winning.
+
+   NOTE: noInherit() wraps the slots in a NoInheritFlag, so on the class that
+   used it `ins2` is the flag object and the copy loop above the check picks
+   up its "def" key rather than the real slots. */
+export function buildSlots(cls : BrushToolClass) {
+  let ins : BrushSlots = {};
 
   let p = cls;
   while (p && p !== Object) {
@@ -35,17 +50,23 @@ export function buildSlots(cls) {
   return ins;
 }
 
-export const BrushToolClasses = [];
+export const BrushToolClasses : BrushToolClass[] = [];
 
 
 export class DynamicsCurve {
+  static STRUCT : string;
+
+  inputType : number;
+  curve : Curve1D;
+  enabled : boolean;
+
   constructor() {
     this.inputType = DynamicInputs.PRESSURE;
     this.curve = new Curve1D();
     this.enabled = false;
   }
 
-  load(b) {
+  load(b : DynamicsCurve) {
     b.copyTo(this);
     return this;
   }
@@ -54,7 +75,7 @@ export class DynamicsCurve {
     return new DynamicsCurve().load(this);
   }
 
-  copyTo(b) {
+  copyTo(b : DynamicsCurve) {
     b.enabled = this.enabled;
     b.inputType = this.inputType;
     this.curve.copyTo(b.curve);
@@ -70,7 +91,18 @@ brush.DynamicsCurve {
 nstructjs.register(DynamicsCurve);
 
 export class DynamicsChannel {
-  constructor(name) {
+  static STRUCT : string;
+
+  /* Keyed on DynamicInputs.  Flattened to _inputs for serialization and
+     rebuilt by loadSTRUCT. */
+  inputs : Map<number, DynamicsCurve>;
+  _inputs : DynamicsCurve[] | undefined;
+  name : string;
+  min : number;
+  max : number;
+  flag : number;
+
+  constructor(name? : string) {
     this.inputs = new Map();
     this._inputs = undefined; //used by nstructjs
 
@@ -80,7 +112,7 @@ export class DynamicsChannel {
     this.flag = 0;
   }
 
-  get(type) {
+  get(type : number) {
     let ch = this.inputs.get(type);
     if (ch) {
       return ch;
@@ -94,7 +126,7 @@ export class DynamicsChannel {
   }
 
   _saveInputs() {
-    let ret = [];
+    let ret : DynamicsCurve[] = [];
 
     for (let val of this.inputs.values()) {
       ret.push(val);
@@ -103,17 +135,20 @@ export class DynamicsChannel {
     return ret;
   }
 
-  copyTo(b) {
+  copyTo(b : DynamicsChannel) {
     b.min = this.min;
     b.max = this.max;
     b.flag = this.flag;
 
+    /* NOTE: DynamicsCurve has no `name` -- b.get() is keyed on the numeric
+       input type, so this looks up undefined and mints a fresh curve every
+       pass, discarding whatever b already had. */
     for (let ch of this.inputs.values()) {
       ch.copyTo(b.get(ch.name));
     }
   }
 
-  load(b) {
+  load(b : DynamicsChannel) {
     b.copyTo(this);
     return this;
   }
@@ -122,7 +157,7 @@ export class DynamicsChannel {
     return new DynamicsChannel().load(this);
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     this.inputs = new Map();
@@ -140,18 +175,25 @@ brush.DynamicsChannel {
   min     : float;
   max     : float;
   flag    : int;
-  _inputs : array(brush.DynamicsCurve) | this._saveInputs(); 
+  _inputs : array(brush.DynamicsCurve) | this._saveInputs();
 }
 `;
 nstructjs.register(DynamicsChannel);
 
 export class BrushDynamics {
+  static STRUCT : string;
+
+  channels : Map<string, DynamicsChannel>;
+  _channels : DynamicsChannel[] | undefined;
+
   constructor() {
     this.channels = new Map();
     this._channels = undefined;
   }
 
-  get(name) {
+  /* NOTE: on a miss this builds the channel but neither stores nor returns
+     it, so every caller downstream gets undefined. */
+  get(name : string) {
     let ch = this.channels.get(name);
 
     if (ch) {
@@ -166,17 +208,18 @@ export class BrushDynamics {
     return util.list(this.channels.values());
   }
 
-  dataLink(block, getblock, getblock_adduser) {
+  dataLink(block : DataBlock, getblock : GetBlockFunc,
+           getblock_adduser : GetBlockUserFunc) {
 
   }
 
-  copyTo(b) {
+  copyTo(b : BrushDynamics) {
     for (let ch of this.channels.values()) {
       ch.copyTo(b.get(ch.name));
     }
   }
 
-  load(b) {
+  load(b : BrushDynamics) {
     b.copyTo(this);
     return this;
   }
@@ -185,7 +228,7 @@ export class BrushDynamics {
     return new BrushDynamics().load(this);
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     this.channels = new Map();
@@ -206,6 +249,15 @@ brush.BrushDynamics {
 nstructjs.register(BrushDynamics);
 
 export class BrushTool {
+  static STRUCT : string;
+
+  /* Instances, cloned from the class's brushDefine().inputs. */
+  inputs : BrushSlots;
+  _inputs : ToolProperty[] | undefined;
+  name : string;
+  flag : number;
+  dynamics : BrushDynamics;
+
   constructor() {
     this.inputs = buildSlots(this.constructor);
 
@@ -230,11 +282,11 @@ export class BrushTool {
     console.log("brush inputs", this.inputs);
   }
 
-  static noInherit(def) {
+  static noInherit(def : BrushSlots) {
     return new NoInheritFlag(def);
   }
 
-  static register(cls) {
+  static register(cls : BrushToolClass) {
     let def = cls.brushDefine();
 
     if (cls.brushDefine === BrushTool.brushDefine) {
@@ -253,7 +305,7 @@ export class BrushTool {
     BrushToolClasses.push(cls);
   }
 
-  static getBrushTool(name) {
+  static getBrushTool(name : string) {
     for (let cls of BrushToolClasses) {
       if (cls.brushDefine().typeName === name) {
         return cls;
@@ -274,15 +326,17 @@ export class BrushTool {
     }
   }
 
-  static defineAPI(api) {
+  static defineAPI(api : DataAPI) {
     let st = api.mapStruct(this, true);
     return st;
   }
 
-  copyTo(b) {
+  copyTo(b : BrushTool) {
     b.flag = this.flag;
     b.name = this.name;
 
+    /* NOTE: BrushDynamics.copyTo wants the other BrushDynamics, not the
+       BrushTool wrapping it. */
     this.dynamics.copyTo(b);
 
     for (let k in this.inputs) {
@@ -298,7 +352,7 @@ export class BrushTool {
     }
   }
 
-  load(b) {
+  load(b : BrushTool) {
     b.copyTo(this);
     return this;
   }
@@ -307,11 +361,15 @@ export class BrushTool {
     return new this.constructor().load(this);
   }
 
-  dataLink(block, getblock, getblock_adduser) {
+  dataLink(block : DataBlock, getblock : GetBlockFunc,
+           getblock_adduser : GetBlockUserFunc) {
     this.dynamics.dataLink(block, getblock, getblock_adduser);
   }
 
-  loadSTRUCT(reader) {
+  /* NOTE: reader() is called with no argument, and BrushTool has no base
+     class to carry super.loadSTRUCT -- both throw the moment a brush is
+     read back from a file. */
+  loadSTRUCT(reader : StructReader<this>) {
     reader();
     super.loadSTRUCT(reader);
 
@@ -341,7 +399,7 @@ BrushTool.STRUCT = `
 brush.BrushTool {
   flag       : int;
   dynamics   : brush.BrushDynamics;
-  _inputs     : array(abstract(ToolProperty)) | this._save_inputs; 
+  _inputs     : array(abstract(ToolProperty)) | this._save_inputs;
 }
 `;
 nstructjs.register(BrushTool);

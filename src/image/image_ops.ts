@@ -10,9 +10,11 @@ import {
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../core/toolops_api.js';
 import {RestrictFlags, Spline} from '../curve/spline.js';
 import {VDAnimFlags} from '../core/frameset.js';
+/* NOTE: TPropFlags is already imported on line 6. */
 import {TPropFlags} from '../core/toolprops.js';
 import '../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../curve/spline_draw.js';
+import type {FullContext} from '../core/context.js';
 
 //$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 import {platform, Vector2} from '../path.ux/scripts/pathux.js';
@@ -52,7 +54,7 @@ export class LoadImageOp extends ToolOp {
     this.inputs.name.setValue(name)
   }
 
-  modalStart(ctx) {
+  modalStart(ctx : FullContext) {
     super.modalStart(ctx);
     super.modalEnd(false);
 
@@ -94,6 +96,8 @@ export class LoadImageOp extends ToolOp {
         name = "unnamed";
       }
 
+      /* NOTE: this discards the basename computed just above and stores the
+         whole path again. */
       this.inputs.name.setValue("" + file.filename);
 
       platform.platform.readFile(file, "application/x-octet-stream").then(buf => {
@@ -105,8 +109,10 @@ export class LoadImageOp extends ToolOp {
     });
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     //XXX eek! inputs.dest_datapath could refer to a UI structure!
+    /* NOTE: `Context` is not imported in this module, so this throws
+       ReferenceError. */
     ctx = new Context();
 
     let name = this.inputs.name.data.trim();

@@ -7,6 +7,10 @@ import {SplineFlags, SplineTypes} from './spline_base.js';
 import {solver, constraint} from "./solver.js";
 import {ModalStates} from '../core/toolops_api.js';
 
+import type {AnyConstraint} from './solver.js';
+import type {Spline} from './spline.js';
+import type {SplineSegment, SplineVertex} from './spline_types.js';
+
 //math globals
 let FEPS = 1e-18;
 let PI = Math.PI;
@@ -30,30 +34,36 @@ window.KSCALE = KSCALE;
 export let KTOTKS = ORDER + 6;
 export let INT_STEPS = 4;
 
-export function set_int_steps(steps) {
+export function set_int_steps(steps : number) {
   INT_STEPS = steps;
 }
-export function get_int_steps(steps) {
+
+/* Ignores its argument; it exists to mirror set_int_steps(). */
+export function get_int_steps(steps? : number) {
   return INT_STEPS;
 }
 
 let _approx_cache_vs = cachering.fromConstructor(Vector3, 32);
 
-const POLYTHETA_BEZ = (s, k1, k2, k3,
-                       k4) => (-(((3*(s) - 4)*k3 - k4*(s))*(s)*(s) + ((s)*(s) - 2*(s) + 2)*((s) - 2)*k1 - (3*(s)*(s) - 8*(s) + 6)*k2*(s))*(s))*0.25;
-const POLYCURVATURE_BEZ = (s, k1, k2, k3,
-                           k4) => (-(((3*((s) - 1)*k3 - k4*(s))*(s) - 3*((s) - 1)*((s) - 1)*k2)*(s) + ((s) - 1)*((s) - 1)*((s) - 1)*k1));
-const POLYCURVATURE_BEZ_DV = (s, k1, k2, k3,
-                              k4) => (-3*(k1*(s)*(s) - 2*k1*(s) + k1 - 3*k2*(s)*(s) + 4*k2*(s) - k2 + 3*k3*(s)*(s) - 2*k3*(s) - k4*(s)*(s)));
-const POLYTHETA_SBEZ = (s, k1, k2, dv1_k1, dv1_k2) => {
+const POLYTHETA_BEZ = (s : number, k1 : number, k2 : number, k3 : number,
+                       k4 : number) => (-(((3*(s) - 4)*k3 - k4*(s))*(s)*(s) + ((s)*(s) - 2*(s) + 2)*((s) - 2)*k1 - (3*(s)*(s) - 8*(s) + 6)*k2*(s))*(s))*0.25;
+const POLYCURVATURE_BEZ = (s : number, k1 : number, k2 : number, k3 : number,
+                           k4 : number) => (-(((3*((s) - 1)*k3 - k4*(s))*(s) - 3*((s) - 1)*((s) - 1)*k2)*(s) + ((s) - 1)*((s) - 1)*((s) - 1)*k1));
+const POLYCURVATURE_BEZ_DV = (s : number, k1 : number, k2 : number, k3 : number,
+                              k4 : number) => (-3*(k1*(s)*(s) - 2*k1*(s) + k1 - 3*k2*(s)*(s) + 4*k2*(s) - k2 + 3*k3*(s)*(s) - 2*k3*(s) - k4*(s)*(s)));
+const POLYTHETA_SBEZ = (s : number, k1 : number, k2 : number,
+                        dv1_k1 : number, dv1_k2 : number) => {
   let s2 = s*s, s3 = s2*s;
   return (((((3*s - 4)*dv1_k2 - 6*(s - 2)*k2)*s + (3*s2 - 8*s + 6)*dv1_k1)*s + 6*(s3 - 2*s2 + 2)*k1)*s)/12;
 }
 
-const POLYCURVATURE_SBEZ = (s, k1, k2, dv1_k1, dv1_k2) => (((s - 1)*dv1_k1 + dv1_k2*s)*(s - 1) - (2*s - 3)*k2*s)*s + (2*s + 1)*(s - 1)*(s - 1)*k1
-const POLYCURVATURE_SBEZ_DV = (s, k1, k2, dv1_k1, dv1_k2) => (6*(k1 - k2)*(s - 1) + (3*s - 2)*dv1_k2)*s + (3*s - 1)*(s - 1)*dv1_k1;
+const POLYCURVATURE_SBEZ = (s : number, k1 : number, k2 : number,
+                            dv1_k1 : number, dv1_k2 : number) => (((s - 1)*dv1_k1 + dv1_k2*s)*(s - 1) - (2*s - 3)*k2*s)*s + (2*s + 1)*(s - 1)*(s - 1)*k1
+const POLYCURVATURE_SBEZ_DV = (s : number, k1 : number, k2 : number,
+                               dv1_k1 : number, dv1_k2 : number) => (6*(k1 - k2)*(s - 1) + (3*s - 2)*dv1_k2)*s + (3*s - 1)*(s - 1)*dv1_k1;
 
-let polytheta_spower = function polytheta_spower(s, ks, order) {
+let polytheta_spower = function polytheta_spower(s : number, ks : ArrayLike<number>,
+                                                 order : number) {
   let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
 
   switch (order) {
@@ -79,7 +89,8 @@ let polytheta_spower = function polytheta_spower(s, ks, order) {
   }
 }
 
-let polycurvature_spower = function polycurvature_spower(s, ks, order) {
+let polycurvature_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
+                                                         order : number) {
   let k1                     = ks[0],
       dv1_k1 = ks[1], dv2_k1 = ks[2],
       dv2_k2                 = ks[3], dv1_k2 = ks[4],
@@ -106,7 +117,8 @@ let polycurvature_spower = function polycurvature_spower(s, ks, order) {
   }
 }
 
-let polycurvature_dv_spower = function polycurvature_spower(s, ks, order) {
+let polycurvature_dv_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
+                                                            order : number) {
   let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
 
   switch (order) {
@@ -136,24 +148,24 @@ let polycurvature_dv_spower = function polycurvature_spower(s, ks, order) {
 /*
 let polycurvature_dv2_spower = function polycurvature_dv2_spower(s, ks, order) {
   let s2 = s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
-  
+
   switch (order) {
     case 2: {
       let k1 = ks[0], k2 = ks[1];
-      
+
       return 0;
       }
     case 4: {
       let k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
-      
+
       return 0;
       }
     case 6: {
-      let k1 = ks[0], 
-               dv1_k1 = ks[1], dv2_k1 = ks[2], 
+      let k1 = ks[0],
+               dv1_k1 = ks[1], dv2_k1 = ks[2],
                dv2_k2 = ks[3], dv1_k2 = ks[4],
           k2 = ks[5];
-          
+
       return 0;
     }
   }
@@ -182,7 +194,13 @@ let eval_curve_vs = cachering.fromConstructor(Vector2, 64);
 
 let _eval_start = new Vector2();
 
-export function approx(s1, ks, order, dis, steps) {
+/* Integrates the order-4 curve given by `ks` from 0 to s1 and returns the
+   offset from the start point, in a cachering vector.
+
+   NOTE: neither `order` nor `dis` is read -- the SBEZ basis below is order-4
+   only.  eval_curve() in spline_math.ts calls this with three arguments. */
+export function approx(s1 : number, ks : ArrayLike<number>, order? : number,
+                       dis? : number, steps? : number) {
   s1 *= 1.0 - 0.0000001;
 
   if (steps === undefined)
@@ -236,13 +254,30 @@ export let spiraltheta = polytheta_spower;
 export let spiralcurvature = polycurvature_spower;
 export let spiralcurvature_dv = polycurvature_dv_spower;
 
-const con_cache = {
+/* Dead: `used` is reset every build_solver() call and nothing ever fills
+   `list`.  Constraints are allocated fresh each time. */
+const con_cache : {list : AnyConstraint[], used : number} = {
   list: [],
   used: 0
 };
 
-export function build_solver(spline: Spline, order: int, goal_order: int, gk: number, do_basic: boolean,
-                             update_verts: set<SplineVertex>) {
+/* Payloads for the constraint evaluators below.  A constraint hands its payload
+   straight back to its own evaluator, so each one has its own shape. */
+type HardTanParams = [SplineSegment, Vector3, number];
+type TanParams = [SplineSegment, SplineSegment];
+/* The two handles are only supplied by the paired-handle constraints; the
+   curvature evaluators never read them. */
+type CurvParams = [SplineSegment, SplineSegment, SplineVertex?, SplineVertex?];
+type HandleCurvParams = [SplineSegment, SplineSegment, SplineVertex, SplineVertex];
+type CopyParams = [SplineSegment, SplineVertex];
+
+/* Builds the constraint set for one solve: tangent continuity at every shared
+   vertex, curvature continuity where it is not broken, and hard tangent goals
+   wherever a manual handle is in use.  `update_verts`, if given, collects every
+   vertex a constraint touched. */
+export function build_solver(spline : Spline, order : number, goal_order : number,
+                             gk : number, do_basic : boolean,
+                             update_verts? : set<SplineVertex>) {
   let slv = new solver();
   con_cache.used = 0;
 
@@ -279,7 +314,7 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     }
   }
 
-  function hard_tan_c(params) {
+  function hard_tan_c(params : HardTanParams) {
     let seg = params[0], tan = params[1], s = params[2];
 
     let dv = seg.derivative(s, order, undefined, true);
@@ -297,9 +332,9 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return abs(dv.vectorDistance(tan));
   }
 
-  function tan_c(params) {
+  function tan_c(params : TanParams) {
     let seg1 = params[0], seg2 = params[1];
-    let v, s1 = 0, s2 = 0;
+    let v : SplineVertex | undefined, s1 = 0, s2 = 0;
 
     if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2)
       v = seg1.v1;
@@ -323,11 +358,11 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     }
 
     /*
-    if (t1[1] === 0.0) 
+    if (t1[1] === 0.0)
       return t2[1];
     if (t2[1] === 0.0)
       return t1[1];
-    
+
     return abs(t1[0]/t1[1] - t2[0]/t2[1]);
     //return abs(atan2(t1[0], t1[1]) - atan2(t2[0], t2[1])); //abs(t1[0]/t1[1] - t2[0]/t2[1]);
     //*/
@@ -337,7 +372,8 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return acos(d);
   }
 
-  function handle_curv_c(params) {
+  /* Dead; the two constraints that used it are commented out below. */
+  function handle_curv_c(params : HandleCurvParams) {
     if (order < 4) return 0;
 
     //HARD CLAMP
@@ -369,7 +405,8 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return 0;
   }
 
-  function copy_c(params) {
+  /* Dead; nothing builds a copy_c constraint. */
+  function copy_c(params : CopyParams) {
     let v = params[1], seg = params[0];
 
     let s1 = v === seg.v1 ? 0 : order - 1;
@@ -380,7 +417,7 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return 0.0;
   }
 
-  function get_ratio(seg1, seg2) {
+  function get_ratio(seg1 : SplineSegment, seg2 : SplineSegment) {
     let ratio = seg1.ks[KSCALE]/seg2.ks[KSCALE];
 
     if (seg2.ks[KSCALE] === 0.0) {
@@ -398,10 +435,10 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return Math.pow(ratio, 2.0);
   }
 
-  function curv_c_spower(params) {
+  function curv_c_spower(params : CurvParams) {
     //HARD CLAMP
     let seg1 = params[0], seg2 = params[1];
-    let v, s1, s2;
+    let v : SplineVertex | undefined, s1, s2;
 
     // /*
     seg1.evaluate(0.5);
@@ -446,10 +483,10 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
     return ret*5.0;
   }
 
-  function curv_c_spower_basic(params) {
+  function curv_c_spower_basic(params : CurvParams) {
     //HARD CLAMP
     let seg1 = params[0], seg2 = params[1];
-    let v, s1 = 0, s2 = 0;
+    let v : SplineVertex | undefined, s1 = 0, s2 = 0;
 
     // /*
     seg1.evaluate(0.5);
@@ -560,7 +597,7 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
 
     /*
     let cw1 = 0.5, cw2=cw1;
-    
+
     let cc = new constraint("handle_curv_c", cw1, [ss1.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
     let cc = new constraint("handle_curv_c", cw2, [ss2.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
@@ -712,7 +749,8 @@ export function build_solver(spline: Spline, order: int, goal_order: int, gk: nu
   return slv;
 }
 
-function solve_intern(spline, order = ORDER, goal_order = ORDER, steps = 65, gk = 1.0, do_basic = false) {
+function solve_intern(spline : Spline, order = ORDER, goal_order = ORDER, steps = 65,
+                      gk = 1.0, do_basic = false) {
   let start_time = time_ms();
   window._SOLVING = true;
 
@@ -735,7 +773,9 @@ function solve_intern(spline, order = ORDER, goal_order = ORDER, steps = 65, gk 
     console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 
-export function solve_pre(spline) {
+/* Zeroes the curvatures of every segment whose two vertices are both flagged
+   for update, so the solve starts from a clean slate. */
+export function solve_pre(spline : Spline) {
   for (let i = 0; i < 3; i++) {
     spline.propagate_update_flags();
   }
@@ -770,14 +810,17 @@ export function solve_pre(spline) {
   }*/
 }
 
-export function do_solve(splineflags, spline, steps, gk) {
+/* The JS fallback for the wasm solver.  NOTE: none of `splineflags`, `steps` or
+   `gk` is read -- solve_intern() is called with hardcoded values below. */
+export function do_solve(splineflags : {[name : string] : number}, spline : Spline,
+                         steps : number, gk : number) {
   solve_pre(spline);
 
   //if (spline === new Context().frameset.pathspline)
   //  return;
   spline.resolve = 0;
   //solve_intern(spline, ORDER, undefined, 10, 1, 1);
-  solve_intern(spline, ORDER, undefined, 65, 1, 0);
+  solve_intern(spline, ORDER, undefined, 65, 1, false);
 
   for (let i = 0; i < spline.segments.length; i++) {
     let seg = spline.segments[i];

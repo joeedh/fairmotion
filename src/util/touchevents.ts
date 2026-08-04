@@ -1,11 +1,21 @@
 "use strict";
 
-class TouchManager {
-  pattern : set
-  idxmap : Object
-  deltas : Object;
+/* Dead -- entry_point.ts imports this file for side effects and there are none.
+   `touches` is indexed by identifier and each touch is treated as an [x, y]
+   pair, which is not what a real TouchList holds. */
+interface TouchLikeEvent {
+  touches : Record<string, [number, number]>;
+}
 
-  constructor(event) {
+class TouchManager {
+  pattern : set<string>
+  idxmap : Record<number, string>
+  /* Seeded with 0 per touch, then replaced with an [dx, dy] pair by update(). */
+  deltas : Record<string, number | number[]>;
+  tot : number;
+  event : TouchLikeEvent;
+
+  constructor(event : TouchLikeEvent) {
     this.pattern = new set(Object.keys(event.touches));
     this.idxmap = {};
     this.tot = event.touches.length;
@@ -21,7 +31,7 @@ class TouchManager {
     }
   }
   
-  update(event) {
+  update(event : TouchLikeEvent) {
     if (this.valid(event)) {
       for (var k in event.touches) {
         var t2 = event.touches[k];
@@ -36,15 +46,16 @@ class TouchManager {
     this.event = event;
   }
   
-  delta(i) {
+  delta(i : number) {
     return this.deltas[this.idxmap[i]];
   }
   
-  get(i) {
+  get(i : number) {
     return this.event.touches[this.idxmap[i]];
   }
   
-  valid(event=this.event) : Boolean {
+  /* Broken: `pattern` should be `this.pattern`. */
+  valid(event=this.event) : boolean {
     var keys = Object.keys(event.touches);
     if (keys.length != this.pattern.length) return false;
     

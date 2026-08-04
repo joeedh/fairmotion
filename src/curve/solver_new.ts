@@ -3,10 +3,16 @@
 import {KSCALE, KANGLE} from './spline_math.js';
 import {SplineTypes, SplineFlags} from './spline_base.js'
 
+import type {Spline} from './spline.js';
+import type {SplineSegment} from './spline_types.js';
+
 let acos                                                                = Math.acos, asin                                              = Math.asin, cos = Math.cos, sin = Math.sin,
     PI = Math.PI, pow = Math.pow, sqrt = Math.sqrt, log = Math.log, abs = Math.abs;
 
-const TAN_C = (seg1, seg2, s1, s2, order, doflip) => {
+/* Angle between the two segments' tangents at s1 and s2. `doflip` is -1 when
+   the second segment runs the other way. */
+const TAN_C = (seg1 : SplineSegment, seg2 : SplineSegment, s1 : number, s2 : number,
+               order : number, doflip : number) => {
   let ta = seg1.derivative(s1, order), tb = seg2.derivative(s2, order);
   if (doflip < 0.0)
     tb.negate();
@@ -17,15 +23,25 @@ const TAN_C = (seg1, seg2, s1, s2, order, doflip) => {
   return acos(_d);
 };
 
-const HARD_TAN_C = (seg1, s1, goal, order) => {
+/* Angle between seg1's tangent at s1 and a fixed direction. */
+const HARD_TAN_C = (seg1 : SplineSegment, s1 : number, goal : Vector3,
+                    order : number) => {
   let ta = seg1.derivative(s1, order).normalize();
   let _d = Math.min(Math.max(ta.dot(goal), -1.0), 1.0);
   return acos(_d);
 };
 
 let _solver_static_tan = new Vector3();
-export function solve(spline: Spline, order: int, steps: int, gk: number, do_inc: boolean,
-                      edge_segs: set<SplineSegment>) {
+/* Dead: spline.ts imports this and never calls it. The wasm solver, and
+   spline_math_hermite's JS fallback, are the live paths.
+
+   NOTE: the body indexes `edge_segs` and reads `.length`, which only works for
+   an array -- a `set` has a length but no numeric keys, so both reset loops are
+   silent no-ops as declared. */
+export function solve(spline: Spline, order: number, steps: number, gk: number,
+                      do_inc: boolean, edge_segs: set<SplineSegment>) {
+  /* Flat records of PSLEN entries: vertex, seg1, seg2 (or undefined), s1, s2,
+     flip, ratio. Left to inference so the union stays honest. */
   let pairs = [];
 
   let CBREAK = SplineFlags.BREAK_CURVATURES;
@@ -130,16 +146,17 @@ export function solve(spline: Spline, order: int, steps: int, gk: number, do_inc
     pairs.push(ratio);
   }
 
-  let glist = [];
+  /* One gradient row per record, two segments' worth of ks each. */
+  let glist : number[][] = [];
   for (let i = 0; i < pairs.length/PSLEN; i++) {
     glist.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
 
-  let klist1 = [];
+  let klist1 : number[][] = [];
   for (let i = 0; i < pairs.length/PSLEN; i++) {
     klist1.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
-  let klist2 = [];
+  let klist2 : number[][] = [];
   for (let i = 0; i < pairs.length/PSLEN; i++) {
     klist2.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }

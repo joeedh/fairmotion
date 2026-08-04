@@ -3,7 +3,7 @@
 import {STRUCT} from './struct.js';
 import {DataBlock, DataTypes} from './lib_api.js';
 import {Spline, RestrictFlags} from '../curve/spline.js';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../curve/spline_types.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment, SplineVertex} from '../curve/spline_types.js';
 import {
   TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
   AnimInterpModes, AnimKeyFlags
@@ -17,14 +17,19 @@ let restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
 
 let vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 
-import {AnimChannel, AnimKey} from './animdata.js';
 import {PropTypes} from './toolprops.js';
 
 export class VertexAnimIter {
-  ret: Object
+  ret: {done: boolean; value: SplineVertex | undefined}
   stop: boolean;
 
-  constructor(vd) {
+  /* The path being walked, and the current vertex/segment along it. All three
+     stay unset until init(), which cachering-allocated iterators get later. */
+  vd?: VertexAnimData;
+  v?: SplineVertex;
+  s?: SplineSegment;
+
+  constructor(vd?: VertexAnimData) {
     this.ret = {done: false, value: undefined};
     this.stop = false;
 
@@ -32,7 +37,7 @@ export class VertexAnimIter {
       VertexAnimIter.init(this, vd);
   }
 
-  init(vd) {
+  init(vd: VertexAnimData) {
     this.vd = vd;
     this.v = vd.startv;
     this.stop = false;
@@ -48,7 +53,7 @@ export class VertexAnimIter {
     return this;
   }
 
-  [Symbol.iterator](self) {
+  [Symbol.iterator](self?: VertexAnimIter) {
     return this;
   }
 
@@ -91,10 +96,14 @@ export class VertexAnimIter {
 }
 
 export class SegmentAnimIter {
-  ret: Object
+  ret: {done: boolean; value: SplineSegment | undefined}
   stop: boolean;
 
-  constructor(vd) {
+  vd?: VertexAnimData;
+  v?: SplineVertex;
+  s?: SplineSegment;
+
+  constructor(vd?: VertexAnimData) {
     this.ret = {done: false, value: undefined};
     this.stop = false;
 
@@ -103,7 +112,7 @@ export class SegmentAnimIter {
         SegmentAnimIter.init(this, vd);
   }
 
-  init(vd) {
+  init(vd: VertexAnimData) {
     this.vd = vd;
     this.v = vd.startv;
     this.stop = false;
@@ -119,7 +128,7 @@ export class SegmentAnimIter {
     return this;
   }
 
-  [Symbol.iterator](self) {
+  [Symbol.iterator](self?: SegmentAnimIter) {
     return this;
   }
 
@@ -157,13 +166,27 @@ export let VDAnimFlags = {
 let dvcache = cachering.fromConstructor(Vector2, 256);
 
 export class VertexAnimData {
+  static STRUCT: string;
+
   animflag: number
   flag: number
   visible: boolean
-  path_times: Object
+  /* Maps pathspline vertex eid -> the time that vertex sits at. */
+  path_times: {[eid: number]: number}
   cur_time: number;
 
-  constructor(eid, pathspline) {
+  /* eid of the *scene* spline vertex this path animates. */
+  eid: number;
+  dead: boolean;
+  vitercache: cachering;
+  sitercache: cachering;
+  spline: Spline;
+  startv_eid: number;
+  layerid: number;
+  /* Layer that was active before _set_layer() swapped ours in. */
+  _start_layer_id?: number;
+
+  constructor(eid: number, pathspline?: Spline) {
     this.eid = eid;
 
     this.dead = false;
@@ -234,12 +257,13 @@ export class VertexAnimData {
     }
     //*/
 
-  get startv() {
+  get startv(): SplineVertex | undefined {
     if (this.startv_eid === -1) return undefined;
     return this.spline.eidmap[this.startv_eid];
   }
 
-  set startv(v) {
+  /* Accepts an eid directly, since loadSTRUCT and the tools both hand one over. */
+  set startv(v: SplineVertex | number | undefined) {
     if (typeof v === "number") {
       this.startv_eid = v;
       return;
@@ -279,9 +303,9 @@ export class VertexAnimData {
     this._start_layer_id = undefined;
   }
 
-  remove(v) {
+  remove(v: SplineVertex) {
     if (v === this.startv) {
-      let startv = undefined;
+      let startv: SplineVertex | undefined = undefined;
 
       for (let v2 of this.verts) {
         if (v2 !== v) {
@@ -327,7 +351,7 @@ export class VertexAnimData {
     return this.sitercache.next().init(this);
   }
 
-  find_seg(time) {
+  find_seg(time: number): SplineSegment | undefined {
     let v = this.startv;
     //console.log("find_seg", v, time);
 
@@ -357,14 +381,14 @@ export class VertexAnimData {
     return undefined;
   }
 
-  _get_animdata(v) {
+  _get_animdata(v: SplineVertex): TimeDataLayer {
     let ret = v.cdata.get_layer(TimeDataLayer);
 
     ret.owning_veid = this.eid;
     return ret;
   }
 
-  update(co, time) {
+  update(co: Vector2, time: number) {
     this._set_layer();
     let update = false;
 
@@ -444,7 +468,7 @@ export class VertexAnimData {
     return get_vtime(v);
   }
 
-  draw(g, matrix, alpha, time) {
+  draw(g: CanvasRenderingContext2D, matrix: Matrix4, alpha: number, time: number) {
     if (!(this.visible))
       return;
 
@@ -456,7 +480,7 @@ export class VertexAnimData {
     g.strokeStyle = "rgba(100,100,100," + alpha + ")";
 
     let dt = 1.0;
-    let lastco = undefined;
+    let lastco: Vector2 | undefined = undefined;
     let dv = new Vector4();
 
     for (let t = start; t < end; t += dt) {
@@ -499,7 +523,7 @@ export class VertexAnimData {
     }
   }
 
-  derivative(time) {
+  derivative(time: number) {
     let df = 0.001;
     let a = this.evaluate(time);
     let b = this.evaluate(time + df);
@@ -508,7 +532,7 @@ export class VertexAnimData {
     return dvcache.next().load(b);
   }
 
-  evaluate(time) {
+  evaluate(time: number) {
     if (this.dead) {
       console.error("dead vertex anim key");
       return;
@@ -697,7 +721,7 @@ export class VertexAnimData {
     return co;
   }
 
-  get endv() {
+  get endv(): SplineVertex | undefined {
     let v = this.startv;
 
     if (v === undefined) return undefined;
@@ -735,12 +759,13 @@ export class VertexAnimData {
 
   regen_topology() {
     let spline = this.spline;
-    let verts = [];
-    let segs = new set();
-    let visit = new set();
+    let verts: SplineVertex[] = [];
+    let segs = new set<SplineSegment>();
+    let visit = new set<SplineVertex>();
 
-    let handles = [];
-    let lastv = undefined;
+    /* Two entries per vertex, in walk order: the handle on each side of it. */
+    let handles: Array<SplineVertex | undefined> = [];
+    let lastv: SplineVertex | undefined = undefined;
     let hi = 0;
 
     //get flat list of verts, along with handles
@@ -781,7 +806,7 @@ export class VertexAnimData {
     }
 
     //sort by time
-    verts.sort(function (a, b) {
+    verts.sort(function (a: SplineVertex, b: SplineVertex) {
       return get_vtime(a) - get_vtime(b);
     });
 
@@ -829,7 +854,7 @@ export class VertexAnimData {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     //this.timechannel_verts = new set(this.timechannel_verts);
   }

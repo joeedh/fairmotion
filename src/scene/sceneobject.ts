@@ -1,5 +1,8 @@
 import {STRUCT} from '../core/struct.js';
 import {DataTypes, DataBlock} from "../core/lib_api.js";
+import type {GetBlockFunc, GetBlockUserFunc} from "../core/lib_api.js";
+import type {SplineFrameSet} from "../core/frameset.js";
+import type {Scene} from './scene.js';
 
 export let UpdateFlags = {
   REDRAW    : 1,
@@ -12,13 +15,22 @@ export let ObjectFlags = {
 };
 
 export class SceneObject extends DataBlock {
+  static STRUCT : string;
+
   matrix : Matrix4
   loc : Vector2
   scale : Vector2
   rot : number
   flag : number;
 
-  constructor(data : DataBlock) {
+  /* Scene-local id from Scene.object_idgen, distinct from lib_id. */
+  id : number;
+  /* Always a frameset in practice; see BaseContextOverlay.frameset. */
+  data : SplineFrameSet;
+  /* [min, max], never filled in -- recalcAABB() throws. */
+  aabb : [Vector2, Vector2];
+
+  constructor(data : SplineFrameSet) {
     super(DataTypes.OBJECT);
 
     this.id = -1;
@@ -55,17 +67,20 @@ export class SceneObject extends DataBlock {
     return this.matrix;
   }
 
-  //uniforms are webgl-style uniforms
-  //even if we're not necassarily drawn with webgl
-  draw(scene, drawer, uniforms) {
+  /* NOTE: dead -- the viewport draws framesets directly, never through the
+     SceneObject.  uniforms are webgl-style uniforms even if we're not
+     necassarily drawn with webgl. */
+  draw(scene : Scene, drawer, uniforms) {
 
   }
 
-  data_link(block : Scene, getblock : Function, getblock_us : Function) {
+  /* NOTE: getblock_us really wants (dataref, block, fieldname); dropping the
+     last two leaves it building its rem_func from a pair of undefineds. */
+  data_link(block : DataBlock, getblock : GetBlockFunc, getblock_us : GetBlockUserFunc) {
     this.data = getblock_us(this.data);
   }
 
-  update(flag=UpdateFlags.REDRAW) {
+  update(flag = UpdateFlags.REDRAW) {
 
   }
 }

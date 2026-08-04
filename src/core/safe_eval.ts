@@ -3,14 +3,14 @@
 var debug_parser = 0;
 var debug_exec = 0;
 
-function parsedebug() {
+function parsedebug(...args) {
   if (debug_parser)
-    console.log.apply(console, arguments);
+    console.log.apply(console, args);
 }
 
-function execdebug() {
+function execdebug(...args) {
   if (debug_exec)
-    console.log.apply(console, arguments);
+    console.log.apply(console, args);
 }
 
 /*
@@ -51,10 +51,19 @@ var PUTLParseError = parseutil.PUTLParseError;
 var lexer = parseutil.lexer;
 var parser = parseutil.parser;
 
+/* What the parser passes around: a Node for anything compound, a bare string for
+   an identifier, a number for a numeric literal, or a boxed string literal. */
+type ExprNode = Node | string | number | {type: string; value: string};
+
 /*export*/class Node extends Array {
-  constructor(type, prec, a, b) {
+  type: string;
+  prec: number;
+  /* Set by the parent Node's constructor, and by parentify() on esprima ASTs. */
+  parent?: Node;
+
+  constructor(type: string, prec: number, a?: ExprNode, b?: ExprNode) {
     super();
-    
+
     this.type = type;
     this.prec = prec;
     this.length = b !== undefined ? 2 : (a !== undefined ? 1 : 0);
@@ -75,11 +84,11 @@ var parser = parseutil.parser;
   }
   
   toJSON() {
-    var ret = {
+    var ret: {type: string; length: number; [i: number]: ExprNode} = {
       type   : this.type,
       length : this.length
     };
-    
+
     for (var i=0; i<this.length; i++) {
       ret[i] = this[i];
     }
@@ -88,7 +97,7 @@ var parser = parseutil.parser;
   }
 }
 
-export function test(path) {
+export function test(path?: string) {
   if (path === undefined)
     //path = "(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden";
     path = "ContextStruct.pathmap.theme.pathmap.ui.pathmap.colors.getter(g_theme.ui.flat_colors[0]).pathmap.type";
@@ -166,7 +175,7 @@ var tokens = [
   })
 ]
 
-var prec_map = {
+var prec_map: {[op: string]: number} = {
   ">>" : 4,
   ">>>": 4,
   "<<" : 4,
@@ -226,7 +235,7 @@ var bin_ops = new set([
   "IN"
 ]);
 
-function get_prec(p) {
+function get_prec(p: parseutil.parser) {
   var t = p.peeknext();
   
   if (t === undefined)
@@ -243,7 +252,7 @@ function get_prec(p) {
   return 0;
 }
 
-function p_prefix(p, token) {
+function p_prefix(p: parseutil.parser, token: parseutil.token<string | number>): ExprNode {
   if (token.type === "ID") {
     return token.value;
   } else if (token.type === "NUMLIT") {
@@ -265,7 +274,7 @@ function p_prefix(p, token) {
   }
 }
 
-function p_expr(p, prec) {
+function p_expr(p: parseutil.parser, prec: number): ExprNode {
   var t = p.next();
   
   if (t === undefined) {
@@ -356,7 +365,7 @@ function p_expr(p, prec) {
   return a;
 }
 
-function p_root(p) {
+function p_root(p: parseutil.parser) {
   var ret = p_expr(p, 0);
   
   if (p.peeknext() !== undefined && p.peeknext().type === "SEMI") {
@@ -374,14 +383,16 @@ function p_root(p) {
 /*export*/var jsparser = new parser(jslexer);
 jsparser.start = p_root;
 
-export function compile2(code) {
+export function compile2(code: string) {
   return jsparser.parse(code);
 }
 
+/* Walks an esprima AST and back-links every node to its parent. Nodes are plain
+   objects of many shapes, so `node` stays unannotated. */
 export function parentify(node) {
   var idgen = 0;
-  var set = {};
-  
+  var set: {[inst_id: number]: number} = {};
+
   function visit(node) {
     if (node == null) {
       return;
@@ -419,10 +430,12 @@ export function parentify(node) {
 
 /* esprima is a UMD bundle loaded as a plain script; it sets window.esprima.
    The old module emulation exposed it as the global `_esprima`. */
-export function compile(code) {
+export function compile(code: string) {
   return parentify(window.esprima.parse(code).body);
 }
 
+/* `ast` is whatever compile() handed back — an array of esprima statement nodes.
+   `scope1` is the caller's variable bag; its values are arbitrary. */
 export function exec(ast, scope1) {
   let scope = scopes.next();
   scope.scope = scope1;
@@ -752,6 +765,8 @@ var scopes = new cachering(function() {
 //var NODE_LOGNOT = 0, NODE_NEGATE=1, NODE_CONDITIONAL=2,
 //    NODE_CALL   = 2, NODE_BINOP =3;
 
+/* Dead: nothing calls exec2/compile2 any more; the live path is compile()+exec().
+   Kept as-is, it walks the Node trees p_root() builds rather than esprima's. */
 export function exec2(ast, scope1) {
   var scope = scopes.next();
   scope.scope = scope1;
@@ -964,7 +979,7 @@ export function exec2(ast, scope1) {
   return visit(ast, scope, undefined);
 }
 
-export function safe_eval(code, scope) {
+export function safe_eval(code: string, scope?: object) {
   scope = scope === undefined ? {} : scope;
   
   var ast = compile(code);

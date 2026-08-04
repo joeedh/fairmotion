@@ -3,7 +3,7 @@
 
 importScripts("node_modules/canvaskit-wasm/bin/canvaskit.js");
 CanvasKitInit({
-  locateFile: (file) => 'node_modules/canvaskit-wasm/bin/' + file,
+  locateFile: (file : string) => 'node_modules/canvaskit-wasm/bin/' + file,
 }).ready().then((CanvasKit) => {
   console.log("%c CanvasKit initialized", "color: blue");
   self.CanvasKit = CanvasKit;
@@ -18,7 +18,8 @@ CanvasKitInit({
 let Debug = false;
 
 if (Array.prototype.remove === undefined) {
-  Array.prototype.remove = function (item, throw_error = true) {
+  Array.prototype.remove = function <T>(this : T[], item : T,
+                                        throw_error = true) {
     let idx = this.indexOf(item);
 
     if (idx < 0) {
@@ -90,7 +91,23 @@ let MSG_NEW_JOB       = 0,
     MSG_CANCEL_JOB    = 14,
     MSG_WORKER_READY  = 15;
 
-let state = {
+/* Everything the worker carries between messages.  msg_data accumulates the
+   job described by the current NEW_JOB / SET_COMMANDS / RUN sequence. */
+type WorkerState = {
+  canvas : OffscreenCanvas | undefined,
+  queue : Job[],
+  job_idmap : {[msgid : number] : Job},
+  /* Declared with the rest of the bookkeeping but never read or written. */
+  waitqueue : {[msgid : number] : Job},
+  datablocks : Transferable[],
+  running : boolean,
+  msg_state : undefined,
+  msg_id : number | undefined,
+  msg_cmd : number | undefined,
+  msg_data? : Job
+};
+
+let state : WorkerState = {
   canvas    : undefined,
   queue     : [],
   job_idmap : {},
@@ -109,7 +126,8 @@ function init() {
   //state.g = state.canvas.getContext("2d");
 }
 
-function doDrawList(commands, datablocks, id) {
+function doDrawList(commands : Float64Array, datablocks : Transferable[],
+                    id : number) {
   state.running = true;
 
   let _i = 0;
@@ -180,17 +198,17 @@ function doDrawList(commands, datablocks, id) {
       let i = _i * 4;
       len = u8buffer[i++];
       let style = "";
-      
+
       for (let j = 0; j < len; j++) {
         style += String.fromCharCode(u8buffer[i + j]);
       }
-      
+
       //pad to 4-byte boundary
       let off = (len + 1) & 3;
       if (off) {
         _i += 4 - off;
       }
-      
+
       if (cmd === LINESTYLE) {
         g.strokeStyle = style;
       } else {
@@ -354,7 +372,8 @@ function doDrawList(commands, datablocks, id) {
 }
 
 //commands should be a float32 array
-function olddoDrawList(commands, datablocks, id) {
+function olddoDrawList(commands : Float64Array, datablocks : Transferable[],
+                       id : number) {
   state.running = true;
 
   let _i = 0;
@@ -436,17 +455,17 @@ function olddoDrawList(commands, datablocks, id) {
       let i = _i * 4;
       len = u8buffer[i++];
       let style = "";
-      
+
       for (let j = 0; j < len; j++) {
         style += String.fromCharCode(u8buffer[i + j]);
       }
-      
+
       //pad to 4-byte boundary
       let off = (len + 1) & 3;
       if (off) {
         _i += 4 - off;
       }
-      
+
       if (cmd === LINESTYLE) {
         g.strokeStyle = style;
       } else {
@@ -553,7 +572,7 @@ function olddoDrawList(commands, datablocks, id) {
       case SETBLUR:
         /*
         let blur2 = read();
-        
+
         //*
         if (blur2 == 0 && blur != 0) {
           g.shadowOffsetX = g.shadowOffsetY = g.shadowBlur = 0.0;
@@ -561,29 +580,29 @@ function olddoDrawList(commands, datablocks, id) {
           blur = 0;
         } else if (blur2 > 0) {
           let scale = transform[0];
-          
+
           blur = blur2*scale;
           //console.log(blur2, scale);
-          
+
           blur_doff = (~~(width-blur-1)); //300; //Math.max(width, height)-20;
           blur_doff = Math.ceil(blur_doff/scale);
-          
+
           if (scale > 1.0) {
             blur_doff *= 4.0;
           } else {
             blur_doff = (~~(width-blur-2))/scale;
           }
-          
+
           //if (Debug) console.log(width, blur_doff);
           g.translate(blur_doff, 0);
-          
+
           g.shadowOffsetX = -blur_doff*scale;
           g.shadowOffsetY = 0;
-          
+
           let clr = fillcolor;
-          
+
           if (Debug) console.log(id, "set blur", blur, clr, strokecolor);
-          
+
           g.shadowColor = "rgba(" + clr[0] + "," + clr[1] + "," + clr[2] + "," + clr[3] + ")";
           g.shadowBlur = blur;
         }
@@ -614,7 +633,7 @@ function olddoDrawList(commands, datablocks, id) {
 
 let MAGIC = 123452;
 
-function senderror(msg) {
+function senderror(msg : string) {
   console.warn("working thread:", msg);
 }
 
@@ -634,14 +653,18 @@ function handleQueue() {
 }
 
 class Job {
-  constructor(id) {
+  id : number;
+  commands : Float64Array | undefined;
+  datablocks : Transferable[];
+
+  constructor(id : number) {
     this.id = id;
     this.commands = undefined;
     this.datablocks = [];
   }
 }
 
-onmessage = function (e) {
+onmessage = function (e : MessageEvent) {
   let m;
 
   //console.log("event message in worker", e);

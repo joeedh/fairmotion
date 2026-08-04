@@ -1,7 +1,7 @@
 "not_a_module";
 
 if (Array.prototype.pop_i === undefined) {
-  Array.prototype.pop_i = function pop_i(idx, throw_on_error) {
+  Array.prototype.pop_i = function pop_i(this: unknown[], idx: number, throw_on_error?: boolean) {
     if (idx < 0 || idx >= this.length || isNaN(idx)) {
       if (throw_on_error) {
         throw new Error("" + idx + " is out of bounds");
@@ -25,7 +25,7 @@ if (Array.prototype.pop_i === undefined) {
   }
 }
 
-function startup_report(message) {
+function startup_report(message: string) {
   //args = new Array(arguments.length+2);
   
   console.log("%c " + message + "", "color:green");
@@ -41,7 +41,7 @@ function startup_report(message) {
   */
 }
 
-function startup_warning(message) {
+function startup_warning(message: string) {
   //args = new Array(arguments.length+2);
   
   console.trace("%c " + message + "\n\n", "color:red");
@@ -58,7 +58,7 @@ function startup_warning(message) {
   */
 }
 
-function warn(message) {
+function warn(message: string) {
   //args = new Array(arguments.length+2);
   
   var args = ["%c " + message + "\n", "color:orange"]
@@ -69,7 +69,7 @@ function warn(message) {
   console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
 }
 
-function warntrace(message) {
+function warntrace(message: string) {
   //args = new Array(arguments.length+2);
   
   var args = ["%c " + message + "\n", "color:orange"]
@@ -87,7 +87,7 @@ if (Symbol.keystr === undefined) {
 /*check for various api calls that aren't implemented by all browsers*/
 
 if (Array.prototype.remove === undefined) {
-  Array.prototype.remove = function(item, hide_error) {
+  Array.prototype.remove = function(this: unknown[], item: unknown, hide_error?: boolean) {
     var i = this.indexOf(item);
     
     if (i < 0) {
@@ -107,8 +107,10 @@ if (Array.prototype.remove === undefined) {
   }
 }
 
+/* These three test a *static* String member that has never existed, so they
+   always run and always shadow the native String.prototype methods. */
 if (String.startsWith == undefined) {
-    String.prototype.startsWith = function (str) {
+    String.prototype.startsWith = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
 
@@ -122,7 +124,7 @@ if (String.startsWith == undefined) {
 }
 
 if (String.endsWith == undefined) {
-    String.prototype.endsWith = function (str) {
+    String.prototype.endsWith = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
 
@@ -137,7 +139,7 @@ if (String.endsWith == undefined) {
 
 //this needs to be converted to use regexpr's
 if (String.contains == undefined) {
-    String.prototype.contains = function (str) {
+    String.prototype.contains = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
 
@@ -158,8 +160,8 @@ if (String.contains == undefined) {
     }
 }
 
-window._my_object_keys = function(obj) {
-  var arr = [];
+window._my_object_keys = function(obj: object) {
+  var arr: string[] = [];
   for (var k in obj) {
     arr.push(k);
   }
@@ -168,7 +170,7 @@ window._my_object_keys = function(obj) {
 }
 
 //more consistent is_str function
-function is_str(str) {
+function is_str(str: unknown) : str is string {
     return typeof str == "string" || typeof str == "String";
 }
 
@@ -213,8 +215,8 @@ function get_type_name(obj) {
     return "(unknown)";
 }
 
-function obj_get_keys(obj) {
-    var ret = [];
+function obj_get_keys(obj: object) {
+    var ret: string[] = [];
 
     for (var k in obj) {
         if (obj.hasOwnProperty(k))
@@ -232,14 +234,14 @@ window.FrameContinue = {"FC": 1}
 window.FrameBreak = {"FB": 1}
 
 /*not sure if I need these...*/
-function getattr(obj, attr) {
-    return obj[attr];
+function getattr(obj: object, attr: string) {
+    return Reflect.get(obj, attr);
 }
-function setattr(obj, attr, val) {
-    obj[attr] = val;
+function setattr(obj: object, attr: string, val: unknown) {
+    Reflect.set(obj, attr, val);
 }
-function delattr(obj, attr) {
-    delete obj[attr];
+function delattr(obj: object, attr: string) {
+    Reflect.deleteProperty(obj, attr);
 }
 
 /*the grand __get_iter function.

@@ -5,6 +5,11 @@ import {STRUCT} from './struct.js';
 
 import {CustomDataLayer, SplineTypes, SplineFlags} from '../curve/spline_base.js';
 import {DataPathWrapperNode} from './eventdag.js';
+import type {BaseContext, FullContext} from './context.js';
+import type {Spline} from '../curve/spline.js';
+import type {SplineVertex} from '../curve/spline_types.js';
+import type {ToolProperty} from './toolprops.js';
+import type {DataBlock} from './lib_api.js';
 
 /*id is an integer id,
 * note that it may refer to both an AnimChannel and one
@@ -35,7 +40,11 @@ export let AnimInterpModes = {
 }
 
 export class TimeDataLayer extends CustomDataLayer {
+  static STRUCT: string;
+
   time: number;
+  /* eid of the pathspline vertex this layer's time belongs to. */
+  owning_veid: number;
 
   constructor() {
     super();
@@ -44,7 +53,7 @@ export class TimeDataLayer extends CustomDataLayer {
     this.time = 1.0;
   }
 
-  interp(srcs, ws) {
+  interp(srcs: TimeDataLayer[], ws: number[]) {
     this.time = 0.0;
 
     if (srcs.length > 0) {
@@ -56,7 +65,7 @@ export class TimeDataLayer extends CustomDataLayer {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
   }
@@ -75,7 +84,7 @@ TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + `
 `;
 
 
-export function get_vtime(v) {
+export function get_vtime(v: SplineVertex) {
   let ret = v.cdata.get_layer(TimeDataLayer);
 
   if (ret !== undefined)
@@ -83,7 +92,7 @@ export function get_vtime(v) {
   return -1;
 }
 
-export function set_vtime(spline, v, time) {
+export function set_vtime(spline: Spline, v: SplineVertex, time: number) {
   let ret = v.cdata.get_layer(TimeDataLayer);
 
   if (ret !== undefined) {
@@ -101,9 +110,22 @@ import {DataTypes, DataNames} from './lib_api.js';
    is not appropriate.
  */
 export class AnimKey extends DataPathWrapperNode {
+  static STRUCT: string;
+
   flag: number
   time: number
   handles: Array<number>;
+
+  /* Handed out by the owning datablock's lib_anim_idgen, so it is unique
+     across every channel and key on that block. */
+  id: number;
+  mode: number;
+  /* The keyed value, boxed in whatever ToolProperty the channel's proptype
+     asks for. Unset until the channel first writes one. */
+  data?: ToolProperty;
+  //used by spline code only
+  owner_eid: number;
+  channel?: AnimChannel;
 
   constructor() {
     super();
@@ -122,7 +144,7 @@ export class AnimKey extends DataPathWrapperNode {
     this.channel = undefined; //owning channel
   }
 
-  dag_get_datapath(ctx) {
+  dag_get_datapath(ctx?: FullContext): string {
     let owner = this.channel.owner;
     let path;
 
@@ -141,12 +163,12 @@ export class AnimKey extends DataPathWrapperNode {
     return path;
   }
 
-  set_time(time) {
+  set_time(time: number) {
     this.time = time;
     this.channel.resort = true;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<AnimKey>) {
     let ret = new AnimKey();
     reader(ret);
     return ret;
@@ -180,9 +202,27 @@ AnimKey.STRUCT = `
 //import {PropTypes} from 'toolprops';
 
 export class AnimChannel {
+  static STRUCT: string;
+
   resort: boolean;
 
-  constructor(proptype, name, path) {
+  /* Sorted by time once _do_resort() has run. */
+  keys: AnimKey[];
+  /* A PropTypes tag; get_propcls() turns it into the class new keys box in. */
+  proptype: number;
+  name: string;
+  /* Data api path the channel drives, relative to its owning datablock. */
+  path: string;
+  id: number;
+  owner?: DataBlock;
+  propcls?: typeof IntProperty | typeof FloatProperty;
+
+  //these two members are references to the owning datablock's
+  //lib_anim_idgen and lib_anim_idmap members
+  idgen?: EIDGen;
+  idmap?: {[id: number]: AnimKey};
+
+  constructor(proptype: number, name?: string, path?: string) {
     this.keys = [];
     this.resort = false;
     this.proptype = proptype;
@@ -198,7 +238,7 @@ export class AnimChannel {
     this.idmap = undefined; //is set by client code
   }
 
-  add(key) {
+  add(key: AnimKey) {
     if (key.id === -1) {
       key.id = this.idgen.gen_id();
     }
@@ -209,7 +249,7 @@ export class AnimChannel {
     return this;
   }
 
-  remove(key) {
+  remove(key: AnimKey) {
     delete this.idmap[key.id];
     this.keys.remove(key);
     this.resort = true;
@@ -218,7 +258,7 @@ export class AnimChannel {
   }
 
   _do_resort() {
-    this.keys.sort(function (a, b) {
+    this.keys.sort(function (a: AnimKey, b: AnimKey) {
       return a.time - b.time;
     });
 
@@ -240,7 +280,7 @@ export class AnimChannel {
     return this.propcls;
   }
 
-  update(time, val) {
+  update(time: number, val: number) {
     if (this.resort) {
       this._do_resort();
     }
@@ -270,7 +310,7 @@ export class AnimChannel {
     return key;
   }
 
-  evaluate(time) {
+  evaluate(time: number) {
     if (this.resort) {
       this._do_resort();
     }
@@ -307,7 +347,7 @@ export class AnimChannel {
     return ret;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<AnimChannel>) {
     let ret = new AnimChannel();
     reader(ret);
 

@@ -6,16 +6,25 @@ import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
 import {Vector2, Vector3, Matrix4, Vector4, Quat} from '../../path.ux/scripts/pathux.js';
 
+import type {FullContext} from '../../core/context.js';
+import type {drawline} from './view2d.js';
+
 let exec_pan_v1 = new Vector3(), exec_pan_v2 = new Vector3();
 
+/* NOTE: StringProperty is imported twice, at the top of the file and again
+   above BasicFileDataOp. */
 export class View2dOp extends ToolOp {
+  /* NOTE: filled by nothing -- makeTempLine pushes onto `drawlines` (the base
+     class list) via new_drawline, and resetTempGeom clears that same list. */
+  tempLines : drawline[];
+
   constructor() {
     super();
 
     this.tempLines = [];
   }
 
-  makeTempLine(v1, v2, color) {
+  makeTempLine(v1 : Vector2, v2 : Vector2, color : number[]) {
     return this.new_drawline(v1, v2, color);
   }
 
@@ -31,8 +40,10 @@ export class PanOp extends ToolOp {
   mpos: Vector2;
   start_mpos: Vector2;
   first: boolean;
+  /* view2d.cameramat as of the drag start; every move re-derives from it. */
+  start_cameramat: Matrix4;
 
-  constructor(start_mpos) {
+  constructor(start_mpos? : Vector2 | number[]) {
     super();
 
     this.is_modal = true;
@@ -65,7 +76,9 @@ export class PanOp extends ToolOp {
     }
   }
 
-  on_mousemove(event: Object) {
+  /* NOTE: `event.touches` below is a TouchEvent property; on a PointerEvent
+     it is undefined, so the velpan reset always runs. */
+  on_mousemove(event: PointerEvent) {
     let mpos = new Vector2([event.x, event.y, 0]);
     let ctx = this.modal_ctx;
 
@@ -94,17 +107,26 @@ export class PanOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  on_mouseup(event: Object) {
+  on_mouseup(event: PointerEvent) {
     this.end_modal();
   }
 }
 
 class ViewRotateZoomPanOp extends ToolOp {
   is_modal: boolean
-  inputs: Object
-  outputs: Object
   first_call: boolean
   start_zoom: number
+  /* Vestigial: set to null in the constructor and never read. */
+  transdata: object | null
+  /* cameramat at the start of the gesture, or at the last transition(). */
+  start_mat: Matrix4
+  /* Projected start position of each tracked touch, indexed alongside
+     startids; slot 2 stays undefined until a third finger lands. */
+  startcos: (Vector3 | undefined)[]
+  /* touchstate keys of the tracked touches. */
+  startids: (string | undefined)[]
+  /* Pan pivot, in world space. */
+  center: Vector3
   mv1: Vector3
   mv2: Vector3
   mv3: Vector3
@@ -147,17 +169,17 @@ class ViewRotateZoomPanOp extends ToolOp {
     }
   }
 
-  can_call(ctx: Context) {
+  can_call(ctx: FullContext) {
     return true;
   }
 
-  start_modal(ctx: Context) {
+  start_modal(ctx: FullContext) {
     this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
     this.first_call = true;
     this.start_zoom = ctx.view2d.zoomwheel;
   }
 
-  proj(out: Vector3, mpos: Array<float>) {
+  proj(out: Vector3, mpos: number[]) {
     let size = this.modal_ctx.view2d.size;
 
     out.loadxy(mpos);
@@ -165,7 +187,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     out[1] = out[1]/(size[1]*0.5) - 1.0;
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : PointerEvent) {
     let ctx = this.modal_ctx;
     let view2d = ctx.view2d;
     let screen = g_app_state.screen;
@@ -233,7 +255,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     this.exec(this.modal_tctx);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     ctx = this.modal_ctx;
 
     let v1 = new Vector3(this.mv1);
@@ -290,7 +312,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     if (this.startids[2] !== undefined) this.exec_pan(ctx);
   }
 
-  exec_pan(ctx) {
+  exec_pan(ctx : FullContext) {
     let v1 = exec_pan_v1, v2 = exec_pan_v2;
     let view2d = ctx.view2d;
 
@@ -325,7 +347,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     view2d.drawmats.cameramat = newmat;
   }
 
-  transition(mode: String) {
+  transition(mode: string) {
     this.start_mat = new Matrix4(this.modal_ctx.view2d.drawmats.cameramat);
 
     if (mode === "rotate") {
@@ -335,7 +357,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     }
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : PointerEvent) {
     if (DEBUG.modal) console.log("modal end");
 
     for (let k in event.touches) {
@@ -349,6 +371,15 @@ class ViewRotateZoomPanOp extends ToolOp {
 }
 
 class ViewRotateOp extends ToolOp {
+  /* Vestigial: set to null in the constructor and never read. */
+  transdata: object | null
+  /* cameramat at the start of the drag. */
+  start_mat: Matrix4
+  /* True until the first on_mousemove seeds start_mpos. */
+  first_call: boolean
+  /* Drag start, in normalized -1..1 viewport coordinates. */
+  start_mpos: Vector3
+
   constructor() {
     super();
 
@@ -364,17 +395,16 @@ class ViewRotateOp extends ToolOp {
     }
   }
 
-  can_call(ctx: Context) {
+  can_call(ctx: FullContext) {
     return true;
   }
 
-  start_modal(ctx: Context
-  ) {
+  start_modal(ctx: FullContext) {
     this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
     this.first_call = true;
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : PointerEvent) {
     if (this.first_call === true) {
       this.first_call = false;
       this.start_mpos = new Vector3([event.x, event.y, 0]);
@@ -397,7 +427,7 @@ class ViewRotateOp extends ToolOp {
     this.exec(this.modal_ctx);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     ctx = this.modal_ctx;
 
     let v1 = new Vector3(this.inputs.MV1.data);
@@ -420,7 +450,7 @@ class ViewRotateOp extends ToolOp {
     ctx.view2d.on_view_change();
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : PointerEvent) {
     if (DEBUG.modal) console.log("modal end");
     this.end_modal();
   }
@@ -428,8 +458,16 @@ class ViewRotateOp extends ToolOp {
 
 class ViewPanOp extends ToolOp {
   is_modal: boolean
-  inputs: Object
-  outputs: Object;
+  /* Vestigial: set to null in the constructor and never read. */
+  transdata: object | null
+  /* cameramat at the start of the drag. */
+  start_mat: Matrix4
+  /* True until the first on_mousemove seeds start_mpos. */
+  first_call: boolean
+  /* Averaged mesh centroid, used to pick the depth the pan happens at. */
+  center: Vector3
+  /* Drag start, in normalized -1..1 viewport coordinates. */
+  start_mpos: Vector3;
 
   static tooldef() {
     return {
@@ -441,17 +479,18 @@ class ViewPanOp extends ToolOp {
   }
 
   constructor() {
+    /* NOTE: ToolOp's constructor takes no arguments; these two are ignored. */
     super("view2d_pan", "Pan");
 
     this.transdata = null;
     this.outputs = {}
   }
 
-  can_call(ctx) {
+  can_call(ctx : FullContext) {
     return true;
   }
 
-  start_modal(ctx) {
+  start_modal(ctx : FullContext) {
     this.start_mat = new Matrix4(ctx.view2d.drawmats.cameramat);
     this.first_call = true;
 
@@ -469,7 +508,7 @@ class ViewPanOp extends ToolOp {
     if (i > 0) this.center.mulScalar(1.0/i);
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : PointerEvent) {
     if (this.first_call === true) {
       this.first_call = false;
       this.start_mpos = new Vector3([event.x, event.y, 0]);
@@ -488,7 +527,7 @@ class ViewPanOp extends ToolOp {
     this.exec(this.modal_ctx);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     ctx = this.modal_ctx;
 
     let v1 = new Vector3(this.inputs.MV1.data);
@@ -526,7 +565,7 @@ class ViewPanOp extends ToolOp {
     ctx.view2d.on_view_change();
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : PointerEvent) {
     if (DEBUG.modal) console.log("modal end");
 
     this.end_modal();
@@ -535,11 +574,13 @@ class ViewPanOp extends ToolOp {
 
 import {StringProperty} from '../../core/toolprops.js';
 
+/* NOTE: neither SavedContext nor b64decode is imported in this module, so
+   constructing this op and running it both throw ReferenceError. */
 export class BasicFileDataOp extends ToolOp {
   is_modal: boolean
-  saved_context: SavedContext;
+  saved_context: object;
 
-  constructor(data: String) {
+  constructor(data: string) {
     super();
 
     this.is_modal = false;
@@ -562,7 +603,7 @@ export class BasicFileDataOp extends ToolOp {
     }
   }
 
-  exec(ctx: ToolContext) {
+  exec(ctx: FullContext) {
     let data = new DataView(b64decode(this.inputs.data.data).buffer);
 
     console.log(this.inputs.data.data.length, data.byteLength);
@@ -586,7 +627,7 @@ export class BasicFileOp extends ToolOp {
     }
   }
 
-  exec(ctx: ToolContext) {
+  exec(ctx: FullContext) {
     let datalib = ctx.datalib;
 
     let splineset = new SplineFrameSet();
@@ -608,7 +649,10 @@ export class BasicFileOp extends ToolOp {
 import {FloatProperty} from '../../core/toolprops.js';
 
 export class FrameChangeOp extends ToolOp {
-  constructor(frame) {
+  /* scene.time before the change. */
+  _undo : number;
+
+  constructor(frame? : number) {
     super();
 
     this._undo = undefined;
@@ -626,15 +670,15 @@ export class FrameChangeOp extends ToolOp {
     }
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     this._undo = ctx.scene.time;
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     ctx.scene.change_time(ctx, this._undo);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     ctx.scene.change_time(ctx, this.inputs.frame.data);
   }
 }
@@ -652,7 +696,7 @@ export class ExportCanvasImage extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let view2d = g_app_state.active_view2d;
     let spline = ctx.frameset.spline;
 
@@ -703,6 +747,10 @@ export class ExportCanvasImage extends ToolOp {
       data[i] = url.charCodeAt(i);
     }
 
+    /* NOTE: this is the html5/chrome save_file signature
+       (data, save_as_mode, set_current_file, extslabel, exts, error_cb); the
+       electron backend exports a 4-argument (data, path, errCb, okCb) form
+       instead, so one of the two builds mis-passes these arguments. */
     save_file(data, true, false, "PNG", ["png"], function () {
       console.trace("ERROR ERROR!!\n");
       g_app_state.notes.label("Error drawing canvas");

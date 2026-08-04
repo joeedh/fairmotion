@@ -7,6 +7,9 @@ import * as util from '../path.ux/scripts/util/util.js';
 import {ModalStates} from '../core/toolops_api.js';
 import {HotKey, KeyMap} from '../core/keymap.js';
 import {haveModal} from '../path.ux/scripts/pathux.js';
+import type {FullContext} from '../core/context.js';
+import type {DataBlock} from '../core/lib_api.js';
+import type {Container} from '../path.ux/scripts/core/ui.js';
 
 export function resetAreaStacks() {
   contextWrangler.reset();
@@ -17,6 +20,13 @@ primary app screen subclass
 */
 export class FairmotionScreen extends Screen {
   ctx: FullContext;
+
+  /* Settings generation the keymap deltas were last loaded at. */
+  _last_keymap_gen : number;
+  keymap : KeyMap;
+  /* scene.time playback started from, restored when it stops. */
+  startFrame : number;
+  _lastFrameTime : number;
 
   constructor() {
     super();
@@ -239,8 +249,13 @@ FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
 `;
 ui_base.UIBase.register(FairmotionScreen);
 
-export class KeymapSet extends Array {
-  constructor(name, path, keymaps) {
+export class KeymapSet extends Array<KeyMap> {
+  name : string;
+  /* Class name of the editor the keymaps belong to; the settings UI groups
+     on it. */
+  path : string;
+
+  constructor(name : string, path : string, keymaps? : Iterable<KeyMap>) {
     super();
 
     this.name = name;
@@ -254,8 +269,16 @@ export class KeymapSet extends Array {
   }
 }
 
+/* An overlay canvas an editor owns, plus its 2d context and the dpi scale it
+   was sized at. */
+export type EditorCanvas = HTMLCanvasElement & {dpi_scale : number, g : Canvas2D};
+
 export class Editor extends Area {
-  canvases: Object;
+  canvases : {[id : string] : EditorCanvas};
+
+  _last_keymap_delta_gen : number;
+  keymap : KeyMap;
+  container : Container;
 
   constructor() {
     super();
@@ -378,11 +401,12 @@ export class Editor extends Area {
    * mostly called by AppState.load_undo_file,
    * called when a file is loaded into an existing screen UI
    * */
-  on_fileload(ctx) {
+  on_fileload(ctx : FullContext) {
 
   }
 
-  data_link(block: DataBlock, getblock: Function, getblock_us: Function) {
+  data_link(block : DataBlock, getblock : (ref) => DataBlock,
+            getblock_us : (ref) => DataBlock) {
 
   }
 
@@ -398,13 +422,13 @@ export class Editor extends Area {
     return contextWrangler.getLastArea(this);
   }
 
-  static context_area(cls) {
+  static context_area(cls : typeof Editor) {
     return contextWrangler.getLastArea(cls);
   }
 
   //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active
-  static wrapContextEvent(f) {
-    return function (e) {
+  static wrapContextEvent(f : (e : Event) => void) {
+    return function (this : Editor, e : Event) {
       if (haveModal()) {
         return;
       }

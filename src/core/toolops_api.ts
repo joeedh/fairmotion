@@ -1,32 +1,89 @@
 import {util, nstructjs, ToolProperty, PropFlags, PropTypes, ToolMacro, UndoFlags} from '../path.ux/scripts/pathux.js';
 import * as pathux from '../path.ux/scripts/pathux.js';
+import type {FullContext} from './context.js';
+import type {SavedContext} from './AppState.js';
+import type {drawline} from '../editors/viewport/view2d.js';
 
 export {
   ToolProperty, PropFlags, PropTypes, ToolMacro,
   UndoFlags, color2css, css2color
 } from '../path.ux/scripts/pathux.js';
 
-export class ToolDef {
-  inputs: Object
-  outputs: Object
-  flag: number
-  name: string
-  uiname: string
-  icon: number
-  toolpath: number
-  is_modal: boolean
-  undoflag: number;
+/*
+ * What a ToolOp subclass's static tooldef() returns. `toolpath` is what the
+ * hotkey and menu strings are parsed against; without one the tool is
+ * unreachable and init_toolop_structs() skips it.
+ */
+export interface ToolDef {
+  name: string;
+  uiname: string;
+  toolpath: string;
+  /* Legacy spelling of toolpath. _getFinalToolDef() folds it into toolpath,
+     and UserSettings keys tool settings off whichever one is present. */
+  apiname?: string;
+  inputs?: {[k: string]: ToolProperty};
+  outputs?: {[k: string]: ToolProperty};
+  flag?: number;
+  icon?: number;
+  is_modal?: boolean;
+  undoflag?: number;
+  description?: string;
 }
 
 
-export class ToolOp extends pathux.ToolOp {
+/*
+ * Every tool in fairmotion runs against the app's own context, never a bare
+ * ContextLike, so the context type arguments are pinned here once instead of
+ * at each of the ~200 subclasses. Subclasses that declare inputs/outputs thread
+ * the slot parameters through, per path.ux's inheritance idiom:
+ *   class Foo<I extends PropertySlots, O extends PropertySlots>
+ *     extends ToolOp<I & {x: FloatProperty}, O> {}
+ */
+export class ToolOp<
+  InputSlots extends pathux.PropertySlots = {},
+  OutputSlots extends pathux.PropertySlots = {},
+> extends pathux.ToolOp<InputSlots, OutputSlots, FullContext, FullContext> {
+  static STRUCT: string;
+
+  drawlines: drawline[];
+  /* The whole-file undo snapshot, taken by the default undoPre(). Absent for
+     tools that supply their own undo_pre(). */
+  _undo?: ArrayBuffer;
+  _touch_cancelable = false;
+  _touch_cancel_callback?: () => void;
+
+  /* Position in ToolStack, or -1 before the tool has been pushed. Written by
+     ToolStack.execTool() and read back by reexec_tool(). */
+  stack_index: int = -1;
+
+  /* The context this tool ran under, frozen at execution time so redo can put
+     it back. Written by ToolStack; the STRUCT script saves it. */
+  saved_context?: SavedContext;
+
+  /* Set by subclasses that replace the whole-file undo with their own. */
+  undo_pre?: (ctx: FullContext) => void;
+
+  /* Tools flagged USE_TOOL_CONTEXT carry their own context rather than taking
+     the one execTool() was handed. */
+  ctx?: FullContext;
+
+  /* A modal tool gets two locked contexts: modal_ctx drives drawing and
+     modal_tctx is what gets saved for undo. */
+  modal_tctx?: FullContext;
+
+  /* Cached data API struct built by ToolStack.gen_tool_datastruct(). */
+  apistruct?: object;
+
+  /* Set on macro members so reexec_tool() can walk up to the outermost tool. */
+  parent?: ToolOp;
+
   constructor() {
     super();
 
     this.drawlines = [];
   }
 
-  undoPre(ctx) {
+  undoPre(ctx: FullContext): void {
     if (this.undo_pre) {
       return this.undo_pre(ctx);
     } else {
@@ -34,26 +91,26 @@ export class ToolOp extends pathux.ToolOp {
     }
   }
 
-  undo(ctx) {
+  undo(ctx: FullContext): void {
     if (this._undo) {
       ctx.state.load_undo_file(this._undo);
       window.redraw_viewport();
     }
   }
 
-  start_modal(ctx) {
+  start_modal(ctx: FullContext) {
     return this.modalStart(ctx);
   }
 
-  end_modal(cancelled) {
+  end_modal(cancelled: boolean) {
     return this.modalEnd(cancelled);
   }
 
-  _start_modal(ctx) {
+  _start_modal(ctx: FullContext): void {
     //do nothing
   }
 
-  new_drawline(v1, v2, color, line_width) {
+  new_drawline(v1: Vector2, v2: Vector2, color: number[], line_width: number) {
     var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
 
     this.drawlines.push(dl);
@@ -61,7 +118,7 @@ export class ToolOp extends pathux.ToolOp {
     return dl;
   }
 
-  reset_drawlines(ctx=this.modal_ctx) {
+  reset_drawlines(ctx: FullContext = this.modal_ctx): void {
     var view2d = ctx.view2d;
 
     for (var dl of this.drawlines) {
@@ -71,21 +128,26 @@ export class ToolOp extends pathux.ToolOp {
     this.drawlines.length = 0;
   }
 
-  exec_pre(ctx) {
+  exec_pre(ctx: FullContext) {
     return this.execPre(ctx);
   }
 
-  exec_post(ctx) {
+  exec_post(ctx: FullContext) {
     return this.execPost(ctx);
   }
 
-  touchCancelable(callback) {
+  touchCancelable(callback: () => void): void {
     this._touch_cancelable = true;
     this._touch_cancel_callback = callback;
   }
 
-  static invoke(ctx, args) {
-    function geteid(v) {
+  /*
+   * The toolpath parser hands every argument through as a string. A few
+   * sentinel strings mean "read this from the context at invoke time"; they
+   * are resolved here, before the properties get to see them.
+   */
+  static invoke(ctx: FullContext, args: {[k: string]: unknown}) {
+    function geteid(v: {eid: number} | undefined): number {
       return !v ? -1 : v.eid;
     }
 
@@ -118,15 +180,15 @@ export class ToolOp extends pathux.ToolOp {
     return super.invoke(ctx, args);
   }
 
-  static inherit_inputs(arg) {
+  static inherit_inputs(arg: {[k: string]: ToolProperty}) {
     return ToolOp.inherit(arg);
   }
 
-  static inherit_outputs(arg) {
+  static inherit_outputs(arg: {[k: string]: ToolProperty}) {
     return ToolOp.inherit(arg);
   }
 
-  static _getFinalToolDef() {
+  static _getFinalToolDef(): ToolDef {
     let tdef = super._getFinalToolDef();
 
     tdef.toolpath = tdef.toolpath || tdef.apiname;
@@ -155,7 +217,7 @@ export const ToolFlags = {
 //generates default toolop STRUCTs/fromSTRUCTS, as needed
 //genereated STRUCT/fromSTRUCT should be identical with
 //ToolOp.STRUCT/fromSTRUCT, except for the change in class name.
-window.init_toolop_structs = function () {
+window.init_toolop_structs = function (): void {
   for (let i = 0; i < window.defined_classes.length; i++) {
     //only consider classes that inherit from ToolOpAbstract
     let cls = window.defined_classes[i];
@@ -252,8 +314,13 @@ export function patchMouseEvent(e: MouseEvent, dom: HTMLElement) {
   return e2;
 }
 
+/* One entry of a ToolOp's inputs/outputs as it appears on disk. The STRUCT
+   script below writes the key alongside an abstract(ToolProperty). */
 export class PropPair {
-  constructor(key, value) {
+  key: string;
+  value: ToolProperty;
+
+  constructor(key: string, value: ToolProperty) {
     this.key = key;
     this.value = value;
   }

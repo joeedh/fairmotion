@@ -6,26 +6,33 @@ import * as util from '../../path.ux/scripts/util/util.js';
 import {SplineFlags} from "../../curve/spline_base.js";
 import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 import {Icons} from '../../datafiles/icon_enum.js';
+import type {FullContext} from '../../core/context.js';
+import type {Spline} from '../../curve/spline.js';
+import type {SplineVertex} from '../../curve/spline_types.js';
+import type {SplineFrameSet} from '../../core/frameset.js';
 
+/* One editable key in the dopesheet, behind a uniform get/set surface so
+   spline-vertex keys and data-path keys can be iterated together. */
 export class KeyIterItem {
-  type : AnimKeyType;
+  /* An AnimKeyTypes value. */
+  type : number;
 
-  getFlag() {
-
-  }
-
-  setFlag() {
-  }
-
-  getTime() {
+  getFlag() : number {
 
   }
 
-  setTime() {
+  setFlag(flag : number) : this {
+  }
+
+  getTime() : number {
 
   }
 
-  setSelect(state) {
+  setTime(time : number) {
+
+  }
+
+  setSelect(state : boolean) {
     if (state) {
       this.setFlag(this.getFlag() | AnimKeyFlags.SELECT);
     } else {
@@ -50,6 +57,13 @@ export class KeyIterItem {
 }
 
 export class VertKeyIterItem extends KeyIterItem {
+  v : SplineVertex;
+  spline : Spline;
+  /* Key into frameset.vertex_animdata -- the eid of the draw-spline vertex
+     this path vertex animates. */
+  channel : number;
+  frameset : SplineFrameSet;
+
   constructor() {
     super();
     this.v = undefined;
@@ -91,7 +105,7 @@ export class VertKeyIterItem extends KeyIterItem {
     return get_vtime(this.v);
   }
 
-  setTime(time) {
+  setTime(time : number) {
     if (isNaN(time)) {
       throw new Error("Time was NaN!");
     }
@@ -99,7 +113,8 @@ export class VertKeyIterItem extends KeyIterItem {
     set_vtime(this.spline, this.v, time);
   }
 
-  init(spline, v, vd_eid, frameset) : this {
+  init(spline : Spline, v : SplineVertex, vd_eid : number,
+       frameset : SplineFrameSet) : this {
     this.spline = spline;
     this.v = v;
     this.channel = vd_eid;
@@ -114,7 +129,9 @@ export class VertKeyIterItem extends KeyIterItem {
 }
 
 export class DataPathKeyItem extends VertKeyIterItem {
-  constructor(datapath) {
+  path : string;
+
+  constructor(datapath : string) {
     super();
 
     this.path = datapath;
@@ -128,6 +145,9 @@ let vkey_cache = util.cachering.fromConstructor(VertKeyIterItem, 32);
 let UEID=0, UTIME=1, UFLAG=2, UX=3, UY=4, UTOT=5;
 
 export class AnimKeyTool extends ToolOp {
+  /* Flat [eid, time, flag, x, y] records, UTOT wide -- see the U* indices. */
+  _undo : {spline : number[]};
+
   constructor() {
     super();
   }
@@ -139,7 +159,8 @@ export class AnimKeyTool extends ToolOp {
     }
   }}
 
-  * iterKeys(ctx, useKeyList=this.inputs.useKeyList.getValue()) {
+  * iterKeys(ctx : FullContext,
+             useKeyList = this.inputs.useKeyList.getValue()) : Generator<KeyIterItem> {
     if (useKeyList) {
       let list = this.inputs.keyList.getValue();
       let pathspline = ctx.frameset.pathspline;
@@ -206,11 +227,11 @@ export class AnimKeyTool extends ToolOp {
     }
   }
 
-  undoPre(ctx) {
+  undoPre(ctx : FullContext) {
     this.undo_pre(ctx);
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     let spline = [];
 
     let _undo = this._undo = {
@@ -242,7 +263,7 @@ export class AnimKeyTool extends ToolOp {
   }
 
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     let list = this._undo.spline;
     let spline = ctx.frameset.pathspline;
 
@@ -269,7 +290,7 @@ export class AnimKeyTool extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     //ctx.frameset.pathspline.regen_render();
     //ctx.frameset.spline.regen_render();
     ctx.frameset.spline.updateGen++; //signal dopesheet to draw
@@ -296,7 +317,7 @@ export class ToggleSelectAll extends AnimKeyTool {
     })
   }}
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("Anim Key Toggle Select Tool!");
 
     let mode = this.inputs.mode.getValue();
@@ -332,7 +353,7 @@ export class ToggleSelectAll extends AnimKeyTool {
     super.exec(ctx);
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     super.undo(ctx);
 
     if (ctx.dopesheet) {
@@ -342,6 +363,9 @@ export class ToggleSelectAll extends AnimKeyTool {
 }
 
 export class NextPrevKeyFrameOp extends AnimKeyTool {
+  /* scene.time before the jump; this op only moves the playhead. */
+  _undo_time : number;
+
   constructor() {
     super();
   }
@@ -358,7 +382,7 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
     })
   }}
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let dir = this.inputs.dir.getValue();
     let scene = ctx.scene;
     let time = scene.time;
@@ -389,7 +413,7 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
     }
   }
 
-  undoPre(ctx) {
+  undoPre(ctx : FullContext) {
     this.undo_pre(ctx);
   }
 
@@ -399,24 +423,34 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
 
   /*we don't need to use parent classes's undo implementation
     as we're only changing time*/
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     this._undo_time = ctx.scene.time;
 
     //super.undo_pre(ctx);
     //this._undo_time = ctx.scene.time;
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     if (ctx.scene.time === this._undo_time) {
       return;
     }
 
+    /* NOTE: change_time takes (ctx, time) everywhere else, so this passes
+       the time as the ctx and leaves time undefined. */
     ctx.scene.change_time(this._undo_time);
     window.redraw_viewport();
   }
 }
 
 export class MoveKeyFramesOp extends AnimKeyTool {
+  /* True until the first modal mousemove seeds start_mpos/transdata. */
+  first : boolean;
+  last_mpos : Vector2;
+  start_mpos : Vector2;
+  sum : number;
+  /* Each selected key's time as of the drag start, in iterKeys() order. */
+  transdata : number[];
+
   constructor() {
     super();
 
@@ -427,7 +461,7 @@ export class MoveKeyFramesOp extends AnimKeyTool {
     this.transdata = [];
   }
 
-  on_mousemove(e) {
+  on_mousemove(e : MouseEvent) {
     let ctx = this.modal_ctx;
 
     if (this.first) {
@@ -498,7 +532,7 @@ export class MoveKeyFramesOp extends AnimKeyTool {
     this.last_mpos[1] = e.y;
   }
 
-  exec(ctx, dx_override=undefined) {
+  exec(ctx : FullContext, dx_override? : number) {
     let dx = this.inputs.delta.getValue();
 
     if (dx_override) {
@@ -517,7 +551,7 @@ export class MoveKeyFramesOp extends AnimKeyTool {
     ctx.frameset.pathspline.flagUpdateVertTime();
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     super.undo(ctx);
 
     if (ctx.dopesheet) {
@@ -525,17 +559,17 @@ export class MoveKeyFramesOp extends AnimKeyTool {
     }
   }
 
-  on_keydown(e) {
+  on_keydown(e : KeyboardEvent) {
     if (e.keyCode === 27) {
       this.end_modal();
     }
   }
 
-  on_mousedown(e) {
+  on_mousedown(e : MouseEvent) {
     this.end_modal();
   }
 
-  on_mouseup(e) {
+  on_mouseup(e : MouseEvent) {
     this.end_modal();
   }
 
@@ -570,7 +604,7 @@ export class SelectKeysOp extends AnimKeyTool {
     })
   }}
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let mode = this.inputs.mode.getValue();
 
     console.log("select mode:", mode);
@@ -590,7 +624,7 @@ export class SelectKeysOp extends AnimKeyTool {
     ctx.frameset.pathspline.flagUpdateVertTime();
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     super.undo(ctx);
 
     ctx.frameset.pathspline.flagUpdateVertTime();
@@ -614,7 +648,7 @@ export class DeleteKeysOp extends AnimKeyTool {
     })
   }}
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.warn("Deleting keyframes!");
 
     for (let key of this.iterKeys(ctx)) {
@@ -629,15 +663,15 @@ export class DeleteKeysOp extends AnimKeyTool {
     ctx.frameset.pathspline.flagUpdateVertTime();
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     ToolOp.prototype.undo_pre.call(this, ctx);
   }
 
-  undoPre(ctx) {
+  undoPre(ctx : FullContext) {
     ToolOp.prototype.undo_pre.call(this, ctx);
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     ToolOp.prototype.undo.call(this, ctx);
     //super.undo(ctx); //use the "save everything" undo implementation
 

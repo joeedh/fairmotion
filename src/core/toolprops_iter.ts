@@ -1,6 +1,8 @@
 "use strict";
 
 import {STRUCT} from './struct.js';
+import type {FullContext} from './context.js';
+import type {DataBlock, DataRef} from './lib_api.js';
 
 /*
   Iterator Tool property design:
@@ -37,12 +39,15 @@ import {STRUCT} from './struct.js';
 export class TPropIterable {
   constructor() {
   }
-  
+
   [Symbol.iterator]() : ToolIter { }
+
+  /* A marker, not a method. The test below is `"_is_tprop_iterable" in obj`, so
+     only the name matters -- it is never called. */
   _is_tprop_iterable() {
   }
-  
-  static isTPropIterable(obj) {
+
+  static isTPropIterable(obj?: object): obj is TPropIterable {
     return obj !== undefined && "_is_tprop_iterable" in obj;
   }
 }
@@ -58,28 +63,34 @@ export class TCanSafeIter {
 window.TCanSafeIter = TCanSafeIter;
 
 export class ToolIter extends TPropIterable {
-  ret : Object;
+  static STRUCT : string;
 
-  constructor(itemtypes : Array<Function>) {
+  ret : {done: boolean; value: object | undefined};
+
+  /* Classes an iterated item may be an instance of. Empty means unfiltered. */
+  itemtypes : Array<Function>;
+  ctx? : FullContext;
+
+  constructor(itemtypes? : Array<Function>) {
     super();
-     
+
     this.itemtypes = itemtypes || [];
     this.ctx = undefined; //is set by IterProperty, which gets it from calling code
     this.ret = {done : true, value : undefined}; //might try cached_iret() later. . .
   }
-  
+
   next() {
     //calls this.parent._iter_end at iteration end
   }
-  
+
   reset() {
   }
-  
+
   spawn() { //spawn a copy of this iterator
   }
-  
+
   //a utility function for child classes
-  _get_block(ref) {
+  _get_block(ref: DataRef): DataBlock | undefined {
     if (this.ctx !== undefined) {
       //a very paranoid test, for edge cases
       //where ctx.object is not the same as
@@ -98,7 +109,7 @@ export class ToolIter extends TPropIterable {
   }
   
   //subclasses are required to implement this
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<ToolIter>) {
     var obj = new ToolIter();
     reader(obj);
     return obj;

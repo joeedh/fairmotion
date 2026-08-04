@@ -7,6 +7,15 @@ import {STRUCT} from "./struct.js";
 import {EventHandler} from "../editors/events.js";
 import {charmap} from "../editors/events.js";
 
+/* Type-only: this file names DataBlock and DataLib without importing them --
+   see the finding in docs/debugging.md. A real import would cycle through the
+   editor event stack that the two imports above pull in. */
+import type {
+  DataBlock, DataLib, DataRefListIter, GetBlockFunc, GetBlockUserFunc
+} from "./lib_api.js";
+/* DataRef is not imported: lib_api.ts publishes it on window and this file
+   constructs it by the bare name. See globals.d.ts. */
+
 /*
   Some notes on undo:
   
@@ -32,10 +41,18 @@ import {charmap} from "../editors/events.js";
 /* 'DataBlock List.                         *
  *  A generic container list for datablocks */
 export class DBList extends GArray {
-  idmap: Object
+  static STRUCT: string;
+
+  idmap: {[lib_id: number]: DataBlock}
   selected: GArray
   length: number
-  selset: set;
+  selset: set<DataBlock>;
+  /* Which DataBlock subtype this list holds; one of lib_api's block type ids. */
+  type: number;
+  active: DataBlock | undefined;
+  /* Only exists between fromSTRUCT()'s reader() call and the delete below it:
+     nstructjs parks the array payload here so it does not fight GArray. */
+  arrdata?: DataBlock[];
 
   constructor(type: number) {
     super();
@@ -50,7 +67,7 @@ export class DBList extends GArray {
     this.selset = new set();
   }
 
-  static fromSTRUCT(unpacker) {
+  static fromSTRUCT(unpacker: StructReader<DBList>) {
     var dblist = new DBList(0);
 
     unpacker(dblist);
@@ -73,8 +90,8 @@ export class DBList extends GArray {
   }
 
   toJSON() {
-    var list = [];
-    var sellist = [];
+    var list: number[] = [];
+    var sellist: number[] = [];
 
     for (var block of this) {
       list.push(block.lib_id);
@@ -95,7 +112,7 @@ export class DBList extends GArray {
     return obj;
   }
 
-  static fromJSON(obj) {
+  static fromJSON(obj: {type: number; list: number[]; selected: number[]; active: number; length: number}) {
     var list = new DBList(obj.type);
 
     list.list = new GArray(obj.list);
@@ -151,7 +168,7 @@ export class DBList extends GArray {
   }
 
   //note that this doesn't set datablock user linkages.
-  data_link(block: DataBLock, getblock: Function, getblock_us: Function) {
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     for (var i = 0; i < this.length; i++) {
       this[i] = getblock(this[i]);
       this.idmap[this[i].lib_id] = this[i];
@@ -228,7 +245,7 @@ DBList.STRUCT = `
   }
 `;
 
-function DataArrayRem(dst, field, obj) {
+function DataArrayRem(dst: {[field: string]: {remove(obj: unknown): void}}, field: string, obj: unknown) {
   var array = dst[field];
 
   function rem() {
@@ -238,7 +255,12 @@ function DataArrayRem(dst, field, obj) {
   return rem;
 }
 
-function SceneObjRem(scene, obj) {
+/* Dead: nothing calls this, and ASObject is not in scope here. */
+function SceneObjRem(scene: {objects: {remove(o: object): void; length: number; [i: number]: object};
+                             graph: {remove(o: object): void};
+                             selection: {has(o: object): boolean; remove(o: object): void};
+                             active: object | undefined},
+                     obj: {dag_node: {inmap: {[k: string]: Iterable<{opposite(o: object): {node: object}}>}}}) {
   function rem() {
     /*unparent*/
     for (var e of obj.dag_node.inmap["parent"]) {
@@ -261,7 +283,9 @@ function SceneObjRem(scene, obj) {
   return rem;
 }
 
-function DataRem(dst, field) {
+/* The default unlink callback: the block that held the reference forgets it.
+   Note the quoted "field" -- see the finding in docs/debugging.md. */
+function DataRem(dst: DataBlock, field: string) {
   function rem() {
     dst["field"] = undefined;
   }
@@ -282,8 +306,9 @@ function DataRem(dst, field) {
   fieldname, DataRem(block, fieldname), respectively.
 */
 
-export function wrap_getblock_us(datalib) {
-  return function (dataref, block, fieldname, add_user, refname, rem_func) {
+export function wrap_getblock_us(datalib: DataLib): GetBlockUserFunc {
+  return function (dataref: DataRef | undefined, block: DataBlock, fieldname: string,
+                   add_user?: boolean, refname?: string, rem_func?: () => void) {
     if (dataref == undefined) return;
 
     if (rem_func == undefined)
@@ -314,8 +339,8 @@ export function wrap_getblock_us(datalib) {
   };
 }
 
-export function wrap_getblock(datalib) {
-  return function (dataref) {
+export function wrap_getblock(datalib: DataLib): GetBlockFunc {
+  return function (dataref?: DataRef) {
     if (dataref == undefined) return;
 
     var id = dataref[0];
@@ -346,7 +371,13 @@ export function wrap_getblock(datalib) {
   though.
 */
 export class DataRefList extends GArray {
-  constructor(lst = undefined) {
+  static STRUCT: string;
+
+  /* Whose library get()/pop() resolve against. Written through the `ctx`
+     setter; falls back to g_app_state.datalib while it is unset. */
+  datalib: DataLib | undefined;
+
+  constructor(lst: Iterable<DataBlock | DataRef> | (DataBlock | DataRef)[] | undefined = undefined) {
     super();
 
     this.datalib = undefined;
@@ -372,11 +403,11 @@ export class DataRefList extends GArray {
   }
 
   //we don't want all of ctx, just the current datalib
-  set ctx(ctx) {
+  set ctx(ctx: {datalib: DataLib} | undefined) {
     this.datalib = ctx.datalib;
   }
 
-  get ctx() {
+  get ctx(): {datalib: DataLib} | undefined {
     return undefined;
   }
 
@@ -385,7 +416,7 @@ export class DataRefList extends GArray {
     them keywords because I didn't want to lose those two names
     for variables, but it's kindof cool I can use them for methods,
     too*/
-  get(i: int, return_block: Boolean = true) {
+  get(i: int, return_block = true) {
     if (return_block) {
       var dl = this.datalib != undefined ? this.datalib : g_app_state.datalib;
       return dl.get(this[i]);
@@ -394,7 +425,7 @@ export class DataRefList extends GArray {
     }
   }
 
-  push(b: Object) {
+  push(b: DataBlock | DataRef) {
     if (!(b = this._b(b))) return;
 
     if (b instanceof DataBlock)
@@ -403,7 +434,8 @@ export class DataRefList extends GArray {
     super.push(new DataRef(b));
   }
 
-  _b(b) {
+  /* Coerces a block or a ref to a ref, or warns and returns undefined. */
+  _b(b: DataBlock | DataRef | undefined) {
     if (b == undefined) {
       warntrace("WARNING: undefined passed to DataRefList.push()");
       return;
@@ -418,7 +450,7 @@ export class DataRefList extends GArray {
     }
   }
 
-  remove(b) {
+  remove(b: DataBlock | DataRef) {
     if (!(b = this._b(b))) return;
     var i = this.indexOf(b);
 
@@ -430,7 +462,7 @@ export class DataRefList extends GArray {
     this.pop(i);
   }
 
-  pop(i: int, return_block: Boolean = true) {
+  pop(i: int, return_block = true) {
     var ret = super.pop(i);
 
     if (return_block)
@@ -439,7 +471,7 @@ export class DataRefList extends GArray {
     return ret;
   }
 
-  replace(a, b) {
+  replace(a: DataBlock | DataRef, b: DataBlock | DataRef) {
     if (!(b = this._b(b))) return;
 
     var i = this.indexOf(a);
@@ -451,7 +483,7 @@ export class DataRefList extends GArray {
     this[i] = b;
   }
 
-  indexOf(b) {
+  indexOf(b: DataBlock | DataRef) {
     super.indexOf(b);
 
     if (!(b = this._b(b))) return;
@@ -465,20 +497,20 @@ export class DataRefList extends GArray {
   }
 
   //inserts *before* index
-  insert(index: int, b) {
+  insert(index: int, b: DataBlock | DataRef) {
     if (!(b = this._b(b))) return;
 
     super.insert(b);
   }
 
-  prepend(b) {
+  prepend(b: DataBlock | DataRef) {
     if (!(b = this._b(b))) return;
 
     super.prepend(b);
   }
 
-  static fromSTRUCT(reader) {
-    var ret = {};
+  static fromSTRUCT(reader: StructReader<{list?: DataRef[]}>) {
+    var ret: {list?: DataRef[]} = {};
     reader(ret);
 
     return new DataRefList(ret.list);

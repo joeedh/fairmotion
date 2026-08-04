@@ -3,7 +3,10 @@
 import {STRUCT} from './struct.js';
 import {DataBlock, DataTypes} from './lib_api.js';
 import {Spline, RestrictFlags} from '../curve/spline.js';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../curve/spline_types.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment, SplineVertex} from '../curve/spline_types.js';
+import type {SplineElement} from '../curve/spline_base.js';
+import type {BaseContext} from './context.js';
+import type {View2DHandler} from '../editors/viewport/view2d.js';
 import {
   TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
   AnimInterpModes, AnimKeyFlags
@@ -18,21 +21,23 @@ import {SplineDrawer} from '../curve/spline_draw_new.js';
 export * from './animspline';
 
 let restrictflags = animspline.restrictflags;
-let VertexAnimIter = animspline.VertexAnimIter;
-let SegmentAnimIter = animspline.SegmentAnimIter;
-let VDAnimFlags = animspline.VDAnimFlags;
-let VertexAnimData = animspline.VertexAnimData;
+
+/* These were namespace lookups off `animspline`; named so they can be used in
+   type position too. Same bindings either way. */
+import {VertexAnimIter, SegmentAnimIter, VDAnimFlags, VertexAnimData} from './animspline.js';
 
 /*
 okay, so originally I was going to multiple sets of spline instances
 **/
 
 export class SplineFrame {
+  static STRUCT: string;
+
   spline: Spline
   time: number
   flag: number;
 
-  constructor(time, idgen) {
+  constructor(time?: number, idgen?: EIDGen) {
     this.time = time;
     this.flag = 0;
     this.spline = undefined;
@@ -41,7 +46,7 @@ export class SplineFrame {
     //this.spline.idgen = idgen;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<SplineFrame>) {
     let ret = new SplineFrame();
 
     reader(ret);
@@ -58,8 +63,8 @@ SplineFrame.STRUCT = `
   }
 `;
 
-window.obj_values_to_array = function obj_values_to_array(obj) {
-  let ret = [];
+window.obj_values_to_array = function obj_values_to_array<T>(obj: {[k: string]: T}) {
+  let ret: T[] = [];
   for (let k in obj) {
     ret.push(obj[k]);
   }
@@ -68,13 +73,15 @@ window.obj_values_to_array = function obj_values_to_array(obj) {
 }
 
 class AllSplineIter {
-  ret: Object
-  iter: Iterator
+  ret: {done: boolean; value: Spline | undefined}
+  /* Walks the frame splines first (stage 0), then the vertex-animation
+     splines (stage 1); undefined once both are exhausted. */
+  iter?: Iterator<Spline>
   f: SplineFrameSet
-  sel_only: boolean
+  sel_only?: boolean
   stage: number;
 
-  constructor(f, sel_only) {
+  constructor(f: SplineFrameSet, sel_only?: boolean) {
     this.f = f;
     this.iter = undefined;
     this.ret = {done: false, value: undefined};
@@ -166,17 +173,22 @@ class AllSplineIter {
 }
 
 class EidTimePair {
-  constructor(eid, time) {
+  static STRUCT: string;
+
+  eid: number;
+  time: number;
+
+  constructor(eid?: number, time?: number) {
     this.eid = eid;
     this.time = time;
   }
 
-  load(eid, time) {
+  load(eid: number, time: number) {
     this.eid = eid;
     this.time = time;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<EidTimePair>) {
     let ret = new EidTimePair();
     reader(ret);
     return ret;
@@ -194,7 +206,7 @@ EidTimePair.STRUCT = `
   }
 `;
 
-function combine_eid_time(eid, time) {
+function combine_eid_time(eid: number, time: number) {
   return new EidTimePair(eid, time);
 }
 
@@ -202,7 +214,7 @@ let split_eid_time_rets = new cachering(function () {
   return [0, 0];
 }, 64);
 
-function split_eid_time(t) {
+function split_eid_time(t: EidTimePair) {
   let ret = split_eid_time_rets.next();
 
   ret[0] = t.eid;
@@ -212,13 +224,21 @@ function split_eid_time(t) {
 }
 
 export class SplineKCacheItem {
-  constructor(data, time, hash) {
+  static STRUCT: string;
+
+  /* The frame's spline packed by Spline.export_ks(); comes back off disk as a
+     plain array and is re-wrapped on first load. */
+  data: Uint8Array | number[];
+  time: number;
+  hash: number;
+
+  constructor(data?: Uint8Array | number[], time?: number, hash?: number) {
     this.data = data;
     this.time = time;
     this.hash = hash;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 }
@@ -232,9 +252,15 @@ SplineKCacheItem {
 `;
 
 export class SplineKCache {
-  cache: Object;
-  invalid_eids: set<int>;
+  static STRUCT: string;
+
+  /* Keyed by frame time. Serialized as an array and rebuilt into a map by
+     fromSTRUCT. */
+  cache: {[frame: number]: SplineKCacheItem};
+  invalid_eids: set<EidTimePair>;
   hash: int;
+  /* Only present on files saved before the cache became a map. */
+  times?: number[];
 
   constructor() {
     this.cache = {};
@@ -242,7 +268,7 @@ export class SplineKCache {
     this.hash = 0;
   }
 
-  has(frame, spline) {
+  has(frame: number, spline: Spline) {
     if (!this.cache[frame]) {
       return false;
     }
@@ -254,7 +280,7 @@ export class SplineKCache {
     return this.cache[frame].hash === hash;
   }
 
-  set(frame, spline) {
+  set(frame: number, spline: Spline) {
     for (let eid in spline.eidmap) {
       this.revalidate(eid, frame);
     }
@@ -263,16 +289,16 @@ export class SplineKCache {
     this.cache[frame] = new SplineKCacheItem(spline.export_ks(), frame, hash);
   }
 
-  invalidate(eid, time) {
+  invalidate(eid: number, time: number) {
     this.invalid_eids.add(combine_eid_time(eid, time));
   }
 
-  revalidate(eid, time) {
+  revalidate(eid: number, time: number) {
     let t = combine_eid_time(time);
     this.invalid_eids.remove(t);
   }
 
-  calchash(spline) {
+  calchash(spline: Spline) {
     let hash = 0;
 
     let mul1 = Math.sqrt(3.0), mul2 = Math.sqrt(17.0);
@@ -285,7 +311,7 @@ export class SplineKCache {
     return ~~(hash*1024*1024);
   }
 
-  load(frame, spline) {
+  load(frame: number, spline: Spline) {
     if (typeof frame === "string") {
       throw new Error("Got bad frame! " + frame);
     }
@@ -346,13 +372,13 @@ export class SplineKCache {
   }
 
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<SplineKCache>) {
     let ret = new SplineKCache();
 
     reader(ret);
-    let cache = {};
+    let cache: {[frame: number]: SplineKCacheItem} = {};
 
-    let inv = new set();
+    let inv = new set<EidTimePair>();
 
     if (ret.invalid_eids  !== undefined &&
       ret.invalid_eids instanceof Array) {
@@ -397,17 +423,31 @@ SplineKCache.STRUCT = `
   and the movement of individual points.
 */
 export class SplineFrameSet extends DataBlock {
+  static STRUCT: string;
+
   editmode: string
   kcache: SplineKCache
   idgen: SDIDGen
-  frames: Object
-  vertex_animdata: Object
+  /* Keyed by frame time. */
+  frames: {[time: number]: SplineFrame}
+  /* Keyed by the eid of the scene-spline vertex being animated. */
+  vertex_animdata: {[eid: number]: VertexAnimData}
   selectmode: number
   draw_anim_paths: number
   time: number
   pathspline: Spline
   spline: Spline
   switch_on_select: boolean;
+
+  /* eid of the vertex whose animation path is being edited, -1 for none. */
+  editveid: number;
+  framelist: SplineFrame[];
+  /* Scratch layer on the pathspline that tools draw into. */
+  templayerid: number;
+  /* The single topology frame; insert_frame() refuses to make a second. */
+  frame?: SplineFrame;
+  /* Serialization-only: the frame time to restore, deleted by loadSTRUCT. */
+  cur_frame?: number;
 
   static blockDefine() {
     return {
@@ -496,17 +536,17 @@ export class SplineFrameSet extends DataBlock {
   /** `threshold` defaults to 2
    * `time_threshold defaults` to 0
    */
-  has_coincident_verts(threshold, time_threshold) {
+  has_coincident_verts(threshold?: number, time_threshold?: number) {
     threshold = threshold === undefined ? 2 : threshold;
     time_threshold = time_threshold === undefined ? 0 : time_threshold;
 
-    let ret = new set();
+    let ret = new set<SplineVertex>();
 
     for (let k in this.vertex_animdata) {
       let vd = this.vertex_animdata[k];
 
-      let lastv = undefined;
-      let lasttime = undefined;
+      let lastv: SplineVertex | undefined = undefined;
+      let lasttime: number | undefined = undefined;
       for (let v of vd.verts) {
         let time = get_vtime(v);
 
@@ -529,7 +569,7 @@ export class SplineFrameSet extends DataBlock {
 
   //used by SplitEdgeOp.  interpolates paths between original edge vertices
   //to create a new path for the vertex at the midpoint
-  create_path_from_adjacent(v, s) {
+  create_path_from_adjacent(v: SplineVertex, s: SplineSegment) {
     if (v.segments.length < 2) {
       console.log("Invalid input to create_path_from_adjacent");
       return;
@@ -549,7 +589,7 @@ export class SplineFrameSet extends DataBlock {
 
     let av3 = this.get_vdata(v.eid, true);
 
-    let keyframes = new set();
+    let keyframes = new set<number>();
     for (let v of av1.verts) {
       keyframes.add(get_vtime(v));
     }
@@ -579,7 +619,7 @@ export class SplineFrameSet extends DataBlock {
     av2.animflag = oflag2;
   }
 
-  set_visibility(vd_eid, state) {
+  set_visibility(vd_eid: number, state: boolean) {
     console.log("set called", vd_eid, state);
 
     let vd = this.vertex_animdata[vd_eid];
@@ -625,7 +665,7 @@ export class SplineFrameSet extends DataBlock {
     this.pathspline.on_destroy();
   }
 
-  on_spline_select(element, state) {
+  on_spline_select(element: SplineElement, state: boolean) {
     if (!this.switch_on_select) return;
 
     //console.trace("frameset on select!", element.eid, state);
@@ -699,7 +739,7 @@ export class SplineFrameSet extends DataBlock {
 
   /*tags which vdatas have owners that are currently
     selected and editable*/
-  sync_vdata_selstate(ctx) {
+  sync_vdata_selstate(ctx: BaseContext) {
     for (let k in this.vertex_animdata) {
       let vd = this.vertex_animdata[k];
 
@@ -817,7 +857,7 @@ export class SplineFrameSet extends DataBlock {
 
   //upload or download vertex animation data, depending on 
   //if ctx.spline refers to this.spline or not
-  on_ctx_update(ctx) {
+  on_ctx_update(ctx: BaseContext) {
     console.trace("on_ctx_update");
 
     if (ctx.spline === this.spline) {
@@ -862,7 +902,7 @@ export class SplineFrameSet extends DataBlock {
     this.spline.resolve = resolve;
   }
 
-  update_frame(force_update) {
+  update_frame(force_update?: boolean) {
     this.check_vdata_integrity();
 
     let time = this.time;
@@ -904,7 +944,7 @@ export class SplineFrameSet extends DataBlock {
     this.update_visibility();
   }
 
-  insert_frame(time) {
+  insert_frame(time: number) {
     this.check_vdata_integrity();
 
     //for now, let's not allow multiple topologies
@@ -965,7 +1005,7 @@ export class SplineFrameSet extends DataBlock {
   }
 
   //off defaults to 0
-  find_frame(time, off) {
+  find_frame(time: number, off?: number) {
     off = off === undefined ? 0 : off;
 
     let flist = this.framelist;
@@ -979,7 +1019,7 @@ export class SplineFrameSet extends DataBlock {
     return frames[i];
   }
 
-  change_time(time, _update_animation = true) {
+  change_time(time: number, _update_animation = true) {
     if (!window.inFromStruct && _update_animation) {
       this.update_frame();
     }
@@ -1146,7 +1186,7 @@ export class SplineFrameSet extends DataBlock {
     this.vertex_animdata = {};
   }
 
-  get_vdata(eid, auto_create = true): VertexAnimData {
+  get_vdata(eid: number, auto_create = true): VertexAnimData {
     if (typeof eid  !== "number") {
       throw new Error("Expected a number for eid");
     }
@@ -1160,7 +1200,7 @@ export class SplineFrameSet extends DataBlock {
 
   //checks keyframe spline data for topology errors vis-a-vis time
   //veid is optional, defaults to undefined
-  check_vdata_integrity(veid) {
+  check_vdata_integrity(veid?: number) {
     let spline = this.pathspline;
     let found = false;
 
@@ -1258,7 +1298,10 @@ export class SplineFrameSet extends DataBlock {
     //*/
   }
 
-  draw(ctx, g, editor, matrix, redraw_rects, ignore_layers) {
+  /* `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
+     rects; see view2d.ts. */
+  draw(ctx: BaseContext, g: Canvas2D, editor: View2DHandler, matrix: Matrix4,
+       redraw_rects: number[], ignore_layers: boolean) {
     let size = editor.size, pos = editor.pos;
 
     this.draw_anim_paths = editor.draw_anim_paths;
@@ -1295,7 +1338,7 @@ export class SplineFrameSet extends DataBlock {
     return promise;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     window.inFromStruct = true;
 
     reader(this);
@@ -1366,12 +1409,12 @@ export class SplineFrameSet extends DataBlock {
       this.templayerid = this.pathspline.layerset.new_layer().id;
     //this.pathspline.solve();
 
-    let frames = {};
-    let vert_animdata = {};
+    let frames: {[time: number]: SplineFrame} = {};
+    let vert_animdata: {[eid: number]: VertexAnimData} = {};
 
     //ensure sane id generator
     let max_cur = this.idgen.cur_id;
-    let firstframe = undefined;
+    let firstframe: SplineFrame | undefined = undefined;
     for (let i = 0; i < this.frames.length; i++) {
       //if (this.frames[i].spline.idgen === undefined)
       //  this.frames[i].spline.idgen = this.idgen;

@@ -1,7 +1,7 @@
 import {sendNote} from '../path.ux/scripts/widgets/ui_noteframe.js';
 
 export class NotificationManager {
-  label(label : string, description : string) {
+  label(label : string, description? : string) {
     console.warn(label);
     sendNote(g_app_state.ctx.screen, label);
   }

@@ -1,12 +1,13 @@
 "not_a_module";
 "use strict";
 
-var defined_classes = [];
-var defined_tests = new Array();
+var defined_classes: ESClassRegistryEntry[] = [];
+/* Filled by register_test(); utils.ts's do_unit_tests() runs them. */
+var defined_tests: (() => boolean)[] = new Array();
 
 
 if (Array.prototype.remove === undefined) {
-  Array.prototype.remove = function (item, throw_error = true) {
+  Array.prototype.remove = function (this: unknown[], item: unknown, throw_error = true) {
     let idx = this.indexOf(item);
 
     if (idx < 0) {
@@ -32,24 +33,34 @@ if (Array.prototype.remove === undefined) {
   }
 }
 
-function register_test(obj) {
+function register_test(obj: () => boolean) {
   defined_tests.push(obj);
 }
 
 //a mini module!
 window._ESClass = (function() {
-  function ClassGetter(func) {
+  /* The three wrappers Class.get()/set()/static() hand back, plus the one
+     Class.symbol() does. Local to the IIFE, as they were. */
+  interface MethodWrapper {
+    func: Function;
+  }
+  interface SymbolWrapper {
+    symbol: symbol;
+    func: Function;
+  }
+
+  function ClassGetter(this: MethodWrapper, func: Function) {
     this.func = func;
   }
-  function ClassSetter(func) {
+  function ClassSetter(this: MethodWrapper, func: Function) {
     this.func = func;
   }
 
-  var StaticMethod = function StaticMethod(func) {
+  var StaticMethod = function StaticMethod(this: MethodWrapper, func: Function) {
     this.func = func;
   };
-    
-  var SymbolMethod = function SymbolMethod(symbol, func) {
+
+  var SymbolMethod = function SymbolMethod(this: SymbolWrapper, symbol: symbol | symbol[], func: Function) {
     if (typeof symbol === "object" && Array.isArray(symbol)) {
       symbol = symbol[0];
     }
@@ -58,7 +69,7 @@ window._ESClass = (function() {
     this.func = func;
   };
 
-  var handle_statics = function(cls, parent) {
+  var handle_statics = function(cls: Function, parent?: Function) {
     for (var k in cls.prototype) {
       if (cls.prototype[k] instanceof StaticMethod) {
         var func = cls.prototype[k];
@@ -102,7 +113,7 @@ window._ESClass = (function() {
     }
     
     var construct = undefined;
-    var ownmethods = {}
+    var ownmethods: {[name: string]: Function} = {}
 
     for (var i=0; i<methods.length; i++) {
       var f = methods[i];
@@ -157,11 +168,12 @@ window._ESClass = (function() {
       p = p.__parent__;
     }
     
-    var getters = {};
-    var setters = {};
-    var getset = {};
-    
-    var statics = {}
+    var getters: {[name: string]: Function} = {};
+    var setters: {[name: string]: Function} = {};
+    /* A set, not a map: the value is only ever 1. */
+    var getset: {[name: string]: number} = {};
+
+    var statics: {[name: string]: Function} = {}
     
     //handle getters/setters
     for (var i=0; i<methods.length; i++) {
@@ -239,7 +251,7 @@ window._ESClass = (function() {
     return construct;
   };
 
-  Class.register = function(cls) {
+  Class.register = function(cls: ESClassRegistryEntry) {
       cls.prototype.__prototypeid__ = Class.__prototype_idgen++;
 
       //if (cls.prototype.prototype !== undefined) {
@@ -252,29 +264,31 @@ window._ESClass = (function() {
       defined_classes.push(cls);
   }
 
-  Class.get = function(func) {
+  Class.get = function(func: Function) {
     return new ClassGetter(func);
   }
-  
-  Class.set = function(func) {
+
+  Class.set = function(func: Function) {
     return new ClassSetter(func);
   }
-  
+
   Class.__prototype_idgen = 1;
 
-  Class.static = Class.static_method = function(func) {
+  Class.static = Class.static_method = function(func: Function) {
     func._is_static_method = true;
     return new StaticMethod(func);
   };
 
-  Class.symbol = function(symbol, func) {
+  Class.symbol = function(symbol: symbol | symbol[], func: Function) {
     return new SymbolMethod(symbol, func);
   };
   
   return Class;
 })();
 
-function mixin(child, parent) {
+/* Copies parent's whole prototype chain onto child's prototype, skipping any
+   key child already has. Used where real inheritance was not an option. */
+function mixin(child: Function, parent: Function) {
   let ok = 1;
 
   while (ok) {
@@ -302,7 +316,7 @@ function mixin(child, parent) {
   }
 }
 
-function define_static(obj, name, val) {
+function define_static(obj: Function, name: string, val: unknown) {
   obj[name] = val;
 
   if (obj.__statics__) {
@@ -314,7 +328,9 @@ function define_static(obj, name, val) {
   }
 }
 
-function __instance_of(child, parent) {
+/* instanceof that also understands the __subclass_map__ the _ESClass factory
+   above builds, for classes that never made it onto a real prototype chain. */
+function __instance_of(child: unknown, parent: Function | undefined) {
   if (child instanceof parent)
     return true;
 
@@ -335,7 +351,15 @@ function __instance_of(child, parent) {
 var instance_of = __instance_of;
 
 //a basic array iterator utility function
-var arr_iter = function arr_iter(keys)
+interface ArrIter {
+  ret: {done: boolean; value: unknown};
+  keys: unknown[];
+  cur: number;
+  [Symbol.iterator](): ArrIter;
+  next(): {done: boolean; value: unknown};
+}
+
+var arr_iter = function arr_iter(this: ArrIter, keys: unknown[])
 {
   this.ret = {done : false, value : undefined};
   this.keys = keys;
@@ -383,7 +407,7 @@ var __sp_ws = {
 }
 
 if (String.prototype.trimRight == undefined) {
-  String.prototype.trimRight = function() {
+  String.prototype.trimRight = function(this: string) {
     var i = this.length-1;
     
     while (i >= 0 && this[i] in __sp_ws) {
@@ -395,7 +419,7 @@ if (String.prototype.trimRight == undefined) {
 }
 
 if (String.prototype.trimLeft == undefined) {
-  String.prototype.trimLeft = function() {
+  String.prototype.trimLeft = function(this: string) {
     var i = 0;
     
     while (i < this.length && this[i] in __sp_ws) {
@@ -409,7 +433,7 @@ if (String.prototype.trimLeft == undefined) {
 //for in loops were always a pain
 //unfortunately, we still have to expand
 //them for generator code to work
-function __get_in_iter(obj) {
+function __get_in_iter(obj: object) {
   if (obj == undefined) {
     console.trace();
     print_stack();
@@ -427,7 +451,7 @@ function __get_in_iter(obj) {
   
   keyword is either "in" or "of"
 */
-function __get_iter(obj) //, file, line, keyword)
+function __get_iter(obj: object) //, file, line, keyword)
 {
   if (obj == undefined) {
     console.trace();
@@ -451,10 +475,13 @@ function __get_iter(obj) //, file, line, keyword)
 }
 
 class _KeyValIterator {
-  ret : Object
+  /* One reused result object; `value` is the same [key, val] pair each time. */
+  ret : {done: boolean; value: [string, unknown] | undefined}
   i : number;
+  obj : {[key: string]: unknown};
+  keys : string[];
 
-  constructor(obj) {
+  constructor(obj: {[key: string]: unknown}) {
     this.ret = {done : false, value : [undefined, undefined]};
     this.i = 0;
     this.obj = obj;
@@ -485,7 +512,7 @@ class _KeyValIterator {
   }
 }
 
-var Iterator = function(obj) {
+var Iterator = function(obj: {[key: string]: unknown}) {
   if (Symbol.iterator in obj) {
     return obj[Symbol.iterator]();
   } else {
@@ -493,14 +520,14 @@ var Iterator = function(obj) {
   }
 }
 
-function define_docstring(func, docstr) {
+function define_docstring(func: Function, docstr: string) {
   func.__doc__ = docstr;
   
   return func;
 }
 
 //XXX do I ever use this?
-function __bind_super_prop(obj, cls, parent, prop) {
+function __bind_super_prop(obj: object, cls: Function, parent: Function, prop: string) {
   var descr = Object.getOwnPropertyDescriptor(parent.prototype, prop);
   
   if (descr == undefined) 

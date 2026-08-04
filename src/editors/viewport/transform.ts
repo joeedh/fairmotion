@@ -26,15 +26,33 @@ var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
 import {TransSplineVert} from "./transform_spline.js";
+import type {FullContext} from '../../core/context.js';
+import type {TransUndoData} from './transdata.js';
+
+/* The per-invocation scratch a modal transform keeps between mouse events. */
+export type TransformModalTemp = {
+  start_mpos? : Vector2,
+  mpos? : Vector2,
+  last_mpos? : Vector2,
+  draw_minmax? : MinMax
+};
 
 
 //let
 export class TransformOp extends ToolOp {
-  types: Array
+  types: (typeof TransDataType)[]
   first_viewport_redraw: boolean
-  modalTemp: Object;
+  modalTemp: TransformModalTemp;
 
-  constructor(start_mpos: Array<float>, datamode: int) {
+  /* True until the first on_mousemove, which seeds modalTemp. */
+  first : boolean;
+  /* Screen-space mouse position handed in by the caller instead of being
+     picked up from the first modal event. */
+  user_start_mpos : Vector2 | number[] | undefined;
+  transdata : TransData | undefined;
+  _undo : TransUndoData;
+
+  constructor(start_mpos? : number[], datamode? : number) {
     super();
 
     this.first = true;
@@ -53,7 +71,7 @@ export class TransformOp extends ToolOp {
     this.modalTemp = {};
   }
 
-  static invoke(ctx: FullContext, args: Object) {
+  static invoke(ctx: FullContext, args : {[k : string] : unknown}) {
     if (args.datamode === "selectmode") {
       args.datamode = ctx.selectmode;
     }
@@ -170,7 +188,7 @@ export class TransformOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  modalEnd(was_cancelled) {
+  modalEnd(was_cancelled? : boolean) {
     let ctx = this.modal_ctx;
 
     ctx.appstate.popModalState(ModalStates.TRANSFORMING);
@@ -297,7 +315,7 @@ export class TransformOp extends ToolOp {
     }
   }
 
-  draw_helper_lines(md: ObjLit, ctx: Context) {
+  draw_helper_lines(md : TransformModalTemp, ctx : FullContext) {
     this.reset_drawlines();
 
     /*
@@ -342,7 +360,7 @@ export class TransformOp extends ToolOp {
     }
   }
 
-  on_keydown(event: MouseEvent) {
+  on_keydown(event : KeyboardEvent) {
     console.log(event.keyCode);
 
     let propdelta = 15;
@@ -406,7 +424,7 @@ export class TransformOp extends ToolOp {
 //import {TPropFlags} from 'toolprops';
 
 export class TranslateOp extends TransformOp {
-  constructor(user_start_mpos: Array<float>, datamode: int) {
+  constructor(user_start_mpos? : number[], datamode? : number) {
     super(user_start_mpos, datamode);
   }
 
@@ -423,7 +441,7 @@ export class TranslateOp extends TransformOp {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     let first = this.first;
 
     super.on_mousemove(event);
@@ -469,7 +487,7 @@ export class TranslateOp extends TransformOp {
     this.post_mousemove(event);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
 
     let mat = new Matrix4();
@@ -498,7 +516,7 @@ export class TranslateOp extends TransformOp {
 }
 
 export class NonUniformScaleOp extends TransformOp {
-  constructor(user_start_mpos: Array<float>, datamode: int) {
+  constructor(user_start_mpos? : number[], datamode? : number) {
     super(user_start_mpos, datamode);
   }
 
@@ -515,7 +533,7 @@ export class NonUniformScaleOp extends TransformOp {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp;
@@ -540,7 +558,7 @@ export class NonUniformScaleOp extends TransformOp {
     this.draw_helper_lines(this.modalTemp, this.modal_ctx);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
 
     let mat = new Matrix4();
@@ -576,11 +594,11 @@ export class NonUniformScaleOp extends TransformOp {
 }
 
 export class ScaleOp extends TransformOp {
-  constructor(user_start_mpos: Array<float>, datamode: int) {
+  constructor(user_start_mpos? : number[], datamode? : number) {
     super(user_start_mpos, datamode);
   }
 
-  static invoke(ctx: FullContext, args: Object) {
+  static invoke(ctx : FullContext, args : {[k : string] : unknown}) {
     if (args.datamode === "selectmode") {
       args.datamode = ctx.selectmode;
     }
@@ -594,7 +612,7 @@ export class ScaleOp extends TransformOp {
     return ret;
   }
 
-  loadDefaults(ctx) {
+  loadDefaults(ctx : FullContext) {
     super.loadDefaults(ctx);
 
     this.inputs.scaleLineWidths.setValue(ctx.settings.getToolOpSetting(this, "scaleLineWidths", this.inputs.scaleLineWidths.getValue()));
@@ -614,7 +632,7 @@ export class ScaleOp extends TransformOp {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp;
@@ -637,7 +655,7 @@ export class ScaleOp extends TransformOp {
     this.post_mousemove(event);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
 
     let mat = new Matrix4();
@@ -675,7 +693,7 @@ export class ScaleOp extends TransformOp {
 export class RotateOp extends TransformOp {
   angle_sum: number;
 
-  constructor(user_start_mpos: Array<float>, datamode: int) {
+  constructor(user_start_mpos? : number[], datamode? : number) {
     super(user_start_mpos, datamode);
     this.angle_sum = 0.0;
   }
@@ -693,7 +711,7 @@ export class RotateOp extends TransformOp {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp;
@@ -721,7 +739,7 @@ export class RotateOp extends TransformOp {
     this.post_mousemove(event);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
 
     let mat = new Matrix4();

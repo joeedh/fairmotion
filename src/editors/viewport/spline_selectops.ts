@@ -16,6 +16,17 @@ import {
 } from '../../curve/spline_types.js';
 import {redraw_element} from '../../curve/spline_draw.js';
 import {get_vtime} from '../../core/animdata.js';
+import type {FullContext} from '../../core/context.js';
+import type {SplineElement} from '../../curve/spline_base.js';
+
+/* The selected eids, with the four active-element eids hung off the array
+   itself -- which is how the original JS wrote it. */
+export type SelectUndo = number[] & {
+  active_vert    : number,
+  active_handle  : number,
+  active_segment : number,
+  active_face    : number,
+};
 
 export let SelOpModes = {
   AUTO    : 0,
@@ -24,7 +35,11 @@ export let SelOpModes = {
 };
 
 export class SelectOpBase extends ToolOp {
-  constructor(datamode, do_flush, uiname) {
+  _undo : SelectUndo;
+
+  /* NOTE: ToolOp's constructor takes no arguments; both of these are ignored
+     (UnhideOp does the same). */
+  constructor(datamode? : number, do_flush? : boolean, uiname? : string) {
     super(undefined, uiname);
 
     if (datamode !== undefined)
@@ -43,7 +58,7 @@ export class SelectOpBase extends ToolOp {
     }
   }
 
-  static invoke(ctx, args) {
+  static invoke(ctx : FullContext, args : {selectmode? : number}) {
     let datamode;
 
     let ret = super.invoke(ctx, args);
@@ -59,7 +74,7 @@ export class SelectOpBase extends ToolOp {
     return ret;
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     let spline = ctx.spline;
     let ud = this._undo = []
 
@@ -81,7 +96,7 @@ export class SelectOpBase extends ToolOp {
     ud.active_face = spline.faces.active !== undefined ? spline.faces.active.eid : -1;
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     let ud = this._undo;
     let spline = ctx.spline;
 
@@ -108,7 +123,7 @@ export class SelectOpBase extends ToolOp {
 }
 
 export class SelectOneOp extends SelectOpBase {
-  constructor(e: SplineElement = undefined, unique = true, mode = true, datamode = 0, do_flush = false) {
+  constructor(e? : SplineElement, unique = true, mode = true, datamode = 0, do_flush = false) {
     super(datamode, do_flush, "Select Element");
 
     this.inputs.unique.setValue(unique);
@@ -132,7 +147,7 @@ export class SelectOneOp extends SelectOpBase {
     }
   }
 
-  exec(ctx: Context) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
     let e = spline.eidmap[this.inputs.eid.data];
 
@@ -178,19 +193,21 @@ export class ToggleSelectAllOp extends SelectOpBase {
     return {
       uiname  : "Toggle Select All",
       toolpath: "spline.toggle_select_all",
+      /* NOTE: `Icons` is not imported in this module, so evaluating this
+         tooldef (and CircleSelectOp's below) throws ReferenceError. */
       icon    : Icons.TOGGLE_SEL_ALL,
 
       inputs: ToolOp.inherit({})
     }
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     super.undo_pre(ctx);
 
     redraw_viewport();
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("toggle select!");
 
     let spline = ctx.spline;
@@ -254,7 +271,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
 }
 
 export class SelectLinkedOp extends SelectOpBase {
-  constructor(mode, datamode) {
+  constructor(mode? : number, datamode? : number) {
     super(datamode);
 
     if (mode !== undefined)
@@ -272,13 +289,13 @@ export class SelectLinkedOp extends SelectOpBase {
     }
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     super.undo_pre(ctx);
 
     window.redraw_viewport();
   }
 
-  exec(ctx: ToolContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     let v = spline.eidmap[this.inputs.vertex_eid.data];
@@ -291,7 +308,7 @@ export class SelectLinkedOp extends SelectOpBase {
     let visit = new set();
     let verts = spline.verts;
 
-    function recurse(v) {
+    function recurse(v : SplineVertex) {
       visit.add(v);
 
       verts.setselect(v, state);
@@ -320,7 +337,7 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
     }
   }
 
-  modalStart(ctx) {
+  modalStart(ctx : FullContext) {
     console.log("Select linked pick", ctx);
     this.modalEnd();
 
@@ -352,7 +369,7 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
 //selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;
 
 export class HideOp extends SelectOpBase {
-  constructor(mode, ghost) {
+  constructor(mode? : number, ghost? : boolean) {
     super(undefined, undefined, "Hide");
 
     if (mode != undefined)
@@ -375,12 +392,12 @@ export class HideOp extends SelectOpBase {
     }
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     super.undo_pre(ctx);
     window.redraw_viewport();
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     let ud = this._undo;
     let spline = ctx.spline;
 
@@ -394,7 +411,7 @@ export class HideOp extends SelectOpBase {
     window.redraw_viewport();
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = ctx.spline;
 
     let mode = this.inputs.selmode.data;
@@ -425,7 +442,10 @@ export class HideOp extends SelectOpBase {
 }
 
 export class UnhideOp extends ToolOp {
-  constructor(mode, ghost) {
+  /* Flat [eid, flag] pairs for every element that was hidden. */
+  _undo : number[];
+
+  constructor(mode? : number, ghost? : boolean) {
     super(undefined, "Unhide");
 
     if (mode != undefined)
@@ -450,7 +470,7 @@ export class UnhideOp extends ToolOp {
     }
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     let ud = this._undo = [];
     let spline = ctx.spline;
 
@@ -466,7 +486,7 @@ export class UnhideOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     let ud = this._undo;
     let spline = ctx.spline;
 
@@ -477,6 +497,8 @@ export class UnhideOp extends ToolOp {
 
       e.flag |= flag;
 
+      /* NOTE: `selstate` is not declared anywhere; undoing an Unhide throws
+         ReferenceError as soon as one selected element comes back. */
       if (flag & SplineFlags.SELECT)
         spline.setselect(e, selstate);
     }
@@ -484,7 +506,7 @@ export class UnhideOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = ctx.spline;
     let layer = spline.layerset.active;
 
@@ -515,13 +537,23 @@ export class UnhideOp extends ToolOp {
   }
 }
 
+/* NOTE: CollectionProperty is already imported at the top of the file. */
 import {CollectionProperty} from '../../core/toolprops.js';
 import {ElementRefSet} from '../../curve/spline_types.js';
 
 let _last_radius = 45;
 
 export class CircleSelectOp extends SelectOpBase {
-  constructor(datamode, do_flush = true) {
+  /* Screen-space mouse position, in the editor's own coordinates. */
+  mpos : Vector3;
+  mdown : boolean;
+  /* Whether the brush selects or deselects.  on_mousedown assigns the result
+     of a `^`, so this is a number half the time. */
+  sel_or_unsel : boolean | number;
+  /* Brush radius in px; persisted across invocations in _last_radius. */
+  radius : number;
+
+  constructor(datamode? : number, do_flush = true) {
     super(datamode, do_flush, "Circle Select");
 
     if (isNaN(_last_radius) || _last_radius <= 0)
@@ -556,7 +588,7 @@ export class CircleSelectOp extends SelectOpBase {
     }
   }
 
-  start_modal(ctx) {
+  start_modal(ctx : FullContext) {
     this.radius = _last_radius;
 
     let mpos = ctx.view2d.mpos;
@@ -564,7 +596,7 @@ export class CircleSelectOp extends SelectOpBase {
       this.on_mousemove({x: mpos[0], y: mpos[1]});
   }
 
-  on_mousewheel(e) {
+  on_mousewheel(e : WheelEvent) {
     let dt = e.deltaY;
 
     dt *= 0.2;
@@ -604,7 +636,7 @@ export class CircleSelectOp extends SelectOpBase {
     window.redraw_viewport();
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = ctx.spline;
     let eset_add = this.inputs.add_elements;
     let eset_sub = this.inputs.sub_elements;
@@ -629,7 +661,7 @@ export class CircleSelectOp extends SelectOpBase {
     }
   }
 
-  do_sel(sel_or_unsel) {
+  do_sel(sel_or_unsel : boolean | number) {
     let datamode = this.inputs.datamode.data;
     let ctx = this.modal_ctx, spline = ctx.spline;
     let editor = ctx.view2d;
@@ -677,7 +709,7 @@ export class CircleSelectOp extends SelectOpBase {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : {x : number, y : number}) {
     let ctx = this.modal_ctx;
     let spline = ctx.spline;
     let editor = ctx.view2d;
@@ -700,13 +732,15 @@ export class CircleSelectOp extends SelectOpBase {
     this.exec(ctx);
   }
 
-  end_modal(ctx) {
+  /* NOTE: the base parameter is `cancelled`, not a context. */
+  end_modal(ctx? : boolean) {
     super.end_modal(ctx);
 
     _last_radius = this.radius;
   }
 
-  on_keydown(event) {
+  /* NOTE: `charmap` is not imported in this module either. */
+  on_keydown(event : KeyboardEvent) {
     console.log(event.keyCode);
     let ctx = this.modal_ctx;
     let spline = ctx.spline;
@@ -733,7 +767,7 @@ export class CircleSelectOp extends SelectOpBase {
     }
   }
 
-  on_mousedown(event) {
+  on_mousedown(event : MouseEvent) {
     let auto = this.inputs.mode.get_data() == SelOpModes.AUTO;
 
     console.log("auto", auto);
@@ -745,7 +779,7 @@ export class CircleSelectOp extends SelectOpBase {
     this.mdown = true;
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : MouseEvent) {
     console.log("modal end!");
     this.mdown = false;
     this.end_modal();

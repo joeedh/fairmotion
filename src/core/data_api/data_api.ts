@@ -1,10 +1,12 @@
 import {ToolOpAbstract, ToolOp, ToolMacro} from '../toolops_api.js';
 
-export var toolmap = {};
-export var toollist = [];
+/* Every tool lands in toolmap under both its apiname and its toolpath, so the
+   same class shows up under two keys. */
+export var toolmap: {[name: string]: typeof ToolOp} = {};
+export var toollist: Array<typeof ToolOp> = [];
 
 export function register_toolops() {
-  function isTool(t : Function) {
+  function isTool(t: ESClassRegistryEntry): t is typeof ToolOp {
     if (t.tooldef === undefined || !t.hasOwnProperty("tooldef") || t.tooldef === ToolOp.tooldef)
       return false;
 

@@ -17,12 +17,17 @@ window.STRUCT_ENDIAN = false;
 console.log(nstructjs)
 nstructjs.setEndian(false);
 
-export class arraybufferCompat extends Array {
+/* Files written before ArrayBuffer had a struct type stored the bytes in a
+   `_data` member. The array itself is the value; _data is scratch. */
+export class arraybufferCompat extends Array<byte> {
+  static STRUCT: string;
+  _data: byte[] = [];
+
   constructor() {
     super();
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     this.length = 0;
@@ -54,7 +59,7 @@ class Mat4Compat extends Matrix4 {
     super();
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<Matrix4>) {
     let ret = new Matrix4();
     reader(ret);
     ret.$matrix = ret._matrix;
@@ -71,7 +76,9 @@ Mat4Compat {
 `;
 
 export class Mat4Intern {
-  loadSTRUCT(reader) {
+  static STRUCT: string;
+
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 }
@@ -96,28 +103,41 @@ mat4_intern {
 }
 `;
 
-let vecpatches = [];
+/*
+ * A stand-in nstructjs registration for a vectormath class. path.ux's vectors
+ * carry their own STRUCT scripts, which we deliberately do not parse (see
+ * init_struct_packer below), so old files that name vec2/vec3/vec4/quat need
+ * something to read them back into.
+ */
+interface VecPatch {
+  fromSTRUCT(reader: Function): object;
+  prototype: object;
+  STRUCT: string;
+  name: string;
+  _structName: string;
+  structName?: string;
+}
 
-function makeVecPatch(cls, size, name) {
-  let dummycls = {
-    fromSTRUCT(reader : Function) {
-      let ret = new cls();
-      reader(ret);
-      return ret;
-    },
-    prototype : {}
-  };
+let vecpatches: VecPatch[] = [];
 
-
+function makeVecPatch(cls: new () => object, size: int, name: string) {
   let s = "_"+name + "{\n";
   for (let i=0; i<size; i++) {
     s += `  ${i} : float;\n`
   }
   s += "}\n";
 
-  //console.log(s);
-  dummycls.STRUCT = s;
-  dummycls._structName = dummycls.name = name;
+  let dummycls: VecPatch = {
+    fromSTRUCT(reader : Function) {
+      let ret = new cls();
+      reader(ret);
+      return ret;
+    },
+    prototype   : {},
+    STRUCT      : s,
+    name        : name,
+    _structName : name
+  };
 
   vecpatches.push(dummycls);
 }
@@ -130,7 +150,7 @@ makeVecPatch(Vector4, 4, "quat");
 /*backwards compatibility for files saved with older in-house STRUCT implementation*/
 
 let _old = nstructjs.STRUCT.prototype.parse_structs;
-nstructjs.STRUCT.prototype.parse_structs = function(buf : string, defined_classes) {
+nstructjs.STRUCT.prototype.parse_structs = function(this: nstructjs.STRUCT, buf : string) {
   window._fstructs = buf;
 
   buf = patch_dataref_type(buf);
@@ -166,10 +186,12 @@ export function gen_struct_str() {
   return nstructjs.write_scripts(window.istruct);
 }
 
-window.init_struct_packer = function() {
+window.init_struct_packer = function(): void {
   init_toolop_structs();
 
-  var errs = [];
+  /* Registration failures are collected rather than thrown, so that one bad
+     STRUCT script does not hide the rest. The last one is rethrown below. */
+  var errs: [Error, ESClassRegistryEntry][] = [];
 
   ////dataref\([a-zA-Z0-9_$]+\)/g
   let buf = "";
@@ -183,13 +205,14 @@ window.init_struct_packer = function() {
   window._struct_scripts = buf;
 
   //toolops are registered with nstructjs elsewhere
-  let isToolOp = (cls) => {
+  let isToolOp = (cls: Function): boolean => {
     if (cls === ToolOp) {
       return true;
     }
 
-    if (cls.__proto__ !== Object && cls.__proto__ !== Object.__proto__) {
-      return isToolOp(cls.__proto__);
+    let parent = Object.getPrototypeOf(cls);
+    if (parent !== Object && parent !== Object.getPrototypeOf(Object)) {
+      return isToolOp(parent);
     }
 
     return false;
@@ -216,8 +239,10 @@ window.init_struct_packer = function() {
         console.log("cls.structName: ", cls.structName)
         print_stack(err);
         console.log("Error parsing struct: " + err.message);
-      } else {
+      } else if (err instanceof Error) {
         errs.push([err, cls]);
+      } else {
+        throw err;
       }
     }
   }
@@ -248,7 +273,7 @@ window.init_struct_packer = function() {
       continue;
     }
 
-    safe_global[k] = window[k];
+    safe_global[k] = Reflect.get(window, k);
   }
 }
 

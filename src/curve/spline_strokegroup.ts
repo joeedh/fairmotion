@@ -8,13 +8,25 @@ import {
 
 import {SplineLayerFlags} from './spline_element_array.js';
 
+import type {Spline} from './spline.js';
+
 let hashcache = util.cachering.fromConstructor(util.HashDigest, 8);
 
-export class SplineStrokeGroup {
-  hash: int;
-  segments: Array<SplineSegment>;
+/* A run of segments joined end to end through two-valence vertices, all sharing
+   the same material and layer.  The renderer strokes one of these at a time.
 
-  constructor(segs) {
+   `hash` is derived from the member eids, and is what lets a rebuild reuse the
+   previous group object when the run has not changed. */
+export class SplineStrokeGroup {
+  static STRUCT : string;
+
+  hash : number;
+  segments : Array<SplineSegment>;
+  /* The segments' eids; the serialized form of `segments`. */
+  eids : number[];
+  id : number;
+
+  constructor(segs? : Iterable<SplineSegment>) {
     this.hash = -1;
     this.segments = [];
     this.eids = [];
@@ -38,7 +50,7 @@ export class SplineStrokeGroup {
     this.hash = SplineStrokeGroup.calcHash(this.segments);
   }
 
-  static calcHash(segments) {
+  static calcHash(segments : Iterable<SplineSegment>) {
     let hash = hashcache.next().reset();
 
     for (let s of segments) {
@@ -58,11 +70,11 @@ export class SplineStrokeGroup {
     return hash.get();
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 
-  afterSTRUCT(spline) {
+  afterSTRUCT(spline : Spline) {
     let eids = this.eids;
 
     this.segments.length = 0;
@@ -97,8 +109,13 @@ let _color1 = new Vector4();
 let _color2 = new Vector4();
 
 /** Note: v is only required if third segments parameter is not used. */
-export function vertexIsSplit(spline, v, segments = v.segments) {
-  function visible(seg) {
+/* Returns a truthy reason code if the given segments cannot share one stroke
+   group -- 1 visibility, 2 stroke color, 3 mask-to-face, 4 blur, 5
+   fill-over-stroke, 6 second line width, 7 second stroke color, 8 opacity, 9 no
+   layer in common -- and false when they can. */
+export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
+                              segments : SplineSegment[] = v.segments) {
+  function visible(seg : SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
     hide = hide || (seg.flag & SplineFlags.NO_RENDER);
 
@@ -118,16 +135,17 @@ export function vertexIsSplit(spline, v, segments = v.segments) {
     return true;
   }
 
-  let hide;
-  let stroke;
-  let mask_to_face;
-  let blur;
-  let doublewid;
-  let doublecol;
-  let fill_over_stroke;
-  let opacity;
+  /* The previous segment's material state; undefined until the first pass. */
+  let hide : boolean | undefined;
+  let stroke : Vector4 | undefined;
+  let mask_to_face : number | undefined;
+  let blur : number | undefined;
+  let doublewid : number | undefined;
+  let doublecol : Vector4 | undefined;
+  let fill_over_stroke : boolean | undefined;
+  let opacity : number | undefined;
 
-  function fcmp(a, b, l = 0.01) {
+  function fcmp(a : number, b : number, l = 0.01) {
     return Math.abs(a - b) > l;
   }
 
@@ -189,7 +207,7 @@ export function vertexIsSplit(spline, v, segments = v.segments) {
     }
   }
 
-  let layerbad = 9;
+  let layerbad : number | boolean = 9;
 
   outer: for (let s1 of segments) {
     for (let s2 of segments) {
@@ -221,9 +239,11 @@ export function splitSegmentGroups(spline: Spline) {
   let c1 = new Vector4();
   let c2 = new Vector4();
 
-  let tempsegs = [null, null];
+  /* Scratch pair handed to vertexIsSplit(); both slots are overwritten before
+     it is ever read. */
+  let tempsegs : (SplineSegment | null)[] = [null, null];
 
-  function visible(seg) {
+  function visible(seg : SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
     hide = hide || (seg.flag & SplineFlags.NO_RENDER);
 
@@ -241,7 +261,7 @@ export function splitSegmentGroups(spline: Spline) {
 
   const drawStrokeVertSplits = spline._drawStrokeVertSplits;
 
-  function finishSegs(segs) {
+  function finishSegs(segs : SplineSegment[]) {
     if (segs.length === 0) {
       return;
     }
@@ -270,7 +290,7 @@ export function splitSegmentGroups(spline: Spline) {
     }
 
     let hash = SplineStrokeGroup.calcHash(segs);
-    let group;
+    let group : SplineStrokeGroup;
 
     /* Reuse old groups if hash compatible. */
     if (oldstrokes.has(hash)) {
@@ -309,7 +329,7 @@ export function splitSegmentGroups(spline: Spline) {
 
     seg = group.segments[i];
 
-    let segs = [];
+    let segs : SplineSegment[] = [];
 
     while (i < group.segments.length) {
       let s = group.segments[i];
@@ -381,9 +401,13 @@ export function splitSegmentGroups(spline: Spline) {
   //spline.strokeGroups = spline.strokeGroups.filter(g => g.segments.length > 0);
 }
 
-export function buildSegmentGroups(spline: Spline) {
-  let roots = new Set();
-  let visit = new Set();
+/* Rebuilds spline.strokeGroups from the topology alone: every run of segments
+   between two non-two-valence vertices becomes a group, then any closed loop
+   nothing reached becomes one too. */
+export function buildSegmentGroups(spline : Spline) {
+  /* Vertices that start a run: valence 1, or 3 and up. */
+  let roots = new Set<SplineVertex>();
+  let visit = new Set<SplineSegment>();
 
   let oldstrokes = spline._strokeGroupMap;
 
@@ -401,7 +425,7 @@ export function buildSegmentGroups(spline: Spline) {
     roots.add(v);
   }
 
-  let vvisit = new Set();
+  let vvisit = new Set<SplineVertex>();
 
   let doseg = (v: SplineVertex) => {
     let startv = v;
@@ -493,6 +517,9 @@ export function buildSegmentGroups(spline: Spline) {
       }
     }
 
+    /* NOTE: SplineStrokeGroup has no `length`, so this is always undefined ===
+       0 and no empty group is ever dropped.  The test wants
+       g.segments.length. */
     if (g.length === 0) {
       groups[i] = groups[groups.length - 1];
       groups.length--;

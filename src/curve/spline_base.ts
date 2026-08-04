@@ -12,6 +12,9 @@ import '../util/mathlib.js';
 import {DataPathNode} from '../core/eventdag.js';
 import {util} from '../path.ux/scripts/pathux.js';
 
+import type {SplineSegment, SplineVertex} from './spline_types.js';
+import type {ElementArray, SplineLayer} from './spline_element_array.js';
+
 export const MaterialFlags = {
   SELECT      : 1,
   MASK_TO_FACE: 2
@@ -69,8 +72,11 @@ export const IsectModes = {
   ENDSTART: 3
 };
 
+/* Placeholder for a layer type that declares no shared data. */
 export class empty_class {
-  static fromSTRUCT(reader: Function) {
+  static STRUCT: string;
+
+  static fromSTRUCT(reader: StructReader<empty_class>) {
     let ret = new empty_class();
     reader(ret);
     return ret;
@@ -85,34 +91,63 @@ empty_class.STRUCT = `
 let _gtl_co = new Vector2();
 let _gtl_vec = new Vector2();
 
+/* What a CustomDataLayer subclass's define() returns. */
+export interface CustomDataLayerDef {
+  typeName: string;
+  hasCurveEffect: boolean;
+  /* Instantiated once per layer, not once per element. */
+  sharedClass: new () => object;
+  /* Stamped on by _getDef() so an inherited define() is not mistaken for the
+     subclass's own. */
+  clsname?: string;
+}
+
+/* A layer type as it is stored: CustomData keeps the constructors, not
+   instances, and news one per element. */
+export interface LayerTypeClass {
+  new (): CustomDataLayer;
+
+  _getDef(): CustomDataLayerDef;
+}
+
 export class CustomDataLayer {
+  static STRUCT: string;
+  /* Cached define(), keyed by class name; see _getDef(). */
+  static __define: CustomDataLayerDef;
+
+  /* The per-layer instance of the type's sharedClass. */
+  shared: object | undefined;
+
   constructor() {
     this.shared = undefined;
   }
 
   segment_split(old_segment: SplineSegment, old_v1: SplineVertex, old_v2: SplineVertex,
-                new_segments: Array<SplineSegment>) {
+                new_segments: SplineSegment[]) {
   }
 
-  update(owner) {
+  update(owner: SplineElement) {
   }
 
-  post_solve(owner) {
+  post_solve(owner: SplineElement) {
   }
 
-  interp(srcs, ws) {
+  /* Weighted blend of the same layer on `srcs` into this one. */
+  interp(srcs: CustomDataLayer[], ws: number[]) {
   }
 
-  copy(src) {
+  copy(src: CustomDataLayer) {
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 
-  curve_effect(owner) {
+  curve_effect(owner: SplineElement) {
   }
 
+  /* Subclasses must override this; the base version is the "not implemented"
+     marker _getDef() checks for. */
   static define() {
     return {
       typeName      : undefined, //string
@@ -121,7 +156,7 @@ export class CustomDataLayer {
     }
   }
 
-  static _getDef() {
+  static _getDef(): CustomDataLayerDef {
     if (this.__define && this.__define.clsname === this.name) {
       return this.__define;
     }
@@ -147,10 +182,26 @@ CustomDataLayer.STRUCT = `
 `;
 
 export class CustomData {
-  callbacks: Object
-  startmap: Object;
+  static STRUCT: string;
 
-  constructor(owner: any, layer_add_callback: Function, layer_del_callback: Function) {
+  /* The ElementArray whose elements carry these layers. */
+  owner: ElementArray<SplineElement>;
+
+  callbacks: {
+    on_add?: (cls: LayerTypeClass, i: number, shared: object) => void;
+    on_del?: (cls: LayerTypeClass, i: number) => void;
+  };
+
+  /* Layer type name -> index of the first layer of that type. */
+  startmap: {[typeName: string]: number};
+
+  layers: LayerTypeClass[];
+  /* One shared-data instance per entry of `layers`, same index. */
+  shared_data: object[];
+
+  constructor(owner: ElementArray<SplineElement>,
+              layer_add_callback: (cls: LayerTypeClass, i: number, shared: object) => void,
+              layer_del_callback: (cls: LayerTypeClass, i: number) => void) {
     this.owner = owner; //owning ElementArray
 
     this.callbacks = {
@@ -173,6 +224,7 @@ export class CustomData {
     }
   }
 
+  /* `name` is accepted and never read -- the layer is keyed by its typeName. */
   add_layer(cls: LayerTypeClass, name: string = cls._getDef().typeName) {
     let templ = cls
 
@@ -236,7 +288,11 @@ export class CustomData {
     return this.layers[this.startmap[type] + i];
   }
 
-  num_layers(type: int) {
+  /* NOTE: the loop below compares `this.layers[i].type`, which no layer class
+     has -- it is a class, and the type name lives on _getDef().typeName. So
+     the loop always stops at the first layer and this returns the first index
+     plus one. */
+  num_layers(type: string) {
     let i = this.get_layer_i(type, 0);
     if (i === undefined || i === -1) return 0;
 
@@ -247,7 +303,7 @@ export class CustomData {
     return i;
   }
 
-  loadSTRUCT(reader: Function) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     //we saved instances; turn back to class constructors
@@ -277,7 +333,7 @@ export class CustomData {
     }
   }
 
-  afterSTRUCT(element_array: SplineElementArray, cdata) {
+  afterSTRUCT(element_array: ElementArray<SplineElement>, cdata: CustomData) {
     for (let e of element_array) {
       let i = 0;
 
@@ -300,38 +356,45 @@ CustomData.STRUCT = `
 const _CustomDataSet_interp_srcs2 = [];
 
 export class CustomDataSet extends Array<CustomDataLayer> {
+  static STRUCT: string;
+
+  /* Only exists between loadSTRUCT()'s reader() call and the delete at the
+     end of it. */
+  arr?: CustomDataLayer[];
+
   constructor() {
     super();
   }
 
-  on_add(cls, i, shared) {
+  on_add(cls: LayerTypeClass, i: number, shared: object) {
     let layer = new cls();
     layer.shared = shared;
 
     this.insert(i, layer);
   }
 
-  get_layer(cls) {
+  get_layer(cls: LayerTypeClass) {
     for (let i = 0; i < this.length; i++) {
       if (this[i].constructor === cls) //._getDef().typeName === type_name)
         return this[i];
     }
   }
 
-  on_del(cls, i) {
+  on_del(cls: LayerTypeClass, i: number) {
     this.pop_u(i);
   }
 
-  get_data(layout, layer_name) {
+  /* Dead stub; nothing calls it and it returns nothing. */
+  get_data(layout: object, layer_name: string) {
   }
 
   //note that old_segment will not be valid, so you can only 
   //access things like flags.  ditto for new_segments.
   on_segment_split(old_segment: SplineSegment, old_v1: SplineVertex,
-                   old_v2: SplineVertex, new_segments: SplineSegment) {
+                   old_v2: SplineVertex, new_segments: SplineSegment[]) {
   }
 
-  interp(srcs: Array<CustomDataSet>, ws: Array<float>) {
+  interp(srcs: CustomDataSet[], ws: number[]) {
     const srcs2 = _CustomDataSet_interp_srcs2;
     while (srcs2.length < srcs.length) {
       srcs2.push(0);
@@ -354,7 +417,7 @@ export class CustomDataSet extends Array<CustomDataLayer> {
     }
   }
 
-  loadSTRUCT(reader: Function) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     for (let i = 0; i < this.arr.length; i++) {
@@ -371,9 +434,10 @@ CustomDataSet.STRUCT = `
 `;
 
 
-let times = {};
+/* Last time each warning id was printed, so flagwarn() can rate-limit. */
+let times: {[id: number]: number} = {};
 
-function flagwarn(msg, id) {
+function flagwarn(msg: string, id: number) {
   if (!(id in times)) {
     times[id] = util.time_ms();
   }
@@ -385,14 +449,17 @@ function flagwarn(msg, id) {
 }
 
 export class SplineElement extends DataPathNode {
+  static STRUCT: string;
+
   cdata: CustomDataSet
   masklayer: number
-  layers: Object
+  /* Set of SplineLayer ids this element belongs to; the value is always 1. */
+  layers: {[layerId: number]: number}
   flag: number
   eid: number
   type: number;
 
-  constructor(type: int) {
+  constructor(type: number) {
     super();
 
     this.type = type;
@@ -472,12 +539,15 @@ export class SplineElement extends DataPathNode {
     return "frameset." + name + suffix;
   }
 
-  in_layer(layer): boolean {
+  in_layer(layer: SplineLayer | undefined): boolean {
     return layer !== undefined && layer.id in this.layers;
   }
 
-  get aabb() {
+  /* Overridden by every concrete element type; the base exists only to catch a
+     subclass that forgot one. */
+  get aabb() : Vector3[] {
     console.trace("Implement Me!");
+    return [];
   }
 
   sethide(state: boolean) {
@@ -512,7 +582,7 @@ export class SplineElement extends DataPathNode {
     }
   }
 
-  loadSTRUCT(reader: Function) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 
@@ -551,17 +621,25 @@ let _gtl_arr = [0, 0];
 //forward declaration
 let flip_wrapper_cache;
 
-let _flip_out_tmp = [0];
+/* Scratch out-param for _get_nextprev().  The root override in EffectWrapper
+   stores a boolean in slot 0 while this initializer is a number, so both are
+   allowed. */
+let _flip_out_tmp : (number | boolean)[] = [0];
 
 //prior is a CurveEffect instance
 export class CurveEffect {
+  /* Effects form a chain: `prior` is the one this one wraps, `child` the one
+     wrapping it. Both ends are undefined. */
+  child: CurveEffect | undefined;
+  prior: CurveEffect | undefined;
+
   constructor() {
     this.child = undefined;
     this.prior = undefined;
   }
 
   //rescale parameter-space interval 'width' from ceff to have same roughly the same size
-  rescale(ceff, width) {
+  rescale(ceff: CurveEffect, width: number) {
     if (this.prior !== undefined)
       return this.prior.rescale(ceff, width);
 
@@ -572,7 +650,7 @@ export class CurveEffect {
     return flip_wrapper_cache.next().bind(this);
   }
 
-  set_parent(p) {
+  set_parent(p: CurveEffect) {
     this.prior = p;
     p.child = this;
   }
@@ -580,7 +658,9 @@ export class CurveEffect {
   //previous segment's effect renderer, if one exists
   //flip_out is private parameter
 
-  _get_nextprev(donext, _flip_out) {
+  /* `_flip_out` is documented as private but is also never read -- the local
+     `flip_out` shadows it with a module-level scratch array. */
+  _get_nextprev(donext: number, _flip_out?: (number | boolean)[]) {
     //find how deep we are in chain
     let i = 0, p = this;
     let flip_out = _flip_out_tmp;
@@ -640,13 +720,13 @@ export class CurveEffect {
     return this._get_nextprev(0);
   }
 
-  evaluate(s) {
+  evaluate(s: number) {
     if (this.prior !== undefined) {
       return this.prior.evaluate(s);
     }
   }
 
-  derivative(s) {
+  derivative(s: number) {
     let df = 0.001;
     let a, b;
 
@@ -662,7 +742,8 @@ export class CurveEffect {
     return b;
   }
 
-  derivative2(s, funcs) {
+  /* `funcs` is accepted and never read. */
+  derivative2(s: number, funcs?: object) {
     let df = 0.001;
     let a, b;
 
@@ -678,14 +759,18 @@ export class CurveEffect {
     return b;
   }
 
-  curvature(s, prior) {
+  /* `prior` is accepted and never read. */
+  curvature(s: number, prior?: CurveEffect) {
     let dv1 = this.derivative(s);
     let dv2 = this.derivative(s);
 
     return (dv2[0]*dv1[1] - dv2[1]*dv1[0])/Math.pow(dv1[0]*dv1[0] + dv1[1]*dv1[1], 3.0/2.0);
   }
 
-  closest_point(p, mode, fast = false) {
+  /* NOTE: the two fallbacks at the bottom read this.v1/this.v2, which
+     CurveEffect does not have -- only the SplineSegment-backed subclasses do.
+     Returns [co, s], or an array of those when mode is ClosestModes.ALL. */
+  closest_point(p: Vector2 | Vector3, mode?: number, fast = false) {
     let minret = undefined, mindis = 1e18, maxdis = 0;
 
     let p2 = closest_point_cache_vs.next().zero();
@@ -850,7 +935,7 @@ export class CurveEffect {
     return minret;
   }
 
-  normal(s) {
+  normal(s: number) {
     let ret = this.derivative(s);
     let t = ret[0];
     ret[0] = -ret[1];
@@ -860,7 +945,8 @@ export class CurveEffect {
     return ret;
   }
 
-  global_to_local(p, no_effects = false, fixed_s = undefined) {
+  /* `no_effects` is accepted and never read. */
+  global_to_local(p: Vector3, no_effects = false, fixed_s?: number) {
     let ret_cache = _gtl_ret_cache;
 
     let arr = _gtl_arr;
@@ -925,7 +1011,7 @@ export class CurveEffect {
     return ret;
   }
 
-  local_to_global(p) {
+  local_to_global(p: Vector3) {
     let s = p[0], t = p[1], a = p[2];
 
     let co = this.evaluate(s);
@@ -939,8 +1025,11 @@ export class CurveEffect {
   }
 }
 
+/* Runs another effect backwards: s becomes 1-s for the outermost call only,
+   which is what `depth` counts. */
 export class FlipWrapper extends CurveEffect {
   depth: number;
+  eff: CurveEffect;
 
   constructor() {
     super();
@@ -948,7 +1037,7 @@ export class FlipWrapper extends CurveEffect {
     this.depth = 0;
   }
 
-  rescale(eff, width) {
+  rescale(eff: CurveEffect, width: number) {
     return this.eff.rescale(eff, width);
   }
 
@@ -970,7 +1059,7 @@ export class FlipWrapper extends CurveEffect {
     return this.eff.prev;
   }
 
-  push(s: float): float {
+  push(s: number): number {
     if (this.depth === 0) {
       s = 1.0 - s;
     }
@@ -980,28 +1069,28 @@ export class FlipWrapper extends CurveEffect {
     return s;
   }
 
-  pop(value: Object): Object {
+  pop<T>(value: T): T {
     this.depth--;
 
     return value;
   }
 
-  evaluate(s: float): Vector3 {
+  evaluate(s: number) {
     s = this.push(s);
     return this.pop(this.eff.evaluate(s));
   }
 
-  derivative(s: float): Vector3 {
+  derivative(s: number) {
     s = this.push(s);
     return this.pop(this.eff.derivative(s));
   }
 
-  normal(s: float): Vector3 {
+  normal(s: number) {
     s = this.push(s);
     return this.pop(this.eff.normal(s));
   }
 
-  curvature(s: float): Vector3 {
+  curvature(s: number) {
     s = this.push(s);
     return this.pop(this.eff.curvature(s));
   }

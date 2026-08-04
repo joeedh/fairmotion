@@ -1,8 +1,10 @@
 import {nstructjs, util, Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/pathux.js';
 import {addFastParameterGet, ShaderProgram, Texture, VBO} from '../webgl/webgl.js';
+import type {WebGLContext} from '../webgl/webgl.js';
 
-export var gl = undefined;
-export var canvas = undefined;
+/* This module keeps its own overlay context, separate from the viewport's. */
+export var gl : WebGLContext | undefined = undefined;
+export var canvas : HTMLCanvasElement | undefined = undefined;
 
 import {ImageDataType, TiledImage} from './imagecanvas.js';
 import {FBO} from '../webgl/fbo.js';
@@ -35,8 +37,15 @@ export const GPURecalcFlags = {
   PULL_FROM_GPU: 1
 };
 
+/* Maps a float range onto the integer range of a `bits`-wide texture. */
 export class ImageMapping {
-  constructor(min, max, bits) {
+  static STRUCT : string;
+
+  min : number;
+  max : number;
+  mul : number;
+
+  constructor(min : number, max : number, bits : number) {
     let mul = (1<<bits) - 1;
 
     this.min = min;
@@ -44,11 +53,11 @@ export class ImageMapping {
     this.mul = (max - min)/mul;
   }
 
-  map(f) {
+  map(f : number) {
     return ~~((f - this.min) * this.mul);
   }
 
-  unmap(f) {
+  unmap(f : number) {
     return f/this.mul + this.min;
   }
 }
@@ -57,16 +66,22 @@ ImageMapping.STRUCT = `
 ImageMapping {
   min : float;
   max : float;
-  mul : float; 
+  mul : float;
 }
 `;
 
 export class FBOCache {
+  /* A cachering per width:height:type key; only next() and iteration are
+     used, so the ring type is spelled structurally. */
+  cache : Map<string, {next() : FBO} & Iterable<FBO>>;
+
   constructor() {
     this.cache = new Map();
   }
 
-  get(gl, width, height, type) {
+  /* NOTE: on a miss this builds the ring but neither stores it in the cache
+     nor returns it, so every first call for a size hands back undefined. */
+  get(gl : WebGLContext, width : number, height : number, type : number) {
     let key = "" + width + ":" + height + ":" + type;
 
     let ring = this.cache.get(key);
@@ -79,7 +94,7 @@ export class FBOCache {
     }, 4);
   }
 
-  purge(gl = window._gl) {
+  purge(gl : WebGLContext = window._gl) {
     for (let ring of this.cache.values()) {
       for (let fbo of ring) {
         fbo.destroy(gl);
@@ -96,8 +111,26 @@ export const fboCache = new FBOCache();
 
 import {TILESIZE} from './imagecanvas_base.js';
 import {SimpleMesh, LayerTypes, PrimitiveTypes} from '../webgl/simplemesh.js';
+import type {GeoLayer} from '../webgl/simplemesh.js';
 
 export class GPUImageTile extends ImageDataType {
+  static STRUCT : string;
+
+  /* One of the DataTypes above; picks both the texture format and the typed
+     array backing `data`. */
+  glType : number;
+  glTex : Texture | undefined;
+  /* The back buffer of the ping-pong pair; see swapBuffers(). */
+  glTex2 : Texture | undefined;
+  ready : boolean;
+  mapping : ImageMapping;
+  recalcFlag : number;
+  data : Uint8Array | Uint16Array | Uint32Array | Float32Array | undefined;
+
+  smesh : SimpleMesh | undefined;
+  sm_screenCo : GeoLayer | undefined;
+  sm_params : GeoLayer | undefined;
+
   constructor(width = TILESIZE, height = TILESIZE) {
     super(width, height);
 
@@ -140,7 +173,7 @@ export class GPUImageTile extends ImageDataType {
     quad.custom(this.sm_screenCo, [0, 0], [0, this.height], [this.width, this.height], [this.width, 0]);
   }
 
-  _makeTex(gl) {
+  _makeTex(gl : WebGLContext) {
     let tex = gl.createTexture();
     tex = new Texture(undefined, tex);
 
@@ -177,7 +210,7 @@ export class GPUImageTile extends ImageDataType {
     return tex;
   }
 
-  destroy(gl = window._gl) {
+  destroy(gl : WebGLContext = window._gl) {
     if (this.glTex) {
       this.glTex.destroy(gl);
       this.glTex = undefined;
@@ -191,7 +224,7 @@ export class GPUImageTile extends ImageDataType {
     this.ready = false;
   }
 
-  init(gl) {
+  init(gl : WebGLContext) {
     if (this.ready) {
       return;
     }
@@ -217,7 +250,7 @@ export class GPUImageTile extends ImageDataType {
     this.recalcFlag |= GPURecalcFlags.PULL_FROM_GPU;
   }
 
-  downloadFromGPU(gl = window._gl) {
+  downloadFromGPU(gl : WebGLContext = window._gl) {
     if (this.data && !(this.recalcFlag & GPURecalcFlags.PULL_FROM_GPU)) {
       return;
     }
@@ -249,7 +282,7 @@ export class GPUImageTile extends ImageDataType {
     fbo.unbind(gl);
   }
 
-  uploadToGPU(gl = window._gl) {
+  uploadToGPU(gl : WebGLContext = window._gl) {
     let data = this.data;
     if (!data) {
       throw new Error("missing image data");
@@ -270,7 +303,7 @@ export class GPUImageTile extends ImageDataType {
     return data;
   }
 
-  decompress(data) {
+  decompress(data? : Uint8Array) {
     return new Promise((accept, reject) => {
       if (!(this.compressedData instanceof Uint8Array)) {
         this.data = new Uint8Array(this.compressedData);
@@ -312,12 +345,14 @@ ImageDataType.register(GPUImageTile);
 
 
 export class GPUTiledImage extends TiledImage {
-  constructor(width, height) {
+  constructor(width? : number, height? : number) {
     super(width, height);
   }
 
-  checkTiles(gl, tiles) {
-    let newtiles = [];
+  /* Swaps any non-GPU tile in `tiles` for a freshly uploaded GPUImageTile,
+     in place, and returns the resulting list. */
+  checkTiles(gl : WebGLContext, tiles : ImageDataType[]) {
+    let newtiles : ImageDataType[] = [];
 
     for (let t of tiles) {
       if (!(t instanceof GPUImageTile)) {
@@ -350,13 +385,16 @@ export class GPUTiledImage extends TiledImage {
     return newtiles;
   }
 
-  gatherGPUTiles(x, y, r) {
+  /* NOTE: drops the gl argument, so checkTiles() reads its tile list out of
+     `gl` and iterates a WebGL context. */
+  gatherGPUTiles(x : number, y : number, r : number) {
     return this.checkTiles(this.gatherTiles(x, y, r));
   }
 
-  gatherTiles(x, y, r) {
+  /* Every tile whose nearest corner falls within `r` of x,y. */
+  gatherTiles(x : number, y : number, r : number) {
     let rsqr = r*r;
-    let ret = [];
+    let ret : ImageDataType[] = [];
 
     for (let t of this.tiles) {
       let dx = Math.abs(x - t.x);
@@ -515,7 +553,7 @@ export function updateSize() {
   canvas.style["height"] = (h/dpi) + "px";
 }
 
-let animreq = undefined;
+let animreq : number | undefined = undefined;
 
 function draw() {
   animreq = undefined;

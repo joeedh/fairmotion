@@ -18,11 +18,12 @@ net api refator
      and use returned promises instead.
 */
 
-let profile_start = name => {};
-let profile_end = name => {};
+let profile_start = (name: string) => {};
+let profile_end = (name: string) => {};
 
-import {encode_utf8, decode_utf8, truncate_utf8, 
+import {encode_utf8, decode_utf8, truncate_utf8,
         urlencode, b64decode, b64encode} from '../util/strutils.js';
+import type {DataBlock} from './lib_api.js';
 
 //#endif
 
@@ -31,8 +32,8 @@ var DEFL_NAMELEN = 64
 if (typeof String.prototype.toUTF8 != "function") {
   String.prototype.toUTF8 = function() {
     var input = String(this);
-    
-    var b = [], i, unicode;
+
+    var b: number[] = [], i: number, unicode: number;
     for(i = 0; i < input.length; i++) {
         unicode = input.charCodeAt(i);
         // 0x00000000 - 0x0000007f -> 0xxxxxxx
@@ -60,19 +61,19 @@ if (typeof String.prototype.toUTF8 != "function") {
   }
 }
 
-Number.prototype.pack = function(data) {
+Number.prototype.pack = function(data: number[]) {
   if (Number(Math.ceil(this)) == Number(this)) {
-    pack_int(data, this);
+    pack_int(data, Number(this));
   } else {
-    pack_float(data, this);
+    pack_float(data, Number(this));
   }
 }
 
-String.prototype.pack = function(data) {
-  pack_string(data, this);
+String.prototype.pack = function(data: number[]) {
+  pack_string(data, String(this));
 }
 
-Array.prototype.pack = function(data) {
+Array.prototype.pack = function(data: number[]) {
   pack_int(data, this.length);
   
   for (var i=0; i<this.length; i++) {
@@ -81,16 +82,16 @@ Array.prototype.pack = function(data) {
 }
 
 export function get_endian() {
-  var d = [1, 0, 0, 0]
-  d = new Int32Array((new Uint8Array(d)).buffer)[0]
-  
+  var bytes = [1, 0, 0, 0]
+  var d = new Int32Array((new Uint8Array(bytes)).buffer)[0]
+
   return d == 1;
 }
 
 export var little_endian = get_endian();
 
 //this seems suspect
-function str_to_uint8(str) : Uint8Array
+function str_to_uint8(str: string) : Uint8Array
 {
   var uint8 = [];
   
@@ -107,7 +108,7 @@ function str_to_uint8(str) : Uint8Array
 var _static_byte = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]);
 var _static_view = new DataView(_static_byte.buffer);
 
-export function pack_int(data, i, lendian=false)
+export function pack_int(data: number[], i: number, lendian=false)
 {
   profile_start("pack_int");
   
@@ -127,7 +128,7 @@ export function pack_int(data, i, lendian=false)
 }
 
 
-export function pack_short(data, i, lendian=false)
+export function pack_short(data: number[], i: number, lendian=false)
 {
   profile_start("pack_short");
   _static_view.setInt16(0, i);
@@ -145,12 +146,12 @@ export function pack_short(data, i, lendian=false)
   profile_end("pack_short");
 }
 
-export function pack_byte(data, i)
+export function pack_byte(data: number[], i: number)
 {
   data.push(i);
 }
 
-export function pack_float(data, f, lendian=false)
+export function pack_float(data: number[], f: number, lendian=false)
 {
   profile_start("pack_float");
   _static_view.setFloat32(0, f);
@@ -167,7 +168,7 @@ export function pack_float(data, f, lendian=false)
   profile_end("pack_float");
 }
 
-export function pack_double(data, f, lendian)
+export function pack_double(data: number[], f: number, lendian?: boolean)
 {
   profile_start("pack_double");
   
@@ -186,7 +187,7 @@ export function pack_double(data, f, lendian)
   profile_end("pack_double");
 }
 
-export function pack_vec2(data, vec, lendian=false)
+export function pack_vec2(data: number[], vec: ArrayLike<number>, lendian=false)
 {
   profile_start("pack_vec2");
   
@@ -197,7 +198,7 @@ export function pack_vec2(data, vec, lendian=false)
   profile_end("pack_vec2");
 }
 
-export function pack_vec3(data, vec, lendian=false)
+export function pack_vec3(data: number[], vec: ArrayLike<number>, lendian=false)
 {
   profile_start("pack_vec3");
   
@@ -209,7 +210,7 @@ export function pack_vec3(data, vec, lendian=false)
   profile_end("pack_vec3");
 }
 
-export function pack_vec4(data, vec, lendian=false)
+export function pack_vec4(data: number[], vec: ArrayLike<number>, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -220,7 +221,7 @@ export function pack_vec4(data, vec, lendian=false)
 }
 
 
-export function pack_quat(data, vec, lendian=false)
+export function pack_quat(data: number[], vec: ArrayLike<number>, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -230,7 +231,7 @@ export function pack_quat(data, vec, lendian=false)
   //discard pack records from composite pack
 }
 
-export function pack_mat4(data, mat, lendian=false)
+export function pack_mat4(data: number[], mat: Matrix4, lendian=false)
 {
   profile_start("pack_mat4");
   var m = mat.getAsArray();
@@ -242,7 +243,7 @@ export function pack_mat4(data, mat, lendian=false)
   profile_end("pack_mat4");
 }
 
-export function pack_dataref(data, b, lendian=false)
+export function pack_dataref(data: number[], b: DataBlock | undefined, lendian=false)
 {
   if (b != undefined) {
     pack_int(data, b.lib_id, lendian);
@@ -260,7 +261,7 @@ export function pack_dataref(data, b, lendian=false)
 }
 
 var _static_sbuf_ss = new Array(32);
-export function pack_static_string(data, str, length)
+export function pack_static_string(data: number[], str: string, length: number)
 {
   profile_start("pack_static_string");
   
@@ -323,7 +324,7 @@ register_test(test_str_packers);
 
 var _static_sbuf = new Array(32);
 /*strings are packed as 32-bit unicode codepoints*/
-export function pack_string(data, str)
+export function pack_string(data: number[], str: string)
 {
   profile_start("pack_string");
   
@@ -340,7 +341,7 @@ export function pack_string(data, str)
   profile_end("pack_string");
 }
 
-export function unpack_bytes(data, uctx, len)
+export function unpack_bytes(data: DataView, uctx: unpack_ctx, len: number)
 {
   var ret = new DataView(data.buffer.slice(uctx.i, uctx.i+len));
   uctx.i += len;
@@ -348,7 +349,8 @@ export function unpack_bytes(data, uctx, len)
   return ret;
 }
 
-export function unpack_array(data, uctx, unpacker)
+export function unpack_array<T>(data: DataView, uctx: unpack_ctx,
+                                unpacker: (data: DataView, uctx: unpack_ctx) => T)
 {
   var len = unpack_int(data, uctx);
   var list = new Array(len);
@@ -360,7 +362,8 @@ export function unpack_array(data, uctx, unpacker)
   return list;
 }
 
-export function unpack_garray(data, uctx, unpacker)
+export function unpack_garray<T>(data: DataView, uctx: unpack_ctx,
+                                 unpacker: (data: DataView, uctx: unpack_ctx) => T)
 {
   var len = unpack_int(data, uctx);
   var list = new GArray();
@@ -372,7 +375,7 @@ export function unpack_garray(data, uctx, unpacker)
   return list;
 }
 
-export function unpack_dataref(data, uctx) : int
+export function unpack_dataref(data: DataView, uctx: unpack_ctx) : DataRef
 {
   var block_id = unpack_int(data, uctx);
   var lib_id = unpack_int(data, uctx);
@@ -380,7 +383,7 @@ export function unpack_dataref(data, uctx) : int
   return new DataRef(block_id, lib_id);
 }
 
-export function unpack_byte(data, uctx) : byte
+export function unpack_byte(data: DataView, uctx: unpack_ctx) : byte
 {
   var ret = data.getUint8(uctx.i);
   uctx.i += 1;
@@ -388,7 +391,7 @@ export function unpack_byte(data, uctx) : byte
   return ret;  
 }
 
-export function unpack_int(data, uctx) : int
+export function unpack_int(data: DataView, uctx: unpack_ctx) : int
 {
   var ret = data.getInt32(uctx.i);
 
@@ -396,7 +399,7 @@ export function unpack_int(data, uctx) : int
   return ret;
 }
 
-export function unpack_short(data, uctx) : int
+export function unpack_short(data: DataView, uctx: unpack_ctx) : int
 {
   var ret = data.getInt16(uctx.i);
 
@@ -404,7 +407,7 @@ export function unpack_short(data, uctx) : int
   return ret;
 }
 
-export function unpack_float(data, uctx) : float
+export function unpack_float(data: DataView, uctx: unpack_ctx) : float
 {
   var ret = data.getFloat32(uctx.i);
   
@@ -412,7 +415,7 @@ export function unpack_float(data, uctx) : float
   return ret;
 }
 
-export function unpack_double(data, uctx) : float
+export function unpack_double(data: DataView, uctx: unpack_ctx) : float
 {
   var ret = data.getFloat64(uctx.i);
   
@@ -420,7 +423,7 @@ export function unpack_double(data, uctx) : float
   return ret;
 }
 
-export function unpack_vec2(data, uctx)
+export function unpack_vec2(data: DataView, uctx: unpack_ctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -428,7 +431,7 @@ export function unpack_vec2(data, uctx)
   return new Vector2([x, y]);
 }
 
-export function unpack_vec3(data, uctx) : Vector3
+export function unpack_vec3(data: DataView, uctx: unpack_ctx) : Vector3
 {
   var vec = new Vector3();
   
@@ -442,7 +445,7 @@ export function unpack_vec3(data, uctx) : Vector3
 }
 
 
-export function unpack_vec4(data, uctx)
+export function unpack_vec4(data: DataView, uctx: unpack_ctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -453,7 +456,7 @@ export function unpack_vec4(data, uctx)
 }
 
 
-export function unpack_quat(data, uctx)
+export function unpack_quat(data: DataView, uctx: unpack_ctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -463,7 +466,7 @@ export function unpack_quat(data, uctx)
   return new Quat([x, y, z, w]);
 }
 
-export function unpack_mat4(data, uctx)
+export function unpack_mat4(data: DataView, uctx: unpack_ctx)
 {
   var m = new Array(16);
   
@@ -475,7 +478,7 @@ export function unpack_mat4(data, uctx)
 }
 
 
-export function debug_unpack_bytes(data, uctx, length) : String
+export function debug_unpack_bytes(data: DataView, uctx: unpack_ctx, length: number) : string
 {
   var s = "";
 
@@ -498,7 +501,7 @@ export function debug_unpack_bytes(data, uctx, length) : String
 }
 
 var _static_arr_uss = new Array(32);
-export function unpack_static_string(data, uctx, length) : String
+export function unpack_static_string(data: DataView, uctx: unpack_ctx, length: number) : string
 {
   var str = "";
   
@@ -527,7 +530,7 @@ export function unpack_static_string(data, uctx, length) : String
 }
 
 var _static_arr_us = new Array(32);
-export function unpack_string(data, uctx) : String
+export function unpack_string(data: DataView, uctx: unpack_ctx) : string
 {
   var str = ""
   
@@ -544,6 +547,9 @@ export function unpack_string(data, uctx) : String
 
 //container to pass an int by reference
 export class unpack_ctx {
+  /* Read cursor, in bytes, into the DataView being unpacked. */
+  i: number;
+
   constructor() {
     this.i = 0;
   }
@@ -553,7 +559,7 @@ export class unpack_ctx {
 //function NetJobError(job, owner, error);
 //function NetJobStatus(job, owner, status) : NetStatus;
 
-window.NetStatus = function NetStatus() {
+window.NetStatus = function NetStatus(this: NetStatus) {
   this.progress = 0;
   this.status_msg = "";
   this.cancel = false;
@@ -561,7 +567,22 @@ window.NetStatus = function NetStatus() {
 }
 
 export class NetJob {
-  constructor(owner, iter, finish, error, status) {
+  owner: object;
+  /* The api generator driving this job; api_exec() pumps it from the
+     XMLHttpRequest callbacks. Assigned after construction by call_api(). */
+  iter: Generator | undefined;
+  finish: Function | undefined;
+  error: Function | undefined;
+  status: Function | undefined;
+  status_data: NetStatus;
+  /* The decoded response body of the most recent request. */
+  value: unknown;
+  req: XMLHttpRequest | undefined;
+  /* Parsed response headers, filled in per request by api_exec(). */
+  headers?: {[name: string]: string};
+
+  constructor(owner: object, iter: Generator | undefined,
+              finish?: Function, error?: Function, status?: Function) {
     this.iter = iter;
     this.finish = finish;
     this.error = error;
@@ -574,8 +595,8 @@ export class NetJob {
 }
 window.NetJob = NetJob;
 
-function parse_headers(headers) {
-  var ret = {};
+function parse_headers(headers?: string) {
+  var ret: {[name: string]: string} = {};
   
   if (headers == undefined)
     return ret;
@@ -617,7 +638,7 @@ function parse_headers(headers) {
   return ret;
 }
 
-window.create_folder = function* create_folder(job, args) {
+window.create_folder = function* create_folder(job: NetJob, args) {
   var token = g_app_state.session.tokens.access;
   var url = "/api/files/dir/new?accessToken="+token+"&id="+args.folderid;
   url += "&name=" + urlencode(args.name);
@@ -627,9 +648,10 @@ window.create_folder = function* create_folder(job, args) {
   yield;
 }
 
-window.api_exec = function api_exec(path, netjob, mode, 
-    data, mime, extra_headers, 
-    responseType) //mode, data are optional
+window.api_exec = function api_exec(path: string, netjob: NetJob, mode?: string,
+    data?: Document | XMLHttpRequestBodyInit, mime?: string,
+    extra_headers?: {[name: string]: string},
+    responseType?: XMLHttpRequestResponseType) //mode, data are optional
 {
   var owner = netjob.owner;
   var iter = netjob.iter;
@@ -647,7 +669,7 @@ window.api_exec = function api_exec(path, netjob, mode,
   var error = netjob.error;
   
   if (error == undefined) {
-    error = function(netjob, owner, msg) { console.log("Network Error: " + msg) };
+    error = function(netjob: NetJob, owner: object, msg: string) { console.log("Network Error: " + msg) };
   }
   
   var req = new XMLHttpRequest();
@@ -672,7 +694,7 @@ window.api_exec = function api_exec(path, netjob, mode,
   
   req.responseType = responseType
   
-  req.onprogress = function(evt) {
+  req.onprogress = function(evt: ProgressEvent) {
     if (netjob.status_data._client_control || evt.total == 0) return;
     
     if (DEBUG.netio)
@@ -737,7 +759,8 @@ window.api_exec = function api_exec(path, netjob, mode,
   var ret = req.send(data);
 }
 
-window.AuthSessionGen = function* AuthSessionGen(job, user, password, refresh_token) {
+window.AuthSessionGen = function* AuthSessionGen(job: NetJob, user: string, password: string,
+                                                 refresh_token?: string) {
   if (refresh_token == undefined) {
     var sha1pwd = "{SHA}" + CryptoJS.enc.Base64.stringify(CryptoJS.SHA1(password))
     api_exec("/api/auth?user="+user+"&password="+sha1pwd, job);
@@ -758,7 +781,8 @@ window.AuthSessionGen = function* AuthSessionGen(job, user, password, refresh_to
     job.finish(job, job.owner);
 }
 
-window.auth_session = function auth_session(user, password, finish, error, status) {
+window.auth_session = function auth_session(user: string, password: string,
+                                            finish?: Function, error?: Function, status?: Function) {
   var obj = {};
   
   obj.job = new NetJob(obj, undefined, finish, error, status);
@@ -771,7 +795,8 @@ window.auth_session = function auth_session(user, password, finish, error, statu
   return obj;
 }
 
-window.call_api = function call_api(iternew, args, finishcb, errorcb, status) {
+window.call_api = function call_api(iternew: NetApiGen, args, finishcb?: Function,
+                                    errorcb?: Function, status?: Function) {
   var promise = new Promise(function(accept, reject) {
     var obj = {};
     
@@ -803,7 +828,7 @@ window.call_api = function call_api(iternew, args, finishcb, errorcb, status) {
   return promise;
 }
 
-window.get_user_info = function* get_user_info(job, args) {
+window.get_user_info = function* get_user_info(job: NetJob, args) {
   if (g_app_state.session.tokens == undefined) {
     job.finish = undefined;
     job.error(job, job.owner);
@@ -815,7 +840,7 @@ window.get_user_info = function* get_user_info(job, args) {
   yield;
 }
 
-window.get_dir_files = function* get_dir_files(job, args) {
+window.get_dir_files = function* get_dir_files(job: NetJob, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   
@@ -828,7 +853,7 @@ window.get_dir_files = function* get_dir_files(job, args) {
   yield;
 }
 
-window.upload_file = function* upload_file(job, args) {
+window.upload_file = function* upload_file(job: NetJob, args) {
   var suffix;
   
   job.status_data._client_control = true;
@@ -894,7 +919,7 @@ window.upload_file = function* upload_file(job, args) {
   }
 }
 
-window.get_file_data = function* get_file_data(job, args) {
+window.get_file_data = function* get_file_data(job: NetJob, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   

@@ -4,17 +4,90 @@ import {util, nstructjs, Vector3, Matrix4, Vector4, Quat, Vector2} from '../path
 
 let STRUCT = nstructjs.STRUCT;
 
-export const constmap = {};
+/* The context this app runs on is WebGL2 *plus* a set of fields bolted on at
+   init time: cached getExtension() results, a shader cache, and the originals
+   addFastParameterGet() keeps before it shadows them.
+
+   This has to be an intersection, not a `WebGL1 | WebGL2` union: a union would
+   expose only the members common to both, so every WebGL2-only call would
+   error. init_webgl() can still produce a WebGL1 context when params.webgl2 is
+   false, but it then patches the WebGL2 names it needs (RGBA32F, RGBA8UI) onto
+   the object -- and imagecanvas_webgl.ts patches drawBuffers and the vertex
+   array methods the same way -- so one type genuinely does describe both. */
+export type WebGLContext = WebGL2RenderingContext & {
+  haveWebGL2 : boolean;
+  shadercache : {[hash : string] : ShaderProgram};
+
+  /* Cached getExtension() results; null when the extension is unavailable. */
+  color_buffer_float : EXT_color_buffer_float | null;
+  texture_float : OES_texture_float_linear | null;
+  float_blend : EXT_float_blend | null;
+  draw_buffers : WEBGL_draw_buffers | null;
+  depth_texture : WEBGL_depth_texture | null;
+  srgb : EXT_sRGB | null;
+  ctxloss : WEBGL_lose_context | null;
+
+  /* WebGL1 extension objects backing the WebGL2 methods of the same name;
+     see imagecanvas_webgl.ts. */
+  _drawbuf : WEBGL_draw_buffers | null;
+  _vbo : OES_vertex_array_object | null;
+
+  /* Saved by addFastParameterGet() before it replaces the originals. */
+  _getParameter : WebGL2RenderingContext["getParameter"];
+  _enable : WebGL2RenderingContext["enable"];
+  _disable : WebGL2RenderingContext["disable"];
+  _viewport : WebGL2RenderingContext["viewport"];
+  _scissor : WebGL2RenderingContext["scissor"];
+  _depthMask : WebGL2RenderingContext["depthMask"];
+
+  /* Patched on from EXT_texture_filter_anisotropic by imagecanvas_webgl.ts. */
+  MAX_TEXTURE_MAX_ANISOTROPY : number;
+  TEXTURE_MAX_ANISOTROPY : number;
+
+  /* Set by consumers rather than by init_webgl(). */
+  program : ShaderProgram;
+  simple_shader : ShaderProgram;
+};
+
+/* Everything ShaderProgram.bind() knows how to push to the GPU. Vectors arrive
+   here as Array subclasses, which is why the `v instanceof Array` branch in
+   bind() catches them. */
+export type UniformValue = number | number[] | Float32Array | Float64Array
+                         | Vector2 | Vector3 | Vector4 | Matrix4
+                         | Texture | IntUniform;
+export type Uniforms = {[name : string] : UniformValue};
+
+/* The literal shader descriptors in shaders.ts and simplemesh.ts. `__hash` is
+   memoised by hashShader() on first use. */
+export interface ShaderDef {
+  vertex : string;
+  fragment : string;
+  uniforms : Uniforms;
+  /* An iterable rather than an array: simplemesh.ts builds its auto-generated
+     smooth-line variant with a Set here. */
+  attributes : Iterable<string>;
+  __hash? : string;
+}
+
+/* GLSL preprocessor defines; a null/empty value means a bare #define. */
+export type ShaderDefines = {[name : string] : string | number | null | undefined};
+
+/* Maps every numeric GL constant back to its name, for error reporting. */
+export const constmap : {[value : string] : string} = {};
 
 let TEXTURE_2D = 3553;
 
 export class IntUniform {
-  constructor(val) {
+  val : number;
+
+  constructor(val : number) {
     this.val = val;
   }
 }
 
-export function initDebugGL(gl) {
+/* Wraps every gl.* function so it checks getError() afterwards; the originals
+   are kept alongside under an underscore-prefixed name. */
+export function initDebugGL(gl : WebGLContext) {
   let addfuncs = {};
 
   let makeDebugFunc = (k, k2) => {
@@ -48,10 +121,13 @@ export function initDebugGL(gl) {
   return gl;
 }
 
-let _gl = undefined;
+let _gl : WebGLContext | undefined = undefined;
 
-export function addFastParameterGet(gl) {
-  let map = {
+/* Shadows the handful of state getters/setters that get hammered every frame
+   with a memoised version, so redundant GL calls are skipped. Only the keys in
+   `validkeys` are cached; everything else falls through to the real call. */
+export function addFastParameterGet(gl : WebGLContext) {
+  let map : {[param : number] : boolean | number[]} = {
   };
 
   gl._getParameter = gl.getParameter;
@@ -144,14 +220,19 @@ export function addFastParameterGet(gl) {
 }
 //*/
 
-export function onContextLost(e) {
+/* Broken: `shapes` is not defined in this module, so this throws a
+   ReferenceError the moment a lost context is restored. */
+export function onContextLost(e : Event) {
   for (let k in shapes) {
     shapes[k].onContextLost(e);
   }
 }
 
 //params are passed to canvas.getContext as-is
-export function init_webgl(canvas, params={}) {
+/* Returns a process-wide singleton: the first call wins and every later call
+   gets the same context back, `canvas` and `params` ignored. */
+export function init_webgl(canvas : HTMLCanvasElement,
+                           params : WebGLContextAttributes & {webgl2? : boolean} = {}) {
   if (_gl !== undefined) {
     return _gl;
   }
@@ -217,7 +298,7 @@ export function init_webgl(canvas, params={}) {
   return gl;
 }
 
-function format_lines(script) {
+function format_lines(script : string) {
   var i = 1;
   var lines = script.split("\n")
   var maxcol = Math.ceil(Math.log(lines.length) / Math.log(10))+1;
@@ -237,8 +318,8 @@ function format_lines(script) {
   return s;
 }
 
-export function hashShader(sdef) {
-  let hash;
+/* The hash is just the shader's own JSON, memoised onto the def. */
+export function hashShader(sdef : ShaderDef) {
 
   let clean = {
     vertex : sdef.vertex,
@@ -263,7 +344,7 @@ shaderdef = {
 }
 */
 
-export function getShader(gl, shaderdef) {
+export function getShader(gl : WebGLContext, shaderdef : ShaderDef) {
   if (gl.shadercache === undefined) {
     gl.shadercache = {};
   }
@@ -287,7 +368,10 @@ export function getShader(gl, shaderdef) {
 // 'shaderId' is the id of a <script> element containing the shader source string.
 // Load this shader and return the WebGLShader object corresponding to it.
 //
-function loadShader(ctx, shaderId)
+/* Dead, and unusable as written: the error branch calls a `log()` that does
+   not exist, and format_lines() is handed the script *object* rather than its
+   text. ShaderProgram.init() has its own working copy. */
+function loadShader(ctx : WebGLContext, shaderId : string)
 {
   var shaderScript = document.getElementById(shaderId);
 
@@ -356,7 +440,48 @@ var _safe_arrays = [
 export let use_ml_array = false;
 
 export class ShaderProgram {
-  constructor(gl, vertex, fragment, attributes) {
+  vertexSource : string;
+  fragmentSource : string;
+  /* Set by init() when defines were spliced into the sources. */
+  _vertexSource : string;
+  _fragmentSource : string;
+
+  attrs : string[];
+  gl : WebGLContext;
+
+  defines : ShaderDefines;
+  /* When true, bind() builds and caches a variant per set of defines rather
+     than compiling this program directly. */
+  _use_def_shaders : boolean;
+  _def_shaders : {[defkey : string] : ShaderProgram};
+
+  /* SMOOTH_LINE variant of this program, generated and cached on first use by
+     simplemesh.ts. */
+  _smoothline : ShaderProgram;
+
+  /* attr name -> layer count, for the multilayer attribute machinery. */
+  multilayer_attrs : {[attr : string] : number};
+  multilayer_programs : {[attrsizekey : string] : ShaderProgram};
+
+  /* 1 or true until init() has compiled and linked. */
+  rebuild : number | boolean;
+
+  program : WebGLProgram | undefined;
+  vertexShader : WebGLShader | null;
+  fragmentShader : WebGLShader | null;
+
+  uniformlocs : {[name : string] : WebGLUniformLocation | null};
+  attrlocs : {[name : string] : number};
+  uniform_defaults : Uniforms;
+  uniforms : Uniforms;
+
+  /* Only set by the static load_shader() path. */
+  ready : boolean;
+  promise : Promise<ShaderProgram>;
+  then : (...args : unknown[]) => Promise<unknown>;
+
+  constructor(gl : WebGLContext, vertex : string, fragment : string,
+              attributes : Iterable<string>) {
     this.vertexSource = vertex;
     this.fragmentSource = fragment;
 
@@ -384,26 +509,28 @@ export class ShaderProgram {
     this.gl = gl;
   }
 
-  static insertDefine(define, code) {
-    code = code.trim().split("\n");
+  /* Splices the defines in after the third line, so a #version directive and
+     any leading precision qualifiers stay first. */
+  static insertDefine(define : string, code : string) {
+    let lines = code.trim().split("\n");
 
-    if (code.length > 3) {
-      code = code.slice(0, 3).concat([define]).concat(code.slice(3, code.length));
+    if (lines.length > 3) {
+      lines = lines.slice(0, 3).concat([define]).concat(lines.slice(3, lines.length));
     } else {
-      code = code.concat([define]);
+      lines = lines.concat([define]);
     }
 
-    return code.join("\n") + "\n";
+    return lines.join("\n") + "\n";
   }
 
   static _use_ml_array() {
     return use_ml_array;
   }
-  static multilayerAttrSize(attr) {
+  static multilayerAttrSize(attr : string) {
     return attr.toUpperCase() + "_SIZE";
   }
 
-  static multilayerGet(attr, i) {
+  static multilayerGet(attr : string, i : number) {
     if (this._use_ml_array()) {
       return `${attr}_layers[${i}]`;
     } else {
@@ -415,7 +542,7 @@ export class ShaderProgram {
     return 8;
   }
 
-  static multilayerAttrDeclare(attr, type, is_fragment, is_glsl_300) {
+  static multilayerAttrDeclare(attr : string, type : string, is_fragment : boolean, is_glsl_300 : boolean) {
     let keyword, keyword2;
 
     if (is_fragment) {
@@ -451,7 +578,7 @@ export class ShaderProgram {
     if (!is_fragment) {
       ret += `${keyword} ${type} ${attr};\n`;
     }
-    ret += `    
+    ret += `
 ${keyword2} ${type} v${attr};
     `
 
@@ -479,7 +606,7 @@ ${type} get_${attr}_layer(i) {
 
       func += `
     case ${i}:
-#if ${size} > ${i+1} 
+#if ${size} > ${i+1}
       return ${attr}_${i+2};
       break;
 #endif
@@ -492,14 +619,15 @@ ${type} get_${attr}_layer(i) {
     return ret;
   }
 
-  static multiLayerAttrKey(attr, i, use_glsl300) {
+  /* `use_glsl300` is accepted and ignored. */
+  static multiLayerAttrKey(attr : string, i : number, use_glsl300? : boolean) {
     if (!this._use_ml_array()) {
       return i ? `${attr}_${i}` : attr;
     } else {
       return `${attr}_layers[${i}]`;
     }
   }
-  static multilayerVertexCode(attr) {
+  static multilayerVertexCode(attr : string) {
     let size = this.multilayerAttrSize(attr);
     let ret = `
 
@@ -528,7 +656,7 @@ v${attr} = ${attr};
     return ret;
   }
 
-  setAttributeLayerCount(attr, n) {
+  setAttributeLayerCount(attr : string, n : number) {
     if (n <= 1 && attr in this.multilayer_attrs) {
       delete this.multilayer_attrs[attr];
     } else {
@@ -538,7 +666,7 @@ v${attr} = ${attr};
     return this;
   }
 
-  init(gl) {
+  init(gl : WebGLContext) {
     this.gl = gl;
     this.rebuild = false;
 
@@ -566,7 +694,7 @@ v${attr} = ${attr};
       }
     }
 
-    function loadShader(shaderType, code) {
+    function loadShader(shaderType : number, code : string) {
       var shader = gl.createShader(shaderType);
 
       // Load the shader source
@@ -663,7 +791,10 @@ v${attr} = ${attr};
   }
 
   //this function was originally asyncrounous
-  static load_shader(scriptid, attrs) {
+  /* Dead. `attrs` is accepted and ignored -- the attribute list is hardcoded
+     below -- and the returned program carries a thenable shim left over from
+     when this was asynchronous. */
+  static load_shader(scriptid : string, attrs? : string[]) {
     var script = document.getElementById(scriptid);
     var text = script.text;
 
@@ -688,7 +819,7 @@ v${attr} = ${attr};
     return ret;
   }
 
-  on_gl_lost(newgl) {
+  on_gl_lost(newgl : WebGLContext) {
     this.rebuild = 1;
     this.gl = newgl;
     this.program = undefined;
@@ -696,7 +827,7 @@ v${attr} = ${attr};
     this.uniformlocs = {};
   }
 
-  destroy(gl) {
+  destroy(gl : WebGLContext) {
     if (gl && this.program) {
       gl.deleteProgram(this.program);
       this.uniforms = {};
@@ -707,7 +838,7 @@ v${attr} = ${attr};
     //console.warn("ShaderProgram.prototype.destroy: implement me!");
   }
 
-  uniformloc(name) {
+  uniformloc(name : string) {
     if (this.uniformlocs[name] == undefined) {
       this.uniformlocs[name] = this.gl.getUniformLocation(this.program, name);
     }
@@ -715,11 +846,12 @@ v${attr} = ${attr};
     return this.uniformlocs[name];
   }
 
-  attrloc(name) {
+  /* Broken: there is no attrLocation() -- the method below is attrLoc(). */
+  attrloc(name : string) {
     return this.attrLocation(name);
   }
 
-  attrLoc(name) {
+  attrLoc(name : string) {
     if (!(name in this.attrlocs)) {
       this.attrlocs[name] = this.gl.getAttribLocation(this.program, name);
     }
@@ -727,7 +859,7 @@ v${attr} = ${attr};
     return this.attrlocs[name];
   }
 
-  calcDefKey(extraDefines) {
+  calcDefKey(extraDefines? : ShaderDefines) {
     let key = "";
 
     for (let i=0; i<2; i++) {
@@ -751,7 +883,8 @@ v${attr} = ${attr};
     return key;
   }
 
-  bindMultiLayer(gl, uniforms, attrsizes, attributes) {
+  bindMultiLayer(gl : WebGLContext, uniforms : Uniforms,
+                 attrsizes : {[attr : string] : number}, attributes? : object) {
     let key = "";
     for (let k in attrsizes) {
       key += k + ":" + attrsizes[k] + ":";
@@ -794,7 +927,9 @@ v${attr} = ${attr};
     return ret;
   }
 
-  bind(gl, uniforms, attributes) {
+  /* Returns `this` on success, or false when the program could not be built.
+     `attributes` is only read for its keys, which become HAVE_<KEY> defines. */
+  bind(gl : WebGLContext, uniforms? : Uniforms, attributes? : object) {
     this.gl = gl;
 
     let defines = undefined;
@@ -844,7 +979,7 @@ v${attr} = ${attr};
       return false;
     }
 
-    function setv(dst, src, n) {
+    function setv(dst : Float32Array, src : ArrayLike<number>, n : number) {
       for (var i=0; i<n; i++) {
         dst[i] = src[i];
       }
@@ -927,7 +1062,20 @@ const GL_ARRAY_BUFFER = 34962;
 const GL_ELEMENT_ARRAY_BUFFER = 34963;
 
 export class VBO {
-  constructor(gl, vbo, size=-1, bufferType=GL_ARRAY_BUFFER) {
+  gl : WebGLContext;
+  vbo : WebGLBuffer | undefined;
+  /* Element count of the last upload, or -1 when nothing has been uploaded
+     yet. uploadData() uses it to decide between bufferData and bufferSubData. */
+  size : number;
+  bufferType : number;
+  ready : boolean;
+  /* Kept so the buffer can be re-uploaded after a context loss. */
+  lastData : ArrayBufferView | undefined;
+  dead : boolean;
+  drawhint : number | undefined;
+
+  constructor(gl : WebGLContext, vbo : WebGLBuffer | undefined,
+              size = -1, bufferType = GL_ARRAY_BUFFER) {
     this.gl = gl;
     this.vbo = vbo;
     this.size = size;
@@ -941,7 +1089,7 @@ export class VBO {
     this.lastData = undefined;
   }
 
-  get(gl) {
+  get(gl? : WebGLContext) {
     if (this.dead) {
       throw new Error("vbo is dead");
     }
@@ -965,7 +1113,7 @@ export class VBO {
     return this.vbo;
   }
 
-  checkContextLoss(gl) {
+  checkContextLoss(gl? : WebGLContext) {
     if (gl !== undefined && gl !== this.gl) {
       this.ready = false;
       this.gl = gl;
@@ -979,7 +1127,7 @@ export class VBO {
     }
   }
 
-  reset(gl) {
+  reset(gl : WebGLContext) {
     if (this.dead) {
       this.dead = false;
       this.gl = gl;
@@ -993,7 +1141,7 @@ export class VBO {
     return this;
   }
 
-  destroy(gl) {
+  destroy(gl : WebGLContext) {
     if (this.dead) {
       console.warn("tried to kill vbo twice");
       return;
@@ -1009,7 +1157,8 @@ export class VBO {
     this.dead = true;
   }
 
-  uploadData(gl, dataF32, target=this.bufferType, drawhint=gl.STATIC_DRAW) {
+  uploadData(gl : WebGLContext, dataF32 : ArrayBufferView,
+             target = this.bufferType, drawhint = gl.STATIC_DRAW) {
     if (gl !== this.gl) {
       //context loss
       this.gl = gl;
@@ -1041,12 +1190,17 @@ export class VBO {
   }
 }
 
+/* A named collection of VBOs. Every buffer is stored twice: in `_layers`, and
+   directly on the instance under its own name, which is how consumers reach
+   them (`rb.uvs`, `rb.colors`, ...). */
 export class RenderBuffer {
+  _layers : {[name : string] : VBO};
+
   constructor() {
     this._layers = {};
   }
 
-  get(gl, name, bufferType=gl.ARRAY_BUFFER) {
+  get(gl : WebGLContext, name : string, bufferType = gl.ARRAY_BUFFER) : VBO {
     if (this[name] !== undefined) {
       return this[name];
     }
@@ -1072,17 +1226,19 @@ export class RenderBuffer {
     })();
   }
 
-  reset(gl) {
+  reset(gl : WebGLContext) {
     for (let vbo of this.buffers) {
       vbo.reset(gl);
     }
   }
 
-  destroy(gl, name) {
+  destroy(gl : WebGLContext, name? : string) {
     if (name === undefined) {
       for (let k in this._layers) {
         this._layers[k].destroy(gl);
 
+        /* Broken: `name` is undefined in this branch, so neither delete does
+           anything -- the destroyed buffers stay in the map and on `this`. */
         delete this._layers[name];
         delete this[name];
       }
@@ -1100,9 +1256,35 @@ export class RenderBuffer {
   }
 }
 
+/* Everything the last texImage2D() call was given, so copy() can rebuild an
+   identically-configured texture. Only `target` is always present; the rest
+   arrive on the first upload. */
+export interface TexCreateParams {
+  target : number;
+  level? : number;
+  internalformat? : number;
+  format? : number;
+  type? : number;
+  source? : TexImageSource | ArrayBufferView | WebGLTexture | null;
+  width? : number;
+  height? : number;
+  border? : number;
+}
+
 export class Texture {
+  texture : WebGLTexture | undefined;
+  texture_slot : number | undefined;
+  target : number;
+
+  createParams : TexCreateParams;
+  /* The same values positionally, in the order texImage2D() took them. */
+  createParamsList : (number | TexImageSource | ArrayBufferView | WebGLTexture | null | undefined)[];
+
+  /* Shadow of the texture's sampler state, keyed by GL parameter enum. */
+  _params : {[param : number] : number};
+
   //3553 is gl.TEXTURE_2D
-  constructor(texture_slot, texture, target=3553) {
+  constructor(texture_slot? : number, texture? : WebGLTexture, target = 3553) {
     this.texture = texture;
     this.texture_slot = texture_slot;
     this.target = target;
@@ -1116,25 +1298,26 @@ export class Texture {
     this._params = {};
   }
 
-  static unbindAllTextures(gl) {
+  static unbindAllTextures(gl : WebGLContext) {
     for (let i=gl.TEXTURE0; i<gl.TEXTURE0+31; i++) {
       gl.activeTexture(i);
       gl.bindTexture(gl.TEXTURE_2D, null);
     }
   }
 
-  texParameteri(gl, target, param, value) {
+  texParameteri(gl : WebGLContext, target : number, param : number, value : number) {
     this._params[param] = value;
 
     gl.texParameteri(target, param, value);
     return this;
   }
 
-  getParameter(gl, param) {
+  getParameter(gl : WebGLContext, param : number) {
     return this._params[param];
   }
 
-  _texImage2D1(gl, target, level, internalformat, format, type, source) {
+  _texImage2D1(gl : WebGLContext, target : number, level : number, internalformat : number,
+               format : number, type : number, source : TexImageSource) {
     gl.bindTexture(target, this.texture);
     gl.texImage2D(target, level, internalformat, format, type, source);
 
@@ -1155,7 +1338,9 @@ export class Texture {
     return this;
   }
 
-  _texImage2D2(gl, target, level, internalformat, width, height, border, format, type, source) {
+  _texImage2D2(gl : WebGLContext, target : number, level : number, internalformat : number,
+               width : number, height : number, border : number, format : number, type : number,
+               source : ArrayBufferView | null) {
     gl.bindTexture(target, this.texture);
 
     gl.getError();
@@ -1178,6 +1363,9 @@ export class Texture {
     return this;
   }
 
+  /* Arity dispatch: the seven-argument form takes an image source, the ten
+     argument one takes explicit dimensions. Left unannotated -- `arguments`
+     forwarding cannot be spelled without overloads. */
   texImage2D() {
     if (arguments.length === 7) {
       return this._texImage2D1(...arguments);
@@ -1186,7 +1374,7 @@ export class Texture {
     }
   }
 
-  copy(gl, copy_data=false) {
+  copy(gl : WebGLContext, copy_data = false) {
     let tex = new Texture();
 
     tex.texture = gl.createTexture();
@@ -1216,7 +1404,7 @@ export class Texture {
     return tex;
   }
 
-  copyTexTo(gl, b) {
+  copyTexTo(gl : WebGLContext, b : Texture) {
     if (this.texture === undefined) {
       return;
     }
@@ -1230,11 +1418,12 @@ export class Texture {
     return this;
   }
 
-  destroy(gl) {
+  destroy(gl : WebGLContext) {
     gl.deleteTexture(this.texture);
   }
 
-  load(gl, width, height, data, target = gl.TEXTURE_2D) {
+  load(gl : WebGLContext, width : number, height : number,
+       data : ArrayBufferView | null, target = gl.TEXTURE_2D) {
     if (!this.texture) {
       this.texture = gl.createTexture();
     }
@@ -1253,7 +1442,8 @@ export class Texture {
     return this;
   }
 
-  initEmpty(gl, target, width, height, format=gl.RGBA, type=gl.FLOAT) {
+  initEmpty(gl : WebGLContext, target : number, width : number, height : number,
+            format = gl.RGBA, type = gl.FLOAT) {
     this.target = target;
     //this.width = width;
     //this.height = height;
@@ -1265,17 +1455,21 @@ export class Texture {
       Texture.defaultParams(gl, this.texture, target);
     }
 
+    /* Broken: bindTexture wants (target, texture); the target argument is
+       missing, so the texture is silently passed as the target enum. */
     gl.bindTexture(this.texture);
     gl.texImage2D(this.target, 0, format, width, height, 0, format, type, null);
 
     return this;
   }
 
-  static load(gl, width, height, data, target = gl.TEXTURE_2D) {
+  static load(gl : WebGLContext, width : number, height : number,
+              data : ArrayBufferView | null, target = gl.TEXTURE_2D) {
     return new Texture(0).load(...arguments);
   }
 
-  static defaultParams(gl, tex, target=gl.TEXTURE_2D) {
+  static defaultParams(gl : WebGLContext, tex : Texture | WebGLTexture,
+                       target = gl.TEXTURE_2D) {
     if (!(tex instanceof Texture)) {
       console.warn("Depracated call to Texture.defaultParams with 'tex' a raw WebGLTexture instance instance of wrapper webgl.Texture object");
       tex = new Texture(undefined, tex);
@@ -1290,7 +1484,8 @@ export class Texture {
 
   }
 
-  bind(gl, uniformloc, slot=this.texture_slot) {
+  bind(gl : WebGLContext, uniformloc : WebGLUniformLocation | null,
+       slot = this.texture_slot) {
     gl.activeTexture(gl.TEXTURE0 + slot);
     gl.bindTexture(this.target, this.texture);
     gl.uniform1i(uniformloc, slot);
@@ -1298,22 +1493,54 @@ export class Texture {
 }
 
 export class CubeTexture extends Texture {
-  constructor(texture_slot, texture) {
+  constructor(texture_slot : number, texture : WebGLTexture) {
     super();
 
     this.texture = texture;
     this.texture_slot = texture_slot;
   }
 
-  bind(gl, uniformloc, slot=this.texture_slot) {
+  bind(gl : WebGLContext, uniformloc : WebGLUniformLocation | null,
+       slot = this.texture_slot) {
     gl.activeTexture(gl.TEXTURE0 + slot);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.texture);
     gl.uniform1i(uniformloc, slot);
   }
 }
 
+/* The serialized form of a DrawMats; every matrix flattens to 16 floats. */
+export interface DrawMatsJSON {
+  cameramat : number[];
+  persmat : number[];
+  rendermat : number[];
+  normalmat : number[];
+  isPerspective : boolean;
+  icameramat : number[];
+  ipersmat : number[];
+  irendermat : number[];
+  inormalmat : number[];
+}
+
 //cameras will derive from this class
 export class DrawMats {
+  static STRUCT : string;
+
+  isPerspective : boolean;
+
+  cameramat : Matrix4;
+  persmat : Matrix4;
+  rendermat : Matrix4;
+  normalmat : Matrix4;
+
+  icameramat : Matrix4;
+  ipersmat : Matrix4;
+  irendermat : Matrix4;
+  inormalmat : Matrix4;
+
+  /* sizex / sizey. Only ever assigned by regen_mats(), so it is undefined
+     until the first call -- which is also why regen_mats defaults to it. */
+  aspect : number;
+
   constructor() {
     this.isPerspective = true;
 
@@ -1329,7 +1556,7 @@ export class DrawMats {
   }
 
   /** aspect should be sizex / sizey */
-  regen_mats(aspect=this.aspect) {
+  regen_mats(aspect = this.aspect) {
     this.aspect = aspect;
 
     this.rendermat.load(this.persmat).multiply(this.cameramat);
@@ -1358,7 +1585,7 @@ export class DrawMats {
     }
   }
 
-  loadJSON(obj) {
+  loadJSON(obj : DrawMatsJSON) {
     this.cameramat.load(obj.cameramat);
     this.persmat.load(obj.persmat);
     this.rendermat.load(obj.rendermat);
@@ -1373,7 +1600,7 @@ export class DrawMats {
     return this;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 }
@@ -1392,8 +1619,32 @@ DrawMats {
 `;
 nstructjs.manager.add_class(DrawMats);
 
+export interface CameraJSON extends DrawMatsJSON {
+  fovy : number;
+  near : number;
+  far : number;
+  aspect : number;
+  target : number[];
+  pos : number[];
+  up : number[];
+}
+
 //simplest
 export class Camera extends DrawMats {
+  static STRUCT : string;
+
+  /* Vertical field of view in degrees; ignored when isPerspective is false. */
+  fovy : number;
+
+  pos : Vector3;
+  target : Vector3;
+  /* Where orbiting pivots, which is not always the look-at target. */
+  orbitTarget : Vector3;
+  up : Vector3;
+
+  near : number;
+  far : number;
+
   constructor() {
     super();
 
@@ -1413,12 +1664,14 @@ export class Camera extends DrawMats {
     this.far = 10000.0;
   }
 
-  generateUpdateHash(objectMatrix=undefined) {
+  /* Cheap change detector: every field that affects the matrices is folded
+     into one 31-bit integer. Collisions are possible but unlikely. */
+  generateUpdateHash(objectMatrix? : Matrix4) {
     let mul = 1<<18;
 
     let ret = 0;
 
-    function add(val) {
+    function add(val : number) {
       val = (val * mul) & ((1<<31)-1);
       ret = (ret ^ val) & ((1<<31)-1);
     }
@@ -1427,7 +1680,7 @@ export class Camera extends DrawMats {
     add(this.far);
     add(this.fovy);
     add(this.aspect);
-    add(this.isPerspective);
+    add(this.isPerspective ? 1 : 0);
     add(this.pos[0]);
     add(this.pos[1]);
     add(this.pos[2]);
@@ -1449,7 +1702,7 @@ export class Camera extends DrawMats {
     return ret;
   }
 
-  load(b) {
+  load(b : Camera) {
     this.isPerspective = b.isPerspective;
     this.fovy = b.fovy;
     this.aspect = b.aspect;
@@ -1512,7 +1765,7 @@ export class Camera extends DrawMats {
     return ret;
   }
 
-  loadJSON(obj) {
+  loadJSON(obj : CameraJSON) {
     super.loadJSON(obj);
 
     this.fovy = obj.fovy;
@@ -1536,6 +1789,7 @@ export class Camera extends DrawMats {
     if (this.isPerspective) {
       this.persmat.perspective(this.fovy, aspect, this.near, this.far);
     } else {
+      /* Suspicious: isPersp is set on the *orthographic* branch. */
       this.persmat.isPersp = true;
       let scale = 1.0 / this.pos.vectorDistance(this.target);
 
@@ -1556,7 +1810,7 @@ export class Camera extends DrawMats {
     super.regen_mats(aspect); //will calculate iXXXmat for us
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 }

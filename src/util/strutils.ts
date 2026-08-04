@@ -1,6 +1,6 @@
 "use strict";
 
-export function encode_utf8(arr : Array, str : string) {
+export function encode_utf8(arr : number[], str : string) {
   for (var i=0; i<str.length; i++) {
     var c = str.charCodeAt(i);
     
@@ -16,7 +16,7 @@ export function encode_utf8(arr : Array, str : string) {
   }
 }
 
-export function decode_utf8(arr) {
+export function decode_utf8(arr : ArrayLike<number>) {
   var str = ""
   var i = 0;
   
@@ -47,7 +47,7 @@ export function decode_utf8(arr) {
 export function test_utf8()
 {
   var s = "a" + String.fromCharCode(8800) + "b";
-  var arr = [];
+  var arr : number[] = [];
   
   encode_utf8(arr, s);
   var s2 = decode_utf8(arr);
@@ -59,14 +59,15 @@ export function test_utf8()
   return true;
 }
 
-export function truncate_utf8(arr, maxlen)
+/* Trims `arr` to at most maxlen bytes without splitting a codepoint. */
+export function truncate_utf8(arr : number[], maxlen : number)
 {
   var len = Math.min(arr.length, maxlen);
   
   var last_codepoint = 0;
   var last2 = 0;
   
-  var incode = false;
+  var incode = 0;
   var i = 0;
   var code = 0;
   while (i < len) {
@@ -89,7 +90,7 @@ export function truncate_utf8(arr, maxlen)
 }
 
 var _b64str='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
-var _b64_map = {}
+var _b64_map : Record<string, number> = {}
 
 for (var i=0; i<64; i++) {
   _b64_map[_b64str[i]] = i;
@@ -97,7 +98,7 @@ for (var i=0; i<64; i++) {
 _b64_map["="] = 65;
 
 var _b64_arr = [0, 1, 2, 3];
-export function b64encode(arr, add_newlines=false, collimit=76) {
+export function b64encode(arr : string | ArrayLike<number>, add_newlines=false, collimit=76) {
   var s = "";
   var is_str = btypeof(arr) == "string";
   
@@ -166,7 +167,12 @@ export function b64encode(arr, add_newlines=false, collimit=76) {
   return s;
 }
 
-export function b64decode(s, gen_str=false, gen_uint8arr=true) {
+/* The return type is chosen by the flags: a string with gen_str, a plain byte
+   array if both flags are off, and a Uint8Array otherwise (the default). */
+export function b64decode(s: string, gen_str: true, gen_uint8arr?: boolean): string;
+export function b64decode(s: string, gen_str: false, gen_uint8arr: false): byte[];
+export function b64decode(s: string, gen_str?: boolean, gen_uint8arr?: boolean): Uint8Array;
+export function b64decode(s: string, gen_str=false, gen_uint8arr=true): string | byte[] | Uint8Array {
   var s2 = ""
   for (let i=0; i<s.length; i++) {
     if (s[i] != "\n" && s[i] != "\r" && s[i] != " " && s[i] != "\t")
@@ -221,7 +227,7 @@ export function b64decode(s, gen_str=false, gen_uint8arr=true) {
   return s2;
 }
 
-export function limit_line(s, limit=80) {
+export function limit_line(s : string, limit=80) {
   var s2 = "";
   var ci = 0;
   
@@ -246,32 +252,30 @@ perc_unres += perc_unres.toUpperCase();
 perc_unres += "-_.~"
 
 //transform into array form
-var a = [];
+var perc_unres_bytes : number[] = [];
 for (var i=0; i<perc_unres.length; i++) {
-  a.push(perc_unres.charCodeAt(i));
+  perc_unres_bytes.push(perc_unres.charCodeAt(i));
 }
-perc_unres = a;
 
 var perc_res = " %\n\r\t!*'();:@&=+$,/?#[]"
-var a = [];
+var perc_res_bytes : number[] = [];
 for (let i=0; i<perc_res.length; i++) {
-  a.push(perc_res.charCodeAt(i));
+  perc_res_bytes.push(perc_res.charCodeAt(i));
 }
-perc_res = a;
 
-export function urlencode(s) {
+export function urlencode(s : string) {
   var s2 = "";
   
-  var arr = [];
+  var arr : number[] = [];
   encode_utf8(arr, s);
   console.log("arr", arr);
   
   for (let i=0; i<arr.length; i++) {
     var c = arr[i];
     
-    if (perc_unres.indexOf(c) >= 0) {
+    if (perc_unres_bytes.indexOf(c) >= 0) {
       s2 += String.fromCharCode(c);
-    } else if (perc_res.indexOf(c) >= 0) {
+    } else if (perc_res_bytes.indexOf(c) >= 0) {
       var h = c.toString(16);
       s2 += "%" + h;
     } else {
@@ -282,7 +286,7 @@ export function urlencode(s) {
   return s2;
 }
 
-export function encode_dataurl(mimetype, buffer) {
+export function encode_dataurl(mimetype : string, buffer : ArrayBuffer) {
   var uview = new Uint8Array(buffer);
   
   var ret = "data:"+mimetype+";base64,"

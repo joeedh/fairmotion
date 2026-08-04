@@ -2,26 +2,35 @@
 
 import {STRUCT} from '../core/struct.js';
 
-export function darken(c, m) {
+export function darken(c : number[], m : number) {
   for (var i=0; i<3; i++) {
     c[i] *= m;
   }
-  
+
   return c;
 }
 
 export class BoxColor {
+  static STRUCT : string;
+
+  /* The four corner colors.  NOTE: BoxWColor replaces this with an accessor
+     pair, so the assignment below runs through its setter and trips the
+     "undefined was passed" warning on every construction. */
+  colors : number[][] | undefined;
+
   constructor() {
     this.colors = undefined; //[clr1, clr2, clr3, clr4, can be a getter
   }
-  
+
   copy() {
     var ret = new BoxColor();
     ret.colors = JSON.parse(JSON.stringify(this.colors));
     return ret;
   }
-  
-  static fromSTRUCT(reader) {
+
+  /* NOTE: hands back a bare object rather than a BoxColor, and never calls
+     the reader -- BoxColor is only ever read through its subclasses. */
+  static fromSTRUCT(reader : StructReader<BoxColor>) {
     return {};
   }
 }
@@ -32,25 +41,27 @@ BoxColor.STRUCT = `
 `;
 
 export class BoxColor4 extends BoxColor {
-  constructor(colors /*: Array<Array<float>>*/) {
+  static STRUCT : string;
+
+  constructor(colors? : number[][]) {
     super();
-    
-    var clrs = this.colors = [[], [], [], []];
-    
+
+    var clrs : number[][] = this.colors = [[], [], [], []];
+
     if (colors == undefined) return this;
-    
+
     for (var i=0; i<4; i++) {
       for (var j=0; j<4; j++) {
         clrs[i].push(colors[i][j]);
       }
     }
   }
-  
+
   copy() {
     return new BoxColor4(this.colors);
   }
-  
-  static fromSTRUCT(reader) {
+
+  static fromSTRUCT(reader : StructReader<BoxColor4>) {
     var ret = new BoxColor4();
     reader(ret);
     return ret;
@@ -65,7 +76,14 @@ BoxColor4.STRUCT = `
 //box colors are colors applied to boxes, i.e. four colors
 //weighted box color
 export class BoxWColor extends BoxColor {
-  constructor(color, weights) {
+  static STRUCT : string;
+
+  /* One RGBA color plus a per-corner multiplier; the four corners are
+     derived on demand by the colors getter. */
+  color : number[];
+  weights : number[];
+
+  constructor(color? : number[], weights? : number[]) {
     super();
 
     if (color == undefined || weights == undefined) {
@@ -75,13 +93,13 @@ export class BoxWColor extends BoxColor {
     this.weights = [weights[0], weights[1], weights[2], weights[3]];
   }
 
-  set colors(c) {
+  set colors(c : number[] | number[][]) {
     if (c === undefined) {
       if (DEBUG.theme)
         console.warn("undefined was passed to BoxWColor.colors setter")
       return;
     }
-    
+
     if (typeof c[0] == "object") {
       this.color = c[0];
     } else {
@@ -89,29 +107,29 @@ export class BoxWColor extends BoxColor {
     }
   }
 
-  get colors() {
-    var ret = [[], [], [], []];
+  get colors() : number[][] {
+    var ret : number[][] = [[], [], [], []];
     var clr = this.color;
     var w = this.weights;
-    
+
     if (clr == undefined)
       clr = [1, 1, 1, 1];
-      
+
     for (var i=0; i<4; i++) {
       for (var j=0; j<3; j++) {
         ret[i].push(clr[j]*w[i]);
       }
       ret[i].push(clr[3]);
     }
-    
+
     return ret;
   }
-  
+
   copy() {
     return new BoxWColor(this.color, this.weights);
   }
-  
-  static fromSTRUCT(reader) {
+
+  static fromSTRUCT(reader : StructReader<BoxWColor>) {
     var ret = new BoxWColor();
     reader(ret);
     return ret;
@@ -125,26 +143,42 @@ BoxWColor.STRUCT = `
 `;
 
 export class ThemePair {
-  constructor(key, value) {
+  key : string;
+  val : number[] | BoxColor;
+
+  constructor(key : string, value : number[] | BoxColor) {
     this.key = key;
     this.val = value;
   }
 }
 
-export class ColorTheme {
-  colors : hashtable
-  boxcolors : hashtable
-  flat_colors : GArray;
+/* Either a flat RGBA or one of the BoxColor shapes. */
+export type ThemeColor = number[] | BoxColor;
 
-  constructor(defobj) {
+export class ColorTheme {
+  static STRUCT : string;
+
+  colors : hashtable<string, number[]>
+  boxcolors : hashtable<string, BoxColor>
+  /* [key, color] pairs, rebuilt by gen_colors() for the data api. */
+  flat_colors : GArray<[string, ThemeColor]>;
+
+  /* Written by nstructjs, folded into colors/boxcolors and deleted by
+     fromSTRUCT. */
+  colorkeys? : string[];
+  colorvals? : number[][];
+  boxkeys? : string[];
+  boxvals? : BoxColor[];
+
+  constructor(defobj? : {[key : string] : ThemeColor}) {
     this.colors = new hashtable();
     this.boxcolors = new hashtable();
-    
+
     if (defobj !== undefined) {
       for (var k in defobj) {
         if (this.colors.has(k) || this.boxcolors.has(k))
           continue;
-    
+
         var c = defobj[k];
         if (c instanceof BoxColor) {
           this.boxcolors.set(k, c);
@@ -153,69 +187,69 @@ export class ColorTheme {
         }
       }
     }
-    
+
     this.flat_colors = new GArray();
   }
-  
+
   copy() {
     var ret = new ColorTheme({});
-    
-    function cpy(c) {
+
+    function cpy(c : ThemeColor) {
       if (c instanceof BoxColor) {
         return c.copy();
       } else {
         return JSON.parse(JSON.stringify(c));
       }
     }
-    
+
     for (var k of this.boxcolors) {
       var c = this.boxcolors.get(k);
-      
+
       ret.boxcolors.set(k, cpy(c));
     }
-    
+
     for (var k of this.colors) {
       var c = this.colors.get(k);
-    
+
       ret.colors.set(k, cpy(c));
     }
-    
+
     ret.gen_colors();
     return ret;
   }
-  
-  patch(newtheme) {
-    if (newtheme == undefined) 
+
+  patch(newtheme : ColorTheme) {
+    if (newtheme == undefined)
       return;
-    
-    var ks = new set(newtheme.colors.keys()).union(newtheme.boxcolors.keys());
-    
+
+    var ks = new set<string>(newtheme.colors.keys()).union(newtheme.boxcolors.keys());
+
     for (var k of this.colors) {
       if (!ks.has(k)) {
         newtheme.colors.set(k, this.colors.get(k));
       }
     }
-    
+
     for (var k of this.boxcolors) {
       if (!ks.has(k)) {
         newtheme.boxcolors.set(k, this.boxcolors.get(k));
       }
     }
-    
+
     newtheme.gen_colors();
   }
-  
-  gen_code() : String {
+
+  gen_code() : string {
     var s = "new ColorTheme({\n";
     var arr = this.flat_colors;
-    
+
     for (var i=0; i<arr.length; i++) {
       var item = arr[i];
-      
+
       if (i > 0)
         s += ",";
       s += "\n";
-      
+
       if (item[1] instanceof BoxWColor) {
         s += '  "'+item[0]+'" : ui_weight_clr('
         s += JSON.stringify(item[1].color);
@@ -230,56 +264,56 @@ export class ColorTheme {
         s += '  "'+item[0]+'" : ' + JSON.stringify(item[1]);
       }
     }
-    
+
     s += "});"
-    
+
     return s;
   }
-  
-  gen_colors() : ObjectMap {
-    var ret = {};
-    
+
+  gen_colors() : {[key : string] : number[]} {
+    var ret : {[key : string] : number[]} = {};
+
     //used to communicate with the data api
     this.flat_colors = new GArray();
-    
+
     for (var k of this.colors) {
-      var c1 = this.colors.get(k), c2 = [0, 0, 0, 0];
-      
+      var c1 = this.colors.get(k), c2 : number[] = [0, 0, 0, 0];
+
       for (var i=0; i<4; i++) {
         c2[i] = c1[i];
       }
-      
+
       ret[k] = c2;
       this.flat_colors.push([k, c1]);
     }
-    
+
     for (var k of this.boxcolors) {
       ret[k] = this.boxcolors.get(k).colors;
       this.flat_colors.push([k, this.boxcolors.get(k)]);
     }
-    
+
     return ret;
   }
-  
-  static fromSTRUCT(reader) {
+
+  static fromSTRUCT(reader : StructReader<ColorTheme>) {
     var c = new ColorTheme({});
     reader(c);
-    
+
     var ks = c.colorkeys;
     for (var i=0; i<ks.length; i++) {
       c.colors.set(ks[i], c.colorvals[i]);
     }
-    
+
     var ks = c.boxkeys;
     for (var i=0; i<ks.length; i++) {
       c.boxcolors.set(ks[i], c.boxvals[i]);
     }
-    
+
     delete c.colorkeys;
     delete c.boxkeys;
     delete c.colorvals;
     delete c.boxvals;
-    
+
     return c;
   }
 }
@@ -297,7 +331,7 @@ window.default_ui_font_size = 16;
 window.ui_hover_time = 800;
 //var view2d_bg = [0.6, 0.6, 0.9, 1.0];
 
-export function ui_weight_clr(clr, weights) {
+export function ui_weight_clr(clr : number[], weights : number[]) {
   return new BoxWColor(clr, weights);
 }
 
@@ -306,35 +340,40 @@ window.uicolors = {};
 window.colors3d = {};
 
 export class Theme {
-  constructor(ui, view2d) {
+  static STRUCT : string;
+
+  ui : ColorTheme;
+  view2d : ColorTheme;
+
+  constructor(ui? : ColorTheme, view2d? : ColorTheme) {
     this.ui = ui;
     this.view2d = view2d;
   }
 
-  patch(theme) {
+  patch(theme : Theme) {
     this.ui.patch(theme.ui);
     //this.view2d.patch(theme.view2d);
   }
-  
+
   gen_code() {
-    var s = '"use strict";\n/*auto-generated file*/\nvar UITheme = ' + this.ui.gen_code() + "\n" 
+    var s = '"use strict";\n/*auto-generated file*/\nvar UITheme = ' + this.ui.gen_code() + "\n"
     //s += "var View2DTheme = " + this.view2d.gen_code() + "\n";
-    
+
     return s;
   }
-  
-  static fromSTRUCT(reader) {
+
+  static fromSTRUCT(reader : StructReader<Theme>) {
     var ret = new Theme();
     reader(ret);
-    
+
     return ret;
   }
-  
+
   //gen_globals_from_flat() {
     //uicolors = this.ui.gen_colors();
     //colors3d = this.view2d.gen_colors();
   //}
-  
+
   gen_globals() {
     window.uicolors = this.ui.gen_colors();
     //colors3d = this.view2d.gen_colors();
@@ -351,7 +390,7 @@ Theme.STRUCT = `
 window.init_theme = function() {
   window.UITheme.original = window.UITheme.copy();
   window.View2DTheme.original = window.View2DTheme.copy();
-  
+
   window.g_theme = new Theme(window.UITheme, window.View2DTheme);
   window.g_theme.gen_globals();
 }

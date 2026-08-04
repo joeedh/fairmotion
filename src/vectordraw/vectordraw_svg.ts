@@ -29,65 +29,76 @@ var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECO
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
 
-export function makeElement(type, attrs={}) {
+export function makeElement(type : string,
+                            attrs : {[k : string] : string | number} = {}) {
   var ret = document.createElementNS(NS, type);
   for (var k in attrs) {
     ret.setAttributeNS(null, k, attrs[k]);
   }
-  
+
   return ret;
 }
 
 export class SVGPath extends PathBase {
-  recalc : number
-  lastx : number
-  lasty : number
   _last_off : Vector2
-  clip_users : set
+  clip_users : set<PathBase>
   path_start_i : number
   first : boolean
   _mm : MinMax;
 
+  /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
+  commands : number[];
+  /* The z this path's <use> node was last emitted at; the draw loop
+     re-sorts when it drifts. */
+  _last_z : number | undefined;
+  /* The <path>, its blur <filter>, the <clipPath>, and the <use> node that
+     places it inside the main group. */
+  domnode : Element | undefined;
+  filternode : Element | undefined;
+  clipnode : Element | undefined;
+  usenode : Element | undefined;
+  hidden : boolean;
+
   constructor() {
     super();
-    
+
     this.commands = [];
     this.recalc = 1;
-    
+
     this.lastx = 0;
     this.lasty = 0;
     this._last_z = undefined;
-    
+
     this._last_off = new Vector2();
     this._last_off[0] = this._last_off[1] = 1e17;
-    
+
     this.domnode = undefined;
     this.filternode = undefined;
-    
+
     this.clip_users = new set();
-    
+
     this.path_start_i = 0;
     this.first = true;
     this._mm = new MinMax(2);
   }
-  
-  update_aabb(draw, fast_mode=false) {
+
+  update_aabb(draw : SVGDraw2D, fast_mode = false) {
     var tmp = new Vector2();
     var mm = this._mm;
     var pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
-    
+
     mm.reset();
-    
+
     if (fast_mode) {
       console.trace("FAST MODE!");
     }
-    
+
     var prev = -1;
     var cs = this.commands, i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
-      
+
       if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
@@ -101,22 +112,22 @@ export class SVGPath extends PathBase {
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
-        
+
         mm.minmax(tmp);
       }
-      
+
       prev = cmd;
     }
-    
+
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
   }
-  
+
   beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
   }
-  
+
   undo() { //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
@@ -126,7 +137,7 @@ export class SVGPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color, width) {
+  pushStroke(color? : number[], width? : number) {
     if (color) {
       let a = color[3] || 1.0;
       this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
@@ -143,7 +154,7 @@ export class SVGPath extends PathBase {
     this._pushCmd(NOAUTOFILL);
   }
 
-  _pushCmd() {
+  _pushCmd(...args : number[]) {
     var arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
@@ -152,133 +163,134 @@ export class SVGPath extends PathBase {
     for (var i=0; i<arglen; i++) {
       this.commands.push(arguments[i+1]);
     }
-    
+
     this.recalc = 1;
     this.first = false;
   }
-  
-  moveTo(x, y) {
+
+  moveTo(x : number, y : number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
-  
-  bezierTo(x2, y2, x3, y3) {
+
+  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
 
-  cubicTo(x2, y2, x3, y3, x4, y4) {
+  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
+          y4 : number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
 
-  lineTo(x2, y2) {
+  lineTo(x2 : number, y2 : number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
     }
-    
+
     this._pushCmd(LINETO, x2, y2);
     this.lastx = x2;
     this.lasty = y2;
   }
-  
-  destroy(draw) {
+
+  destroy(draw : VectorDraw) {
     if (this.domnode) {
       this.domnode.remove();
       this.domnode = undefined;
     }
-    
+
     if (this.filternode) {
       this.filternode.remove();
       this.filternode = undefined;
     }
-    
+
     if (this.usenode) {
       this.usenode.remove();
       this.usenode = undefined;
     }
   }
-  
-  get_dom_id(draw, id2=0) {
+
+  get_dom_id(draw : SVGDraw2D, id2 = 0) {
     return draw.svg.id + "_path_" + this.id + "_" + id2;
   }
-  
-  gen(draw, _check_tag=0) {
+
+  gen(draw : SVGDraw2D, _check_tag = 0) {
     //console.log("path gen", this.id);
-    
+
     if (_check_tag && !this.recalc) {
       console.log("infinite loop in clip stack");
       return;
     }
-    
+
     this.recalc = 0;
-    
+
     var do_clip = this.clip_paths.length > 0;
     var do_blur = this.blur > 0.0;
-    
+
     //var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
-    
+
     this.update_aabb(draw);
-    
+
     var w = this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
     var h = this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
-    
+
     if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
       var w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
       var h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
       var dw = w - w2, dh = h - h2;
-      
+
       this.aabb[0][0] += dw*0.5;
       this.aabb[0][1] += dh*0.5;
       this.aabb[1][0] -= dw*0.5;
       this.aabb[1][1] -= dh*0.5;
-      
+
       this.size[0] = w2;
       this.size[1] = h2;
       w = w2, h = h2;
     }
-    
+
     var domid = this.get_dom_id(draw);
     var node = this.domnode;
-    
+
     if (!node) {
       node = this.domnode = document.getElementById(domid);
-      
+
       if (!node) {
         node = this.domnode = makeElement("path");
         node.id = domid;
         node.setAttributeNS(null, "id", domid);
-        
+
         draw.defs.appendChild(node);
         //draw.group.appendChild(node);
-        
+
         var useid = domid + "_use";
-        
+
         //remove any existing usenodes
         var usenode = document.getElementById(useid);
         if (usenode) {
           usenode.remove();
         }
-        
+
         usenode = makeElement("use", {
           "id" : useid
         });
-        
+
         usenode.setAttributeNS(XLS, "xlink:href", "#"+domid);
         draw.group.appendChild(usenode);
-        
+
         this.usenode = usenode;
       }
     }
-    
+
     if (!this.usenode) {
       this.usenode = document.getElementById(domid + "_use");
     }
-    
+
     //force update of z position if necassary
     for (var i=0; i<draw.group.childNodes.length; i++) {
       if (draw.group.childNodes[i] === this.usenode) {
@@ -287,26 +299,26 @@ export class SVGPath extends PathBase {
         break;
       }
     }
-    
+
     var fid = draw.svg.id + "_" + this.id + "_blur";
     var blur, filter;
-    
+
     if (this.blur*draw.zoom > 1) {
       if (!this.filternode) {
         filter = this.filternode = document.getElementById(fid);
       } else {
         filter = this.filternode;
       }
-      
+
       var w2 = w - this.pad*2, h2 = h - this.pad*2;
       var wratio = 2.0*(w / w2)*100.0, hratio = 2.0*(h / h2)*100.0;
-      
+
       var fx = ""+(-wratio/4)+"%", fy=""+(-hratio/4)+"%",
           fwidth=""+wratio+"%", fheight=""+hratio+"%";
-          
+
       if (!filter) {
         //console.log("wratio, hratio:", wratio.toFixed(4), hratio.toFixed(4));
-        
+
         var defs = draw.defs;
         var filter = this.filternode = makeElement("filter", {
           id : fid,
@@ -315,15 +327,15 @@ export class SVGPath extends PathBase {
           width : fwidth,
           height : fheight
         });
-        
+
         var blur = makeElement("feGaussianBlur", {
           stdDeviation : ~~(Math.abs(this.blur*draw.zoom*0.25)),
           "in" : "SourceGraphic"
         });
-        
+
         filter.appendChild(blur);
         defs.appendChild(filter);
-        
+
         node.setAttributeNS(null, "filter", "url(#"+fid+")");
       } else {
         if (filter.getAttributeNS(null, "x") !== fx)
@@ -336,8 +348,8 @@ export class SVGPath extends PathBase {
           filter.setAttributeNS(null, "hratio", fheight);
 
         blur = filter.childNodes[0];
-        
-        if (!blur.hasAttributeNS(null, "stdDeviation") || 
+
+        if (!blur.hasAttributeNS(null, "stdDeviation") ||
             parseFloat(blur.getAttributeNS(null, "stdDeviation")) !== ~~(this.blur*draw.zoom*0.5))
         {
           blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom*0.5));
@@ -345,81 +357,81 @@ export class SVGPath extends PathBase {
       }
     } else if (this.filternode) {
       node.removeAttributeNS(null, "filter");
-      
+
       this.filternode.remove();
       this.filternode = undefined;
     }
 
     var clipid = draw.svg.id + "_" + this.id + "_clip";
-    
+
     if (this.clip_paths.length > 0) {
       var clip = this.clipnode;
-      
+
       if (!clip) {
         clip = this.clipnode = document.getElementById(clipid);
       }
-      
+
       if (!clip) {
         clip = this.clipnode = makeElement("clipPath", {
           id : clipid
         });
         draw.defs.appendChild(clip);
-       
+
         for (var path of this.clip_paths) {
           if (path.recalc) {
             console.log("  clipping subgen!");
             path.gen(draw, 1);
           }
-          
+
           var usenode = makeElement("use");
           //console.log(usenode.constructor);
-          
+
           usenode.setAttributeNS(XLS, "xlink:href", "#"+path.domnode.getAttributeNS(null, "id"));
           //usenode.setAttributeNS(null, "x", path.off[0]);
           //usenode.setAttributeNS(null, "y", path.off[1]);
-          
+
           //var transform = "translate(" + (path.off[0]) + "," + (path.off[1]) + ")";
           //usenode.setAttributeNS(null, "transform", transform);
-          
+
           clip.appendChild(usenode);
         }
       }
-      
+
       node.setAttributeNS(null, "clip-path", "url(#"+clipid+")");
     } else if (this.clipnode) {
      node.removeAttributeNS(null, "clip-path");
      this.clipnode.remove();
      this.clipnode = undefined;
     }
-   
+
     /*
     for (var path of this.clip_paths) {
       //console.log("CLIPPING!", path);
-      
+
       if (path.recalc) {
         console.log("  clipping subgen!");
         path.gen(draw, 1);
       }
-      
+
       path.draw(draw, -this.aabb[0][0], -this.aabb[0][1], this.canvas, this.g);
     }*/
-    
+
     var mat = canvaspath_draw_mat_tmps.next();
     mat.load(draw.matrix);
-    
+
     var co = canvaspath_draw_vs.next().zero();
-    
+
     if (!node) {
       node = document.getElementById(domid);
       console.log("undefined node!", this.domnode, document.getElementById(domid), domid);
       return;
     }
-    
+
     var r = ~~(this.color[0]*255),
         g = ~~(this.color[1]*255),
         b = ~~(this.color[2]*255),
         a = this.color[3];
-    
+
     node.setAttributeNS(null, "fill", "rgba("+r+","+g+","+b+","+a+")");
     /*
     if (do_blur) {
@@ -431,16 +443,16 @@ export class SVGPath extends PathBase {
       this.g.shadowBlur = this.blur;
     }
     */
-    
+
     var d = "";
 
     var cs = this.commands, i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
-      
+
       //console.log(cmd, arglen);
-      
+
       var tmp = canvaspath_draw_args_tmps[arglen];
       var h = parseFloat(draw.svg.getAttributeNS(null, "height"));
 
@@ -506,11 +518,11 @@ export class SVGPath extends PathBase {
           break;
       }//*/
     }
-    
+
     node.setAttributeNS(null, "d", d);
   }
-  
-  reset(draw) {
+
+  reset(draw : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -518,45 +530,51 @@ export class SVGPath extends PathBase {
     this._last_off[0] = this._last_off[1] = 1e17;
     this.first = true;
   }
-  
-  draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g) {
+
+  draw(draw : SVGDraw2D, offx = 0, offy = 0, canvas = draw.canvas,
+       g = draw.g) {
     offx += this.off[0], offy += this.off[1];
-    
+
     this._last_z = this.z;
-    
+
     if (this.recalc) {
       this.recalc = 0;
-      
+
       this.gen(draw);
     }
-    
+
     if (this._last_off[0] !== offx || this._last_off[1] !== offy) {
       this._last_off[0] = offx;
       this._last_off[1] = offy;
-      
+
       var transform = "translate(" + offx + "," + offy + ")";
       this.usenode.setAttributeNS(null, "transform", transform);
     }
   }
-  
+
   update() {
     this.recalc = 1;
   }
 }
 
 export class SVGDraw2D extends VectorDraw {
-  path_idmap : Object
-  dosort : boolean
-  matstack : Array
-  matrix : Matrix4;
+  paths : SVGPath[]
+  path_idmap : {[id : number] : SVGPath}
+
+  /* The <svg> this draw owns, plus the two children every path hangs off. */
+  svg : Element | undefined;
+  defs : Element | undefined;
+  group : Element | undefined;
+  /* Zoom/pan digest; a change forces every path to regenerate. */
+  _last_update_key : string | undefined;
 
   constructor() {
     super();
-    
+
     this.paths = [];
     this.path_idmap = {};
     this.dosort = true;
-    
+
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
 
@@ -565,37 +583,38 @@ export class SVGDraw2D extends VectorDraw {
     }
     this.matstack.cur = 0;
   }
-  
-  static get_canvas(id, width, height, zindex) {
+
+  static get_canvas(id : string, width : number, height : number,
+                    zindex : number) {
     var ret = document.getElementById(id);
-    
+
     if (!ret) {
       ret = makeElement("svg", {
         width  : width,
         height : height
       });
-      
+
       ret.id = id;
       ret.setAttributeNS(null, "id", id);
       ret.style["position"] = "absolute";
       ret.style["z-index"] = zindex;
-      
+
       console.trace("\tZINDEX: ", zindex)
-      
+
       document.body.appendChild(ret);
     }
-    
+
     if (ret.width !== width) {
       ret.setAttributeNS(null, "width", width);
     }
     if (ret.height !== height) {
       ret.setAttributeNS(null, "height", height);
     }
-    
+
     return ret;
   }
-  
-  has_path(id, z, check_z=true) {
+
+  has_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -603,17 +622,17 @@ export class SVGDraw2D extends VectorDraw {
     if (!(id in this.path_idmap)) {
       return false;
     }
-    
+
     var path = this.path_idmap[id];
     return check_z ? path.z === z : true;
   }
-  
+
   //creates new path if necessary.  z is required
-  get_path(id, z, check_z=true) {
+  get_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
-    
+
     if (!(id in this.path_idmap)) {
       this.path_idmap[id] = new SVGPath();
       this.path_idmap[id].index = this.paths.length;
@@ -621,46 +640,46 @@ export class SVGDraw2D extends VectorDraw {
 
       this.paths.push(this.path_idmap[id]);
     }
-    
+
     var ret = this.path_idmap[id];
-    
+
     if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
-    
+
     return ret;
   }
-  
+
   update() {
     for (var path of this.paths) {
       //path.update(this);
     }
   }
-  
-  static kill_canvas(svg) {
+
+  static kill_canvas(svg? : Element) {
     if (svg) {
       svg.remove();
     }
   }
-  
+
   destroy() {
     console.log("DESTROY!");
-    
+
     for (var path of this.paths) {
       path.destroy(this);
     }
-    
+
     this.paths.length = 0;
     this.path_idmap = {};
-    
+
     if (this.svg) {
       this.svg.remove();
       this.svg = this.defs = undefined;
     }
   }
-  
-  draw(g) {
+
+  draw(g : Canvas2D) {
     var canvas = g.canvas;
 
     let updateKey = "" + this.matrix.$matrix.m11.toFixed(4) + ":" + this.matrix.$matrix.m41.toFixed(2) + ":" + this.matrix.$matrix.m42.toFixed(2);
@@ -670,7 +689,7 @@ export class SVGDraw2D extends VectorDraw {
       recalc_all = true;
       this._last_update_key = updateKey;
     }
-    
+
     if (canvas.style["background"] !== "rgba(0,0,0,0)") {
       canvas.style["background"] = "rgba(0,0,0,0)";
     }
@@ -681,21 +700,21 @@ export class SVGDraw2D extends VectorDraw {
     this.svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     this.svg.setAttribute(`xmlns:xlink`, "http://www.w3.org/1999/xlink");
     this.svg.style["pointer-events"] = "none";
-    
+
     var this2 = this;
     function onkillscreen() {
       window.removeEventListener(onkillscreen);
-      
+
       SVGDraw2D.kill_canvas(this2.svg);
       this2.svg = undefined;
     }
-    
+
     //custom event
     window.addEventListener("killscreen", onkillscreen);
-    
+
     var defsid = this.svg.id + "_defs";
     var defs = document.getElementById(defsid);
-    
+
     if (!defs) {
       defs = makeElement("defs", {
         id : defsid
@@ -704,10 +723,10 @@ export class SVGDraw2D extends VectorDraw {
       this.svg.appendChild(defs);
     }
     this.defs = defs;
-    
+
     var groupid = this.svg.id + "_maingroup";
     var group = document.getElementById(groupid);
-    
+
     if (!group) {
       group = makeElement("g", {
         id : groupid
@@ -715,7 +734,7 @@ export class SVGDraw2D extends VectorDraw {
       this.svg.appendChild(group);
     }
     this.group = group;
-    
+
     /*
     var transform = "translate(0, 0)";
     if (!group.hasAttributeNS(null, "transform") || group.getAttributeNS(null, "transform") !== transform) {
@@ -730,79 +749,79 @@ export class SVGDraw2D extends VectorDraw {
 
     if (this.svg.style["left"] !== canvas.style["left"])
       this.svg.style["left"] = canvas.style["left"];
-    
+
     if (this.svg.style["top"] !== canvas.style["top"])
       this.svg.style["top"] = canvas.style["top"];
-    
+
     for (let path of this.paths) {
       if (path.z !== path._last_z) {
         this.dosort = 1;
-        
+
         path.recalc = 1;
         path._last_z = path.z;
       }
     }
-    
+
     //force path recalc here
     for (let path of this.paths) {
       if (path.recalc || recalc_all) {
         path.gen(this);
       }
     }
-    
+
     if (this.dosort) {
       console.log("SVG sort!");
-      
+
       this.dosort = 0;
       this.paths.sort(function(a, b) {
         return a.z - b.z;
       });
-      
+
       //clear all use nodes;
       var cs = this.group.childNodes;
       for (var i=0; i<cs.length; i++) {
         var n = cs[i];
-        
+
         if (n.tagName.toUpperCase() === "USE") {
           n.remove();
           i--;
         }
       }
-      
+
       for (var path of this.paths) {
         if (path.hidden) {
           path.usenode = undefined;
           continue;
         }
-        
+
         var useid = path.get_dom_id(this) + "_use";
         var usenode = path.usenode = makeElement("use", {
           "id" : useid
         });
-          
+
         usenode.setAttributeNS(XLS, "xlink:href", "#"+path.get_dom_id(this));
-        
+
         //force setting of transform property
         path._last_off[0] = path._last_off[1] = 1e17;
-        
+
         //if (path.domnode && path.clipnode) {
         //  usenode.setAttributeNS(null, "clip-path", "url(#"+path.clipnode.id+")");
         //}
-        
+
         this.group.appendChild(usenode);
       }
     }
-    
+
     for (let path of this.paths) {
       if (!path.hidden)
         path.draw(this);
     }
   }
-  
+
   //set draw matrix
-  set_matrix(matrix) {
+  set_matrix(matrix : Matrix4) {
     super.set_matrix(matrix);
-    
+
     this.zoom = matrix.$matrix.m11;
   }
 }

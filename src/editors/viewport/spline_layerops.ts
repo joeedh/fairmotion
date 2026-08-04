@@ -6,6 +6,7 @@ import {
   StringProperty, IntProperty, FloatProperty,
   BoolProperty, CollectionProperty
 } from '../../core/toolprops.js';
+import type {FullContext} from '../../core/context.js';
 
 export class SplineLayerOp extends SplineLocalToolOp {
   static tooldef() {
@@ -16,13 +17,13 @@ export class SplineLayerOp extends SplineLocalToolOp {
     }
   }
 
-  get_spline(ctx) {
+  get_spline(ctx : FullContext) : Spline {
     return ctx.api.getValue(ctx, this.inputs.spline_path.data);
   }
 }
 
 export class AddLayerOp extends SplineLayerOp {
-  constructor(name) {
+  constructor(name? : string) {
     super(undefined, "Add Layer");
 
     if (name !== undefined)
@@ -46,7 +47,7 @@ export class AddLayerOp extends SplineLayerOp {
     };
   }
 
-  static canRun(ctx) {
+  static canRun(ctx : FullContext) {
     return this;
     //let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
     //return spline !== undefined;
@@ -55,21 +56,21 @@ export class AddLayerOp extends SplineLayerOp {
   /*
   undo_pre(ctx) {
   }
-  
+
   undo(ctx) {
     let id = this.outputs.layerid.data;
     let layer = this.get_spline(ctx).layerset.idmap[id];
-    
+
     if (layer === undefined) {
       console.log("WARNING: could not find layer to delete!");
       return;
     }
-    
+
     this.get_spline(ctx).layerset.remove(layer);
     this.get_spline(ctx).regen_sort();
   }//*/
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.warn(ctx, ctx.api);
     let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
 
@@ -102,14 +103,18 @@ export class ChangeLayerOp extends SplineLayerOp {
     };
   }
 
-  constructor(id) {
+  /* Layer id that was active before the op, plus the active element eid in
+     each of the spline's element lists. */
+  _undo : {id : number, actives : number[]};
+
+  constructor(id? : number) {
     super(undefined);
 
     if (id !== undefined)
       this.inputs.layerid.set_data(id);
   }
 
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     let spline = this.get_spline(ctx);
 
     let actives = [];
@@ -123,7 +128,7 @@ export class ChangeLayerOp extends SplineLayerOp {
     }
   }
 
-  undo(ctx) {
+  undo(ctx : FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this._undo.id];
     let actives = this._undo.actives;
@@ -140,7 +145,7 @@ export class ChangeLayerOp extends SplineLayerOp {
     spline.layerset.active = layer;
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this.inputs.layerid.data];
 
@@ -160,7 +165,7 @@ export class ChangeLayerOp extends SplineLayerOp {
 };
 
 export class ChangeElementLayerOp extends SplineLayerOp {
-  constructor(old_layer, new_layer) {
+  constructor(old_layer? : number, new_layer? : number) {
     super(undefined, "Move to Layer");
 
     if (old_layer !== undefined)
@@ -183,7 +188,7 @@ export class ChangeElementLayerOp extends SplineLayerOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = this.get_spline(ctx);
 
     let oldl = this.inputs.old_layer.data;
@@ -234,7 +239,7 @@ export class DeleteLayerOp extends SplineLayerOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this.inputs.layer_id.data];
 

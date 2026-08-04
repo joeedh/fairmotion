@@ -2,6 +2,9 @@ let _graph = undefined;
 
 
 import {Matrix4, Vector2, Vector3, Vector4, util, nstructjs} from '../path.ux/scripts/pathux.js';
+/* Type-only, so this does not close a runtime import cycle with lib_api.ts. */
+import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
+import type {Container, DataAPI, DataStruct} from '../path.ux/scripts/pathux.js';
 let STRUCT = nstructjs.STRUCT;
 
 export class GraphCycleError extends Error {};
@@ -86,16 +89,70 @@ export const GraphFlags = {
 };
 
 //used by Node.inherit
-class InheritFlag {
-  constructor(data) {
+class InheritFlag<T> {
+  data: T;
+
+  constructor(data: T) {
     this.data = data;
   }
 };
 
-export let NodeSocketClasses = [];
+/* The node class mixinGraphNode() builds. Every mixin call produces a distinct
+   class, but they all have this shape, so sockets and the graph refer to nodes
+   through it. */
+export type GraphNodeType = InstanceType<typeof GraphNode>;
+
+/* A node's sockets, keyed by the name the nodedef gave them. */
+export type SocketMap = {[k: string]: NodeSocketType};
+
+/* What NodeSocketType subclasses return from their static nodedef(). */
+export interface SocketDef {
+  name: string;
+  uiname?: string;
+  color?: number[];
+  flag?: number;
+  /* Extra SocketFlags OR'd into every instance at construction. */
+  graph_flag?: number;
+}
+
+/* What GraphNode subclasses return from their static nodedef(). flag, inputs
+   and outputs may each be wrapped in GraphNode.inherit() to merge with what the
+   ancestor classes declare. */
+export interface GraphNodeDef {
+  name?: string;
+  uiname?: string;
+  flag?: number | InheritFlag<number>;
+  inputs?: SocketMap | InheritFlag<SocketMap>;
+  outputs?: SocketMap | InheritFlag<SocketMap>;
+}
+
+export let NodeSocketClasses: (typeof NodeSocketType)[] = [];
 
 export class NodeSocketType {
-  constructor(uiname=undefined, flag=0) {
+  static STRUCT: string;
+  /* Set by the data API when the socket type gets a path; only _api_uiname
+     reads it. */
+  static dataref: {uiname: string};
+
+  uiname: string;
+  name: string;
+  /* The key this socket is filed under in its node's inputs/outputs. */
+  socketName: string | undefined;
+  /* One of SocketTypes; assigned by the owning node's constructor. */
+  socketType: number | undefined;
+  edges: NodeSocketType[];
+  /* Unused; `node` below is a plain property, the getter/setter pair that used
+     _node is commented out. */
+  _node: GraphNodeType | undefined;
+  /* The node that owns this socket. Set by the owner, not by the constructor. */
+  node: GraphNodeType;
+  graph_flag: number;
+  graph_id: number;
+  /* Snapshot of the value at the start of a cyclic solve step, taken by
+     Graph._cyclic_exec so _cyclic_step can measure convergence. */
+  _old: unknown;
+
+  constructor(uiname: string | undefined = undefined, flag = 0) {
     if (uiname === undefined) {
       uiname = this.constructor.nodedef().uiname;
     }
@@ -127,13 +184,13 @@ export class NodeSocketType {
     return this.dataref.uiname;
   }
 
-  graphDataLink(ownerBlock, getblock, getblock_addUser) {
+  graphDataLink(ownerBlock: DataBlock, getblock: GetBlockFunc, getblock_addUser: GetBlockUserFunc) {
 
   }
 
   //used to load data that might change between file versions
   //e.g. EnumProperty's enumeration definitions
-  onFileLoad(templateInstance) {
+  onFileLoad(templateInstance: NodeSocketType) {
     this.graph_flag |= templateInstance.graph_flag;
   }
 
@@ -147,18 +204,18 @@ export class NodeSocketType {
     return this;
   }
 
-  setAndUpdate(val, updateParentNode=false) {
+  setAndUpdate(val: unknown, updateParentNode=false) {
     this.setValue(val);
     this.graphUpdate(updateParentNode);
 
     return this;
   }
 
-  static apiDefine(api, sockstruct) {
+  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
 
   }
 
-  has(node_or_socket) {
+  has(node_or_socket: NodeSocketType | GraphNodeType) {
     for (let socket of this.edges) {
       if (socket === node_or_socket)
         return true;
@@ -192,7 +249,7 @@ export class NodeSocketType {
    will have its path evaluated *relative to the node itself*,
    NOT Context as usual.
    */
-  buildUI(container, onchange) {
+  buildUI(container: Container, onchange: () => void) {
     if (this.edges.length === 0) {
       let ret = container.prop("value");
 
@@ -207,24 +264,26 @@ export class NodeSocketType {
     }
   }
 
-  static register(cls) {
+  static register(cls: typeof NodeSocketType) {
     NodeSocketClasses.push(cls);
   }
 
-  copyValue() {
+  copyValue(): unknown {
     throw new Error("implement me");
   }
 
-  cmpValue(b) {
+  /* Subclasses disagree on what this returns -- some a boolean, Matrix4Socket a
+     -1. Nothing in src/ actually calls it. */
+  cmpValue(b: unknown): boolean | number {
     throw new Error("implement me");
   }
 
   //return float value representing difference with value b
-  diffValue(b) {
+  diffValue(b: unknown): number {
     throw new Error("implement me");
   }
 
-  connect(sock) {
+  connect(sock: NodeSocketType) {
     if (this.edges.indexOf(sock) >= 0) {
       console.warn("Already have socket connected");
       return;
@@ -255,7 +314,7 @@ export class NodeSocketType {
     return this;
   }
 
-  disconnect(sock) {
+  disconnect(sock?: NodeSocketType) {
     if (sock === undefined) {
       let _i = 0;
 
@@ -294,7 +353,7 @@ export class NodeSocketType {
    }}
 
    */
-  static nodedef() { return {
+  static nodedef(): SocketDef { return {
     name   : "name",
     uiname : "uiname",
     color  : undefined,
@@ -305,15 +364,15 @@ export class NodeSocketType {
   //this is allowed to return a reference, but client
   //code is *only allowed to modify that reference's data
   //inside of the owning Node class's exec method*
-  getValue() {
+  getValue(): unknown {
     throw new Error("implement me!");
   }
 
-  setValue(val) {
+  setValue(val: unknown): void {
     throw new Error("implement me!");
   }
 
-  copyTo(b) {
+  copyTo(b: NodeSocketType) {
     b.graph_flag = this.graph_flag;
     b.name = this.name;
     b.uiname = this.uiname;
@@ -347,7 +406,7 @@ export class NodeSocketType {
   flag the socket as updated and queue
   the datagraph for execution
   */
-  graphUpdate(updateParentNode=false, _exclude=undefined) {
+  graphUpdate(updateParentNode=false, _exclude: NodeSocketType | undefined = undefined) {
     if (this.graph_id === -1) {
       //we're not in a graph
       console.warn("graphUpdate called on non-node", this);
@@ -387,7 +446,7 @@ export class NodeSocketType {
     return ret;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     /*
     let eset = new util.set();
@@ -414,8 +473,15 @@ graph.NodeSocketType {
 `;
 nstructjs.manager.add_class(NodeSocketType);
 
+/* One entry of a socket map, flattened for serialization -- nstructjs cannot
+   write a plain object with arbitrary keys. */
 export class KeyValPair {
- constructor(key, val) {
+ static STRUCT: string;
+
+ key: string;
+ val: NodeSocketType;
+
+ constructor(key: string, val: NodeSocketType) {
    this.key = key;
    this.val = val;
  }
@@ -434,15 +500,25 @@ nstructjs.manager.add_class(KeyValPair);
  method in child classes.
  */
 
-export function mixinGraphNode(parent, structName=parent.constructor.name + "GraphNode") {
+export function mixinGraphNode(parent: Function, structName = parent.constructor.name + "GraphNode") {
   class GraphNode {
+    static STRUCT: string;
+
     graph_id: number;
     graph_name: string;
-    graph_graph: Graph;
+    graph_uiname: string;
+    /* Undefined until the node is add()ed to a graph. */
+    graph_graph: Graph | undefined;
     graph_ui_flag: number;
     graph_ui_pos: Vector2;
     graph_ui_size: Vector2;
     graph_flag: number;
+    inputs: SocketMap;
+    outputs: SocketMap;
+    /* Icon index for the node editor; -1 means none. */
+    icon: number;
+    /* Only CallbackNode sets this, via its create() factory. */
+    name: string;
 
     constructor(flag = 0) {
       let def = this.constructor.nodedef();
@@ -503,9 +579,9 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
 
       this.graph_flag = flag | getflag() | NodeFlags.UPDATE;
 
-      let getsocks = (key) => {
+      let getsocks = (key: "inputs" | "outputs") => {
         let obj = def[key];
-        let ret = {};
+        let ret: SocketMap = {};
 
         let inherit = obj instanceof InheritFlag;
         inherit = inherit || (flag & NodeFlags.FORCE_SOCKET_INHERIT);
@@ -597,7 +673,7 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       this.icon = -1;
     }
 
-    static isGraphNode(ob) {
+    static isGraphNode(ob: object) {
       if (!ob || typeof ob !== "object") {
         return false;
       }
@@ -605,7 +681,7 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       return ob.constructor.isGraphNode !== undefined;
     }
 
-    static defineAPI(nodeStruct) {
+    static defineAPI(nodeStruct: DataStruct) {
 
     }
 
@@ -620,9 +696,9 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       //dunno if I'm just being paranoid
       let def2 = Object.assign({}, def);
 
-      let getsocks = (key) => {
+      let getsocks = (key: "inputs" | "outputs") => {
         let obj = def[key];
-        let ret = {};
+        let ret: SocketMap = {};
 
         if (obj instanceof InheritFlag) {
           let p = this;
@@ -685,7 +761,7 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       }
     }}
      */
-    static nodedef() {
+    static nodedef(): GraphNodeDef {
       return {
         name   : "name",
         uiname : "uiname",
@@ -696,11 +772,11 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
     }
 
     /** see nodedef static method */
-    static inherit(obj = {}) {
+    static inherit(obj: SocketMap = {}) {
       return new InheritFlag(obj);
     }
 
-    graphDataLink(ownerBlock, getblock, getblock_addUser) {
+    graphDataLink(ownerBlock: DataBlock, getblock: GetBlockFunc, getblock_addUser: GetBlockUserFunc) {
 
     }
 
@@ -716,7 +792,7 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       })();
     }
 
-    copyTo(b) {
+    copyTo(b: GraphNodeType) {
       b.graph_name = this.graph_name;
       b.uiname = this.uiname;
       b.icon = this.icon;
@@ -753,7 +829,7 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
      *DO NOT call super() unless you want to send an update signal to all
      *output sockets
      */
-    exec(state) {
+    exec(state: unknown) {
       //default implementation simply flags all output sockets
       for (let k in this.outputs) {
         this.outputs[k].graphUpdate();
@@ -776,13 +852,15 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
     afterSTRUCT() {
     }
 
-    loadSTRUCT(reader) {
+    loadSTRUCT(reader: StructReader<this>) {
       reader(this);
 
-      if (Array.isArray(this.inputs)) {
-        let ins = {};
+      /* nstructjs writes socket maps out as KeyValPair arrays; rebuild the maps. */
+      let rawins: SocketMap | KeyValPair[] = this.inputs;
+      if (Array.isArray(rawins)) {
+        let ins: SocketMap = {};
 
-        for (let pair of this.inputs) {
+        for (let pair of rawins) {
           ins[pair.key] = pair.val;
 
           pair.val.socketType = SocketTypes.INPUT;
@@ -793,10 +871,11 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
         this.inputs = ins;
       }
 
-      if (Array.isArray(this.outputs)) {
-        let outs = {};
+      let rawouts: SocketMap | KeyValPair[] = this.outputs;
+      if (Array.isArray(rawouts)) {
+        let outs: SocketMap = {};
 
-        for (let pair of this.outputs) {
+        for (let pair of rawouts) {
           outs[pair.key] = pair.val;
 
           pair.val.socketType = SocketTypes.OUTPUT;
@@ -885,8 +964,8 @@ export function mixinGraphNode(parent, structName=parent.constructor.name + "Gra
       return this.constructor.name + this.graph_id;
     }
 
-    _save_map(map) {
-      let ret = [];
+    _save_map(map: SocketMap) {
+      let ret: KeyValPair[] = [];
 
       for (let k in map) {
         ret.push(new KeyValPair(k, map[k]));
@@ -920,19 +999,25 @@ export const GraphNode = mixinGraphNode(Object);
   saved/loaded from outside the Graph data structure
  */
 export class ProxyNode extends GraphNode {
+  static STRUCT: string;
+
+  /* Name of the class the real node has; relinkProxyOwner() uses it to swap
+     this stand-in back out. */
+  className: string;
+
   constructor() {
     super();
 
     this.className = "";
   }
 
-  nodedef() {return {
+  nodedef(): GraphNodeDef {return {
     inputs  : {},
     outputs : {},
     flag    : NodeFlags.SAVE_PROXY
   }}
 
-  static fromNode(node) {
+  static fromNode(node: GraphNodeType) {
     let ret = new ProxyNode();
 
     ret.graph_id = node.graph_id;
@@ -965,7 +1050,15 @@ ProxyNode.STRUCT = STRUCT.inherit(ProxyNode, GraphNode, "graph.ProxyNode") + `
 `;
 nstructjs.manager.add_class(ProxyNode);
 
+/* What CallbackNode runs on exec. `ctx` is whatever was handed to Graph.exec(). */
+export type NodeCallback = (ctx: unknown, node: CallbackNode) => void;
+
 export class CallbackNode extends GraphNode {
+  static STRUCT: string;
+
+  /* Supplied by create(); undefined means the node does nothing when it execs. */
+  callback: NodeCallback | undefined;
+
   constructor() {
     super();
 
@@ -973,7 +1066,7 @@ export class CallbackNode extends GraphNode {
     this.graph_flag |= NodeFlags.ZOMBIE;
   }
 
-  exec(ctx) {
+  exec(ctx: unknown) {
     if (this.callback !== undefined) {
       this.callback(ctx, this);
     }
@@ -983,14 +1076,15 @@ export class CallbackNode extends GraphNode {
     return this.constructor.name + "(" + this.name + ")" + this.graph_id;
   }
 
-  static nodedef() {return {
+  static nodedef(): GraphNodeDef {return {
     name     : "callback node",
     inputs   : {},
     outputs  : {},
     flag     : NodeFlags.ZOMBIE
   }}
 
-  static create(name, callback, inputs={}, outputs={}) {
+  static create(name: string, callback: NodeCallback,
+                inputs: SocketMap = {}, outputs: SocketMap = {}) {
     let ret = new CallbackNode();
 
     ret.name = name;
@@ -1016,8 +1110,13 @@ CallbackNode.STRUCT = STRUCT.inherit(CallbackNode, Node, "graph.CallbackNode") +
 `;
 nstructjs.manager.add_class(CallbackNode);
 
-export class GraphNodes extends Array {
-  constructor(graph, list) {
+export class GraphNodes extends Array<GraphNodeType> {
+  /* The graph this list belongs to; `selected` reads its nodes. */
+  graph: Graph;
+  active: GraphNodeType | undefined;
+  highlight: GraphNodeType | undefined;
+
+  constructor(graph: Graph, list?: Iterable<GraphNodeType>) {
     super();
     this.graph = graph;
 
@@ -1031,7 +1130,7 @@ export class GraphNodes extends Array {
     this.highlight = undefined;
   }
 
-  setSelect(node, state) {
+  setSelect(node: GraphNodeType, state: boolean) {
     if (state) {
       node.graph_flag |= GraphFlags.SELECT;
     } else {
@@ -1042,15 +1141,14 @@ export class GraphNodes extends Array {
   get selected() {
     let this2 = this;
 
-    let ret = function*() {
+    let ret: EditableIter<GraphNodeType> = (function*() {
       for (let node of this2.graph.nodes) {
         if (node.graph_flag & NodeFlags.SELECT) {
           yield node;
         }
       }
-    };
+    })();
 
-    ret = ret();
     ret.editable = ret; //for now nodes don't support hiding, so editable is just a self reference
     return ret;
   }
@@ -1061,7 +1159,7 @@ export class GraphNodes extends Array {
    a convention in shader networks is that the active "output" node is the first one found in the list.
    this way users can click different output nodes to preview different subnetworks in real time.
   */
-  pushToFront(node) {
+  pushToFront(node: GraphNodeType) {
     let i = this.indexOf(node);
 
     if (i < 0) {
@@ -1085,6 +1183,23 @@ export class GraphNodes extends Array {
 
 
 export class Graph {
+  static STRUCT: string;
+
+  /* Bumped by signalUI(); the UI polls it to decide when to redraw. */
+  updateGen: number;
+  /* Optional client hook fired by flagResort(). */
+  onFlagResort: ((graph: Graph) => void) | undefined;
+  nodes: GraphNodes;
+  /* Nodes in dependency order, rebuilt by sort(). */
+  sortlist: GraphNodeType[];
+  graph_flag: number;
+  max_cycle_steps: number;
+  /* Stop the cyclic solver once per-socket change falls below this. */
+  cycle_stop_threshold: number;
+  graph_idgen: util.IDGen;
+  node_idmap: {[graph_id: number]: GraphNodeType};
+  sock_idmap: {[graph_id: number]: NodeSocketType};
+
   constructor() {
     /**unfortunately we can't use normal event callbacks (or the graph itself)
       to send certain updates to the UI, because the sheer number of nodes
@@ -1120,7 +1235,7 @@ export class Graph {
     return this;
   }
 
-  load(graph) {
+  load(graph: Graph) {
     this.graph_idgen = graph.graph_idgen;
     this.node_idmap = graph.node_idmap;
     this.sock_idmap = graph.sock_idmap;
@@ -1165,7 +1280,7 @@ export class Graph {
       n.graph_flag &= ~(NodeFlags.SORT_TAG|NodeFlags.CYCLE_TAG);
     }
 
-    let dosort = (n) => {
+    let dosort = (n: GraphNodeType) => {
       if (n.graph_flag & NodeFlags.CYCLE_TAG) {
         console.warn("Warning: graph cycle detected!");
         this.graph_flag |= GraphFlags.CYCLIC;
@@ -1204,7 +1319,7 @@ export class Graph {
 
     //we may not have caught all cycle cases
 
-    let cyclesearch = (n) => {
+    let cyclesearch = (n: GraphNodeType): boolean | undefined => {
       if (n.graph_flag & NodeFlags.CYCLE_TAG) {
         console.warn("Warning: graph cycle detected!");
         this.graph_flag |= GraphFlags.CYCLIC;
@@ -1240,7 +1355,7 @@ export class Graph {
     this.graph_flag &= ~GraphFlags.RESORT;
   }
 
-  _cyclic_step(context) {
+  _cyclic_step(context: unknown) {
     let sortlist = this.sortlist;
 
     for (let n of sortlist) {
@@ -1283,7 +1398,7 @@ export class Graph {
     return change; //tot > 0.0 ? change : 0.0;
   }
 
-  _cyclic_exec(context) {
+  _cyclic_exec(context: unknown) {
     //console.log("cycle exec", this.sortlist.length, this.nodes.length);
 
     let sortlist = this.sortlist;
@@ -1311,7 +1426,7 @@ export class Graph {
   }
 
   //context is provided by client code
-  exec(context, force_single_solve=false) {
+  exec(context: unknown, force_single_solve=false) {
     if (this.graph_flag & GraphFlags.RESORT) {
       console.log("resorting graph");
       this.sort();
@@ -1352,7 +1467,7 @@ export class Graph {
     }
   }
 
-  remove(node) {
+  remove(node: GraphNodeType) {
     if (node.graph_id === -1) {
       console.warn("Warning, twiced to remove node not in graph (double remove?)", node.graph_id, node);
       return;
@@ -1378,7 +1493,7 @@ export class Graph {
     node.graph_id = -1;
   }
 
-  has(node) {
+  has(node: GraphNodeType) {
     let ok = node !== undefined;
     ok = ok && node.graph_id !== undefined;
     ok = ok && node === this.node_idmap[node.graph_id];
@@ -1386,7 +1501,7 @@ export class Graph {
     return ok;
   }
 
-  add(node) {
+  add(node: GraphNodeType) {
     if (node.graph_id !== -1) {
       console.warn("Warning, tried to add same node twice", node.graph_id, node);
       return;
@@ -1420,7 +1535,7 @@ export class Graph {
     return this;
   }
 
-  dataLink(owner, getblock, getblock_addUser) {
+  dataLink(owner: DataBlock, getblock: GetBlockFunc, getblock_addUser: GetBlockUserFunc) {
     for (let node of this.nodes) {
       node.graphDataLink(owner, getblock, getblock_addUser);
 
@@ -1430,7 +1545,7 @@ export class Graph {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     this.nodes = new GraphNodes(this, this.nodes);
@@ -1523,7 +1638,7 @@ export class Graph {
   }
 
   //substitute proxy with original node
-  relinkProxyOwner(n) {
+  relinkProxyOwner(n: GraphNodeType) {
     //console.warn("relinkProxyOwner", n.name);
 
     let ok = n !== undefined && n.graph_id in this.node_idmap;
@@ -1606,13 +1721,13 @@ export class Graph {
     }
   }
 
-  execSubtree(startnode, context, checkStartParents=true) {
+  execSubtree(startnode: GraphNodeType, context: unknown, checkStartParents=true) {
     if (this.graph_flag & GraphFlags.RESORT) {
       console.log("resorting graph");
       this.sort();
     }
 
-    function visit(node) {
+    function visit(node: GraphNodeType) {
       //console.log(node.constructor.name, node.graph_id);
 
       if (node.graph_flag & NodeFlags.CYCLE_TAG) {
@@ -1674,7 +1789,7 @@ export class Graph {
   }
 
   _save_nodes() {
-    let ret = [];
+    let ret: GraphNodeType[] = [];
 
     //ensure node socket id sanity
     for (let n of this.nodes) {

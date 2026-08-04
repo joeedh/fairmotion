@@ -5,6 +5,9 @@ import {KeyMap, HotKey} from '../../core/keymap.js';
 
 //import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";
 import {ToolModes} from "./selectmode.js";
+import type {View2DHandler} from './view2d.js';
+import type {FullContext} from '../../core/context.js';
+import type {DataBlock} from '../../core/lib_api.js';
 
 //bitmask
 //VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
@@ -13,10 +16,24 @@ export {EditModes, EditorTypes, SessionFlags} from './view2d_base.js';
 let v3d_idgen = 0;
 
 export class View2DEditor {
+  static STRUCT : string;
+
   keymap : KeyMap
   selectmode : number;
 
-  constructor(name : String, editor_type : int, type : int, lib_type : int) {
+  name : string;
+  _id : number;
+  /* EditModes value -- which element kind this backend edits. */
+  type : number;
+  /* EditorTypes value. */
+  editor_type : number;
+  /* DataTypes value of the datablock the backend operates on. */
+  lib_type : number;
+  /* Set by on_mousemove/on_mouseup only; never initialised. */
+  mdown : boolean;
+
+  constructor(name : string, editor_type : number, type : number,
+              lib_type : number) {
     this.name = name;
     this._id = v3d_idgen++;
     this.type = type;
@@ -28,19 +45,19 @@ export class View2DEditor {
 
   /*
     View2DEditor is an abstract class,
-    but the STRUCT system does require the 
-    presence of fromSTRUCT.  Need to review 
+    but the STRUCT system does require the
+    presence of fromSTRUCT.  Need to review
     that.
    */
-  static fromSTRUCT(reader : Function) {
+  static fromSTRUCT(reader : (obj) => void) {
     var obj = {};
 
     reader(obj);
-    
+
     return obj;
   }
-  
-  get_keymaps() : Array<KeyMap> {
+
+  get_keymaps() : KeyMap[] {
     return [this.keymap];
   }
 
@@ -51,13 +68,16 @@ export class View2DEditor {
     throw new Error("implement me!");
   }
 
-  data_link(block, getblock, getblock_us) {
+  data_link(block : DataBlock, getblock : (ref) => DataBlock,
+            getblock_us : (ref) => DataBlock) {
   }
 
-  add_menu(view2d : View2DHandler, mpos, add_title = true) {
+  add_menu(view2d : View2DHandler, mpos : number[], add_title = true) {
   }
 
-  on_tick(ctx) {
+  /* NOTE: WidgetResizeOp/WidgetRotateOp are only in the commented-out import
+     at the top of this file, so on_tick() throws a ReferenceError. */
+  on_tick(ctx : FullContext) {
     let widgets = [WidgetResizeOp, WidgetRotateOp];
 
     if (ctx.view2d.toolmode == ToolModes.RESIZE) {
@@ -75,17 +95,18 @@ export class View2DEditor {
     var k = this.keymap;
   }
 
-  set_selectmode(mode: int) {
+  set_selectmode(mode : number) {
     this.selectmode = mode;
   }
 
   //returns number of selected items
-  do_select(event, mpos, view2d : View2DHandler, do_multiple) {
+  do_select(event : MouseEvent, mpos : number[], view2d : View2DHandler,
+            do_multiple : boolean) {
     //console.log("XXX do_select!", mpos);
     return false;
   }
 
-  tools_menu(ctx, mpos, view2d : View2DHandler) {
+  tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
     //let ops = [];
     //var menu = view2d.toolop_menu(ctx, "Tools", ops);
     //view2d.call_menu(menu, view2d, mpos);
@@ -97,30 +118,31 @@ export class View2DEditor {
   on_active(view2d : View2DHandler) {
   }
 
-  rightclick_menu(event, view2d : View2DHandler) {
+  rightclick_menu(event : MouseEvent, view2d : View2DHandler) {
   }
 
-  on_mousedown(event) {
+  on_mousedown(event : MouseEvent) {
   }
   //returns [spline, element, mindis]
-  findnearest(mpos, selectmask, limit, ignore_layers) {
+  findnearest(mpos : number[], selectmask : number, limit : number,
+              ignore_layers : boolean) {
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     this.mdown = true;
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : MouseEvent) {
     this.mdown = false;
   }
 
-  do_alt_select(event, mpos, view2d : View2DHandler) {
+  do_alt_select(event : MouseEvent, mpos : number[], view2d : View2DHandler) {
   }
 
   gen_edit_menu(add_title = false) {
   }
 
-  delete_menu(event) {
+  delete_menu(event : MouseEvent) {
   }
 }
 

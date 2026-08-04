@@ -23,6 +23,15 @@ import * as fileapi_chrome from './fileapi_chrome.js';
 import * as fileapi_electron from './fileapi_electron.js';
 import * as fileapi_html5 from './fileapi_html5.js';
 
+/* Handed the file's contents, its display name, and an id the backend can
+   re-open it by later -- a path on electron, a retained entry key on chrome. */
+export type OpenFileCallback = (data: ArrayBuffer, fname: string, id: string) => void;
+export type FileErrorCallback = (error?: Error) => void;
+export type FileSuccessCallback = (path: string) => void;
+
+/* Anything the backends know how to turn into bytes before writing. */
+export type FileData = ArrayBuffer | ArrayBufferView | Blob;
+
 /* The old transpiler allowed `export * from` inside an if/else, which real ESM
    does not. All three backends were concatenated into the bundle regardless,
    so importing them all and dispatching per call is the same behavior. */
@@ -56,7 +65,10 @@ export function id_to_path() {
   return '';
 }
 
-function forward(name) {
+/* The three backends disagree on the argument lists for open_file and
+   save_file -- see docs/debugging.md -- so this dispatcher has no one honest
+   signature. Its arguments stay unannotated until they are reconciled. */
+function forward(name: string) {
   return function (...args) {
     let mod = backend();
 

@@ -13,11 +13,11 @@ window.init_redraw_globals = function init_redraw_globals() {
 
   //let _req_idgen = 1;
 
-  function myrequestAnimationFrame(func1) {
+  function myrequestAnimationFrame(func1: FrameRequestCallback) {
     return requestAnimationFrame(func1);
   }
 
-  function old_myrequestAnimationFrame(func1) {
+  function old_myrequestAnimationFrame(func1: FrameRequestCallback) {
     let id = _req_idgen++;
 
     if (!eman.ready) {
@@ -40,7 +40,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   window._killscreen_handlers = [];
 
   window._send_killscreen = function () {
-    var evt = {type: 'killscreen'};
+    var evt: KillscreenEvent = {type: 'killscreen'};
 
     for (var h of this._killscreen_handlers) {
       try {
@@ -52,7 +52,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
   }
 
-  window.removeEventListener = function (e) {
+  window.removeEventListener = function (e: KillscreenCallback) {
     if (e._is_killscreen) {
       this._killscreen_handlers.remove(e, false);
     } else {
@@ -60,7 +60,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
   }
 
-  window.addEventListener = function (name, cb) {
+  window.addEventListener = function (name: string, cb: KillscreenCallback) {
     cb._is_killscreen = 1;
 
     if (name != "killscreen") {
@@ -70,9 +70,9 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
   }
 
-  var animreq = undefined;
+  var animreq: number | undefined = undefined;
 
-  var animreq_ui = undefined;
+  var animreq_ui: number | undefined = undefined;
   var block_ui_draw = false;
 
   //this appears to do nothing now?
@@ -81,9 +81,10 @@ window.init_redraw_globals = function init_redraw_globals() {
   }
 
   window._solve_idgen = 1;
-  let outstanding_solves = {};
+  /* A set of live solve ids; the value is always 1. */
+  let outstanding_solves: {[id: number]: number} = {};
 
-  window.push_solve = function (spline) {
+  window.push_solve = function (spline: Spline) {
     var id = _solve_idgen++;
 
     if (DEBUG.solve_order) {
@@ -109,21 +110,21 @@ window.init_redraw_globals = function init_redraw_globals() {
     //redraw_viewport();
   }
 
-  let redraw_viewport_promise = undefined;
+  let redraw_viewport_promise: Promise<void> | undefined = undefined;
 
-  let animreq2;
+  let animreq2: number | undefined;
   window._all_draw_jobs_done = function () {
     //console.log("all rendering jobs done");
     animreq2 = undefined;
   }
 
   if (0) {
-    let block;
+    let block: number | undefined;
     Object.defineProperty(window, "_block_drawing", {
       get() {
         return block;
       },
-      set(v) {
+      set(v: number) {
         if (v === 0) {
           console.warn("redraw block clear");
         } else {
@@ -240,10 +241,10 @@ window.init_redraw_globals = function init_redraw_globals() {
     return redraw_viewport_promise;
   }
 
-  var requestId;
+  var requestId: number | undefined;
   window._fps = 1;
 
-  window.reshape = function reshape(gl) {
+  window.reshape = function reshape(gl: WebGLRenderingContext) {
     var g = window.g_app_state;
     if (g === undefined)
       return;

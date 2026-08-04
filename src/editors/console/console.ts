@@ -3,7 +3,17 @@ import {color2css, css2color, UIBase, keymap, util, cconst, nstructjs, Vector2, 
 import { termColorMap } from '../../path.ux/scripts/util/util.js';
 import { loadFile } from '../../path.ux/scripts/util/html5_fileapi.js';
 
-let g_screen = undefined;
+import type {Screen} from '../../path.ux/scripts/screen/FrameManager.js';
+
+/* The lines buffer, with the hovered entry hung off the array itself. */
+export type ConsoleLines = ConsoleLineEntry[] & {
+  active : ConsoleLineEntry | undefined
+};
+
+/* The command history, with the browse cursor hung off the array itself. */
+export type ConsoleHistory = ConsoleCommand[] & {cur : number};
+
+let g_screen : Screen = undefined;
 let _silence = () => {};
 let _unsilence = () => {};
 
@@ -13,19 +23,19 @@ function patch_console() {
     if (_patched) {
         return;
     }
-    
+
     _patched = true;
 
     let methods = {};
     let ignore = 0;
-    
+
     _silence = () => ignore = 1;
     _unsilence = () => ignore = 0;
 
     let handlers = {
     }
 
-    function patch(key) {
+    function patch(key : string) {
         handlers[key] = function() {
             setTimeout(() => {
                 if (ignore || !g_screen) {
@@ -60,15 +70,21 @@ const LineFlags = {
 };
 
 export class ConsoleLineEntry {
-    line : boolean
-    loc : boolean
-    bg : boolean
-    fg : boolean
+    static STRUCT : string;
+
+    line : string
+    loc : string
+    bg : string
+    fg : string
     closed : boolean
+    /* Offset back to the line this one is nested under, as a negative index
+       delta; 0 for a top-level line. */
     parent : number
+    /* Offset forward to this line's first child, or NO_CHILDREN. */
+    children : number
     flag : number;
 
-    constructor(line, loc="", fg="", bg="") {
+    constructor(line : string, loc = "", fg = "", bg = "") {
         this.line = ""+line;
         this.loc = ""+loc;
         this.bg = ""+bg;
@@ -79,7 +95,7 @@ export class ConsoleLineEntry {
         this.flag = 0;
     }
 
-    loadSTRUCT(reader) {
+    loadSTRUCT(reader : StructReader<this>) {
         reader(this);
     }
 }
@@ -89,7 +105,7 @@ ConsoleLineEntry {
     line     : string;
     loc      : string;
     bg       : string;
-    fg       : string; 
+    fg       : string;
     closed   : bool;
     parent   : int;
     children : int;
@@ -99,11 +115,15 @@ ConsoleLineEntry {
 nstructjs.register(ConsoleLineEntry);
 
 export class ConsoleCommand {
+    static STRUCT : string;
+
+    command : string;
+
     constructor(cmd : string) {
         this.command = cmd;
     }
 
-    loadSTRUCT(reader : Function) {
+    loadSTRUCT(reader : StructReader<this>) {
         reader(this);
     }
 }
@@ -122,6 +142,12 @@ export const HitBoxTypes = {
 export class HitBox {
     pos : Vector2
     size : Vector2;
+    /* A HitBoxTypes value. */
+    type : number
+    /* For CUSTOM boxes; nothing in this file ever sets or calls it. */
+    onhit : ((e : MouseEvent, box : HitBox) => void) | null
+    /* The lines this box toggles -- always exactly one, pushed by redraw(). */
+    lines : ConsoleLineEntry[];
 
     constructor(x : number, y : number, w : number, h : number) {
         this.pos = new Vector2([x, y]);
@@ -132,7 +158,7 @@ export class HitBox {
         this.lines = [];
     }
 
-    toggle(e, editor : ConsoleEditor) {
+    toggle(e : MouseEvent, editor : ConsoleEditor) {
         _silence();
 
         //console.log(this.lines);
@@ -140,7 +166,7 @@ export class HitBox {
         for (let l of this.lines) {
             let i = editor.lines.indexOf(l);
             let starti = i;
-            
+
             //console.log(l.children);
 
             if (l.children === NO_CHILDREN) {
@@ -153,7 +179,7 @@ export class HitBox {
             while (j++ < editor.lines.length) {
                 let l2 = editor.lines[i];
 
-                //console.log(i+l2.parent, starti); 
+                //console.log(i+l2.parent, starti);
                 if (editor.lines[i+l2.parent] !== l) {
                     break;
                 }
@@ -169,7 +195,7 @@ export class HitBox {
         _unsilence();
     }
 
-    click(e : MouseEvent, editor) {
+    click(e : MouseEvent, editor : ConsoleEditor) {
         if (this.type === HitBoxTypes.TOGGLE_CHILDREN) {
             this.toggle(e, editor);
             console.log("click!");
@@ -177,16 +203,28 @@ export class HitBox {
     }
 }
 
+/* NOTE: `Icons` (read by define()) and `termColor` (called by
+   formatMessage) are both used bare and never imported in this module. */
 export class ConsoleEditor extends Editor {
+    static STRUCT : string;
+
     _animreq : number
     fontsize : number
+    /* Ring-buffer write cursor into `lines`, once it reaches bufferSize. */
     head : number
     bufferSize : number
     scroll : Vector2
-    colors : Object
-    colormap : Object
-    lines    : Array<ConsoleLineEntry>;
-    hitboxes : Array<HitBox>;
+    /* Role name -> css color. */
+    colors : {[role : string] : string}
+    /* Terminal color name -> the css color actually drawn. */
+    colormap : {[name : string] : string}
+    lines    : ConsoleLines;
+    hitboxes : HitBox[];
+    history  : ConsoleHistory;
+
+    canvas : HTMLCanvasElement
+    g : Canvas2D
+    textbox : HTMLInputElement;
 
     constructor() {
         super();
@@ -226,7 +264,7 @@ export class ConsoleEditor extends Editor {
     on_area_active() {
         patch_console();
     }
-    
+
     formatMessage() {
         let s = "";
         let prev = "";
@@ -300,7 +338,7 @@ export class ConsoleEditor extends Editor {
 
         let i2 = stack.search("\\(");
         let prefix = i2 >= 0 ? (""+stack.slice(0, i2)).trim() : "";
-        
+
         if (prefix.length > 0) {
             prefix += ":"
         }
@@ -309,7 +347,7 @@ export class ConsoleEditor extends Editor {
         if (parts) {
             return [prefix, stack];
         }
-        
+
         return util.termColor(prefix, this.colors["object"]) + util.termColor(stack, this.colors["source"]);
     }
 
@@ -339,7 +377,7 @@ export class ConsoleEditor extends Editor {
         }
     }
 
-    pushLine(line : ConsoleLineEntry) {
+    pushLine(line : ConsoleLineEntry | string) {
         if (line === undefined) {
             line = "";
         }
@@ -371,13 +409,13 @@ export class ConsoleEditor extends Editor {
 
     printStack(start:number=0, fg:string="", bg:string="", closed:boolean=true) {
         let stack = (""+new Error().stack).split("\n");
-        
+
         let off = -1;
         for (let i=start; i<stack.length; i++) {
             let s = stack[i];
             let l = this.formatStackLine(s, true);
             l[0] = "  " + (""+l[0]).trim();
-            
+
             l = new ConsoleLineEntry(l[0], l[1], fg, bg);
             l.closed = closed;
             l.parent = off--;
@@ -392,7 +430,7 @@ export class ConsoleEditor extends Editor {
         msg = util.termColor(msg, 1);
 
         this.push(msg, this.colors["warning"], this.colors["warning_bg"], true);
-        
+
         this.printStack(5, undefined, this.colors["warning_bg"], true);
     }
 
@@ -401,7 +439,7 @@ export class ConsoleEditor extends Editor {
 
         msg = util.termColor(msg, 1);
         this.push(msg, this.colors["error"], this.colors["error_bg"], true);
-        
+
         this.printStack(5, undefined, this.colors["error_bg"], true);
     }
 
@@ -417,6 +455,8 @@ export class ConsoleEditor extends Editor {
         this.push(msg);
     }
 
+    /* Rebuilds the event in canvas pixel space.  NOTE: `commandKey` and
+       `touches` are not MouseEvent properties, so both copy as undefined. */
     _mouse(e : MouseEvent) {
         let x = e.x, y = e.y;
 
@@ -517,7 +557,7 @@ export class ConsoleEditor extends Editor {
     init() {
         super.init();
 
-        this.addEventListener("mousewheel", (e) => {
+        this.addEventListener("mousewheel", (e : WheelEvent) => {
             this.scroll[1] += -e.deltaY;
             this.queueRedraw();
         });
@@ -531,7 +571,7 @@ export class ConsoleEditor extends Editor {
         //let g = this.g = canvas.g;
         let canvas = this.canvas = document.createElement("canvas");
         let g = this.g = canvas.getContext("2d");
-        
+
         canvas.addEventListener("mousemove", this.on_mousemove.bind(this));
         canvas.addEventListener("mousedown", this.on_mousedown.bind(this));
         canvas.addEventListener("mouseup", this.on_mouseup.bind(this));
@@ -556,7 +596,7 @@ export class ConsoleEditor extends Editor {
         this.queueRedraw();
     }
 
-    _on_change(e) {
+    _on_change(e : Event) {
         _silence();
         console.log("yay", e);
         _unsilence();
@@ -599,7 +639,7 @@ export class ConsoleEditor extends Editor {
     doTab(cmd : string="") {
         let i = cmd.length - 1;
         while (i >= 0) {
-            if (cmd[i] === "." || cmd[i] === "]" || cmd[i] === ")") { 
+            if (cmd[i] === "." || cmd[i] === "]" || cmd[i] === ")") {
                 break;
             }
 
@@ -649,7 +689,7 @@ export class ConsoleEditor extends Editor {
             keys2.push(k);
         }
         keys = keys2;
-        
+
         let list = [];
         let lsuffix = suffix.toLowerCase();
         let hit = suffix;
@@ -729,7 +769,7 @@ export class ConsoleEditor extends Editor {
         this.textbox.setSelectionRange(s.length, s.length);
     }
 
-    popup(x, y) {
+    popup(x : number, y : number) {
 
     }
 
@@ -742,6 +782,8 @@ export class ConsoleEditor extends Editor {
 
         switch (e.keyCode) {
             case keymap["R"]:
+                /* NOTE: `commandKey` is not a KeyboardEvent property; the
+                   DOM spells it `metaKey`. */
                 if ((e.ctrlKey | e.commandKey) && !e.shiftKey && !e.altKey) {
                     location.reload();
                 }
@@ -797,7 +839,7 @@ export class ConsoleEditor extends Editor {
 
         g.font = font.genCSS(ts);
         g.fillStyle = font.color;
-        
+
         let width = canvas.width, height = canvas.height;
         let lh = this.lineHeight;
         let pad1 = 10*UIBase.getDPI();
@@ -805,15 +847,18 @@ export class ConsoleEditor extends Editor {
         let scroll = this.scroll;
         let x = scroll[0];
         let y = scroll[1] + 5 + canvas.height - lh;
-        
+
         let this2 = this;
         let color = g.font.color;
 
         let fontcpy = font.copy();
 
+        /* Draws one character at a time so ANSI escape codes can retint and
+           re-font mid-string; `state` is whichever of base/escape is live.
+           Every other field is created by start(). */
         let stateMachine = {
             stack : [],
-            start(x, y, color) {
+            start(x : number, y : number, color : string) {
                 this.stack.length = 0;
                 this.x = x;
                 this.y = y;
@@ -826,8 +871,8 @@ export class ConsoleEditor extends Editor {
                 this.color = color;
                 this.font = g.font;
             },
-            
-            escape(c) {
+
+            escape(c : string) {
                 let ci = c.charCodeAt(0);
 
                 if (this.d === 0 && c === "[") {
@@ -874,11 +919,11 @@ export class ConsoleEditor extends Editor {
                     this.state = this.base;
                     return "?";
                 }
-                
+
                 return false; //ci > 27 ? c : "?";
             },
 
-            base(c) {
+            base(c : string) {
                 let ci = c.charCodeAt(0);
 
                 if (ci === 27) {
@@ -903,10 +948,10 @@ export class ConsoleEditor extends Editor {
                 return c;
             }
         };
-        
-        let fillText = (s, x, y, bg) => {
+
+        let fillText = (s : string, x : number, y : number) => {
             stateMachine.start(x, y, color);
-            
+
             for (let i=0; i<s.length; i++) {
                 let c = s[i];
 
@@ -936,7 +981,7 @@ export class ConsoleEditor extends Editor {
             }
         }
 
-        let measureText = (s) => {
+        let measureText = (s : string) => {
             stateMachine.start(0, 0, color);
 
             for (let i=0; i<s.length; i++) {
@@ -952,19 +997,19 @@ export class ConsoleEditor extends Editor {
 
                 let w = g.measureText(c).width;
                 stateMachine.x += w;
-                
+
                 g.fillStyle = stateMachine.color;
                 g.fillText(c, stateMachine.x, stateMachine.y);
             }
 
             return {width : stateMachine.x};
         }
-        
+
         let lines = this.lines;
         for (let li2=lines.length-1; li2 >= 0; li2--) {
             let li = (li2 + this.head) % this.lines.length;
         //for (let li=0; li<lines.length; li++) {
-            let l = lines[li];        
+            let l = lines[li];
             let s = l.line;
 
             if (l.closed || y < -lh*4 ||  y >= canvas.height + lh*3) {
@@ -995,7 +1040,7 @@ export class ConsoleEditor extends Editor {
             color = l.fg ? l.fg : font.color;
 
             g.fillStyle = font.color;
-            
+
             let w1 = measureText(s).width;
 
             if (l.loc.length > 0) {
@@ -1013,7 +1058,7 @@ export class ConsoleEditor extends Editor {
                     y -= lh;
                 }
             }
-            
+
             if (l.children !== NO_CHILDREN) {
                 let hb = new HitBox(x, y-ts+2, canvas.width, ts+3);
                 hb.lines.push(l);
@@ -1024,9 +1069,9 @@ export class ConsoleEditor extends Editor {
             y -= lh;
         }
     }
-    
+
     updateSize() {
-        if (!this.canvas) 
+        if (!this.canvas)
             return;
 
         let dpi = UIBase.getDPI();
@@ -1034,8 +1079,8 @@ export class ConsoleEditor extends Editor {
         let h1 = this.size[1] - 100/dpi;
 
         let w2 = ~~(w1*dpi);
-        let h2 = ~~(h1*dpi); 
-        
+        let h2 = ~~(h1*dpi);
+
         let canvas = this.canvas;
 
         if (w2 !== canvas.width || h2 !== canvas.height) {
@@ -1080,12 +1125,12 @@ export class ConsoleEditor extends Editor {
         flag : 0,
         style : "console"
     }}
-    
+
     copy() : ConsoleEditor {
         return document.createElement("console-editor-x");
     }
 
-    loadSTRUCT(reader : Function) {
+    loadSTRUCT(reader : StructReader<this>) {
         reader(this);
         super.loadSTRUCT(reader);
 

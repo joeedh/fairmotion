@@ -49,16 +49,30 @@ let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
 
 import {bez3, bez4} from '../util/bezier.js';
 
+import type {Spline} from './spline.js';
+import type {BaseContext} from '../core/context.js';
+
 let _seg_aabb_ret = [new Vector3(), new Vector3()];
 
-export class SplineVertex extends SplineElement {
-  flag: boolean
-  eid: number
-  hpair: SplineVertex
-  frames: Object
-  segments: Array<SplineSegment>;
+/* SplineVertex is not a Vector2 subclass -- mixin(SplineVertex, Vector2) at
+   the bottom of this class copies the whole Vector2 prototype onto it, so
+   declaration-merge that surface in rather than inheriting it. */
+export interface SplineVertex extends Vector2 {}
 
-  constructor(co) {
+export class SplineVertex extends SplineElement {
+  static STRUCT : string;
+
+  /* The handle this one is paired with in shared-tangents mode. */
+  hpair : SplineVertex | undefined;
+  /* Never populated -- only ever `{}`, and copied straight out by toJSON(). */
+  frames : {[time : number] : number};
+  segments : Array<SplineSegment>;
+  /* Silences the Vector2 mixin's warnings while loadSTRUCT() rebuilds us. */
+  _no_warning : boolean;
+  /* Only exists between reader(this) and the delete in loadSTRUCT(). */
+  co? : Vector2;
+
+  constructor(co? : ArrayLike<number>) {
     super(SplineTypes.VERTEX);
 
     /* SplineVertex is not a Vector2 subclass -- it borrows the methods through
@@ -90,7 +104,7 @@ export class SplineVertex extends SplineElement {
     return 0.0;
   }
 
-  set 2(val) {
+  set 2(val : number) {
     console.warn("Attempt to set [2] in SplineVertex!");
   }
 
@@ -114,7 +128,7 @@ export class SplineVertex extends SplineElement {
     return tot ? sum/tot : 0.0;
   }
 
-  set width(w) {
+  set width(w : number) {
     if (this.type !== SplineTypes.VERTEX) {
       //hrm, what to do for handles?
       console.warn("Dynamic vertex width not supported for handle vertices");
@@ -282,7 +296,7 @@ export class SplineVertex extends SplineElement {
     }
   }
 
-  get aabb(): array<Vector3> {
+  get aabb() : Vector3[] {
     let ret = _seg_aabb_ret;
 
     ret[0].load(this);
@@ -290,7 +304,7 @@ export class SplineVertex extends SplineElement {
     return ret;
   }
 
-  sethide(state) {
+  sethide(state : boolean) {
     if (state)
       this.flag |= SplineFlags.HIDE;
     else
@@ -371,7 +385,9 @@ export class SplineVertex extends SplineElement {
     return s;
   }
 
-  toJSON(): any {
+  /* NOTE: `this.frame` does not exist on SplineVertex -- ret.frame is always
+     undefined. */
+  toJSON() {
     var ret = {};
 
     ret.frame = this.frame;
@@ -392,7 +408,7 @@ export class SplineVertex extends SplineElement {
     return ret;
   }
 
-  loadSTRUCT(reader: Function) {
+  loadSTRUCT(reader : StructReader<this>) {
     this._no_warning = true;
 
     reader(this);
@@ -434,6 +450,8 @@ export class ClosestPointRecord {
     this.sign = 1.0;
   }
 
+  /* NOTE: clears both fields to undefined even though they are declared as
+     numbers; every consumer overwrites them before reading. */
   reset() {
     this.sign = this.s = undefined;
     return this;
@@ -454,7 +472,9 @@ export class EffectWrapper extends CurveEffect {
     this.seg = owner;
   }
 
-  rescale(ceff, width: number): number {
+  /* NOTE: the chain root is always an EffectWrapper, so `ceff.seg` below is
+     really there -- CurveEffect itself has no `seg`. */
+  rescale(ceff : CurveEffect, width : number) : number {
     //find owning segment by ascending to root curve effect
     while (ceff.prior !== undefined) {
       ceff = ceff.prior;
@@ -472,7 +492,7 @@ export class EffectWrapper extends CurveEffect {
     return width;
   }
 
-  _get_nextprev(donext, flip_out) {
+  _get_nextprev(donext : number, flip_out : (number | boolean)[]) {
     var seg1 = this.seg;
 
     var v = donext ? seg1.v2 : seg1.v1;
@@ -486,11 +506,11 @@ export class EffectWrapper extends CurveEffect {
     return seg2._evalwrap;
   }
 
-  evaluate(s: float): Vector3 {
+  evaluate(s : number) {
     return this.seg.evaluate(s, undefined, undefined, undefined, true);
   }
 
-  derivative(s: float): Vector3 {
+  derivative(s : number) {
     return this.seg.derivative(s, undefined, undefined, true);
   }
 }
@@ -513,12 +533,12 @@ let bstmpb = [0, 0];
 let shiftout = [0];
 
 export class SplineSegment extends SplineElement {
+  static STRUCT : string;
+
   _evalwrap: EffectWrapper
   has_multires: boolean
   mat: Material
   finalz: number
-  flag: number
-  eid: number
   v1: SplineVertex
   v2: SplineVertex
   h1: SplineVertex
@@ -527,8 +547,21 @@ export class SplineSegment extends SplineElement {
   w2: number
   shift1: number
   shift2: number
-  ks: Array
-  _last_ks: Array;
+  /* The curvature vector: KTOTKS slots whose meaning depends on the order --
+     see spline_math.ts. ks[KSCALE] is the arc length. */
+  ks: number[]
+  _last_ks: number[];
+
+  /* One of the loops using this segment; the rest are reachable through
+     radial_next. */
+  l : SplineLoop | undefined;
+  /* Set by the draw code: the id shared by every topologically connected
+     segment, and the narrower id shared only across two-valence joins within
+     one layer and stroke style. */
+  topoid : number;
+  stringid : number;
+  z : number;
+  _aabb : Vector3[];
 
   constructor(v1: SplineVertex, v2: SplineVertex) {
     super(SplineTypes.SEGMENT);
@@ -704,7 +737,10 @@ export class SplineSegment extends SplineElement {
     return s;
   }
 
-  width(s: number, outShift: Array<float>): number {
+  /* Evaluates the stroke width at `s` as a cubic B-spline through this
+     segment's width samples and its neighbours', so width stays smooth across
+     two-valence joins. Writes the matching shift into outShift[0]. */
+  width(s : number, outShift? : number[]) : number {
     //return this.w1 + (this.w2 - this.w1)*s;
 
     let seg = this;
@@ -817,7 +853,7 @@ export class SplineSegment extends SplineElement {
     return bspline.deBoor(3, s, ks, ws, 3);
   }
 
-  _material_update(spline) {
+  _material_update(spline? : Spline) {
     if (spline && spline.segmentNeedsResort(this)) {
       console.log("segment material flagged resort!");
       spline.regen_sort();
@@ -828,14 +864,14 @@ export class SplineSegment extends SplineElement {
     this.v2.flag |= SplineFlags.UPDATE;
   }
 
-  get aabb(): Array<Vector3> {
+  get aabb() : Vector3[] {
     if (this.flag & SplineFlags.UPDATE_AABB)
       this.update_aabb();
 
     return this._aabb;
   }
 
-  set aabb(val: Array<Vector3>) {
+  set aabb(val : Vector3[]) {
     this._aabb = val;
   }
 
@@ -969,8 +1005,8 @@ export class SplineSegment extends SplineElement {
   /**
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
-  closest_point(p: Vector2, mode: ClosestModes, fast: boolean = false,
-                widthSide = undefined): ClosestPointRecord {
+  closest_point(p : Vector2, mode : number, fast : boolean = false,
+                widthSide? : number) : ClosestPointRecord {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }
@@ -1272,6 +1308,8 @@ export class SplineSegment extends SplineElement {
     return this.ks[KSCALE];
   }
 
+  /* NOTE: `this.frames` does not exist on SplineSegment -- ret.frames is
+     always undefined. */
   toJSON() {
     var ret = {};
 
@@ -1293,7 +1331,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
 
-  curvature(s: number, order: int, override_scale: number) {
+  curvature(s : number, order? : number, override_scale? : number) {
     if (order === undefined) order = ORDER;
 
     if (this.flag & SplineFlags.COINCIDENT) {
@@ -1318,7 +1356,7 @@ export class SplineSegment extends SplineElement {
     return k/(0.0000001 + this.ks[KSCALE]);
   }
 
-  curvature_dv(s: number, order: int, override_scale: number): number {
+  curvature_dv(s : number, order? : number, override_scale? : number) : number {
     if (order === undefined) order = ORDER;
 
     if (this.flag & SplineFlags.COINCIDENT) {
@@ -1333,7 +1371,8 @@ export class SplineSegment extends SplineElement {
     return k/(0.00001 + this.ks[KSCALE]);
   }
 
-  derivative(s: number, order: int, no_update_curve: boolean, no_effects: boolean): Vector2 {
+  derivative(s : number, order? : number, no_update_curve? : boolean,
+             no_effects? : boolean) : Vector2 {
     if (this.flag & SplineFlags.COINCIDENT) {
       return derivative_cache_vs.next().zero();
     }
@@ -1343,12 +1382,12 @@ export class SplineSegment extends SplineElement {
     if (s < 1.0 - df) {
       let a = this.evaluate(s);
       let b = this.evaluate(s+df);
-      
+
       return b.sub(a).mulScalar(1.0 / df);
     } else {
       let a = this.evaluate(s-df);
       let b = this.evaluate(s);
-  
+
       return b.sub(a).mulScalar(1.0 / df);
     }
     //*/
@@ -1376,12 +1415,12 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
 
-  theta(s: number, order: int, no_effects: boolean) {
+  theta(s : number, order? : number, no_effects? : boolean) {
     if (order === undefined) order = ORDER;
     return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
   }
 
-  offset_eval(s: number, offset, order: int, no_update: boolean) {
+  offset_eval(s : number, offset : number, order? : number, no_update? : boolean) {
     if (order === undefined) order = ORDER;
 
     var ret = this.evaluate(s, order, undefined, no_update);
@@ -1399,7 +1438,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
 
-  curvatureSide(s: number, side: int, no_out: Vector2) {
+  curvatureSide(s : number, side : number, no_out? : number[]) {
     let df = 0.0001;
     let dv0 = this.evaluateSide(s, side);
     let dv1 = this.evaluateSide(s + df, side);
@@ -1441,7 +1480,12 @@ export class SplineSegment extends SplineElement {
   df(offx, s);
   df(offy, s);
   */
-  evaluateSide(s, side = 0, dv_out, normal_out, lw_dlw_out) {
+  /* The point on one of the two stroke boundaries: the centre line offset by
+     half the local width, adjusted by the local shift. `side` picks which
+     boundary; the three out params receive the boundary's derivative, its
+     normal, and [width, dwidth]. */
+  evaluateSide(s : number, side : number = 0, dv_out? : number[],
+               normal_out? : number[], lw_dlw_out? : number[]) {
     //s = Math.min(Math.max(s, 0.00001), 0.99999);
 
     if (this.flag & SplineFlags.COINCIDENT) {
@@ -1507,7 +1551,8 @@ export class SplineSegment extends SplineElement {
     return co;
   }
 
-  evaluate(s: number, order, override_scale, no_update, no_effects = !ENABLE_MULTIRES): Vector2 {
+  evaluate(s : number, order? : number, override_scale? : number, no_update? : boolean,
+           no_effects = !ENABLE_MULTIRES) : Vector2 {
     if (this.flag & SplineFlags.COINCIDENT) {
       return eval_ret_vs.next().load(this.v1);
     }
@@ -1585,20 +1630,22 @@ export class SplineSegment extends SplineElement {
     } while (l != undefined && l != this.l);
   }
 
-  global_to_local(s, fixed_s = undefined) {
+  /* NOTE: CurveEffect.global_to_local() takes (p, no_effects, fixed_s), so
+     `fixed_s` is being passed as `no_effects` here. */
+  global_to_local(s : Vector3, fixed_s? : number) {
     return this._evalwrap.global_to_local(s, fixed_s);
   }
 
-  local_to_global(p) {
+  local_to_global(p : Vector3) {
     return this._evalwrap.local_to_global(p);
   }
 
-  shared_vert(s) {
+  shared_vert(s : SplineSegment) {
     if (this.v1 === s.v1 || this.v1 === s.v2) return this.v1;
     if (this.v2 === s.v1 || this.v2 === s.v2) return this.v2;
   }
 
-  other_vert(v) {
+  other_vert(v : SplineVertex) {
     if (v === this.v1) return this.v2;
     if (v === this.v2) return this.v1;
 
@@ -1607,7 +1654,7 @@ export class SplineSegment extends SplineElement {
     throw new Error("vertex not in segment: " + (v ? v.eid : v));
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -1620,35 +1667,50 @@ export class SplineSegment extends SplineElement {
 
 SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
   ks       : array(float);
-  
+
   v1       : int | obj.v1.eid;
   v2       : int | obj.v2.eid;
-  
+
   h1       : int | obj.h1 != undefined ? obj.h1.eid : -1;
   h2       : int | obj.h2 != undefined ? obj.h2.eid : -1;
-  
+
   w1       : float;
   w2       : float;
-  
+
   shift1   : float;
   shift2   : float;
-  
+
   l        : int | obj.l != undefined  ? obj.l.eid : -1;
-  
+
   mat      : Material;
 
   aabb     : array(vec3);
   z        : float;
   finalz   : float;
   has_multires : int;
-  
+
   topoid   : int;
   stringid : int;
 }
 `;
 
+/* One use of a segment by a face. Loops form a doubly linked ring around each
+   boundary path (next/prev) and a second ring around each segment across all
+   the faces using it (radial_next/radial_prev). */
 export class SplineLoop extends SplineElement {
-  constructor(f, s, v) {
+  static STRUCT : string;
+
+  f : SplineFace;
+  s : SplineSegment;
+  v : SplineVertex;
+  next : SplineLoop;
+  prev : SplineLoop;
+  radial_next : SplineLoop;
+  radial_prev : SplineLoop;
+  /* The path this loop is part of; assigned by SplineLoopPath.fromSTRUCT(). */
+  p : SplineLoopPath;
+
+  constructor(f? : SplineFace, s? : SplineSegment, v? : SplineVertex) {
     super(SplineTypes.LOOP);
 
     this.f = f, this.s = s, this.v = v;
@@ -1657,7 +1719,7 @@ export class SplineLoop extends SplineElement {
     this.radial_next = this.radial_prev = undefined;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : StructReader<SplineLoop>) {
     var ret = new SplineLoop();
     reader(ret);
     return ret;
@@ -1676,15 +1738,17 @@ SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + `
 `;
 
 class SplineLoopPathIter {
-  ret: Object;
+  ret : {done : boolean, value : SplineLoop | undefined};
+  path : SplineLoopPath;
+  l : SplineLoop | undefined;
 
-  constructor(path) {
+  constructor(path? : SplineLoopPath) {
     this.path = path;
     this.ret = {done: false, value: undefined};
     this.l = path != undefined ? path.l : undefined;
   }
 
-  init(path) {
+  init(path : SplineLoopPath) {
     this.path = path;
     this.l = path.l;
     this.ret.done = false;
@@ -1722,10 +1786,21 @@ class SplineLoopPathIter {
 const _SplineLoopPath_update_winding_cent = new Vector3();
 const _SplineLoopPath_update_aabb_minmax = new MinMax(3);
 
+/* One closed boundary of a face, as a ring of loops starting at `l`. */
 export class SplineLoopPath {
-  winding: number;
+  static STRUCT : string;
 
-  constructor(l, f) {
+  l : SplineLoop;
+  f : SplineFace;
+  totvert : number;
+  /* NOTE: update_winding() assigns a boolean here, and the nstructjs schema
+     writes it as an int. */
+  winding: number;
+  itercache : cachering<SplineLoopPathIter>;
+  /* Only exists between reader(ret) and the delete in fromSTRUCT(). */
+  loops? : SplineLoop[];
+
+  constructor(l? : SplineLoop, f? : SplineFace) {
     this.l = l;
     this.f = f;
     this.totvert = undefined;
@@ -1770,7 +1845,9 @@ export class SplineLoopPath {
     return ret;
   }
 
-  static fromSTRUCT(reader) {
+  /* Rebuilds the next/prev ring from the flat `loops` array the schema
+     stores. */
+  static fromSTRUCT(reader : StructReader<SplineLoopPath>) {
     var ret = new SplineLoopPath();
     reader(ret);
 
@@ -1793,7 +1870,7 @@ export class SplineLoopPath {
   }
 }
 
-SplineLoopPath.STRUCT = ` 
+SplineLoopPath.STRUCT = `
   SplineLoopPath {
     totvert : int;
     loops   : array(SplineLoop) | obj.asArray();
@@ -1802,9 +1879,14 @@ SplineLoopPath.STRUCT = `
 `;
 
 export class SplineFace extends SplineElement {
+  static STRUCT : string;
+
   finalz: number
   mat: Material
-  paths: GArray;
+  /* One entry per closed boundary; the first is the outline, the rest holes. */
+  paths: GArray<SplineLoopPath>;
+  z : number;
+  _aabb : Vector3[];
 
   constructor() {
     super(SplineTypes.FACE);
@@ -1855,11 +1937,11 @@ export class SplineFace extends SplineElement {
     return this._aabb;
   }
 
-  set aabb(val) {
+  set aabb(val : Vector3[]) {
     this._aabb = val;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     super.loadSTRUCT(reader);
@@ -1878,12 +1960,18 @@ SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + `
 `;
 
 export class Material {
+  static STRUCT : string;
+
   fillcolor: Vector4
   strokecolor: Vector4
   strokecolor2: Vector4
   linewidth: number
+  /* The optional second (outline) stroke; 0 disables it. */
+  linewidth2: number
   flag: number
   opacity: number
+  /* NOTE: the nstructjs schema stores this as an int, so it comes back off
+     disk as 0 or 1 rather than as a boolean. */
   fill_over_stroke: boolean
   blur: number;
 
@@ -1902,11 +1990,13 @@ export class Material {
     this.blur = 0.0;
   }
 
-  update(optional_spline) {
+  /* Replaced per instance by SplineSegment/SplineFace, which bind their own
+     _material_update. The base only exists to catch a missed binding. */
+  update(optional_spline? : Spline) {
     throw new Error("override me! should have happened in splinesegment or splineface constructors!");
   }
 
-  equals(is_stroke, mat) {
+  equals(is_stroke : boolean, mat : Material) {
     let color1 = is_stroke ? this.strokecolor : this.fillcolor;
     let color2 = is_stroke ? mat.strokecolor : mat.fillcolor;
 
@@ -1930,7 +2020,7 @@ export class Material {
     return true;
   }
 
-  load(mat) {
+  load(mat : Material) {
     for (var i = 0; i < 4; i++) {
       this.fillcolor[i] = mat.fillcolor[i];
       this.strokecolor[i] = mat.strokecolor[i];
@@ -1956,7 +2046,7 @@ export class Material {
     return "rgba(" + r + "," + g + "," + b + "," + this.fillcolor[3] + ")";
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     this.fillcolor = new Vector4(this.fillcolor);
@@ -1991,7 +2081,17 @@ import {ToolIter, TPropIterable} from '../core/toolprops_iter.js';
 
 //stores elements as eid's, for tool operators
 export class ElementRefIter extends ToolIter {
-  ret: Object;
+  static STRUCT : string;
+
+  ret : {done : boolean, value : SplineElement | undefined};
+  eset : ElementRefSet;
+  ctx : BaseContext | undefined;
+  spline : Spline | undefined;
+  iter : Iterator<number> | undefined;
+  nextitem : SplineElement | undefined;
+  i : number;
+  /* Only exists between reader(ret) and the delete in fromSTRUCT(). */
+  saved_items? : number[];
 
   constructor() {
     super();
@@ -2000,7 +2100,7 @@ export class ElementRefIter extends ToolIter {
     this.spline = this.ctx = this.iter = undefined;
   }
 
-  init(eset) {
+  init(eset : ElementRefSet) {
     this.ret.done = false;
     this.nextitem = undefined;
 
@@ -2061,7 +2161,10 @@ export class ElementRefIter extends ToolIter {
     return this;
   }
 
-  static fromSTRUCT(reader) {
+  /* NOTE: `ret.add()` below is ElementRefSet's method, not ElementRefIter's --
+     and the schema's `mask` field lives on the set too. This whole
+     fromSTRUCT looks like it was copied from ElementRefSet. */
+  static fromSTRUCT(reader : StructReader<ElementRefIter>) {
     var ret = new ElementRefIter();
     reader(ret);
 
@@ -2081,14 +2184,19 @@ ElementRefIter.STRUCT = `
   }
 `;
 
-export class ElementRefSet extends set {
-  constructor(mask) {
+/* A selection set that stores eids rather than elements, so it survives a
+   reload and can be handed to a ToolOp as a property. */
+export class ElementRefSet extends set<number> {
+  mask : number;
+  itercaches : cachering<ElementRefIter>;
+
+  constructor(mask? : number) {
     super();
 
     this.mask = mask == undefined ? SplineTypes.ALL : mask;
   }
 
-  add(item) {
+  add(item : SplineElement | number) {
     var start_item = item;
     if (!(typeof item == "number" || item instanceof Number))
       item = item.eid;

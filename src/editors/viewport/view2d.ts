@@ -44,14 +44,24 @@ function delay_redraw(ms: number) {
 
 import {PanOp} from './view2d_ops.js';
 import {UIOnlyNode} from '../../core/eventdag.js';
+import type {EventDag, NodeBase} from '../../core/eventdag.js';
+import type {EditorCanvas} from '../editor_base.js';
+import type {View2DEditor} from './view2d_editor.js';
+import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
 
-class drawline {
-  clr: Array<number>;
+export class drawline {
+  clr: number[];
 
   v1: Vector2;
   v2: Vector2;
+  /* Which _get_dl_group() bucket this line lives in. */
+  group: string
+  width: number
+  /* Set by make_drawline to the owning view2d's kill_drawline. */
+  onremove: ((dl: drawline) => void) | null;
 
-  constructor(co1, co2, group: string, color, width: number) {
+  constructor(co1: Vector2 | number[], co2: Vector2 | number[], group: string,
+              color: number[], width: number) {
     this.v1 = new Vector2(co1);
     this.v2 = new Vector2(co2);
     this.group = group;
@@ -72,7 +82,7 @@ class drawline {
     }
   }
 
-  set_clr(clr: Array<float>) {
+  set_clr(clr: number[]) {
     this.clr = clr;
   }
 }
@@ -107,13 +117,60 @@ export class View2DHandler extends Editor {
   default_fill: Vector4
   default_linewidth: float
   drawlines: GArray<drawline>
-  drawline_groups: Object
+  /* Group name -> that group's lines; make_drawline files into these, and
+     `drawlines` above is never actually drawn from. */
+  drawline_groups: {[group: string]: GArray<drawline>}
   _last_mpos: Vector2
-  _last_toolmode: any
+  /* The scene's toolmode instance as of the last update(), used to notice a
+     switch and rebuild the toolbars. */
+  _last_toolmode: object | undefined
   glPos: Vector2
   glSize: Vector2
   draw_tiled : boolean
   ctx: FullContext;
+
+  /* The dag node that fires this editor's onDrawPre output. */
+  _graphNode: NodeBase
+  draw_stroke_debug: boolean
+  /* Double-buffer parity: which of the fg/fg2, bg/bg2 canvas pairs is live. */
+  _flip: number
+  /* A ToolModes value; the scene's toolmode is switched to match it. */
+  toolmode: number
+  _last_dpi: number
+  /* Vestigial: only ever the empty array, but the STRUCT still serializes it
+     and `editor` is stored as an index into it. */
+  editors: View2DEditor[]
+  /* eids of the verts whose animation paths stay drawn regardless of
+     selection, or undefined when nothing is pinned. */
+  pinned_paths: number[] | undefined
+  _i: number
+  /* Whichever of fg/fg2 get_fg_canvas() last handed out. */
+  drawcanvas: EditorCanvas
+  /* 2d context of the current foreground canvas. */
+  drawg: Canvas2D
+  /* Set while a tiled draw is still resolving, to drop re-entrant redraws. */
+  _draw_promise: Promise<void> | undefined
+  _makingToolBars: boolean
+  sidebar: TabContainer
+  /* Mouse position in view space, as of the last on_mousemove. */
+  mpos: Vector3
+  /* Where the current left-drag started, or null when no drag is live. */
+  _mstart: Vector2 | null
+  /* Concatenation of the draw-affecting toggles, to notice a change. */
+  _last_key_1: string
+  draw_video: boolean
+  video_time: number
+  startup_time: number
+  /* SessionFlags bitmask. */
+  session_flag: number
+  tweak_mode: number
+  extrude_mode: number
+  /* Set by the draw_normals/draw_anim_paths/only_render setters and never
+     read; the redraw it is meant to request never happens. */
+  draw_viewport: number
+  _draw_anim_paths: boolean
+  /* Suppresses the set_cameramat side effects while loadSTRUCT runs. */
+  _in_from_struct: boolean;
 
   constructor() {
     super();
@@ -212,7 +269,7 @@ export class View2DHandler extends Editor {
     }
   }
 
-  dag_exec(ctx: FullContext, inputs: any, outputs: any, graph: EventDag) {
+  dag_exec(ctx: FullContext, inputs, outputs, graph: EventDag) {
     if (!this.isConnected) {
       window.the_global_dag.remove(this);
       return;
@@ -229,18 +286,18 @@ export class View2DHandler extends Editor {
     return ret;
   }
 
-  tools_menu(ctx, mpos) {
+  tools_menu(ctx: FullContext, mpos: number[]) {
     let tool = ctx.toolmode;
     if (tool) {
       tool.tools_menu(ctx, mpos, this);
     }
   }
 
-  toolop_menu(ctx, name, ops) {
+  toolop_menu(ctx: FullContext, name: string, ops: string[]) {
     return createMenu(ctx, name, ops);
   }
 
-  call_menu(menu, view2d, mpos) {
+  call_menu(menu: UIBase, view2d: View2DHandler, mpos: number[]) {
     let screen = this.ctx.screen;
 
     startMenu(menu, screen.mpos[0], screen.mpos[1]);
@@ -255,6 +312,8 @@ export class View2DHandler extends Editor {
       let s = ctx.view2d.selectmode, s2;
 
       let hf = s & SelMask.HANDLE;
+      /* NOTE: s2 is still undefined here, and the if/else below overwrites
+         it anyway, so this line does nothing. */
       s2 &= ~SelMask.HANDLE;
 
       if (s === SelMask.VERTEX)
@@ -279,6 +338,8 @@ export class View2DHandler extends Editor {
     }, "Toggle Proportional Transform"));
 
     k.add(new HotKey("K", [], function (ctx: FullContext) {
+      /* NOTE: CurveRootFinderTest is not imported in this module, so this
+         hotkey throws ReferenceError. */
       g_app_state.toolstack.execTool(ctx, new CurveRootFinderTest());
     }));
 
@@ -353,7 +414,7 @@ export class View2DHandler extends Editor {
     this.regen_keymap();
   }
 
-  on_mousewheel(e) {
+  on_mousewheel(e: WheelEvent) {
     let dt = -e.deltaY;
 
     let eps = 0.05;
@@ -374,7 +435,11 @@ export class View2DHandler extends Editor {
     return e2;
   }
 
-  data_link(block: DataBlock, getblock: Function, getblock_us: Function) {
+  data_link(block: DataBlock, getblock: (ref) => DataBlock,
+            getblock_us: (ref) => DataBlock) {
+    /* NOTE: `Context` is not imported here -- only `FullContext` is -- so
+       this line, and the identical one in do_draw_viewport, both throw
+       ReferenceError. */
     this.ctx = new Context();
     this.need_data_link = false;
 
@@ -437,7 +502,7 @@ export class View2DHandler extends Editor {
     return co;
   }
 
-  getLocalMouse(x, y) {
+  getLocalMouse(x: number, y: number) {
     let ret = projrets.next();
 
     let canvas = this.get_bg_canvas();
@@ -460,7 +525,7 @@ export class View2DHandler extends Editor {
     return ret;
   }
 
-  on_resize(newsize, oldsize) {
+  on_resize(newsize: number[], oldsize: number[]) {
     super.on_resize(newsize, oldsize);
 
     if (this.size !== undefined) {
@@ -509,7 +574,7 @@ export class View2DHandler extends Editor {
     return matrix;
   }
 
-  drawWebgl(gl, canvas) {
+  drawWebgl(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
     if (!gl) {
       return
     }
@@ -535,7 +600,8 @@ export class View2DHandler extends Editor {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 
-  do_draw_viewport(redraw_rects = []) {
+  /* redraw_rects is a flat run of [minx, miny, maxx, maxy] quadruples. */
+  do_draw_viewport(redraw_rects: number[] = []) {
     if (this._draw_promise) {
       return;
     }
@@ -720,6 +786,8 @@ export class View2DHandler extends Editor {
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
+        /* NOTE: `alpha` is scoped to the loop above, so it is not defined
+           here -- this line throws ReferenceError. */
         pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
       }
     } else {
@@ -763,6 +831,8 @@ export class View2DHandler extends Editor {
     let m = matrix.$matrix;
     g.setTransform(m.m11, m.m12, m.m21, m.m22, m.m41, m.m42);
 
+    /* NOTE: ManipulatorManager.render takes (canvas, g); the matrix is
+       ignored. */
     this.widgets.render(canvas, g, matrix);
 
     bg_g.restore();
@@ -904,7 +974,7 @@ export class View2DHandler extends Editor {
     this._makingToolBars = false;
   }
 
-  makeHeader(container) {
+  makeHeader(container: Container) {
     let row = super.makeHeader(container);
 
     row.noMargins();
@@ -962,7 +1032,7 @@ export class View2DHandler extends Editor {
     return document.createElement("view2d-editor-x");
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     this._in_from_struct = true;
     reader(this);
     super.loadSTRUCT(reader);
@@ -1010,7 +1080,7 @@ export class View2DHandler extends Editor {
     //return this._selectmode;
   }
 
-  set selectmode(val) {
+  set selectmode(val: number) {
     if (this.ctx && this.ctx.scene) {
       this.ctx.scene.selectmode = val;
       window.redraw_viewport();
@@ -1022,7 +1092,7 @@ export class View2DHandler extends Editor {
     //  this.set_selectmode(val);
   }
 
-  set_selectmode(mode: int) {
+  set_selectmode(mode: number) {
     console.warn("Call to view2d.set_selectmode");
     this.ctx.scene.selectmode = mode;
     //this._selectmode = mode;
@@ -1034,7 +1104,7 @@ export class View2DHandler extends Editor {
     return this.pinned_paths !== undefined;
   }
 
-  set pin_paths(state) {
+  set pin_paths(state: boolean) {
     if (!state) {
       this.pinned_paths = undefined;
       if (this.ctx !== undefined && this.ctx.frameset !== undefined) {
@@ -1058,7 +1128,7 @@ export class View2DHandler extends Editor {
     return this._draw_normals;
   }
 
-  set draw_normals(val) {
+  set draw_normals(val: number) {
     if (val !== this._draw_normals) {
       this.draw_viewport = 1;
     }
@@ -1070,7 +1140,7 @@ export class View2DHandler extends Editor {
     return this._draw_anim_paths;
   }
 
-  set draw_anim_paths(val) {
+  set draw_anim_paths(val: boolean) {
     if (val !== this._draw_anim_paths) {
       this.draw_viewport = 1;
     }
@@ -1082,7 +1152,7 @@ export class View2DHandler extends Editor {
     return this._only_render;
   }
 
-  set only_render(val) {
+  set only_render(val: number) {
     if (val !== this._only_render) {
       this.draw_viewport = 1;
     }
@@ -1090,7 +1160,7 @@ export class View2DHandler extends Editor {
     this._only_render = val;
   }
 
-  _get_dl_group(group) {
+  _get_dl_group(group?: string) {
     if (group === undefined)
       group = "main";
 
@@ -1101,7 +1171,8 @@ export class View2DHandler extends Editor {
     return this.drawline_groups[group];
   }
 
-  make_drawline(v1, v2, group = "main", color = undefined, width = 2) {
+  make_drawline(v1: Vector2 | number[], v2: Vector2 | number[], group = "main",
+                color?: number[], width = 2) {
     let drawlines = this._get_dl_group(group);
 
     let dl = new drawline(v1, v2, group, color, width);
@@ -1123,7 +1194,7 @@ export class View2DHandler extends Editor {
     return dl;
   }
 
-  kill_drawline(dl) {
+  kill_drawline(dl: drawline) {
     let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 
     let drawlines = this._get_dl_group(dl.group);
@@ -1141,7 +1212,7 @@ export class View2DHandler extends Editor {
     drawlines.remove(dl);
   }
 
-  reset_drawlines(group = "main") {
+  reset_drawlines(group: string = "main") {
     let drawlines = this._get_dl_group(group);
 
     drawlines.reset();
@@ -1171,20 +1242,23 @@ export class View2DHandler extends Editor {
     return this._can_select;
   }
 
-  set can_select(val) {
+  /* NOTE: _can_select is a number everywhere else; this stores a boolean. */
+  set can_select(val: number) {
     this._can_select = !!val;
   }
 
-  do_select(event: MouseEvent, mpos: Array<float>,
+  do_select(event: MouseEvent, mpos: number[],
             view2d: View2DHandler, do_multiple = false) {
     return this.editor.do_select(event, mpos, view2d, do_multiple);
   }
 
-  do_alt_select(event: MouseEvent, mpos: Array<float>, view2d: View2DHandler) {
+  do_alt_select(event: MouseEvent, mpos: number[], view2d: View2DHandler) {
     return this.editor.do_alt_select(event, mpos, view2d);
   }
 
-  _widget_mouseevent(event) {
+  /* NOTE: `commandKey` below is not a DOM property; it copies as undefined
+     (the DOM spells it `metaKey`). */
+  _widget_mouseevent(event: MouseEvent) {
     let co = [event.x, event.y];
     //console.log("Widget event", event.x, event.y);
     this.unproject(co);
@@ -1277,7 +1351,7 @@ export class View2DHandler extends Editor {
     }
   }
 
-  on_mousemove(event) {
+  on_mousemove(event: PointerEvent) {
     this.checkInit();
 
     this._last_mpos[0] = event.x;
@@ -1301,7 +1375,10 @@ export class View2DHandler extends Editor {
 
     let this2 = this;
 
-    function switch_on_multitouch(op: TranslateOp, event: MouseEvent, cancel_func: any) {
+    /* NOTE: dead and broken -- TranslateOp is not imported, `this` is not
+       the editor inside a plain function, and the `return` above the `let
+       top` makes everything after it unreachable. */
+    function switch_on_multitouch(op, event: MouseEvent, cancel_func: () => void) {
       if (g_app_state.screen.tottouch > 1) {
         this2._mstart = null;
         cancel_func();
@@ -1389,7 +1466,7 @@ export class View2DHandler extends Editor {
     }
   }//*/
 
-  set_zoom(zoom) {
+  set_zoom(zoom: number) {
     "zoom set!";
 
     this.zoom = zoom;
@@ -1398,7 +1475,7 @@ export class View2DHandler extends Editor {
     window.redraw_viewport();
   }
 
-  change_zoom(delta) {
+  change_zoom(delta: number) {
 
   }
 
@@ -1416,7 +1493,7 @@ export class View2DHandler extends Editor {
       return this.ctx.scene.edit_all_layers;
   }
 
-  set edit_all_layers(v) {
+  set edit_all_layers(v: boolean) {
     if (this.ctx && this.ctx.scene)
       this.ctx.scene.edit_all_layers = v;
   }
@@ -1439,6 +1516,7 @@ export class View2DHandler extends Editor {
     let dv = new Vector2(pos2).sub(pos1);
 
 
+    /* NOTE: time_ms is not called, so `time` is NaN.  Nothing reads it. */
     let time = util.time_ms - this._last_rendermat_time;
 
     this._last_rendermat.load(this.cameramat);
@@ -1525,6 +1603,8 @@ export class View2DHandler extends Editor {
     this.pop_ctx_active();
 
     //wait 3 seconds before loading video
+    /* NOTE: `video` is not imported in this module, so enabling draw_video
+       throws ReferenceError. */
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {
       this.video = video.manager.get("/video.mp4");
 

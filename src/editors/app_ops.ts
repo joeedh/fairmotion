@@ -7,9 +7,12 @@ import {StringProperty} from '../core/toolprops.js';
 
 import {export_svg} from '../util/svg_export.js';
 
+/* NOTE: UndoFlags and ToolFlags are already imported above; only ToolOp is
+   new here. */
 import {ToolOp, UndoFlags, ToolFlags} from '../core/toolops_api.js';
 import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi/fileapi.js';
 import * as platform from '../../platforms/platform.js';
+import type {FullContext} from '../core/context.js';
 
 export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
 var fdialog_exclude_chars = new set([
@@ -43,7 +46,7 @@ export class AppQuitOp extends ToolOp {
     }
   }
 
-  exec(ctx: LockedContext) {
+  exec(ctx : FullContext) {
     let {ipcRenderer} = require('electron');
     ipcRenderer.invoke('quit-fairmotion');
   }
@@ -73,7 +76,7 @@ export class FileOpenOp extends ToolOp {
     }
   }
 
-  exec(ctx: LockedContext) {
+  exec(ctx : FullContext) {
     console.log("File open");
 
 //    if (config.USE_HTML5_FILEAPI) {
@@ -114,7 +117,7 @@ export class OpenRecentOp extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.error("Implement me!");
     ctx.error("Implement me!");
   }
@@ -143,14 +146,14 @@ export class FileSaveAsOp extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("File save As");
 
     var mesh_data = g_app_state.create_user_file_new().buffer;
 
     save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
       error_dialog(ctx, "Could not write file", undefined, true);
-    }, (path) => {
+    }, (path : string) => {
       g_app_state.filepath = path;
       g_app_state.notes.label("File saved");
     });
@@ -180,7 +183,7 @@ export class FileSaveOp extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("File save");
 
     var mesh_data = g_app_state.create_user_file_new().buffer;
@@ -193,7 +196,7 @@ export class FileSaveOp extends ToolOp {
     if (!ok) {
       save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
         error_dialog(ctx, "Could not write file", undefined, true);
-      }, (path) => {
+      }, (path : string) => {
         g_app_state.filepath = path;
         g_app_state.notes.label("File saved");
       });
@@ -228,12 +231,11 @@ export class FileSaveSVGOp extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("Export SVG");
 
-    /*I should really make these file operations modal, since
-        they create ui elements
-     */
+    /* NOTE: `Context` is not imported in this module (nor exported anywhere
+       under that name), so this line throws a ReferenceError. */
     ctx = new Context();
 
     var buf = export_svg(ctx.spline);
@@ -268,6 +270,9 @@ export class FileSaveSVGOp extends ToolOp {
 }
 
 export class FileSaveB64Op extends ToolOp {
+  /* Server-side upload path, set by save_callback and read back in finish. */
+  _path : string;
+
   constructor() {
     super();
   }
@@ -289,7 +294,10 @@ export class FileSaveB64Op extends ToolOp {
     }
   }
 
-  exec(ctx) {
+  /* NOTE: this whole method depends on names the module never imports --
+     Context, ProgressDialog, error_dialog, ajax, call_api, upload_file and
+     file_dialog are all undefined here. */
+  exec(ctx : FullContext) {
     console.log("Export AL3-B64");
 
     //compression is off, for now
@@ -345,7 +353,7 @@ export class FileSaveB64Op extends ToolOp {
       pd.end();
     }
 
-    function save_callback(dialog, path) {
+    function save_callback(dialog, path : string) {
       pd.call(ctx.screen.mpos);
 
       if (DEBUG.netio)
@@ -390,7 +398,7 @@ export var import_json = window.import_json = function import_json() {
     console.log("file", f);
 
     var reader = new FileReader();
-    reader.onload = function (data) {
+    reader.onload = function (data : ProgressEvent) {
       var obj = JSON.parse(reader.result);
 
       var tool = new ImportJSONOp(reader.result);

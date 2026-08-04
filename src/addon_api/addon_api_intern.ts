@@ -1,15 +1,21 @@
 import {nstructjs, util, cconst} from '../path.ux/scripts/pathux.js';
 import {Spline} from '../curve/spline.js';
 import {SplineFrameSet} from '../core/frameset.js';
+import type {Addon} from './addon_api.js';
+import type {DataBlockClass} from '../core/lib_api.js';
 
-export function bindAddonAPI(addon) {
+/* Any class nstructjs can serialize; the register() wrapper below only reads
+   structName off it. */
+export type StructClass = Function & {structName : string};
+
+export function bindAddonAPI(addon : Addon) {
   return {
-    registerCustomBlockData(datablock_cls, cls) {
+    registerCustomBlockData(datablock_cls : DataBlockClass, cls : StructClass) {
       //console.log("Registering custom datablock for addon", addon);
       throw new Error("implement me!");
     },
     nstructjs : {
-      register(cls) {
+      register(cls : StructClass) {
         let s = new nstructjs.STRUCT();
         s.add_class(cls);
 
@@ -20,7 +26,7 @@ export function bindAddonAPI(addon) {
         nstructjs.register(cls);
       },
 
-      inherit(cls, parent, structName) {
+      inherit(cls : Function, parent : Function, structName? : string) {
         if (structName === undefined) {
           throw new Error("structName cannot be undefined, and don't forget to add a module prefix, e.g. addon.SomeClass");
         } else if (structName.search(/\./) < 0) {

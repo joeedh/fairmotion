@@ -5,10 +5,17 @@
 import {IconManager} from './icon.js';
 import * as config from '../config/config.js';
 
-class CacheStack extends Array {
+/* A stack of fixed-length number arrays that recycles what it pops, so
+   push/pop cycles do not allocate. */
+class CacheStack<T extends unknown[] = number[]> extends Array<T> {
+  /* Up to 64 popped arrays held for reuse by gen(). */
+  dellist : T[];
+  /* Length of each array gen() hands out. */
+  ilen : number;
+
   constructor(itemlen : number) {
     super();
-    
+
     this.dellist = [];
     this.ilen = itemlen;
   }
@@ -50,10 +57,16 @@ export class RasterState {
   pos : Array<number>
   iconsheet : IconManager
   iconsheet16 : IconManager
-  viewport_stack : CacheStack
-  scissor_stack : CacheStack;
+  /* Each viewport entry is a [pos, size] pair; each scissor entry is a flat
+     [x, y, w, h] rect. */
+  viewport_stack : CacheStack<number[][]>
+  scissor_stack : CacheStack<number[]>;
+  size : Array<number>;
+  gl : WebGLRenderingContext;
+  /* [x, y, w, h] of the innermost scissor, or undefined outside one. */
+  cur_scissor : Array<number> | undefined;
 
-  constructor(gl, size) {
+  constructor(gl: WebGLRenderingContext, size: Array<number>) {
     return;
     this.size = size;
     
@@ -62,18 +75,18 @@ export class RasterState {
     this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
     this.iconsheet16 = new IconManager(gl, config.ICONPATH + "iconsheet16.png", [256, 256], [16, 16]);
     
-    this.viewport_stack = new CacheStack(2)
-    this.scissor_stack = new CacheStack(4)
+    this.viewport_stack = new CacheStack<number[][]>(2)
+    this.scissor_stack = new CacheStack<number[]>(4)
   }
     
-  on_gl_lost(gl) {
+  on_gl_lost(gl: WebGLRenderingContext) {
     this.pos = [0, 0];
     
     this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
     this.iconsheet16 = new IconManager(gl, config.ICONPATH + "iconsheet16.png", [256, 256], [16, 16]);
   }
   
-  begin_draw(gl, pos, size) {
+  begin_draw(gl: WebGLRenderingContext, pos: Array<number>, size: Array<number>) {
     this.gl = gl;
     this.pos = pos;
     this.size = size;
@@ -99,7 +112,7 @@ export class RasterState {
     }
   }
   
-  push_viewport(pos, size) {
+  push_viewport(pos: Array<number>, size: Array<number>) {
     var arr = this.viewport_stack.gen()
     arr[0] = pos;
     arr[1] = size;
@@ -118,12 +131,12 @@ export class RasterState {
     return ret;
   }
 
-  push_scissor(pos, size) {
+  push_scissor(pos: Array<number>, size: Array<number>) {
     var rect;
     var gl = this.gl;
-    
+
     if (this.cur_scissor == undefined) {
-      var rect = this.scissor_stack.gen();
+      rect = this.scissor_stack.gen();
       var size2 = g_app_state.screen.size;
       
       rect[0] = 0; rect[1] = 0; rect[2] = size2[0]; rect[3] = size2[1];

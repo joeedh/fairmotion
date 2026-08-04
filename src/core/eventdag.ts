@@ -1,9 +1,10 @@
 "use strict";
 
 //interface
-let _event_dag_idgen = undefined;
+let _event_dag_idgen: EIDGen | undefined = undefined;
 
 import '../util/vectormath.js';
+import type {FullContext} from './context.js';
 
 /**
 
@@ -44,8 +45,71 @@ import '../util/vectormath.js';
  */
 
 
+/*
+ * What a socket carries. The type tag on the socket (DataTypes below) decides
+ * which member of this union is live, and whether loadData() copies in place
+ * (vectors, matrices) or by reference (everything else).
+ */
+export type SocketValue =
+  | null
+  | number
+  | boolean
+  | string
+  | Vector2
+  | Vector3
+  | Vector4
+  | Matrix4
+  | number[]
+  | set<number | string | object>;
+
+/* Sockets as nodedef() declares them: either a bare default value, whose JS type
+   picks the DataTypes tag, or a ready-made EventSocket to copy. */
+export type SocketDefs = {[name: string]: SocketValue | EventSocket | undefined};
+
+/* Which side of a node a socket sits on. */
+export type SocketDir = "i" | "o";
+
+/* Sockets after get_ndef() has resolved them. */
+export type SocketMap = {[name: string]: EventSocket};
+
+export interface NodeDef {
+  name?: string;
+  uiName?: string;
+  inputs?: SocketDefs | InheritFlag;
+  outputs?: SocketDefs | InheritFlag;
+}
+
+/* get_ndef() overwrites .inputs/.outputs on its cached copy with resolved
+   sockets, so the cached object is this narrower shape. */
+export interface FinalNodeDef extends NodeDef {
+  inputs: SocketMap;
+  outputs: SocketMap;
+}
+
+/* Any class that participates in the dag. __parent__ is path.ux's multiple-
+   inheritance backlink, which is how Inherit() walks up. */
+export interface NodeBaseClass {
+  new (...args: never[]): object;
+
+  nodedef?(): NodeDef;
+  __parent__?: NodeBaseClass;
+  _cached_nodedef?: FinalNodeDef;
+}
+
+/* The object a node stands for. Every member is optional because the dag also
+   accepts plain functions and DOM elements. */
+export interface DagOwner {
+  __dag_id?: int;
+
+  dag_exec?(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag): void;
+  dag_get_datapath?(ctx?: FullContext): string;
+}
+
+/* Marks a nodedef() socket block as inheriting its parent class's sockets. */
 class InheritFlag {
-  constructor(data) {
+  data: SocketDefs;
+
+  constructor(data: SocketDefs) {
     this.data = data;
   }
 }
@@ -53,9 +117,17 @@ class InheritFlag {
 window.the_global_dag = undefined;
 
 export class NodeBase {
+  /* Both hooks are optional: subclasses define dag_exec() if they compute
+     anything, and dag_get_datapath() if they want an IndirectNode. */
+  dag_exec?(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag): void;
+  dag_get_datapath?(ctx?: FullContext): string;
+
+  /* Assigned by EventDag.direct_node() the first time this object is added. */
+  __dag_id?: int;
+
   //if output_socket_name is undefined,
   //will update all outputs
-  dag_update(output_socket_name: string, data) {
+  dag_update(output_socket_name: string, data?: SocketValue) {
     let graph = window.the_global_dag;
     let node = graph.get_node(this, false);
 
@@ -97,7 +169,7 @@ export class NodeBase {
   }}*/
   }
 
-  static Inherit(data = {}) {
+  static Inherit(data: SocketDefs = {}) {
     return new InheritFlag(data);
   }
 
@@ -140,7 +212,7 @@ class Bleh extends NodeBaseDirectSockets {
 }
  */
 export class NodeFieldSocketWrapper extends NodeBase {
-  dag_exec(ctx, inputs, outputs, graph) {
+  dag_exec(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
     for (let k in inputs) {
       let sock = inputs[k];
 
@@ -162,7 +234,7 @@ export class NodeFieldSocketWrapper extends NodeBase {
     }
   }
 
-  dag_exec_finish(ctx, inputs, outputs, graph) {
+  dag_exec_finish(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
     for (let k in outputs) {
       let sock = outputs[k];
 
@@ -176,18 +248,18 @@ export class UIOnlyNode extends NodeBase {
 
 export class DataPathNode extends NodeBase {
   //returns datapath to get object
-  dag_get_datapath(ctx) {
+  dag_get_datapath(ctx?: FullContext): string {
   }
 
   //have to be compatible with DataPathWrapperNode too
-  static isDataPathNode(obj) {
+  static isDataPathNode(obj: DagOwner): boolean {
     return obj.dag_get_datapath !== undefined;
   }
 }
 
 export class DataPathWrapperNode extends NodeFieldSocketWrapper {
   //returns datapath to get object
-  dag_get_datapath(ctx) {
+  dag_get_datapath(ctx?: FullContext): string {
   }
 }
 
@@ -201,7 +273,7 @@ export let DagFlags = {
 * private structures
 * */
 
-function make_slot(stype, k, v, node) {
+function make_slot(stype: SocketDir, k: string, v: SocketValue | undefined, node?: EventNode) {
   let type;
 
   if (v === undefined || v === null)
@@ -236,7 +308,7 @@ function make_slot(stype, k, v, node) {
 }
 
 
-function get_sockets(cls, key) {
+function get_sockets(cls: NodeBaseClass, key: "inputs" | "outputs"): SocketDefs {
   if (cls.nodedef === undefined) {
     console.warn("Warning, missing node definition nodedef() for ", cls, cls);
     return {};
@@ -272,9 +344,9 @@ function get_sockets(cls, key) {
   return socks;
 }
 
-function build_sockets(cls, key) {
+function build_sockets(cls: NodeBaseClass, key: "inputs" | "outputs"): SocketMap {
   let socks = get_sockets(cls, key);
-  let socks2 = {};
+  let socks2: SocketMap = {};
 
   for (let k in socks) {
     let sock = socks[k];
@@ -297,12 +369,14 @@ function build_sockets(cls, key) {
 
  the result in then cached.
  */
-function get_ndef(cls) {
+function get_ndef(cls: NodeBaseClass): FinalNodeDef {
   if (cls._cached_nodedef !== undefined) {
     return cls._cached_nodedef;
   }
 
-  let ndef;
+  /* Starts out as a plain NodeDef and only becomes a FinalNodeDef once the two
+     build_sockets() calls below have replaced .inputs/.outputs. */
+  let ndef: NodeDef | undefined;
 
   if (cls.nodedef === undefined) {
     console.warn("Warning, no nodedef for cls", cls, "inheriting...");
@@ -336,7 +410,7 @@ function get_ndef(cls) {
 gets node inputs with all sockets converted
 to EventSockets and any inheritance applied.
 */
-export function finalNodeDefInputs(cls) {
+export function finalNodeDefInputs(cls: NodeBaseClass): SocketMap {
   return get_ndef(cls).inputs;
 }
 
@@ -344,15 +418,23 @@ export function finalNodeDefInputs(cls) {
 gets node inputs with all sockets converted
 to EventSockets and any inheritance applied.
 */
-export function finalNodeDefOutputs(cls) {
+export function finalNodeDefOutputs(cls: NodeBaseClass): SocketMap {
   return get_ndef(cls).outputs;
 }
 
 //private structures
 export class EventNode {
-  flag: number
-  inputs: Object
-  outputs: Object;
+  flag: int;
+  inputs: SocketMap;
+  outputs: SocketMap;
+
+  /* -1 until the node is added to a graph, which hands out the real id. */
+  id: int;
+  graph?: EventDag;
+
+  /* Copied off the owner class's nodedef(), for debugging output only. */
+  name?: string;
+  uiName?: string;
 
   constructor() {
     this.flag = 0;
@@ -363,10 +445,11 @@ export class EventNode {
     this.outputs = {};
   }
 
-  get_owner(ctx) {
+  /* The object this node stands in for; subclasses resolve it differently. */
+  get_owner(ctx: FullContext): DagOwner | undefined {
   }
 
-  on_remove(ctx) {
+  on_remove(ctx: FullContext) {
   }
 
   /*
@@ -374,7 +457,7 @@ export class EventNode {
   all sockets
   */
 
-  dag_update(field, data) {
+  dag_update(field?: string, data?: SocketValue) {
     if (DEBUG.dag) {
       console.trace("dag_update:", field, data);
     }
@@ -416,12 +499,18 @@ export class EventNode {
  version of DataPathNode.
  */
 export class IndirectNode extends EventNode {
-  constructor(path) {
+  datapath: string;
+
+  /* Resolved lazily on the first get_owner() and then held, so the "indirect"
+     part only applies until then. */
+  _owner?: DagOwner;
+
+  constructor(path: string) {
     super();
     this.datapath = path;
   }
 
-  get_owner(ctx) {
+  get_owner(ctx: FullContext): DagOwner | undefined {
     if (this._owner !== undefined)
       return this._owner;
 
@@ -431,13 +520,16 @@ export class IndirectNode extends EventNode {
 }
 
 export class DirectNode extends EventNode {
-  constructor(id) {
+  /* The owner's dag id, not the node's own .id. */
+  __dag_id: int;
+
+  constructor(id: int) {
     super();
 
     this.__dag_id = id;
   }
 
-  get_owner(ctx) {
+  get_owner(ctx: FullContext): DagOwner | undefined {
     return this.graph.object_idmap[this.__dag_id];
   }
 }
@@ -457,7 +549,9 @@ export let DataTypes = {
   SET    : 512
 }
 
-var TypeDefaults = {}, t = TypeDefaults;
+/* Default socket data per DataTypes tag. Mutable types are stored as factories
+   so every socket gets its own instance; immutable ones are stored directly. */
+var TypeDefaults: {[type: int]: SocketValue | (() => SocketValue)} = {}, t = TypeDefaults;
 t[DataTypes.DEPEND] = null;
 t[DataTypes.NUMBER] = 0;
 t[DataTypes.STRING] = "";
@@ -467,7 +561,7 @@ t[DataTypes.ARRAY] = [];
 t[DataTypes.BOOL] = true;
 t[DataTypes.SET] = () => new set();
 
-export function makeDefaultSlotData(type) {
+export function makeDefaultSlotData(type: int): SocketValue | undefined {
   let ret = TypeDefaults[type];
 
   if (typeof ret === "function") {
@@ -479,25 +573,41 @@ export function makeDefaultSlotData(type) {
 
 //this would normally be a local function
 //but I don't want to form a closure and get memory leaks
-function wrap_ndef(ndef) {
+function wrap_ndef(ndef: NodeDef) {
   return function () {
     return ndef;
   };
 }
 
 export class EventEdge {
-  constructor(dst, src) {
+  dst: EventSocket;
+  src: EventSocket;
+
+  constructor(dst: EventSocket, src: EventSocket) {
     this.dst = dst;
     this.src = src;
   }
 
-  opposite(socket) {
+  opposite(socket: EventSocket): EventSocket {
     return socket === this.dst ? this.src : this.dst;
   }
 }
 
 export class EventSocket {
-  constructor(name, owner, type, datatype) { //type can be either lower-case 'i' or 'o'
+  type: SocketDir;
+  name: string;
+
+  /* Unset on the prototype sockets a nodedef() produces; filled in when the
+     socket is copied onto a real node. */
+  node?: EventNode;
+
+  /* A DataTypes tag, which decides how loadData() copies. */
+  datatype: int;
+  data?: SocketValue;
+  flag: int;
+  edges: EventEdge[];
+
+  constructor(name: string, owner: EventNode | undefined, type: SocketDir, datatype: int) { //type can be either lower-case 'i' or 'o'
     this.type = type;
 
     this.name = name;
@@ -527,7 +637,7 @@ export class EventSocket {
     return s;
   }
 
-  loadData(data, auto_set_update = true) {
+  loadData(data?: SocketValue, auto_set_update = true) {
     let update = false;
 
     switch (this.datatype) {
@@ -549,7 +659,7 @@ export class EventSocket {
     }
   }
 
-  connect(b) {
+  connect(b: EventSocket) {
     if (b.type === this.type) {
       throw new Error("Cannot put two inputs or outputs together");
     }
@@ -569,7 +679,7 @@ export class EventSocket {
     b.edges.push(edge);
   }
 
-  _find_edge(b) {
+  _find_edge(b: EventSocket): EventEdge | undefined {
     for (let i = 0; i < this.edges.length; i++) {
       if (this.edges[i].opposite(this) === b)
         return this.edges[i];
@@ -578,7 +688,7 @@ export class EventSocket {
     return undefined;
   }
 
-  disconnect(other_socket) {
+  disconnect(other_socket?: EventSocket) {
     if (other_socket === undefined) {
       warntrace("Warning, no other_socket in disconnect!");
       return;
@@ -605,10 +715,11 @@ export class EventSocket {
 window._NodeBase = NodeBase;
 
 //temporaries used by EventDag.prototype.link
-const sarr = [0], darr = [0];
+//the initial element is just a placeholder; link() always overwrites it
+const sarr: string[] = [""], darr: string[] = [""];
 
 //for client objects that are actually functions
-function gen_callback_exec(func, thisvar) {
+function gen_callback_exec(func: Function & DagOwner, thisvar?: object) {
   //*
   for (let k of Object.getOwnPropertyNames(NodeBase.prototype)) {
     if (k === "toString") continue;
@@ -621,13 +732,39 @@ function gen_callback_exec(func, thisvar) {
   func.constructor.prototype = NodeBase.prototype;
   func.prototype = NodeBase.prototype;
 
-  func.dag_exec = function (ctx, inputs, outputs, graph) {
+  func.dag_exec = function (ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
     return func.apply(thisvar, arguments);
   }
 }
 
 export class EventDag {
-  constructor(ctx) {
+  nodes: EventNode[];
+
+  /* Topologically sorted nodes, rebuilt whenever .resort is set. */
+  sortlist: EventNode[];
+  resort: boolean;
+
+  /* Guards against re-entering exec() from inside a node's dag_exec(). */
+  doexec: boolean;
+
+  node_pathmap: {[path: string]: IndirectNode};
+  node_idmap: {[dagId: int]: DirectNode}; //only direct nodes have ids?
+  object_idmap: {[dagId: int]: DagOwner};
+
+  /* Keyed by node.id, unlike the two maps above which are keyed by owner id. */
+  idmap: {[id: int]: EventNode};
+
+  ctx: FullContext;
+
+  /* Owner ids are handed out from a module-wide generator so they stay unique
+     across graphs; node ids are per-graph. */
+  object_idgen: EIDGen;
+  idgen: EIDGen;
+
+  /* setInterval handle from startUpdateTimer(); unset until then. */
+  timer?: int;
+
+  constructor(ctx: FullContext) {
     this.nodes = [];
     this.sortlist = [];
 
@@ -657,7 +794,7 @@ export class EventDag {
     }
   }
 
-  init_slots(node, object) {
+  init_slots(node: EventNode, object: DagOwner) {
     let ndef;
 
     ndef = get_ndef(object.constructor);
@@ -674,7 +811,7 @@ export class EventDag {
         //node.outputs = build_sockets(object.constructor, "outputs");
 
         let sockdef = ndef[key];
-        let socks = {};
+        let socks: SocketMap = {};
 
         node[key] = socks;
 
@@ -704,7 +841,7 @@ export class EventDag {
     }
   }
 
-  indirect_node(ctx, path, object = undefined, auto_create = true) {
+  indirect_node(ctx: FullContext | undefined, path: string, object?: DagOwner, auto_create = true) {
     if (path in this.node_pathmap)
       return this.node_pathmap[path];
 
@@ -729,7 +866,7 @@ export class EventDag {
     return node;
   }
 
-  direct_node(ctx, object, auto_create = true) {
+  direct_node(ctx: FullContext | undefined, object: DagOwner, auto_create = true) {
     if ("__dag_id" in object && object.__dag_id in this.node_idmap) {
       this.object_idmap[object.__dag_id] = object;
       return this.node_idmap[object.__dag_id]
@@ -753,7 +890,7 @@ export class EventDag {
     return node;
   }
 
-  add(node) {
+  add(node: EventNode) {
     node.graph = this;
     this.nodes.push(node);
     this.resort = true;
@@ -763,7 +900,7 @@ export class EventDag {
     this.idmap[node.id] = node;
   }
 
-  remove(node) {
+  remove(node: EventNode | DagOwner) {
     if (!(node instanceof EventNode)) {
       node = this.get_node(node, false);
 
@@ -797,7 +934,7 @@ export class EventDag {
     this.resort = true;
   }
 
-  has(object) {
+  has(object: EventNode | DagOwner): boolean {
     if (object.__dag_id !== undefined) {
       return object.__dag_id in this.node_idmap;
     }
@@ -811,7 +948,7 @@ export class EventDag {
     }
   }
 
-  get_node(object, auto_create = true) {
+  get_node(object: EventNode | DagOwner, auto_create = true): EventNode | undefined {
     //already an event node?
     if (object instanceof EventNode) {
       return object;
@@ -835,7 +972,8 @@ export class EventDag {
       //. . .pretty please?
       object = undefined;
 
-      node.dag_exec = function (ctx, inputs, outputs, graph) {
+      node.dag_exec = function (this: EventNode, ctx: FullContext, inputs: SocketMap,
+                                outputs: SocketMap, graph: EventDag) {
         let owner = this.get_owner(ctx);
 
         if (owner !== undefined) {
@@ -859,7 +997,8 @@ export class EventDag {
 
    See NodeBase.dag_exec.
    */
-  link(src, srcfield, dst, dstfield, dstthis) { //dstthis is for in case src is a function
+  link(src: EventNode | DagOwner, srcfield: string | string[], dst: EventNode | DagOwner,
+       dstfield: string | string[], dstthis?: object) { //dstthis is for in case src is a function
     let obja = src, objb = dst;
 
     let srcnode = this.get_node(src);
@@ -946,7 +1085,7 @@ export class EventDag {
   //get rid of all unconnected nodes.
   //todo: should this be indirect nodes only?
   prune_dead_nodes() {
-    let dellist = [];
+    let dellist: EventNode[] = [];
 
     for (let n of this.nodes) {
       let tot = 0;
@@ -971,14 +1110,14 @@ export class EventDag {
   sort() {
     this.prune_dead_nodes();
 
-    let sortlist = [];
+    let sortlist: EventNode[] = [];
     let visit = {};
 
     for (let n of this.nodes) {
       n.flag &= ~DagFlags.TEMP;
     }
 
-    function sort(n) {
+    function sort(n: EventNode) {
       n.flag |= DagFlags.TEMP;
 
       for (let k in n.inputs) {
@@ -1021,7 +1160,7 @@ export class EventDag {
     this.resort = false;
   }
 
-  on_update(node) {
+  on_update(node: EventNode, field?: string) {
     this.doexec = true;
   }
 
@@ -1033,7 +1172,7 @@ export class EventDag {
     }, 100);
   }
 
-  exec(ctx) {
+  exec(ctx?: FullContext) {
     if (ctx === undefined) {
       ctx = this.ctx;
     }
@@ -1131,9 +1270,10 @@ export class EventDag {
   }
 }
 
-let req = undefined;
+/* Set while a dag exec is already queued, so updateEventDag() coalesces. */
+let req: int | undefined = undefined;
 
-window.updateDataGraph = function(force) {
+window.updateDataGraph = function(force?: boolean) {
   console.warn("use updateEventDag not updateDataGraph!");
   window.updateEventDag(force);
 };
@@ -1158,7 +1298,7 @@ window.updateEventDag = function(force=false) {
   }, 0);
 };
 
-window.init_event_graph = function init_event_graph(ctx) {
+window.init_event_graph = function init_event_graph(ctx: FullContext) {
   window.the_global_dag = new EventDag(ctx);
   window.the_global_dag.startUpdateTimer();
 

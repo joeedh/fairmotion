@@ -1,13 +1,14 @@
 "use strict";
 
+/* Dead -- TypedWriter allocates its own buffer and the free() path never ran. */
 export class TypedCache {
-  freelist : Object;
+  freelist : Record<number, ArrayBuffer[]>;
 
   constructor() {
     this.freelist = {};
   }
   
-  get(size) {
+  get(size : number) {
     var lst = this.freelist[size];
     
     if (lst == undefined) {
@@ -22,7 +23,8 @@ export class TypedCache {
     }
   }
   
-  free(arraybuffer) {
+  /* Broken: `size` is not a parameter here, and ArrayBuffer[] has no insert(). */
+  free(arraybuffer : ArrayBuffer) {
     var lst = this.freelist[size];
     
     if (lst == undefined) {
@@ -49,8 +51,9 @@ var f64 = new Float64Array(u8.buffer);
 export class TypedWriter {
   i : number
   buf : Uint8Array;
+  maxsize : number;
 
-  constructor(maxsize) {
+  constructor(maxsize : number) {
     this.i = 0;
     this.maxsize = maxsize;
     this.buf = new Uint8Array(maxsize); //typedcache.get(maxsize));
@@ -60,12 +63,12 @@ export class TypedWriter {
     //typedcache.free(this.buf.buffer);
   }
   
-  int8(f) {
+  int8(f : number) {
     this.buf[this.i++] = f;
     return this;
   }
     
-  int16(f) {
+  int16(f : number) {
     var buf = this.buf, i = this.i;
     i16[0] = f;
     
@@ -76,14 +79,14 @@ export class TypedWriter {
     return this;
   }
   
-  vec2(v) {
+  vec2(v : number[]) {
     this.float32(v[0]);
     this.float32(v[1]);
     
     return this;
   }
   
-  vec3(v) {
+  vec3(v : number[]) {
     this.float32(v[0]);
     this.float32(v[1]);
     this.float32(v[2]);
@@ -91,7 +94,7 @@ export class TypedWriter {
     return this;
   }
   
-  vec4(v) {
+  vec4(v : number[]) {
     this.float32(v[0]);
     this.float32(v[1]);
     this.float32(v[2]);
@@ -110,7 +113,8 @@ export class TypedWriter {
     //return this.buf.buffer.slice(0, this.i);
   }
   
-  bytes(f, len=f.length) {
+  /* `len` is accepted and ignored; the whole of `f` is always written. */
+  bytes(f : string | ArrayLike<number>, len=f.length) {
     var buf = this.buf, i = this.i;
     
     if (typeof f == "string") {
@@ -127,7 +131,7 @@ export class TypedWriter {
     return this;
   }
   
-  int32(f) {
+  int32(f : number) {
     var buf = this.buf, i = this.i;
     i32[0] = f;
     
@@ -140,7 +144,7 @@ export class TypedWriter {
     return this;
   }
 
-  uint32(f) {
+  uint32(f : number) {
     var buf = this.buf, i = this.i;
     u32[0] = f;
 
@@ -153,7 +157,7 @@ export class TypedWriter {
     return this;
   }
   
-  float32(f) {
+  float32(f : number) {
     var buf = this.buf, i = this.i;
     f32[0] = f;
     
@@ -166,7 +170,7 @@ export class TypedWriter {
     return this;
   }
   
-  float64(f) {
+  float64(f : number) {
     var buf = this.buf, i = this.i;
     f64[0] = f;
     

@@ -36,9 +36,25 @@ var number_regexpr = /(0x[0-9a-fA-F]+)|((\d|(\d\.\d+))+(e|e\-|e\+)\d+)|(\d*\.\d+
    further divided into eights), we store two levels.
 */
 
+/* The grid/geometry settings a Unit carries. Unit's constructor fills
+   grid_steps and grid_substeps in before handing this to UnitAttr, so both are
+   optional here and required by the time they are read back. */
+export interface UnitAttrs {
+  grid_steps?: number;
+  grid_substeps?: number;
+  geounit?: number;
+}
+
 export class UnitAttr {
-  constructor(attrs) {
-    function getval(defval, key, required=false) {
+  /* How many divisions of this unit the grid draws, and how many of those each
+     division is further split into (feet -> 12 inches -> eighths). */
+  grid_steps: number;
+  grid_substeps: number;
+  /* Default size of a new object, in this unit's own scale. */
+  geounit: number;
+
+  constructor(attrs: UnitAttrs) {
+    function getval(defval: number | undefined, key: keyof UnitAttrs, required = false) {
       if (key in attrs) return attrs[key];
       
       if (required)
@@ -57,9 +73,18 @@ export class UnitAttr {
 
 export class Unit {
   attrs : UnitAttr;
+  /* Centimeters per one of this unit; the internal format is centimeters. */
+  cfactor : number;
+  /* Every spelling that parses to this unit; [0] is the one gen_string emits. */
+  suffix_list : string[];
 
-  constructor(suffices, cfactor, 
-              grid_subd_1, grid_subd_2=grid_subd_1, attrs={}) 
+  static units : Unit[];
+  static metric_units : string[];
+  static imperial_units : string[];
+  static internal_unit : string;
+
+  constructor(suffices: string[], cfactor: number,
+              grid_subd_1: number, grid_subd_2 = grid_subd_1, attrs: UnitAttrs = {})
   {
     this.cfactor = cfactor;
     this.suffix_list = suffices;
@@ -76,15 +101,17 @@ export class Unit {
   }
   
   //expects normalized (centimeters) values
-  from_normalized(v) {
+  from_normalized(v: number) {
     return v/this.cfactor;
   }
-    
-  to_normalized(v) {
+
+  to_normalized(v: number) {
     return v*this.cfactor;
   }
 
-  static get_unit(string) {
+  /* Strips the longest matching suffix off `string` and returns
+     [the unit it named, whatever is left]. */
+  static get_unit(string: string): [Unit | undefined, string] {
     var lower = string.toLowerCase();
     var units = Unit.units;
     var unit = undefined;
@@ -112,7 +139,8 @@ export class Unit {
     return [unit, string];
   }
 
-  static parse(string, oldval, errfunc, funcparam, defaultunit) { 
+  static parse(string: string, oldval?: number, errfunc?: (funcparam?: Object) => void,
+               funcparam?: Object, defaultunit?: string) {
     //oldval, errfunc, funcparam are optional
     var units = Unit.units;
     var lower = string.toLowerCase();
@@ -157,7 +185,7 @@ export class Unit {
     return val;
   }
 
-  static gen_string(val, suffix, max_decimal=3) { 
+  static gen_string(val: number, suffix?: string, max_decimal = 3) {
     //max_decimal is optional
     //if suffix is undefined, no processing is done
     //if suffix is "default", g_app_state.session.settings.unit will be used
@@ -194,16 +222,19 @@ export class Unit {
     }
     
     var out;
-    
+    /* The original reassigned `val` from number to string here; split into a
+       second local so the type stays honest. Behavior is unchanged. */
+    var text: string;
+
     if (unit != undefined) {
       val = unit.from_normalized(val);
-      if (val != undefined) val = val.toFixed(max_decimal);
-      else val = "0";
-      
-      out = val.toString() + unit.suffix_list[0];
+      if (val != undefined) text = val.toFixed(max_decimal);
+      else text = "0";
+
+      out = text.toString() + unit.suffix_list[0];
     } else {
-      val = val.toFixed(max_decimal);
-      out = val.toString() + Unit.internal_unit;
+      text = val.toFixed(max_decimal);
+      out = text.toString() + Unit.internal_unit;
     }
     
     return out;

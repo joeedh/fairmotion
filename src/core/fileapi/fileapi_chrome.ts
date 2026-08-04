@@ -1,6 +1,12 @@
 "use strict";
 
-var current_chromeapp_file = undefined;
+import type {
+  FileData, FileErrorCallback, OpenFileCallback
+} from './fileapi.js';
+
+/* The entry chrome hands back for the file currently being edited; kept so a
+   plain save can rewrite it without a dialog. */
+var current_chromeapp_file: ChromeFileEntry | undefined = undefined;
 
 export function chrome_get_current_file() {
   return current_chromeapp_file;
@@ -10,20 +16,21 @@ export function reset() {
     current_chromeapp_file = undefined;
 }
 
-export function open_file(callback, thisvar, set_current_file, extslabel, exts) {
+export function open_file(callback: OpenFileCallback, thisvar: Object,
+                          set_current_file: boolean, extslabel: string, exts: string[]) {
   console.log("Chrome open");
 
   function errorHandler() {
     console.log("Error reading file!", arguments);
   }
 
-  var params = {type: 'openFile'};
+  var params: ChooseEntryParams = {type: 'openFile'};
   params.accepts = [{
     description : extslabel,
     extensions  : exts
   }];
 
-  chrome.fileSystem.chooseEntry(params, function(readOnlyEntry) {
+  chrome.fileSystem.chooseEntry(params, function(readOnlyEntry: ChromeFileEntry) {
     if (readOnlyEntry == undefined) //canceled?
       return;
 
@@ -36,7 +43,7 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts) 
       console.log("got file", arguments, reader);
 
       reader.onerror = errorHandler;
-      reader.onload = function(e) {
+      reader.onload = function(e: ProgressEvent<FileReader>) {
         var id = chrome.fileSystem.retainEntry(readOnlyEntry);
         console.log("\n\n           ->", e.target.result, readOnlyEntry, id, "<-\n\n");
 
@@ -48,13 +55,14 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts) 
   });
 }
 
-export function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+export function save_file(data: FileData, save_as_mode: boolean, set_current_file: boolean,
+                          extslabel: string, exts: string[], error_cb: FileErrorCallback) {
   function errorHandler() {
     console.log("Error writing file!", arguments);
   }
 
   function chooseFile() {
-    var params = {type: 'saveFile'};
+    var params: ChooseEntryParams = {type: 'saveFile'};
 
     if (g_app_state.filepath != "" & g_app_state.filepath != undefined) {
       params.suggestedName = g_app_state.filepath;

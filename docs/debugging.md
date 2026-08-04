@@ -521,3 +521,131 @@ datapath sweep resolves and reads 945 paths (no fewer than phase 0's 927), both
 `tools=97 editors=10`. Build warnings dropped 35 → 22 as upstream added the
 exports the old bundle was warning about. No `.update.after` / `.setCSS.after`
 aspect calls remain anywhere in fairmotion's sources — that audit came back empty.
+
+# Phase 5 — pass 1, annotate blind
+
+Every live `.ts` file under `src/` (excluding the `src/path.ux` submodule) now carries
+real parameter, field and return annotations. The typechecker was deliberately **not**
+run — per the plan, errors in this phase are expected and ignored, because fighting the
+checker before the shared types have settled produces defensive `any`s.
+
+Exit state: zero `any` anywhere in `src/` outside path.ux (`grep -rE ":\s*any\b|<any>|\bas
+any\b|\bany\[\]"` is empty, against phase 7's budget of 10); zero `CLAUDENOTE:` comments;
+zero `.update.after` / `.setCSS.after` / `.setCSS.once` aspect calls. The 73 remaining
+bare `: unknown` sites were audited one by one and are all genuinely opaque values —
+graph socket payloads, `Iterator`/`ArrayLike` generic parameters, `Array.prototype`
+polyfills, addon data maps — not escape hatches.
+
+Verification: `pnpm build` 16 warnings → `dist/html5app`, `pnpm build:electron` 16
+warnings → `dist/electron` (both down from the 18-warning phase-1 baseline), vitest 6/6,
+playwright 17/17 — all 8 editors mount and draw, and `Panda.fmo` and `love and
+thunder.fmo` both load and round-trip.
+
+**193 latent bugs were surfaced and recorded, not fixed.** They live in
+`scratchpad/phase5-findings.md`: missing imports that only worked under the old
+shared-scope transpiler, arity mismatches, fields read but never assigned, `commandKey`
+and `touches` read off plain DOM events, and a dozen typos. Annotation is type-only; none
+of them were touched.
+
+## Symptom: `Duplicate member "treeData" in class body [duplicate-class-member]` from esbuild
+Cause: Declaring a class field for something the class already exposes as a `get`/`set`
+accessor pair. Adding field declarations is the bulk of this phase, and a JS class that
+assigns `this.foo` through a setter looks exactly like one that assigns a plain field.
+Found by: `pnpm build` warning count going 16 → 17 after a batch. Twice — once caught
+pre-emptively on `TreeItem.collapsed`, once not, on `DopeSheetEditor.treeData` (its
+accessors are at lines 958/963, ~700 lines from where the field block went).
+Fix: Delete the declaration; the accessor pair already types the property. Grep the class
+for `get <name>` before declaring any field. The build warning count is the oracle here —
+watch it after every batch, since the typechecker is not available to catch this.
+
+## Symptom: adding a class field declaration might change runtime behaviour
+Cause: With `useDefineForClassFields: true`, a bare `foo: number` emits
+`Object.defineProperty(this, "foo", {value: undefined})` in the constructor, which
+shadows inherited accessors and clobbers values a base constructor already set.
+Found by: Checking `tsconfig.json` before starting — it is `false`.
+Fix: `useDefineForClassFields: false` is load-bearing for this phase. A field declaration
+with **no initializer** is type-only and erased entirely, so it is runtime-neutral; so is
+adding `export` to a class declaration. Adding a field to an object *literal* is **not**
+neutral, and neither is a declaration *with* an initializer.
+
+## Symptom: `src/util/utils.ts` and friends have no imports and no exports, yet everything uses them
+Cause: They are classic global scripts — `GLOBAL_SCRIPTS` in `buildtools/esbuild.mjs`
+emits them as separate `<script>` tags before the bundle. Their top-level declarations are
+genuinely global at runtime, and because the files contain no import/export, TypeScript
+treats them as ambient script files too, so the declarations are visible everywhere
+without an import.
+Found by: Trying to add an `import type` to `utils.ts` for an annotation.
+Fix: Never add a top-level `import`/`export` to one of these files — it converts the file
+to a module and every global it declares vanishes from both scopes at once. The list and
+the reasoning are in the header of `src/globals.d.ts:1-22`. Annotate them in place using
+only globally-visible types.
+
+## Symptom: `src/webgl/simplemesh_shapes.ts` exports nothing, and annotating it changed nothing
+Cause: The entire file is wrapped in a pair of backticks. It is one inert
+template-literal expression statement, so `Shapes` and `loadShapes` are never actually
+declared, let alone exported.
+Found by: Grepping for importers of `Shapes` and finding the callers reference an
+undefined global (`webgl.ts` `onContextLost()` — finding 1 in the wave-3 list).
+Fix: Left alone; it is already documented at `globals.d.ts:521`. A file this broken is
+phase-7 or later work, not something to fix mid-annotation.
+
+## Symptom: annotations landed on code that never runs
+Cause: `MenuBar.ts:18-66` — `gen_file_menu`, `gen_session_menu` and `gen_tools_menu` are
+entirely inside one `/* */` block. A substitution matching `gen_session_menu(ctx, ...)`
+hits it happily, and the edit is invisible to both esbuild and grep-for-usage.
+Found by: The added `import type {FullContext}` had no live consumer.
+Fix: Reverted both substitutions. Before annotating a function, confirm it is outside a
+comment block — `sed -n` around the match, not just the matched line.
+
+## Symptom: a context that is "WebGL2 plus our own fields" fails on every WebGL2-only call
+Cause: Modelling it as a union (`WebGLRenderingContext | WebGL2RenderingContext`) exposes
+only the members common to both.
+Fix: Model it as an **intersection**: `WebGL2RenderingContext & { ... }`. The same idiom
+covers the "array with extra properties hung off it" pattern that recurs throughout this
+codebase — `SelectUndo`, `ConsoleLines`, `ConsoleHistory`, `ActiveBoxes`, `KeyGrid` are
+all `T[] & {...}`.
+
+## Symptom: `grep -cF 'Icons\.'` returned 0 in a file that plainly uses `Icons.Z_UP`
+Cause: `grep -F` matches the pattern literally, backslash and all — it searched for the
+five characters `Icons\.`.
+Found by: Reading the file after the count made no sense.
+Fix: Use `-E` for counting, or drop the escape with `-F`. Getting these counts right
+matters more than usual here, because every batch is applied by a script whose
+substitutions assert an exact occurrence count.
+
+## Symptom: `pnpm build 2>&1 | Select-String "warnings"` matched nothing
+Cause: PowerShell's `Select-String` does not see esbuild's summary line the way `grep`
+does on the same output.
+Fix: Run the build through the Bash tool and `tail -3` it. The summary line is the last
+thing esbuild prints.
+
+## Note: how the annotations were applied
+Every batch was a Python script written to the scratchpad and run with `python`, built
+around one helper:
+
+```python
+def run(rel, subs):
+    p = os.path.join(ROOT, rel)
+    s = load(p)
+    for old, new, n in subs:
+        assert s.count(old) == n, ("MISS", rel, repr(old[:90]), s.count(old), n)
+        s = s.replace(old, new)
+    save(p, s)
+```
+
+The count assertion is the point. A wrong count aborts **before** `save()`, so the file is
+left untouched and the corrected script can simply be re-run — no half-applied batches, no
+manual undo. It also makes bulk substitutions safe: `exec(ctx : FullContext)` ×21 in one
+entry, verified to be exactly 21. `load()` strips trailing whitespace and `save()` forces
+LF, so batches never produce line-ending churn in the diff.
+
+## Known, deferred to phase 7
+`npx tsgo --noEmit` still cannot run: `alwaysStrict: false` in `tsconfig.json` is rejected
+outright by TS 6 (`error TS5108`), and the IDE's tsserver falls back to an inferred project
+that cannot resolve path.ux's `.js` specifiers. Every diagnostic seen during this phase
+came from that inferred project and was ignored by design. Also deferred: bare
+`cachering`/`GArray`/`hashtable` annotations (`animspline.ts:181-182`, `lib_api.ts:209,262,390`,
+`jobs.ts:144,147`), `set<int>` → `set<number>` (`toolprops.ts:486,593,600`), a
+`[Symbol.keystr]` for `DataBlockClass` (`toolprops.ts:493`), `built_wasm.ts` needing
+`// @ts-nocheck` plus a typed default export, `svg_export.ts`'s `drawer.drawer.svg`, and
+the boolean-into-number at `frameset.ts:1307`.

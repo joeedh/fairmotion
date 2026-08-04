@@ -1,15 +1,20 @@
 import {BaseContext, FullContext} from "./context.js";
 import {ToolFlags, ToolMacro, ToolOp, UndoFlags} from "./toolops_api.js";
 import {CollectionProperty, StringProperty, TPropFlags} from "./toolprops.js";
+import {ToolProperty} from "./toolops_api.js";
 import * as pathux from '../path.ux/scripts/pathux.js';
 
 import {USE_PATHUX_API} from './const.js';
+import type {AppState} from './AppState.js';
 
 export class ToolStack extends pathux.ToolStack {
-  undocur: number
-  undostack: Array
-  valcache: any
-  appstate: AppState
+  static STRUCT: string;
+
+  /* undocur and undostack are accessors, not fields: the stack *is* this array
+     and `cur` is where undo/redo sits in it. The names are what the STRUCT
+     script at the bottom of this file writes. */
+  valcache: {[toolClassName: string]: unknown};
+  appstate: AppState;
   do_truncate: boolean;
 
   constructor(appstate: AppState) {
@@ -33,7 +38,7 @@ export class ToolStack extends pathux.ToolStack {
     this.cur = v;
   }
 
-  reexec_stack2(validate = false) {
+  reexec_stack2(validate: boolean = false) {
     let stack = this.undostack;
 
     g_app_state.datalib.clear();
@@ -43,7 +48,7 @@ export class ToolStack extends pathux.ToolStack {
 
     let last_time = 0;
 
-    function do_next(i) {
+    function do_next(i: int) {
       let tool = stack[i];
 
       let ctx = tool.saved_context;
@@ -79,9 +84,9 @@ export class ToolStack extends pathux.ToolStack {
       }
     }
 
-    let ival;
+    let ival: number;
 
-    let thei;
+    let thei: int;
     let this2 = this;
 
     function cbfunc() {
@@ -111,7 +116,7 @@ export class ToolStack extends pathux.ToolStack {
     }
   }
 
-  reexec_stack(validate = false) {
+  reexec_stack(validate: boolean = false) {
     let stack = this.undostack;
 
     g_app_state.datalib.clear();
@@ -226,8 +231,8 @@ export class ToolStack extends pathux.ToolStack {
       stacktool = stacktool.parent;
     }
 
-    function makeUpdate(tool, prop, k) {
-      return function update_dataprop(d) {
+    function makeUpdate(tool: ToolOp, prop: ToolProperty, k: string) {
+      return function update_dataprop(this: {ctx: FullContext}) {
         if (prop.flag & TPropFlags.SAVE_LAST_VALUE) {
           console.log(tool, prop, k, prop.getValue(), "<-----");
           this.ctx.settings.setToolOpSetting(tool.constructor, k, prop.getValue())
@@ -237,7 +242,7 @@ export class ToolStack extends pathux.ToolStack {
     }
 
 
-    function gen_subtool_struct(tool) {
+    function gen_subtool_struct(tool: ToolOp) {
       if (tool.apistruct === undefined)
         tool.apistruct = this2.gen_tool_datastruct(tool);
       return tool.apistruct;
@@ -279,7 +284,7 @@ export class ToolStack extends pathux.ToolStack {
     return datastruct;
   }
 
-  rebuild_last_tool(tool) {
+  rebuild_last_tool(tool: ToolOp) {
    console.warn("toolstack.rebuild_last_tool called!");
   }
 
@@ -311,12 +316,12 @@ export class ToolStack extends pathux.ToolStack {
     return this.execTool(g_app_state.ctx, tool);
   }
 
-  error(msg) {
+  error(msg: string) {
     console.error(msg);
     g_app_state.ctx.error(msg);
   }
 
-  execTool(ctx, tool) {
+  execTool(ctx: FullContext, tool: ToolOp) {
     //flush event graph
     the_global_dag.exec(this.ctx);
     this.set_tool_coll_flag(tool);
@@ -430,7 +435,7 @@ export class ToolStack extends pathux.ToolStack {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     this.cur = this.undocur;

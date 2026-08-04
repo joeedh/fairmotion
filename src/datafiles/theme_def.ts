@@ -4,7 +4,7 @@
 
 import {ColorTheme, ui_weight_clr, BoxColor4} from './theme.js';
 
-function uniformbox4(clr) {
+function uniformbox4(clr : number[]) {
   return new BoxColor4([clr, clr, clr, clr]);
 }
 
@@ -79,7 +79,7 @@ window. UITheme = new ColorTheme({
   "ScrollButtonHigh" : ui_weight_clr([0.75,0.75,0.75,1],[1,1,1,1]),
   "ScrollInv" : ui_weight_clr([0.4000000059604645,0.4000000059604645,0.4000000059604645,1],[1,1,1,1]),
   "IconInv" : ui_weight_clr([0.48299384117126465,0.5367956161499023,0.8049896955490112,0.4000000059604645],[1,1,1,1])});
-  
+
 window.View2DTheme = new ColorTheme({
   "Background"   : [1, 1, 1, 1],
   "ActiveObject" : [0.800000011920929,0.6000000238418579,0.30000001192092896,1],

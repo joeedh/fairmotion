@@ -7,6 +7,7 @@
 import {areaclasses} from '../path.ux/scripts/screen/area_base.js';
 import {ToolClasses} from '../path.ux/scripts/path-controller/toolsys/toolsys.js';
 import {unpack_ctx} from './ajax.js';
+import type {DataAPI, DataPath, DataStruct} from '../path.ux/scripts/pathux.js';
 
 /* Mirror of path.ux's DataTypes. Duplicated on purpose: the walker below is
    duck-typed so it keeps working across path.ux API churn. */
@@ -31,7 +32,15 @@ function getApi() {
   return app ? app.api : undefined;
 }
 
-function getListElementStruct(api, dpath) {
+/* One row of walkPaths(): a registered datapath and what it points at. */
+interface PathEntry {
+  path: string;
+  kind: "prop" | "struct" | "dynamicStruct" | "list";
+  propType?: string;
+  structName?: string;
+}
+
+function getListElementStruct(api: DataAPI, dpath: DataPath) {
   let cb = dpath && dpath.data ? dpath.data.cb : undefined;
 
   if (!cb || typeof cb.getStruct !== "function") {
@@ -46,11 +55,12 @@ function getListElementStruct(api, dpath) {
   }
 }
 
-function structName(st) {
+function structName(st: DataStruct | undefined) {
   return st && st.name && st.name !== "unnamed" ? st.name : undefined;
 }
 
-function walkStruct(api, struct, prefix, depth, maxDepth, out, visited) {
+function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: number,
+                    maxDepth: number, out: PathEntry[], visited: Set<object>) {
   if (!struct || !Array.isArray(struct.members)) {
     return;
   }
@@ -103,7 +113,7 @@ function walkStruct(api, struct, prefix, depth, maxDepth, out, visited) {
 function walkPaths(maxDepth = 6) {
   let api = getApi();
   let root = api ? api.rootContextStruct : undefined;
-  let out = [];
+  let out: PathEntry[] = [];
 
   if (!root) {
     return out;
@@ -122,7 +132,7 @@ function sweepPaths(maxDepth = 6) {
   let api = getApi(), ctx = getCtx();
   let entries = walkPaths(maxDepth);
 
-  let ok = [], failed = [];
+  let ok: string[] = [], failed: {path: string; error: string}[] = [];
 
   for (let entry of entries) {
     if (entry.path.includes("[n]")) {
@@ -151,10 +161,10 @@ function sweepPaths(maxDepth = 6) {
 }
 
 function frame() {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()));
+  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 }
 
-function sleep(ms) {
+function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -170,7 +180,7 @@ function appStarted() {
 function ready(timeout = 30000) {
   let start = performance.now();
 
-  function poll(resolve, reject) {
+  function poll(resolve: (started: boolean) => void, reject: (error: Error) => void) {
     if (appStarted()) {
       frame().then(() => resolve(true));
       return;
@@ -191,7 +201,7 @@ function ready(timeout = 30000) {
 function waitIdle(timeout = 15000) {
   let start = performance.now();
 
-  function drain(resolve) {
+  function drain(resolve: (idle: boolean) => void) {
     let times = window.redraw_start_times;
     let pending = times ? Object.keys(times).length : 0;
 
@@ -216,21 +226,21 @@ function waitIdle(timeout = 15000) {
   });
 }
 
-function getPath(path) {
+function getPath(path: string) {
   return getApi().getValue(getCtx(), path);
 }
 
-function setPath(path, value) {
+function setPath(path: string, value: unknown) {
   getApi().setValue(getCtx(), path, value);
   return true;
 }
 
-function execTool(toolpath, args = {}) {
+function execTool(toolpath: string, args: {[k: string]: unknown} = {}) {
   return getApi().execTool(getCtx(), toolpath, args);
 }
 
 function listTools() {
-  let out = [];
+  let out: string[] = [];
 
   for (let cls of ToolClasses) {
     let def;
@@ -255,7 +265,7 @@ function listEditors() {
 }
 
 /* Switch the largest screen area to the named editor class. */
-function switchEditor(name) {
+function switchEditor(name: string) {
   let cls = areaclasses[name];
 
   if (!cls) {
@@ -263,7 +273,7 @@ function switchEditor(name) {
   }
 
   let screen = getApp().screen;
-  let best, bestArea;
+  let best: number | undefined, bestArea: (typeof screen.sareas)[number] | undefined;
 
   for (let sarea of screen.sareas) {
     let area = sarea.size[0]*sarea.size[1];
@@ -283,7 +293,12 @@ function switchEditor(name) {
 /* Structural state dump, for semantic assertions that do not depend on pixels. */
 function snapshot() {
   let ctx = getCtx();
-  let out = {
+  let out: {
+    editors: string[];
+    /* Element counts, or a single `error` string if the spline was unreachable. */
+    counts: {[name: string]: number | string};
+    toolpath: string | undefined;
+  } = {
     editors : [],
     counts  : {},
     toolpath: undefined
@@ -323,7 +338,7 @@ function snapshot() {
 }
 
 /* The UI lives in shadow roots, so a plain querySelectorAll misses most of it. */
-function deepQuery(tag, root = document, out = []) {
+function deepQuery(tag: string, root: Document | ShadowRoot = document, out: Element[] = []) {
   for (let node of root.querySelectorAll("*")) {
     if (node.tagName && node.tagName.toLowerCase() === tag) {
       out.push(node);
@@ -336,7 +351,7 @@ function deepQuery(tag, root = document, out = []) {
   return out;
 }
 
-function distinctColors(canvas) {
+function distinctColors(canvas: HTMLCanvasElement) {
   let ctx2d;
 
   try {
@@ -370,7 +385,7 @@ function distinctColors(canvas) {
    GPU backends. WebGL surfaces report size only — their drawing buffer is
    gone by the time a test can read it. */
 function canvasReport() {
-  let out = [];
+  let out: {id?: string; width: number; height: number; distinct?: number}[] = [];
 
   for (let canvas of deepQuery("canvas")) {
     out.push({
@@ -386,7 +401,7 @@ function canvasReport() {
 
 /* Deserialize a .fmo passed in as a byte array (Playwright cannot hand over
    an ArrayBuffer directly through page.evaluate). */
-function loadFile(bytes) {
+function loadFile(bytes: number[]) {
   let view = new DataView(new Uint8Array(bytes).buffer);
 
   getApp().load_user_file_new(view, undefined, new unpack_ctx());

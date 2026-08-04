@@ -1,7 +1,13 @@
 import {nstructjs, Vector2, Matrix4, util} from '../path.ux/scripts/pathux.js';
+import type {ImageCanvas, ImageDataType} from './imagecanvas.js';
 
+/* A canvas2d-shaped facade over ImageCanvas; every method is still a stub. */
 export class ImageCanvasDrawer {
-  constructor(canvas) {
+  canvas : ImageCanvas;
+  matstack : Matrix4[];
+  matrix : Matrix4;
+
+  constructor(canvas : ImageCanvas) {
     this.canvas = canvas;
     this.matstack = [];
     this.matrix = new Matrix4();
@@ -11,11 +17,11 @@ export class ImageCanvasDrawer {
 
   }
 
-  moveTo(x, y) {
+  moveTo(x : number, y : number) {
 
   }
 
-  lineTo(x, y) {
+  lineTo(x : number, y : number) {
 
   }
 
@@ -31,27 +37,29 @@ export class ImageCanvasDrawer {
 
   }
 
-  bezierCurveTo(x2, y2, x3, y3, x4, y4) {
+  bezierCurveTo(x2 : number, y2 : number, x3 : number, y3 : number,
+                x4 : number, y4 : number) {
 
   }
 
-  quadraticCurveTo(x2, y2, x3, y3) {
+  quadraticCurveTo(x2 : number, y2 : number, x3 : number, y3 : number) {
 
   }
 
-  arcTo(x, y, r, th1, th2) {
+  arcTo(x : number, y : number, r : number, th1 : number, th2 : number) {
 
   }
 
-  rect(x, y, w, h) {
+  rect(x : number, y : number, w : number, h : number) {
 
   }
 
-  drawImage(img, dx, dy, dw, dh) {
+  drawImage(img : ImageDataType, dx : number, dy : number,
+            dw : number, dh : number) {
 
   }
 
-  blit(img, dx, dy) {
+  blit(img : ImageDataType, dx : number, dy : number) {
 
   }
 }

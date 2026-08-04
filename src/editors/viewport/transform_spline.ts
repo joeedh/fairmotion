@@ -5,6 +5,9 @@ import {
 import {SelMask} from './selectmode.js';
 
 import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
+import type {SplineVertex, SplineSegment} from '../../curve/spline_types.js';
+import type {FullContext} from '../../core/context.js';
+import type {TransUndoData} from './transdata.js';
 import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 
 import {TransDataItem, TransDataType} from './transdata.js';
@@ -19,8 +22,8 @@ var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
 export class TransSplineVert extends TransDataType {
-  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : float,
-               scaleWidths : boolean = false) {
+  static apply(ctx : FullContext, td : TransData, item : TransDataItem,
+               mat : Matrix4, w : number, scaleWidths : boolean = false) {
     var co = _tsv_apply_tmp1;
     var v = item.data;
 
@@ -77,11 +80,11 @@ export class TransSplineVert extends TransDataType {
     }
   }
 
-  static getDataPath(ctx : ToolContext, td : TransData, ti : TransDataItem) {
+  static getDataPath(ctx : FullContext, td : TransData, ti : TransDataItem) {
     return `spline.verts[${ti.data.eid}]`;
   }
 
-  static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
+  static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
     var doneset = new set();
     var undo = [];
     let segundo = [];
@@ -148,7 +151,7 @@ export class TransSplineVert extends TransDataType {
     undo_obj['svert'] = undo;
   }
 
-  static undo(ctx : ToolContext, undo_obj : ObjLit) {
+  static undo(ctx : FullContext, undo_obj : TransUndoData) {
     var spline = ctx.spline;
 
     let segundo = undo_obj['sseg'];
@@ -210,12 +213,12 @@ export class TransSplineVert extends TransDataType {
     spline.resolve = 1;
   }
 
-  static update(ctx : ToolContext, td : TransData) {
+  static update(ctx : FullContext, td : TransData) {
     var spline = ctx.spline;
     spline.resolve = 1;
   }
 
-  static calc_prop_distances(ctx : ToolContext, td : TransData, data : Array<TransDataItem>) {
+  static calc_prop_distances(ctx : FullContext, td : TransData, data : TransDataItem[]) {
     var doprop = td.doprop;
     var proprad = td.propradius;
     var spline = ctx.spline;
@@ -257,7 +260,7 @@ export class TransSplineVert extends TransDataType {
     }
   }
 
-  static gen_data(ctx : ToolContext, td : TransData, data : Array<TransDataItem> ) {
+  static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
     var doprop = td.doprop;
     var proprad = td.propradius;
 
@@ -361,7 +364,7 @@ export class TransSplineVert extends TransDataType {
   }
 
   //this one gets a modal context
-  static calc_draw_aabb(ctx : Context, td : TransData, minmax : MinMax) {
+  static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
     var vset = {};
     var sset = {};
     var hset = {};
@@ -446,7 +449,8 @@ export class TransSplineVert extends TransDataType {
     }
   }
 
-  static aabb(ctx : ToolContext, td : TransData, item : TransDataItem, minmax : MinMax, selected_only : bool) {
+  static aabb(ctx : FullContext, td : TransData, item : TransDataItem,
+              minmax : MinMax, selected_only : boolean) {
     var co = _tsv_apply_tmp2;
 
     if (item.w <= 0.0) return;

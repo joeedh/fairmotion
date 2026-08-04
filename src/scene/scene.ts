@@ -8,9 +8,21 @@ import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
 import {SelMask} from "../editors/viewport/selectmode.js";
 import {Collection} from './collection.js';
 
-export class ObjectList extends Array {
-  idmap: Object
-  namemap: Object;
+import type {ToolMode} from "../editors/viewport/toolmodes/toolmode.js";
+import type {DataLib, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
+import type {FullContext} from '../core/context.js';
+import type {SocketMap, EventDag} from '../core/eventdag.js';
+
+/* A dag callback as linkDag() registers them. */
+export type SceneDagNode = (ctx : FullContext, inputs : SocketMap,
+                            outputs : SocketMap, graph : EventDag) => void;
+
+export class ObjectList extends Array<SceneObject> {
+  /* Keyed on SceneObject.id, not lib_id. */
+  idmap: {[id : number] : SceneObject}
+  namemap: {[name : string] : SceneObject};
+  scene: Scene;
+  active: SceneObject | undefined;
 
   constructor(scene: Scene) {
     super();
@@ -21,7 +33,7 @@ export class ObjectList extends Array {
     this.active = undefined;
   }
 
-  get(id_or_string) {
+  get(id_or_string : number | string) {
     if (typeof id_or_string == "string") {
       return this.namemap[id_or_string];
     } else {
@@ -29,7 +41,7 @@ export class ObjectList extends Array {
     }
   }
 
-  has(ob) {
+  has(ob : SceneObject) {
     return ob.id in this.idmap;
     //return super.indexOf(ob) >= 0;
   }
@@ -45,7 +57,7 @@ export class ObjectList extends Array {
     super.push(ob);
   }
 
-  remove(ob) {
+  remove(ob : SceneObject) {
     delete this.idmap[ob.id];
     delete this.namemap[ob.name];
     super.remove(ob);
@@ -63,7 +75,14 @@ export class ObjectList extends Array {
     return name2;
   }
 
-  get editable() {
+  /* NOTE: all three of these hand back the generator *function*, not a
+     generator, and its body reads `this.objects` -- a field ObjectList does
+     not have, on a `this` that is undefined inside a non-arrow function*.
+     The only consumer, transform_object.ts, iterates the result with
+     `for..in`, which walks a function's own enumerable keys and so finds
+     nothing.  Object transform has been dead the whole time; annotating it
+     honestly rather than reviving it. */
+  get editable() : () => Generator<SceneObject> {
     let this2 = this;
 
     return (function* () {
@@ -81,7 +100,7 @@ export class ObjectList extends Array {
     return this.editable;
   }
 
-  get selected_editable() {
+  get selected_editable() : () => Generator<SceneObject> {
     return (function* () {
       for (let ob of this.objects) {
         let bad = (ob.flag & ObjectFlags.HIDE);
@@ -194,6 +213,8 @@ LayerIDSet {
 export class ToolModeSwitchError extends Error {}
 
 export class Scene extends DataBlock {
+  static STRUCT : string;
+
   edit_all_layers: boolean
   objects: ObjectList
   object_idgen: EIDGen
@@ -201,6 +222,19 @@ export class Scene extends DataBlock {
   active_splinepath: string
   time: number
   fps: number;
+
+  /* One entry per linkDag() call; only used as an "already linked" flag. */
+  dagnodes: SceneDagNode[];
+  /* Instances, one per registered ToolModeClass, with the same by-name index
+     the ToolModes registry carries. */
+  toolmodes: ToolMode[] & {map : {[name : string] : ToolMode}};
+  selectmode: number;
+  collection: Collection | undefined;
+  /* Written by nstructjs, consumed and deleted by loadSTRUCT. */
+  active_object?: number;
+  /* NOTE: only ever written (lib_utils.ts, AppState.ts) -- every reader goes
+     through objects.active instead. */
+  active: SceneObject | undefined;
 
   static blockDefine() {
     return {
@@ -246,14 +280,14 @@ export class Scene extends DataBlock {
     this.time = 1;
   }
 
-  _initCollection(datalib) {
+  _initCollection(datalib : DataLib) {
     this.collection = new Collection();
     datalib.add(this.collection);
 
     this.collection.lib_adduser(this);
   }
 
-  switchToolMode(tname) {
+  switchToolMode(tname : string) {
     let tool = this.toolmodes.map[tname];
 
     if (!tool) {
@@ -285,18 +319,18 @@ export class Scene extends DataBlock {
     this.toolmode.ctx = g_app_state.ctx;
   }
 
-  get toolmode() {
+  get toolmode() : ToolMode {
     return this.toolmodes[this.toolmode_i];
   }
 
-  setActiveObject(ob) {
+  setActiveObject(ob : SceneObject) {
     this.objects.active = ob;
 
     this.dag_update("on_active_set", true);
   }
 
   //returns sceneobject
-  addFrameset(datalib, fs: SplineFrameSet) {
+  addFrameset(datalib : DataLib, fs: SplineFrameSet) {
     let ob = new SceneObject(fs);
     datalib.add(ob);
 
@@ -309,7 +343,7 @@ export class Scene extends DataBlock {
     return ob;
   }
 
-  change_time(ctx, time, _update_animation = true) {
+  change_time(ctx : FullContext, time : number, _update_animation = true) {
     if (_DEBUG.timeChange)
       console.warn("Time change!", time, this.time);
 
@@ -356,7 +390,7 @@ export class Scene extends DataBlock {
     return ret;
   }
 
-  add(ob) {
+  add(ob : SceneObject) {
     this.objects.add(ob);
     if (this.collection) {
       this.collection.add(ob);
@@ -365,7 +399,7 @@ export class Scene extends DataBlock {
     return this;
   }
 
-  remove(ob) {
+  remove(ob : SceneObject) {
     return this.objects.remove(ob);
   }
 
@@ -377,7 +411,7 @@ export class Scene extends DataBlock {
     return "datalib.items[" + this.lib_id + "]";
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -401,7 +435,8 @@ export class Scene extends DataBlock {
     return this;
   }
 
-  data_link(block, getblock, getblock_us) {
+  data_link(block : DataBlock, getblock : GetBlockFunc,
+            getblock_us : GetBlockUserFunc) {
     super.data_link(block, getblock, getblock_us);
 
     if (this.collection !== undefined) {
@@ -439,8 +474,8 @@ export class Scene extends DataBlock {
     //  g_app_state.switch_active_spline(this.active_splinepath);
   }
 
-  linkDag(ctx) {
-    let on_sel = function (ctx, inputs, outputs, graph) {
+  linkDag(ctx : FullContext) {
+    let on_sel : SceneDagNode = function (ctx, inputs, outputs, graph) {
       console.warn("on select called through eventdag!");
       ctx.frameset.sync_vdata_selstate(ctx);
     }
@@ -457,7 +492,7 @@ export class Scene extends DataBlock {
     this.dagnodes.push(on_sel);
   }
 
-  on_tick(ctx) {
+  on_tick(ctx : FullContext) {
     if (this.dagnodes.length === 0) {
       this.linkDag(ctx);
     }

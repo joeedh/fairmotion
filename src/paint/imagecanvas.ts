@@ -16,11 +16,26 @@ import {nstructjs, Curve1D, Vector4, util, FloatProperty} from '../path.ux/scrip
 import {DataBlock} from '../core/lib_api.js';
 import {NodeBase} from '../core/eventdag.js';
 import {Graph, GraphNode, NodeSocketType} from '../graph/graph.js';
+import type {Texture} from '../webgl/webgl.js';
 import {TILESIZE} from './imagecanvas_base.js';
 
-export const ImageDataClasses = [];
+export type ImageDataClass = typeof ImageDataType;
+
+export const ImageDataClasses : ImageDataClass[] = [];
 
 export class ImageDataType {
+  static STRUCT : string;
+
+  width : number;
+  height : number;
+  /* Offset of this tile within the image it belongs to; 0 for whole
+     images. */
+  x : number;
+  y : number;
+  /* A PNG data-url payload, length-prefixed with its own mime header; see
+     SimpleImageData.compress(). */
+  compressedData : Uint8Array | number[];
+
   constructor(width = 1, height = 1) {
     this.width = width;
     this.height = height;
@@ -36,11 +51,11 @@ export class ImageDataType {
     }
   }
 
-  static register(cls) {
+  static register(cls : ImageDataClass) {
     ImageDataClasses.push(cls);
   }
 
-  static getClass(name) {
+  static getClass(name : string) {
     for (let cls of ImageDataClasses) {
       if (cls.imageDataDefine().typeName === name) {
         return cls;
@@ -48,7 +63,9 @@ export class ImageDataType {
     }
   }
 
-  flagUpdate(x, y, w, h) {
+  /* The rect is optional -- the leaf implementations ignore it and dirty the
+     whole tile. */
+  flagUpdate(x? : number, y? : number, w? : number, h? : number) {
 
   }
 
@@ -56,7 +73,9 @@ export class ImageDataType {
     throw new Error("implement me");
   }
 
-  fromUint8(data) {
+  /* NOTE: TiledImage.fromUint8() hands its tiles an ImageData rather than the
+     raw bytes, which neither leaf implementation can consume. */
+  fromUint8(data : Uint8Array | Uint8ClampedArray) {
     throw new Error("implement me");
   }
 
@@ -64,12 +83,12 @@ export class ImageDataType {
     throw new Error("implement me");
   }
 
-  copyTo(b) { //copies settings, not data!
+  copyTo(b : ImageDataType) { //copies settings, not data!
     b.width = this.width;
     b.height = this.height;
   }
 
-  fromFloat32(data) { //returns promise
+  fromFloat32(data : Float32Array) { //returns promise
     throw new Error("implement me");
   }
 
@@ -88,14 +107,14 @@ export class ImageDataType {
 
   }
 
-  decompress(data) {
+  decompress(data? : Uint8Array) {
     //returns a Promise
     return new Promise((accept, reject) => {
 
     });
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
     if (this.compressedData.length > 0) {
@@ -121,6 +140,15 @@ export const IRecalcFlags = {
 };
 
 export class SimpleImageData extends ImageDataType {
+  static STRUCT : string;
+
+  /* NOTE: never assigned -- this class is the canvas2d fallback and never
+     reaches the GPU. */
+  glTex : Texture | undefined;
+  data : ImageData | undefined;
+  ready : boolean;
+  recalcFlag : number;
+
   constructor() {
     super();
 
@@ -147,7 +175,7 @@ export class SimpleImageData extends ImageDataType {
     });
   }
 
-  fromUint8(data) {
+  fromUint8(data : Uint8Array | Uint8ClampedArray) {
     return new Promise((accept, reject) => {
       let data2 = this.getData();
 
@@ -175,7 +203,7 @@ export class SimpleImageData extends ImageDataType {
     });
   }
 
-  fromFloat32(fdata) {
+  fromFloat32(fdata : Float32Array) {
     return new Promise((accept, reject) => {
       let data = this.getData().data;
 
@@ -200,6 +228,7 @@ export class SimpleImageData extends ImageDataType {
     let g = canvas.getContext("2d");
     canvas.width = this.width;
     canvas.height = this.height;
+    /* NOTE: putImageData wants a destination x,y as well. */
     g.putImageData(this.getData());
 
     let data = canvas.toDataURL("image/png");
@@ -287,14 +316,22 @@ nstructjs.register(SimpleImageData);
 
 ImageDataType.register(SimpleImageData);
 
-let fillcache = new Map();
+let fillcache = new Map<string, Uint8ClampedArray>();
 
 export class FillColorImage extends ImageDataType {
-  constructor(width, height) {
+  static STRUCT : string;
+
+  color : Vector4;
+
+  constructor(width? : number, height? : number) {
     super(width, height);
     this.color = new Vector4([1.0, 1.0, 1.0, 1.0]);
   }
 
+  /* NOTE: three bugs in the cache path below -- the key loop stringifies the
+     whole color four times instead of one channel each, a cache hit accepts
+     and then keeps going to build a second buffer, and the alpha channel is
+     filled from `b`. */
   toUint8() {
     return new Promise((accept, reject) => {
       let key = this.width + ":" + this.height + ":";
@@ -328,7 +365,7 @@ export class FillColorImage extends ImageDataType {
     });
   }
 
-  fromUint8(u8) {
+  fromUint8(u8 : Uint8Array | Uint8ClampedArray) {
     this.color[0] = u8[0]/255;
     this.color[1] = u8[1]/255;
     this.color[2] = u8[2]/255;
@@ -354,7 +391,14 @@ export const DataTypes = {
 };
 
 export class TiledImage extends ImageDataType {
-  constructor(width, height, tilesize=TILESIZE) {
+  static STRUCT : string;
+
+  tiles : ImageDataType[];
+  tilesize : number;
+  /* Fill color every tile starts out at. */
+  bgcolor : Vector4;
+
+  constructor(width? : number, height? : number, tilesize = TILESIZE) {
     super();
 
     this.tiles = [];
@@ -422,7 +466,7 @@ export class TiledImage extends ImageDataType {
     });
   }
 
-  fromUint8(u8) {
+  fromUint8(u8 : Uint8Array | Uint8ClampedArray) {
     let canvas = document.createElement("canvas");
     let g = canvas.getContext("2d");
     canvas.width = this.width;
@@ -453,7 +497,7 @@ export class TiledImage extends ImageDataType {
     });
   }
 
-  flagUpdate(x, y, w, h) {
+  flagUpdate(x : number, y : number, w : number, h : number) {
     for (let tile of this.tiles) {
       tile.flagUpdate(x, y, w, h);
     }
@@ -493,6 +537,8 @@ TiledImage.STRUCT = nstructjs.inherit(TiledImage, ImageDataType) + `
 ImageDataType.register(TiledImage);
 
 export class ImageDataSocket extends NodeSocketType {
+  image : TiledImage;
+
   constructor() {
     super();
 
@@ -506,7 +552,7 @@ export class ImageDataSocket extends NodeSocketType {
     }
   }
 
-  setValue(image) {
+  setValue(image : TiledImage) {
     this.image = image;
   }
 
@@ -514,7 +560,7 @@ export class ImageDataSocket extends NodeSocketType {
     return this.image;
   }
 
-  copyTo(b) {
+  copyTo(b : ImageDataSocket) {
     b.image = this.image;
   }
 }
@@ -535,12 +581,26 @@ export class ImageNode extends GraphNode {
 }
 
 export class ImageGraph {
+  graph : Graph;
+
   constructor() {
     this.graph = new Graph();
   }
 }
 
 export class ImageCanvas extends DataBlock {
+  static STRUCT : string;
+
+  width : number;
+  height : number;
+  /* One of the DataTypes above. */
+  dataType : number;
+  /* undefined means "inherit the screen dpi"; serialized as -1. */
+  dpi : number | undefined;
+  x : number;
+  y : number;
+  layers : ImageDataType[];
+
   constructor() {
     super();
 
@@ -563,7 +623,7 @@ export class ImageCanvas extends DataBlock {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 

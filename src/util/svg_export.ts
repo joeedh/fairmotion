@@ -5,6 +5,7 @@ import {SplineFlags, MaterialFlags, SplineTypes} from '../curve/spline_base.js';
 import {SplineDrawer} from "../curve/spline_draw_new.js";
 import {draw_spline} from "../curve/spline_draw.js";
 import {SVGDraw2D} from "../vectordraw/vectordraw_svg.js";
+import type {Spline} from "../curve/spline.js";
 
 var cubic_rets = cachering.fromConstructor(Vector3, 64);
 /*
@@ -21,7 +22,8 @@ on fort;
 cubic;
 off fort;
 */
-function cubic(a, b, c, d, s) {
+/* Dead; kept for the derivation above. */
+function cubic(a : Vector3, b : Vector3, c : Vector3, d : Vector3, s : number) {
   var ret = cubic_rets.next();
   
   for (var i=0; i<3; i++) {

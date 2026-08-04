@@ -5,6 +5,9 @@ import {SplineTypes, SplineFlags} from '../../curve/spline_types.js';
 import {TimeDataLayer, get_vtime, set_vtime,
         AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
        } from '../../core/animdata.js';
+import type {DopeSheetEditor} from './DopeSheetEditor.js';
+import type {SplineVertex} from '../../curve/spline_types.js';
+import type {FullContext} from '../../core/context.js';
 
 export var KeyTypes = {
   PATHSPLINE : 1<<29,
@@ -18,40 +21,56 @@ export var FilterModes = {
   FACES    : 16
 };
 
+/* A drawable key box in the dopesheet: either a pathspline vertex or an
+   AnimChannel key, unified behind one id space (see KeyTypes). */
 export class phantom {
   flag : number
+  pos : Vector2
   size : Vector2
   group : string
   id : number;
+  /* KeyTypes.PATHSPLINE or KeyTypes.DATAPATH. */
+  type : number;
+
+  /* Back-reference to the editor that built this box. */
+  ds : DopeSheetEditor | undefined;
+
+  /* Set for PATHSPLINE keys. */
+  v : SplineVertex;
+  vd;
+  /* Set for DATAPATH keys. */
+  key : AnimKey;
+  ch : AnimChannel | undefined;
+  e;
 
   constructor() {
     this.flag = 0;
 
     this.ds = undefined; //dopesheet reference
-    
+
     this.pos = new Vector2(), this.size = new Vector2();
     this.type = KeyTypes.PATHSPLINE;
     this.group = "root";
-    
+
     /*id of element, e.g. splinevertex.eid, animkey.id,
        OR'd with .type, so we can use it as a unique id and
        not have collisions between pathspline and datapath
        keys
     */
-    this.id = 0; 
-    
+    this.id = 0;
+
     this.e = undefined;
     this.ch = undefined;
   }
-  
+
   get cached_y() {
       return this.ds.heightmap[this.id];
   }
-  
+
   get oldbox() {
       return this.ds.old_keyboxes[this.id];
   }
-  
+
   get select() {
     if (this.type == KeyTypes.PATHSPLINE) {
       return this.v.flag & SplineFlags.UI_SELECT;
@@ -59,8 +78,8 @@ export class phantom {
       return this.key.flag & AnimKeyFlags.SELECT;
     }
   }
-  
-  set select(val) {
+
+  set select(val : number | boolean) {
     if (this.type == KeyTypes.PATHSPLINE) {
       this.v.flag |= SplineFlags.UI_SELECT;
     } else {
@@ -71,39 +90,39 @@ export class phantom {
       }
     }
   }
-  
-  load(b) {
+
+  load(b : phantom) {
     for (var j=0; j<2; j++) {
       this.pos[j] = b.pos[j];
       this.size[j] = b.size[j];
     }
-    
+
     this.id = b.id;
     this.type = b.type;
     this.v = b.v;
     this.vd = b.vd;
-    
+
     //for AnimChannel keys
     this.key = b.key;
     this.ch = b.ch;
   }
 }
 
-export function get_time(ctx, id) {
+export function get_time(ctx : FullContext, id : number) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var v = ctx.frameset.pathspline.eidmap[id];
     return get_vtime(v);
   } else {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var k = ctx.frameset.lib_anim_idmap[id];
     return k.time;
   }
 }
 
-export function set_time(ctx, id, time) {
+export function set_time(ctx : FullContext, id : number, time : number) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
 
@@ -115,84 +134,85 @@ export function set_time(ctx, id, time) {
     v.dag_update("depend");
   } else {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var k = ctx.frameset.lib_anim_idmap[id];
     k.set_time(time);
-    
+
     k.dag_update("depend");
   }
 }
-export function get_select(ctx, id) {
+export function get_select(ctx : FullContext, id : number) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var v = ctx.frameset.pathspline.eidmap[id];
     return v.flag & SplineFlags.UI_SELECT;
   } else {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var k = ctx.frameset.lib_anim_idmap[id];
     return k.flag & AnimKeyFlags.SELECT;
   }
 }
 
-export function set_select(ctx, id, state) {
+export function set_select(ctx : FullContext, id : number,
+                           state : number | boolean) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var v = ctx.frameset.pathspline.eidmap[id];
 
     var changed = !!(v.flag & SplineFlags.UI_SELECT) != !!state;
-    
+
     if (state)
       v.flag |= SplineFlags.UI_SELECT;
     else
       v.flag &= ~SplineFlags.UI_SELECT;
-    
+
     if (changed)
       v.dag_update("depend");
   } else {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var k = ctx.frameset.lib_anim_idmap[id];
-    
+
     var changed = !!(k.flag & AnimKeyFlags.SELECT) != !!state;
-    
+
     if (state)
       k.flag |= AnimKeyFlags.SELECT;
     else
       k.flag &= ~AnimKeyFlags.SELECT;
-    
+
     if (changed)
       k.dag_update("depend");
   }
 }
 
-export function delete_key(ctx, id) {
+export function delete_key(ctx : FullContext, id : number) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
-    
+
     var pathspline = ctx.frameset.pathspline;
     var v = pathspline.eidmap[id];
     var time = get_vtime(v);
     var kcache = ctx.frameset.kcache;
-    
+
     for (var i=0; i<v.segments.length; i++) {
       var s = v.segments[i], v2 = s.other_vert(v),
               time2 = get_vtime(v2);
       var ts = Math.min(time, time2), te = Math.max(time, time2);
-      
+
       for (var j=ts; j<=te; j++) {
         kcache.invalidate(v2.eid, j);
       }
     }
-    
+
     v.dag_update("depend");
     pathspline.dissolve_vertex(v);
   } else {
     id = id & KeyTypes.CLEARMASK;
     var k = ctx.frameset.lib_anim_idmap[id];
-    
+
     k.dag_update("depend");
     k.channel.remove(k);
   }

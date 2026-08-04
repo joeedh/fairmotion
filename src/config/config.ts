@@ -18,7 +18,7 @@ export var ORIGIN = location.origin;
 
 /* Real ESM namespace objects are sealed, so platform.js can no longer write
    `config.ORIGIN = x` the way it did under the old module emulation. */
-export function setOrigin(origin) {
+export function setOrigin(origin : string) {
   ORIGIN = origin;
 }
 
@@ -80,8 +80,8 @@ window._DEBUG = {
   gl_objects : false,
   Struct : false,
   ui_except_handling : false,
-  modal : false, 
-  datalib : false, 
+  modal : false,
+  datalib : false,
   glext : false, //prints gl extensions to console on startup
   selbuf : false,
   toolstack : false,

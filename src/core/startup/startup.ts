@@ -186,12 +186,10 @@ function init_event_system() {
 
   //start primary on_tick timer
 
-  function gen_keystr(key, keystate) {
-    if (typeof key === "number") {
-      key = String.fromCharCode(key)
-    }
+  function gen_keystr(key: string | number, keystate: {shift: boolean; alt: boolean; ctrl: boolean}) {
+    let name = typeof key === "number" ? String.fromCharCode(key) : key;
 
-    let s = key.toUpperCase()
+    let s = name.toUpperCase()
     if (keystate.shift)
       s = "SHIFT-" + s
     if (keystate.alt)
@@ -201,7 +199,8 @@ function init_event_system() {
     return s
   }
 
-  let key_exclude_list = {}, ke = key_exclude_list;
+  /* A set, keyed by the gen_keystr() form; the value is always 0. */
+  let key_exclude_list: {[keystr: string]: number} = {}, ke = key_exclude_list;
 
   ke[gen_keystr("O", {shift: false, alt: false, ctrl: true})] = 0;
   ke[gen_keystr("R", {shift: false, alt: false, ctrl: true})] = 0;
@@ -220,7 +219,7 @@ function init_event_system() {
   ke[gen_keystr("G", {shift: false, alt: true, ctrl: false})] = 0;
   ke[gen_keystr("O", {shift: true, alt: false, ctrl: true})] = 0;
 
-  window._handle_key_exclude = function handle_key_exclude(e) {
+  window._handle_key_exclude = function handle_key_exclude(e: KeyboardEvent) {
     let kc = charmap[e.keyCode];
     if (kc === undefined)
       kc = "";

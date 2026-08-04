@@ -25,6 +25,10 @@ import {
 
 import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
+import type {SplineLayer} from './spline_element_array.js';
+import type {SplineStrokeGroup} from './spline_strokegroup.js';
+import type {Spline} from './spline.js';
+
 
 export function calc_string_ids(spline: Spline, startid = 0) {
   for (let group of spline.drawStrokeGroups) {
@@ -34,21 +38,24 @@ export function calc_string_ids(spline: Spline, startid = 0) {
   }
 }
 
-const _sort_layer_segments_lists = new cachering(function () {
+const _sort_layer_segments_lists = new cachering<SplineSegment[]>(function () {
   return [];
 }, 2);
 
-export function sort_layer_segments(layer, spline) {
+/* Returns the layer's visible segments, ordered so that chains of two-valence
+   vertices come out contiguous.  The list is owned by the cachering above --
+   copy it before the next call. */
+export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
   const lists = _sort_layer_segments_lists;
 
   let list = lists.next();
   list.length = 0;
 
-  let visit = {};
+  let visit : {[eid : number] : number} = {};
   let layerid = layer.id;
   let topogroup_idgen = 0;
 
-  function recurse(seg, start_seg = seg) {
+  function recurse(seg : SplineSegment, start_seg : SplineSegment = seg) {
     if (seg.eid in visit) {
       return;
     }
@@ -81,7 +88,7 @@ export function sort_layer_segments(layer, spline) {
         continue;
       if (!(layerid in s.layers))
         continue;
-        
+
       if (!s.hidden || (s.flag & SplineFlags.GHOST))
         list.push(s);
     }
@@ -132,10 +139,12 @@ export function redo_draw_sort(spline: Spline) {
   }
   let time = time_ms();
 
-  let gmap = new Map();
-  let gsmap = new Map();
+  /* seg -> its group's index, and the group itself; gmaxz is the highest z in
+     the group, which every segment of the group then sorts by. */
+  let gmap = new Map<SplineSegment | SplineStrokeGroup, number>();
+  let gsmap = new Map<SplineSegment, SplineStrokeGroup>();
   let gi = 0;
-  let gmaxz = new Map();
+  let gmaxz = new Map<SplineSegment, number>();
 
   for (let g of spline.drawStrokeGroups) {
     let maxz = -1e17;
@@ -144,7 +153,7 @@ export function redo_draw_sort(spline: Spline) {
       if (seg === undefined) {
         evillog("Missing segment in draw stroke group! patching. . .");
 
-        let lst = [];
+        let lst : SplineSegment[] = [];
         for (let seg2 of g.segments) {
           if (seg2) {
             lst.push(seg2);
@@ -199,8 +208,13 @@ export function redo_draw_sort(spline: Spline) {
     min_z = Math.min(min_z, s.z);
   }
 
+  /* Sort key: the element's layer order, then its own z within the layer.
+     Segments owned by a face are pushed above every face they touch.
+
+     NOTE: `layer` below starts as a number, is overwritten with a string key
+     from the for..in, and finally with the SplineLayer itself. */
   //check_face is optional, defaults to true
-  function calc_z(e, check_face = true) {
+  function calc_z(e : SplineElement, check_face = true) {
     if (isNaN(e.z)) {
       e.z = 0;
     }
@@ -246,7 +260,8 @@ export function redo_draw_sort(spline: Spline) {
     return layer.order*(max_z - min_z) + (z - min_z);
   }
 
-  function get_layer(e) {
+  /* Dead; nothing calls it. */
+  function get_layer(e : SplineElement) {
     for (let k in e.layers) {
       return k;
     }
@@ -271,7 +286,7 @@ export function redo_draw_sort(spline: Spline) {
 
   //okay, build segment list by layers
 
-  let visit = {};
+  let visit : {[eid : number] : number} = {};
   for (let i = 0; i < spline.layerset.length; i++) {
     let layer = spline.layerset[i];
 
@@ -301,7 +316,7 @@ export function redo_draw_sort(spline: Spline) {
     }
   }
 
-  let zs = {};
+  let zs : {[eid : number] : number} = {};
   for (let e of dl) {
     zs[e.eid] = calc_z(e);
   }
@@ -314,7 +329,7 @@ export function redo_draw_sort(spline: Spline) {
   }
 
   for (let i = 0; i < dl.length; i++) {
-    let lk = undefined;
+    let lk : string | undefined = undefined;
     for (let k in dl[i].layers) {
       lk = k;
       break;
@@ -324,7 +339,9 @@ export function redo_draw_sort(spline: Spline) {
   }
 
 
-  let visit2 = new Set();
+  let visit2 = new Set<SplineStrokeGroup | SplineVertex>();
+  /* Stroke groups stand in for their segments here, so this is not a list of
+     spline elements.  Left to inference so the union stays honest. */
   let list2 = [];
 
   for (let item of spline.drawlist) {

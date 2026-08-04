@@ -1,6 +1,7 @@
 "use strict";
 
 import {tokdef, token, lexer, parser} from '../util/parseutil.js';
+import type {TokFunc} from '../util/parseutil.js';
 import {app} from '../../platforms/platform.js';
 
 import * as vectormath from '../util/vectormath.js';
@@ -9,6 +10,8 @@ import * as util from '../path.ux/scripts/util/util.js';
 import * as parseutil from '../util/parseutil.js';
 import * as pathux from '../path.ux/scripts/pathux.js';
 import {bindAddonAPI} from './addon_api_intern.js';
+import type {DataAPI} from '../path.ux/scripts/pathux.js';
+import type {DataBlockClass} from '../core/lib_api.js';
 
 let builtins = {
   vectormath : vectormath,
@@ -18,7 +21,8 @@ let builtins = {
   pathux : pathux
 };
 
-let tk = (name, re, func) => new tokdef(name, re, func);
+let tk = <T = string>(name : string, re? : RegExp, func? : TokFunc<T>) =>
+  new tokdef<T>(name, re, func);
 
 let keywords = new Set([
   "export", "import", "from", "as", "in", "default",
@@ -78,11 +82,12 @@ let tokens = [
   tk("ASSIGN", /\=/)
 ];
 
-export function parseFile(buf, modname, path, modid) {
+export function parseFile(buf : string, modname : string, path : string,
+                          modid : number) {
   let lex = new lexer(tokens);
   let p = new parser(lex);
 
-  let linemap = new Array(buf.length);
+  let linemap : number[] = new Array(buf.length);
   let li = 0;
   for (let i=0; i<buf.length; i++) {
     linemap[i] = li;
@@ -93,9 +98,10 @@ export function parseFile(buf, modname, path, modid) {
   }
 
   let newbuf = buf;
-  let spans = [];
+  /* [start, end, replacement] source spans, applied in one pass at the end. */
+  let spans : [number, number, string][] = [];
 
-  function p_Id() {
+  function p_Id() : string {
     let t = p.next();
     if (t.type === "ID" || t.value === "default") {
       return t.value;
@@ -105,10 +111,10 @@ export function parseFile(buf, modname, path, modid) {
     p.error(t, "Expected an identifier");
   }
 
-  let deps = [];
+  let deps : string[] = [];
   let name_idgen = 1;
 
-  function p_Import(t) {
+  function p_Import(t : token<unknown>) {
     let start = t.lexpos;
     let t2 = p.next();
 
@@ -116,7 +122,7 @@ export function parseFile(buf, modname, path, modid) {
 
     if (t2.type === "LBRACE") {
       let t3 = t2;
-      let members = [];
+      let members : string[] = [];
 
       while (!p.at_end() && t3 && t3.type !== "RBRACE") {
         members.push(p_Id());
@@ -175,7 +181,7 @@ export function parseFile(buf, modname, path, modid) {
       let mod = p_Id();
       p.expect("FROM");
       let path = p.expect("STRLIT");
-      
+
       repl = `var ${mod} = _addon_require(${modid}, ${path});`;
       deps.push(path);
     } else {
@@ -191,7 +197,7 @@ export function parseFile(buf, modname, path, modid) {
   function p_VarExpr() {
     let li = p.lexer.lexpos, start = li;
 
-    let bracketmap = {
+    let bracketmap : {[c : string] : string} = {
       "{" : "{",
       "}" : "{",
 
@@ -202,7 +208,7 @@ export function parseFile(buf, modname, path, modid) {
       ")" : "("
     };
 
-    let bracketsigns = {
+    let bracketsigns : {[c : string] : number} = {
       "{" : 1,
       "}" : -1,
 
@@ -214,7 +220,7 @@ export function parseFile(buf, modname, path, modid) {
     };
 
     let states = {
-      base(li) {
+      base(li : number) {
         if (buf[li] === "/" && buf[li+1] === "*") {
           this.push("comment");
           return li + 2;
@@ -241,7 +247,7 @@ export function parseFile(buf, modname, path, modid) {
         return li + 1;
       },
 
-      tmpl(li) {
+      tmpl(li : number) {
         if (buf[li-1] !== "\\" && buf[li] === "`") {
           this.pop();
         }
@@ -249,11 +255,11 @@ export function parseFile(buf, modname, path, modid) {
         return li + 1;
       },
 
-      str(li) {
+      str(li : number) {
 
       },
 
-      comment(li) {
+      comment(li : number) {
         if (buf[li] === "*" && buf[li+1] === "/") {
           this.pop();
           return li + 2;
@@ -262,7 +268,7 @@ export function parseFile(buf, modname, path, modid) {
         return li + 1;
       },
 
-      push(state, statedata=undefined) {
+      push(state : string, statedata = undefined) {
         this.statestack.push([this.statedata, this.state]);
         this.state = state;
         this.statedata = statedata;
@@ -318,7 +324,7 @@ export function parseFile(buf, modname, path, modid) {
 
   let varkeywords = new Set(["let", "const", "var"]);
 
-  function p_Export(t) {
+  function p_Export(t : token<unknown>) {
     let start = t.lexpos;
     let t2 = p.next();
 
@@ -326,7 +332,7 @@ export function parseFile(buf, modname, path, modid) {
 
     if (t2.type === "LBRACE") {
       let t3 = t2;
-      let members = [];
+      let members : string[] = [];
 
       while (!p.at_end() && t3 && t3.type !== "RBRACE") {
         members.push(p_Id());
@@ -387,7 +393,7 @@ export function parseFile(buf, modname, path, modid) {
       repl = `_exportall(${modid}, exports, _addon_require(${modid}, ${path}));\n`;
       deps.push(path);
     } else if (varkeywords.has(t2.value)) {
-      let vars = {};
+      let vars : {[id : string] : string | undefined} = {};
 
       let keyword = t2.value;
       repl = '';
@@ -523,11 +529,31 @@ window._testParseFile = function() {
 }
 
 
+/* An addon module's export namespace.  The contents are whatever the addon
+   assigned; register/unregister are the two the loader looks for. */
+export interface AddonExports {
+  register? : () => void;
+  unregister? : () => void;
+}
+
+/* The module body parseFile() wraps, and the require it is handed. */
+export type AddonRequire = (modid : number, path : string) => AddonExports;
+export type ModuleCallback = (addon : Addon, exports : AddonExports,
+                              require : AddonRequire) => void;
+
 /* The addon loader is its own tiny module registry, unrelated to how the app
    itself is bundled. It used to borrow ES6Module from the legacy loader in
    core/startup/module.js, which only ever supplied these fields. */
 class AddonModule {
-  constructor(name, path) {
+  name : string;
+  path : string;
+  callback : ModuleCallback | undefined;
+  exports : AddonExports;
+  deps : string[];
+  loaded : boolean;
+  addon : Addon | undefined;
+
+  constructor(name : string, path : string) {
     this.name = name;
     this.path = path;
 
@@ -539,7 +565,7 @@ class AddonModule {
   }
 }
 
-export const modules = {};
+export const modules : {[path : string] : AddonModule} = {};
 export const pathstack = ["."];
 
 for (let k in builtins) {
@@ -549,7 +575,11 @@ for (let k in builtins) {
   modules[k] = mod;
 }
 
-export function resolvePath(path) {
+/* NOTE: _normpath, _normpath1 and _splitpath are declared nowhere in the
+   tree -- they came in with the old python build's prelude.  Every path the
+   addon loader touches goes through one of them, so loading an addon throws
+   a ReferenceError on the first call. */
+export function resolvePath(path : string) {
   path = path.replace(/\\/g, "/");
   path = path.replace(/\/\//g, "/");
 
@@ -572,13 +602,18 @@ export function resolvePath(path) {
   return path.trim();
 }
 
-let addonmap = new Map();
+/* Indexed both ways: id -> Addon and Addon -> id. */
+let addonmap = new Map<number | Addon, number | Addon>();
 let addon_idgen = 0;
 
-let file_idgen = 0;
-let filestates = {};
+/* One entry per loadModule() call; _addon_define reads it back to find the
+   addon the module it is defining belongs to. */
+type FileState = {id : number, path : string, addon : Addon};
 
-export function loadModule(path, addon) {
+let file_idgen = 0;
+let filestates : {[id : number] : FileState} = {};
+
+export function loadModule(path : string, addon : Addon) {
   /*
   let old = {
     _addon_define : window._addon_define,
@@ -595,7 +630,9 @@ export function loadModule(path, addon) {
     return true;
   }
 
-  window._addon_define = function _addon_define(fileid, path, deps, func) {
+  window._addon_define = function _addon_define(fileid : number, path : string,
+                                                deps : string[],
+                                                func : ModuleCallback) {
     console.log("ADDON DEFINE CALLED!");
 
     let module = new AddonModule(_splitpath(path)[1], path);
@@ -618,9 +655,9 @@ export function loadModule(path, addon) {
       ok = ok && loadModule(dep, addon);
     }
 
-    let _addon_require;
+    let _addon_require : AddonRequire;
 
-    function load(mod) {
+    function load(mod : AddonModule) {
       pathstack.push(_splitpath(mod.path)[0]);
 
       mod.loaded = true;
@@ -631,7 +668,7 @@ export function loadModule(path, addon) {
 
     let api = bindAddonAPI(addon);
 
-    _addon_require = function(__module, mod2) {
+    _addon_require = function(__module : number, mod2 : string) {
       if (mod2 === "api") {
         return api;
       } else if (!(mod2 in builtins)) {
@@ -763,7 +800,13 @@ export class Addon {
     apiVersion         : 0
   }}
 
-  constructor(manager, mainModulePath) {
+  manager : AddonManager;
+  /* Keyed on resolved module path, a subset of the global `modules` map. */
+  modules : {[path : string] : AddonModule};
+  id : number;
+  mainModule : string;
+
+  constructor(manager : AddonManager, mainModulePath : string) {
     this.manager = manager;
     this.modules = {};
     this.id = addon_idgen++;
@@ -774,7 +817,7 @@ export class Addon {
     addonmap.set(this, this.id);
   }
 
-  define_data_api(api) {
+  define_data_api(api : DataAPI) {
 
   }
 
@@ -807,19 +850,25 @@ export class Addon {
     this.modules = {};
   }
 
-  handle_versioning(file, oldversion) {
+  handle_versioning(file, oldversion : number) {
 
   }
 }
 
 export class AddonManager {
+  addons : Addon[];
+  addon_pathmap : {[path : string] : Addon};
+  /* Filled in through the addon api's registerCustomBlockData(); nothing
+     reads the list back yet. */
+  datablock_types : DataBlockClass[];
+
   constructor() {
     this.addons = [];
     this.addon_pathmap = {};
     this.datablock_types = [];
   }
 
-  loadAddon(path) {
+  loadAddon(path : string) {
     path = _normpath1(path);
 
     if (path in this.addon_pathmap) {
@@ -838,20 +887,20 @@ export class AddonManager {
     loadModule(addon.mainModule, addon);
   }
 
-  destroyAddon(addon) {
+  destroyAddon(addon : Addon) {
     addon.destroyAddon();
     delete this.addon_pathmap[addon.mainModule];
   }
 
-  registerDataBlockType(cls) {
+  registerDataBlockType(cls : DataBlockClass) {
     this.datablock_types.push(cls);
   }
 
-  unregisterDataBlockType(cls) {
+  unregisterDataBlockType(cls : DataBlockClass) {
     this.datablock_types.remove(cls, false);
   }
 
-  getModule(name) {
+  getModule(name : string) {
     return modules[name];
   }
 

@@ -41,6 +41,27 @@ let treeDebug = 0;
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/core/ui.js';
 import {SelectKeysToSide, ShiftTimeOp3} from "./dopesheet_ops.js";
+import type {FullContext} from '../../core/context.js';
+import type {IconButton} from '../../path.ux/scripts/widgets/ui_widgets.js';
+import type {EditorCanvas} from '../editor_base.js';
+
+/* NOTE: STRUCT is imported twice (lines 1 and 16), and UIBase/color2css
+   twice as well (lines 2 and 18); the "use strict" on line 8 is after the
+   first import, so it is not a directive prologue and does nothing. */
+
+/* The indices into keyboxes that are currently on-screen, with the hovered
+   one hung off the array itself. */
+export type ActiveBoxes = number[] & {highlight : number | undefined};
+
+/* A coarse screen-space bucket grid over the key boxes, one keybox index per
+   cell (-1 for empty), with its dimensions hung off the typed array. */
+export type KeyGrid = Float64Array & {
+  width : number, height : number,
+  /* Screen px per cell. */
+  ratio : number,
+  /* gridGen this grid was built at. */
+  gen : number
+};
 
 let tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -49,9 +70,20 @@ let tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
 let CHGT = 25;
 
 export class TreeItem extends ColumnFrame {
-  namemap: Object
-  name: string
-  collapsed: boolean;
+  /* Child key -> child item; the key is this item's own path component. */
+  namemap: {[key : string] : TreeItem}
+  name: string;
+
+  /* Last component of the data path this row stands for. */
+  path: string
+  /* Stable id used to persist the collapsed state across rebuilds. */
+  pathid: number
+  _collapsed: boolean
+  /* The owning TreeItem, or the TreePanel at the root. */
+  parent: TreeItem | undefined
+  /* The row holding the expand icon and the label. */
+  widget: RowFrame
+  icon: IconButton;
 
   constructor() {
     super();
@@ -97,7 +129,7 @@ export class TreeItem extends ColumnFrame {
     //*
     //*/
 
-    this.icon.addEventListener("mouseup", (e2) => {
+    this.icon.addEventListener("mouseup", (e2 : MouseEvent) => {
       this.setCollapsed(!this.collapsed);
       if (treeDebug) console.log("click!");
 
@@ -155,12 +187,12 @@ export class TreeItem extends ColumnFrame {
     return !!this._collapsed;
   }
 
-  set collapsed(v) {
+  set collapsed(v : boolean) {
     if (treeDebug) console.warn("    set collapsed directly", v);
     this._collapsed = v;
   }
 
-  setCollapsed(state) {
+  setCollapsed(state : boolean) {
     if (treeDebug) console.warn("setCollapsed", state, this._id);
 
     if (this.icon !== undefined) {
@@ -192,7 +224,7 @@ export class TreeItem extends ColumnFrame {
     return {collapsed: this.collapsed};
   }
 
-  load_filedata(data) {
+  load_filedata(data : {collapsed : boolean}) {
     this.setCollapsed(data.collapsed);
   }
 
@@ -225,7 +257,12 @@ UIBase.register(TreeItem);
 
 export class TreePanel extends ColumnFrame {
   totpath: number
-  pathmap: Object;
+  /* Full dotted path -> the item that renders it. */
+  pathmap: {[path : string] : TreeItem}
+  /* pathid -> collapsed, as restored from the file. */
+  treeData: {[pathid : number] : boolean}
+  /* The root item; every add_path() hangs off it. */
+  tree: TreeItem;
 
   constructor() {
     super();
@@ -274,7 +311,9 @@ export class TreePanel extends ColumnFrame {
     return i;
   }
 
-  saveTreeData(existing_merge = []) {
+  /* Serializes to a flat [version, pathid, collapsed, pathid, collapsed...]
+     int array, which is what the STRUCT stores. */
+  saveTreeData(existing_merge : number[] = []) {
     let map = {};
 
     let version = existing_merge[0];
@@ -310,7 +349,7 @@ export class TreePanel extends ColumnFrame {
     return ret;
   }
 
-  loadTreeData(obj) {
+  loadTreeData(obj : number[]) {
     //version
     let version = obj[0];
 
@@ -341,10 +380,12 @@ export class TreePanel extends ColumnFrame {
     this.setCSS();
   }
 
-  is_collapsed(path) {
+  is_collapsed(path : string) {
     return path in this.pathmap ? this.pathmap[path].collapsed : false;
   }
 
+  /* NOTE: rebuild_intern is *called* and its undefined return passed to
+     doOnce, rather than passed as the callback. */
   rebuild() {
     this.doOnce(this.rebuild_intern());
   }
@@ -373,7 +414,7 @@ export class TreePanel extends ColumnFrame {
     this.tree.addEventListener("change", this._onchange);
   }
 
-  _onchange(e) {
+  _onchange(e : Event) {
     let e2 = new CustomEvent("change", e);
     this.dispatchEvent(e2);
 
@@ -387,6 +428,7 @@ export class TreePanel extends ColumnFrame {
     this.setCSS();
   }
 
+  /* NOTE: _redraw takes no arguments. */
   _rebuild_redraw_all() {
     this._redraw(true);
   }
@@ -395,15 +437,15 @@ export class TreePanel extends ColumnFrame {
     this.doOnce(this._rebuild_redraw_all);
   }
 
-  get_path(path) {
+  get_path(path : string) {
     return this.pathmap[path];
   }
 
-  has_path(path) {
+  has_path(path : string) {
     return path in this.pathmap;
   }
 
-  add_path(path, id) {
+  add_path(path : string, id : number) {
     path = path.trim();
 
     if (id === undefined || typeof id !== "number") {
@@ -469,7 +511,7 @@ export class TreePanel extends ColumnFrame {
     return tree;
   }
 
-  set_y(path, y) {
+  set_y(path : string | TreeItem, y : number) {
     if (typeof path === "string") {
       path = this.pathmap[path];
     }
@@ -479,7 +521,7 @@ export class TreePanel extends ColumnFrame {
     }
   }
 
-  get_y(path) {
+  get_y(path : string | TreeItem) {
     if (typeof path === "string") {
       if (!(path in this.pathmap)) {
         return undefined;
@@ -499,7 +541,7 @@ export class TreePanel extends ColumnFrame {
     }
   }
 
-  get_x(path) {
+  get_x(path : string | TreeItem) {
     return 0;
   }
 
@@ -521,7 +563,14 @@ export class TreePanel extends ColumnFrame {
 UIBase.register(TreePanel);
 
 export class ChannelState {
-  constructor(type, state, eid) {
+  static STRUCT : string;
+
+  /* An AnimKeyTypes value. */
+  type : number
+  state : boolean
+  eid : number;
+
+  constructor(type : number, state : boolean, eid : number) {
     this.type = type;
     this.state = state;
     this.eid = eid;
@@ -544,8 +593,13 @@ export class PanOp extends ToolOp {
   start_mpos: Vector2
   first: boolean
   cameramat: Matrix4;
+  ds: DopeSheetEditor
+  _last_dpi: number
+  /* view2d.cameramat as of modalStart; vestigial, the pan below works on the
+     dopesheet's own pan instead. */
+  start_cameramat: Matrix4;
 
-  constructor(dopesheet) {
+  constructor(dopesheet : DopeSheetEditor) {
     super();
 
     this.ds = dopesheet;
@@ -575,11 +629,11 @@ export class PanOp extends ToolOp {
     }
   }
 
-  modalStart(ctx) {
+  modalStart(ctx : FullContext) {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     let mpos = new Vector3([event.x, event.y, 0]);
 
     console.log(event.x, event.y);
@@ -605,7 +659,7 @@ export class PanOp extends ToolOp {
     this.ds.update();
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : MouseEvent) {
     this.modalEnd();
   }
 }
@@ -613,6 +667,16 @@ export class PanOp extends ToolOp {
 const KX = 0, KY = 1, KW = 2, KH = 3, KEID = 5, KTYPE = 6, KFLAG = 7, KTIME = 9, KEID2 = 10, KTOT = 11;
 
 export class KeyBox {
+  x : number
+  y : number
+  w : number
+  h : number
+  /* AnimKeyFlags bitmask. */
+  flag : number
+  eid : number
+  /* Index of this box's run inside keyboxes, or -1. */
+  ki : number;
+
   constructor() {
     this.x = 0;
     this.y = 0;
@@ -628,12 +692,49 @@ let keybox_temps = util.cachering.fromConstructor(KeyBox, 512);
 let proj_temps = util.cachering.fromConstructor(Vector2, 512);
 
 export class DopeSheetEditor extends Editor {
+  static STRUCT : string;
+  static debug_only : boolean;
+
   posRegen: number
   gridGen: number
-  activeBoxes: Array<number>
-  treeData: Array<number>
-  nodes: Array<DagNode>;
+  activeBoxes: ActiveBoxes
+  /* NOTE: linkEventDag pushes plain callbacks in here, but dag_unlink_all
+     calls node.dag_unlink() on each -- which functions do not have. */
+  nodes: ((ctx, inputs, outputs, graph) => void)[];
   mdown: boolean;
+
+  _treeData: number[]
+  /* The channel rows down the left side. */
+  channels: TreePanel
+  /* The TreeItems for the currently-shown verts, in draw order. */
+  activeChannels: TreeItem[]
+  /* Scroll offset in px, and the two scale factors on top of it. */
+  pan: Vector2
+  zoom: number
+  timescale: number
+  canvas: EditorCanvas
+  _animreq: number | undefined
+  pinned_ids: number[]
+  /* KTOT numbers per key, laid out by the KX/KY/KW/... constants. */
+  keyboxes: number[]
+  /* Animation-vert eid -> that key's offset into keyboxes. */
+  keybox_eidmap: {[eid : number] : number}
+  /* Width and height of one frame cell, in px. */
+  boxSize: number
+  start_mpos: Vector2
+  grid: KeyGrid
+  /* 0 = built, 1 = needs build, 2 = build in flight. */
+  regen: number
+  selected_only: number
+  time_zero_x: number
+  /* Set until linkEventDag has run against a live ctx. */
+  _queueDagLink: boolean
+  _last_hash1: number
+  _last_panupdate_key: string
+  _last_style_key_1: string
+  startbutton: IconButton
+  playbutton: IconButton
+  endbutton: IconButton;
 
   constructor() {
     super()
@@ -675,7 +776,7 @@ export class DopeSheetEditor extends Editor {
 
     this.channels = document.createElement("dopesheet-treepanel-x");
 
-    this.channels.onchange = (e) => {
+    this.channels.onchange = (e : Event) => {
       //this.doOnce(() => {
       console.warn("channels flagged onchange", this.channels.saveTreeData(), this.channels.saveTreeData());
 
@@ -692,7 +793,7 @@ export class DopeSheetEditor extends Editor {
 
     let k = this.keymap;
 
-    k.add(new HotKey("A", [], function (ctx) {
+    k.add(new HotKey("A", [], function (ctx : FullContext) {
       console.log("Dopesheet toggle select all!");
 
       let tool = new ToggleSelectAll();
@@ -706,7 +807,7 @@ export class DopeSheetEditor extends Editor {
     k.add(new HotKey("X", [], "anim.delete_keys()"));
     k.add(new HotKey("Delete", [], "anim.delete_keys()"));
 
-    k.add(new HotKey("G", [], function (ctx) {
+    k.add(new HotKey("G", [], function (ctx : FullContext) {
       console.log("Dopesheet toggle select all!");
 
       let tool = new MoveKeyFramesOp();
@@ -716,27 +817,27 @@ export class DopeSheetEditor extends Editor {
       window.redraw_viewport();
     }, "Move Keyframes"));
 
-    k.add(new HotKey("Z", ["CTRL"], function (ctx) {
+    k.add(new HotKey("Z", ["CTRL"], function (ctx : FullContext) {
       g_app_state.toolstack.undo();
     }, "Undo"));
 
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], function (ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], function (ctx : FullContext) {
       g_app_state.toolstack.redo();
     }, "Redo"));
 
-    k.add(new HotKey("Up", [], function (ctx) {
+    k.add(new HotKey("Up", [], function (ctx : FullContext) {
       ctx.scene.change_time(ctx, ctx.scene.time + 10);
       window.force_viewport_redraw();
       window.redraw_viewport();
     }, "Frame Ahead 10"));
 
-    k.add(new HotKey("Down", [], function (ctx) {
+    k.add(new HotKey("Down", [], function (ctx : FullContext) {
       ctx.scene.change_time(ctx, ctx.scene.time - 10);
       window.force_viewport_redraw();
       window.redraw_viewport();
     }, "Frame Back 10"));
 
-    k.add(new HotKey("Right", [], function (ctx) {
+    k.add(new HotKey("Right", [], function (ctx : FullContext) {
       console.log("Frame Change!", ctx.scene.time + 1);
       ctx.scene.change_time(ctx, ctx.scene.time + 1);
 
@@ -744,7 +845,7 @@ export class DopeSheetEditor extends Editor {
       //let tool = new FrameChangeOp(ctx.scene.time+1);
     }, "Next Frame"));
 
-    k.add(new HotKey("Left", [], function (ctx) {
+    k.add(new HotKey("Left", [], function (ctx : FullContext) {
       console.log("Frame Change!", ctx.scene.time - 1);
       ctx.scene.change_time(ctx, ctx.scene.time - 1);
 
@@ -858,7 +959,7 @@ export class DopeSheetEditor extends Editor {
     return this._treeData;
   }
 
-  set treeData(v) {
+  set treeData(v : number[]) {
     this._treeData = v;
     if (treeDebug) console.warn("treeData set", this._treeData, v);
   }
@@ -930,7 +1031,7 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  project(p) {
+  project(p : Vector2 | number[]) {
     //p[0] = p[0]*this.zoom*this.timescale + this.pan[0];
     //p[1] = p[1]*this.zoom*this.timescale + this.pan[1];
 
@@ -938,7 +1039,7 @@ export class DopeSheetEditor extends Editor {
     p[1] = (p[1] + this.pan[1])*this.zoom;
   }
 
-  unproject(p) {
+  unproject(p : Vector2 | number[]) {
     //p[0] = (p[0]-this.pan[0])/this.zoom/this.timescale;
     //p[1] = (p[1]-this.pan[1])/this.zoom/this.timescale;
 
@@ -975,7 +1076,7 @@ export class DopeSheetEditor extends Editor {
     })();
   }
 
-  on_mousedown(e) {
+  on_mousedown(e : MouseEvent) {
     this.updateHighlight(e);
 
     if (!e.button) {
@@ -1025,6 +1126,8 @@ export class DopeSheetEditor extends Editor {
       this.ctx.toolstack.execTool(this.ctx, tool);
 
       return;
+      /* NOTE: `commandKey` is not a MouseEvent property; the DOM spells it
+         `metaKey`, so this test always sees undefined. */
     } else if (e.button === 0 && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.commandKey) {
       let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
       this.unproject(p1);
@@ -1039,7 +1142,7 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  getLocalMouse(x, y) {
+  getLocalMouse(x : number, y : number) {
     let r = this.canvas.getClientRects()[0];
     let dpi = UIBase.getDPI();
 
@@ -1057,7 +1160,7 @@ export class DopeSheetEditor extends Editor {
     return ret;
   }
 
-  findnearest(mpos, limit = 25) {
+  findnearest(mpos : Vector2, limit = 25) {
     this.getGrid();
 
     limit *= UIBase.getDPI();
@@ -1084,7 +1187,7 @@ export class DopeSheetEditor extends Editor {
     return minret;
   }
 
-  updateHighlight(e) {
+  updateHighlight(e : MouseEvent) {
     let mpos = this.getLocalMouse(e.x, e.y);
 
     let ret = this.findnearest(mpos);
@@ -1095,7 +1198,7 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  on_mousemove(e) {
+  on_mousemove(e : MouseEvent) {
     if (!this.mdown) {
       this.updateHighlight(e);
     } else if (this.activeBoxes.highlight) {
@@ -1123,11 +1226,11 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  on_mouseup(e) {
+  on_mouseup(e : MouseEvent) {
     this.mdown = false;
   }
 
-  on_keydown(e) {
+  on_keydown(e : KeyboardEvent) {
 
   }
 
@@ -1145,7 +1248,7 @@ export class DopeSheetEditor extends Editor {
     console.warn("rebuilding dopesheet");
     let canvas = this.canvas;
 
-    function getVPath(eid) {
+    function getVPath(eid : number) {
       if (typeof eid !== "number") {
         throw new Error("expected a number for eid " + eid);
       }
@@ -1386,7 +1489,7 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  getKeyBox(ki) {
+  getKeyBox(ki : number) {
     let kd = this.keyboxes;
     let ret = keybox_temps.next();
 
@@ -1630,20 +1733,22 @@ export class DopeSheetEditor extends Editor {
 
     this._queueDagLink = false;
 
+    /* NOTE: an arrow function has no `arguments` of its own, so this
+       forwards linkEventDag's arguments -- always none. */
     let on_sel = () => {
       console.log("------------------on sel!----------------");
       return this.on_vert_select(...arguments);
     }
 
-    let on_vert_change = (ctx, inputs, outputs, graph) => {
+    let on_vert_change = (ctx : FullContext, inputs, outputs, graph) => {
       this.rebuild();
     };
 
-    let on_vert_time_change = (ctx, inputs, outputs, graph) => {
+    let on_vert_time_change = (ctx : FullContext, inputs, outputs, graph) => {
       this.updateKeyPositions();
     };
 
-    let on_time_change = (ctx, inputs, outputs, graph) => {
+    let on_time_change = (ctx : FullContext, inputs, outputs, graph) => {
       if (_DEBUG.timeChange)
         console.log("dopesheet time change callback");
       this.redraw();
@@ -1689,7 +1794,7 @@ export class DopeSheetEditor extends Editor {
     return ret;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 

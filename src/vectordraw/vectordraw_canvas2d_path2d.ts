@@ -1,4 +1,5 @@
 import {PathBase, VectorDraw} from './vectordraw_base.js';
+import type {DrawCanvas} from './vectordraw_base.js';
 
 let MOVETO = 0, LINETO = 1, CUBICTO = 2, QUADTO = 3, RECT = 4, SETLINEWIDTH = 5, STROKE = 6, FILL = 7, CLIP = 8;
 const goodCommands = new Set([MOVETO, LINETO, CUBICTO, QUADTO]);
@@ -9,7 +10,18 @@ let ptmp = new Vector3();
 let mtmp = new Matrix4();
 
 export class PathCommand {
-  constructor(cmd, r, g, b, a, lineWidth) {
+  /* One of the MOVETO..CLIP opcodes at the top of this file. */
+  cmd : number | undefined;
+  r : number | undefined;
+  g : number | undefined;
+  b : number | undefined;
+  a : number | undefined;
+  lineWidth : number | undefined;
+  /* Set only on the geometry-carrying commands. */
+  path : Path2D | undefined;
+
+  constructor(cmd? : number, r? : number, g? : number, b? : number,
+              a? : number, lineWidth? : number) {
     this.cmd = cmd;
     this.r = r;
     this.g = g;
@@ -29,7 +41,17 @@ export class Path2DPath extends PathBase {
   z: number;
   clip_paths: Array<Path2DPath>;
 
-  constructor(matrix, g, id, z) {
+  g : Canvas2D;
+  /* Cleared by _pushPath(); update_aabb() rebuilds the box. */
+  need_aabb : boolean;
+  /* The Path2D currently being appended to, and the full command list. */
+  actpath : Path2D | undefined;
+  paths : PathCommand[];
+
+  /* NOTE: get_path() passes the CanvasPath2D as the first argument, so
+     `this.matrix` ends up holding the draw object rather than a Matrix4
+     until the first update_aabb() overwrites it. */
+  constructor(matrix : CanvasPath2D, g : Canvas2D, id : number, z : number) {
     super();
 
     this.matrix = matrix;
@@ -51,7 +73,7 @@ export class Path2DPath extends PathBase {
     this._pushPath();
   }
 
-  pushCmd(cmd) {
+  pushCmd(cmd : number, ...args : number[]) {
     this.commands.push(cmd);
     this.commands.push(arguments.length - 1);
 
@@ -79,6 +101,8 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
+  /* NOTE: BEGINPATH is not defined in this file, and Path2D has no
+     beginPath() -- both throw the moment a path is begun. */
   beginPath() {
     this.pushCmd(BEGINPATH);
     this._pushPath();
@@ -87,32 +111,35 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  cubicTo(x2, y2, x3, y3, x4, y4, subdiv = 1) {
+  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
+          y4 : number, subdiv = 1) {
     this.pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.actpath.bezierCurveTo(x2, y2, x3, y3, x4, y4);
     return this;
   }
 
-  bezierTo(x2, y2, x3, y3) {
+  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
     this.pushCmd(QUADTO, x2, y2, x3, y3);
     this.actpath.quadraticCurveTo(x2, y2, x3, y3);
     return this;
   }
 
-  moveTo(x, y) {
+  moveTo(x : number, y : number) {
     this.pushCmd(MOVETO, x, y);
     this.actpath.moveTo(x, y);
 
     return this;
   }
 
-  lineTo(x, y) {
+  lineTo(x : number, y : number) {
     this.pushCmd(LINETO, x, y);
     this.actpath.lineTo(x, y);
     return this;
   }
 
-  pushStroke(color, width) {
+  /* NOTE: unlike pushFill/pushClip, the PathCommand built here is never
+     pushed onto this.paths -- only the numeric command list gets the stroke. */
+  pushStroke(color? : number[], width? : number) {
     let cmd = new PathCommand(STROKE);
 
     if (color && width !== undefined) {
@@ -155,7 +182,7 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  update_aabb(draw, fast_mode = false) {
+  update_aabb(draw : CanvasPath2D, fast_mode = false) {
     let cs = this.commands;
     let i = 0;
 
@@ -209,7 +236,7 @@ export class Path2DPath extends PathBase {
     }
   }
 
-  draw(matrix, clipMode = false) {
+  draw(matrix : Matrix4, clipMode = false) {
     let g = this.g;
 
     this.matrix = matrix;
@@ -344,6 +371,13 @@ export class Path2DPath extends PathBase {
 }
 
 export class CanvasPath2D extends VectorDraw {
+  paths : Path2DPath[];
+  path_idmap : {[id : number] : Path2DPath};
+  canvas : DrawCanvas;
+  g : Canvas2D;
+  /* Set when a path's z changed and the draw order is stale. */
+  resort : boolean;
+
   constructor() {
     super();
 
@@ -359,7 +393,7 @@ export class CanvasPath2D extends VectorDraw {
     this.zoom = 1.0;
   }
 
-  set_matrix(matrix) {
+  set_matrix(matrix : Matrix4) {
     super.set_matrix(matrix);
 
     for (let p of this.paths) {
@@ -369,7 +403,7 @@ export class CanvasPath2D extends VectorDraw {
     this.zoom = matrix.$matrix.m11;
   }
 
-  draw(finalg) {
+  draw(finalg : Canvas2D) {
     this.zoom = this.matrix.$matrix.m11;
 
     if (this.resort) {
@@ -397,7 +431,7 @@ export class CanvasPath2D extends VectorDraw {
   }
 
 
-  has_path(id, z, check_z = true): never {
+  has_path(id : number, z : number, check_z = true) : boolean {
     if (!(id in this.path_idmap)) {
       return false;
     }
@@ -406,7 +440,7 @@ export class CanvasPath2D extends VectorDraw {
     return check_z ? path.z === z : true;
   }
 
-  get_path(id, z, check_z = true): never {
+  get_path(id : number, z : number, check_z = true) : Path2DPath {
     let path;
 
     if (id in this.path_idmap) {

@@ -1,5 +1,5 @@
 "use strict";
-export var binomial_table = [
+export var binomial_table : number[][] = [
     [1],
     [1, 1],
     [1, 2, 1],

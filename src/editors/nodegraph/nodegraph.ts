@@ -4,17 +4,41 @@ import {VelPan, VelPanPanOp} from "../velpan.js";
 import {Vector2} from "../../path.ux/scripts/pathux.js";
 import {UIBase, color2css, css2color} from "../../path.ux/scripts/pathux.js";
 import {DataBlock} from "../../core/lib_api.js";
+import type {Graph, GraphNodeType, NodeSocketType} from "../../graph/graph.js";
 
+/* A per-node offscreen canvas, with the 2d context cached on it. */
+export type NodeCanvas = HTMLCanvasElement & {g : CanvasRenderingContext2D};
+
+/* A socket's offset inside its node box, plus the css color it draws in. */
+export type SockPos = Vector2 & {color : string};
+
+/* Cached draw geometry for one node, keyed by hashNode(). */
+export type NodeLayout = {
+  pos      : Vector2,
+  size     : Vector2,
+  inputs   : {[k : string] : SockPos},
+  outputs  : {[k : string] : SockPos},
+  header   : number,
+  canvas   : NodeCanvas,
+  graph_id : number,
+};
+
+/* NOTE: layoutNode() and sortGraphSpatially(), used below, are not imported
+   anywhere in this module. */
 export class NodeViewer extends Editor {
-  canvases         : Object<number, HTMLCanvasElement>
-  nodes            : Object<number, NodeBase>
-  node_idmap       : Object<number, Bleh>
+  static STRUCT : string;
+
+  canvases         : {[hash : string] : NodeCanvas}
+  nodes            : {[hash : string] : NodeLayout}
+  node_idmap       : {[graph_id : number] : NodeLayout}
   sockSize         : number
   extraNodeWidth   : number
   canvas           : HTMLCanvasElement
   g                : CanvasRenderingContext2D
+  velpan           : VelPan
   _last_scale      : Vector2
-  _last_graph_path : string
+  /* undefined until the first successful rebuild(). */
+  _last_graph_path : string | undefined
   graphPath        : string
   graphClass       : string;
 
@@ -87,11 +111,11 @@ export class NodeViewer extends Editor {
     })
   }
 
-  getGraph() {
+  getGraph() : Graph {
     return this.ctx.api.getValue(this.ctx, this.graphPath);
   }
 
-  getCanvas(id) {
+  getCanvas(id : string) : NodeCanvas {
     if (!(id in this.canvases)) {
       this.canvases[id] = document.createElement("canvas");
       this.canvases[id].g = this.canvases[id].getContext("2d");
@@ -100,13 +124,13 @@ export class NodeViewer extends Editor {
     return this.canvases[id];
   }
 
-  hashNode(node) {
+  hashNode(node : GraphNodeType) : string {
     let layout = layoutNode(node, {socksize: this.sockSize});
     let mask = (1<<19)-1;
     let mul = (1<<14)-1;
     let hash = node.graph_id;
 
-    function dohash(n) {
+    function dohash(n : number) {
       let f = ((n + mask) * mul) & mask;
       hash = hash ^ f;
     }
@@ -148,7 +172,7 @@ export class NodeViewer extends Editor {
     this.node_idmap = {};
   }
 
-  buildNode(node) {
+  buildNode(node : GraphNodeType) : NodeLayout {
     let scale = this.velpan.scale;
     let layout = layoutNode(node, {socksize: this.sockSize, extraWidth : this.extraNodeWidth});
     let hash = this.hashNode(node);
@@ -265,7 +289,7 @@ export class NodeViewer extends Editor {
     g.font = this.getDefault("DefaultText").genCSS();
     g.strokeStyle = "black";
 
-    let transform = (p) => {
+    let transform = (p : Vector2) => {
       p[0] -= canvas.width*0.5;
       p[1] -= canvas.height*0.5;
       p.multVecMatrix(this.velpan.mat);
@@ -276,7 +300,9 @@ export class NodeViewer extends Editor {
     let p = new Vector2(), p2 = new Vector2(), p3 = new Vector2(), p4 = new Vector2();
     let s = new Vector2();
 
-    function find_sock_key(node, sock) {
+    /* NOTE: called below with a single argument, so `sock` is undefined and
+       the loop never matches. */
+    function find_sock_key(node : GraphNodeType, sock : NodeSocketType) {
       for (let k in node.inputs) {
         if (node.inputs[k] === sock) {
           return k;

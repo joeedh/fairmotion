@@ -85,7 +85,10 @@ export function get_app_div() {
   return app;
 }
 
-export function gen_screen(unused, w, h) {
+/* `unused` is a leftover from when this took the old screen to replace; every
+   caller passes undefined. w/h are likewise ignored -- the screen sizes itself
+   off the window. */
+export function gen_screen(unused: undefined, w: int, h: int): void {
   let app = get_app_div();
 
   let screen = document.getElementById("screenmain");
@@ -148,18 +151,17 @@ import {AppSettings} from './UserSettings.js';
 import {JobManager} from './jobs.js';
 import {RasterState} from './raster.js';
 import {NotificationManager} from './notifications.js';
-import {STRUCT} from './struct.js';
-import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
-import {ScreenArea, Area} from '../path.ux/scripts/screen/ScreenArea.js';
-import {DataLib, DataBlock, DataTypes} from './lib_api.js';
+import {ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {DataLib, DataBlock, DataRef, DataTypes} from './lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from './lib_api.js';
 import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from './toolops_api.js';
 import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from './toolprops.js';
-import {View2DHandler} from '../editors/viewport/view2d.js';
 import {Scene} from '../scene/scene.js';
+/* Used bare by load_blocks() to deserialize THME blocks; the import was
+   missing, which under the bundle is a ReferenceError, not a no-op. */
+import {Theme} from '../datafiles/theme.js';
 import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
-import {DopeSheetEditor} from '../editors/dopesheet/DopeSheetEditor.js';
-import {CurveEditor} from '../editors/curve/CurveEditor.js';
-import {OpStackEditor} from '../editors/ops/ops_editor.js';
+import type {DataAPI} from '../path.ux/scripts/pathux.js';
 
 import {
   pack_byte, pack_short, pack_int, pack_float,
@@ -186,15 +188,35 @@ import './debug_api.js';
 
 export let FileFlags = {COMPRESSED_LZSTRING: 1};
 
+/*
+ * One block as read off disk. `type` is the 4-char block id (BLCK, SCRN, DLIB,
+ * TSTK, THME, SDEF) and `subtype` says how the payload is encoded (STRT, JSON,
+ * SDEF). BLCK payloads arrive as [lib_type, bytes]. The link pass overwrites
+ * `data` in place with whatever it deserialized to.
+ */
+export interface FileBlock {
+  type: string;
+  subtype: string;
+  len: int;
+  data: string | byte[] | [int, byte[]] | object;
+}
+
+/* A .fmo file after the header has been read: the datablock payloads, the
+   STRUCT scripts they were written against, and the app version that wrote
+   them. */
 export class FileData {
-  constructor(blocks, fstructs, version) {
+  blocks: FileBlock[];
+  fstructs: string;
+  version: number;
+
+  constructor(blocks: FileBlock[], fstructs: string, version: number) {
     this.blocks = blocks;
     this.fstructs = fstructs;
     this.version = version;
   }
 }
 
-function ensureMenuBar(appstate, screen) {
+function ensureMenuBar(appstate: AppState, screen: FairmotionScreen) {
   for (let sarea of screen.sareas) {
     if (!sarea.area || !(sarea.area instanceof MenuBar)) {
       continue;
@@ -229,19 +251,24 @@ function ensureMenuBar(appstate, screen) {
   screen.snapScreenVerts();
 }
 
-function patchScreen(appstate, fstructs, data) {
+/*
+ * Reads a screen layout out of a file that was saved by a build whose Screen
+ * class no longer matches, and rebuilds the DOM for it by hand. The read goes
+ * through a stand-in class so nstructjs fills a plain object instead of
+ * constructing a real Screen.
+ */
+function patchScreen(appstate: AppState, fstructs: import("nstructjs").STRUCT, data: DataView) {
   let fakeclass = {
-    fromSTRUCT: (reader) => {
+    fromSTRUCT: (reader: StructReader<object>) => {
       let ret = {};
       reader(ret);
       return ret;
     },
 
     structName: "Screen",
-    name: "Screen"
+    name      : "Screen",
+    prototype : Object.create(Object.prototype)
   };
-
-  fakeclass.prototype = Object.create(Object.prototype);
 
   data = fstructs.read_object(data, fakeclass);
   let screen = document.createElement("fairmotion-screen-x");
@@ -279,14 +306,26 @@ function patchScreen(appstate, fstructs, data) {
   return screen;
 }
 
+/* A UserSession as it round-trips through localStorage: fields only, and
+   .settings is discarded on read in favour of a fresh AppSettings.load(). */
+interface UserSessionJSON {
+  tokens: {[name: string]: string};
+  username: string;
+  password: string;
+  is_logged_in: boolean;
+  userid?: string;
+}
+
 //truly ancient class, from AllShape.
 class UserSession {
-  tokens: Object
+  tokens: {[name: string]: string}
   username: string
   password: string
   is_logged_in: boolean
   loaded_settings: boolean
   settings: AppSettings;
+  /* AllShape's server-side account id. Nothing sets it any more. */
+  userid?: string;
 
   constructor() {
     this.tokens = {};
@@ -342,7 +381,7 @@ class UserSession {
     return true;
   }
 
-  static fromJSON(obj) {
+  static fromJSON(obj: UserSessionJSON) {
     let us = new UserSession;
 
     us.tokens = obj.tokens;
@@ -358,14 +397,13 @@ class UserSession {
   }
 }
 
-window.test_load_file = function () {
-  let buf = startup_file;
-  buf = new DataView(b64decode(buf).buffer);
+window.test_load_file = function (): void {
+  let buf = new DataView(b64decode(startup_file).buffer);
 
   g_app_state.load_user_file_new(buf, undefined, new unpack_ctx());
 };
 
-let load_default_file = function (g: AppState, size = [512, 512]) {
+let load_default_file = function (g: AppState, size: int[] = [512, 512]): boolean {
   if (!myLocalStorage.hasCached("startup_file")) {
     myLocalStorage.startup_file = startup_file;
   }
@@ -432,7 +470,7 @@ window.gen_default_file = function gen_default_file(size = [512, 512], force_new
   gen_screen(undefined, size[0], size[1]);
 }
 
-function output_startup_file(): String {
+function output_startup_file(): string {
   let str = myLocalStorage.getCached("startup_file");
   let out = ""
 
@@ -449,12 +487,87 @@ function output_startup_file(): String {
 const _nonblocks = Object.freeze(new set(["SCRN", "TSTK", "THME", "DLIB"]));
 const toolop_input_cache = {};
 
+/*
+ * Which parts of the app state a .fmo write includes, and in what form. The
+ * defaults live in create_user_file_new()/write_blocks() rather than here,
+ * because the two disagree about save_toolstack.
+ */
+export interface FileWriteArgs {
+  /* Return a DataView instead of the raw byte array. */
+  gen_dataview?: boolean;
+  compress?: boolean;
+  save_screen?: boolean;
+  save_toolstack?: boolean;
+  save_theme?: boolean;
+  save_datalib?: boolean;
+}
+
+/* write_blocks() takes an explicit map of 4-char block IDs to objects instead
+   of pulling them off the app state. */
+export interface BlockWriteArgs extends FileWriteArgs {
+  blocks: {[fourCharId: string]: object};
+}
+
 export class AppState {
-  constructor(screen: FrameManager) {
-    this.AppState_init(screen);
+  /* Stack of modalstate bitmasks; see ModalStates in toolops_api.ts. */
+  modalStateStack: int[];
+  modalstate: int;
+
+  /* Non-optional even though destroyScreen() nulls it: every read happens while
+     a screen is live, and the only teardown path re-inits immediately after. */
+  screen: FairmotionScreen;
+  /* Always the same object as .screen. The split is historical: the screen used
+     to be one of several possible event sinks. */
+  eventhandler: FairmotionScreen;
+  active_editor?: Editor;
+  active_view2d?: View2DHandler;
+
+  /* Shift/ctrl emulation for tablets, set by the on-screen modifier buttons. */
+  select_multiple: boolean;
+  select_inverse: boolean;
+
+  _last_touch_mpos: number[];
+  was_touch: boolean;
+
+  notes: NotificationManager;
+  jobs: JobManager;
+  toolstack: ToolStack;
+  datalib: DataLib;
+  raster: RasterState;
+  session: UserSession;
+  ctx: FullContext;
+
+  /* makeAPI() builds both; pathcontroller is the same object under the name
+     path.ux's own code expects. */
+  api: DataAPI;
+  pathcontroller: DataAPI;
+
+  /* Data-API path of the spline being edited, plus the stack push/pop of it
+     walks when a tool descends into a nested spline. */
+  _active_splinepath: string;
+  spline_pathstack: string[];
+
+  filepath: string;
+  version: number;
+  /* Copied from the screen, whose .size is a Vector2, or a plain pair when
+     there is no screen yet. */
+  size: Vector2 | number[];
+
+  /* Last-used inputs per tool class name, keyed by ToolOp constructor name.
+     Shared across resets, hence the module-level object. */
+  toolop_input_cache: {[toolClassName: string]: unknown};
+
+  /* Cleared by link_blocks() and never read; the active scene lives in the
+     datalib. Declared only because that assignment is still there. */
+  scene?: Scene;
+
+  constructor(screen: FairmotionScreen, reset_mode: boolean = false) {
+    this.AppState_init(screen, reset_mode);
   }
 
-  AppState_init(screen: FrameManager, reset_mode: boolean = false) {
+  /* gen_default_file() calls this without a screen, on purpose: the screen is
+     built afterwards by gen_screen(). */
+  AppState_init(screen?: FairmotionScreen, reset_mode: boolean = false) {
     this.modalStateStack = [];
 
     this.screen = screen;
@@ -515,13 +628,13 @@ export class AppState {
   }
 
   /** we do not enforce that calls to push/pop modalstate happen in order */
-  pushModalState(state) {
+  pushModalState(state: int) {
     this.modalStateStack.push(this.modalstate);
     this.modalstate = state;
   }
 
   /** we do not enforce that calls to push/pop modalstate happen in order */
-  popModalState(state) {
+  popModalState(state: int) {
     if (this.modalstate === state) {
       this.modalstate = this.modalStateStack.pop();
     } else {
@@ -529,7 +642,7 @@ export class AppState {
     }
   }
 
-  onFrameChange(ctx, time) {
+  onFrameChange(ctx: FullContext, time: float) {
     for (let id in ctx.datalib.idmap) {
       let block = ctx.datalib.idmap[id];
 
@@ -586,7 +699,7 @@ export class AppState {
     this.switch_active_spline(this.spline_pathstack.pop());
   }
 
-  reset_state(screen: FairmotionScreen) {
+  reset_state(screen?: FairmotionScreen) {
     //global active_canvases;
 
     this.spline_pathstack = [];
@@ -668,7 +781,7 @@ export class AppState {
     return buf;
   }
 
-  //used by BasicFileDataOp, which 
+  //used by BasicFileDataOp, which
   //is a root toolop that stores
   //saved data
   load_scene_file(scenefile: DataView) {
@@ -743,23 +856,23 @@ export class AppState {
     file flags    | int (e.g. whether compression was used)
     version major | int
     version minor | int
-    
+
     block {
-      type    | 4 chars 
+      type    | 4 chars
       subtype | 4 chars [STRT (Struct), JSON, SDEF (struct definition[s])]
       datalen | int
     }
-    
+
     BLCK blocks correspond to DataBlocks, and are defined like so:
-    
+
     BLCK         | 4 chars
     STRT         | 4 chars
     data_length  | int
     blocktype    | int
     data (of length data_length-4)
-    
+
   */
-  create_user_file_new(args = {}) {
+  create_user_file_new(args: FileWriteArgs = {}) {
     let gen_dataview = true, compress = false;
     let save_screen = true, save_toolstack = false;
     let save_theme = false, save_datalib = true;
@@ -782,12 +895,12 @@ export class AppState {
     if (args.save_theme !== undefined)
       save_theme = args.save_theme;
 
-    function bheader(data, type, subtype) {
+    function bheader(data: byte[], type: string, subtype: string) {
       pack_static_string(data, type, 4);
       pack_static_string(data, subtype, 4);
     }
 
-    let data = [];
+    let data: byte[] = [];
 
     //header "magic"
     pack_static_string(data, "FAIR", 4);
@@ -822,7 +935,7 @@ export class AppState {
 
     //save datalib data, note that data blocks are saved independently
     if (save_datalib) {
-      let data2 = [];
+      let data2: byte[] = [];
 
       istruct.write_object(data2, this.datalib);
       bheader(data, "DLIB", "STRT")
@@ -832,7 +945,7 @@ export class AppState {
 
     if (save_screen) {
       //write screen block
-      let data2 = []
+      let data2: byte[] = []
       istruct.write_object(data2, this.screen);
 
       bheader(data, "SCRN", "STRT");
@@ -840,7 +953,7 @@ export class AppState {
       data = data.concat(data2);
     }
 
-    let data2 = [];
+    let data2: byte[] = [];
     for (let lib of this.datalib.datalists.values()) {
       for (let block of lib) {
         data2 = [];
@@ -870,7 +983,7 @@ export class AppState {
     if (save_toolstack) {
       console.log("writing toolstack");
 
-      let data2 = [];
+      let data2: byte[] = [];
       istruct.write_object(data2, this.toolstack);
 
       bheader(data, "TSTK", "STRT");
@@ -880,7 +993,7 @@ export class AppState {
 
     if (save_theme) {
       console.log("writing theme");
-      let data2 = [];
+      let data2: byte[] = [];
       istruct.write_object(data2, g_theme);
 
       bheader(data, "THME", "STRT");
@@ -924,7 +1037,7 @@ export class AppState {
 
   //blocks is a map from 4-byte ID strings to
   //STRUCT-compatible objects.
-  write_blocks(args = {}) {
+  write_blocks(args: BlockWriteArgs) {
     let gen_dataview = true, compress = false;
     let save_screen = args.save_screen !== undefined ? args.save_screen : true;
     let save_toolstack = args.save_toolstack !== undefined ? args.save_toolstack : false;
@@ -936,12 +1049,12 @@ export class AppState {
     if (args.compress !== undefined)
       compress = args.compress;
 
-    function bheader(data, type, subtype) {
+    function bheader(data: byte[], type: string, subtype: string) {
       pack_static_string(data, type, 4);
       pack_static_string(data, subtype, 4);
     }
 
-    let data = [];
+    let data: byte[] = [];
 
     //header "magic"
     pack_static_string(data, "FAIR", 4);
@@ -970,7 +1083,7 @@ export class AppState {
     pack_string(data, buf);
 
     for (let k in blocks) {
-      let data2 = []
+      let data2: byte[] = []
       istruct.write_object(data2, blocks[k]);
 
       bheader(data, k, "STRT");
@@ -1013,7 +1126,7 @@ export class AppState {
   }
 
   //version patching happens *before* block linking
-  do_versions(datalib, blocks, version) {
+  do_versions(datalib: DataLib, blocks: DataBlock[], version: float) {
     if (version < 0.053) {
       for (let scene of datalib.scenes) {
         if (!scene.collection) {
@@ -1092,7 +1205,7 @@ export class AppState {
     }
   }
 
-  dataLinkScreen(screen, getblock, getblock_us) {
+  dataLinkScreen(screen: FairmotionScreen, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     for (let sarea of screen.sareas) {
       for (let area of sarea.editors) {
         area.data_link(area, getblock, getblock_us);
@@ -1184,7 +1297,7 @@ export class AppState {
     });
   }
 
-  load_user_file_new(data: DataView, path: String, uctx: unpack_ctx, use_existing_screen = false) {
+  load_user_file_new(data: DataView, path?: string, uctx?: unpack_ctx, use_existing_screen = false) {
     //fixes a bug where some files loaded with squished
     //size.  probably need to track down actual cause, though.
     if (this.screen !== undefined)
@@ -1231,7 +1344,7 @@ export class AppState {
       uctx.i = 0;
     }
 
-    let blocks = [];
+    let blocks: FileBlock[] = [];
     let fstructs = new STRUCT();
     let datalib = undefined;
 
@@ -1426,7 +1539,9 @@ export class AppState {
       }
     }
 
-    function add_macro(p1, p2, tool) {
+    /* Flattens a macro's members into the two parallel patch lists, so the
+       loop below can hand each member the macro's saved context. */
+    function add_macro(p1: ToolOp[], p2: SavedContext[], tool: ToolMacro) {
       p1.push(tool);
       p2.push(tool.saved_context);
 
@@ -1529,7 +1644,7 @@ export class AppState {
     return screen;
   }
 
-  load_blocks(data: DataView, uctx: unpack_ctx) {
+  load_blocks(data: DataView, uctx?: unpack_ctx) {
     if (uctx === undefined) {
       uctx = new unpack_ctx();
     }
@@ -1697,8 +1812,30 @@ export class AppState {
 
 window.AppState = AppState;
 
-class SavedContext {
-  _props: Object;
+/* The subset of a context an undo step needs to restore. Exported because
+   toolstack.ts and toolops_api.ts both name it. */
+export class SavedContext {
+  static STRUCT: string;
+
+  /*
+   * One entry per context property that was live when the tool ran. `type`
+   * mirrors the context overlay's own tag: "block" stores a lib_id to look up,
+   * "path" a data-API path to re-evaluate, "passthru" a plain value, and
+   * "lookup" a value that was an object and so could not be saved at all.
+   */
+  _props: {[k: string]: {type: string; key: string; value?: number | string}};
+
+  /* Only set when the saved context pinned a specific library; otherwise reads
+     fall through to the live g_app_state.datalib. */
+  _datalib?: DataLib;
+
+  state: AppState;
+  api: DataAPI;
+  toolstack: ToolStack;
+  screen?: FairmotionScreen;
+
+  /* Written by the STRUCT script, consumed and deleted by loadSTRUCT(). */
+  json?: string;
 
   constructor(ctx: FullContext) {
     this._props = {};
@@ -1717,7 +1854,7 @@ class SavedContext {
     }
   }
 
-  get datalib() {
+  get datalib(): DataLib {
     if (this._datalib) {
       return this._datalib;
     }
@@ -1725,11 +1862,13 @@ class SavedContext {
     return g_app_state.datalib;
   }
 
-  set datalib(d) {
+  set datalib(d: DataLib) {
     this._datalib = d;
   }
 
-  make(k) {
+  /* Installs a getter for one saved property that re-resolves it against the
+     live context each time it is read. */
+  make(k: string) {
     if (k === "datalib") {
       return;
     }
@@ -1753,11 +1892,11 @@ class SavedContext {
     })
   }
 
-  set_context(ctx) {
+  set_context(ctx: FullContext) {
     //not necassary anymore
   }
 
-  save(ctx) {
+  save(ctx: FullContext) {
     this.state = ctx.state;
     this.datalib = ctx.datalib;
     this.api = ctx.api;
@@ -1796,7 +1935,7 @@ class SavedContext {
     return JSON.stringify(this._props);
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     let json;
@@ -1863,7 +2002,7 @@ class SavedContextOld {
   }
 
   //changes state so that normal Context() accessor structs have the right data
-  set_context(state: Context) {
+  set_context(state: FullContext) {
     let scene = state.datalib.get(this._scene);
     let fset = state.datalib.get(this._frameset);
 
@@ -1968,7 +2107,16 @@ SavedContextOld.STRUCT = `
 
 //restricted context for tools
 export class _ToolContext {
-  constructor(frameset, spline, scene, splinepath) {
+  datalib: DataLib;
+  splinepath: string;
+  frameset: SplineFrameSet;
+  spline: Spline;
+  scene: Scene;
+  edit_all_layers: boolean;
+  api: DataAPI;
+
+  /* Every argument falls back to the live context when left undefined. */
+  constructor(frameset?: SplineFrameSet, spline?: Spline, scene?: Scene, splinepath?: string) {
     let ctx = new FullContext().toLocked();
 
     if (splinepath === undefined)
@@ -2004,12 +2152,12 @@ function Context() {
   this.api = g_app_state.api;
   this.screen = g_app_state.screen;
   this.datalib = g_app_state.datalib;
-  
+
   //find active scene, object, and object data, respectively
   let sce = g_app_state.datalib.get_active(DataTypes.SCENE);
   this.scene = sce;
   this.object = undefined;
-  
+
   if (sce !== undefined) {
     if (sce.active === undefined && sce.objects.length > 0) {
       if (DEBUG.datalib) {
@@ -2017,17 +2165,17 @@ function Context() {
               "in the prescence of objects.  This should be impossible.",
               "Correcting."].join("\n"));
       }
-      
+
       sce.active = sce.objects[0];
     }
-    
+
     if (sce.active !== undefined) {
       this.object = sce.active;
       if (sce.active.data instanceof Mesh)
         this.mesh = sce.active.data;
     }
   }
-  
+
   this.appstate = g_app_state;
   this.toolstack = g_app_state.toolstack;
   this.keymap_mpos = [0, 0]; //mouse position at time of keymap event firing

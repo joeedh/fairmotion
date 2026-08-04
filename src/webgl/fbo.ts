@@ -11,7 +11,40 @@ let FLOAT = 5126
 let fbo_idgen = 1;
 
 export class FBO {
-  constructor(gl, width = 512, height = 512) {
+  gl : webgl.WebGLContext;
+  fbo : WebGLFramebuffer | undefined;
+  /* gl.TEXTURE_2D, or a cube map face when a subclass overrides it. */
+  target : number;
+  /* Component type of the colour attachment. */
+  type : number;
+  regen : boolean;
+  id : string;
+
+  /* Whether this FBO owns the two textures and so may delete them. False when
+     they were handed in from outside. */
+  deleteColor : boolean;
+  deleteDepth : boolean;
+
+  width : number;
+  height : number;
+
+  texColor : Texture | undefined;
+  texDepth : Texture | undefined;
+
+  /* The VIEWPORT and SCISSOR_BOX boxes saved by bind(), restored by unbind(). */
+  _last_viewport : number[] | undefined;
+  _last_scissor : number[] | undefined;
+
+  /* Built lazily by _getQuad(): the screen-filling quad the blit shader draws. */
+  smesh : simplemesh.SimpleMesh | undefined;
+  blitshader : webgl.ShaderProgram | undefined;
+
+  /* Never assigned by this class -- only oldFBO has a `size`. bind() and
+     _getQuad() read this.size[0], so the second call into either one throws.
+     Declared to match what the code reads, not what it writes. */
+  size : Vector2;
+
+  constructor(gl : webgl.WebGLContext, width = 512, height = 512) {
     this.target = gl !== undefined ? gl.TEXTURE_2D : 3553;
     this.type = FLOAT;
     this.gl = gl;
@@ -32,7 +65,7 @@ export class FBO {
     this._last_scissor = undefined;
   }
 
-  bind(gl) {
+  bind(gl : webgl.WebGLContext) {
     this._last_viewport = gl.getParameter(gl.VIEWPORT);
     this._last_scissor = gl.getParameter(gl.SCISSOR_BOX);
 
@@ -49,8 +82,8 @@ export class FBO {
   }
 
 
-  drawQuadScaled(gl, width = this.width, height = this.height, tex = this.texColor, value_scale = 1.0,
-                 depth = this.texDepth) {
+  drawQuadScaled(gl : webgl.WebGLContext, width = this.width, height = this.height,
+                 tex = this.texColor, value_scale = 1.0, depth = this.texDepth) {
     let quad = this._getQuad(gl, width, height);
 
     quad.program = this.blitshader;
@@ -68,8 +101,9 @@ export class FBO {
    * Draws texture to screen
    * Does not bind framebuffer
    * */
-  drawQuad(gl, width = this.width, height = this.height, tex = this.texColor, depth = this.texDepth,
-           program = undefined, uniforms = undefined) {
+  drawQuad(gl : webgl.WebGLContext, width = this.width, height = this.height,
+           tex = this.texColor, depth = this.texDepth,
+           program? : webgl.ShaderProgram, uniforms? : webgl.Uniforms) {
     let quad = this._getQuad(gl, width, height, program);
 
     if (program) {
@@ -89,7 +123,8 @@ export class FBO {
     this.smesh.draw(gl, uniforms);
   }
 
-  _getQuad(gl, width, height, program) {
+  _getQuad(gl : webgl.WebGLContext, width : number, height : number,
+           program? : webgl.ShaderProgram) {
     width = ~~width;
     height = ~~height;
 
@@ -110,7 +145,7 @@ export class FBO {
     return this.smesh;
   }
 
-  update(gl, width, height) {
+  update(gl : webgl.WebGLContext, width : number, height : number) {
     width = ~~width;
     height = ~~height;
 
@@ -125,7 +160,7 @@ export class FBO {
     }
   }
 
-  create(gl) {
+  create(gl : webgl.WebGLContext) {
     console.warn("Creating new fbo", this.width, this.height, this.id);
 
     this.regen = false;
@@ -149,7 +184,7 @@ export class FBO {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture, 0);
   }
 
-  unbind(gl) {
+  unbind(gl : webgl.WebGLContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     let sb = this._last_scissor;
@@ -162,7 +197,9 @@ export class FBO {
     gl.viewport(vb[0], vb[1], vb[2], vb[3]);
   }
 
-  destroy() {
+  /* `gl` is accepted because every caller passes one, but the context used is
+     always this.gl. */
+  destroy(gl? : webgl.WebGLContext) {
     if (this.fbo !== undefined) {
       this.gl.deleteFramebuffer(this.fbo);
 
@@ -189,7 +226,30 @@ export class oldFBO {
   also set .target to gl.TEXTURE_CUBE_MAP and .layer
   to the cube map face layer
   */
-  constructor(gl, width = 512, height = 512) {
+  gl : webgl.WebGLContext;
+  fbo : WebGLFramebuffer | undefined;
+  target : number;
+  /* Cube map face enum; only read when target is not gl.TEXTURE_2D. */
+  layer : number | undefined;
+
+  /* Internal format of the colour attachment, of the depth/stencil one, and
+     the colour attachment's component type. */
+  ctype : number;
+  dtype : number;
+  etype : number;
+
+  /* 0 and false are both used for "no regen needed". */
+  regen : boolean | number;
+  size : Vector2;
+
+  texColor : Texture | undefined;
+  texDepth : Texture | undefined;
+
+  smesh : simplemesh.SimpleMesh | undefined;
+  blitshader : webgl.ShaderProgram | undefined;
+  _last_viewport : number[] | undefined;
+
+  constructor(gl : webgl.WebGLContext, width = 512, height = 512) {
     this.target = gl !== undefined ? gl.TEXTURE_2D : 3553;
     this.layer = undefined; //used if target is not gl.TEXTURE_2D
 
@@ -205,7 +265,7 @@ export class oldFBO {
     this.texColor = undefined;
   }
 
-  getBlitShader(gl) {
+  getBlitShader(gl : webgl.WebGLContext) {
     return webgl.getShader(gl, getBlitShaderCode(gl));
   }
 
@@ -229,7 +289,7 @@ export class oldFBO {
     return ret;
   }
 
-  create(gl, texColor = undefined, texDepth = undefined) {
+  create(gl : webgl.WebGLContext, texColor? : Texture, texDepth? : Texture) {
     console.warn("fbo create");
 
     if (this.fbo && this.gl) {
@@ -261,7 +321,7 @@ export class oldFBO {
     let target = this.target;
     let layer = this.layer;
 
-    function texParams(target, tex) {
+    function texParams(target : number, tex : Texture) {
       gl.bindTexture(target, tex.texture);
 
       tex.texParameteri(gl, target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -287,7 +347,7 @@ export class oldFBO {
       texParams(this.target, this.texColor);
     }
 
-    let initTex = (tex, dtype, dtype2, dtype3) => {
+    let initTex = (tex : Texture, dtype : number, dtype2 : number, dtype3 : number) => {
       if (this.target !== gl.TEXTURE_2D)
         return;
 
@@ -356,7 +416,7 @@ export class oldFBO {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  setTexColor(gl, tex) {
+  setTexColor(gl : webgl.WebGLContext, tex : Texture) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
 
     this.texColor = tex;
@@ -374,7 +434,7 @@ export class oldFBO {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  bind(gl) {
+  bind(gl : webgl.WebGLContext) {
     this._last_viewport = gl.getParameter(gl.VIEWPORT);
 
     gl = this.gl = gl === undefined ? this.gl : gl;
@@ -387,7 +447,8 @@ export class oldFBO {
     gl.viewport(0, 0, this.size[0], this.size[1]);
   }
 
-  _getQuad(gl, width, height, program) {
+  _getQuad(gl : webgl.WebGLContext, width : number, height : number,
+           program? : webgl.ShaderProgram) {
     width = ~~width;
     height = ~~height;
 
@@ -412,7 +473,7 @@ export class oldFBO {
    * Draws depth texture to rgba
    * Does not bind framebuffer.
    * */
-  drawDepth(gl, width, height, tex) {
+  drawDepth(gl : webgl.WebGLContext, width : number, height : number, tex : Texture) {
     let quad = this._getQuad(gl, width, height);
 
     quad.program = this.blitshader;
@@ -436,7 +497,8 @@ export class oldFBO {
     }
   }
 
-  drawQuadScaled(gl, width, height, tex = this.texColor, value_scale = 1.0, depth = this.texDepth) {
+  drawQuadScaled(gl : webgl.WebGLContext, width : number, height : number,
+                 tex = this.texColor, value_scale = 1.0, depth = this.texDepth) {
     let quad = this._getQuad(gl, width, height);
 
     quad.program = this.blitshader;
@@ -454,7 +516,9 @@ export class oldFBO {
    * Draws texture to screen
    * Does not bind framebuffer
    * */
-  drawQuad(gl, width, height, tex = this.texColor, depth = this.texDepth, program = undefined, uniforms = undefined) {
+  drawQuad(gl : webgl.WebGLContext, width : number, height : number,
+           tex = this.texColor, depth = this.texDepth,
+           program? : webgl.ShaderProgram, uniforms? : webgl.Uniforms) {
     let quad = this._getQuad(gl, width, height, program);
 
     if (program) {
@@ -474,7 +538,7 @@ export class oldFBO {
     this.smesh.draw(gl, uniforms);
   }
 
-  unbind(gl) {
+  unbind(gl : webgl.WebGLContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     let vb = this._last_viewport;
@@ -485,7 +549,8 @@ export class oldFBO {
     gl.viewport(vb[0], vb[1], vb[2], vb[3]);
   }
 
-  destroy() {
+  /* `gl` is accepted because update() passes one; the context used is this.gl. */
+  destroy(gl? : webgl.WebGLContext) {
     if (this.fbo !== undefined) {
       this.gl.deleteFramebuffer(this.fbo);
 
@@ -499,7 +564,7 @@ export class oldFBO {
     }
   }
 
-  update(gl, width, height) {
+  update(gl : webgl.WebGLContext, width : number, height : number) {
     width = ~~width;
     height = ~~height;
 
@@ -531,13 +596,17 @@ export class oldFBO {
 }
 
 export class FrameStage extends FBO {
-  constructor(shader, width = 512, height = 512) {
+  /* The program this stage runs; undefined for the first stage, which only
+     receives whatever drawfunc() renders. */
+  shader : webgl.ShaderProgram | undefined;
+
+  constructor(shader? : webgl.ShaderProgram, width = 512, height = 512) {
     super(undefined, width, height);
 
     this.shader = shader;
   }
 
-  update(gl, width, height) {
+  update(gl : webgl.WebGLContext, width : number, height : number) {
     if (gl === undefined || width === undefined || height === undefined) {
       console.log("bad arguments to fbo.FrameStage.update()", arguments);
       throw new Error("bad arguments to fbo.FrameStage.update()");
@@ -547,7 +616,7 @@ export class FrameStage extends FBO {
   }
 }
 
-export let BlitShaderGLSL200 = {
+export let BlitShaderGLSL200 : webgl.ShaderDef = {
   vertex    : `
 precision mediump float;
 
@@ -588,7 +657,7 @@ void main(void) {
   attributes: ["position", "uv"]
 };
 
-export let BlitShaderGLSL300 = {
+export let BlitShaderGLSL300 : webgl.ShaderDef = {
   vertex    : `#version 300 es
 precision mediump float;
 
@@ -635,6 +704,15 @@ void main(void) {
 };
 
 export class FramePipeline {
+  stages : FrameStage[] | undefined;
+  size : Vector2;
+  smesh : simplemesh.SimpleMesh | undefined;
+  blitshader : webgl.ShaderProgram | undefined;
+
+  /* Six wrappers, one per texture slot, reused so the pipeline never has to
+     allocate a Texture per frame. Only the first two are used today. */
+  _texs : Texture[];
+
   constructor(width = 512, height = 512) {
     this.stages = [new FrameStage()];
     this.size = new Vector2([width, height]);
@@ -650,7 +728,7 @@ export class FramePipeline {
     ];
   }
 
-  destroy(gl) {
+  destroy(gl : webgl.WebGLContext) {
     for (let stage of this.stages) {
       stage.destroy(gl);
     }
@@ -663,7 +741,7 @@ export class FramePipeline {
   }
 
   //see webgl.getShader for shaderdef, ignore old loadShader cruft
-  addStage(gl, shaderdef) {
+  addStage(gl : webgl.WebGLContext, shaderdef : webgl.ShaderDef) {
     let shader = webgl.getShader(gl, shaderdef);
     let stage = new FrameStage(shader, this.size[0], this.size[1]);
 
@@ -671,11 +749,12 @@ export class FramePipeline {
     return stage;
   }
 
-  getBlitShader(gl) {
+  getBlitShader(gl : webgl.WebGLContext) {
     return webgl.getShader(gl, getBlitShaderCode(gl));
   }
 
-  draw(gl, drawfunc, width, height, drawmats) {
+  draw(gl : webgl.WebGLContext, drawfunc : (gl : webgl.WebGLContext) => void,
+       width : number, height : number, drawmats : webgl.DrawMats) {
     if (this.smesh === undefined || this.size[0] != width || this.size[1] != height) {
       this.size[0] = width;
       this.size[1] = height;
@@ -735,7 +814,7 @@ export class FramePipeline {
     }
   }
 
-  drawFinal(gl, stage = undefined) {
+  drawFinal(gl : webgl.WebGLContext, stage? : FrameStage) {
     if (stage === undefined) {
       stage = this.stages[this.stages.length - 1];
     }
@@ -756,7 +835,7 @@ export class FramePipeline {
   }
 }
 
-export function getBlitShaderCode(gl) {
+export function getBlitShaderCode(gl : webgl.WebGLContext) {
   if (gl.haveWebGL2) {
     return BlitShaderGLSL300;
   } else {

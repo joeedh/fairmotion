@@ -2,27 +2,33 @@
 
 var default_job_interval = 1; //at least two miliseconds between runs
 
-//function JobDestroyFunc(Joblet job);
-//function JobStartFunc(Joblet job);
-//function JobFinishFunc(Joblet job);
+/* The three callbacks a Joblet carries. The commented-out declarations these
+   replace were how the old transpiler spelled a function type. */
+export type JobDestroyFunc = (job: Joblet) => void;
+export type JobStartFunc = (job: Joblet) => void;
+export type JobFinishFunc = (job: Joblet) => void;
 
-export class ThreadIterator {  
-iter : Object;
+export class ThreadIterator {
+  /* Messages the worker has posted back, oldest first. */
+  queue: unknown[];
+  worker: Worker;
+  iter: {value: unknown; done: boolean};
+  data: unknown;
 
-  constructor(worker) {
+  constructor(worker: Worker) {
     this.queue = [];
     this.worker = worker;
     this.iter = {value : undefined, done : false};
     this.data = undefined;
     
     var this2 = this;
-    worker.onerror = function(event) {
+    worker.onerror = function(event: ErrorEvent) {
       console.log("worker error; event: ", event);
       this2.iter.done = true;
     }
-    
+
     var this2 = this;
-    worker.onmessage = function(event) {
+    worker.onmessage = function(event: MessageEvent) {
       var data = event.data.evaluated()
       
       console.log(data);
@@ -44,7 +50,7 @@ iter : Object;
     return this.iter;
   }
   
-  send(msg) {
+  send(msg: unknown) {
     this.worker.postMessage(data);
   }
   
@@ -69,7 +75,7 @@ iter : Object;
   
 } ThreadIterator;
 
-function worker_joblet(url, method, data) {
+function worker_joblet(url: string, method: string, data: unknown) {
   var worker = new Worker(url);
   
   worker.postMessage({method : method, data : data});
@@ -78,7 +84,24 @@ function worker_joblet(url, method, data) {
 }
 
 export class Joblet {
-  constructor(owner : Object, iter : Iterator,
+  /* `start` is deliberately not declared: the constructor assigns the
+     JobStartFunc over the start() method below, which is a bug, not a field. */
+  finish: JobFinishFunc;
+  ival: int;
+  _kill: JobDestroyFunc;
+  dead: boolean;
+  removed: boolean;
+  /* get_type_name() of the iterator, so a string -- which start() then tries
+     to `new`. Also the key JobManager.jobmap_types is bucketed by. */
+  type: string;
+  iter: Iterator<unknown>;
+  owner: Object;
+  last_ms: number;
+  time_mean: movavg;
+  _id: number;
+  queued: boolean;
+
+  constructor(owner : Object, iter : Iterator<unknown>,
               destroyer : JobDestroyFunc, ival : int,
               start : JobStartFunc, finish : JobFinishFunc)
   { //if ival is 0 or undefined, it use default_job_interval
@@ -112,7 +135,7 @@ export class Joblet {
   start() {
     this.iter = new this.type;
   }
-  [Symbol.keystr]() : String {
+  [Symbol.keystr]() : string {
     return get_type_name(this) + this._id;
   }
 }
@@ -125,6 +148,9 @@ export class JobManager {
   idgen : number
   host_mean : movavg
   time_perc : number;
+  /* Wall clock of the last run() pass, and the minimum gap between passes. */
+  last_ms : number;
+  ival : int;
 
   constructor() {
     this.jobs = new GArray<Joblet>();
@@ -177,7 +203,7 @@ export class JobManager {
     this.jobmap_owners.get(job.owner).remove(job);
     this.jobmap_types.get(job.type).remove(job); 
     
-    var q_job, q_i=1000000;
+    var q_job: Joblet | undefined, q_i=1000000;
     
     for (var job2 of this.jobmap_types.get(type)) {
       if (job2.queued) {
@@ -212,21 +238,21 @@ export class JobManager {
   }
 
   kill_type_jobs(type : Object) {
-    type = get_type_name(type);
-    
-    if (!jobmap_types.has(type))
+    var typename = get_type_name(type);
+
+    if (!jobmap_types.has(typename))
       return;
-      
-    var jobs = g_list(jobmap_types.get(type));
-    
+
+    var jobs = g_list(jobmap_types.get(typename));
+
     for (var job of jobs) {
       this.remove_job(job);
     }
-    
-    this.jobmap_types.remove(type);
+
+    this.jobmap_types.remove(typename);
   }
 
-  queue_job(job) {
+  queue_job(job : Joblet) {
     this.add_job(job);
     
     job.queued = true;
@@ -304,9 +330,9 @@ export class JobManager {
   }
 
   has_job(type : Object) {
-    type = get_type_name(type);
-    if (this.jobmap_types.has(type)) {
-      return this.jobmap_types.get(type).length > 0;
+    var typename = get_type_name(type);
+    if (this.jobmap_types.has(typename)) {
+      return this.jobmap_types.get(typename).length > 0;
     }
     
     return false;

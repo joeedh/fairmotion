@@ -47,7 +47,8 @@ let NS = "http://www.w3.org/2000/svg";
 
 //let XLS = "http://www.w3.org/1999/xlink"
 
-export function makeElement(type, attrs = {}) {
+export function makeElement(type : string,
+                            attrs : {[k : string] : string} = {}) {
   let ret = document.createElementNS(NS, type);
   for (let k in attrs) {
     ret.setAttributeNS(null, k, attrs[k]);
@@ -60,14 +61,18 @@ export function makeElement(type, attrs = {}) {
 let lasttime = performance.now();
 
 export class SimpleSkiaPath extends PathBase {
-  recalc: number
-  lastx: number
-  lasty: number
   _last_off: Vector2
-  clip_users: set
+  clip_users: set<PathBase>
   path_start_i: number
   first: boolean
   _mm: MinMax;
+
+  /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
+  commands : number[];
+  /* The z the path was last drawn at; never read back. */
+  _last_z : number | undefined;
+  domnode : Element | undefined;
+  filternode : Element | undefined;
 
   constructor() {
     super();
@@ -94,7 +99,7 @@ export class SimpleSkiaPath extends PathBase {
     this._mm = new MinMax(2);
   }
 
-  update_aabb(draw, fast_mode = false) {
+  update_aabb(draw : SimpleSkiaDraw2D, fast_mode = false) {
     let tmp = new Vector2();
     let mm = this._mm;
     let pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
@@ -137,7 +142,7 @@ export class SimpleSkiaPath extends PathBase {
     return this;
   }
 
-  pushStroke(color, width) {
+  pushStroke(color? : number[], width? : number) {
     if (color) {
       let a = color.length > 3 ? color[3] : 1.0;
       this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
@@ -165,7 +170,7 @@ export class SimpleSkiaPath extends PathBase {
     this.commands.length = this.path_start_i;
   }
 
-  _pushCmd() {
+  _pushCmd(...args : number[]) {
     let arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
@@ -179,25 +184,26 @@ export class SimpleSkiaPath extends PathBase {
     this.first = false;
   }
 
-  moveTo(x, y) {
+  moveTo(x : number, y : number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
 
-  cubicTo(x2, y2, x3, y3, x4, y4) {
+  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
+          y4 : number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
 
-  bezierTo(x2, y2, x3, y3) {
+  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
 
-  lineTo(x2, y2) {
+  lineTo(x2 : number, y2 : number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
@@ -208,13 +214,13 @@ export class SimpleSkiaPath extends PathBase {
     this.lasty = y2;
   }
 
-  destroy(draw) {
+  destroy(draw : VectorDraw) {
   }
 
-  gen(draw, _check_tag = 0) {
+  gen(draw : SimpleSkiaDraw2D, _check_tag = 0) {
   }
 
-  reset(draw) {
+  reset(draw : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -223,11 +229,15 @@ export class SimpleSkiaPath extends PathBase {
     this.first = true;
   }
 
-  draw(draw, offx, offy, canvas = draw.canvsa, g = draw.g, clipMode = false) {
+  /* NOTE: `draw.canvsa` is a typo, so the canvas default is always
+     undefined -- harmless only because drawCanvas() ignores it. */
+  draw(draw : SimpleSkiaDraw2D, offx? : number, offy? : number,
+       canvas = draw.canvsa, g = draw.g, clipMode = false) {
     return this.drawCanvas(...arguments);
   }
 
-  drawCanvas(draw, offx = 0, offy = 0, canvas = draw.canvas, drawg = draw.g, clipMode = false) {
+  drawCanvas(draw : SimpleSkiaDraw2D, offx = 0, offy = 0,
+             canvas = draw.canvas, drawg = draw.g, clipMode = false) {
     let g = draw.g;
     let zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
 
@@ -273,7 +283,7 @@ export class SimpleSkiaPath extends PathBase {
     let mat2 = new Matrix4(draw.matrix);
     mat2.invert();
 
-    function loadtemp(off) {
+    function loadtemp(off : number) {
       tmp[0] = cmds[i + 2 + off*2];
       tmp[1] = cmds[i + 3 + off*2];
       tmp[2] = 0.0;
@@ -410,10 +420,8 @@ export class SimpleSkiaPath extends PathBase {
 }
 
 export class SimpleSkiaDraw2D extends VectorDraw {
-  path_idmap: Object
-  dosort: boolean
-  matstack: Array
-  matrix: Matrix4;
+  paths: SimpleSkiaPath[]
+  path_idmap: {[id : number] : SimpleSkiaPath}
 
   constructor() {
     super();
@@ -431,7 +439,8 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     this.matstack.cur = 0;
   }
 
-  static get_canvas(id, width, height, zindex) {
+  static get_canvas(id : string, width : number, height : number,
+                    zindex : number) {
     let ret = document.getElementById(id);
 
     if (ret === undefined) {
@@ -449,7 +458,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     return ret;
   }
 
-  has_path(id, z, check_z = true) {
+  has_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -463,7 +472,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
   }
 
   //creates new path if necessary.  z is required
-  get_path(id, z, check_z = true) {
+  get_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -495,13 +504,13 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     }
   }
 
-  static kill_canvas(svg) {
+  static kill_canvas(svg? : Element) {
   }
 
   destroy() {
   }
 
-  draw(finalg) {
+  draw(finalg : Canvas2D) {
     //canvas.style["background"] = "rgba(0,0,0,0)";
     let canvas, g;
     let finalcanvas = finalg.canvas;
@@ -643,7 +652,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
   }
 
   //set draw matrix
-  set_matrix(matrix) {
+  set_matrix(matrix : Matrix4) {
     super.set_matrix(matrix);
 
     this.zoom = matrix.$matrix.m11;

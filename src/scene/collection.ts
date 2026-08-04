@@ -1,10 +1,22 @@
 import {DataBlock, NodeDataBlock} from '../core/lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
+import type {SceneObject} from './sceneobject.js';
 import {nstructjs, util} from '../path.ux/scripts/pathux.js';
 
 const COLLECTION = 1<<28;
 const OBJECT = 1<<27;
 
 export class Collection extends DataBlock {
+  static STRUCT : string;
+
+  /* Both sets hold DataRefs between load and data_link(); data_link rebuilds
+     them with the resolved blocks. */
+  objects : Set<SceneObject>;
+  collections : Set<Collection>;
+  /* lib_id -> OBJECT or COLLECTION, so has() can answer without knowing
+     which set to look in. */
+  idMap : Map<number, number>;
+
   constructor() {
     super();
 
@@ -14,7 +26,8 @@ export class Collection extends DataBlock {
     this.idMap = new Map();
   }
 
-  has(ob_or_coll) {
+  /* Also takes a bare lib_id. */
+  has(ob_or_coll : SceneObject | Collection | number | undefined) {
     if (ob_or_coll === undefined || ob_or_coll === null) {
       return false;
     }
@@ -28,7 +41,7 @@ export class Collection extends DataBlock {
     return this.idMap.has(id);
   }
 
-  add(ob_or_coll) {
+  add(ob_or_coll : SceneObject | Collection) {
     if (this.has(ob_or_coll)) {
       return;
     }
@@ -56,7 +69,7 @@ export class Collection extends DataBlock {
     this.idMap.set(ob_or_coll.lib_id, i);
   }
 
-  remove(ob_or_coll) {
+  remove(ob_or_coll : SceneObject | Collection) {
     let type = this.idMap.get(ob_or_coll.lib_id);
 
     if (type === undefined) {
@@ -74,7 +87,10 @@ export class Collection extends DataBlock {
     this.idMap.delete(ob_or_coll.lib_id);
   }
 
-  data_link(block, getblock, getblock_adduser) {
+  /* NOTE: getblock_adduser really wants (dataref, block, fieldname) -- see
+     the same omission in SceneObject.data_link(). */
+  data_link(block : DataBlock, getblock : GetBlockFunc,
+            getblock_adduser : GetBlockUserFunc) {
     let obs = this.objects, colls = this.collections;
 
     this.objects = new Set();

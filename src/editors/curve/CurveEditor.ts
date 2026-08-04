@@ -6,7 +6,9 @@ import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 import { DropBox } from '../../path.ux/scripts/pathux.js';
 import {pushModalLight, popModalLight} from '../../path.ux/scripts/util/simple_events.js';
 
-function startPan(edit : CurveEdit, x, y) {
+/* NOTE: CurveEdit.on_mousedown calls this with only `edit`, so x and y come
+   through undefined and the initial mouse position is NaN. */
+function startPan(edit : CurveEdit, x : number, y : number) {
   if (edit._modaldata) {
     popModalLight(edit._modaldata);
     edit._modaldata = undefined;
@@ -20,7 +22,7 @@ function startPan(edit : CurveEdit, x, y) {
   let first = true;
 
   edit._modaldata = pushModalLight({
-    on_mousedown(e) {
+    on_mousedown(e : MouseEvent) {
     },
 
     on_mousemove(e : MouseEvent) {
@@ -52,7 +54,7 @@ function startPan(edit : CurveEdit, x, y) {
       }
     },
 
-    on_keydown(e) {
+    on_keydown(e : KeyboardEvent) {
       if (e.keyCode === 27) {
         this.stop();
       }
@@ -61,6 +63,18 @@ function startPan(edit : CurveEdit, x, y) {
 }
 
 export class CurveEdit extends UIBase {
+  /* Set while a pan is running; the token popModalLight() needs. */
+  _modaldata;
+  curvePaths : Path2D[];
+  /* True between redraw() and the queued draw(). */
+  _drawreq : boolean;
+  size : Vector2;
+  canvas : HTMLCanvasElement;
+  g : Canvas2D;
+  pan : Vector2;
+  zoom : Vector2;
+  mdown : boolean;
+
   constructor() {
     super();
     this.curvePaths = [];
@@ -90,7 +104,7 @@ export class CurveEdit extends UIBase {
     console.log("mmove");
   }
 
-  on_mouseup(e) { 
+  on_mouseup(e : MouseEvent) {
     console.log("mup");
     this.mdown = false;
   }
@@ -142,14 +156,14 @@ export class CurveEdit extends UIBase {
       for (let i=0; i<steps; i++) {
         let val = i - Math.floor(this.pan[step] / csize);
         val = val.toFixed(1);
-        
+
         if (x >= this.size[step] - pad) {
           break;
         }
 
         let v1 = [0, 0];
         let v2 = [0, 0];
-        
+
         v1[step] = v2[step] = x;
         v1[step^1] = pad;
         v2[step^1] = this.size[step^1]-pad;
@@ -198,7 +212,7 @@ export class CurveEdit extends UIBase {
     let w = ~~(this.size[0]*dpi);
     let h = ~~((this.size[1]-22.5)*dpi);
     let c = this.canvas;
-    
+
     if (w !== c.width || h !== c.height) {
       console.log("size update");
       c.width = w;
@@ -224,8 +238,11 @@ export class CurveEdit extends UIBase {
 UIBase.register(CurveEdit);
 
 export class CurveEditor extends Editor {
+  static STRUCT : string;
+
   pan : Vector2
   zoom : Vector2;
+  edit : CurveEdit;
 
   constructor() {
     super();

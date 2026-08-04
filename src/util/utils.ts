@@ -1,7 +1,8 @@
 "not_a_module"; //todo: need to make this a module
 
 if (Array.prototype.set === undefined) {
-    Array.prototype.set = function set1(array, src, dst, count) {
+    Array.prototype.set = function set1(this: unknown[], array: ArrayLike<unknown>,
+                                        src?: number, dst?: number, count?: number) {
         src = src === undefined ? 0 : src;
         dst = dst === undefined ? 0 : dst;
         count = count === undefined ? array.length :  count;
@@ -30,33 +31,33 @@ if (Array.prototype.set === undefined) {
 }
 
 if (Array.prototype.reject === undefined) {
-    Array.prototype.reject = function reject(func) {
+    Array.prototype.reject = function reject(this: unknown[], func: (item: unknown) => boolean) {
         return this.filter(function(item) { return !func(item); });
     }
 }
 
-function* testr(obj) {
+function* testr(obj: object) {
   for (var k in obj) {
     yield k;
   }
 }
 
 if (Math.sign == undefined) {
-  Math.sign = function(f) {
+  Math.sign = function(f: number) {
     return 1.0 - (f < 0.0)*2.0;
   }
 }
 
 if (Math.fract == undefined) {
-  Math.fract = function(f) {
+  Math.fract = function(f: number) {
     f = Math.abs(f);
-    
+
     return f - Math.floor(f);
   }
 }
 
 if (Array.prototype.insert == undefined) {
-  Array.prototype.insert = function(before, item) {
+  Array.prototype.insert = function(this: unknown[], before: number, item: unknown) {
     if (before < 0 || before > this.length) {
       throw new Error("Bad index " + before + ", should be between 0-" + this.length + ".");
     }
@@ -85,13 +86,15 @@ class CanIter {
 
 var debug_int_1 = 0;
 
-/* Was `static` inside cachering.fromConstructor(). */
-const _fromConstructor_args = [];
+/* Was `static` inside cachering.fromConstructor(). fromConstructor throws past
+   two arguments, so the only thing that ever lands here is `count`. Dead --
+   nothing reads it back. */
+const _fromConstructor_args: number[] = [];
 
-class cachering extends Array {
+class cachering<T> extends Array<T> {
   _cur : number;
 
-  constructor (createcallback : Function, count=32) {
+  constructor (createcallback : () => T, count=32) {
     super(count);
 
     if (!createcallback) {
@@ -105,16 +108,16 @@ class cachering extends Array {
       this[i] = createcallback();
     }
   }
-  
+
   next() {
     var ret = this[this._cur];
-    
+
     this._cur = (this._cur+1) % this.length;
-    
+
     return ret;
   }
-  
-  static fromConstructor(cls, count=32) {
+
+  static fromConstructor<T>(cls: new () => T, count=32) {
     const args = _fromConstructor_args;
     args.length = 0;
     
@@ -136,8 +139,11 @@ class cachering extends Array {
   }
 };
 
-class GArray extends Array {
-  constructor(input) {
+class GArray<T> extends Array<T> {
+  /* Lazily built on first iteration, shared by every GArray of this instance. */
+  itercache : cachering<GArrayIter<T>> | undefined;
+
+  constructor(input? : ArrayLike<T>) {
     super()
 
     if (input != undefined) {
@@ -146,52 +152,52 @@ class GArray extends Array {
       }
     }
   }
-  
-  slice(a, b) : GArray {
+
+  slice(a? : number, b? : number) : GArray<T> {
     var ret = Array.prototype.slice.call(this, a, b);
     if (!(ret instanceof GArray))
       ret = new GArray(ret);
-    
+
     return ret;
   }
-  
-  pack(data) {
+
+  pack(data : number[]) {
     _ajax.pack_int(data, this.length);
-    
+
     for (var i=0; i<this.length; i++) {
       this[i].pack(data);
     }
   }
-  
-  has(item) : Boolean {
+
+  has(item : T) : boolean {
     return this.indexOf(item) >= 0;
   }
-  
+
   [Symbol.iterator]() : GArrayIter<T> {
     if (this.itercache == undefined) {
       this.itercache = cachering.fromConstructor(GArrayIter, 8);
     }
-    
+
     var iter = this.itercache.next();
     iter.init(this);
     return iter;
 
     return new GArrayIter<T>(this);
   }
-    
-  toJSON() : Array<Object> {
+
+  toJSON() : T[] {
     var arr = new Array(this.length);
-    
+
     var i = 0;
     for (var i=0; i<this.length; i++) {
       arr[i] = this[i];
     }
-    
+
     return arr;
   }
 
   //inserts *before* index
-  insert(index, item) {
+  insert(index : number, item : T) {
     for (var i=this.length; i > index; i--) {
       this[i] = this[i-1];
     }
@@ -200,26 +206,26 @@ class GArray extends Array {
     this.length++;
   }
 
-  prepend(item) {
+  prepend(item : T) {
     this.insert(0, item);
   }
 
   pop_i(idx=-1) {
     if (idx < 0)
       idx += this.length;
-   
+
     var ret = this[i];
-    
+
     for (var i=idx; i<this.length-1; i++) {
       this[i] = this[i+1];
     }
-    
+
     this.length -= 1;
-    
+
     return ret;
   }
-  
-  remove(item, ignore_existence) { //ignore_existence defaults to false
+
+  remove(item : T, ignore_existence? : boolean) { //ignore_existence defaults to false
     var idx = this.indexOf(item);
     
     if (ignore_existence == undefined)
@@ -244,7 +250,7 @@ class GArray extends Array {
     this.length -= 1;
   }
 
-  replace(olditem, newitem) { 
+  replace(olditem : T, newitem : T) {
     var idx = this.indexOf(olditem);
     
     if (idx < 0 || idx == undefined) {
@@ -268,21 +274,21 @@ class GArray extends Array {
   }
   */
 
-  toSource() : String {
+  toSource() : string {
     var s = "new GArray" + this.length + "([";
-    
+
     for (var i=0; i<this.length; i++) {
       s += this[i];
       if (i != this.length-1)
         s += ", ";
     }
-    
+
     s += "])";
-    
+
     return s
   }
 
-  toString() : String {
+  toString() : string {
     var s = "[GArray: "
 
     for (var i=0; i<this.length; i++) {
@@ -305,29 +311,38 @@ class GArray extends Array {
 //turn defined_classes into a GArray, now that we've defined it (garray)
 window.defined_classes = new GArray(window.defined_classes);
 
-function obj_value_iter(obj) {
-  this.ret = {done : false, value : undefined};
-  this.obj = obj;
-  this.iter = Iterator(obj);
-  
-  this.next = function() {
+/* Iterates an object's values.  The global Iterator() yields [key, value]
+   pairs, so this just projects out element 1. */
+class obj_value_iter<T> {
+  /* Reused for every step, like the rest of the iterators in this file. */
+  ret : {done : boolean, value : T | undefined};
+  obj : {[key : string] : T};
+  iter : {next() : {done : boolean, value : [string, T]}};
+
+  constructor(obj: {[key : string] : T}) {
+    this.ret = {done : false, value : undefined};
+    this.obj = obj;
+    this.iter = Iterator(obj);
+  }
+
+  next() {
     var reti = this.ret;
-    
+
     var ret = this.iter.next()
     if (ret.done) return ret;
-    
+
     reti.value = ret.value[1];
     return reti;
   }
-  
-  this[Symbol.iterator] = function() {
+
+  [Symbol.iterator]() {
     return this;
   }
 }
 
 
 //turns any iterator into an array
-function list<T>(iter) : GArray<T> {
+function list<T>(iter : Iterable<T>) : GArray<T> {
   var lst = new GArray<T>();
 
   var i = 0;
@@ -342,8 +357,8 @@ function list<T>(iter) : GArray<T> {
 }
 
 
-function time_func(func, steps=10) {
-  var times = [];
+function time_func(func : () => void, steps=10) {
+  var times : number[] = [];
   
   for (var i=0; i<steps; i++) {
     var last_ms = time_ms();
@@ -379,8 +394,10 @@ function cached_list<T>(iter) : GArray<T> {
 
 var g_list = list;
 
-class eid_list extends GArray {
-  constructor(iter : GeoArrayIter) {
+/* Dead -- nothing constructs one, and `GeoArrayIter` never existed in this
+   codebase. Kept verbatim; the element type is a [type, eid] pair. */
+class eid_list extends GArray<[number, number]> {
+  constructor(iter : Iterable<{type : number, eid : number}>) {
     super();
 
     for (var item of iter) {
@@ -389,39 +406,55 @@ class eid_list extends GArray {
   }
 }
 
-Number.prototype[Symbol.keystr] = function() : String {
+Number.prototype[Symbol.keystr] = function(this : number) : number {
   return this;
 }
 
-String.prototype[Symbol.keystr] = function() : String {
+String.prototype[Symbol.keystr] = function(this : string) : string {
   return this;
 }
 
-Array.prototype[Symbol.keystr] = function() : String {
+Array.prototype[Symbol.keystr] = function(this : Object[]) : string {
   var s = ""
   for (var i=0; i<this.length; i++) {
     s += this[i][Symbol.keystr]()+"|"
   }
-  
+
   return s
 }
 
 
+/* Placeholder left behind in `set`'s backing list when an item is removed, so
+   the surviving indices stay valid. */
 var _set_null = {set_null : true};
 
-class SetIter {
+/* The mutable iterator-result object these hand-rolled iterators recycle.
+   Deliberately not TS's IteratorResult<T>, which is a discriminated union and
+   so cannot be updated field by field. */
+type IterRet<T> = {done : boolean, value : T | undefined};
+
+/* An entry in `set`'s backing list: a live item, or the removal placeholder. */
+type SetSlot<T> = T | typeof _set_null;
+
+/* Whatever [Symbol.keystr]() returns. Most implementations give a string, a
+   couple give a number; either works because it is only ever an object key. */
+type KeyStr = string | number;
+
+class SetIter<T extends Keyable> {
   i : number
   done : boolean
-  ret : Object;
+  ret : IterRet<T>;
+  set : set<T>;
+  list : SetSlot<T>[];
 
-  constructor(set) {
+  constructor(set : set<T>) {
     this.set = set;
     this.i = 0;
     this.done = false;
     this.ret = {done : false, value : undefined};
     this.list = set.list;
   }
-  
+
   [Symbol.iterator]() {
     return this;
   }
@@ -468,24 +501,27 @@ class SetIter {
   }
 }
 
-class set<T> {
-  items : Object
+class set<T extends Keyable> {
+  /* keystr -> index into `list`. */
+  items : Record<KeyStr, number>
   length : number
-  _itercache : cachering;
-  freelist : Array<T>;
+  _itercache : cachering<SetIter<T>>;
+  /* Indices into `list` freed by remove(), reused before the list grows. */
+  freelist : number[];
+  list : SetSlot<T>[];
 
-  constructor(input : Iterable<T>) {
+  constructor(input? : Iterable<T> | ArrayLike<T>) {
     this.items = {};
     this.list = [];
     this.freelist = [];
     this.length = 0;
-    
+
     var this2 = this;
-    
+
     this._itercache = new cachering(function() {
       return new SetIter(this2);
     }, 64);
-    
+
     if (input != undefined) {
       if (input instanceof Array || input instanceof String) {
         for (var i=0; i<input.length; i++) {
@@ -526,15 +562,15 @@ class set<T> {
     return this;
   }
   
-  forEach(cb, thisvar) {
+  forEach(cb : (item : T) => void, thisvar? : object) {
     if (thisvar === undefined)
       thisvar = self;
-    
+
     for (var item of this) {
       cb.call(thisvar, item);
     }
   }
-  
+
   add(item : T) {
     var hash = item[Symbol.keystr]();
     if (hash in this.items)
@@ -575,34 +611,34 @@ class set<T> {
   }
   
   union(set2 : set<T>) {
-    var ret = new set();
-    
+    var ret = new set<T>();
+
     for (var item of this) {
       ret.add(item);
     }
-    
+
     for (var item of set2) {
       ret.add(item);
     }
-    
+
     return ret;
   }
-  
+
   [Symbol.iterator]() {
     return this._itercache.next().cache_init(this);
   }
 
   asArray() : Array<T> {
     var arr = new Array(this.length);
-    
+
     for (var item of this) {
       arr[i++] = item;
     }
-    
+
     return arr;
   }
 
-  toJSON() : Array<Object> {
+  toJSON() : Array<T> {
     return this.asArray();
   }
 
@@ -612,8 +648,9 @@ class set<T> {
 }
 
 class GArrayIter<T> {
-  ret : Object
+  ret : IterRet<T>
   cur : number;
+  arr : GArray<T>;
 
   constructor(arr : GArray<T>) {
     this.ret = {done : false, value : undefined};
@@ -629,30 +666,31 @@ class GArrayIter<T> {
     return this;
   }
   
-  next() : T {
+  next() : IterRet<T> {
     var reti = this.ret;
-    
+
     if (this.cur >= this.arr.length) {
       this.cur = 0;
       this.ret = {done : false, value : undefined};
-      
+
       reti.done = true;
       return reti;
-    } else { 
+    } else {
       reti.value = this.arr[this.cur++];
       return reti;
     }
   }
-  
+
   reset() {
     this.ret = {done : false, value : undefined};
     this.cur = 0;
   }
 }
 
-class ArrayIter {
-  ret : Object
+class ArrayIter<T> {
+  ret : IterRet<T>
   cur : number;
+  arr : Array<T>;
 
   constructor(arr : Array<T>) {
     this.ret = {done : false, value : undefined};
@@ -668,11 +706,11 @@ class ArrayIter {
     this.ret.done = false; this.ret.value = undefined;
     this.arr = arr;
     this.cur = 0;
-    
+
     return this;
   }
-  
-  next() : T {
+
+  next() : IterRet<T> {
     var reti = this.ret;
     
     if (this.cur >= this.arr.length) {
@@ -706,14 +744,20 @@ if (!window.TYPE_LOGGING_ENABLED) {
 }
 //*/
 
-class HashKeyIter {
-  constructor(hash : hashtable) {
+/* Dead: hashtable[Symbol.iterator] returns a plain key-string iterator instead
+   of one of these, despite its declared return type. Kept for reference. */
+class HashKeyIter<K extends Keyable, V> {
+  ret : IterRet<K>;
+  hash : hashtable<K, V>;
+  iter : Iterator<[KeyStr, V]>;
+
+  constructor(hash : hashtable<K, V>) {
     this.ret = {done : false, value : undefined};
     this.hash = hash;
     this.iter = Iterator(hash.items);
   }
-  
-  next() : IterRet {
+
+  next() : IterRet<K> {
     var reti = this.ret;
     var iter = this.iter;
     var items = this.hash.items;
@@ -735,9 +779,11 @@ class HashKeyIter {
 }
 
 
-class hashtable {
-  items : Object
-  keymap : Object
+/* Both maps are keyed by the *keystr* of K, not by K itself: `items` holds the
+   values, `keymap` holds the original keys so they can be recovered. */
+class hashtable<K extends Keyable, V> {
+  items : Record<KeyStr, V>
+  keymap : Record<KeyStr, K>
   length : number;
 
   constructor() {
@@ -752,13 +798,14 @@ class hashtable {
     this.length = 0;
   }
 
-  forEach(cb, thisvar) {
+  /* Note that this hands the callback a keystr, not a key. */
+  forEach(cb : (key : KeyStr) => void, thisvar? : object) {
     for (let k of this) {
       cb.call(thisvar, k);
     }
   }
-  
-  add(key : Object, item : Object) {
+
+  add(key : K, item : V) {
     if (!this.items.hasOwnProperty(key[Symbol.keystr]())) 
       this.length++;
     
@@ -766,7 +813,7 @@ class hashtable {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  remove(key : Object) {
+  remove(key : K) {
     if (!this.has(key)) {
       return false;
     }
@@ -780,33 +827,36 @@ class hashtable {
     return true;
   }
 
-  [Symbol.iterator]() : HashKeyIter {
+  /* Iterates *keystrs*, not keys -- run them back through getKey() for the
+     original key objects. */
+  [Symbol.iterator]() {
     return Object.keys(this.items)[Symbol.iterator]();
   }
 
-  values() : Array<Object> {
+  values() : Array<V> {
     var ret = new Array();
 
     for (var k of this) {
       ret.push(this.items[k]);
     }
-    
+
     return ret;
   }
 
-  keys() : GArray<Object> {
+  /* Despite the name these are keystrs, for the same reason as the iterator. */
+  keys() : GArray<KeyStr> {
     return list(this);
   }
 
-  getKey(key : String) : Object {
+  getKey(key : KeyStr) : K {
     return this.keymap[key];
   }
 
-  get(key : Object) : Object {
+  get(key : K) : V {
     return this.items[key[Symbol.keystr]()];
   }
 
-  set(key : Object, item : Object) {
+  set(key : K, item : V) {
     if (!this.has(key)) {
       this.length++;
     }
@@ -815,30 +865,54 @@ class hashtable {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  union(b : hashtable) : hashtable {
+  /* Broken: the constructor takes no arguments, the loop yields keystrs where
+     add() wants keys, and `b.get[item]` should be `b.get(item)`. */
+  union(b : hashtable<K, V>) : hashtable<K, V> {
     var newhash = new hashtable(this)
-    
+
     for (var item of b) {
       newhash.add(item, b.get[item])
     }
-    
+
     return newhash;
   }
 
-  has(item : Object) : boolean {
+  has(item : K) : boolean {
     if (item === undefined)
       console.trace();
     return this.items.hasOwnProperty(item[Symbol.keystr]())
   }
 }
 
-function validate_mesh_intern(m) {
-  var eidmap = {};
+/* Dead. Left over from a half-edge mesh editor that no longer exists in this
+   codebase, so these shapes are reconstructed from the body below. */
+interface MeshVert extends Keyable {
+  eid : number; _gindex : number; loop : MeshLoop | null; edges : Iterable<MeshEdge>;
+}
+interface MeshEdge extends Keyable {
+  eid : number; _gindex : number; loop : MeshLoop | null; v1 : MeshVert; v2 : MeshVert;
+  vert_in_edge(v : MeshVert) : boolean;
+}
+interface MeshLoop extends Keyable {
+  eid : number; e : MeshEdge; v : MeshVert; f : MeshFace;
+  next : MeshLoop; radial_next : MeshLoop;
+}
+interface MeshFace extends Keyable {
+  eid : number; _gindex : number; verts : Iterable<MeshVert>; edges : Iterable<MeshEdge>;
+  looplists : Iterable<Iterable<MeshLoop>>;
+}
+interface Mesh {
+  verts : Iterable<MeshVert>; edges : Iterable<MeshEdge>; faces : Iterable<MeshFace>;
+  eidmap : Record<number, MeshVert | MeshEdge | MeshFace>;
+}
+
+function validate_mesh_intern(m : Mesh) {
+  var eidmap : Record<number, MeshVert | MeshEdge | MeshFace> = {};
   
   for (var f of m.faces) {
-    var lset = new set();
-    var eset = new set();
-    var vset = new set();
+    var lset = new set<MeshLoop>();
+    var eset = new set<MeshEdge>();
+    var vset = new set<MeshVert>();
     
     
     for (var v of f.verts) {
@@ -909,8 +983,8 @@ function validate_mesh_intern(m) {
     
     var i = 0;
     
-    var lset = new set();
-    var fset = new set();
+    var lset = new set<MeshLoop>();
+    var fset = new set<MeshFace>();
     if (e.loop == null) 
       continue;
       
@@ -979,9 +1053,10 @@ function validate_mesh_intern(m) {
   return true;
 }
 
-function concat_array(a1, a2)
+/* Dead. */
+function concat_array<T>(a1 : ArrayLike<T>, a2 : ArrayLike<T>) : GArray<T>
 {
-  var ret = new GArray();
+  var ret = new GArray<T>();
   
   for (var i=0; i<a1.length; i++) {
     ret.push(a1[i]);
@@ -995,8 +1070,10 @@ function concat_array(a1, a2)
 }
 
 
-function get_callstack(err) {
-  var callstack = [];
+/* Dead at runtime: path.ux's util.ts assigns its own get_callstack/print_stack
+   onto globalThis after the global scripts have run, overwriting both of these. */
+function get_callstack(err? : Error) {
+  var callstack : string[] = [];
   var isCallstackPopulated = false;
   
   var err_was_undefined = err == undefined;
@@ -1049,7 +1126,7 @@ function get_callstack(err) {
 }
 
 
-function print_stack(err) {
+function print_stack(err? : Error) {
   try {
     var cs = get_callstack(err);
   } catch (err2) {
@@ -1064,7 +1141,7 @@ function print_stack(err) {
 }
 
 
-function time_ms() {
+function time_ms() : number {
   if (window.performance)
     return window.performance.now();
   else
@@ -1074,8 +1151,12 @@ function time_ms() {
 
 class movavg {
   value : number;
+  /* jobs.ts:126 constructs one with no length, which leaves this undefined and
+     wedges update() -- `arr.length < undefined` is never true. */
+  len : number | undefined;
+  arr : number[];
 
-  constructor(length) {
+  constructor(length? : number) {
     this.len = length;
     this.value = 0;
     this.arr = [];
@@ -1094,7 +1175,7 @@ class movavg {
     this.value = avg;
   }
   
-  update(val) {
+  update(val : number) {
     if (this.arr.length < this.len) {
       this.arr.push(val);
     } else {
@@ -1112,10 +1193,13 @@ class movavg {
   }
 }
 
+/* Dead -- nothing constructs one. */
 class Timer {
   normval : number;
+  ival : number;
+  last_ms : number;
 
-  constructor(interval_ms) {
+  constructor(interval_ms : number) {
     this.ival = interval_ms;
     this.normval = 0.0; //elapsed time scaled by timer interval
     this.last_ms = time_ms();
@@ -1133,7 +1217,8 @@ class Timer {
   }
 }
 
-function other_tri_vert(e, f) {
+/* Dead, and from the same vanished mesh editor as validate_mesh_intern(). */
+function other_tri_vert(e : MeshEdge, f : MeshFace) {
     for (var v of f.verts) {
         if (v != e.v1 && v != e.v2)
             return v;
@@ -1143,7 +1228,7 @@ function other_tri_vert(e, f) {
 }
 
 
-var _sran_tab = [0.42858355099189227,0.5574386030715371,0.9436109711290556,
+var _sran_tab : number[] = [0.42858355099189227,0.5574386030715371,0.9436109711290556,
 0.11901816474442506,0.05494319267999703,0.4089598843412747,
 0.9617377622975879,0.6144736752713642,0.4779527665160106,
 0.5358937375859902,0.6392009453796094,0.24893232630444684,
@@ -1163,8 +1248,9 @@ var _sran_tab = [0.42858355099189227,0.5574386030715371,0.9436109711290556,
 
 class StupidRandom2 {
   i : number;
+  _seed : number;
 
-  constructor(seed) {
+  constructor(seed? : number) {
     if (seed == undefined)
       seed = 0;
 
@@ -1172,7 +1258,7 @@ class StupidRandom2 {
     this.i = 1;
   }
   
-  seed(seed) {
+  seed(seed : number) {
     this._seed = seed+1;
     this.i = 1;
   }
@@ -1198,7 +1284,8 @@ class StupidRandom2 {
 
 var seedrand = new StupidRandom2();
 
-function get_nor_zmatrix(no)
+/* Dead. Rotation taking the +Z axis onto `no`. */
+function get_nor_zmatrix(no : Vector3)
 {
   var axis = new Vector3();
   var cross = new Vector3();
@@ -1222,7 +1309,8 @@ function get_nor_zmatrix(no)
 }
 
 var _o_basic_types = {"String" : 0, "Number" : 0, "Array" : 0, "Function" : 0};
-function is_obj_lit(obj) {
+/* Dead. True for plain object literals, false for class instances. */
+function is_obj_lit(obj : object) {
   if (obj.constructor.name in _o_basic_types)
     return false;
     
@@ -1235,13 +1323,15 @@ function is_obj_lit(obj) {
 }
 
 class UnitTestError extends Error {
-  constructor(msg) {
+  msg : string;
+
+  constructor(msg : string) {
     super(msg);
     this.msg = msg;
   }
 }
 
-function utest(func) {
+function utest(func : () => void) {
   try {
     func();
   } catch (err) {
@@ -1293,13 +1383,18 @@ function do_unit_tests() {
   return toterr == 0;
 }
 
+/* `owner` is accepted and dropped; spline_element_array.ts is the only caller
+   and it passes just a name. */
 class EventDispatcher {
-  constructor(name, owner) {
+  name : string;
+  callbacks : [Function, object | undefined][];
+
+  constructor(name : string, owner? : object) {
     this.name = name;
     this.callbacks = [];
   }
   
-  addListener(callback, thisvar) {
+  addListener(callback : Function, thisvar? : object) {
     this.callbacks.push([callback, thisvar]);
   }
   
@@ -1312,36 +1407,40 @@ class EventDispatcher {
   }
 }
 
-class EIDGen {  
+class EIDGen {
+  static STRUCT : string;
+
   cur_eid : number;
 
   constructor() {
     this.cur_eid = 1;
   }
   
-  static fromSTRUCT(unpacker) {
+  static fromSTRUCT(unpacker : StructReader<EIDGen>) {
     var g = new EIDGen();
     unpacker(g);
     
     return g;
   }
-  set_cur(cur) {
+  set_cur(cur : number) {
     this.cur_eid = Math.ceil(cur);
   }
 
   //if cur is >= to this.cur_eid, 
   //set this.cur to cur+1
-  max_cur(cur) {
+  max_cur(cur : number) {
     this.cur_eid = Math.max(Math.ceil(cur)+1, this.cur_eid);
   }
-  get_cur(cur) {
+  /* `cur` is ignored. */
+  get_cur(cur? : number) {
     return this.cur_eid;
   }
   
-  eid_max_cur(t) {
+  eid_max_cur(t : number) {
     return this.max_cur(t);
   }
   
+  /* `typemask` is ignored -- eids are unique across every element type. */
   gen_eid(typemask=0) {
     return this.cur_eid++;
   }
@@ -1353,7 +1452,7 @@ class EIDGen {
   toJSON() {
     return { cur_eid : this.cur_eid };
   }
-  static fromJSON(obj) {
+  static fromJSON(obj : {cur_eid : number}) {
     var idgen = new EIDGen()
     idgen.cur_eid = obj.cur_eid;
     
@@ -1365,7 +1464,8 @@ EIDGen.STRUCT = `
     cur_eid : int;
   }`;
 
-function copy_into(dst, src) {
+/* Dead. Shallow-copies src's own keys onto dst. */
+function copy_into<T extends object>(dst : T, src : object) {
   console.log(dst);
   
   var keys2 = list(obj_get_keys(src));
@@ -1379,8 +1479,9 @@ function copy_into(dst, src) {
   return dst;
 }
 
-var __v3d_g_s = [];
-function get_spiral(size)
+/* Dead. Cache for get_spiral(); holds the last size it was asked for. */
+var __v3d_g_s : [number, number][] = [];
+function get_spiral(size : number)
 {
   if (__v3d_g_s.length == size*size)
     return __v3d_g_s;
@@ -1390,8 +1491,8 @@ function get_spiral(size)
   var x = Math.floor((size-1)/2);
   var y = Math.floor((size-1)/2);
   
-  var c;
-  var i;
+  var c : number;
+  var i : number;
   
   if (size%2 == 0) {
     arr.push([x, y+1]);
@@ -1414,8 +1515,7 @@ function get_spiral(size)
   }  
   
   while (c < size*size-1) {
-    var sign = (Math.floor(i/2) % 2)==1;
-    sign = sign ? -1.0 : 1.0;
+    var sign = (Math.floor(i/2) % 2)==1 ? -1.0 : 1.0;
     
     for (var j=0; j<i; j++) {
       if ((i%2==0)) {
@@ -1449,7 +1549,7 @@ function get_spiral(size)
 }
   
 //ltypeof function, that handles object instances of basic types
-var _bt_h = {
+var _bt_h : Record<string, string> = {
   "String" : "string",
   "RegExp" : "regexp",
   "Number" : "number",
@@ -1472,16 +1572,25 @@ function btypeof(obj) {
 
 const TOTAL_IDMAP_LAYERS = 10
 
+/* One layer of the save-data id map: local id -> a set of ids, stored as a
+   self-keyed object. nstructjs flattens it to a flat int array on write (see
+   _save_idmap) and fromSTRUCT unflattens it, so during load `idmap` is
+   transiently that flat array. */
 class SDIDLayer {
-  idmap : Object;
+  static STRUCT : string;
 
-  constructor(int_id) {
+  idmap : Record<number, Record<number, number>>;
+  int_id : number;
+
+  constructor(int_id : number) {
     this.int_id = int_id;
     this.idmap = {};
   }
   
+  /* Broken: `lst` is an object, so lst.length is undefined and the `len` counted
+     just above is thrown away. fromSTRUCT then reads that undefined back. */
   _save_idmap() {
-    let ret = [];
+    let ret : number[] = [];
     let idmap = this.idmap;
     
     for (let k in idmap) {
@@ -1503,15 +1612,17 @@ class SDIDLayer {
     return ret;
   }
   
-  static fromSTRUCT(reader) {
+  /* Also broken: the unflattened entries are written into ret.idmap, then
+     ret.idmap is overwritten with the empty local `idmap`. */
+  static fromSTRUCT(reader : StructReader<SDIDLayer>) {
     var ret = new SDIDLayer();
     reader(ret);
-    
-    var idmap = {}, i = 0;
+
+    var idmap : Record<number, Record<number, number>> = {}, i = 0;
     while (i < ret.idmap.length) {
       var k = ret.idmap[i++], len = ret.idmap[i++];
-      var lst = {};
-      
+      var lst : Record<number, number> = {};
+
       for (var j=0; j<len; j++) {
         var k2 = ret.idmap[i++];
         lst[k2] = k2;
@@ -1531,23 +1642,27 @@ SDIDLayer.STRUCT = `
   }
 `;
 
-class SDIDLayerListIter {
-  ret : Object
+/* Dead. Iterates a SplineLayerSet's layers by skipping its `layers` key. */
+class SDIDLayerListIter<T> {
+  ret : IterRet<T>
   i : number;
+  arr : T[];
+  list : Record<string, T>;
 
-  constructor(list) {
+  constructor(list : Record<string, T>) {
     var keys = Object.keys(list);
-    this.arr = [];
-    
+    var used : string[] = [];
+
     for (var i=0; i<keys.length; i++) {
       var k = keys[i];
       if (k === 'layers') continue;
-      
-      this.arr.push(k);
+
+      used.push(k);
     }
-    
-    for (var i=0; i<this.arr.length; i++) {
-      this.arr[i] = list[this.arr[i]];
+
+    this.arr = [];
+    for (var i=0; i<used.length; i++) {
+      this.arr.push(list[used[i]]);
     }
     
     this.list = list;
@@ -1571,15 +1686,22 @@ class SDIDLayerListIter {
     return ret;
   }
   
+  /* This used to rebuild arr from Object.keys(list), i.e. keys where the
+     constructor stores values -- reusing an iterator yielded the wrong thing. */
   reset() {
     this.i = 0;
-    this.arr = Object.keys(this.list);
+    this.arr = [];
+    for (let k in this.list) {
+      if (k !== 'layers') this.arr.push(this.list[k]);
+    }
     this.ret.done = false;
     this.ret.value = undefined;
   }
 }
 
 class SDIDGen {
+  static STRUCT : string;
+
   cur_id : number;
 
   constructor() {
@@ -1594,11 +1716,11 @@ class SDIDGen {
     return ret;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 
-  max_cur(id) {
+  max_cur(id : number) {
     this.cur_id = Math.max(this.cur_id, Math.ceil(id)+1);
     return this;
   }

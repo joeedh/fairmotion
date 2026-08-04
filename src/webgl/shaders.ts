@@ -1,4 +1,5 @@
 import {ShaderProgram} from './webgl.js';
+import type {ShaderDef as ShaderDefT, WebGLContext} from './webgl.js';
 import {Matrix4} from '../path.ux/scripts/pathux.js';
 
 export const RectShader = {
@@ -35,15 +36,18 @@ void main() {
   }
 }
 
-export const ShaderDef = window._ShaderDef = {
+/* The shader sources, and the compiled programs loadShaders() builds from
+   them. Both are keyed by the same names; `Shaders` stays empty until a
+   context exists. */
+export const ShaderDef : {[name : string] : ShaderDefT} = window._ShaderDef = {
   RectShader
 };
 
-export const Shaders = window._Shaders = {
+export const Shaders : {[name : string] : ShaderProgram} = window._Shaders = {
 
 };
 
-export function loadShader(gl, sdef) {
+export function loadShader(gl : WebGLContext, sdef : ShaderDefT) {
   let sp = new ShaderProgram(gl, sdef.vertex, sdef.fragment, sdef.attributes);
 
   sp.uniforms = sdef.uniforms || {};
@@ -52,7 +56,7 @@ export function loadShader(gl, sdef) {
   return sp;
 }
 
-export function loadShaders(gl) {
+export function loadShaders(gl : WebGLContext) {
   for (let k in ShaderDef) {
     let sdef = ShaderDef[k];
 

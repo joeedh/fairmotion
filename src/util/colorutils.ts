@@ -8,7 +8,10 @@
 //takes four float arrays for clr and hsv
 //returns either new hue (ret[0]), or last_hue
 
-export function rgba_to_hsva(clr, ret=undefined, last_hue=0)
+/* Dead -- nothing in src/ calls either of these. `ret` is written in place and
+   the new hue is returned; when the colour is achromatic there is no hue to
+   compute, so `last_hue` is echoed back instead. */
+export function rgba_to_hsva(clr : number[], ret : number[], last_hue=0)
 {
   var r =clr[0], g = clr[1], b = clr[2], a = clr[3];
 	var min, max, delta;
@@ -52,7 +55,7 @@ export function rgba_to_hsva(clr, ret=undefined, last_hue=0)
   return h;
 }
 
-export function hsva_to_rgba(hsva, ret, last_hue) {
+export function hsva_to_rgba(hsva : number[], ret : number[], last_hue : number) {
   var r, g, b, h=hsva[0]*360.0, s=hsva[1], v=hsva[2];
 	var i, f, p, q, t;
   

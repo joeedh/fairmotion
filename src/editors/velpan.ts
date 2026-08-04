@@ -5,25 +5,31 @@ import {StringProperty, Vec2Property} from '../path.ux/scripts/toolsys/toolprop.
 import '../datafiles/icon_enum.js';
 import * as util from '../path.ux/scripts/util/util.js'
 import {nstructjs} from '../path.ux/scripts/pathux.js';
+import type {FullContext} from '../core/context.js';
 
 export let VelPanFlags = {
   UNIFORM_SCALE : 1
 };
 
 export class VelPan {
-  bounds : Array<Vector2>
+  /* Fired after update() when the matrix actually changed. */
+  onchange : ((velpan? : VelPan) => void) | null;
+  static STRUCT : string;
+
+  bounds : Vector2[]
   decay  : number
   pos    : Vector2
   scale  : Vector2
   vel    : Vector2
   oldpos : Vector2
-  axes   : int
-  flag   : int
+  axes   : number
+  flag   : number
   mat    : Matrix4
   imat   : Matrix4
   _last_mat        : Matrix4
   last_update_time : number
-  timer            : number;
+  /* setInterval handle while velocity decay is running. */
+  timer            : number | undefined;
 
   constructor() {
     /** boundary limits*/
@@ -66,7 +72,7 @@ export class VelPan {
    load settings from another velocity pan instance
    does NOT set this.onchange
    * */
-  load(velpan) {
+  load(velpan : VelPan) {
     this.pos.load(velpan.pos);
     this.scale.load(velpan.scale);
     this.axes = velpan.axes;
@@ -123,14 +129,14 @@ export class VelPan {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     reader(this);
   }
 }
 
 VelPan.STRUCT = `
 VelPan {
-  bounds : array(vec2); 
+  bounds : array(vec2);
   pos    : vec2;
   scale  : vec2;
   axes   : int;
@@ -143,6 +149,15 @@ nstructjs.manager.add_class(VelPan);
 
 
 export class VelPanPanOp extends ToolOp {
+  start_pan : Vector2;
+  /* True until the first modal mousemove seeds start_mpos/start_pan. */
+  first : boolean;
+  last_mpos : Vector2;
+  start_mpos : Vector2;
+  start_time : number;
+  last_time : number;
+  _temps : cachering<Vector2>;
+
   constructor() {
     super();
 
@@ -168,7 +183,7 @@ export class VelPanPanOp extends ToolOp {
     }
   }}
 
-  on_mousemove(e) {
+  on_mousemove(e : MouseEvent) {
     let ctx = this.modal_ctx;
     let path = this.inputs.velpanPath.getValue();
     let velpan = ctx.api.getValue(ctx, path);
@@ -211,7 +226,7 @@ export class VelPanPanOp extends ToolOp {
     this.last_mpos.load(mpos);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let path = this.inputs.velpanPath.getValue();
 
     let velpan = ctx.api.getValue(ctx, path);
@@ -244,7 +259,7 @@ export class VelPanPanOp extends ToolOp {
     }
   }
 
-  on_mouseup(e) {
+  on_mouseup(e : MouseEvent) {
     this.modalEnd();
   }
 }

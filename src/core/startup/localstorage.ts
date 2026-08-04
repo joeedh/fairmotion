@@ -12,15 +12,15 @@
 
 //localstorage variant
 window.MyLocalStorage_LS = class MyLocalStorage_LS {
-  set(key, val) {
+  set(key: string, val: string): void {
     localStorage[key] = val;
   }
 
-  getCached(key) {
+  getCached(key: string): string {
     return localStorage[key];
   }
 
-  getAsync(key) {
+  getAsync(key: string): Promise<string> {
     return new Promise(function (accept, reject) {
       if (key in localStorage && localStorage[key] !== undefined) {
         accept(localStorage[key]);
@@ -28,29 +28,33 @@ window.MyLocalStorage_LS = class MyLocalStorage_LS {
     });
   }
 
-  hasCached(key) {
+  hasCached(key: string): boolean {
     return key in localStorage;
   }
 };
 
 window.MyLocalStorage_ChromeApp = class MyLocalStorage_ChromeApp {
+  /* null marks a key chrome.storage failed to read, so getCached() can tell
+     "known missing" from "never asked". */
+  cache: {[key: string]: string | null};
+
   constructor() {
     this.cache = {};
   }
 
-  set(key, val) {
-    let obj = {};
+  set(key: string, val: string): void {
+    let obj: {[key: string]: string} = {};
     obj[key] = val;
 
     chrome.storage.local.set(obj);
     this.cache[key] = val;
   }
 
-  getCached(key) {
+  getCached(key: string): string {
     return this.cache[key];
   }
 
-  getAsync(key) {
+  getAsync(key: string): Promise<string> {
     let this2 = this;
 
     return new Promise(function (accept, reject) {

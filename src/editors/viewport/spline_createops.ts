@@ -8,7 +8,12 @@ import {
 import {RestrictFlags} from '../../curve/spline.js';
 import {SplineLocalToolOp} from './spline_editops.js';
 import {SplineDrawData} from "../../curve/spline_draw_new.js";
+import type {FullContext} from '../../core/context.js';
+import type {Spline} from '../../curve/spline.js';
+import type {SplineVertex, SplineSegment} from '../../curve/spline_types.js';
 
+/* NOTE: `Icons` is read by three of the tooldef()s below but never imported
+   in this module, so registering those ops throws ReferenceError. */
 export let ExtrudeModes = {
   SMOOTH     : 0,
   LESS_SMOOTH: 1,
@@ -16,7 +21,7 @@ export let ExtrudeModes = {
 };
 
 export class ExtrudeVertOp extends SplineLocalToolOp {
-  constructor(co, /*ExtrudeModes*/ mode) {
+  constructor(co? : Vector3 | number[], /*ExtrudeModes*/ mode? : number) {
     super();
 
     if (co !== undefined)
@@ -47,56 +52,56 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     }
   }
 
-  static canRun(ctx) {
+  static canRun(ctx : FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_EXTRUDE);
   }
 
   /*undo_pre(ctx) {
     let spline = ctx.spline;
-    
+
     let ud = this._undo = {
       selstate    : [],
       active_vert : undefined,
       eid_range   : [-1, -1]
     }
-    
+
     ud.active_vert = spline.verts.active !== undefined ? spline.verts.active.eid : -1;
     for (let v of spline.verts.selected) {
       ud.selstate.push(v.eid);
     }
   }
-  
+
   undo(ctx) {
     let ud = this._undo;
     let spline = ctx.spline;
-    
+
     let v = spline.eidmap[ud.eid];
     if (v === undefined) {
       console.trace("YEEK!");
     }
-    
+
     console.log("USTART EID", spline.idgen.cur_id, "V.EID", v.eid);
     console.log("RANGE", ud.eid_range[0], ud.eid_range[1]);
-    
+
     spline.kill_vertex(v);
     for (let eid in ud.selstate) {
       spline.verts.setselect(spline.eidmap[eid], true);
     }
-    
+
     for (let i=ud.eid_range[1]; i>=ud.eid_range[0]; i--) {
       console.log("  freeing ", i);
       //spline.idgen.free_id(i);
     }
-    
+
     console.log("UEND EID", spline.idgen.cur_id);
-    
+
     let active = spline.eidmap[ud.active_vert];
     spline.verts.active = active;
-    
+
     window.redraw_viewport();
   }*/
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("Extrude vertex op");
 
     let spline = ctx.spline;
@@ -191,7 +196,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
 }
 
 export class CreateEdgeOp extends SplineLocalToolOp {
-  constructor(linewidth) {
+  constructor(linewidth? : number) {
     super();
 
     if (linewidth !== undefined)
@@ -214,11 +219,11 @@ export class CreateEdgeOp extends SplineLocalToolOp {
     }
   }
 
-  static canRun(ctx) {
+  static canRun(ctx : FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("create edge op!");
 
     let spline = ctx.spline;
@@ -258,7 +263,7 @@ export class CreateEdgeOp extends SplineLocalToolOp {
 }
 
 export class CreateEdgeFaceOp extends SplineLocalToolOp {
-  constructor(linewidth) {
+  constructor(linewidth? : number) {
     super();
 
     if (linewidth !== undefined)
@@ -281,11 +286,11 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
   }
 
-  static canRun(ctx) {
+  static canRun(ctx : FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("create edge op!");
 
     let spline = ctx.spline;
@@ -313,7 +318,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     let vset = new set();
     let doneset = new set();
 
-    function walk(v) {
+    function walk(v : SplineVertex) {
       let stack = [v];
       let path = [];
 
@@ -427,7 +432,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
 }
 
 export class ImportJSONOp extends ToolOp {
-  constructor(str) {
+  constructor(str? : string) {
     super();
 
     if (str !== undefined) {
@@ -451,11 +456,11 @@ export class ImportJSONOp extends ToolOp {
     }
   }
 
-  static canRun(ctx) {
+  static canRun(ctx : FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     console.log("import json spline op!");
 
     let spline = ctx.spline;
@@ -467,7 +472,10 @@ export class ImportJSONOp extends ToolOp {
   }
 }
 
-export function strokeSegments(spline, segments, width = 2.0, color = [0, 0, 0, 1]) {
+/* Replaces each of `segments` with a closed outline of the stroke it draws,
+   walking both sides of every segment and stitching the ends together. */
+export function strokeSegments(spline : Spline, segments : Iterable<SplineSegment>,
+                               width = 2.0, color : number[] = [0, 0, 0, 1]) {
   segments = new util.set(segments);
 
   let verts = new util.set();
@@ -479,7 +487,7 @@ export function strokeSegments(spline, segments, width = 2.0, color = [0, 0, 0, 
 
   let doneset = new util.set();
 
-  function angle(v, seg) {
+  function angle(v : SplineVertex, seg : SplineSegment) {
     let v2 = seg.other_vert(v);
     let dx = v2[0] - v[0];
     let dy = v2[1] - v[1];
@@ -493,7 +501,7 @@ export function strokeSegments(spline, segments, width = 2.0, color = [0, 0, 0, 
     });
   }
 
-  let ekey = function (e, side) {
+  let ekey = function (e : SplineVertex | SplineSegment, side : number) {
     return "" + e.eid + ":" + side;
   }
 
@@ -599,6 +607,8 @@ export function strokeSegments(spline, segments, width = 2.0, color = [0, 0, 0, 
 
       } else if (v.segments.length > 2) {
         if (!vcurs[v.eid]) {
+          /* NOTE: vertices have no `seg` property; indexOf(undefined) is -1,
+             so the fan walk below starts one step before segments[0]. */
           vcurs[v.eid] = vstarts[v.eid] = v.segments.indexOf(v.seg);
         }
 
@@ -673,7 +683,7 @@ export class StrokePathOp extends SplineLocalToolOp {
     super();
   }
 
-  static invoke(ctx, args) {
+  static invoke(ctx : FullContext, args : {color? : number[], width? : number}) {
     let tool = new StrokePathOp();
 
     if ("color" in args) {
@@ -705,7 +715,7 @@ export class StrokePathOp extends SplineLocalToolOp {
     }
   }
 
-  exec(ctx) {
+  exec(ctx : FullContext) {
     let spline = ctx.frameset.spline;
 
     let width = this.inputs.width.getValue();

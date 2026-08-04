@@ -40,6 +40,21 @@ import {
 
 import {evillog} from "../core/evillog.js";
 
+import type {Material} from './spline_types.js';
+import type {Spline} from './spline.js';
+import type {SplineLayer} from './spline_element_array.js';
+import type {SplineStrokeGroup} from './spline_strokegroup.js';
+import type {View2DHandler} from '../editors/viewport/view2d.js';
+
+/* The barrel picks which backend Canvas/Path pair is live, so derive the types
+   from the values rather than naming one implementation. */
+type VDCanvas = InstanceType<typeof Canvas>;
+type VDPath = InstanceType<typeof Path>;
+
+/* A drawlist entry.  Stroke groups stand in for their member segments, so this
+   is not just spline elements. */
+type DrawListItem = SplineElement | SplineStrokeGroup;
+
 window.FANCY_JOINS = true;
 
 //XXX
@@ -62,12 +77,31 @@ let draw_face_vs = new cachering(function () {
 
 let MAXCURVELEN = 10000;
 
+/* The per-frame draw state, bundled so the update_* methods can take one
+   argument instead of ten.  Recycled through drawparam_cachering below. */
 export class DrawParams {
+  /* A flat run of x1, y1, x2, y2 quadruples, not a list of rects. */
+  redraw_rects : number[];
+  actlayer : SplineLayer;
+  only_render : boolean;
+  selectmode : number;
+  zoom : number;
+  /* The element's index in the drawlist.  NOTE: the two init() calls pass
+     undefined for this; the draw loop assigns it per element. */
+  z : number;
+  /* Screen-space translation since the last frame. */
+  off : Vector2;
+  spline : Spline;
+  drawlist : DrawListItem[];
+  combine_paths : boolean;
+
   constructor() {
     this.init.apply(this, arguments);
   }
 
-  init(redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, drawlist) {
+  init(redraw_rects : number[], actlayer : SplineLayer, only_render : boolean,
+       selectmode : number, zoom : number, z : number, off : Vector2, spline : Spline,
+       drawlist : DrawListItem[]) {
     this.redraw_rects = redraw_rects, this.actlayer = actlayer,
       this.only_render = only_render, this.selectmode = selectmode, this.zoom = zoom, this.z = z,
       this.off = off, this.spline = spline;
@@ -85,7 +119,13 @@ let drawparam_cachering = new cachering(function () {
 
 import {CustomDataLayer} from "./spline_types.js";
 
+/* Per-segment trim data: where each of the two stroke sides starts and ends
+   along the segment, plus optional explicit endpoints for mitred joins.
+
+   `mask` says which of the four sp/ep vectors are in use -- see _getmask(). */
 export class SplineDrawData extends CustomDataLayer {
+  static STRUCT : string;
+
   sp1: Vector2
   sp2: Vector2
   ep1: Vector2
@@ -94,6 +134,7 @@ export class SplineDrawData extends CustomDataLayer {
   end1: number
   start2: number
   end2: number;
+  mask : number;
 
   constructor() {
     super();
@@ -111,14 +152,14 @@ export class SplineDrawData extends CustomDataLayer {
     this.mask = 0;
   }
 
-  copy(src) {
+  copy(src : SplineDrawData) {
     //this.start = src.start;
     //this.end = src.end;
 
     return this;
   }
 
-  start(side) {
+  start(side : number) {
     if (side === undefined) {
       throw new Error("side cannot be undefined");
     }
@@ -126,7 +167,7 @@ export class SplineDrawData extends CustomDataLayer {
     return side ? this.start2 : this.start1;
   }
 
-  end(side) {
+  end(side : number) {
     if (side === undefined) {
       throw new Error("side cannot be undefined");
     }
@@ -134,11 +175,12 @@ export class SplineDrawData extends CustomDataLayer {
     return side ? this.end2 : this.end1;
   }
 
-  gets(seg, v, side, margin = 0.0) {
+  gets(seg : SplineSegment, v : SplineVertex, side : number, margin = 0.0) {
     if (!(seg instanceof SplineSegment)) {
       throw new Error("invalid arguments to SplineDrawData.prototype.gets()");
     }
 
+    /* Dead. */
     let s;
 
     if (v === seg.v1) {
@@ -159,7 +201,7 @@ export class SplineDrawData extends CustomDataLayer {
     }
   }
 
-  sets(seg, v, side, s) {
+  sets(seg : SplineSegment, v : SplineVertex, side : number, s : number) {
     if (v === seg.v1) {
       if (side) {
         this.start2 = s;
@@ -179,7 +221,7 @@ export class SplineDrawData extends CustomDataLayer {
     return this;
   }
 
-  getp(seg, v, side, dv_out) {
+  getp(seg : SplineSegment, v : SplineVertex, side : number, dv_out? : Vector2) {
     if (!(this.mask & this._getmask(seg, v, side))) {
       return seg.evaluateSide(this.gets(seg, v, side), side, dv_out);
     }
@@ -206,7 +248,7 @@ export class SplineDrawData extends CustomDataLayer {
     }
   }
 
-  _getmask(seg, v, side) {
+  _getmask(seg : SplineSegment, v : SplineVertex, side : number) {
     if (v === seg.v1) {
       if (side) {
         return 1;
@@ -222,11 +264,11 @@ export class SplineDrawData extends CustomDataLayer {
     }
   }
 
-  hasp(seg, v, side) {
+  hasp(seg : SplineSegment, v : SplineVertex, side : number) {
     return this.mask & this._getmask(seg, v, side);
   }
 
-  setp(seg, v, side, p) {
+  setp(seg : SplineSegment, v : SplineVertex, side : number, p : Vector2 | undefined) {
     if (!p) {
       this.mask &= ~this._getmask(seg, v, side);
       return;
@@ -252,7 +294,7 @@ export class SplineDrawData extends CustomDataLayer {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : StructReader<this>) {
     //handle change of start/end properties to methods
     let start = this.start;
     let end = this.end;
@@ -289,15 +331,40 @@ SplineDrawData.STRUCT = nstructjs.inherit(SplineDrawData, CustomDataLayer) + `
 }
 `;
 
+/* Turns a spline's drawlist into vectordraw paths, one path per element, and
+   keeps them alive between frames so an unchanged element is never rebuilt.
+
+   `used_paths` is the set of path ids touched this frame; anything in the
+   backend's id map that is missing from it gets dropped at the end of
+   update(). */
 export class SplineDrawer {
-  used_paths: Object
+  spline : Spline;
+  drawer : VDCanvas;
+  used_paths : {[id : number] : number};
   recalc_all: boolean;
   last_totvert: number;
   last_totseg: number;
   last_totface: number;
   strokeDebug: boolean;
 
-  constructor(spline, drawer = new Canvas()) {
+  drawlist : DrawListItem[];
+  drawlist_layerids : number[];
+  draw_faces : boolean;
+  do_blur : boolean;
+  only_render : boolean;
+  last_zoom : number;
+  last_selectmode : number;
+
+  /* Write-only: every one of these is reset to undefined at the top of each
+     update() and never read again. */
+  last_3_mat : Matrix4;
+  last_stroke_z : number;
+  last_stroke_eid : number;
+  last_layer_id : number;
+  last_stroke_stringid : string;
+  last_stroke_mat : Material;
+
+  constructor(spline : Spline, drawer : VDCanvas = new Canvas()) {
     this.strokeDebug = false;
     this.spline = spline;
     this.used_paths = {};
@@ -322,7 +389,7 @@ export class SplineDrawer {
     this.last_stroke_stringid = undefined;
   }
 
-  setDrawer(drawer) {
+  setDrawer(drawer : VDCanvas) {
     this.used_paths = {}
 
     for (let k in this.drawer.path_idmap) {
@@ -343,7 +410,10 @@ export class SplineDrawer {
     this.drawer = drawer;
   }
 
-  update_vertex_join(seg, v, drawparams) {
+  /* Fills the wedge between a segment's two stroke sides at `v`, so a
+     many-valence vertex does not show a gap where the strokes were trimmed
+     back. */
+  update_vertex_join(seg : SplineSegment, v : SplineVertex, drawparams : DrawParams) {
     let z = drawparams.z;
     let id = seg.eid | (v === seg.v1 ? (1<<17) : (1<<18));
     let id2 = id | (1<<19);
@@ -505,8 +575,13 @@ export class SplineDrawer {
 
   }
 
-  fastDraw(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor,
-           ignore_layers) {
+  /* The window.DEBUG.fastDrawMode path: centre lines only, no joins, no trims
+     and no faces.  `zoom` is overwritten from the matrix on entry, and
+     `ignore_layers` is not read. */
+  fastDraw(spline : Spline, drawlist : DrawListItem[], drawlist_layerids : number[],
+           matrix : Matrix4, redraw_rects : number[], only_render : boolean,
+           selectmode : number, master_g : Canvas2D, zoom : number,
+           editor : View2DHandler, ignore_layers? : boolean) {
     //console.log("SPLINEDRAW_NEW UPDATE!", drawlist.length);
     if (!spline.segments.cdata.has_layer("drawdata")) {
       spline.segments.cdata.add_layer(SplineDrawData);
@@ -665,8 +740,16 @@ export class SplineDrawer {
     }
   }
 
-  update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render,
-         selectmode, master_g, zoom, editor, ignore_layers, draw_stroke_debug) {
+  /* Rebuilds every path whose element changed since the last frame.  Vertices
+     are trimmed first (update_vertex_strokes), then each drawlist entry is
+     stroked or filled, then untouched paths are dropped.
+
+     `zoom` is overwritten from the matrix on entry. */
+  update(spline : Spline, drawlist : DrawListItem[], drawlist_layerids : number[],
+         matrix : Matrix4, redraw_rects : number[], only_render : boolean,
+         selectmode : number, master_g : Canvas2D, zoom : number,
+         editor : View2DHandler, ignore_layers? : boolean,
+         draw_stroke_debug? : boolean) {
     //console.warn("SPLINEDRAW_NEW UPDATE!", drawlist.length);
 
     this.strokeDebug = draw_stroke_debug;
@@ -795,7 +878,7 @@ export class SplineDrawer {
     let drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
       selectmode, zoom, undefined, off, spline, drawlist);
 
-    let vset = new set();
+    let vset = new set<SplineVertex>();
 
     for (let e of drawlist) {
       if (e instanceof SplineStrokeGroup) {
@@ -926,9 +1009,9 @@ export class SplineDrawer {
     //}
   }
 
-  get_path(id, z, check_z = true) {
+  get_path(id : number, z : number, check_z = true) {
     this.used_paths[id] = 1;
-    let path;
+    let path : VDPath;
 
     if (!this.has_path(id, z, check_z)) {
       path = this.drawer.get_path(id, z, check_z);
@@ -940,17 +1023,26 @@ export class SplineDrawer {
     return path;
   }
 
-  has_path(id, z, check_z = true) {
+  has_path(id : number, z : number, check_z = true) {
     this.used_paths[id] = 1;
 
     return this.drawer.has_path(id, z, check_z);
   }
 
-  update_stroke_group(g, drawparams, redraw) {
+  /* Strokes a whole run of segments into one path, walking the run from one
+     end to the other and back so the outline closes.  `path2` carries the
+     optional second (outline) stroke.
+
+     `redraw` arrives as a bitmask from update(), hence the number. */
+  update_stroke_group(g : SplineStrokeGroup, drawparams : DrawParams,
+                      redraw : boolean | number) {
     let id2 = g.id | (1<<20);
     let z = drawparams.z;
 
-    let dpath, dpath2, dpath3, dpoint, dline;
+    let dpath : VDPath, dpath2 : VDPath, dpath3 : VDPath;
+    let dpoint : (x : number, y : number, w? : number, dp? : VDPath) => void;
+    let dline : (x1 : number, y1 : number, x2 : number, y2 : number, w? : number,
+                 dp? : VDPath) => void;
     const debug = this.strokeDebug;
 
     //we put this before the branch below to avoid auto-deleting
@@ -970,7 +1062,7 @@ export class SplineDrawer {
       dpath2.color = [0.25, 0.65, 1.0, 0.9];
       dpath3.color = [0.5, 1.0, 0.5, 0.9];
 
-      dpoint = (x, y, w = 4, dp = dpath) => {
+      dpoint = (x : number, y : number, w = 4, dp = dpath) => {
         w *= 0.5;
 
         dp.moveTo(x - w, y - w);
@@ -980,7 +1072,8 @@ export class SplineDrawer {
         dp.lineTo(x - w, y - w);
       }
 
-      dline = (x1, y1, x2, y2, w = 0.5, dp = dpath) => {
+      dline = (x1 : number, y1 : number, x2 : number, y2 : number, w = 0.5,
+               dp = dpath) => {
         let dx = y1 - y2, dy = x2 - x1;
         let l = Math.sqrt(dx*dx + dy*dy);
         l = 0.5*w/l;
@@ -1023,7 +1116,7 @@ export class SplineDrawer {
       return;
     }
 
-    let startv;
+    let startv : SplineVertex;
     let seg = g.segments[0];
     let seg2 = g.segments[1];
 
@@ -1244,10 +1337,13 @@ export class SplineDrawer {
     //path.lineTo(firstp[0], firstp[1]);
   }
 
-  addClipPathsToStrokeGroup(g, drawparams, path) {
-    let fs = new Set();
+  /* Clips the group's stroke against every face it is masked to, so a stroke
+     flagged MASK_TO_FACE cannot bleed outside the fill it belongs to. */
+  addClipPathsToStrokeGroup(g : SplineStrokeGroup, drawparams : DrawParams,
+                            path : VDPath) {
+    let fs = new Set<SplineFace>();
     let z = drawparams.z;
-    let fz;
+    let fz : number;
 
     for (let seg of g.segments) {
       if (!(seg.flag & SplineFlags.NO_RENDER) && (seg.mat.flag & MaterialFlags.MASK_TO_FACE)) {
@@ -1287,7 +1383,10 @@ export class SplineDrawer {
 
   }
 
-  update_stroke_points(v) {
+  /* Sets the explicit mitre points at `v` for the two-segment case: where the
+     two strokes' outer edges actually cross.  Higher valences fall through to
+     the plain trim set by update_vertex_strokes(). */
+  update_stroke_points(v : SplineVertex) {
     if (v.segments.length === 2 && !(v.flag & SplineFlags.BREAK_TANGENTS)) {
       return;
     }
@@ -1427,6 +1526,9 @@ export class SplineDrawer {
         d2a.add(na);
         d2b.add(nb);
 
+        /* NOTE: `r` starts as line_isect()'s [point, status] pair and is then
+           overwritten with the point itself (or with `v` when the lines are
+           colinear).  Left unannotated so inference keeps the union honest. */
         if (doIsect1) {
           let r = line_isect(pb, d0b, sb, d1b);
           if (r[1] === COLINEAR) {
@@ -1460,6 +1562,8 @@ export class SplineDrawer {
         pa.interp(sa, 0.5);
         nb.interp(sb, 0.5);
 
+        /* NOTE: `debug` is not in scope here -- this branch is dead (`else if
+           (0)`), so the ReferenceError never fires. */
         if (debug) {
           //dline(sa[0], sa[1], pa[0], pa[1], 4);
           //dline(sb[0], sb[1], nb[0], nb[1], 4);
@@ -1478,7 +1582,10 @@ export class SplineDrawer {
     }
   }
 
-  update_vertex_strokes(v: SplineVertex, drawparams) {
+  /* Trims every stroke meeting at `v` back far enough that none of them
+     overlaps another, by bisecting on the trim distance until the outlines stop
+     intersecting, then hands off to update_stroke_points(). */
+  update_vertex_strokes(v : SplineVertex, drawparams : DrawParams) {
     if (v.segments.length === 0 || !FANCY_JOINS) {
       return;
     }
@@ -1496,7 +1603,10 @@ export class SplineDrawer {
     let startv = v;
 
     let debug = this.strokeDebug;
-    let dpath, dpath2, dpath3, dpoint, dline;
+    let dpath : VDPath, dpath2 : VDPath, dpath3 : VDPath;
+    let dpoint : (x : number, y : number, w? : number, dp? : VDPath) => void;
+    let dline : (x1 : number, y1 : number, x2 : number, y2 : number, w? : number,
+                 dp? : VDPath) => void;
 
     if (debug) {
       let eid = v.eid;
@@ -1514,7 +1624,7 @@ export class SplineDrawer {
       dpath2.reset();
       dpath3.reset();
 
-      dpoint = (x, y, w = 4, dp = dpath) => {
+      dpoint = (x : number, y : number, w = 4, dp = dpath) => {
         w *= 0.5;
 
         dp.moveTo(x - w, y - w);
@@ -1524,7 +1634,8 @@ export class SplineDrawer {
         dp.lineTo(x - w, y - w);
       }
 
-      dline = (x1, y1, x2, y2, w = 0.5, dp = dpath) => {
+      dline = (x1 : number, y1 : number, x2 : number, y2 : number, w = 0.5,
+               dp = dpath) => {
         let dx = y1 - y2, dy = x2 - x1;
         let l = Math.sqrt(dx*dx + dy*dy);
         l = 0.5*w/l;
@@ -1644,7 +1755,7 @@ export class SplineDrawer {
       }
     }
 
-    let setSegments = (s) => {
+    let setSegments = (s : number) => {
       //s = Math.floor(s*8.0)/8.0;
       for (let seg of segments) {
         let data = seg.cdata.get_layer(SplineDrawData);
@@ -1702,8 +1813,10 @@ export class SplineDrawer {
     this.update_stroke_points(startv);
   }
 
-  _sortSegments(v) {
-    let segments = ([]).concat(v.segments);
+  /* `v`'s segments in angular order around it, tagged with whether they span
+     less than a full turn (a "bad corner"). */
+  _sortSegments(v : SplineVertex) : SortedSegments {
+    let segments : SortedSegments = ([]).concat(v.segments);
 
     segments.sort((a, b) => {
       let dx1 = a.other_vert(v)[0] - v[0];
@@ -1783,7 +1896,7 @@ export class SplineDrawer {
       let ds = (ends - starts)/(steps - 1);
 
       let s = starts;
-      let lastco = undefined;
+      let lastco : Vector2 | undefined = undefined;
 
       let path = side ? path1 : path2;
 
@@ -1803,7 +1916,12 @@ export class SplineDrawer {
     }
   }
 
-  update_polygon_color(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
+  /* Recolours an already-built face path in place -- selection tint when the
+     face is pickable, its own fill colour otherwise. */
+  update_polygon_color(f : SplineFace, redraw_rects : number[], actlayer : SplineLayer,
+                       only_render : boolean, selectmode : number, zoom : number,
+                       z : number, off : Vector2, spline : Spline,
+                       ignore_layers? : boolean) {
     if (!this.has_path(f.eid, z)) {
       return;
     }
@@ -1851,8 +1969,13 @@ export class SplineDrawer {
     }
   }
 
-  update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
-    let path;
+  /* Builds the face's outline as a cubic path, one bezier per sample of each
+     boundary segment, then colours it. */
+  update_polygon(f : SplineFace, redraw_rects : number[], actlayer : SplineLayer,
+                 only_render : boolean, selectmode : number, zoom : number,
+                 z : number, off : Vector2, spline : Spline,
+                 ignore_layers? : boolean) {
+    let path : VDPath;
 
     if (this.has_path(f.eid, z) && !(f.flag & SplineFlags.REDRAW)) {
       path = this.get_path(f.eid, z);
@@ -1932,7 +2055,7 @@ export class SplineDrawer {
     return path;
   }
 
-  draw(g) {
+  draw(g : Canvas2D) {
     return this.drawer.draw(g);
     /*
         this.canvas = canvas;
@@ -1953,6 +2076,11 @@ export class SplineDrawer {
           path.draw(this);
         }*/
   }
+}
+
+/* _sortSegments() tags its result; the array never leaves this file. */
+interface SortedSegments extends Array<SplineSegment> {
+  bad_corner? : boolean;
 }
 
 window._SplineDrawer = SplineDrawer;

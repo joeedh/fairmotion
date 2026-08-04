@@ -7,6 +7,18 @@
 
 import {dist_to_line_v2} from '../../util/mathlib.js';
 import * as config from '../../config/config.js';
+import type {FullContext} from '../../core/context.js';
+import type {View2DHandler} from './view2d.js';
+import type {NodeBase} from '../../core/eventdag.js';
+
+/* A ToolOp subclass that knows how to build its own manipulator; the manager
+   only ever touches this one static. */
+export type WidgetToolOpClass = {
+  create_widgets(manager : ManipulatorManager, ctx : FullContext) : Manipulator;
+};
+
+/* One rect the compositor has to repaint: [x, y, width, height]. */
+export type RenderRect = number[];
 
 export let ManipFlags = {};
 
@@ -27,7 +39,16 @@ export let HandleColors = {
 var _mh_idgen = 1;
 
 export class HandleBase {
-  on_click(e, view2d, id) {
+  /* Identifies the handle to the on_click callback the toolop installs. */
+  id : string | number;
+  _hid : number;
+  /* rgba, 0..1. */
+  color : number[];
+  parent : Manipulator;
+  /* Extra px added around the handle's aabb when asking for a redraw. */
+  _redraw_pad : number;
+
+  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
 
   }
 
@@ -41,7 +62,7 @@ export class HandleBase {
     this.update();
   }
 
-  distanceTo(p) {
+  distanceTo(p : number[]) {
     throw new Error("unimplemented distanceTo");
   }
 
@@ -53,12 +74,12 @@ export class HandleBase {
     throw new Error("unimplemented keystr");
   }
 
-  get_render_rects(ctx, canvas, g) {
+  get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
     throw new Error("unimplemented get_render_rects");
   }
 
 
-  render(canvas, g) {
+  render(canvas : HTMLCanvasElement, g : Canvas2D) {
     throw new Error("unimplemented render");
   }
 
@@ -75,8 +96,16 @@ export class ManipHandle extends HandleBase {
   linewidth: number
   _min: Vector2
   _max: Vector2;
+  /* A HandleShapes value. */
+  shape: number
+  /* Both are relative to the owning manipulator's `co`, and the toolop that
+     built the handle writes into them in place. */
+  v1: Vector2
+  v2: Vector2;
 
-  constructor(v1: Vector3, v2: Vector3, id: Object, shape: int, view2d: View2DHandler, clr: Array<float>) {
+  /* NOTE: `view2d` is never stored or used, here or in ManipCircle. */
+  constructor(v1: Vector2, v2: Vector2, id: string | number, shape: number,
+              view2d: View2DHandler, clr? : number[]) {
     super();
 
     this.id = id;
@@ -97,7 +126,7 @@ export class ManipHandle extends HandleBase {
     this._redraw_pad = this.linewidth;
   }
 
-  on_click(e, view2d, id) {
+  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
 
   }
 
@@ -111,7 +140,7 @@ export class ManipHandle extends HandleBase {
     this.update();
   }
 
-  distanceTo(p) {
+  distanceTo(p : number[]) {
     return dist_to_line_v2(p, this.v1, this.v2);
   }
 
@@ -158,11 +187,13 @@ export class ManipHandle extends HandleBase {
     window.redraw_viewport(min, max);
   }
 
+  /* NOTE: `.toString` is not called, here or in ManipCircle/Manipulator, so
+     every key is the same long function source rather than the id. */
   [Symbol.keystr]() {
     return "MH" + this._hid.toString;
   }
 
-  get_render_rects(ctx, canvas, g) {
+  get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
     let p = this._redraw_pad;
 
     this.update_aabb();
@@ -172,7 +203,7 @@ export class ManipHandle extends HandleBase {
   }
 
 
-  render(canvas, g) {
+  render(canvas : HTMLCanvasElement, g : Canvas2D) {
     let c = this.color;
     let style = "rgba(" + (~~(c[0]*255)) + "," + (~~(c[1]*255)) + "," + (~~(c[2]*255)) + "," + c[3] + ")";
 
@@ -240,8 +271,11 @@ export class ManipCircle extends HandleBase {
   linewidth: number
   _min: Vector2
   _max: Vector2;
+  /* Radius, in the manipulator's local space. */
+  r: number;
 
-  constructor(p: Vector2, r: Number, id: Object, view2d: View2DHandler, clr: Array<float>) {
+  constructor(p: Vector2 | number[], r: number, id: string | number,
+              view2d: View2DHandler, clr? : number[]) {
     super();
 
     this.id = id;
@@ -261,7 +295,7 @@ export class ManipCircle extends HandleBase {
     this._redraw_pad = this.linewidth;
   }
 
-  on_click(e, view2d, id) {
+  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
 
   }
 
@@ -275,7 +309,7 @@ export class ManipCircle extends HandleBase {
     this.update();
   }
 
-  distanceTo(p) {
+  distanceTo(p : number[]) {
     let dx = this.p[0] - p[0];
     let dy = this.p[1] - p[1];
     let dis = dx*dx + dy*dy;
@@ -321,7 +355,7 @@ export class ManipCircle extends HandleBase {
     return "MC" + this._hid.toString;
   }
 
-  get_render_rects(ctx, canvas, g) {
+  get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
     let p = this._redraw_pad;
 
     this.update_aabb();
@@ -331,7 +365,7 @@ export class ManipCircle extends HandleBase {
   }
 
 
-  render(canvas, g) {
+  render(canvas : HTMLCanvasElement, g : Canvas2D) {
     let c = this.color;
     let style = "rgba(" + (~~(c[0]*255)) + "," + (~~(c[1]*255)) + "," + (~~(c[2]*255)) + "," + c[3] + ")";
 
@@ -354,6 +388,9 @@ export class ManipCircle extends HandleBase {
 var _mh_idgen_2 = 1;
 var _mp_first = true;
 
+/* NOTE: outline(), arrow() and circle() all pass `this.view3d`, which nothing
+   in this file ever assigns -- the handles are built with an undefined
+   view2d.  (Harmless today: the constructors ignore it.) */
 export class Manipulator {
   recalc: number
   handle_size: number
@@ -361,7 +398,22 @@ export class Manipulator {
   hidden: boolean;
   dead: boolean;
 
-  constructor(handles: Array<Array<ManipHandle>>, ctx : FullContext) {
+  _hid: number
+  handles: HandleBase[]
+  parent: ManipulatorManager
+  /* Free slot for the toolop that built this widget; nothing in this file
+     reads it. */
+  user_data: object | undefined
+  ctx: FullContext
+  /* The event-dag node that ticks this manipulator once per redraw. */
+  _node: NodeBase
+  /* The toolop class this widget drives, used by the manager to tell whether
+     the right widget is already up. */
+  toolop_class: WidgetToolOpClass
+  /* The handle the mouse is currently over. */
+  active: HandleBase | undefined;
+
+  constructor(handles: HandleBase[], ctx : FullContext) {
     this._hid = _mh_idgen_2++;
     this.handles = handles.slice(0, handles.length); //copy handles
     this.recalc = 1;
@@ -396,7 +448,7 @@ export class Manipulator {
     }
   }
 
-  dag_exec(ctx, inputs, outputs, graph) {
+  dag_exec(ctx : FullContext, inputs, outputs, graph) {
     if (this.dead || this.hidden) {
       the_global_dag.remove(this);
       window.redraw_viewport();
@@ -406,7 +458,7 @@ export class Manipulator {
     this.on_tick(ctx);
   }
 
-  checkDagLink(ctx) {
+  checkDagLink(ctx : FullContext) {
     if (!window.the_global_dag.has(this)) {
       console.warn("MAKING DAG CONNECTION", this);
 
@@ -456,7 +508,7 @@ export class Manipulator {
     }
   }
 
-  on_tick(ctx) {
+  on_tick(ctx : FullContext) {
     this.checkDagLink(ctx);
   }
 
@@ -469,7 +521,7 @@ export class Manipulator {
     this.parent.remove(this);
   }
 
-  get_render_rects(ctx, canvas, g) {
+  get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
     let rects = [];
 
     if (this.hidden) {
@@ -491,7 +543,7 @@ export class Manipulator {
     return rects;
   }
 
-  render(canvas, g) {
+  render(canvas : HTMLCanvasElement, g : Canvas2D) {
     if (this.hidden) {
       return;
     }
@@ -505,7 +557,8 @@ export class Manipulator {
     }
   }
 
-  outline(min, max, id, clr = [0, 0, 0, 1.0]) {
+  outline(min : Vector2 | number[], max : Vector2 | number[],
+          id : string | number, clr : number[] = [0, 0, 0, 1.0]) {
     min = new Vector2(min);
     max = new Vector2(max);
 
@@ -519,7 +572,8 @@ export class Manipulator {
   }
 
   //make an arror in relative coordinates to this.co
-  arrow(v1, v2, id, clr = [0, 0, 0, 1.0]) {
+  arrow(v1 : Vector2 | number[], v2 : Vector2 | number[],
+        id : string | number, clr : number[] = [0, 0, 0, 1.0]) {
     v1 = new Vector2(v1);
     v2 = new Vector2(v2);
 
@@ -530,7 +584,8 @@ export class Manipulator {
     return h;
   }
 
-  circle(p, r, id, clr = [0, 0, 0, 1.0]) {
+  circle(p : Vector2 | number[], r : number, id : string | number,
+         clr : number[] = [0, 0, 0, 1.0]) {
     let h = new ManipCircle(new Vector2(p), r, id, this.view3d, clr);
 
     h.parent = this;
@@ -539,7 +594,7 @@ export class Manipulator {
     return h;
   }
 
-  findnearest(e) {
+  findnearest(e : MouseEvent) {
     let limit = config.MANIPULATOR_MOUSEOVER_LIMIT;
 
     let h = this.handles[0];
@@ -561,7 +616,7 @@ export class Manipulator {
     return minh;
   }
 
-  on_mousemove(e: MouseEvent, view2d: View2DHandler): Boolean {
+  on_mousemove(e: MouseEvent, view2d: View2DHandler): boolean {
     //console.log("handle", e.x.toFixed(3), e.y.toFixed(3), ":", (this.co[0]+h.v1[0]).toFixed(3), (this.co[1]+h.v1[1]).toFixed(3));
     let h = this.findnearest(e);
 
@@ -583,33 +638,36 @@ export class Manipulator {
   }
 
   /*returns true if handle hit*/
-  on_click(event: MouseEvent, view2d: View2DHandler): Boolean {
+  on_click(event: MouseEvent, view2d: View2DHandler) {
     return this.active !== undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
   }
 }
 
 /* Was `static` inside ManipulatorManager.get_render_rects(). */
-const _ManipulatorManager_get_render_rects_nil = [];
+const _ManipulatorManager_get_render_rects_nil : RenderRect[] = [];
 
 export class ManipulatorManager {
   view2d: View2DHandler
-  stack: array<Manipulator>
-  active: Manipulator;
+  /* Manipulators pushed under the active one; entries can be undefined,
+     because push() stores whatever `active` was. */
+  stack: (Manipulator | undefined)[]
+  active: Manipulator | undefined;
+  ctx: FullContext;
 
-  constructor(view2d, ctx) {
+  constructor(view2d : View2DHandler, ctx : FullContext) {
     this.view2d = view2d;
     this.ctx = ctx;
     this.stack = [];
     this.active = undefined;
   }
 
-  render(canvas, g) {
+  render(canvas : HTMLCanvasElement, g : Canvas2D) {
     if (this.active !== undefined) {
       this.active.render(canvas, g);
     }
   }
 
-  get_render_rects(ctx, canvas, g) {
+  get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
     const nil = _ManipulatorManager_get_render_rects_nil;
 
     if (this.active !== undefined) {
@@ -619,7 +677,7 @@ export class ManipulatorManager {
     }
   }
 
-  remove(mn) {
+  remove(mn : Manipulator) {
     mn.dead = true;
 
     if (mn === this.active) {
@@ -631,7 +689,7 @@ export class ManipulatorManager {
     window.redraw_viewport();
   }
 
-  push(mn) {
+  push(mn : Manipulator) {
     mn.dead = false;
     mn.parent = this;
     mn.ctx = this.ctx;
@@ -640,13 +698,13 @@ export class ManipulatorManager {
     this.active = mn;
   }
 
-  ensure_not_toolop(ctx, cls) {
+  ensure_not_toolop(ctx : FullContext, cls : WidgetToolOpClass) {
     if (this.active !== undefined && this.active.toolop_class === cls) {
       this.remove(this.active);
     }
   }
 
-  ensure_toolop(ctx, cls) {
+  ensure_toolop(ctx : FullContext, cls : WidgetToolOpClass) {
     if (this.active !== undefined && this.active.toolop_class === cls) {
       return this.active;
     }
@@ -661,6 +719,8 @@ export class ManipulatorManager {
     }
   }
 
+  /* NOTE: `ret` is never returned, so this pops without handing the caller
+     back what it popped. */
   pop() {
     let ret = this.active;
     this.active = this.stack.pop(-1);
@@ -670,7 +730,7 @@ export class ManipulatorManager {
     return this.active !== undefined ? this.active.on_mousemove(event, view2d) : undefined;
   }
 
-  on_click(event: MouseEvent, view2d: View2DHandler): Boolean {
+  on_click(event: MouseEvent, view2d: View2DHandler) {
     if (event.button === 1 || event.button === 2) {
       return;
     }
@@ -685,7 +745,7 @@ export class ManipulatorManager {
     return this.active.toolop_class;
   }
 
-  create(cls, do_push = true, ctx=this.ctx) {
+  create(cls : WidgetToolOpClass, do_push = true, ctx : FullContext = this.ctx) {
     let mn = new Manipulator([], ctx);
 
     mn.parent = this;
@@ -697,12 +757,15 @@ export class ManipulatorManager {
     return mn;
   }
 
-  on_tick(ctx) {
+  on_tick(ctx : FullContext) {
     if (this.active !== undefined && this.active.on_tick !== undefined)
       this.active.on_tick(ctx);
   }
 
-  circle(p, r, clr, do_push = true, ctx=this.ctx) {
+  /* NOTE: `id` is not a parameter and is not declared anywhere in this
+     module, so calling this throws ReferenceError. */
+  circle(p : Vector2 | number[], r : number, clr : number[], do_push = true,
+         ctx : FullContext = this.ctx) {
     let h = new ManipCircle(p, r, id, this.view3d, clr);
     let mn = new Manipulator([h], ctx);
     mn.parent = this;
@@ -714,7 +777,8 @@ export class ManipulatorManager {
     return mn;
   }
 
-  arrow(v1, v2, id, clr, do_push = true, ctx=this.ctx) {
+  arrow(v1 : Vector2 | number[], v2 : Vector2 | number[], id : string | number,
+        clr : number[], do_push = true, ctx : FullContext = this.ctx) {
     v1 = new Vector2(v1);
     v2 = new Vector2(v2);
 

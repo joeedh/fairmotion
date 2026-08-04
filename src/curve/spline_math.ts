@@ -22,7 +22,13 @@ import {DISABLE_SOLVE} from '../config/config.js';
 
 import * as native_api from '../wasm/native_api.js';
 
-export function do_solve() {
+import type {SplineSegment, SplineVertex} from './spline_types.js';
+import type {Spline} from './spline.js';
+
+/* Parameters are declared for the callers' sake; the body forwards whatever it
+   was actually handed through `arguments`. */
+export function do_solve(sflags : {[name : string] : number}, spline : Spline,
+                         steps : number, gk? : number, return_promise? : boolean) {
   if (DISABLE_SOLVE || window.DISABLE_SOLVE)
     return;
 
@@ -53,7 +59,15 @@ const eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 
 const eval_ret_vs = cachering.fromConstructor(Vector2, 256);
 
-export function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
+/* NOTE: native_api.evalCurve() takes six parameters, so the `angle_only` passed
+   below arrives as its `no_update` and this function's own `no_update` is
+   dropped. Left alone -- correcting the arity changes what the solver is told.
+   NOTE: the `no_update` branch reads `start[0]` before `start` is assigned, so
+   it throws. Nothing reaches it while the native path is available. */
+export function eval_curve(seg : SplineSegment, s : number,
+                           v1 : Vector2 | SplineVertex, v2 : Vector2 | SplineVertex,
+                           ks : Float64Array, order? : number,
+                           angle_only? : boolean, no_update? : boolean) {
   if (native_api.isReady() && !(window.DEBUG.no_native || window.DEBUG.no_nativeEval)) {
     return native_api.evalCurve(seg, s, v1, v2, ks, angle_only, no_update);
   }

@@ -2,6 +2,16 @@
 
 import {STRUCT} from './struct.js';
 
+import type {FullContext} from './context.js';
+import type {Brush} from '../brush/brush.js';
+import type {SplineFrameSet} from './frameset.js';
+import type {Image} from './imageblock.js';
+import type {Spline} from '../curve/spline.js';
+import type {ImageCanvas} from '../paint/imagecanvas.js';
+import type {Collection} from '../scene/collection.js';
+import type {Scene} from '../scene/scene.js';
+import type {SceneObject} from '../scene/sceneobject.js';
+
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.
 */
@@ -30,11 +40,12 @@ DataBlock refactor:
  - Add register static method
 */
 
-export const DataTypes = {};
-export const LinkOrder = [];
+/* Keyed by the upper-cased typeName from blockDefine(), e.g. DataTypes.SCENE. */
+export const DataTypes: {[typeName: string]: int} = {};
+export const LinkOrder: int[] = [];
 
 // DataNames maps integer data types to ui-friendly names, e.g. DataNames[0] == "Object"
-export const DataNames = {}
+export const DataNames: {[typeIndex: number]: string} = {}
 
 //other than SELECT, the first two bytes
 //of block.flag are reserved for exclusive
@@ -45,10 +56,34 @@ export var BlockFlags = {
   DELETED  : (1<<17)
 };
 
-export class DataRef extends Array {
+/*
+ * The two block-lookup callbacks every data_link() is handed, built by
+ * wrap_getblock()/wrap_getblock_us() in lib_utils.ts. The _us variant also
+ * registers `block` as a user of what it resolved, so refcounts survive a
+ * load; rem_func runs when that user later unlinks.
+ */
+export type GetBlockFunc = (dataref?: DataRef) => DataBlock | undefined;
+export type GetBlockUserFunc = (
+  dataref: DataRef | undefined,
+  block: DataBlock,
+  fieldname: string,
+  add_user?: boolean,
+  refname?: string,
+  rem_func?: () => void
+) => DataBlock | undefined;
+
+/*
+ * A [lib_id, library_id] pair, stored as a two-element array so the `dataref`
+ * STRUCT type can write it positionally. library_id is -1 for the local
+ * library, which is the only one that exists -- lib linking was never
+ * finished.
+ */
+export class DataRef extends Array<int> {
+  static STRUCT: string;
+
   length: number;
 
-  constructor(block_or_id, lib = undefined) {
+  constructor(block_or_id?: DataBlock | DataRef | int[] | int, lib: DataLib | int | undefined = undefined) {
     super(2);
     this.length = 2;
 
@@ -72,7 +107,9 @@ export class DataRef extends Array {
     }
   }
 
-  static fromBlock(obj: DataBlock) {
+  /* Tolerant of everything a block reference is spelled as in old files: a
+     block, an already-built ref, a bare id, or nothing at all. */
+  static fromBlock(obj?: DataBlock | DataRef | int) {
     let ret = new DataRef();
 
     if (!obj) {
@@ -109,29 +146,29 @@ export class DataRef extends Array {
     return this.copyTo(new DataRef());
   }
 
-  get id() {
+  get id(): int {
     return this[0];
   }
 
-  set id(id) {
+  set id(id: int) {
     this[0] = id;
   }
 
-  get lib() {
+  get lib(): int {
     return this[1];
   }
 
-  set lib(lib) {
+  set lib(lib: int) {
     this[1] = lib;
   }
 
-  equals(b) {
+  equals(b?: DataRef) {
     //XXX we don't compare library id's
     //since lib linking is unimplemented/
     return b !== undefined && b[0] === this[0];
   }
 
-  static fromSTRUCT(reader: Function) {
+  static fromSTRUCT(reader: StructReader<DataRef>) {
     var ret = new DataRef(0);
 
     reader(ret);
@@ -153,7 +190,10 @@ DataRef.STRUCT = `
   }
 `;
 
+/* Same payload as DataRef, registered under the lower-case `dataref` struct
+   name that the auto-generated block references use. */
 export class DataRefCompat extends DataRef {
+  static STRUCT: string;
 }
 
 DataRefCompat.STRUCT = `
@@ -164,12 +204,17 @@ dataref {
 `;
 window.__dataref = DataRefCompat;
 
-export class DataList<T> {
-  list: GArray
-  namemap: Object
-  idmap: Object;
+/* All the blocks of one type in a DataLib, plus that type's active block. */
+export class DataList<T extends DataBlock = DataBlock> {
+  list: GArray;
+  namemap: {[name: string]: T};
+  idmap: {[lib_id: number]: T};
+  type: int;
+  active?: T;
 
-  [Symbol.keystr](): String {
+  /* hashtable keys the datalists by this. It returns the type integer rather
+     than a string; the key is stringified on the way into the table anyway. */
+  [Symbol.keystr](): int {
     return this.type;
   }
 
@@ -183,23 +228,23 @@ export class DataList<T> {
     this.active = undefined;
   }
 
-  [Symbol.iterator](): GArrayIter {
+  [Symbol.iterator](): GArrayIter<T> {
     return this.list[Symbol.iterator]();
   }
 
-  remove(block: DataBlock) {
+  remove(block: T) {
     this.list.remove(block);
 
     if (block.name !== undefined && this.namemap[block.name] === block)
       delete this.namemap[block.name];
 
-    delete this.idmap[block];
+    delete this.idmap[block.lib_id];
 
     block.on_destroy();
     block.on_remove();
   }
 
-  get(id: int) {
+  get(id: int | DataRef): T {
     if (id instanceof DataRef)
       id = id.id;
 
@@ -208,14 +253,34 @@ export class DataList<T> {
 }
 
 export class DataLib {
-  id: number
-  datalists: hashtable
-  idmap: Object
+  static STRUCT: string;
+
+  /* Always 0. Non-local libraries were never implemented. */
+  id: number;
+  /* typeIndex -> DataList. Keyed by DataList[Symbol.keystr](), which is the
+     type integer. */
+  datalists: hashtable;
+  idmap: {[lib_id: number]: DataBlock};
   idgen: EIDGen;
   lib_anim_idgen: EIDGen;
 
-  scenes: array<Scene>;
-  splines: array<Spline>;
+  /* Set once on_destroy() has run, so a second call can warn instead of
+     re-running every block's teardown. Cleared back to undefined by clear(). */
+  _destroyed?: boolean;
+
+  /*
+   * One accessor per registered DataBlock subclass, installed by the
+   * constructor from blockDefine().accessorName. They are plain getters onto
+   * get_datalist(), so `datalib.scenes` is the DataList, not an array.
+   */
+  brushes: DataList<Brush>;
+  collections: DataList<Collection>;
+  framesets: DataList<SplineFrameSet>;
+  image_canvas: DataList<ImageCanvas>;
+  images: DataList<Image>;
+  object: DataList<SceneObject>;
+  scenes: DataList<Scene>;
+  splines: DataList<Spline>;
 
   constructor() {
     this.id = 0;
@@ -227,7 +292,7 @@ export class DataLib {
 
     for (let cls of BlockClasses) {
       let def = cls.blockDefine();
-      let name = this.constructor.getAccessorKey(cls);
+      let name = DataLib.getAccessorKey(cls);
 
       let typeId = def.typeIndex;
 
@@ -245,7 +310,7 @@ export class DataLib {
     }
   }
 
-  static getAccessorKey(cls) {
+  static getAccessorKey(cls: DataBlockClass) {
     let def = cls.blockDefine();
 
     return def.accessorName || def.typeName.toLowerCase();
@@ -262,12 +327,12 @@ export class DataLib {
     return this;
   }
 
-  get allBlocks() {
+  get allBlocks(): Generator<DataBlock> {
     let this2 = this;
 
     return (function* () {
       for (let k of this2.datalists) {
-        let list = this2.datalists.get(k);
+        let list: DataList = this2.datalists.get(k);
 
         for (let block of list) {
           yield block;
@@ -285,7 +350,7 @@ export class DataLib {
     this._destroyed = true;
 
     for (var k of this.datalists) {
-      var l = this.datalists.get(k);
+      var l: DataList = this.datalists.get(k);
 
       for (var block of l) {
         try {
@@ -299,7 +364,7 @@ export class DataLib {
   }
 
   get_datalist(typeid: int): DataList {
-    var dl;
+    var dl: DataList;
 
     if (!this.datalists.has(typeid)) {
       dl = new DataList(typeid);
@@ -316,17 +381,17 @@ export class DataLib {
   kill_datablock(block: DataBlock) {
     block.unlink();
 
-    var list = this.datalists.get(block.lib_type);
+    var list: DataList = this.datalists.get(block.lib_type);
     list.remove(block);
 
     block.lib_flag |= BlockFlags.DELETED;
   }
 
-  search(type: int, prefix: string): GArray<DataBlock> {
+  search(type: int, prefix: string): GArray {
     //this is what red-black trees are for.
     //oh well.
 
-    var list = this.datalists.get(type);
+    var list: DataList = this.datalists.get(type);
     var ret = new GArray();
 
     prefix = prefix.toLowerCase();
@@ -350,7 +415,7 @@ export class DataLib {
       this.datalists.set(block.lib_type, new DataList(block.lib_type));
     }
 
-    var list = this.datalists.get(block.lib_type);
+    var list: DataList = this.datalists.get(block.lib_type);
     if (!(name in list.namemap)) {
       return name;
     }
@@ -385,7 +450,7 @@ export class DataLib {
     return name;
   }
 
-  add(block: DataBlock, set_id: Boolean) {
+  add(block: DataBlock, set_id?: boolean) {
     if (set_id === undefined)
       set_id = true;
 
@@ -405,7 +470,7 @@ export class DataLib {
       this.datalists.set(block.lib_type, new DataList(block.lib_type));
     }
 
-    var dl = this.datalists.get(block.lib_type);
+    var dl: DataList = this.datalists.get(block.lib_type);
     if (dl.active === undefined)
       dl.active = block;
 
@@ -417,9 +482,9 @@ export class DataLib {
     block.on_add(this);
   }
 
-  get_active(data_type: int) {
+  get_active(data_type: int): DataBlock | undefined {
     if (this.datalists.has(data_type)) {
-      var lst = this.datalists.get(data_type);
+      var lst: DataList = this.datalists.get(data_type);
 
       //we don't allow undefined active blocks
       if (lst.active === undefined && lst.list.length !== 0) {
@@ -429,13 +494,13 @@ export class DataLib {
         lst.active = lst.list[0];
       }
 
-      return this.datalists.get(data_type).active;
+      return lst.active;
     } else {
       return undefined;
     }
   }
 
-  get(id: DataRef) {
+  get(id: DataRef | int): DataBlock {
     if (id instanceof DataRef)
       id = id.id;
 
@@ -450,10 +515,19 @@ DataLib {
 }
 `
 
+/*
+ * One entry in a block's lib_users list: who holds the reference, and what to
+ * call when it goes away. The zero initializers are placeholders -- .user is
+ * always overwritten with an object and .rem_func with a function.
+ */
 export class UserRef {
-  user: number
-  rem_func: number
+  user: object | number;
+  rem_func: ((user: object, block: DataBlock) => void) | number;
   srcname: string;
+  /* lib_adduser() writes the reference name here, but lib_remuser() matches on
+     .srcname. See docs/debugging.md; left as-is because fixing it changes when
+     users are dropped. */
+  name?: string;
 
   constructor() {
     this.user = 0;
@@ -462,8 +536,31 @@ export class UserRef {
   }
 }
 
-export const BlockClasses = [];
-export const BlockTypeMap = {}
+/* What every DataBlock subclass's static blockDefine() returns. typeIndex is
+   the on-disk type tag and must never be reused; the rest is presentation. */
+export interface BlockDefine {
+  typeName: string;
+  defaultName: string;
+  uiName: string;
+  typeIndex: int;
+  /* Name of the DataLib accessor, defaulting to typeName.toLowerCase(). */
+  accessorName?: string;
+  flag?: int;
+  icon?: int;
+  /* Position in the file-load link order; defaults to 10000. */
+  linkOrder?: int;
+}
+
+/* A registered DataBlock subclass. The constructor signature varies per
+   subclass, hence never[]. */
+export interface DataBlockClass {
+  new (...args: never[]): DataBlock;
+  blockDefine(): BlockDefine;
+  STRUCT?: string;
+}
+
+export const BlockClasses: DataBlockClass[] = [];
+export const BlockTypeMap: {[typeIndex: number]: DataBlockClass} = {}
 
 /*
 ADDON: 8
@@ -484,12 +581,12 @@ function regenLinkOrder() {
     LinkOrder.push(i);
   }
 
-  LinkOrder.sort((a, b) => {
-    a = BlockClasses[a].blockDefine();
-    b = BlockClasses[b].blockDefine();
+  LinkOrder.sort((ia, ib) => {
+    let da = BlockClasses[ia].blockDefine();
+    let db = BlockClasses[ib].blockDefine();
 
-    a = a.linkOrder !== undefined ? a.linkOrder : 10000;
-    b = b.linkOrder !== undefined ? b.linkOrder : 10000;
+    let a = da.linkOrder !== undefined ? da.linkOrder : 10000;
+    let b = db.linkOrder !== undefined ? db.linkOrder : 10000;
 
     return a - b;
   });
@@ -504,16 +601,31 @@ var _db_hash_id = 1;
 import {GraphNode, mixinGraphNode} from '../graph/graph.js';
 
 export class DataBlock {
-  addon_data: Object
-  lib_anim_channels: GArray
-  lib_anim_idgen: EIDGen
-  lib_anim_idmap: Object
-  lib_anim_pathmap: Object
-  lib_users: GArray
-  lib_refs: number
+  static STRUCT: string;
+
+  /* Free-form per-addon storage. It is a plain map at runtime; loadSTRUCT()
+     converts the _DictKey array the file carries back into one. */
+  addon_data: {[key: string]: unknown};
+  lib_anim_channels: GArray;
+  /* Shared with the owning DataLib, and undefined until add() installs it. */
+  lib_anim_idgen: EIDGen;
+  lib_anim_idmap: {[id: number]: object};
+  lib_anim_pathmap: {[path: string]: object};
+  lib_users: GArray;
+  lib_refs: number;
   flag: number;
 
-  static blockDefine() {
+  name: string;
+  /* Process-unique counter, used only for [Symbol.keystr]. Not saved. */
+  _hash_id: int;
+  /* -1 until the block is added to a library. */
+  lib_id: int;
+  /* Which library the block came from. Always undefined -- lib linking was
+     never finished -- but the STRUCT script still reads .id off it. */
+  lib_lib?: DataLib;
+  lib_type: int;
+
+  static blockDefine(): BlockDefine {
     return {
       typeName    : "", //entries in DataTypes are upper-case versions of typeName
       defaultName : "",
@@ -526,7 +638,7 @@ export class DataBlock {
     }
   }
 
-  static register(cls) {
+  static register(cls: DataBlockClass) {
     if (cls.blockDefine === DataBlock.blockDefine) {
       throw new Error("Missing blockDefine");
     }
@@ -571,11 +683,14 @@ export class DataBlock {
     regenLinkOrder();
   }
 
+  /* Stamped onto the subclass by the constructor. Nothing reads it. */
+  static datablock_type: int;
+
   //type is an integer, name is a string
-  constructor(type: number, name: string) {
+  constructor(type?: number, name?: string) {
     if (type === undefined) {
-      type = this.constructor.blockDefine().typeName.toUpperCase();
-      type = DataTypes[type];
+      let key = this.constructor.blockDefine().typeName.toUpperCase();
+      type = DataTypes[key];
     }
 
     this.constructor.datablock_type = type;
@@ -620,10 +735,10 @@ export class DataBlock {
   copy() {
   }
 
-  copyTo(b) {
+  copyTo(b: DataBlock) {
   }
 
-  set_fake_user(val: Boolean) {
+  set_fake_user(val: boolean) {
     if ((this.flag & BlockFlags.FAKE_USER) && !val) {
       this.flag &= ~BlockFlags.FAKE_USER;
       this.lib_refs -= 1;
@@ -641,7 +756,7 @@ export class DataBlock {
   //
   //getblock_us does add a user reference automatically.
   //see _Lib_GetBlock and _Lib_GetBlock_us in lib_utils.js.
-  data_link(block, getblock, getblock_us) {
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     for (let ch of this.lib_anim_channels) {
       ch.idgen = this.lib_anim_idgen; //DataLib sets this for DataBlock
       ch.idmap = this.lib_anim_idmap;
@@ -666,7 +781,7 @@ export class DataBlock {
     return "DB" + this._hash_id;
   }
 
-  lib_adduser(user: Object, name: string, remfunc: Function) {
+  lib_adduser(user: object, name: string, remfunc?: (user: object, block: DataBlock) => void) {
     //remove_lib should be optional?
 
     var ref = new UserRef()
@@ -679,7 +794,7 @@ export class DataBlock {
     this.lib_refs++;
   }
 
-  lib_remuser(user: DataBlock, refname: string) {
+  lib_remuser(user: object, refname?: string) {
     var newusers = new GArray();
 
     for (var i = 0; i < this.lib_users.length; i++) {
@@ -712,10 +827,12 @@ export class DataBlock {
   afterSTRUCT() {
   }
 
-  loadSTRUCT(reader: Function) {
+  /* The file carries addon_data as an array of _DictKey; flatten it back into
+     the map the rest of the code expects. */
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
-    var map = {};
+    var map: {[key: string]: unknown} = {};
 
     if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
       this.addon_data = [];
@@ -730,8 +847,8 @@ export class DataBlock {
     return this;
   }
 
-  _addon_data_save(): Array<_DictKey> {
-    var ret = [];
+  _addon_data_save(): _DictKey[] {
+    var ret: _DictKey[] = [];
 
     if (this.addon_data === undefined) {
       return ret;
@@ -745,13 +862,20 @@ export class DataBlock {
   }
 }
 
+/* One addon_data entry, so the map can be written as an array. */
 export class _DictKey {
-  constructor(key: string, val: any) {
+  static STRUCT: string;
+
+  key: string;
+  /* Whatever the addon put there; nothing in-tree constrains it. */
+  val: unknown;
+
+  constructor(key?: string, val?: unknown) {
     this.key = key;
     this.val = val;
   }
 
-  static fromSTRUCT(reader: Function) {
+  static fromSTRUCT(reader: StructReader<_DictKey>) {
     let ret = new _DictKey();
     reader(ret);
     return ret;
@@ -787,11 +911,19 @@ import {ToolIter} from './toolprops_iter.js';
 
 export const NodeDataBlock = mixinGraphNode(DataBlock, "NodeDataBlock");
 
-export class DataRefListIter<T> extends ToolIter {
-  i: number
+/*
+ * Iterates a list of DataRefs, resolving each against the library only as it
+ * is reached -- the rule for tool-property iterators, which must not hold live
+ * block references between runs.
+ */
+export class DataRefListIter<T extends DataBlock = DataBlock> extends ToolIter {
+  lst: DataRef[];
+  datalib: DataLib;
+  ret: {done: boolean; value: T | undefined};
+  i: number;
   init: boolean;
 
-  constructor(lst: Array, ctx: Context) {
+  constructor(lst: DataRef[], ctx: FullContext) {
     super();
 
     this.lst = lst;
@@ -801,7 +933,7 @@ export class DataRefListIter<T> extends ToolIter {
     this.init = true;
   }
 
-  next(): IterRet<T> {
+  next(): {done: boolean; value: T | undefined} {
     if (this.init) {
       this.ret = cached_iret();
       this.init = false;

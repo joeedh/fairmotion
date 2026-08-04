@@ -2,8 +2,15 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
+import type {Container} from '../../path.ux/scripts/core/ui.js';
 
 export class OpStackEditor extends Editor {
+  static STRUCT : string;
+
+  /* "<undostack length>:<cur>", so update() can skip the rebuild. */
+  _last_toolstack_hash : string;
+  frame : Container;
+
   constructor() {
     super();
 

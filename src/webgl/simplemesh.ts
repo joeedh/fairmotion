@@ -7,6 +7,18 @@ import {Shaders, loadShader} from './shaders.js';
 //let Map = util.map;
 var RenderBuffer = webgl.RenderBuffer;
 
+/* Anything the geometry layers read component-wise. The path.ux vector classes
+   are Array subclasses, but they are not assignable to `number[]`, so every
+   accepted shape has to be spelled out. */
+export type VecData = Vector2 | Vector3 | Vector4 | number[] | Float32Array;
+
+/* What a layer's data is packed into once gen_buffers() converts it; which one
+   depends on the layer's glSize. */
+export type LayerTypedData = Float32Array | Int8Array | Uint8Array
+                           | Int16Array | Uint16Array | Int32Array | Uint32Array;
+
+type LayerTypedDataCtor = new (length : number) => LayerTypedData;
+
 export const PrimitiveTypes = {
   POINTS        : 1,
   LINES         : 2,
@@ -25,7 +37,7 @@ export const LayerTypes = {
   INDEX : 64
 }
 
-export const LayerTypeNames = {
+export const LayerTypeNames : {[type : number] : string} = {
   [LayerTypes.LOC]   : "position",
   [LayerTypes.UV]    : "uv",
   [LayerTypes.COLOR] : "color",
@@ -44,7 +56,8 @@ let _TypeSizes = {
   INDEX : 1
 };
 
-export const TypeSizes = {};
+/* Components per element, keyed both by LayerTypes value and by its name. */
+export const TypeSizes : {[key : string] : number} = {};
 
 for (var k in LayerTypes) {
   TypeSizes[LayerTypes[k]] = TypeSizes[k] = _TypeSizes[k];
@@ -61,7 +74,8 @@ let line2_stripuvs = [
   [1, 1],
 ];
 
-function appendvec(a, b, n, defaultval) {
+/* Dead; nothing in the tree calls this. */
+function appendvec(a : number[], b : VecData, n : number, defaultval? : number) {
   if (defaultval === undefined)
     defaultval = 0.0;
 
@@ -74,7 +88,8 @@ function appendvec(a, b, n, defaultval) {
 var _ids_arrs = [[0], [0], [0], [0]];
 let zero = new Vector3();
 
-function copyvec(a, b, starti, n, defaultval) {
+/* Dead; nothing in the tree calls this. */
+function copyvec(a : number[], b : VecData, starti : number, n : number, defaultval? : number) {
   if (defaultval === undefined)
     defaultval = 0.0;
 
@@ -85,19 +100,24 @@ function copyvec(a, b, starti, n, defaultval) {
 }
 
 export class TriEditor {
+  /* The island whose layers this editor writes into. */
+  mesh : SimpleIsland;
+  /* Index of the triangle being edited. */
+  i : number;
+
   constructor() {
     this.mesh = undefined;
     this.i = 0
   }
 
-  bind(mesh, i) {
+  bind(mesh : SimpleIsland, i : number) {
     this.mesh = mesh;
     this.i = i;
 
     return this;
   }
 
-  colors(c1, c2, c3) {
+  colors(c1 : VecData, c2 : VecData, c3 : VecData) {
     let data = this.mesh.tri_colors;
     let i = this.i*3; //*3 is because triangles have three vertices
 
@@ -108,7 +128,7 @@ export class TriEditor {
     return this;
   }
 
-  normals(n1, n2, n3) {
+  normals(n1 : VecData, n2 : VecData, n3 : VecData) {
     let data = this.mesh.tri_normals
 
     let i = this.i*3; //*3 is because triangles have three vertices
@@ -120,7 +140,7 @@ export class TriEditor {
     return this;
   }
 
-  custom(layeri, v1, v2, v3) {
+  custom(layeri : number, v1 : VecData, v2 : VecData, v3 : VecData) {
     let layer = this.mesh.layers.layers[layeri];
 
     let i = this.i*3;
@@ -131,7 +151,7 @@ export class TriEditor {
     return this;
   }
 
-  uvs(u1, u2, u3) {
+  uvs(u1 : VecData, u2 : VecData, u3 : VecData) {
     let data = this.mesh.tri_uvs
     let i = this.i*3; //*3 is because triangles have three vertices
 
@@ -142,7 +162,7 @@ export class TriEditor {
     return this;
   }
 
-  ids(i1, i2, i3) {
+  ids(i1 : number, i2 : number, i3 : number) {
     if (i1 === undefined || i2 === undefined || i3 === undefined) {
       throw new Error("i1/i2/i3 cannot be undefined");
     }
@@ -150,60 +170,64 @@ export class TriEditor {
     let data = this.mesh.tri_ids
     let i = this.i*3; //*3 is because triangles have three vertices
 
-    _ids_arrs[0][0] = i1; i1 = _ids_arrs[0];
-    _ids_arrs[1][0] = i2; i2 = _ids_arrs[1];
-    _ids_arrs[2][0] = i3; i3 = _ids_arrs[2];
+    _ids_arrs[0][0] = i1;
+    _ids_arrs[1][0] = i2;
+    _ids_arrs[2][0] = i3;
 
-    data.copy(i, i1);
-    data.copy(i + 1, i2);
-    data.copy(i + 2, i3);
+    data.copy(i, _ids_arrs[0]);
+    data.copy(i + 1, _ids_arrs[1]);
+    data.copy(i + 2, _ids_arrs[2]);
 
     return this;
   }
 }
 
 export class QuadEditor {
+  /* A quad is two triangles; every method forwards to both. */
+  t1 : TriEditor;
+  t2 : TriEditor;
+
   constructor() {
     this.t1 = new TriEditor();
     this.t2 = new TriEditor();
   }
 
-  bind(mesh, i, i2) {
+  bind(mesh : SimpleIsland, i : number, i2 : number) {
     this.t1.bind(mesh, i);
     this.t2.bind(mesh, i2);
 
     return this;
   }
 
-  custom(layeri, v1, v2, v3, v4) {
+  custom(layeri : number, v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) {
     this.t1.custom(layeri, v1, v2, v3);
     this.t2.custom(layeri, v1, v3, v4);
 
     return this;
   }
 
-  uvs(u1, u2, u3, u4) {
+  uvs(u1 : VecData, u2 : VecData, u3 : VecData, u4 : VecData) {
     this.t1.uvs(u1, u2, u3);
     this.t2.uvs(u1, u3, u4);
 
     return this;
   }
 
-  colors(u1, u2, u3, u4) {
+  colors(u1 : VecData, u2 : VecData, u3 : VecData, u4 : VecData) {
     this.t1.colors(u1, u2, u3);
     this.t2.colors(u1, u3, u4);
 
     return this;
   }
 
-  normals(u1, u2, u3, u4) {
+  normals(u1 : VecData, u2 : VecData, u3 : VecData, u4 : VecData) {
     this.t1.normals(u1, u2, u3);
     this.t2.normals(u1, u3, u4);
 
     return this;
   }
 
-  ids(u1, u2, u3, u4) {
+  ids(u1 : number, u2 : number, u3 : number, u4 : number) {
     this.t1.ids(u1, u2, u3);
     this.t2.ids(u1, u3, u4);
 
@@ -212,18 +236,22 @@ export class QuadEditor {
 }
 
 export class LineEditor {
+  mesh : SimpleIsland;
+  /* Index of the line being edited. */
+  i : number;
+
   constructor() {
     this.mesh = undefined;
     this.i = 0;
   }
 
-  bind(mesh, i) {
+  bind(mesh : SimpleIsland, i : number) {
     this.mesh = mesh;
     this.i = i;
     return this;
   }
 
-  colors(c1, c2) {
+  colors(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_colors;
     let i = this.i*2;
 
@@ -233,7 +261,7 @@ export class LineEditor {
     return this;
   }
 
-  normals(c1, c2) {
+  normals(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_normals;
     let i = this.i*2;
 
@@ -243,7 +271,7 @@ export class LineEditor {
     return this;
   }
 
-  uvs(c1, c2) {
+  uvs(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_uvs;
     let i = this.i*2;
 
@@ -253,7 +281,7 @@ export class LineEditor {
     return this;
   }
 
-  ids(i1, i2) {
+  ids(i1 : number, i2 : number) {
     if (i1 === undefined || i2 === undefined) {
       throw new Error("i1 i2 cannot be undefined");
     }
@@ -271,6 +299,7 @@ export class LineEditor {
   }
 }
 
+/* Dead: `dummyeditor` below is never handed out. */
 class DummyEditor {
   colors() {
     return this
@@ -299,19 +328,24 @@ class DummyEditor {
 
 let dummyeditor = new DummyEditor();
 
+/* Editor for the tristrip lines: one line is six vertices, so every value is
+   written to six slots. */
 export class LineEditor2 {
+  mesh : SimpleIsland;
+  i : number;
+
   constructor() {
     this.mesh = undefined;
     this.i = 0;
   }
 
-  bind(mesh, i) {
+  bind(mesh : SimpleIsland, i : number) {
     this.mesh = mesh;
     this.i = i;
     return this;
   }
 
-  custom(layeri, c1, c2) {
+  custom(layeri : number, c1 : VecData, c2 : VecData) {
     let data = this.mesh.layers.layers[layeri];
 
     let i = this.i*6;
@@ -326,7 +360,7 @@ export class LineEditor2 {
     return this;
   }
 
-  colors(c1, c2) {
+  colors(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_colors2;
     let i = this.i*6;
 
@@ -340,7 +374,7 @@ export class LineEditor2 {
     return this;
   }
 
-  normals(c1, c2) {
+  normals(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_normals2;
     let i = this.i*6;
 
@@ -354,7 +388,7 @@ export class LineEditor2 {
     return this;
   }
 
-  uvs(c1, c2) {
+  uvs(c1 : VecData, c2 : VecData) {
     let data = this.mesh.line_uvs2;
     let i = this.i*6;
 
@@ -368,7 +402,7 @@ export class LineEditor2 {
     return this;
   }
 
-  ids(i1, i2) {
+  ids(i1 : number, i2 : number) {
     if (i1 === undefined || i2 === undefined) {
       throw new Error("i1 i2 cannot be undefined");
     }
@@ -394,18 +428,22 @@ export class LineEditor2 {
 }
 
 export class PointEditor {
+  mesh : SimpleIsland;
+  /* Index of the point being edited. */
+  i : number;
+
   constructor() {
     this.mesh = undefined;
     this.i = 0;
   }
 
-  bind(mesh, i) {
+  bind(mesh : SimpleIsland, i : number) {
     this.mesh = mesh;
     this.i = i;
     return this;
   }
 
-  colors(c1) {
+  colors(c1 : VecData) {
     let data = this.mesh.point_colors;
     let i = this.i;
 
@@ -414,7 +452,7 @@ export class PointEditor {
     return this;
   }
 
-  normals(c1) {
+  normals(c1 : VecData) {
     let data = this.mesh.point_normals;
     let i = this.i;
 
@@ -423,7 +461,7 @@ export class PointEditor {
     return this;
   }
 
-  uvs(c1) {
+  uvs(c1 : VecData) {
     let data = this.mesh.point_uvs;
     let i = this.i;
 
@@ -432,7 +470,7 @@ export class PointEditor {
     return this;
   }
 
-  ids(i1) {
+  ids(i1 : number) {
     if (i1 === undefined) {
       throw new Error("i1 cannot be undefined");
     }
@@ -440,7 +478,7 @@ export class PointEditor {
     let data = this.mesh.point_ids;
     let i = this.i;
 
-    _ids_arrs[0][0] = i1; i1 = _ids_arrs[0];
+    _ids_arrs[0][0] = i1;
 
     data.copy(i, _ids_arrs[0]);
 
@@ -448,7 +486,8 @@ export class PointEditor {
   }
 }
 
-export const glTypeSizes = {
+/* Bytes per component, keyed by GL component type. */
+export const glTypeSizes : {[gltype : number] : number} = {
   5126: 4, //gl.FLOAT
   5120: 1, //gl.BYTE
   5121: 1, //gl.UNSIGNED_BYTE
@@ -457,7 +496,7 @@ export const glTypeSizes = {
   5124: 4, //gl.INT
   5125: 4, //gl.UNSIGNED_INT
 }
-export const glTypeArrays = {
+export const glTypeArrays : {[gltype : number] : LayerTypedDataCtor} = {
   5126: Float32Array, //gl.FLOAT
   5120: Int8Array, //gl.BYTE
   5121: Uint8Array, //gl.UNSIGNED_BYTE
@@ -467,7 +506,9 @@ export const glTypeArrays = {
   5125: Uint32Array, //gl.UNSIGNED_INT
 }
 
-export const glTypeArrayMuls = {
+/* Scale a normalized float is multiplied by before being truncated into an
+   integer component type. */
+export const glTypeArrayMuls : {[gltype : number] : number} = {
   5126: 1, //gl.FLOAT
   5120: 127, //gl.BYTE
   5121: 255, //gl.UNSIGNED_BYTE
@@ -486,7 +527,8 @@ const glSizes = {
   INT           : 5124,
   UNSIGNED_INT  : 5125
 };
-const glRanges = {
+/* min/max a component of each type may hold; only used by debugproxy(). */
+const glRanges : {[gltype : number] : number[]} = {
   [glSizes.FLOAT]         : [-1e17, 1e17],
   [glSizes.UNSIGNED_SHORT]: [0, 65535],
   [glSizes.SHORT]         : [-32767, 32767],
@@ -497,9 +539,18 @@ const glRanges = {
 };
 window.glRanges = glRanges;
 
+/* The debug wrapper below caches its Proxy on the array it wraps, so a second
+   call for the same data reuses it. */
+type DebugArray = (number[] | LayerTypedData) & {
+  debug? : {min : number, max : number, isint? : boolean, proxy? : DebugArray};
+  isint? : boolean;
+};
+
 let dmap = new WeakSet();
 
-function debugproxy(data, min = -1e17, max = 1e17, isint) {
+/* Wraps a layer's data in a Proxy that range-checks every index and every
+   value written. Only reachable with DEBUG.simplemesh on. */
+function debugproxy(data : DebugArray, min = -1e17, max = 1e17, isint? : boolean) {
   if (dmap.has(data)) {
     data.debug.min = min;
     data.isint = isint;
@@ -509,21 +560,21 @@ function debugproxy(data, min = -1e17, max = 1e17, isint) {
 
   dmap.add(data);
 
-  function validate(target, prop) {
-    if (typeof prop === "string") {
-      prop = parseFloat(prop);
-    }
+  /* A Proxy trap is only ever handed a string or a symbol; a symbol falls
+     straight through to the "bad prop" throw. */
+  function validate(target : DebugArray, prop : string | symbol) {
+    let idx = typeof prop === "string" ? parseFloat(prop) : NaN;
 
-    let bad = prop !== ~~prop;
-    bad = bad || isNaN(prop) || !isFinite(prop);
-    bad = bad || prop < 0 || prop >= data.length;
+    let bad = idx !== ~~idx;
+    bad = bad || isNaN(idx) || !isFinite(idx);
+    bad = bad || idx < 0 || idx >= data.length;
 
     if (bad) {
       console.log(target, prop)
-      throw new Error("bad prop " + prop);
+      throw new Error("bad prop " + String(prop));
     }
 
-    return prop;
+    return idx;
   }
 
   let debug = {
@@ -531,14 +582,14 @@ function debugproxy(data, min = -1e17, max = 1e17, isint) {
   };
 
   let proxy = new Proxy(data, {
-    get(target, prop, rc) {
-      prop = validate(target, prop);
+    get(target, prop) {
+      let idx = validate(target, prop);
 
-      return target[prop];
+      return target[idx];
     },
 
     set(target, prop, val) {
-      prop = validate(target, prop);
+      let idx = validate(target, prop);
 
       let bad = typeof val !== "number";
       bad = bad || val < debug.min || val > debug.max;
@@ -550,7 +601,7 @@ function debugproxy(data, min = -1e17, max = 1e17, isint) {
         throw new Error("bad value " + val);
       }
 
-      target[prop] = val;
+      target[idx] = val;
 
       return true;
     }
@@ -568,8 +619,43 @@ const GL_ARRAY_BUFFER = 34962;
 const GL_ELEMENT_ARRAY_BUFFER = 34963;
 const GL_STATIC_DRAW = 35044;
 
-export class GeoLayer extends Array {
-  constructor(size, name, primflag, type, idx) { //idx is for different layers of same type, e.g. multiple uv layers
+/* One vertex attribute of one primitive type. Extends Array only so v8 keeps
+   it in fast-element mode; the payload lives in `data` / `data_f32`. */
+export class GeoLayer extends Array<number> {
+  /* Position in GeoLayerManager.layers. */
+  index : number;
+
+  /* GL component type, e.g. gl.FLOAT, and the scale floats are multiplied by
+     when the type is an integer one. */
+  glSize : number;
+  glSizeMul : number;
+  /* Whether the VBO already holds this layer's current contents. */
+  glReady : boolean;
+
+  type : number;
+  data : number[];
+  /* Set once the data has been packed into data_f32; `data` is emptied then. */
+  _useTypedData : boolean;
+  /* Components written so far, not elements. */
+  dataUsed : number;
+  data_f32 : number[] | LayerTypedData;
+  f32Ready : boolean;
+  normalized : boolean;
+
+  bufferType : number;
+  bufferHint : number;
+
+  /* Components per element. */
+  size : number;
+  name : string;
+  primflag : number;
+  /* Name the island's RenderBuffer stores this layer's VBO under. */
+  bufferKey : string;
+  /* Index among the layers sharing this primflag and type. */
+  idx : number;
+  id : number;
+
+  constructor(size : number, name : string, primflag : number, type : number, idx : number) { //idx is for different layers of same type, e.g. multiple uv layers
     super();
 
     this.index = undefined;
@@ -617,14 +703,14 @@ export class GeoLayer extends Array {
     return this._useTypedData ? this.data_f32 : this.data;
   }
 
-  setGLSize(size) {
+  setGLSize(size : number) {
     this.glSize = size;
     this.glSizeMul = glTypeArrayMuls[size];
 
     return this;
   }
 
-  setNormalized(state) {
+  setNormalized(state : boolean) {
     this.normalized = !!state;
     return this;
   }
@@ -637,7 +723,8 @@ export class GeoLayer extends Array {
     return this;
   }
 
-  extend(data) {
+  /* `count` is accepted and ignored; GeoLayerManager.extend() passes one. */
+  extend(data? : VecData, count? : number) {
     if (this._useTypedData && this.dataUsed >= this.data_f32.length) {
       if (DEBUG.simplemesh) {
         console.warn("Resizing simplemesh attribute after conversion to a typed array");
@@ -688,7 +775,7 @@ export class GeoLayer extends Array {
     return this;
   }
 
-  setCount(count, dirty=false) {
+  setCount(count : number, dirty=false) {
     if (isNaN(count)) {
       throw new Error("count was NaN");
     }
@@ -735,19 +822,21 @@ export class GeoLayer extends Array {
     }
   }
 
-  _copy2Typed(data1, data2, n, mul, start) {
+  _copy2Typed(data1 : number[] | LayerTypedData, data2 : VecData,
+              n : number, mul : number, start : number) {
     for (let i = 0; i < n; i++) {
       data1[start++] = ~~(data2[i]*mul);
     }
   }
 
-  _copy2(data1, data2, n, mul, start) {
+  _copy2(data1 : number[] | LayerTypedData, data2 : VecData,
+         n : number, mul : number, start : number) {
     for (let i = 0; i < n; i++) {
       data1[start++] = ~~(data2[i]*mul);
     }
   }
 
-  _copy_int(i, data, n = 1) {
+  _copy_int(i : number, data : VecData, n = 1) {
     let tot = n*this.size;
     this.f32Ready = false;
 
@@ -787,7 +876,7 @@ export class GeoLayer extends Array {
 
 
   //i and n will be multiplied by .size
-  copy(i, data, n = 1) {
+  copy(i : number, data : VecData, n = 1) {
     //V8's optimizer doesn't like it if we pass floats
     //to integer typed arrays, even if we multiply them by
     //the proper range scale first.  They must be truncated.
@@ -834,8 +923,17 @@ export class GeoLayer extends Array {
   }
 }
 
+/* Every layer sharing one primflag+type pair. */
 export class GeoLayerMeta {
-  constructor(primflag, type, attrsizes) {
+  type : number;
+  primflag : number;
+  layers : GeoLayer[];
+  normalized : boolean;
+  /* Shared with the manager's per-primflag entry: attribute name -> index of
+     the highest layer using it. */
+  attrsizes : {[attr : string] : number};
+
+  constructor(primflag : number, type : number, attrsizes : {[attr : string] : number}) {
     this.type = type;
     this.primflag = primflag;
     this.layers = [];
@@ -844,7 +942,7 @@ export class GeoLayerMeta {
     this.attrsizes = attrsizes;
   }
 
-  add(layer) {
+  add(layer : GeoLayer) {
     this.layers.push(layer);
 
     if (this.attrsizes[LayerTypeNames[layer.type]] === undefined) {
@@ -855,13 +953,25 @@ export class GeoLayerMeta {
   }
 }
 
-function get_meta_mask(primflag, type) {
+function get_meta_mask(primflag : number, type : number) {
   return type | (primflag<<16);
 }
 
 let _debug_idgen = 0;
 
 export class GeoLayerManager {
+  layers : GeoLayer[];
+  /* True once any primflag+type has more than one layer, which switches
+     drawing over to ShaderProgram.bindMultiLayer(). */
+  has_multilayers : boolean;
+  _debug_id : number;
+
+  /* Keyed by get_meta_mask(primflag, type). */
+  layer_meta : Map<number, GeoLayerMeta>;
+  layer_idgen : util.IDGen;
+  /* primflag -> the attrsizes map shared with that primflag's metas. */
+  attrsizes : Map<number, {[attr : string] : number}>;
+
   constructor() {
     this.layers = [];
     //this.layers_prim_map = new
@@ -929,7 +1039,7 @@ export class GeoLayerManager {
     return ret;
   }
 
-  get_meta(primflag, type) {
+  get_meta(primflag : number, type : number) {
     let mask = get_meta_mask(primflag, type);
 
     if (!this.layer_meta.has(mask)) {
@@ -946,7 +1056,8 @@ export class GeoLayerManager {
     return this.layers[Symbol.iterator]();
   }
 
-  extend(primflag, type, data, count) {
+  /* `count` is accepted and passed on, but GeoLayer.extend() ignores it. */
+  extend(primflag : number, type : number, data : VecData, count? : number) {
     let meta = this.get_meta(primflag, type);
 
     for (let i = 0; i < meta.layers.length; i++) {
@@ -956,11 +1067,11 @@ export class GeoLayerManager {
     return this;
   }
 
-  layerCount(primflag, type) {
+  layerCount(primflag : number, type : number) {
     return this.get_meta(primflag, type).layers.length;
   }
 
-  pushLayer(name, primflag, type, size) {
+  pushLayer(name : string, primflag : number, type : number, size : number) {
     let meta = this.get_meta(primflag, type);
     let idx = meta.layers.length;
 
@@ -980,7 +1091,9 @@ export class GeoLayerManager {
   }
 
 
-  get(name, primflag, type, size, idx = undefined) {
+  /* Returns the idx'th layer of this primflag+type, creating it if needed.
+     For CUSTOM layers the name is the key instead. */
+  get(name : string, primflag : number, type : number, size? : number, idx? : number) {
     if (size === undefined) {
       size = TypeSizes[type];
     }
@@ -1014,8 +1127,80 @@ var _default_color = [0, 0, 0, 1];
 var _default_normal = [0, 0, 1];
 var _default_id = [-1];
 
+/* One buffer set: a mesh is drawn as a list of these. */
 export class SimpleIsland {
-  constructor(mesh) {
+  layers : GeoLayerManager;
+  /* Attribute names to declare when binding; the values are always 1. */
+  _glAttrs : {[name : string] : number};
+
+  /* undefined means "inherit from this.mesh". */
+  primflag : number | undefined;
+  indexedMode : boolean | undefined;
+  layerflag : number | undefined;
+
+  mesh : SimpleMesh;
+
+  totpoint : number;
+  totline : number;
+  tottri : number;
+  totline_tristrip : number;
+
+  /* 0/1 and false/true are both used. */
+  regen : number | boolean;
+  /* Primitive types whose buffers must be re-uploaded even where the layer
+     believes it is already on the GPU. */
+  _regen_all : number;
+
+  tri_editors : util.cachering<TriEditor>;
+  quad_editors : util.cachering<QuadEditor>;
+  line_editors : util.cachering<LineEditor>;
+  point_editors : util.cachering<PointEditor>;
+  tristrip_line_editors : util.cachering<LineEditor2>;
+
+  buffer : webgl.RenderBuffer;
+  program : webgl.ShaderProgram;
+  textures : webgl.Texture[];
+  uniforms : webgl.Uniforms;
+  /* Scratch object draw() fills in when the caller passes no uniforms. */
+  _uniforms_temp : webgl.Uniforms;
+  /* Set by draw(). */
+  gl : webgl.WebGLContext;
+
+  /* The layers makeBufferAliases() hangs directly off the island. The `2`
+     variants and the two strip layers only exist once ADVANCED_LINES is on. */
+  tri_cos : GeoLayer;
+  tri_normals : GeoLayer;
+  tri_uvs : GeoLayer;
+  tri_colors : GeoLayer;
+  tri_ids : GeoLayer;
+
+  line_cos : GeoLayer;
+  line_normals : GeoLayer;
+  line_uvs : GeoLayer;
+  line_colors : GeoLayer;
+  line_ids : GeoLayer;
+
+  point_cos : GeoLayer;
+  point_normals : GeoLayer;
+  point_uvs : GeoLayer;
+  point_colors : GeoLayer;
+  point_ids : GeoLayer;
+
+  line_cos2 : GeoLayer;
+  line_normals2 : GeoLayer;
+  line_uvs2 : GeoLayer;
+  line_colors2 : GeoLayer;
+  line_ids2 : GeoLayer;
+  line_stripuvs : GeoLayer;
+  line_stripdirs : GeoLayer;
+
+  /* Built on demand by getIndexBuffer(), one per primitive type. */
+  tri_indices : GeoLayer;
+  line_indices : GeoLayer;
+  point_indices : GeoLayer;
+
+  /* copy() builds an island with no mesh and fixes it up afterwards. */
+  constructor(mesh? : SimpleMesh) {
     let lay = this.layers = new GeoLayerManager();
 
     this._glAttrs = {};
@@ -1052,7 +1237,7 @@ export class SimpleIsland {
     this._uniforms_temp = {};
   }
 
-  reset(gl) {
+  reset(gl : webgl.WebGLContext) {
     this.layers.reset();
     this.buffer.reset(gl);
 
@@ -1068,7 +1253,7 @@ export class SimpleIsland {
     }
   }
 
-  setPrimitiveCount(primtype, tot) {
+  setPrimitiveCount(primtype : number, tot : number) {
     switch (primtype) {
       case PrimitiveTypes.TRIS:
         this.tottri = tot;
@@ -1166,11 +1351,11 @@ export class SimpleIsland {
     return ret;
   }
 
-  glFlagUploadAll(primflag=PrimitiveTypes.ALL) {
+  glFlagUploadAll(primflag = PrimitiveTypes.ALL) {
     this._regen_all |= primflag;
   }
 
-  point(v1) {
+  point(v1 : VecData) {
     this.point_cos.extend(v1);
 
     this._newElem(PrimitiveTypes.POINTS, 1);
@@ -1179,7 +1364,9 @@ export class SimpleIsland {
     return this.point_editors.next().bind(this, this.totpoint - 1);
   }
 
-  smoothline(v1, v2, w1 = 2, w2 = 2) {
+  /* w1/w2 are the line widths at each end; they ride along in the w component
+     of the strip direction layer. */
+  smoothline(v1 : VecData, v2 : VecData, w1 = 2, w2 = 2) {
     let dv = 0.0;
     for (let i = 0; i < 3; i++) {
       dv += (v1[i] - v2[i])*(v1[i] - v2[i]);
@@ -1248,7 +1435,7 @@ export class SimpleIsland {
     return this.tristrip_line_editors.next().bind(this, this.totline_tristrip - 1);
   }
 
-  line(v1, v2) {
+  line(v1 : VecData, v2 : VecData) {
     //return this.smoothline(v1, v2);
 
     this.line_cos.extend(v1);
@@ -1260,7 +1447,9 @@ export class SimpleIsland {
     return this.line_editors.next().bind(this, this.totline - 1);
   }
 
-  _newElem(primtype, primcount) {
+  /* Extends every non-position layer of `primtype` by `primcount` elements,
+     filling them with that layer's default, and returns the start element. */
+  _newElem(primtype : number, primcount : number) {
     let layerflag = this.layerflag === undefined ? this.mesh.layerflag : this.layerflag;
 
     let meta = this.layers.get_meta(primtype, LayerTypes.LOC);
@@ -1291,7 +1480,7 @@ export class SimpleIsland {
     return start;
   }
 
-  tri(v1, v2, v3) {
+  tri(v1 : VecData, v2 : VecData, v3 : VecData) {
     this.tri_cos.extend(v1);
     this.tri_cos.extend(v2);
     this.tri_cos.extend(v3);
@@ -1303,7 +1492,7 @@ export class SimpleIsland {
     return this.tri_editors.next().bind(this, this.tottri - 1);
   }
 
-  quad(v1, v2, v3, v4) {
+  quad(v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) {
     let i = this.tottri;
 
     this.tri(v1, v2, v3);
@@ -1312,12 +1501,13 @@ export class SimpleIsland {
     return this.quad_editors.next().bind(this, i, i + 1);
   }
 
-  destroy(gl) {
+  destroy(gl : webgl.WebGLContext) {
     this.buffer.destroy(gl);
     this.regen = true;
   }
 
-  gen_buffers(gl) {
+  /* Packs every dirty layer into its typed array and uploads it. */
+  gen_buffers(gl : webgl.WebGLContext) {
     let layerflag = this.layerflag === undefined ? this.mesh.layerflag : this.layerflag;
 
     let allflag = this._regen_all;
@@ -1386,7 +1576,7 @@ export class SimpleIsland {
     }
   }
 
-  getIndexBuffer(ptype) {
+  getIndexBuffer(ptype : number) {
     let key = "";
 
     switch (ptype) {
@@ -1416,7 +1606,8 @@ export class SimpleIsland {
     return this[key];
   }
 
-  _draw_tris(gl, uniforms, params, program) {
+  _draw_tris(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
+             params : object | undefined, program : webgl.ShaderProgram) {
     if (this.tottri) {
       this.bindArrays(gl, uniforms, program, "tri", PrimitiveTypes.TRIS);
 
@@ -1440,7 +1631,9 @@ export class SimpleIsland {
     }
   }
 
-  _draw_line_tristrips(gl, uniforms, params, program) {
+  /* Builds and caches a SMOOTH_LINE variant of `program` on first use. */
+  _draw_line_tristrips(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
+                       params : object | undefined, program : webgl.ShaderProgram) {
     let attrs = this._glAttrs;
 
     if (this.totline_tristrip) {
@@ -1501,7 +1694,9 @@ export class SimpleIsland {
     return this;
   }
 
-  bindArrays(gl, uniforms, program, key, primflag) {
+  /* `key` is accepted and never read. */
+  bindArrays(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
+             program : webgl.ShaderProgram, key : string, primflag : number) {
     program = program === undefined ? this.program : program;
     program = program === undefined ? this.mesh.program : program;
     let layerflag = this.layerflag === undefined ? this.mesh.layerflag : this.layerflag;
@@ -1534,7 +1729,7 @@ export class SimpleIsland {
     gl.vertexAttribPointer(0, layer.size, layer.glSize, false, 0, 0);
     gl.enableVertexAttribArray(0);
 
-    let bindArray = (name, type) => {
+    let bindArray = (name : string, type : number) => {
       if (!(layerflag & type) || (type & LayerTypes.INDEX)) {
         return;
       }
@@ -1596,19 +1791,22 @@ export class SimpleIsland {
     bindArray("custom", LayerTypes.CUSTOM);
   }
 
-  addDataLayer(primflag, type, size = TypeSizes[type], name = LayerTypeNames[type]) {
+  addDataLayer(primflag : number, type : number,
+               size = TypeSizes[type], name = LayerTypeNames[type]) {
     this._glAttrs[name] = 1;
 
     return this.layers.pushLayer(name, primflag, type, size);
   }
 
-  getDataLayer(primflag, type, size = TypeSizes[type], name = LayerTypeNames[type]) {
+  getDataLayer(primflag : number, type : number,
+               size = TypeSizes[type], name = LayerTypeNames[type]) {
     this._glAttrs[name] = 1;
 
     return this.layers.get(name, primflag, type, size);
   }
 
-  _draw_points(gl, uniforms, params, program) {
+  _draw_points(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
+               params : object | undefined, program : webgl.ShaderProgram) {
     if (this.totpoint > 0) {
       //console.log(this.totpoint, this.point_cos);
       this.bindArrays(gl, uniforms, program, "point", PrimitiveTypes.POINTS);
@@ -1618,7 +1816,8 @@ export class SimpleIsland {
     }
   }
 
-  _draw_lines(gl, uniforms, params, program) {
+  _draw_lines(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
+              params : object | undefined, program : webgl.ShaderProgram) {
     if (this.totline === 0) {
       return;
     }
@@ -1644,7 +1843,7 @@ export class SimpleIsland {
     }
   }
 
-  onContextLost(e) {
+  onContextLost(e : Event) {
     this.regen = 1;
   }
 
@@ -1660,7 +1859,9 @@ export class SimpleIsland {
     return this.__regen;
   }//*/
 
-  draw(gl, uniforms, params, program_override = undefined) {
+  /* `params` is accepted and never read. */
+  draw(gl : webgl.WebGLContext, uniforms : webgl.Uniforms | undefined,
+       params? : object, program_override? : webgl.ShaderProgram) {
     this.gl = gl;
 
     let program = this.program === undefined ? this.mesh.program : this.program;
@@ -1741,6 +1942,20 @@ export class SimpleIsland {
 }
 
 export class SimpleMesh {
+  layerflag : number;
+  primflag : number;
+  indexedMode : boolean;
+  /* Set by draw(); destroy() falls back to it. */
+  gl : webgl.WebGLContext;
+
+  islands : SimpleIsland[];
+  /* The island new geometry goes into. */
+  island : SimpleIsland;
+
+  uniforms : webgl.Uniforms;
+  /* Assigned by consumers, not here; islands fall back to it. */
+  program : webgl.ShaderProgram;
+
   constructor(layerflag = LayerTypes.LOC | LayerTypes.NORMAL | LayerTypes.UV) {
     this.layerflag = layerflag;
     this.primflag = PrimitiveTypes.ALL;
@@ -1755,7 +1970,7 @@ export class SimpleMesh {
     this.island = this.islands[0];
   }
 
-  reset(gl) {
+  reset(gl : webgl.WebGLContext) {
     for (let island of this.islands) {
       island.reset(gl);
     }
@@ -1767,7 +1982,8 @@ export class SimpleMesh {
     }
   }
 
-  getDataLayer(primflag, type, size = TypeSizes[type], name = LayerTypeNames[type]) {
+  getDataLayer(primflag : number, type : number,
+               size = TypeSizes[type], name = LayerTypeNames[type]) {
     let ret;
 
     for (let island of this.islands) {
@@ -1781,7 +1997,8 @@ export class SimpleMesh {
     return ret;
   }
 
-  addDataLayer(primflag, type, size = TypeSizes[type], name = LayerTypeNames[type]) {
+  addDataLayer(primflag : number, type : number,
+               size = TypeSizes[type], name = LayerTypeNames[type]) {
     let ret;
 
     for (let island of this.islands) {
@@ -1828,7 +2045,7 @@ export class SimpleMesh {
     return island;
   }
 
-  destroy(gl = this.gl) {
+  destroy(gl : webgl.WebGLContext = this.gl) {
     if (!gl) {
       console.warn("failed to destroy a mesh");
       return;
@@ -1838,27 +2055,28 @@ export class SimpleMesh {
     }
   }
 
-  tri(v1, v2, v3) {
+  tri(v1 : VecData, v2 : VecData, v3 : VecData) {
     return this.island.tri(v1, v2, v3);
   }
 
-  quad(v1, v2, v3, v4) {
+  quad(v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) {
     return this.island.quad(v1, v2, v3, v4);
   }
 
-  line(v1, v2) {
+  line(v1 : VecData, v2 : VecData) {
     return this.island.line(v1, v2);
   }
 
-  point(v1) {
+  point(v1 : VecData) {
     return this.island.point(v1);
   }
 
-  smoothline(v1, v2) {
+  smoothline(v1 : VecData, v2 : VecData) {
     return this.island.smoothline(v1, v2);
   }
 
-  drawLines(gl, uniforms, program_override = undefined) {
+  drawLines(gl : webgl.WebGLContext, uniforms? : webgl.Uniforms,
+            program_override? : webgl.ShaderProgram) {
     for (let island of this.islands) {
       let primflag = island.primflag;
 
@@ -1868,7 +2086,8 @@ export class SimpleMesh {
     }
   }
 
-  draw(gl, uniforms, program_override = undefined) {
+  draw(gl : webgl.WebGLContext, uniforms? : webgl.Uniforms,
+       program_override? : webgl.ShaderProgram) {
     this.gl = gl;
 
     for (var island of this.islands) {
@@ -1881,7 +2100,27 @@ let IDMap = util.IDMap;
 
 //IDMap = Map
 
+/* A mesh whose primitives are addressed by caller-supplied id rather than by
+   append order, so a single primitive can be rewritten in place. Each island
+   holds `chunksize` slots. */
 export class ChunkedSimpleMesh extends SimpleMesh {
+  chunksize : number;
+
+  /* Freed slots, pushed as (island index, slot) pairs and popped in reverse. */
+  freelist : number[];
+  freeset : Set<number>;
+  /* Assigned undefined in three places and never read. */
+  delset : undefined;
+
+  /* id -> island index, and id -> slot inside that island. Both start out as
+     IDMaps and are swapped for real Maps once an id exceeds 1<<18. */
+  chunkmap : util.IDMap<number> | Map<number, number>;
+  idmap : util.IDMap<number> | Map<number, number>;
+  idgen : number;
+
+  /* Assigned by destroy() but never read; the islands carry their own. */
+  regen : number;
+
   constructor(layerflag = LayerTypes.LOC | LayerTypes.NORMAL | LayerTypes.UV,
               chunksize = 2048) {
     super(layerflag);
@@ -1905,7 +2144,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     this.idgen = 0;
   }
 
-  reset(gl) {
+  reset(gl : webgl.WebGLContext) {
     this.chunkmap = new IDMap();
     this.idmap = new IDMap();
     this.freelist.length = 0;
@@ -1917,7 +2156,8 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     }
   }
 
-  free(id) {
+  /* Zeroes the primitive's coordinates and returns its slot to the freelist. */
+  free(id : number) {
     let chunk = this.chunkmap.get(id);
 
     if (chunk === undefined || this.freeset.has(id)) {
@@ -1949,7 +2189,8 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     island.flagRecalc();
   }
 
-  get_chunk(id) {
+  /* The island holding `id`, allocating a new chunk of slots if it has none. */
+  get_chunk(id : number) {
     if (id > 1<<18 && this.idmap instanceof IDMap) {
       let idmap = new Map();
 
@@ -2008,13 +2249,13 @@ export class ChunkedSimpleMesh extends SimpleMesh {
   }
 
 
-  onContextLost(e) {
+  onContextLost(e : Event) {
     for (var island of this.islands) {
       island.onContextLost(e);
     }
   }
 
-  destroy(gl) {
+  destroy(gl : webgl.WebGLContext) {
     for (var island of this.islands) {
       island.destroy(gl);
     }
@@ -2028,9 +2269,9 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     this.add_island();
   }
 
-  tri(id, v1, v2, v3) {
+  tri(id : number, v1 : VecData, v2 : VecData, v3 : VecData) {
     if (0) {
-      function isvec(v) {
+      function isvec(v : VecData) {
         if (!v) {
           return false;
         }
@@ -2095,11 +2336,11 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.tri_editors.next().bind(chunk, itri);
   }
 
-  quad(id, v1, v2, v3, v4) {
+  quad(id : number, v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) {
     throw new Error("unsupported for chunked meshes");
   }
 
-  smoothline(id, v1, v2) {
+  smoothline(id : number, v1 : VecData, v2 : VecData) {
     let chunk = this.get_chunk(id);
     let iline = this.idmap.get(id);
 
@@ -2159,7 +2400,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.tristrip_line_editors.next().bind(chunk, iline);
   }
 
-  line(id, v1, v2) {
+  line(id : number, v1 : VecData, v2 : VecData) {
     //return this.smoothline(id, v1, v2);
 
     let chunk = this.get_chunk(id);
@@ -2192,7 +2433,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.line_editors.next().bind(chunk, iline);
   }
 
-  point(id, v1) {
+  point(id : number, v1 : VecData) {
     let chunk = this.get_chunk(id);
     let ipoint = this.idmap.get(id);
 
@@ -2220,7 +2461,8 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.point_editors.next().bind(chunk, ipoint);
   }
 
-  draw(gl, uniforms, program_override = undefined) {
+  draw(gl : webgl.WebGLContext, uniforms? : webgl.Uniforms,
+       program_override? : webgl.ShaderProgram) {
     this.gl = gl;
 
     for (var island of this.islands) {

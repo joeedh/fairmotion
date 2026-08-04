@@ -1,12 +1,16 @@
 import * as pathux from '../path.ux/scripts/pathux.js';
 
 export class HotKey extends pathux.HotKey {
+  /* The unmodified binding this one was cloned from, set by
+     KeyMap.ensureWrite() so _save_deltas() can diff against it. */
+  origHotKey: HotKey | undefined;
+
   constructor() {
     super(...arguments);
     this.origHotKey = undefined;
   }
 
-  load(b) {
+  load(b: pathux.HotKey) {
     this.key = b.key;
     this.mods = b.mods.concat([]);
     this.action = b.action;
@@ -14,7 +18,7 @@ export class HotKey extends pathux.HotKey {
     return this;
   }
 
-  equals(b, compareAction=true) {
+  equals(b: pathux.HotKey, compareAction = true) {
     for (let mod of this.mods) {
       if (b.mods.indexOf(mod) < 0) {
         return false;
@@ -29,7 +33,15 @@ export class HotKey extends pathux.HotKey {
   }
 }
 
+/* One rebound hotkey: the new key and modifiers, plus the reference string
+   KeyMap._buildKey() produces for the binding it replaces. */
 export class KeyMapDelta {
+  static STRUCT: string;
+
+  key: number;
+  modifiers: pathux.KeyModifiers[];
+  hotkeyRef: string;
+
   constructor() {
     this.key = -1;
     this.modifiers = [];
@@ -47,7 +59,13 @@ KeyMapDelta {
 pathux.nstructjs.register(KeyMapDelta);
 
 export class KeyMapDeltaSet {
-  constructor(typeName, deltas) {
+  static STRUCT: string;
+
+  /* Which KeyMap these deltas belong to; matches KeyMap.typeName. */
+  typeName: string;
+  deltas: KeyMapDelta[];
+
+  constructor(typeName: string, deltas?: KeyMapDelta[]) {
     this.typeName = typeName;
     this.deltas = deltas || [];
   }
@@ -61,7 +79,18 @@ KeyMapDeltaSet {
 pathux.nstructjs.register(KeyMapDeltaSet);
 
 export class KeyMap extends pathux.KeyMap {
-  constructor(typeName, hotkeys) {
+  static STRUCT: string;
+
+  typeName: string;
+  uiName: string;
+  /* A pristine copy taken the first time this map is edited; every delta is
+     measured against it. Undefined until ensureWrite() runs. */
+  origKeyMap: KeyMap | undefined;
+  /* Not a real field: the STRUCT script below writes it during a read, and
+     loadSTRUCT() consumes it immediately afterwards. */
+  deltas: KeyMapDelta[];
+
+  constructor(typeName: string, hotkeys?: HotKey[]) {
     super(hotkeys);
 
     this.typeName = typeName;
@@ -73,7 +102,7 @@ export class KeyMap extends pathux.KeyMap {
     return new KeyMapDeltaSet(this.typeName, this._save_deltas());
   }
 
-  loadDeltaSet(dset=g_app_state.settings.getKeyMapDeltaSet(this.typeName)) {
+  loadDeltaSet(dset: KeyMapDeltaSet = g_app_state.settings.getKeyMapDeltaSet(this.typeName)) {
     this._load_deltas(dset.deltas);
   }
 
@@ -124,7 +153,7 @@ export class KeyMap extends pathux.KeyMap {
   }
 
   _save_deltas() {
-    let ret = [];
+    let ret: KeyMapDelta[] = [];
 
     if (!this.origKeyMap) {
       return ret;
@@ -151,7 +180,7 @@ export class KeyMap extends pathux.KeyMap {
     return ret;
   }
 
-  _load_deltas(deltas) {
+  _load_deltas(deltas: KeyMapDelta[]) {
     this.ensureWrite();
 
     for (let delta of deltas) {
@@ -170,7 +199,7 @@ export class KeyMap extends pathux.KeyMap {
     }
   }
 
-  _buildKey(hk) {
+  _buildKey(hk: pathux.HotKey) {
     if (typeof hk.action === "string") {
       /* return just the action if it's a string,
          so we can change hotkeys without effecting
@@ -183,7 +212,7 @@ export class KeyMap extends pathux.KeyMap {
     return key;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
     this._load_deltas(this.deltas);

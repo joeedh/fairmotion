@@ -1,14 +1,16 @@
 class FrameIterator {
-  ret : Object
+  /* One reused result object, as everywhere else in this codebase. */
+  ret : {done: boolean; value: HTMLImageElement | undefined}
   i : number;
+  vm : Video;
 
-  constructor(vm) {
+  constructor(vm: Video) {
     this.vm = vm;
     this.ret = {done : true, value : undefined};
     this.i = 0;
   }
   
-  init(vm) {
+  init(vm: Video) {
     this.vm = vm;
     this.ret.done = false;
     this.ret.value = undefined;
@@ -31,11 +33,19 @@ class FrameIterator {
 }
 
 export class Video {
-  frames : Object
+  /* Captured frames keyed by frame index -- sparse, hence a map. */
+  frames : {[frame: number]: HTMLImageElement}
   recording : boolean
   totframe : number;
+  canvas : HTMLCanvasElement;
+  g : CanvasRenderingContext2D;
+  video : HTMLVideoElement;
+  url : string;
+  source : HTMLSourceElement;
+  /* One empty frame, grabbed before anything is drawn into the canvas. */
+  blank : ImageData;
 
-  constructor(url) {
+  constructor(url: string) {
     this.canvas = document.createElement("canvas");
     this.g = this.canvas.getContext("2d");
     this.video = document.createElement("video")
@@ -227,7 +237,7 @@ export class Video {
   video.play();
  }
  
- get(frame) {
+ get(frame: number) {
    if (frame in this.frames)
      return this.frames[frame];
    return undefined;
@@ -239,7 +249,7 @@ export class Video {
  }
 }
 
-function current_frame(v) {
+function current_frame(v: HTMLVideoElement) {
   return Math.floor(v.currentTime*15.0);
   
   if (v.webkitDecodedFrameCount != undefined)
@@ -247,12 +257,16 @@ function current_frame(v) {
 }
 
 export class VideoManager {
+  pathmap : {[url: string]: Video};
+  /* Never written; only pathmap is used. */
+  videos : {[url: string]: Video};
+
   constructor() {
     this.pathmap = {};
     this.videos = {};
   }
-  
-  get(url) {
+
+  get(url: string) {
     if (url in this.pathmap) {
       return this.pathmap[url];
     }

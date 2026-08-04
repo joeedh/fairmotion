@@ -4,46 +4,66 @@ import {
   MinMax
 } from '../../util/mathlib.js';
 
+import type {FullContext} from '../../core/context.js';
+import type {TransformOp} from './transform.js';
+import type {SplineLayer} from '../../curve/spline_element_array.js';
+
+/* Scratch object a TransformOp hands to every TransDataType's undo_pre(),
+   then back to its undo().  Each type namespaces its own entries by key. */
+export type TransUndoData = {[key : string] : unknown};
+
 export class TransDataItem {
   w : number;
+  /* The element being transformed -- a SplineVertex, a SceneObject, a
+     dopesheet key -- and whatever snapshot its type took of it. */
+  data;
+  start_data;
+  type : typeof TransDataType;
+  /* Distance to the nearest selected element, for proportional edit; -1
+     means "not a proportional-falloff participant". */
+  dis : number;
 
-  constructor(data : any, type : TransDataType, start_data : any) {
+  constructor(data?, type? : typeof TransDataType, start_data?) {
     this.data = data;
     this.start_data = start_data;
-    
+
     this.type = type;
-    
+
     //for proportional transform (magnet tool)
-    this.w = 1; 
+    this.w = 1;
     this.dis = -1;
   }
 }
 
 export class TransDataType {
-  static apply(ctx : ToolContext, td : TransData, item : TransDataItem,
-               mat : Matrix4, w : number, scaleWidths : boolean) {
-  }
-  
-  static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
+  /* Which SelMask bits this backend handles; set on each subclass below the
+     class body. */
+  static selectmode : number;
+
+  static apply(ctx : FullContext, td : TransData, item : TransDataItem,
+               mat : Matrix4, w : number, scaleWidths? : boolean) {
   }
 
-  static getDataPath(ctx : ToolContext, td : TransData, ti : TransDataItem) {
-
+  static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
   }
 
-  static undo(ctx : ToolContext, undo_obj : ObjLit) {
-  }
-  
-  static update(ctx : ToolContext, td : TransData) {
-  }
-  
-  static calc_prop_distances(ctx : ToolContext, td : TransData, data : Array<TransDataItem>) {
-  }
-  
-  static gen_data(ctx : ToolContext, td : TransData, data: Array<TransDataItem>) {
+  static getDataPath(ctx : FullContext, td : TransData, ti : TransDataItem) : string | undefined {
+    return undefined;
   }
 
-  static iter_data(ctx : ToolContext, td : TransData) {
+  static undo(ctx : FullContext, undo_obj : TransUndoData) {
+  }
+
+  static update(ctx : FullContext, td : TransData) {
+  }
+
+  static calc_prop_distances(ctx : FullContext, td : TransData, data : TransDataItem[]) {
+  }
+
+  static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
+  }
+
+  static iter_data(ctx : FullContext, td : TransData) {
     let data = [];
     this.gen_data(ctx, td, data);
 
@@ -53,22 +73,36 @@ export class TransDataType {
   //this one gets a modal context
   static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
   }
-  
-  static aabb(ctx : ToolContext, td : TransData, item : TransDataItem, minmax : MinMax, selected_only) {
+
+  static aabb(ctx : FullContext, td : TransData, item : TransDataItem,
+              minmax : MinMax, selected_only : boolean) {
   }
 }
 TransDataType.selectmode = -1;
 
 export class TransData {
-  data : GArray
-  undodata : Object
+  data : GArray<TransDataItem>
+  undodata : TransUndoData
   center : Vector2
   start_center : Vector2
   minmax : MinMax
+  /* Screen-space copies of center/start_center; only filled in while the
+     owning op is running modally. */
   scenter : Vector2
   start_scenter : Vector2;
 
-  constructor(ctx : FullContext, top : TransformOp, datamode : int) {
+  ctx : FullContext;
+  top : TransformOp;
+  /* SelMask bits this transform is editing. */
+  datamode : number;
+  edit_all_layers : boolean;
+  layer : SplineLayer;
+  types : (typeof TransDataType)[];
+  /* Proportional (magnet) edit state, copied off the op's inputs. */
+  doprop : boolean;
+  propradius : number;
+
+  constructor(ctx : FullContext, top : TransformOp, datamode : number) {
     this.ctx = ctx;
     this.top = top;
     this.datamode = datamode;

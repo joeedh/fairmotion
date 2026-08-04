@@ -3,8 +3,15 @@ import * as nstructjs from '../path.ux/scripts/util/struct.js';
 import * as util from '../path.ux/scripts/util/util.js';
 import {Container} from '../path.ux/scripts/core/ui.js';
 import {LoadImageOp} from "../image/image_ops.js";
+import type {ListBox} from '../path.ux/scripts/widgets/ui_listbox.js';
+
+/* Datablock name -> lib_id, the enum definition the listbox is built from. */
+export type IDList = {[name : string] : number};
 
 export class IDBrowser extends Container {
+  idlist : IDList;
+  listbox : ListBox;
+
   constructor() {
     super();
 
@@ -32,7 +39,7 @@ export class IDBrowser extends Container {
     });
   }
 
-  _on_select(lib_id) {
+  _on_select(lib_id : number) {
     let block = this.ctx.datalib.idmap[lib_id];
     if (block) {
       console.log("block:", block);
@@ -67,7 +74,7 @@ export class IDBrowser extends Container {
       return (a.name.toLowerCase() < b.name.toLowerCase())*2 - 1;
     });
 
-    let def = {};
+    let def : IDList = {};
     this.idlist = def;
 
     for (let block of lst) {

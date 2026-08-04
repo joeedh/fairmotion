@@ -31,69 +31,74 @@ var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECO
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
 
-export function makeElement(type, attrs={}) {
+export function makeElement(type : string,
+                            attrs : {[k : string] : string} = {}) {
   var ret = document.createElementNS(NS, type);
   for (var k in attrs) {
     ret.setAttributeNS(null, k, attrs[k]);
   }
-  
+
   return ret;
 }
 
-//use by debug reporting    
+//use by debug reporting
 let lasttime = performance.now();
 
 export class SimpleCanvasPath extends PathBase {
-  recalc : number
-  lastx : number
-  lasty : number
   _last_off : Vector2
-  clip_users : set
+  clip_users : set<PathBase>
   path_start_i : number
   first : boolean
   _mm : MinMax;
 
-  constructor(matrix) {
+  /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
+  commands : number[];
+  /* The z the path was last drawn at; never read back. */
+  _last_z : number | undefined;
+  domnode : Element | undefined;
+  filternode : Element | undefined;
+
+  constructor(matrix : Matrix4) {
     super();
-    
+
     this.commands = [];
     this.recalc = 1;
     this.matrix = matrix;
-    
+
     this.lastx = 0;
     this.lasty = 0;
     this._last_z = undefined;
-    
+
     this._last_off = new Vector2();
     this._last_off[0] = this._last_off[1] = 1e17;
-    
+
     this.domnode = undefined;
     this.filternode = undefined;
-    
+
     this.clip_users = new set();
-    
+
     this.path_start_i = 0;
     this.first = true;
     this._mm = new MinMax(2);
   }
-  
-  update_aabb(draw, fast_mode=false) {
+
+  update_aabb(draw : SimpleCanvasDraw2D, fast_mode = false) {
     var tmp = new Vector2();
     var mm = this._mm;
     var pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
-    
+
     mm.reset();
-    
+
     if (fast_mode) {
       console.trace("FAST MODE!");
     }
-    
+
     var prev = -1;
     var cs = this.commands, i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
-      
+
       if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
@@ -108,65 +113,66 @@ export class SimpleCanvasPath extends PathBase {
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
-        
+
         mm.minmax(tmp);
       }
-      
+
       prev = cmd;
     }
-    
+
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
   }
-  
+
   beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
   }
-  
+
   undo() { //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
   }
 
-  _pushCmd() {
+  _pushCmd(...args : number[]) {
     var arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
     this.commands.push(arglen);
-    
+
     for (var i=0; i<arglen; i++) {
       this.commands.push(arguments[i + 1]);
     }
-    
+
     this.recalc = 1;
     this.first = false;
   }
-  
-  moveTo(x, y) {
+
+  moveTo(x : number, y : number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
-  
-  cubicTo(x2, y2, x3, y3, x4, y4) {
+
+  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
+          y4 : number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
 
-  bezierTo(x2, y2, x3, y3) {
+  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
-  
-  lineTo(x2, y2) {
+
+  lineTo(x2 : number, y2 : number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
     }
-    
+
     this._pushCmd(LINETO, x2, y2);
     this.lastx = x2;
     this.lasty = y2;
@@ -176,7 +182,7 @@ export class SimpleCanvasPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color, width) {
+  pushStroke(color? : number[], width? : number) {
     if (color) {
       let a = color[3] || 1.0;
       this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
@@ -193,13 +199,13 @@ export class SimpleCanvasPath extends PathBase {
     this._pushCmd(NOFILL);
   }
 
-  destroy(draw) {
+  destroy(draw : VectorDraw) {
   }
-  
-  gen(draw, _check_tag=0) {
+
+  gen(draw : SimpleCanvasDraw2D, _check_tag = 0) {
   }
-  
-  reset(draw) {
+
+  reset(draw : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -207,12 +213,13 @@ export class SimpleCanvasPath extends PathBase {
     this._last_off[0] = this._last_off[1] = 1e17;
     this.first = true;
   }
-  
-  draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g, clipMode=false) {
+
+  draw(draw : SimpleCanvasDraw2D, offx = 0, offy = 0, canvas = draw.canvas,
+       g = draw.g, clipMode = false) {
     var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
 
     offx += this.off[0], offy += this.off[1];
-    
+
     if (isNaN(offx) || isNaN(offy)) {
       throw new Error("nan!");
     }
@@ -220,7 +227,7 @@ export class SimpleCanvasPath extends PathBase {
     this._last_z = this.z;
     var g = draw.g;
     var tmp = new Vector3();
-    
+
     let debuglog = function() {
       if (debug > 1) {
         let time = performance.now();
@@ -244,9 +251,9 @@ export class SimpleCanvasPath extends PathBase {
     }
 
     debuglog2("start " + this.id);
-    
+
     let matrix = draw.matrix;
-    
+
     g.beginPath();
     g.lineCap = "butt";
     g.miterLimit = 2.5;
@@ -257,7 +264,7 @@ export class SimpleCanvasPath extends PathBase {
     let mat2 = new Matrix4(draw.matrix);
     mat2.invert();
 
-    function loadtemp(off) {
+    function loadtemp(off : number) {
       tmp[0] = cmds[i+2 + off*2];
       tmp[1] = cmds[i+3 + off*2];
       tmp[2] = 0.0;
@@ -275,7 +282,7 @@ export class SimpleCanvasPath extends PathBase {
     if (!clipMode && this.clip_paths.length > 0) {
       g.beginPath();
       g.save();
-      
+
       for (let path of this.clip_paths) {
         path.draw(draw, offx, offy, canvas, g, true);
       }
@@ -295,7 +302,7 @@ export class SimpleCanvasPath extends PathBase {
 
     for (i=0; i<cmds.length; i += cmds[i+1] + 2) {
       var cmd = cmds[i];
-      
+
       switch (cmd) {
         case BEGINPATH:
           debuglog("BEGINPATH");
@@ -304,17 +311,17 @@ export class SimpleCanvasPath extends PathBase {
         case LINETO:
           debuglog("LINETO");
           loadtemp(0);
-          
+
           g.lineTo(tmp[0], tmp[1]);
           break;
         case BEZIERTO:
           debuglog("BEZIERTO");
           loadtemp(0);
-          
+
           var x1 = tmp[0], y1 = tmp[1];
 
           loadtemp(1);
-          
+
           g.quadraticCurveTo(x1, y1, tmp[0], tmp[1]);
           break;
         case CUBICTO:
@@ -325,7 +332,7 @@ export class SimpleCanvasPath extends PathBase {
 
           loadtemp(1);
           var x2 = tmp[0], y2 = tmp[1];
-          
+
           loadtemp(2);
 
           g.bezierCurveTo(x1, y1, x2, y2, tmp[0], tmp[1]);
@@ -380,39 +387,37 @@ export class SimpleCanvasPath extends PathBase {
         g1= ~~(this.color[1]*255),
         b = ~~(this.color[2]*255),
         a =    this.color[3];
-    
+
     let fstyle = "rgba("+r+","+g1+","+b+","+a+")";
     g.fillStyle = fstyle;
-    
+
     debuglog2("g.fillStyle", g.fillStyle);
 
     debuglog2("fill");
-    
+
     g.fill();
 
     if (this.clip_paths.length > 0) {
       g.restore();
     }
   }
-  
+
   update() {
     this.recalc = 1;
   }
 }
 
 export class SimpleCanvasDraw2D extends VectorDraw {
-  path_idmap : Object
-  dosort : boolean
-  matstack : Array
-  matrix : Matrix4;
+  paths : SimpleCanvasPath[]
+  path_idmap : {[id : number] : SimpleCanvasPath}
 
   constructor() {
     super();
-    
+
     this.paths = [];
     this.path_idmap = {};
     this.dosort = true;
-    
+
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
 
@@ -421,26 +426,27 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     }
     this.matstack.cur = 0;
   }
-  
-  static get_canvas(id, width, height, zindex) {
+
+  static get_canvas(id : string, width : number, height : number,
+                    zindex : number) {
     var ret = document.getElementById(id);
-    
+
     if (ret === undefined) {
       ret = document.createElement("canvas");
       ret.id = id;
     }
-    
+
     ret.width = width;
     ret.height = height;
-    
+
     if (ret.style !== undefined) {
       ret.style["z-index"] = zindex;
     }
-    
+
     return ret;
   }
-  
-  has_path(id, z, check_z=true) {
+
+  has_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -448,17 +454,17 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     if (!(id in this.path_idmap)) {
       return false;
     }
-    
+
     var path = this.path_idmap[id];
     return check_z ? path.z === z : true;
   }
-  
+
   //creates new path if necessary.  z is required
-  get_path(id, z, check_z=true) {
+  get_path(id : number, z : number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
-    
+
     if (!(id in this.path_idmap)) {
       this.path_idmap[id] = new SimpleCanvasPath(this.matrix);
       this.path_idmap[id].index = this.paths.length;
@@ -467,18 +473,18 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
       this.paths.push(this.path_idmap[id]);
     }
-    
+
     var ret = this.path_idmap[id];
     ret.matrix.load(this.matrix);
-    
+
     if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
-    
+
     return ret;
   }
-  
+
   update() {
     console.warn("update called");
 
@@ -486,17 +492,17 @@ export class SimpleCanvasDraw2D extends VectorDraw {
       p.update();
     }
   }
-  
-  static kill_canvas(svg) {
+
+  static kill_canvas(svg : Element) {
   }
-  
+
   destroy() {
   }
-  
-  draw(g) {
+
+  draw(g : Canvas2D) {
     var canvas = g.canvas;
-    
-    
+
+
     //canvas.style["background"] = "rgba(0,0,0,0)";
 
     this.canvas = canvas;
@@ -520,15 +526,15 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
     //console.log(this.matrix);
     //console.log(this.g);
-    return new Promise((accept, reject) => {
+    return new Promise<void>((accept, reject) => {
       accept();
     });
   }
-  
+
   //set draw matrix
-  set_matrix(matrix) {
+  set_matrix(matrix : Matrix4) {
     super.set_matrix(matrix);
-    
+
     this.zoom = matrix.$matrix.m11;
   }
 }

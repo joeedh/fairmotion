@@ -1,4 +1,5 @@
 import {DataBlock, DataTypes, BlockFlags} from './lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from './lib_api.js';
 import {STRUCT} from './struct.js';
 import {ModalStates} from './toolops_api.js';
 import {SelMask} from '../editors/viewport/selectmode.js';
@@ -13,7 +14,16 @@ export var ImageFlags = {
 };
 
 export class Image extends DataBlock {
+  static STRUCT: string;
+
   path: string;
+  /* The encoded file bytes, not decoded pixels; undefined for an empty block.
+     loadSTRUCT() turns a zero-length read back into undefined. */
+  data: Uint8Array | undefined;
+  size: number[];
+  /* Built lazily by get_dom_image() and cached; this is what actually decodes
+     the bytes. */
+  _dom: HTMLImageElement | undefined;
 
   constructor(name = "Image") {
     super(DataTypes.IMAGE, name);
@@ -75,7 +85,7 @@ export class Image extends DataBlock {
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -96,9 +106,14 @@ Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
 DataBlock.register(Image);
 
 export class ImageUser {
+  static STRUCT: string;
+
   off: Vector2
   scale: Vector2
   flag: number;
+  /* A dataref while the file is being read; data_link() swaps it for the real
+     block. Undefined when nothing is assigned. */
+  image: Image | undefined;
 
   constructor() {
     this.off = new Vector2([0, 0]);
@@ -107,11 +122,11 @@ export class ImageUser {
     this.flag = 0;
   }
 
-  data_link(block: DataBlock, getblock: Function, getblock_us: Function) {
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     this.image = getblock(this.image); //XXX should use getblock_us?
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader: StructReader<ImageUser>) {
     var ret = new ImageUser();
 
     reader(ret);

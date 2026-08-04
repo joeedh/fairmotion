@@ -3,10 +3,10 @@
 /*for logging assertions that are particularly sensitive
 should maybe send to a server somewhere?*/
 
-export function evillog() {
+export function evillog(...args: unknown[]) {
   let s = "";
 
-  for (let arg of arguments) {
+  for (let arg of args) {
     s += "" + arg + " ";
   }
 

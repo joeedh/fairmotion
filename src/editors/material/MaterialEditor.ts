@@ -13,9 +13,11 @@ import '../../path.ux/scripts/widgets/ui_listbox.js';
 
 import {LastToolPanel} from '../../path.ux/scripts/widgets/ui_lasttool.js';
 import {TPropFlags} from '../../core/toolprops.js';
+import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
+import type {FullContext} from '../../core/context.js';
 
 export class MyLastToolPanel extends LastToolPanel {
-  getToolStackHead(ctx) {
+  getToolStackHead(ctx : FullContext) {
     return ctx.toolstack.head;
   }
 
@@ -26,7 +28,7 @@ export class MyLastToolPanel extends LastToolPanel {
 
 UIBase.register(MyLastToolPanel);
 
-function list(iter) {
+function list<T>(iter : Iterable<T>) : T[] {
   let ret = [];
 
   for (let item of iter) {
@@ -37,11 +39,15 @@ function list(iter) {
 }
 
 class LayerPanel extends Container {
+  /* layerset.active.id at the last rebuild(), so update() can spot a change. */
   last_active_id : number
-  do_rebuild : number
+  last_total_layers : number
+  /* Set numerically by update()'s |=, cleared with `false` by rebuild(). */
+  do_rebuild : number | boolean
+  /* Countdown of extra update() passes to run; only _old() ever sets it. */
   delayed_recalc : number;
 
-  constructor(ctx) {
+  constructor(ctx : FullContext) {
     super(ctx);
 
     //this.last_spline_path = "";
@@ -118,7 +124,7 @@ class LayerPanel extends Container {
       listbox.setActive(spline.layerset.active.id);
     }
 
-    listbox.onchange = (id, item) => {
+    listbox.onchange = (id : number, item) => {
       let layer = spline.layerset.idmap[id];
 
       if (layer === undefined) {
@@ -201,6 +207,8 @@ class LayerPanel extends Container {
     this.flushUpdate();
   }
 
+  /* NOTE: dead code below the `return` -- UIButtonIcon, UIListBox, UIButton,
+     Context and `spline` are all undefined in this module. */
   _old() {
     return;
     let controls = this.col();
@@ -336,6 +344,12 @@ class LayerPanel extends Container {
 UIBase.register(LayerPanel);
 
 export class MaterialEditor extends Editor {
+  static STRUCT : string;
+
+  /* Class name of the toolmode the tabs were last built for. */
+  _last_toolmode : string | undefined;
+  inner : Container;
+
   constructor() {
     super();
 
@@ -347,6 +361,7 @@ export class MaterialEditor extends Editor {
     if (this.ctx === undefined) {
       //this.ctx = g_app_state.screen.ctx;
       //XXX eek!
+      /* NOTE: `Context` is not imported here, so this throws. */
       this.ctx = new Context();
     }
 

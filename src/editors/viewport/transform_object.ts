@@ -3,6 +3,8 @@ import {SelMask} from './selectmode.js';
 import {TransDataItem} from "./transdata.js";
 import {TransSplineVert} from "./transform_spline.js";
 import {UpdateFlags} from "../../scene/sceneobject.js";
+import type {FullContext} from '../../core/context.js';
+import type {TransUndoData} from './transdata.js';
 
 import '../../path.ux/scripts/util/vectormath.js';
 
@@ -13,7 +15,7 @@ let iter_cachering = new cachering(() => {
 }, 512);
 
 export class TransSceneObject extends TransDataType {
-  static iter_data(ctx: ToolContext, td: TransData) {
+  static iter_data(ctx: FullContext, td: TransData) {
     return (function* () {
       let scene = ctx.scene;
 
@@ -31,11 +33,11 @@ export class TransSceneObject extends TransDataType {
     })();
   }
 
-  static getDataPath(ctx : ToolContext, td : TransData, ti : TransDataItem) {
+  static getDataPath(ctx : FullContext, td : TransData, ti : TransDataItem) {
     return `scene.objects[${ti.data.id}]`;
   }
 
-  static gen_data(ctx: ToolContext, td: TransData, data: Array<TransDataItem>) {
+  static gen_data(ctx: FullContext, td: TransData, data: TransDataItem[]) {
     let scene = ctx.scene;
 
     for (let ob in scene.objects.selected_editable) {
@@ -51,11 +53,11 @@ export class TransSceneObject extends TransDataType {
     }
   }
 
-  static calc_prop_distances(ctx: ToolContext, td: TransData, data: Array<TransDataItem>) {
+  static calc_prop_distances(ctx: FullContext, td: TransData, data: TransDataItem[]) {
 
   }
 
-  static update(ctx: ToolContext, td: TransData) {
+  static update(ctx: FullContext, td: TransData) {
     for (let ti of td.data) {
       if (ti.type === TransSceneObject) {
         ti.data.update(UpdateFlags.TRANSFORM);
@@ -65,7 +67,7 @@ export class TransSceneObject extends TransDataType {
     window.redraw_viewport();
   }
 
-  static undo(ctx: ToolContext, undo_obj: ObjLit) {
+  static undo(ctx: FullContext, undo_obj: TransUndoData) {
     let scene = ctx.scene;
 
     for (let id in undo_obj.object) {
@@ -84,7 +86,7 @@ export class TransSceneObject extends TransDataType {
     window.redraw_viewport();
   }
 
-  static undo_pre(ctx: ToolContext, td: TransData, undo_obj: ObjLit) {
+  static undo_pre(ctx: FullContext, td: TransData, undo_obj: TransUndoData) {
     let ud = undo_obj["object"] = {};
 
     let scene = ctx.scene;
@@ -99,7 +101,8 @@ export class TransSceneObject extends TransDataType {
     }
   }
 
-  static apply(ctx: ToolContext, td: TransData, item: TransDataItem, mat: Matrix4, w: float) {
+  static apply(ctx: FullContext, td: TransData, item: TransDataItem,
+               mat: Matrix4, w: number) {
     let rot = new Vector3(), loc = new Vector3(), scale = new Vector3();
 
     for (let ti of td.data) {
@@ -119,11 +122,12 @@ export class TransSceneObject extends TransDataType {
     }
   }
 
-  static calc_draw_aabb(ctx: Context, td: TransData, minmax: MinMax) {
+  static calc_draw_aabb(ctx: FullContext, td: TransData, minmax: MinMax) {
 
   }
 
-  static aabb(ctx: ToolContext, td: TransData, item: TransDataItem, minmax: MinMax, selected_only: bool) {
+  static aabb(ctx: FullContext, td: TransData, item: TransDataItem,
+              minmax: MinMax, selected_only: boolean) {
   }
 }
 TransSceneObject.selectmode = SelMask.OBJECT;

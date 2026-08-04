@@ -10,11 +10,25 @@ import {SelMask, ToolModes} from './selectmode.js';
 import {View2DEditor, SessionFlags} from './view2d_editor.js';
 import {DataBlock, DataTypes} from '../../core/lib_api.js';
 import {EditorTypes} from './view2d_base.js';
+import type {View2DHandler} from './view2d.js';
+import type {FullContext} from '../../core/context.js';
+import type {RowFrame} from '../../path.ux/scripts/core/ui.js';
+import type {Spline} from '../../curve/spline.js';
 
 export class SceneObjectEditor extends View2DEditor {
+  static STRUCT : string;
+
   mpos : Vector3
   start_mpos : Vector3;
 
+  view2d : View2DHandler;
+  /* Spline under the cursor, or undefined when nothing is. */
+  highlight_spline : Spline | undefined;
+  /* Only ever set by data_link(); the base class has no ctx. */
+  ctx : FullContext;
+
+  /* NOTE: the super() call below passes a fifth argument, `keymap`, which is
+     neither a parameter of View2DEditor nor imported here. */
   constructor(view2d : View2DHandler) {
     super("Object", EditorTypes.OBJECT, EditModes.OBJECT, DataTypes.FRAMESET, keymap);
 
@@ -39,21 +53,22 @@ export class SceneObjectEditor extends View2DEditor {
     return m;
   }
 
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : (obj) => void) {
     var m = new SceneObjectEditor(undefined);
     reader(m);
 
     return m;
   }
 
-  data_link(block, getblock, getblock_us) {
+  data_link(block : DataBlock, getblock : (ref) => DataBlock,
+            getblock_us : (ref) => DataBlock) {
     this.ctx = new Context();
   }
 
-  add_menu(view2d : View2DHandler, mpos, add_title = true) {
+  add_menu(view2d : View2DHandler, mpos : number[], add_title = true) {
   }
 
-  on_tick(ctx) {
+  on_tick(ctx : FullContext) {
     let widgets = [WidgetResizeOp, WidgetRotateOp];
 
     if (ctx.view2d.toolmode == ToolModes.RESIZE) {
@@ -77,18 +92,19 @@ export class SceneObjectEditor extends View2DEditor {
     var k = this.keymap;
   }
 
-  set_selectmode(mode: int) {
+  set_selectmode(mode : number) {
     this.selectmode = mode;
   }
 
   //returns number of selected items
-  do_select(event, mpos, view2d : View2DHandler, do_multiple) {
+  do_select(event : MouseEvent, mpos : number[], view2d : View2DHandler,
+            do_multiple : boolean) {
     //console.log("XXX do_select!", mpos);
 
     return false;
   }
 
-  tools_menu(ctx, mpos, view2d : View2DHandler) {
+  tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
     let ops = [];
 
     var menu = view2d.toolop_menu(ctx, "Tools", ops);
@@ -102,10 +118,10 @@ export class SceneObjectEditor extends View2DEditor {
   on_active(view2d : View2DHandler) {
   }
 
-  rightclick_menu(event, view2d : View2DHandler) {
+  rightclick_menu(event : MouseEvent, view2d : View2DHandler) {
   }
 
-  on_mousedown(event) {
+  on_mousedown(event : MouseEvent) {
   }
 
   ensure_paths_off() {
@@ -126,24 +142,25 @@ export class SceneObjectEditor extends View2DEditor {
   }
 
   //returns [spline, element, mindis]
-  findnearest(mpos, selectmask, limit, ignore_layers) {
+  findnearest(mpos : number[], selectmask : number, limit : number,
+              ignore_layers : boolean) {
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     this.mdown = true;
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : MouseEvent) {
     this.mdown = false;
   }
 
-  do_alt_select(event, mpos, view2d : View2DHandler) {
+  do_alt_select(event : MouseEvent, mpos : number[], view2d : View2DHandler) {
   }
 
   gen_edit_menu(add_title = false) {
   }
 
-  delete_menu(event) {
+  delete_menu(event : MouseEvent) {
   }
 }
 

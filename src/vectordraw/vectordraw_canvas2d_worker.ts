@@ -4,9 +4,10 @@
 let Debug = false;
 
 if (Array.prototype.remove === undefined) {
-  Array.prototype.remove = function (item, throw_error = true) {
+  Array.prototype.remove = function <T>(this : T[], item : T,
+                                        throw_error = true) {
     let idx = this.indexOf(item);
-    
+
     if (idx < 0) {
       if (throw_error) {
         throw new Error("Item not in array");
@@ -15,16 +16,16 @@ if (Array.prototype.remove === undefined) {
         return this;
       }
     }
-    
+
     while (idx < this.length - 1) {
       this[idx] = this[idx + 1];
-      
+
       idx++;
     }
-    
+
     this[idx] = undefined;
     this.length--;
-    
+
     return this;
   }
 }
@@ -78,7 +79,23 @@ let MSG_NEW_JOB = 0,
   MSG_WORKER_READY = 15;
 
 
-let state = {
+/* Everything the worker carries between messages.  msg_data accumulates the
+   job described by the current NEW_JOB / SET_COMMANDS / RUN sequence. */
+type WorkerState = {
+  canvas : OffscreenCanvas | undefined,
+  queue : Job[],
+  job_idmap : {[msgid : number] : Job},
+  /* Declared with the rest of the bookkeeping but never read or written. */
+  waitqueue : {[msgid : number] : Job},
+  datablocks : Transferable[],
+  running : boolean,
+  msg_state : undefined,
+  msg_id : number | undefined,
+  msg_cmd : number | undefined,
+  msg_data? : Job
+};
+
+let state : WorkerState = {
   canvas: undefined,
   queue: [],
   job_idmap: {},
@@ -103,24 +120,25 @@ function init() {
 }
 
 //commands should be a float32 array
-function doDrawList(commands, datablocks, id) {
+function doDrawList(commands : Float64Array, datablocks : Transferable[],
+                    id : number) {
   state.running = true;
-  
+
   let _i = 0;
-  
+
   let u8buffer = new Uint8Array(commands.buffer);
-  
+
   let read = () => {
     return commands[_i++];
   }
-  
+
   let width = read(), height = read();
-  
+
   let fillcolor = [0, 0, 0, 1], strokecolor = [0, 0, 0, 1];
 
   let blur_doff = 25000;
   let blur = 0;
-  
+
   //try to catch malformed dimensions
   if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0 || width > 10000 || height > 10000) {
     console.warn("Malformed dimensions", width, height);
@@ -128,11 +146,11 @@ function doDrawList(commands, datablocks, id) {
     state.running = false;
     return;
   }
-  
+
   let canvas = new OffscreenCanvas(width, height);
   let g = canvas.getContext("2d");
   let transform = [1, 0, 0,  0, 1, 0];
-  
+
   g.globalCompositeOperation = "source-over";
   g.miterLimit = 2.5;
   g.lineCap = "butt";
@@ -148,10 +166,10 @@ function doDrawList(commands, datablocks, id) {
       case FILLSTYLE :
         let r = read(), g1 = read(), b = read(), a = read();
         let style = "rgba("+r+","+g1+","+b+","+a+")";
-  
+
         if (Debug) console.log("STYLE", style);
         let clr;
-        
+
         if (cmd === LINESTYLE) {
           g.strokeStyle = style;
           clr = strokecolor;
@@ -159,30 +177,30 @@ function doDrawList(commands, datablocks, id) {
           g.fillStyle = style;
           clr = fillcolor;
         }
-        
+
         clr[0] = r;
         clr[1] = g1;
         clr[2] = b;
         clr[3] = a;
-        
+
         if (Debug) console.log(id, "yay color", fillcolor, style, _i-5);
-        
+
         break;
         /*
         let i = _i * 4;
         len = u8buffer[i++];
         let style = "";
-        
+
         for (let j = 0; j < len; j++) {
           style += String.fromCharCode(u8buffer[i + j]);
         }
-        
+
         //pad to 4-byte boundary
         let off = (len + 1) & 3;
         if (off) {
           _i += 4 - off;
         }
-        
+
         if (cmd === LINESTYLE) {
           g.strokeStyle = style;
         } else {
@@ -239,7 +257,7 @@ function doDrawList(commands, datablocks, id) {
         for (let i=0; i<6; i++) {
           transform[i] = read();
         }
-        
+
         g.setTransform(transform[0], transform[1], transform[2], transform[3], transform[4], transform[5]);
         break;
       case TRANSLATE :
@@ -262,7 +280,7 @@ function doDrawList(commands, datablocks, id) {
         break;
       case SETBLUR:
         let blur2 = read();
-        
+
         //*
         if (blur2 === 0 && blur !== 0) {
           blur = 0;
@@ -274,7 +292,7 @@ function doDrawList(commands, datablocks, id) {
           g.filter = "blur(" + (blur*0.25) + "px)";
         }
         //*/
-        
+
         break;
       case NOFILL:
         no_fill = true;
@@ -287,20 +305,20 @@ function doDrawList(commands, datablocks, id) {
     g.shadowOffsetX = 0.0;
     g.shadowOffsetY = 0.0;
     g.shadowBlur = 0.0;
-    
+
     g.translate(-blur_doff, 0.0);
   }
 
   state.running = false;
-  
+
   let result = canvas.transferToImageBitmap();
-  
+
   postMessage({
     type  : MSG_RESULT,
     data  : [result],
     msgid : id
   }, [result]);
-  
+
   self.setTimeout(() => {
     for (let i=0; i<3; i++) {
       handleQueue();
@@ -314,14 +332,14 @@ function doDrawList(commands, datablocks, id) {
 
 let MAGIC = 123452;
 
-function senderror(msg) {
+function senderror(msg : string) {
   console.warn("working thread:", msg);
 }
 
 function handleQueue() {
   if (state.running)
     return;
-  
+
   if (state.queue.length > 0) {
     let job = state.queue.shift();
     doDrawList(job.commands, job.datablocks, job.id);
@@ -329,21 +347,25 @@ function handleQueue() {
 }
 
 class Job {
-  constructor(id) {
+  id : number;
+  commands : Float64Array | undefined;
+  datablocks : Transferable[];
+
+  constructor(id : number) {
     this.id = id;
     this.commands = undefined;
     this.datablocks = [];
   }
 }
 
-onmessage = function (e) {
+onmessage = function (e : MessageEvent) {
   let m;
-  
+
   //console.log("event message in worker", e);
-  
+
   m = e.data.type;
-  
-  
+
+
   switch (m) {
     case MSG_CLEAR_QUEUE:
       state.queue = [];
@@ -355,14 +377,14 @@ onmessage = function (e) {
         if (Debug) console.warn("Error: id not in job_idmap to cancel", id);
         return;
       }
-      
+
       let job = state.job_idmap[id];
       if (state.queue.indexOf(job) >= 0) {
         state.queue.remove(job);
       }
-      
+
       delete state.job_idmap[id];
-      
+
       break;
     case MSG_NEW_JOB:
       state.msg_id = e.data.msgid;

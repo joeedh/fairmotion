@@ -1,51 +1,68 @@
 import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
 import {SavedToolDefaults, DataAPI} from '../path.ux/scripts/pathux.js';
 import {DataLib} from './lib_api.js';
+import type {AppState} from './AppState.js';
+import type {ToolStack} from './toolstack.js';
+import type {ToolOp} from './toolops_api.js';
+import type {ToolMode} from '../editors/viewport/toolmodes/toolmode.js';
+import type {AppSettings} from './UserSettings.js';
+
+/*
+ * How BaseContext.saveProperty encodes one context member so it survives an
+ * undo step. Everything except "passthru" is a recipe for looking the value up
+ * again: "lookup" re-reads ctx[key], "path" re-resolves a data API path and
+ * "block" re-resolves a DataRef against the datalib.
+ */
+export interface SavedContextProperty {
+  type: "passthru" | "lookup" | "path" | "block";
+  key: string;
+  value: unknown;
+}
 
 export class BaseContextOverlay extends ContextOverlay {
-  constructor(state = g_app_state) {
+  constructor(state: AppState = g_app_state) {
     super(state);
   }
 
-  get appstate() {
+  get appstate(): AppState {
     return this.state;
   }
 
-  get api() {
+  get api(): DataAPI {
     return this.state.pathcontroller;
   }
 
-  get settings() {
+  get settings(): AppSettings {
     return this.appstate.settings;
   }
 
-  get toolmode() {
+  get toolmode(): ToolMode | undefined {
     return this.scene ? this.scene.toolmode : undefined;
   }
 
-  get active_area() {
+  get active_area(): Editor | undefined {
     return Editor.active_area();
   }
 
-  switch_active_spline(newpath) {
+  switch_active_spline(newpath: string): void {
     g_app_state.switch_active_spline(newpath);
   }
 
-  get splinepath(): String {
+  get splinepath(): string {
     return g_app_state.active_splinepath === undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
   }
 
-  get filepath(): String {
+  get filepath(): string {
     return g_app_state.filepath;
   }
 
-  get edit_all_layers() {
+  get edit_all_layers(): boolean {
     let scene = this.scene;
 
     return scene !== undefined ? scene.edit_all_layers : false;
   }
 
-  get spline(): FrameSet {
+  get spline(): Spline {
     var ret = this.api.getValue(this, g_app_state.active_splinepath);
 
     if (ret === undefined) {
@@ -67,7 +84,7 @@ export class BaseContextOverlay extends ContextOverlay {
   }
 
 
-  get scene() {
+  get scene(): Scene {
     var list = this.datalib.scenes;
 
     //sanity check
@@ -83,19 +100,19 @@ export class BaseContextOverlay extends ContextOverlay {
     return this.datalib.get_active(DataTypes.SCENE);
   }
 
-  get datalib() {
+  get datalib(): DataLib {
     return g_app_state.datalib;
   }
 
-  get toolstack() {
+  get toolstack(): ToolStack {
     return g_app_state.toolstack;
   }
 
-  get toolDefaults() {
+  get toolDefaults(): typeof SavedToolDefaults {
     return SavedToolDefaults;
   }
 
-  get view2d() {
+  get view2d(): View2DHandler | undefined {
     var ret = Editor.context_area(View2DHandler);
 
     //if (ret === undefined)
@@ -107,9 +124,10 @@ export class BaseContextOverlay extends ContextOverlay {
 }
 
 export class ViewContextOverlay extends ContextOverlay {
+  appstate: AppState;
   _keymap_mpos: Array<number>;
 
-  constructor(state = g_app_state) {
+  constructor(state: AppState = g_app_state) {
     super(state);
 
     this.appstate = state;
@@ -120,16 +138,16 @@ export class ViewContextOverlay extends ContextOverlay {
     return g_app_state.raster.font;
   }
 
-  get keymap_mpos() {
+  get keymap_mpos(): number[] {
     return this._keymap_mpos;
   }
 
   /*make sure we're saved properly for LockedContext's*/
-  keymap_mpos_save() {
+  keymap_mpos_save(): number[] {
     return [this._keymap_mpos[0], this._keymap_mpos[1]];
   }
 
-  keymap_mpos_load(ctx, data) {
+  keymap_mpos_load(ctx: FullContext, data: number[]): number[] {
     return data;
   }
 
@@ -153,15 +171,15 @@ export class ViewContextOverlay extends ContextOverlay {
     return Editor.context_area(OpStackEditor);
   }
 
-  get selectmode() {
+  get selectmode(): int {
     return this.view2d.selectmode;
   }
 
-  get console() {
+  get console(): ConsoleEditor | undefined {
     return Editor.context_area(ConsoleEditor);
   }
 
-  get view2d() {
+  get view2d(): View2DHandler | undefined {
     var ret = Editor.context_area(View2DHandler);
 
     //if (ret === undefined)
@@ -170,7 +188,7 @@ export class ViewContextOverlay extends ContextOverlay {
     return ret; //g_app_state.active_view2d;
   }
 
-  get screen() {
+  get screen(): FairmotionScreen {
     return g_app_state.screen;
   }
 }
@@ -190,26 +208,28 @@ export class BaseContext extends Context {
     this.reset(state);
   }
 
-  get last_tool() {
+  get last_tool(): ToolOp | undefined {
     return this.toolstack.head;
   }
 
-  error(msg: String) {
+  error(msg: string): void {
     g_app_state.notes.label("ERROR: " + msg);
   }
 
-  report(msg: String) {
+  report(msg: string): void {
     g_app_state.notes.label(msg);
   }
 
-  reset(state = this.state) {
+  reset(state: AppState = this.state): void {
     this.pushOverlay(new BaseContextOverlay(state));
   }
 
-  saveProperty(key: String) {
+  /* One entry of a SavedContext: enough to find the value again after an undo
+     step reloaded the file and invalidated every object identity. */
+  saveProperty(key: string): SavedContextProperty {
     let v = this[key];
 
-    function passthru(v) {
+    function passthru(v: unknown): SavedContextProperty {
       return {
         type : "passthru",
         key  : key,
@@ -217,7 +237,7 @@ export class BaseContext extends Context {
       };
     }
 
-    function lookup(v) {
+    function lookup(v: unknown): SavedContextProperty {
       return {
         type : "lookup",
         key  : key,
@@ -248,7 +268,7 @@ export class BaseContext extends Context {
     return lookup(v);
   }
 
-  loadProperty(ctx: FullContext, key: String, val) {
+  loadProperty(ctx: FullContext, key: string, val: SavedContextProperty) {
     if (val.type === "lookup") {
       return ctx[val.key];
     } else if (val.type === "path") {
@@ -280,9 +300,9 @@ export class FullContext extends BaseContext {
 window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
 
 import {SplineFrameSet} from './frameset.js';
-import {DataTypes, DataBlock} from "./lib_api.js";
+import {DataTypes, DataBlock, DataRef} from "./lib_api.js";
 
-import {Editor} from "../editors/editor_base.js";
+import {Editor, FairmotionScreen} from "../editors/editor_base.js";
 import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
 import {OpStackEditor} from '../editors/ops/ops_editor.js';

@@ -23,6 +23,9 @@ import {
 
 import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
+import type {Spline} from './spline.js';
+import type {View2DHandler} from '../editors/viewport/view2d.js';
+
 //obsolete:
 //var uclr_h = "#22ff11"
 //var sclr_h = "#aaffaa"
@@ -48,7 +51,8 @@ export const FlagMap = {
   SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT | ColorFlags.ACTIVE | ColorFlags.HIGHLIGHT
 };
 
-function mix(a, b, t) {
+/* Componentwise lerp of two rgb triples. */
+function mix(a : number[], b : number[], t : number) {
   let ret = [0, 0, 0];
 
   for (let i = 0; i < 3; i++) {
@@ -85,13 +89,13 @@ HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.
 HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
 HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
 
-function rgb2css(color) {
+function rgb2css(color : number[]) {
   let r = color[0], g = color[1], b = color[2];
   return "rgb(" + (~~(r*255)) + "," + (~~(g*255)) + "," + (~~(b*255)) + ")";
 }
 
 //create final lookup table
-export const element_colormap = new Array(8);
+export const element_colormap = new Array<string>(8);
 
 for (let k in ElementColor) {
   let f = FlagMap[k];
@@ -99,13 +103,15 @@ for (let k in ElementColor) {
 }
 
 //create final lookup table
-export const handle_colormap = new Array(8);
+export const handle_colormap = new Array<string>(8);
 for (let k in HandleColor) {
   let f = FlagMap[k];
   handle_colormap[f] = rgb2css(HandleColor[k]);
 }
 
-function get_element_flag(e, list) {
+/* Which of the SELECT/ACTIVE/HIGHLIGHT bits `e` has, as an index into the two
+   colormaps above. */
+function get_element_flag(e : SplineElement, list : ElementArray<SplineElement>) {
   let f = 0;
 
   f |= e.flag & SplineFlags.SELECT ? ColorFlags.SELECT : 0;
@@ -115,7 +121,7 @@ function get_element_flag(e, list) {
   return f;
 }
 
-export function get_element_color(e, list) {
+export function get_element_color(e : SplineElement, list : ElementArray<SplineElement>) {
   if (e.type == SplineTypes.HANDLE)
     return handle_colormap[get_element_flag(e, list)];
   else
@@ -132,7 +138,10 @@ import {Vector2} from '../util/vectormath.js';
 
 export * from './spline_draw_sort';
 
-export function draw_curve_normals(spline: Spline, g: CanvasRenderingContext2D, zoom: number) {
+/* NOTE: `g.strokeColor` below is not a canvas property -- the assignment is a
+   no-op and the normals draw in whatever stroke style was already set.  The
+   canvas spelling is strokeStyle. */
+export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number) {
   for (let seg of spline.segments) {
     if (seg.v1.hidden || seg.v2.hidden) continue;
     //if (seg.hidden) continue;
@@ -168,8 +177,17 @@ export function draw_curve_normals(spline: Spline, g: CanvasRenderingContext2D, 
 }
 
 
-export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render,
-                            draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
+/* Draws the spline's faces and strokes through the SplineDrawer, then the
+   editing overlay -- segment outlines, handles and vertices -- straight onto
+   `g`.  Returns the drawer's promise.
+
+   `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
+   rects.  `alpha` is forwarded to nothing and unused here. */
+export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas2D,
+                            editor : View2DHandler, matrix : Matrix4, selectmode : number,
+                            only_render : boolean, draw_normals : boolean, alpha : number,
+                            draw_time_helpers : boolean, curtime : number,
+                            ignore_layers? : boolean) {
   spline.canvas = g;
 
   if (spline.drawlist === undefined || (spline.recalc & RecalcFlags.DRAWSORT)) {
@@ -202,11 +220,11 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     let matrix2 = new Matrix4();
 
     matrix2.translate(0.0, g.canvas.height, 0.0);
-    
+
     let mm = new Matrix4();
     mm.scale(1.0, -1.0, 1.0);
     matrix2.multiply(mm);
-    
+
     matrix.preMultiply(matrix2);
 
   //*/
@@ -232,7 +250,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
 
   let tmp1 = new Vector2();
   let tmp2 = new Vector2();
-  let last_clr = undefined;
+  let last_clr : string | undefined = undefined;
 
   g.beginPath();
   if (selectmode & SelMask.SEGMENT) {
@@ -256,7 +274,8 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
       g.beginPath();
 
       for (let side = 0; side < 2; side++) {
-        let lastp = undefined;
+        /* Written but never read. */
+        let lastp : Vector2 | undefined = undefined;
 
         for (let i = 0; i < steps; i++, s += ds) {
           let p = seg.evaluateSide(s, side, dv);
@@ -379,7 +398,9 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
 let __margin = new Vector2([15, 15]);
 let __aabb = [new Vector2(), new Vector2()];
 
-export function redraw_element(e, view2d) {
+/* Flags `e` for redraw and tells the viewport to repaint its bounding box,
+   grown by a fixed screen-space margin. */
+export function redraw_element(e : SplineElement, view2d? : View2DHandler) {
   let margin = __margin;
   let aabb = __aabb;
 

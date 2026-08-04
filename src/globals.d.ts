@@ -758,10 +758,10 @@ declare global {
     "image-user-panel-x": import("./editors/widgets.js").ImageUserPanel;
   }
 
-  interface SymbolConstructor {
-    /* Installed by src/util/polyfill_fairmotion.ts. */
-    readonly keystr: unique symbol;
-  }
+  /* Symbol.keystr is installed by src/util/polyfill_fairmotion.ts and declared
+     once, by path.ux's scripts/global.d.ts. Declaring it a second time here
+     would make TS drop the `unique symbol` and treat every `[Symbol.keystr]`
+     member as a plain symbol index signature. */
 
   /* Anything that can go into a `set` or a `hashtable` (src/util/utils.ts):
      it hashes to whatever [Symbol.keystr]() returns. Base implementations for

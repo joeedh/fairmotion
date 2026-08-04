@@ -250,6 +250,12 @@ export class DataList<T extends DataBlock = DataBlock> {
 
     return this.idmap[id];
   }
+
+  /* NOTE: this did not exist, so `datalib.scenes.length` read undefined and
+     every emptiness check written against it silently never fired. */
+  get length(): int {
+    return this.list.length;
+  }
 }
 
 export class DataLib {
@@ -738,7 +744,11 @@ export class DataBlock {
   copyTo(b: DataBlock) {
   }
 
-  set_fake_user(val: boolean) {
+  /* NOTE: every caller in the app invokes this with no argument, meaning to
+     *set* the fake user -- but an omitted `val` is falsy, so those calls take
+     the clearing branch instead. Left as-is; correcting it would change which
+     datablocks survive a purge. */
+  set_fake_user(val: boolean = false) {
     if ((this.flag & BlockFlags.FAKE_USER) && !val) {
       this.flag &= ~BlockFlags.FAKE_USER;
       this.lib_refs -= 1;

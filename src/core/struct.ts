@@ -8,6 +8,14 @@ export let STRUCT = nstructjs.STRUCT;
 export function profile_reset() {}
 export function profile_report() {}
 
+/* nstructjs stamps each on-disk value straight onto the field it names, so
+   between reader() and a class's own fix-up a field holds its *serialised*
+   type -- usually an id where the class declares an object. This reads such a
+   field back as the type it really has at that moment. */
+export function readSerialized<T>(obj : object, key : string) : T {
+  return Reflect.get(obj, key) as T;
+}
+
 /*
 *
 * Fairmotion exports big-endian files

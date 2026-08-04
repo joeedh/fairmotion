@@ -1,4 +1,5 @@
 import {Editor} from '../editor_base.js';
+import {readSerialized} from '../../core/struct.js';
 import {color2css, css2color, UIBase, keymap, util, cconst, nstructjs, Vector2, Vector3, Matrix4} from '../../path.ux/scripts/pathux.js';
 import { termColorMap } from '../../path.ux/scripts/util/util.js';
 import { loadFile } from '../../path.ux/scripts/util/html5_fileapi.js';
@@ -241,7 +242,9 @@ export class ConsoleEditor extends Editor {
     /* Ring-buffer write cursor into `lines`, once it reaches bufferSize. */
     head : number
     bufferSize : number
-    scroll : Vector2
+    /* Named scrollPos rather than scroll because HTMLElement already has a
+       scroll() method; the on-disk field is still called `scroll`. */
+    scrollPos : Vector2
     /* Role name -> css color. */
     colors : {[role : string] : string}
     /* Terminal color name -> the css color actually drawn. */
@@ -271,7 +274,7 @@ export class ConsoleEditor extends Editor {
         this.head = 0;
         this.bufferSize = 512;
 
-        this.scroll = new Vector2();
+        this.scrollPos = new Vector2();
 
         this.colors = {
             error : "red",
@@ -426,8 +429,8 @@ export class ConsoleEditor extends Editor {
         this.queueRedraw();
         _unsilence();
 
-        if (Math.abs(this.scroll[1]) > 10) {
-            //this.scroll[1] -= this.lineHeight;
+        if (Math.abs(this.scrollPos[1]) > 10) {
+            //this.scrollPos[1] -= this.lineHeight;
         }
     }
 
@@ -586,7 +589,7 @@ export class ConsoleEditor extends Editor {
         super.init();
 
         this.addEventListener("mousewheel", (e : WheelEvent) => {
-            this.scroll[1] += -e.deltaY;
+            this.scrollPos[1] += -e.deltaY;
             this.queueRedraw();
         });
 
@@ -649,7 +652,7 @@ export class ConsoleEditor extends Editor {
     }
 
     doCommand(cmd : string) {
-        this.scroll[1] = 0.0;
+        this.scrollPos[1] = 0.0;
 
         this.pushHistory(cmd);
         let v = undefined;
@@ -766,7 +769,7 @@ export class ConsoleEditor extends Editor {
         }
 
         if (printall) {
-            this.scroll[1] = 0.0;
+            this.scrollPos[1] = 0.0;
 
             this.pushLine(new ConsoleLineEntry(""));
             for (let k of list) {
@@ -872,7 +875,7 @@ export class ConsoleEditor extends Editor {
         let lh = this.lineHeight;
         let pad1 = 10*UIBase.getDPI();
 
-        let scroll = this.scroll;
+        let scroll = this.scrollPos;
         let x = scroll[0];
         let y = scroll[1] + 5 + canvas.height - lh;
 
@@ -1166,6 +1169,11 @@ export class ConsoleEditor extends Editor {
         reader(this);
         super.loadSTRUCT(reader);
 
+        /* The on-disk field is `scroll`; reader() stamps it straight onto the
+           instance, shadowing HTMLElement.scroll until this moves it. */
+        this.scrollPos = readSerialized<Vector2>(this, "scroll");
+        Reflect.deleteProperty(this, "scroll");
+
         this.history.cur = this.history.length;
 
         for (let i=0; i<this.lines.length; i++) {
@@ -1181,6 +1189,6 @@ ConsoleEditor.STRUCT = nstructjs.inherit(ConsoleEditor, Editor) + `
     lines       :  array(ConsoleLineEntry);
     history     :  array(ConsoleCommand);
     head        :  int;
-    scroll      :  vec2;
+    scroll      :  vec2 | obj.scrollPos;
 }`;
 Editor.register(ConsoleEditor);

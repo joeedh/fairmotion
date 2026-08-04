@@ -1,4 +1,4 @@
-import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
+import {ContextOverlay, Context, LockedContext} from "../path.ux/scripts/path-controller/controller/context.js";
 import {SavedToolDefaults, DataAPI} from '../path.ux/scripts/pathux.js';
 import {DataLib} from './lib_api.js';
 import type {AppState} from './AppState.js';
@@ -20,16 +20,21 @@ export interface SavedContextProperty {
 }
 
 export class BaseContextOverlay extends ContextOverlay {
+  /* The context this overlay was pushed onto, filled in by pushOverlay(). */
+  declare ctx: FullContext | undefined;
+
   constructor(state: AppState = g_app_state) {
     super(state);
   }
 
+  /* ContextOverlay types `state` as unknown; the app only ever puts an
+     AppState there, and this getter is the single place that says so. */
   get appstate(): AppState {
-    return this.state;
+    return this.state as AppState;
   }
 
   get api(): DataAPI {
-    return this.state.pathcontroller;
+    return this.appstate.pathcontroller;
   }
 
   get settings(): AppSettings {
@@ -62,24 +67,39 @@ export class BaseContextOverlay extends ContextOverlay {
     return scene !== undefined ? scene.edit_all_layers : false;
   }
 
+  /* NOTE: the two getValue() calls below were passed `this`, the overlay,
+     rather than the context it belongs to. Both resolve the same properties,
+     but only the context is a ContextLike. */
   get spline(): Spline {
-    var ret = this.api.getValue(this, g_app_state.active_splinepath);
+    const ctx = this.ctx;
+
+    if (ctx === undefined) {
+      throw new Error("BaseContextOverlay was never pushed onto a context");
+    }
+
+    var ret = this.api.getValue<Spline>(ctx, g_app_state.active_splinepath);
 
     if (ret === undefined) {
       warntrace("Warning: bad spline path", g_app_state.active_splinepath);
       g_app_state.switch_active_spline("frameset.drawspline");
 
-      ret = this.api.getValue(this, g_app_state.active_splinepath);
+      ret = this.api.getValue<Spline>(ctx, g_app_state.active_splinepath);
       if (ret === undefined) {
         warntrace("Even Worse: base spline path failed!", g_app_state.active_splinepath);
       }
     }
 
-    return ret;
+    return ret as Spline;
   }
 
   get frameset(): SplineFrameSet {
-    return this.scene.objects.active.data;
+    const ob = this.scene.objects.active;
+
+    if (ob === undefined) {
+      throw new Error("no active object in the scene");
+    }
+
+    return ob.data;
     //return g_app_state.datalib.framesets.active;
   }
 
@@ -92,12 +112,18 @@ export class BaseContextOverlay extends ContextOverlay {
       console.warn("No scenes; adding empty scene");
 
       var scene = new Scene();
-      scene.set_fake_user();
+      scene.set_fake_user(true);
 
       this.datalib.add(scene);
     }
 
-    return this.datalib.get_active(DataTypes.SCENE);
+    const active = this.datalib.get_active(DataTypes.SCENE);
+
+    if (!(active instanceof Scene)) {
+      throw new Error("no active scene");
+    }
+
+    return active;
   }
 
   get datalib(): DataLib {
@@ -134,9 +160,9 @@ export class ViewContextOverlay extends ContextOverlay {
     this._keymap_mpos = [0, 0];
   }
 
-  get font() {
-    return g_app_state.raster.font;
-  }
+  /* NOTE: the `font` getter that used to be here read g_app_state.raster.font,
+     which RasterState has never had, so ctx.font was always undefined.
+     Removed; nothing in the app reads it. */
 
   get keymap_mpos(): number[] {
     return this._keymap_mpos;
@@ -151,28 +177,34 @@ export class ViewContextOverlay extends ContextOverlay {
     return data;
   }
 
-  get dopesheet(): DopeSheetEditor {
+  get dopesheet(): DopeSheetEditor | undefined {
     return Editor.context_area(DopeSheetEditor);
   }
 
-  get editcurve(): CurveEditor {
+  get editcurve(): CurveEditor | undefined {
     return Editor.context_area(CurveEditor);
   }
 
   /*need to figure out a better way to pass active editor types
     around API*/
-  get settings_editor(): SettingsEditor {
+  get settings_editor(): SettingsEditor | undefined {
     return Editor.context_area(SettingsEditor);
   }
 
   /*need to figure out a better way to pass active editor types
     around API*/
-  get opseditor(): OpStackEditor {
+  get opseditor(): OpStackEditor | undefined {
     return Editor.context_area(OpStackEditor);
   }
 
   get selectmode(): int {
-    return this.view2d.selectmode;
+    const view2d = this.view2d;
+
+    if (view2d === undefined) {
+      throw new Error("no viewport");
+    }
+
+    return view2d.selectmode;
   }
 
   get console(): ConsoleEditor | undefined {
@@ -194,6 +226,10 @@ export class ViewContextOverlay extends ContextOverlay {
 }
 
 export class BaseContext extends Context {
+  /* Context types `state` as unknown; the app only ever puts an AppState
+     there. */
+  declare state: AppState;
+
   datalib!: DataLib;
   frameset!: SplineFrameSet
   spline!: Spline
@@ -202,16 +238,29 @@ export class BaseContext extends Context {
   api!: DataAPI
   selectmode!: int;
 
+  /* The rest of what BaseContextOverlay supplies. Without these, every lookup
+     falls through Context's `[key : string] : unknown` index signature. */
+  appstate!: AppState;
+  settings!: AppSettings;
+  toolmode!: ToolMode | undefined;
+  active_area!: Editor | undefined;
+  splinepath!: string;
+  filepath!: string;
+  edit_all_layers!: boolean;
+  toolDefaults!: typeof SavedToolDefaults;
+  view2d!: View2DHandler | undefined;
+  declare switch_active_spline: (newpath: string) => void;
+
   /* LockedContext copies every context property onto itself, so it stands in
      for the context it was built from; path.ux's ContextLike makes the same
      claim with `toLocked?(): this`, and the rest of the app types locked
      contexts as FullContext (see ToolOp.modal_tctx). */
-  declare toLocked: () => this;
+  declare toLocked: () => LockedContext & this;
 
   constructor(state = g_app_state) {
     super(state);
 
-    this.reset(state);
+    this.resetOverlays(state);
   }
 
   get last_tool(): ToolOp | undefined {
@@ -226,7 +275,9 @@ export class BaseContext extends Context {
     g_app_state.notes.label(msg);
   }
 
-  reset(state: AppState = this.state): void {
+  /* Not called `reset`: path.ux's Context.reset(have_new_file) is a different
+     method that clears the overlay stack. */
+  resetOverlays(state: AppState = this.state): void {
     this.pushOverlay(new BaseContextOverlay(state));
   }
 
@@ -277,11 +328,11 @@ export class BaseContext extends Context {
   loadProperty(ctx: FullContext, key: string, val: SavedContextProperty) {
     if (val.type === "lookup") {
       return ctx[val.key];
-    } else if (val.type === "path") {
+    } else if (val.type === "path" && typeof val.value === "string") {
       return ctx.api.getValue(ctx, val.value);
     } else if (val.type === "passthru") {
       return val.value;
-    } else if (val.type === "block") {
+    } else if (val.type === "block" && val.value instanceof DataRef) {
       return ctx.datalib.get(val.value);
     }
   }
@@ -291,14 +342,22 @@ export class FullContext extends BaseContext {
   view2d!: View2DHandler
   screen!: FairmotionScreen;
 
+  /* The rest of what ViewContextOverlay supplies; see BaseContext. */
+  keymap_mpos!: number[];
+  dopesheet!: DopeSheetEditor | undefined;
+  editcurve!: CurveEditor | undefined;
+  settings_editor!: SettingsEditor | undefined;
+  opseditor!: OpStackEditor | undefined;
+  console!: ConsoleEditor | undefined;
+
   constructor(state = g_app_state) {
     super(state);
 
-    this.reset(state);
+    this.resetOverlays(state);
   }
 
-  reset(state = this.state) {
-    super.reset(state);
+  resetOverlays(state = this.state) {
+    super.resetOverlays(state);
     this.pushOverlay(new ViewContextOverlay(state));
   }
 }

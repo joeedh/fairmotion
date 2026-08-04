@@ -199,9 +199,11 @@ export class CustomData {
   /* One shared-data instance per entry of `layers`, same index. */
   shared_data: object[];
 
+  /* Both callbacks are optional -- ElementArray builds its CustomData without
+     them (see the commented-out arguments at that call site). */
   constructor(owner: ElementArray<SplineElement>,
-              layer_add_callback: (cls: LayerTypeClass, i: number, shared: object) => void,
-              layer_del_callback: (cls: LayerTypeClass, i: number) => void) {
+              layer_add_callback?: (cls: LayerTypeClass, i: number, shared: object) => void,
+              layer_del_callback?: (cls: LayerTypeClass, i: number) => void) {
     this.owner = owner; //owning ElementArray
 
     this.callbacks = {
@@ -333,7 +335,7 @@ export class CustomData {
     }
   }
 
-  afterSTRUCT(element_array: ElementArray<SplineElement>, cdata: CustomData) {
+  afterSTRUCT<T extends SplineElement>(element_array: ElementArray<T>, cdata: CustomData) {
     for (let e of element_array) {
       let i = 0;
 

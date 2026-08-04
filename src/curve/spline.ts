@@ -528,7 +528,7 @@ export class Spline extends DataBlock {
         v2.load(v);
         v2.flag = v.flag;
         v2.eid = v.eid;
-        list2.push(v2, v2.eid, false);
+        list2.pushElement(v2, v2.eid, false);
 
         for (let layeri in v.layers) {
           ret.layerset.idmap[layeri].add(v2);
@@ -670,7 +670,7 @@ export class Spline extends DataBlock {
 
     v.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
 
-    this.verts.push(v, eid);
+    this.verts.pushElement(v, eid);
     this._vert_add_set.add(v.eid);
 
     this.dag_update("on_vert_add", this._vert_add_set);
@@ -692,7 +692,7 @@ export class Spline extends DataBlock {
     h.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
 
     h.type = SplineTypes.HANDLE;
-    this.handles.push(h, __eid);
+    this.handles.pushElement(h, __eid);
 
     return h;
   }
@@ -1404,7 +1404,7 @@ export class Spline extends DataBlock {
 
     seg.flag |= SplineFlags.UPDATE;
 
-    this.segments.push(seg, __eid);
+    this.segments.pushElement(seg, __eid);
     return seg;
   }
 

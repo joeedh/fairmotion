@@ -436,8 +436,10 @@ export class Editor extends Area {
     return contextWrangler.getLastArea(this);
   }
 
-  static context_area(cls : typeof Editor) {
-    return contextWrangler.getLastArea(cls);
+  /* `never[]` rather than a fixed parameter list: editor subclasses declare
+     their own constructor arguments, and only the class object is used here. */
+  static context_area<T extends Editor>(cls : new (...args : never[]) => T) : T | undefined {
+    return contextWrangler.getLastArea(cls as new () => T);
   }
 
   //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active

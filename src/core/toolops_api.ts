@@ -70,8 +70,9 @@ export class ToolOp<
      it back. Written by ToolStack; the STRUCT script saves it. */
   saved_context?: SavedContext;
 
-  /* Set by subclasses that replace the whole-file undo with their own. */
-  undo_pre?: (ctx: FullContext) => void;
+  /* Set by subclasses that replace the whole-file undo with their own.
+     Declared method-style because every override is a method. */
+  undo_pre?(ctx: FullContext): void;
 
   /* Tools flagged USE_TOOL_CONTEXT carry their own context rather than taking
      the one execTool() was handed. */

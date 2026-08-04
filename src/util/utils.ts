@@ -1215,11 +1215,11 @@ class EventDispatcher {
     this.callbacks.push([callback, thisvar]);
   }
   
-  fire() {
+  fire(...args : unknown[]) {
     for (var i=0; i<this.callbacks.length; i++) {
       var cb = this.callbacks[i];
-      
-      cb[0].apply(cb[1]==undefined ? window : cb[1], arguments);
+
+      cb[0].apply(cb[1]==undefined ? window : cb[1], args);
     }
   }
 }

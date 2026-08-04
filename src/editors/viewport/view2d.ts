@@ -525,7 +525,7 @@ export class View2DHandler extends Editor {
     return ret;
   }
 
-  on_resize(newsize: number[], oldsize: number[]) {
+  on_resize(newsize: number[], oldsize?: number[]) {
     super.on_resize(newsize, oldsize);
 
     if (this.size !== undefined) {

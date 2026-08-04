@@ -779,26 +779,19 @@ declare global {
   interface Object {
     [Symbol.keystr](): string | number;
   }
-  interface Number {
-    [Symbol.keystr](): string | number;
-  }
-  interface String {
-    [Symbol.keystr](): string | number;
-  }
-  interface Boolean {
-    [Symbol.keystr](): string | number;
-  }
+  /* Number, String and Boolean get their [Symbol.keystr]() from path.ux's
+     scripts/global.d.ts; re-declaring it here merges the two into an overload
+     set that the assignments in src/util/utils.ts cannot satisfy. */
 
   interface Array<T> {
-    /* Added by src/util/polyfill_fairmotion.ts and typesystem.ts. */
-    remove(item: T, throw_error?: boolean): this;
-    pop_i(idx: number): T;
+    /* `remove`, `pop_i` and `reject` are declared once, by path.ux's
+       scripts/global.d.ts -- re-declaring them here with different signatures
+       merges them into overload sets that no override can satisfy. */
     /* src/util/utils.ts installs this on Array.prototype and then copies it
        over every TypedArray.prototype, so it shadows the native
        `set(src, offset)` -- the second argument here is a *source* offset. */
     set(array: ArrayLike<T>, src?: number, dst?: number, count?: number): this;
     insert(before: number, item: T): this;
-    reject(func: (item: T) => boolean): T[];
     /* Added by core/ajax.ts, along with the Number and String versions below.
        Appends this value to a byte array in the legacy network encoding. */
     pack(data: number[]): void;

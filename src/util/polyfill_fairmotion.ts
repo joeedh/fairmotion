@@ -58,23 +58,23 @@ function startup_warning(message: string) {
   */
 }
 
-function warn(message: string) {
+function warn(message: string, ...rest: unknown[]) {
   //args = new Array(arguments.length+2);
   
-  var args = ["%c " + message + "\n", "color:orange"]
-  for (var i=1; i<arguments.length; i++) {
-    args.push(arguments[i]);
+  var args : unknown[] = ["%c " + message + "\n", "color:orange"]
+  for (let arg of rest) {
+    args.push(arg);
   }
   
   console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
 }
 
-function warntrace(message: string) {
+function warntrace(message: string, ...rest: unknown[]) {
   //args = new Array(arguments.length+2);
   
-  var args = ["%c " + message + "\n", "color:orange"]
-  for (var i=1; i<arguments.length; i++) {
-    args.push(arguments[i]);
+  var args : unknown[] = ["%c " + message + "\n", "color:orange"]
+  for (let arg of rest) {
+    args.push(arg);
   }
   
   console.trace.apply(console, args);

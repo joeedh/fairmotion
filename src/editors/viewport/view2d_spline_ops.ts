@@ -21,7 +21,7 @@ import {SelMask, ToolModes} from './selectmode.js';
 import {SplineTypes, SplineFlags} from '../../curve/spline_types.js';
 
 import {View2DEditor, SessionFlags} from './view2d_editor.js';
-import {DataBlock, DataTypes} from '../../core/lib_api.js';
+import {DataBlock} from '../../core/lib_api.js';
 import {redraw_element} from '../../curve/spline_draw.js';
 import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../core/toolops_api.js';
 

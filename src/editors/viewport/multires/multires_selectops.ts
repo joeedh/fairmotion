@@ -7,7 +7,6 @@ import {IntProperty, FloatProperty, CollectionProperty,
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../../core/toolops_api.js';
 import {SplineFlags, SplineTypes, RecalcFlags} from '../../../curve/spline_types.js';
 import {RestrictFlags, Spline} from '../../../curve/spline.js';
-import {TPropFlags} from '../../../core/toolprops.js';
 import {redo_draw_sort} from '../../../curve/spline_draw.js';
 
 import {SplineLocalToolOp} from '../spline_editops.js';

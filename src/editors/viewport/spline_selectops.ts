@@ -538,8 +538,6 @@ export class UnhideOp extends ToolOp {
   }
 }
 
-/* NOTE: CollectionProperty is already imported at the top of the file. */
-import {CollectionProperty} from '../../core/toolprops.js';
 import {ElementRefSet} from '../../curve/spline_types.js';
 
 let _last_radius = 45;

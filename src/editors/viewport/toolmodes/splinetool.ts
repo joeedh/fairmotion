@@ -3,8 +3,6 @@
 import {UIBase} from "../../../path.ux/scripts/core/ui_base.js";
 
 import {ExtrudeVertOp} from '../spline_createops.js';
-import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
-import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
 
 import {KeyMap, HotKey} from '../../../core/keymap.js';
 
@@ -32,7 +30,6 @@ import * as util from "../../../path.ux/scripts/util/util.js";
 import {ToolMode} from "./toolmode.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
-import {ToolModes} from "../selectmode.js";
 
 import {PanOp} from '../view2d_ops.js';
 import type {FullContext} from '../../../core/context.js';

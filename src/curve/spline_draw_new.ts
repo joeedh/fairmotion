@@ -43,7 +43,6 @@ import {evillog} from "../core/evillog.js";
 import type {Material} from './spline_types.js';
 import type {Spline} from './spline.js';
 import type {SplineLayer} from './spline_element_array.js';
-import type {SplineStrokeGroup} from './spline_strokegroup.js';
 import type {View2DHandler} from '../editors/viewport/view2d.js';
 
 /* The barrel picks which backend Canvas/Path pair is live, so derive the types

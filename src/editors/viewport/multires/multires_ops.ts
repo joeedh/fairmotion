@@ -7,7 +7,6 @@ import {SplineFlags, SplineTypes, RecalcFlags} from '../../../curve/spline_types
 import type {SplineSegment} from '../../../curve/spline_types.js';
 import type {FullContext} from '../../../core/context.js';
 import {RestrictFlags, Spline} from '../../../curve/spline.js';
-import {TPropFlags} from '../../../core/toolprops.js';
 import {redo_draw_sort} from '../../../curve/spline_draw.js';
 
 import {SplineLocalToolOp} from '../spline_editops.js';

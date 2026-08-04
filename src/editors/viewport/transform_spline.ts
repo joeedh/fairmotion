@@ -14,7 +14,7 @@ import {TransDataItem, TransDataType} from './transdata.js';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
   JobTypes} from '../../wasm/native_api.js';
-import {TransData, TransDataType} from "./transdata.js";
+import {TransData} from "./transdata.js";
 
 var _tsv_apply_tmp1 = new Vector2();
 var _tsv_apply_tmp2 = new Vector2();

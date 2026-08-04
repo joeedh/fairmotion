@@ -1,13 +1,26 @@
 import * as pathux from '../path.ux/scripts/pathux.js';
+import type {FullContext} from './context.js';
 
 export class HotKey extends pathux.HotKey {
   /* The unmodified binding this one was cloned from, set by
      KeyMap.ensureWrite() so _save_deltas() can diff against it. */
   origHotKey: HotKey | undefined;
 
-  constructor() {
-    super(...arguments);
+  constructor(key: keyof typeof pathux.keymap, modifiers: pathux.KeyModifiers[],
+              action: string | ((ctx: FullContext) => void), uiname?: string) {
+    super(key, modifiers, action, uiname);
     this.origHotKey = undefined;
+  }
+
+  /* copy() and KeyMap.ensureWrite() build a hotkey with nothing in it and
+     fill the fields in immediately afterwards. */
+  static blank() {
+    let ret = new HotKey("A", [], "");
+
+    ret.key = 0;
+    ret.mods = [];
+
+    return ret;
   }
 
   load(b: pathux.HotKey) {
@@ -78,7 +91,7 @@ KeyMapDeltaSet {
 `;
 pathux.nstructjs.register(KeyMapDeltaSet);
 
-export class KeyMap extends pathux.KeyMap {
+export class KeyMap extends pathux.KeyMap<FullContext, HotKey> {
   static STRUCT: string;
 
   typeName: string;
@@ -90,7 +103,7 @@ export class KeyMap extends pathux.KeyMap {
      loadSTRUCT() consumes it immediately afterwards. */
   deltas!: KeyMapDelta[];
 
-  constructor(typeName: string, hotkeys?: HotKey[]) {
+  constructor(typeName: string, hotkeys: HotKey[] = []) {
     super(hotkeys);
 
     this.typeName = typeName;
@@ -120,8 +133,10 @@ export class KeyMap extends pathux.KeyMap {
 
     if (this.origKeyMap.length < this.length) {
       for (let j = this.origKeyMap.length; j < this.length; j++) {
-        let hk1 = this[i];
-        let hk2 = new HotKey();
+        /* NOTE: this read `this[i]`, which is not in scope here; growing the
+           pristine copy threw ReferenceError. */
+        let hk1 = this[j];
+        let hk2 = HotKey.blank();
 
         hk2.load(hk1);
 
@@ -131,14 +146,17 @@ export class KeyMap extends pathux.KeyMap {
   }
 
   copy() {
-    let ret = new this.constructor();
+    /* NOTE: this was `new this.constructor()`, which passes no typeName and
+       so left the copy's typeName undefined. Nothing subclasses KeyMap. */
+    let ret = new KeyMap(this.typeName);
 
     for (let item1 of this) {
-      let item2 = new HotKey();
+      let item2 = HotKey.blank();
 
       if (!item1.mods) {
         console.error(this);
-        throw new error("not a hotkey!");
+        /* NOTE: was `new error(...)`, lowercase; the throw itself threw. */
+        throw new Error("not a hotkey!");
       }
 
       item2.uiname = item1.uiname;
@@ -183,16 +201,26 @@ export class KeyMap extends pathux.KeyMap {
   _load_deltas(deltas: KeyMapDelta[]) {
     this.ensureWrite();
 
+    /* ensureWrite() has just built it, but the field is only typed as set
+       after that call, not proven so. */
+    let orig = this.origKeyMap;
+    if (!orig) {
+      return;
+    }
+
     for (let delta of deltas) {
       for (let i = 0; i < this.length; i++) {
-        let hk1 = this[i], hk2 = this.origKeyMap[i];
+        let hk1 = this[i], hk2 = orig[i];
 
         if (this._buildKey(hk2) !== delta.hotkeyRef) {
           continue;
         }
 
         hk1.key = hk2.key;
-        hk1.modifiers = hk2.modifiers;
+        /* NOTE: both sides read `.modifiers`, which HotKey has never had --
+           the field is `mods` -- so this assigned undefined to undefined and
+           a loaded delta never actually changed the modifier set. */
+        hk1.mods = hk2.mods;
 
         break;
       }

@@ -10,8 +10,6 @@ import {
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../core/toolops_api.js';
 import {RestrictFlags, Spline} from '../curve/spline.js';
 import {VDAnimFlags} from '../core/frameset.js';
-/* NOTE: TPropFlags is already imported on line 6. */
-import {TPropFlags} from '../core/toolprops.js';
 import '../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../curve/spline_draw.js';
 import type {FullContext} from '../core/context.js';

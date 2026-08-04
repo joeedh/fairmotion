@@ -8,7 +8,7 @@ import {EditModes} from './view2d_editor.js';
 import {SelMask, ToolModes} from './selectmode.js';
 
 import {View2DEditor, SessionFlags} from './view2d_editor.js';
-import {DataBlock, DataTypes} from '../../core/lib_api.js';
+import {DataBlock} from '../../core/lib_api.js';
 import {EditorTypes} from './view2d_base.js';
 import type {View2DHandler} from './view2d.js';
 import type {FullContext} from '../../core/context.js';

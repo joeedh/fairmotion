@@ -4,8 +4,6 @@ import {ToolOp, UndoFlags, ToolFlags, ModalStates, ToolMacro} from '../../core/t
 import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js';
 import {RestrictFlags, Spline} from '../../curve/spline.js';
 import {VDAnimFlags} from '../../core/frameset.js';
-/* NOTE: TPropFlags is already imported on line 2. */
-import {TPropFlags} from '../../core/toolprops.js';
 import '../../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../../curve/spline_draw.js';
 

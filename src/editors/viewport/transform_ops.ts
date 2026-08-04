@@ -15,7 +15,7 @@ import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 import {TransDataItem, TransDataType} from './transdata.js';
 import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
 
-import {Vec2Property, FloatProperty} from '../../core/toolprops.js';
+import {Vec2Property} from '../../core/toolprops.js';
 import type {FullContext} from '../../core/context.js';
 import type {ManipulatorManager} from './manipulator.js';
 import type {Spline} from '../../curve/spline.js';

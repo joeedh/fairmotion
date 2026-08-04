@@ -1,5 +1,4 @@
-import {STRUCT} from '../../core/struct.js';
-import {UIBase, css2color, color2css, Icons} from '../../path.ux/scripts/core/ui_base.js';
+import {css2color, Icons} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 import {ToggleSelectAll, MoveKeyFramesOp, SelectKeysOp, SelModes2, DeleteKeysOp} from './dopesheet_ops_new.js';
 import * as util from '../../path.ux/scripts/util/util.js';

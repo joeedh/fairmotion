@@ -11,8 +11,6 @@ import type {drawline} from './view2d.js';
 
 let exec_pan_v1 = new Vector3(), exec_pan_v2 = new Vector3();
 
-/* NOTE: StringProperty is imported twice, at the top of the file and again
-   above BasicFileDataOp. */
 export class View2dOp extends ToolOp {
   /* NOTE: filled by nothing -- makeTempLine pushes onto `drawlines` (the base
      class list) via new_drawline, and resetTempGeom clears that same list. */
@@ -571,8 +569,6 @@ class ViewPanOp extends ToolOp {
     this.end_modal();
   }
 }
-
-import {StringProperty} from '../../core/toolprops.js';
 
 /* NOTE: neither SavedContext nor b64decode is imported in this module, so
    constructing this op and running it both throw ReferenceError. */

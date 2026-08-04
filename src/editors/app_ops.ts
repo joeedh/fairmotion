@@ -7,9 +7,7 @@ import {StringProperty} from '../core/toolprops.js';
 
 import {export_svg} from '../util/svg_export.js';
 
-/* NOTE: UndoFlags and ToolFlags are already imported above; only ToolOp is
-   new here. */
-import {ToolOp, UndoFlags, ToolFlags} from '../core/toolops_api.js';
+import {ToolOp} from '../core/toolops_api.js';
 import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi/fileapi.js';
 import * as platform from '../../platforms/platform.js';
 import type {FullContext} from '../core/context.js';

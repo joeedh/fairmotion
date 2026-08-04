@@ -639,6 +639,70 @@ manual undo. It also makes bulk substitutions safe: `exec(ctx : FullContext)` ×
 entry, verified to be exactly 21. `load()` strips trailing whitespace and `save()` forces
 LF, so batches never produce line-ending churn in the diff.
 
+# Phase 6 -- coherence review
+
+## Symptom: every Playwright spec fails with "app did not start within 30000ms"
+Cause: `paint/imagecanvas_webgl.ts` copies the `WEBGL_draw_buffers` extension constants
+onto the context by stripping their `_WEBGL` suffix. `COLOR_ATTACHMENT0` already exists
+on `WebGLRenderingContext` as a read-only constant of the same value. Under the old
+transpiled build that assignment was a sloppy-mode no-op; ES modules are always strict,
+so it now throws `TypeError` and aborts `startup()` before `g_app_state` exists.
+Found by: A throwaway spec that dumps `pageerror` and every console message, rather than
+the suite's own readiness poll -- the poll only reports that readiness never arrived.
+Fix: Guard with `if (!(k in gl))`. This is the same class of bug as the already-fixed
+`gl.canvas = canvas`: **look for every sloppy-mode silent no-op**, because renaming to
+`.ts` turned all of them into throws.
+
+## Symptom: stashing the working tree "proved" a failure was pre-existing -- it wasn't
+Cause: `pnpm serv` serves `dist/html5app` **statically**; it does not rebuild. Playwright's
+`webServer` has `reuseExistingServer: true`. So `git stash && npx playwright test` re-ran
+the *same bundle that was built from the unstashed tree*.
+Fix: `pnpm build` between any two states you intend to compare. A stash proves nothing
+about a static-server target until the output directory is rebuilt.
+
+## Symptom: a base-class field type that 18 subclasses contradict
+Cause: `ToolOp._undo` was declared `ArrayBuffer` -- what the *default* `undoPre()` stores.
+Tools that supply their own `undo_pre()` put an eid->value map, a saved time, or a flat
+id/flag array there instead.
+Fix: A declared union (`export type UndoData = ArrayBuffer | object | number | number[]`)
+on the base, with subclasses narrowing it. The obvious alternative -- a third type
+parameter on `ToolOp` -- would have forced a cast at every write site *and* threading of
+type arguments through `SplineLocalToolOp` -> `SplineLayerOp` -> `ChangeLayerOp`, whose
+payloads differ at each level. One union, one `as ArrayBuffer` at the single read site,
+all 18 subclass declarations preserved.
+
+## Symptom: `super(this)` in a derived constructor
+Cause: `MultiResLayer extends CustomDataLayer`. Evaluating `this` in the argument list of
+`super()` reads the binding before it is initialised -- a `ReferenceError` under real class
+semantics, harmless under the old function-and-prototype transpile.
+Found by: A super()-arity checker (`ctorarity.py`), which flagged it as passing 1 argument
+to a 0-parameter base.
+Fix: `super()`. The same checker found the dead name/uiname arguments five `ToolOp`
+subclasses pass, and `View2DEditor`'s ignored fifth `keymap` parameter.
+
+## Note: the four coherence checkers
+Phase 6 has no typechecker, so it was driven by scripts over the source text, each one
+re-runnable and each reduced to zero (or to a triaged residue):
+
+| Script | Checks | Outcome |
+|---|---|---|
+| `imports.py` | named imports vs. the target module's real exports | 0 unresolved |
+| `methsig.py` | overridden methods whose parameter types disagree with the base | 77 hits, 3 real |
+| `undeclared.py` | fields assigned but never declared, walking the extends chain | 97 -> 13, all remaining false positives |
+| `ctorarity.py` | `super(...)` argument count vs. the base constructor | 6 hits -> 0 |
+
+Two regex traps cost the most time. `undeclared.py` first reported 97 fields because its
+FIELD pattern required `[:=]` after the name -- so a bare `owner;` (a type-only declaration,
+which is exactly what phase 5 emitted where the type was unknown) did not count as a
+declaration. And `this.x = ...` inside a nested function or an object literal gets
+attributed to the enclosing class, which is where the rest of the residue comes from
+(`ArrayIter.itercache`, `EventManager.stopped`, `unpack_ctx`'s four fields -- all of them
+`this` inside a `function(this: T)`).
+
+The build's warning count is the only other oracle available in this phase: 18 at the start
+of phase 5, 16 after it, **14 after phase 6** (the two `duplicate-class-member` warnings
+went away). The remaining 14 are pre-existing and unrelated to types.
+
 ## Known, deferred to phase 7
 `npx tsgo --noEmit` still cannot run: `alwaysStrict: false` in `tsconfig.json` is rejected
 outright by TS 6 (`error TS5108`), and the IDE's tsserver falls back to an inferred project
@@ -649,3 +713,9 @@ came from that inferred project and was ignored by design. Also deferred: bare
 `[Symbol.keystr]` for `DataBlockClass` (`toolprops.ts:493`), `built_wasm.ts` needing
 `// @ts-nocheck` plus a typed default export, `svg_export.ts`'s `drawer.drawer.svg`, and
 the boolean-into-number at `frameset.ts:1307`.
+
+Phase 6 adds: `Spline.make_elists()`'s dynamic `this[k] = list`; `Context` used bare in 13
+files, resolved only by `window.Context = FullContext` in `core/context.ts:300`, which
+needs a real import or a `globals.d.ts`; and the startup warning `mapStruct: duplicate
+struct name "PanOp"` -- two classes registering under one nstructjs name, of which only
+the first survives.

@@ -46,7 +46,6 @@ let lasttime = performance.now();
 
 export class SimpleCanvasPath extends PathBase {
   _last_off : Vector2
-  clip_users : set<PathBase>
   path_start_i : number
   first : boolean
   _mm : MinMax;

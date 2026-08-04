@@ -75,7 +75,8 @@ export class ShiftTimeOp2 extends ToolOp {
     this.first = true;
   }
 
-  end_modal(ctx : FullContext) {
+  /* Overrides ToolOp.end_modal(cancelled); every caller here passes nothing. */
+  end_modal(cancelled? : boolean) {
     ToolOp.prototype.end_modal.call(this);
   }
 
@@ -262,7 +263,8 @@ export class ShiftTimeOp3 extends ToolOp {
     this.first = true;
   }
 
-  end_modal(ctx : FullContext) {
+  /* Overrides ToolOp.end_modal(cancelled); every caller here passes nothing. */
+  end_modal(cancelled? : boolean) {
     ToolOp.prototype.end_modal.call(this);
   }
 

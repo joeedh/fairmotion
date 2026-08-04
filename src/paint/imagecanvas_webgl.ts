@@ -481,7 +481,12 @@ export function initWebGL() {
 
       if (k.endsWith("_WEBGL")) {
         k = k.slice(0, k.length - 6);
-        gl[k] = v;
+        /* WebGL1 already defines COLOR_ATTACHMENT0 as a read-only constant of
+           the same value; assigning it was a no-op in sloppy mode and throws
+           in strict. */
+        if (!(k in gl)) {
+          gl[k] = v;
+        }
       }
     }
 

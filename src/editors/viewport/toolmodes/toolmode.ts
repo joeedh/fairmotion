@@ -40,17 +40,17 @@ export class ToolMode extends NodeBase {
   }
 
   /** returns true on consuming the event */
-  on_mousedown(e : MouseEvent, localX : number, localY : number) {
+  on_mousedown(e : PointerEvent, localX : number, localY : number) {
 
   }
 
   /** returns true on consuming the event */
-  on_mousemove(e : MouseEvent, localX : number, localY : number) {
+  on_mousemove(e : PointerEvent, localX : number, localY : number) {
 
   }
 
   /** returns true on consuming the event */
-  on_mouseup(e : MouseEvent, localX : number, localY : number) {
+  on_mouseup(e : PointerEvent, localX : number, localY : number) {
 
   }
 

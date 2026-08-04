@@ -2120,6 +2120,9 @@ export class ChunkedSimpleMesh extends SimpleMesh {
 
   /* Assigned by destroy() but never read; the islands carry their own. */
   regen : number;
+  /* Assigned by the constructor but never read; drawing goes through the
+     islands, each of which has its own. */
+  quad_editors : util.cachering<QuadEditor>;
 
   constructor(layerflag = LayerTypes.LOC | LayerTypes.NORMAL | LayerTypes.UV,
               chunksize = 2048) {

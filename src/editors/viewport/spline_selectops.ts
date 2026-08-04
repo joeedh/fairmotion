@@ -442,11 +442,12 @@ export class HideOp extends SelectOpBase {
 }
 
 export class UnhideOp extends ToolOp {
-  /* Flat [eid, flag] pairs for every element that was hidden. */
-  _undo : number[];
+  /* Flat [eid, flag] pairs for every element that was hidden; undefined
+     until undo_pre runs. */
+  _undo : number[] | undefined;
 
   constructor(mode? : number, ghost? : boolean) {
-    super(undefined, "Unhide");
+    super();
 
     if (mode != undefined)
       this.inputs.selmode.setValue(mode);

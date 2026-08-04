@@ -32,8 +32,10 @@ export class View2DEditor {
   /* Set by on_mousemove/on_mouseup only; never initialised. */
   mdown : boolean;
 
+  /* NOTE: both subclasses build a KeyMap and pass it as a fifth argument, but
+     this constructor has always ignored it and built its own. */
   constructor(name : string, editor_type : number, type : number,
-              lib_type : number) {
+              lib_type : number, _keymap? : KeyMap) {
     this.name = name;
     this._id = v3d_idgen++;
     this.type = type;

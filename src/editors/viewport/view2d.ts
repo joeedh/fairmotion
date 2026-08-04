@@ -97,7 +97,7 @@ export class View2DHandler extends Editor {
   _vel: Vector2
   _draw_normals: number
   _last_rendermat: Matrix4
-  _last_dv: number
+  _last_dv: Vector2
   _last_rendermat_time: number
   irendermat: Matrix4
   cameramat: Matrix4

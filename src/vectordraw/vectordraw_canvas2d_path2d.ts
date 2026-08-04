@@ -34,12 +34,11 @@ export class PathCommand {
 
 /* uses pure html canvas2d but with canvas.prototype.path2d objects*/
 export class Path2DPath extends PathBase {
-  draw: CanvasPath2D;
   autoFill: boolean;
-  commands: Array<number>;
-  id: number;
+  /* Draw order; always set by the constructor. */
   z: number;
-  clip_paths: Array<Path2DPath>;
+  /* opcode, argument count, then that many arguments, repeated. */
+  commands: Array<number>;
 
   g : Canvas2D;
   /* Cleared by _pushPath(); update_aabb() rebuilds the box. */

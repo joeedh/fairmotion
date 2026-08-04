@@ -17,15 +17,6 @@
      * overwrite whatever the constructor -- or a super() call -- already set.
      */
     "useDefineForClassFields": false,
-
-    /*
-     * Also load-bearing for the runtime: esbuild emits "use strict" when this
-     * is on. The old transpiler produced sloppy-mode output, and the app leans
-     * on it -- it monkey-patches read-only WebGL constants onto live contexts,
-     * for one. Turning it on is a separate job from the port.
-     */
-    "alwaysStrict": false,
-
     "strict": true,
     "strictNullChecks": true
   },

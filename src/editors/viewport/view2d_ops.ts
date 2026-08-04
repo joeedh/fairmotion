@@ -479,8 +479,7 @@ class ViewPanOp extends ToolOp {
   }
 
   constructor() {
-    /* NOTE: ToolOp's constructor takes no arguments; these two are ignored. */
-    super("view2d_pan", "Pan");
+    super();
 
     this.transdata = null;
     this.outputs = {}
@@ -578,7 +577,6 @@ import {StringProperty} from '../../core/toolprops.js';
    constructing this op and running it both throw ReferenceError. */
 export class BasicFileDataOp extends ToolOp {
   is_modal: boolean
-  saved_context: object;
 
   constructor(data: string) {
     super();
@@ -649,8 +647,8 @@ export class BasicFileOp extends ToolOp {
 import {FloatProperty} from '../../core/toolprops.js';
 
 export class FrameChangeOp extends ToolOp {
-  /* scene.time before the change. */
-  _undo : number;
+  /* scene.time before the change; undefined until undo_pre runs. */
+  _undo : number | undefined;
 
   constructor(frame? : number) {
     super();

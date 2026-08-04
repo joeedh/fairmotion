@@ -50,7 +50,7 @@ let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
 import {bez3, bez4} from '../util/bezier.js';
 
 import type {Spline} from './spline.js';
-import type {BaseContext} from '../core/context.js';
+import type {FullContext} from '../core/context.js';
 
 let _seg_aabb_ret = [new Vector3(), new Vector3()];
 
@@ -2085,7 +2085,7 @@ export class ElementRefIter extends ToolIter {
 
   ret : {done : boolean, value : SplineElement | undefined};
   eset : ElementRefSet;
-  ctx : BaseContext | undefined;
+  ctx? : FullContext;
   spline : Spline | undefined;
   iter : Iterator<number> | undefined;
   nextitem : SplineElement | undefined;

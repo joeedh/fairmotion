@@ -450,7 +450,7 @@ export class InterpStepModeOp extends ToolOp {
   _undo : EidUndo;
 
   constructor() {
-    super(undefined, "Toggle Step Mode", "Disable/enable smooth interpolation for animation paths");
+    super();
   }
 
   static tooldef() { return {
@@ -578,7 +578,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
 
 export class DeleteSegmentOp extends ToolOp {
   constructor() {
-    super(undefined);
+    super();
   }
 
   static tooldef() { return {
@@ -1313,7 +1313,7 @@ export class DisconnectHandlesOp extends ToolOp {
 
 export class CurveRootFinderTest extends ToolOp {
   constructor() {
-    super("curverootfinder", "curverootfinder", "curverootfinder");
+    super();
   }
 
   static tooldef() { return {

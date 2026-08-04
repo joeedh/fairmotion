@@ -43,6 +43,9 @@ export class Thread {
   msgid_ownerid_map: {[msgid : number] : number}
   cancelset: Set<number>
   freezelvl: number;
+  /* NOTE: written only by clearOutstandingJobs(), which meant `callbacks`;
+     nothing reads it. */
+  callback: object;
 
   id : number;
   manager : ThreadManager;

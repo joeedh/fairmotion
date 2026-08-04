@@ -528,7 +528,6 @@ export class CanvasPath extends PathBase {
   z: number
   nofill: boolean;
   _mm: MinMax;
-  matrix: Matrix4;
 
   /* Raw opcode stream this path appends to; nulled out by destroy(). */
   commands : number[] | undefined;

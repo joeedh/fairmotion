@@ -39,10 +39,10 @@ export function makeElement(type : string,
 }
 
 export class StubCanvasPath extends PathBase {
-_last_off : Vector2
-path_start_i : number
-first : boolean
-_mm : MinMax;
+  _last_off : Vector2
+  path_start_i : number
+  first : boolean
+  _mm : MinMax;
 
   /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
   commands : number[];

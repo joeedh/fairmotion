@@ -313,8 +313,9 @@ export class SplineEditor extends View2DEditor {
   view2d : View2DHandler;
   /* The spline the highlighted element belongs to. */
   highlight_spline : Spline | undefined;
-  mdown : boolean;
-  selectmode : number;
+  /* Rebuilt from scratch (`new Context()`) at each point of use rather than
+     held; the field only exists because those uses assign through `this`. */
+  ctx : FullContext;
 
   constructor(view2d : View2DHandler) {
     let keymap = new KeyMap("view2d:splinetool2");
@@ -893,7 +894,7 @@ export class SplineEditor extends View2DEditor {
     this.mdown = false;
   }
 
-  do_alt_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler) {
+  do_alt_select(event : MouseEvent, mpos : number[], view2d : View2DHandler) {
   }
 
   gen_edit_menu(add_title=false) {

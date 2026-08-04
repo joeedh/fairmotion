@@ -32,6 +32,15 @@ export interface ToolDef {
 
 
 /*
+ * What a tool stores in `_undo`. The default undoPre() below takes a whole-file
+ * snapshot (an ArrayBuffer); a tool that supplies its own undo_pre() stores
+ * whatever it needs instead -- an eid->value map, a saved time, a list of ids.
+ * Subclasses re-declare `_undo` with their own precise type; this union is only
+ * what the base class is willing to hold.
+ */
+export type UndoData = ArrayBuffer | object | number | number[];
+
+/*
  * Every tool in fairmotion runs against the app's own context, never a bare
  * ContextLike, so the context type arguments are pinned here once instead of
  * at each of the ~200 subclasses. Subclasses that declare inputs/outputs thread
@@ -47,8 +56,9 @@ export class ToolOp<
 
   drawlines: drawline[];
   /* The whole-file undo snapshot, taken by the default undoPre(). Absent for
-     tools that supply their own undo_pre(). */
-  _undo?: ArrayBuffer;
+     tools that supply their own undo_pre(), which store their own payload
+     here and override undo() to read it back. */
+  _undo?: UndoData;
   _touch_cancelable = false;
   _touch_cancel_callback?: () => void;
 
@@ -93,7 +103,9 @@ export class ToolOp<
 
   undo(ctx: FullContext): void {
     if (this._undo) {
-      ctx.state.load_undo_file(this._undo);
+      /* Only tools using the default undoPre() above reach this, and that
+         stores an ArrayBuffer; the rest override undo(). */
+      ctx.state.load_undo_file(this._undo as ArrayBuffer);
       window.redraw_viewport();
     }
   }

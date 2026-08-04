@@ -21,7 +21,6 @@ export class SceneObject extends DataBlock {
   loc : Vector2
   scale : Vector2
   rot : number
-  flag : number;
 
   /* Scene-local id from Scene.object_idgen, distinct from lib_id. */
   id : number;

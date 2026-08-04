@@ -555,7 +555,10 @@ export class MultiResLayer extends CustomDataLayer {
   time : number;
 
   constructor(size = 16) {
-      super(this);
+      /* Was `super(this)`; CustomDataLayer takes no arguments, and reading
+         `this` before super() returns is a ReferenceError under real class
+         semantics. */
+      super();
 
       this._effector = new MultiResEffector(this);
       this.max_layers = 8;

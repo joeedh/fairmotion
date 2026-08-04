@@ -1965,11 +1965,17 @@ window.SavedContext = SavedContext;
 
 class SavedContextOld {
   _frameset_editmode: string
-  selectmode: number
+  /* NOTE: `selectmode` is a getter with no setter, so the constructor's
+     `this.selectmode = 0` below throws in strict mode. */
+  _selectmode: number
   _scene: DataRef
   _frameset: DataRef
   time: number
   _spline_path: string;
+  /* SceneObject id of the active object, -1 for none. */
+  _object: number;
+  /* SplineLayer id of the active layer, -1 for none. */
+  _active_spline_layer: number;
 
   constructor(ctx = undefined) {
     if (ctx !== undefined) {

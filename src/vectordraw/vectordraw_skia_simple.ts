@@ -62,11 +62,12 @@ let lasttime = performance.now();
 
 export class SimpleSkiaPath extends PathBase {
   _last_off: Vector2
-  clip_users: set<PathBase>
   path_start_i: number
   first: boolean
   _mm: MinMax;
 
+  /* Fill the path on draw even when no fill was requested. */
+  autoFill : boolean;
   /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
   commands : number[];
   /* The z the path was last drawn at; never read back. */

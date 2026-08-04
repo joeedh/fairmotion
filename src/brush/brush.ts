@@ -8,7 +8,6 @@ import {BrushFlags} from './brush_base.js';
 export class Brush extends DataBlock {
   static STRUCT : string;
 
-  flag : number;
   tool : BrushTool;
 
   constructor() {

@@ -4,6 +4,7 @@ import * as util from '../path.ux/scripts/util/util.js';
 import {Container} from '../path.ux/scripts/core/ui.js';
 import {LoadImageOp} from "../image/image_ops.js";
 import type {ListBox} from '../path.ux/scripts/widgets/ui_listbox.js';
+import {DataRefProperty, RefListProperty} from '../core/toolprops.js';
 
 /* Datablock name -> lib_id, the enum definition the listbox is built from. */
 export type IDList = {[name : string] : number};
@@ -59,7 +60,13 @@ export class IDBrowser extends Container {
       return;
     }
 
+    /* Only the two datablock-reference properties carry an allowed-type set;
+       the browser is meaningless pointed at anything else. */
     let prop = rdef.prop;
+    if (!(prop instanceof DataRefProperty || prop instanceof RefListProperty)) {
+      console.error("Datapath is not a datablock reference", path);
+      return;
+    }
 
     let datalib = this.ctx.datalib;
     let lst = [];

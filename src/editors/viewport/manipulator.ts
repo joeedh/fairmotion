@@ -103,9 +103,8 @@ export class ManipHandle extends HandleBase {
   v1: Vector2
   v2: Vector2;
 
-  /* NOTE: `view2d` is never stored or used, here or in ManipCircle. */
   constructor(v1: Vector2, v2: Vector2, id: string | number, shape: number,
-              view2d: View2DHandler, clr? : number[]) {
+              clr? : number[]) {
     super();
 
     this.id = id;
@@ -275,7 +274,7 @@ export class ManipCircle extends HandleBase {
   r: number;
 
   constructor(p: Vector2 | number[], r: number, id: string | number,
-              view2d: View2DHandler, clr? : number[]) {
+              clr? : number[]) {
     super();
 
     this.id = id;
@@ -388,9 +387,9 @@ export class ManipCircle extends HandleBase {
 var _mh_idgen_2 = 1;
 var _mp_first = true;
 
-/* NOTE: outline(), arrow() and circle() all pass `this.view3d`, which nothing
-   in this file ever assigns -- the handles are built with an undefined
-   view2d.  (Harmless today: the constructors ignore it.) */
+/* NOTE: outline(), arrow() and circle() used to pass `this.view3d`, which
+   nothing in this file ever assigned. The handle constructors ignored the
+   argument, so the parameter is gone rather than the reference fixed. */
 export class Manipulator {
   recalc: number
   handle_size: number
@@ -562,7 +561,7 @@ export class Manipulator {
     min = new Vector2(min);
     max = new Vector2(max);
 
-    let h = new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
+    let h = new ManipHandle(min, max, id, HandleShapes.OUTLINE, clr);
 
     h.transparent = true;
     h.parent = this;
@@ -577,7 +576,7 @@ export class Manipulator {
     v1 = new Vector2(v1);
     v2 = new Vector2(v2);
 
-    let h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+    let h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, clr);
     h.parent = this;
 
     this.handles.push(h);
@@ -586,7 +585,7 @@ export class Manipulator {
 
   circle(p : Vector2 | number[], r : number, id : string | number,
          clr : number[] = [0, 0, 0, 1.0]) {
-    let h = new ManipCircle(new Vector2(p), r, id, this.view3d, clr);
+    let h = new ManipCircle(new Vector2(p), r, id, clr);
 
     h.parent = this;
 
@@ -762,11 +761,12 @@ export class ManipulatorManager {
       this.active.on_tick(ctx);
   }
 
-  /* NOTE: `id` is not a parameter and is not declared anywhere in this
-     module, so calling this throws ReferenceError. */
-  circle(p : Vector2 | number[], r : number, clr : number[], do_push = true,
-         ctx : FullContext = this.ctx) {
-    let h = new ManipCircle(p, r, id, this.view3d, clr);
+  /* NOTE: the `id` parameter had been dropped from this list while the body
+     still used it, so every call threw ReferenceError. Restored in arrow()'s
+     position, which is where the one caller already passes it. */
+  circle(p : Vector2 | number[], r : number, id : string | number,
+         clr : number[], do_push = true, ctx : FullContext = this.ctx) {
+    let h = new ManipCircle(p, r, id, clr);
     let mn = new Manipulator([h], ctx);
     mn.parent = this;
 
@@ -782,7 +782,7 @@ export class ManipulatorManager {
     v1 = new Vector2(v1);
     v2 = new Vector2(v2);
 
-    let h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+    let h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, clr);
     let mn = new Manipulator([h], ctx);
     mn.parent = this;
 

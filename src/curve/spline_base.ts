@@ -381,7 +381,9 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   }
 
   on_del(cls: LayerTypeClass, i: number) {
-    this.pop_u(i);
+    /* NOTE: was pop_u(), which no array has; deleting a custom data layer
+       threw. The helper is pop_i(). */
+    this.pop_i(i);
   }
 
   /* Dead stub; nothing calls it and it returns nothing. */

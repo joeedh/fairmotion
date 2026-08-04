@@ -182,7 +182,8 @@ class ViewRotateZoomPanOp extends ToolOp {
   proj(out: Vector3, mpos: number[]) {
     let size = this.modal_ctx.view2d.size;
 
-    out.loadxy(mpos);
+    /* NOTE: was loadxy(), which Vector3 has never had; it threw. */
+    out.loadXY(mpos[0], mpos[1]);
     out[0] = out[0]/(size[0]*0.5) - 1.0;
     out[1] = out[1]/(size[1]*0.5) - 1.0;
   }

@@ -28,6 +28,14 @@ export class FairmotionScreen extends Screen {
   startFrame : number;
   _lastFrameTime : number;
 
+  /*
+   * NOTE: the multitouch state view2d_ops.ts's touch ops read. Nothing has
+   * written either since the old touch event layer was removed, so tottouch
+   * is always undefined and every guard against it misfires.
+   */
+  tottouch! : number;
+  touchstate! : {[id : string] : number[]};
+
   constructor() {
     super();
 
@@ -274,6 +282,12 @@ export class KeymapSet extends Array<KeyMap> {
 export type EditorCanvas = HTMLCanvasElement & {dpi_scale : number, g : Canvas2D};
 
 export class Editor extends Area {
+  /* UIBase's ctx accessor is generic over the app context; every editor in
+     this tree only ever sees the app's own. path.ux types it non-optional
+     even though it is unset until the screen wires the widget up, which is
+     why so much of this file still tests it against undefined. */
+  declare ctx : FullContext;
+
   canvases : {[id : string] : EditorCanvas};
 
   _last_keymap_delta_gen : number;

@@ -13,6 +13,34 @@ export type ConsoleLines = ConsoleLineEntry[] & {
 /* The command history, with the browse cursor hung off the array itself. */
 export type ConsoleHistory = ConsoleCommand[] & {cur : number};
 
+/*
+ * The per-character ANSI state machine drawText() builds. Only start() sets
+ * the fields up, so they are all late-assigned; `state` is whichever of
+ * base()/escape() is live, and both return false for a character that draws
+ * nothing.
+ */
+type ConsoleStateMachine = {
+  /* Never pushed to; start() only clears it. */
+  stack : never[];
+  x : number;
+  y : number;
+  /* How far into an escape sequence escape() has got. */
+  d : number;
+  /* The two digits of an SGR parameter, accumulated a character at a time.
+     start() seeds them as numbers and base() resets them to "". */
+  param1 : string | number;
+  param2 : string | number;
+  color : string;
+  bgcolor : string | undefined;
+  /* A CSS font string, as assigned to g.font. */
+  font : string;
+  state : (c : string) => string | false;
+
+  start(x : number, y : number, color : string) : void;
+  escape(c : string) : string | false;
+  base(c : string) : string | false;
+};
+
 let g_screen : Screen = undefined;
 let _silence = () => {};
 let _unsilence = () => {};
@@ -849,14 +877,18 @@ export class ConsoleEditor extends Editor {
         let y = scroll[1] + 5 + canvas.height - lh;
 
         let this2 = this;
-        let color = g.font.color;
+        /* NOTE: this read `g.font.color`. g.font is the CSS string assigned
+           just above, so the value was undefined and every fillStyle written
+           from it was ignored -- which is why the text still came out in
+           font.color, the fillStyle already in effect. */
+        let color = font.color;
 
         let fontcpy = font.copy();
 
         /* Draws one character at a time so ANSI escape codes can retint and
            re-font mid-string; `state` is whichever of base/escape is live.
            Every other field is created by start(). */
-        let stateMachine = {
+        let stateMachine : ConsoleStateMachine = {
             stack : [],
             start(x : number, y : number, color : string) {
                 this.stack.length = 0;

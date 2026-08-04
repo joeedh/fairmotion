@@ -59,11 +59,13 @@ class Mat4Compat extends Matrix4 {
     super();
   }
 
+  /* The STRUCT above names the field `_matrix`, so that is what reader()
+     stamps on; Matrix4 itself keeps its data in $matrix. */
   static fromSTRUCT(reader: StructReader<Matrix4>) {
     let ret = new Matrix4();
     reader(ret);
-    ret.$matrix = ret._matrix;
-    delete ret._matrix;
+    ret.$matrix = Reflect.get(ret, "_matrix");
+    Reflect.deleteProperty(ret, "_matrix");
 
     return ret;
   }

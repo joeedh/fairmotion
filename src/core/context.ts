@@ -202,6 +202,12 @@ export class BaseContext extends Context {
   api!: DataAPI
   selectmode!: int;
 
+  /* LockedContext copies every context property onto itself, so it stands in
+     for the context it was built from; path.ux's ContextLike makes the same
+     claim with `toLocked?(): this`, and the rest of the app types locked
+     contexts as FullContext (see ToolOp.modal_tctx). */
+  declare toLocked: () => this;
+
   constructor(state = g_app_state) {
     super(state);
 

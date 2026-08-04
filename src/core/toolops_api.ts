@@ -78,7 +78,10 @@ export class ToolOp<
   ctx?: FullContext;
 
   /* A modal tool gets two locked contexts: modal_ctx drives drawing and
-     modal_tctx is what gets saved for undo. */
+     modal_tctx is what gets saved for undo. path.ux declares modal_ctx
+     optional -- it clears it in modalEnd() -- but it is only ever read from
+     inside a modal run, where pushModal() has already set it. */
+  declare modal_ctx: FullContext;
   modal_tctx?: FullContext;
 
   /* Cached data API struct built by ToolStack.gen_tool_datastruct(). */

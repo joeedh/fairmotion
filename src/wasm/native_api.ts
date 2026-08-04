@@ -548,13 +548,12 @@ export function do_solve(sflags : {[name : string] : number}, spline : Spline,
       
       //don't need to do spline sort here
       //want to avoid per-frame updates of spline sort
-      if (g_app_state.modalstate !== ModalStates.TRANSFROMING) {
-        if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
-          seg.update_aabb();
-      } else {
-        if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
-          seg.flag |= SplineFlags.UPDATE_AABB;
-      }
+      /* NOTE: the guard read `modalstate !== ModalStates.TRANSFROMING`, a typo
+         for TRANSFORMING, so it was always true and the else branch below --
+         deferring the aabb by flag instead of rebuilding it -- never ran.
+         Kept as-is; taking the other branch is a behavior change. */
+      if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
+        seg.update_aabb();
     }
     
     for (let f of spline.faces) {

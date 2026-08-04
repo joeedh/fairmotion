@@ -485,7 +485,8 @@ export class VelocityPan extends EventHandler {
       return;
     }
 
-    vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
+    /* NOTE: was divideScalar(), which Vector3 has never had; it threw. */
+    vel.load(this.last_mpos).sub(this.mpos).divScalar(t);
 
     //blend with last value, if it exists
     this.vel.add(vel);

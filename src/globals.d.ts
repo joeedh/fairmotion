@@ -222,11 +222,12 @@ declare global {
     getAsync(key: string): Promise<string>;
     hasCached(key: string): boolean;
 
-    /* Two keys are also read as plain properties. On the localStorage backend
-       that reaches window.localStorage; on the chrome one it reads undefined,
-       which both call sites already treat as "not set". */
+    /* Two keys are also written as plain properties rather than through set(),
+       so they live on the storage object itself and never reach either
+       backend. The startup_file one is paired with a hasCached() test that
+       consults the backend, so the assignment is effectively lost. */
     startup_file?: string;
-    use_canvas?: string;
+    use_canvas2d?: boolean;
   }
 
   const myLocalStorage: MyLocalStorage;

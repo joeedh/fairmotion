@@ -835,10 +835,12 @@ export function do_solve(splineflags : {[name : string] : number}, spline : Spli
 
     //don't need to do spline here
     //want to avoid per-frame updates of spline sort
-    if (g_app_state.modalstate !== ModalStates.TRANSFROMING) {
-      if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
-        seg.update_aabb();
-    }
+    /* NOTE: the guard here read `modalstate !== ModalStates.TRANSFROMING`, a
+       typo for TRANSFORMING, so it was always true and the aabb update always
+       ran. Dropped rather than corrected -- honouring it would stop aabbs
+       refreshing mid-transform, which is a behavior change. */
+    if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
+      seg.update_aabb();
   }
 
   for (let f of spline.faces) {

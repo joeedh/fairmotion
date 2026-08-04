@@ -1893,7 +1893,8 @@ export function test(exec_cycles=true) {
       }
 
       this.outputs.color.setValue(color);
-      this.outputs.color.graphUdate();
+      /* NOTE: was graphUdate(); it threw. */
+      this.outputs.color.graphUpdate();
 
       this.mesh.uniforms.objectMatrix = this.outputs.matrix.getValue();
       //console.log("node exec", this.graph_id, this.graph_graph.sortlist[0].graph_id, this.graph_graph .sortlist[1].graph_id);

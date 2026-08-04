@@ -1097,7 +1097,7 @@ function get_boundary_winding(points : VecLike[]) {
       cent.add(points[i]);
   }
   
-  cent.divideScalar(points.length);
+  cent.divScalar(points.length); /* NOTE: was divideScalar(); it threw. */
   
   var w = 0, totw=0;
   for (var i=0; i<points.length; i++) {
@@ -1240,7 +1240,7 @@ export class PlaneOps {
         cent.add(points[i]);
     }
     
-    cent.divideScalar(points.length);
+    cent.divScalar(points.length); /* NOTE: was divideScalar(); it threw. */
     
     var w = 0, totw=0;
     for (var i=0; i<points.length; i++) {

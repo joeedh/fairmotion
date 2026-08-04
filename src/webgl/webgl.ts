@@ -230,7 +230,8 @@ export function onContextLost(e : Event) {
 
 //params are passed to canvas.getContext as-is
 /* Returns a process-wide singleton: the first call wins and every later call
-   gets the same context back, `canvas` and `params` ignored. */
+   gets the same context back, `canvas` and `params` ignored. Nothing in the
+   tree calls this; the live context comes from imagecanvas_webgl.ts. */
 export function init_webgl(canvas : HTMLCanvasElement,
                            params : WebGLContextAttributes & {webgl2? : boolean} = {}) {
   if (_gl !== undefined) {
@@ -238,17 +239,22 @@ export function init_webgl(canvas : HTMLCanvasElement,
   }
 
   let webgl2 = params.webgl2 !== undefined ? params.webgl2 : true;
-  let gl;
+
+  /* getContext() hands back the union of the two context interfaces; the rest
+     of this module works against the WebGL2 superset, which the webgl1 branch
+     below back-fills. */
+  let gl = (webgl2
+    ? canvas.getContext("webgl2", params)
+    : canvas.getContext("webgl", params)) as WebGLContext;
 
   if (webgl2) {
-    gl = canvas.getContext("webgl2", params);
     gl.color_buffer_float = gl.getExtension("EXT_color_buffer_float");
   } else {
-    gl = canvas.getContext("webgl", params);
-
+    /* RGBA32F/RGBA8UI are readonly on a real WebGL2 context; on the webgl1
+       one they do not exist at all, and this is where they come from. */
     if (!gl.RGBA32F) {
-      gl.RGBA32F = gl.RGBA;
-      gl.RGBA8UI = gl.RGBA;
+      Reflect.set(gl, "RGBA32F", gl.RGBA);
+      Reflect.set(gl, "RGBA8UI", gl.RGBA);
     }
 
     gl.getExtension("EXT_frag_depth");

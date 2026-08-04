@@ -13,6 +13,7 @@ class ClothoidInterface {
   static evaluate(p1: Vector2, p2: Vector2,
                   t1: Vector2, t2: Vector2,
                   k1: number, k2: number, s: number, cdata: CurveData): Vector2 {
+    throw new Error("clothoid evaluate: implement me");
   }
 
   static derivative(p1: Vector2, p2: Vector2,
@@ -76,11 +77,13 @@ class ClothoidInterface {
                        t1: Vector2, t2: Vector2,
                        k1: number, k2: number, p: Vector2, cdata: CurveData): number {
     //need to implement this
+    throw new Error("clothoid closest_point: implement me");
   }
 
   static update(p1: Vector2, p2: Vector2,
                 t1: Vector2, t2: Vector2,
                 k1: number, k2: number, s: number, cdata: CurveData): number {
+    throw new Error("clothoid update: implement me");
   }
 }
 

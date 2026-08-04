@@ -258,14 +258,15 @@ declare global {
   type symcls = import("./curve/bspline.js").symcls;
 
   /* Node counter, bumped by every symcls constructor and reset by optimize(). */
-  const tot_symcls: number;
+  var tot_symcls: number;
   /* Knobs the symbolic generator reads while building an expression tree. */
   const _sym_eps1: number;
   const _sym_eps2: number;
   const _sym_do_clamping: boolean;
   const _sym_more_symbolic: boolean;
-  /* optimize()'s return value, stashed by the test_sym() console helper. */
-  const tree_func: [Function, Function | undefined, string, string, symcls];
+  /* optimize()'s return value, stashed by the test_sym() console helper. The
+     two functions come out of an eval(), so neither is guaranteed. */
+  const tree_func: [Function | undefined, Function | undefined, string, string, symcls];
 
   /* Never assigned anywhere: load_seven() reads a prebuilt table of generated
      basis functions that no longer ships, so calling it throws. */
@@ -623,14 +624,14 @@ declare global {
     precheck(key: string): string;
     test_sym(): void;
     load_seven(): void;
-    tree_func: [Function, Function | undefined, string, string, symcls];
+    tree_func: [Function | undefined, Function | undefined, string, string, symcls];
     test(s: number, j?: number): void;
 
     /* bspline's string pool, both directions. */
     _str_idhash: {[hash: string]: number};
-    _str_idhash_rev: {[id: number]: string};
+    _str_idhash_rev: Record<KeyStr, string>;
     /* Two debugging handles optimize() leaves behind per run. */
-    haskeys: hashtable<number, hashtable<number, number>>;
+    haskeys: hashtable<KeyStr, hashtable<KeyStr, number>>;
     dag: symcls[];
 
     /* A fixed table of pseudo-random numbers, and a cursor into it. Neither is

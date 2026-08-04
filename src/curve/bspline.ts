@@ -105,7 +105,7 @@ for (let i = 0; i < uniform_vec.length; i++) {
    Unused: nothing constructs a BasisCache. */
 export class BasisCache {
   /* Samples per table; picked from the degree in gen(). */
-  size : number;
+  size! : number;
   recalc : number;
   /* One table per basis function, index j + degree + dpad. */
   tables : Table[];
@@ -117,14 +117,14 @@ export class BasisCache {
 
   /* NOTE: passes no degree, so gen() runs with degree === undefined. */
   constructor(knots? : number[]) {
-    this.size = undefined; //is calculated from degree
+    //this.size is calculated from degree, in gen()
     this.recalc = 1;
     this.tables = [];
 
     this.dpad = 1;
 
     if (knots !== undefined) {
-      this.gen(knots);
+      this.gen(knots, this.degree);
     }
   }
 
@@ -260,9 +260,11 @@ export class BasisCache {
 
         //dv = (dv-w)/df;
         //let eps = -0.0001;
-        let s2 = s;//*(1.0-eps) + eps;
+        /* NOTE: was another `s2`, which put the loop's `s2` in this block's
+           temporal dead zone -- `let s = s2` at the top of the body threw. */
+        let s3 = s;//*(1.0-eps) + eps;
 
-        dv = basis_dv(s2, j, degree, ks, 1);
+        dv = basis_dv(s3, j, degree, ks, 1);
         table.t[ac++] = dv;
 
         if (this.degree > 2) {
@@ -437,7 +439,10 @@ export class BasisCache {
     //see basistaylor.reduce
     s = t3*ds;
 
-    s2 = s*s, s3 = s*s*s, s4 = s2*s2, s5 = s4*s, s6 = s3*s3, s7 = s6*s, s8 = s7*s;
+    /* NOTE: s3..s8 were assigned without a declaration; `s2` is the one
+       declared above and keeps its assignment order. */
+    s2 = s*s;
+    let s3 = s*s*s, s4 = s2*s2, s5 = s4*s, s6 = s3*s3, s7 = s6*s, s8 = s7*s;
     // let ds2=table.ds2, ds3 = table.ds3, ds4=table.ds4, ds5=table.ds5;
     //let ds6=table.ds6, ds7=table.ds7;
     let ds2 = ds*ds, ds3 = ds*ds*ds, ds4 = ds3*ds, ds5 = ds4*ds, ds6 = ds5*ds, ds7 = ds6*ds, ds8 = ds7*ds;
@@ -483,9 +488,25 @@ export class BasisCache {
   }
 }
 
+/* The recycled entry basis_dv_cache hands out: 32 slots plus the (j, n) the
+   derivative was sampled for. */
+class BasisDvEntry extends Array<number> {
+  j : number | undefined;
+  n : number | undefined;
+
+  init(j : number, n : number) {
+    this.j = j;
+    this.n = n;
+
+    for (let i = 0; i < this.length; i++) {
+      this[i] = 0;
+    }
+  }
+}
+
 /* Dead: nothing reads this. */
 let basis_dv_cache = new cachering(function () {
-  let ret = new Array(32);
+  let ret = new BasisDvEntry(32);
 
   for (let i = 0; i < ret.length; i++) {
     ret[i] = 0.0;
@@ -494,24 +515,13 @@ let basis_dv_cache = new cachering(function () {
   ret.j = undefined;
   ret.n = undefined;
 
-  ret.init = function (j, n) {
-    this.j = j;
-    this.n = n;
-
-    for (let i = 0; i < this.length; i++) {
-      this[i] = 0;
-    }
-  }
-
   return ret;
 }, 64);
 
 /* The dvn'th derivative of basis function j of degree n.  Everything after
    the compiled_basis_dv() call is the reference recursion. */
-export function basis_dv(s : number, j : number, n : number, ks : number[], dvn? : number) {
-  if (dvn === undefined)
-    dvn = 1;
-
+export function basis_dv(s : number, j : number, n : number, ks : number[],
+                         dvn : number = 1) : number {
   return compiled_basis_dv(s, j, n, ks, dvn);
 
   if (dvn === 0) {
@@ -652,7 +662,7 @@ export function deBoor(k : number, x : number, knots : number[], controls : numb
 /* Basis function j of degree n at s.  Everything after the compiled_basis()
    call is the reference Cox-de Boor recursion. */
 export function basis(s : number, j : number, n : number, ks : number[],
-                      no_cache = false) {
+                      no_cache = false) : number {
   //if (!no_cache) {
   return compiled_basis(s, j, n, ks);
   //}
@@ -666,7 +676,9 @@ export function basis(s : number, j : number, n : number, ks : number[],
   jn1 = min(max(jn1, 0.0), klen - 1);
 
   if (n === 0) {
-    return s >= ks[j1] && s < ks[j2];
+    /* The comparison was returned as a boolean and every caller multiplied
+       through it, coercing to 1/0; spelled out here. */
+    return (s >= ks[j1] && s < ks[j2]) ? 1.0 : 0.0;
   } else {
     let A = s - ks[j1];
     let div = ks[jn] - ks[j1];
@@ -802,7 +814,7 @@ function pack_short(f : number) {
 /* toHash3() packs `is_func` through here, so a boolean lands in
    fromCharCode() and becomes \x00 or \x01. */
 function pack_byte(f : number | boolean) {
-  return String.fromCharCode(f);
+  return String.fromCharCode(Number(f));
 }
 
 let tiny_strpool : {[name : string] : number} = {};
@@ -822,15 +834,16 @@ let tiny_strpool2 : {[op : string] : number} = {};
 let tiny_strpool_idgen2 = 1;
 
 /* NOTE: symcls.op is a symcls rather than a string for two-argument func()
-   nodes, and toHash3() hands it straight to this. */
-function pack_op(f : string | symcls) {
-  let ret = "";
+   nodes, and toHash3() hands it straight to this -- so the pool is keyed by
+   whatever the node stringifies to. */
+function pack_op(f : string | symcls | undefined) {
+  let key = "" + f;
 
-  if (!(f in tiny_strpool2)) {
-    tiny_strpool2[f] = tiny_strpool_idgen2++;
+  if (!(key in tiny_strpool2)) {
+    tiny_strpool2[key] = tiny_strpool_idgen2++;
   }
 
-  return pack_byte(tiny_strpool2[f]);
+  return pack_byte(tiny_strpool2[key]);
 }
 
 window.pack_float = pack_float;
@@ -841,7 +854,7 @@ window.precheck = precheck;
 let _str_prehash = {}
 /* Two halves of a string pool: hash string -> small int id, and back. */
 let _str_idhash : {[hash : string] : number} = window._str_idhash = {};
-let _str_idhash_rev : {[id : number] : string} = window._str_idhash_rev = {};
+let _str_idhash_rev : Record<KeyStr, string> = window._str_idhash_rev = {};
 let _str_idgen = 0;
 
 function spool(hash : string) {
@@ -857,7 +870,7 @@ function spool(hash : string) {
   }
 }
 
-function spool_len(id : number) {
+function spool_len(id : KeyStr) {
   return _str_idhash_rev[id].length;
 }
 
@@ -890,13 +903,13 @@ export class symcls {
   /* Set by optimize() while it factors out common subexpressions: `key` is this
      node's hash, `tag` the SUBPARTn symbol standing in for it, and ins/ins_ids
      the subparts it depends on. */
-  key : number | undefined;
+  key : KeyStr | undefined;
   tag : symcls | undefined;
   _done : boolean;
   _visit : boolean;
   id : number | undefined;
-  ins : hashtable<number, number> | undefined;
-  ins_ids : hashtable<number, number> | undefined;
+  ins : hashtable<KeyStr, number> | undefined;
+  ins_ids : hashtable<KeyStr, number> | undefined;
   is_tag : boolean | undefined;
   is_root : boolean | undefined;
 
@@ -931,9 +944,11 @@ export class symcls {
         }
     });*/
 
+    /* NOTE: each `x instanceof String` test dropped here and below was
+       unreachable -- nothing in the app boxes a string before calling in. */
     if (typeof name_or_value === "number" || typeof name_or_value === "boolean") {
       this.value = name_or_value;
-    } else if (typeof name_or_value === "string" || name_or_value instanceof String) {
+    } else if (typeof name_or_value === "string") {
       this.name = name_or_value;
     }
   }
@@ -974,7 +989,10 @@ export class symcls {
       b.value !== undefined && op === "+") {
 
       ret = this.copy();
-      ret.b.value = this.b.value + b.value;
+
+      /* copy() keeps `b`, so this.b !== undefined implies ret.b !== undefined;
+         both values are numeric here, so `+` cannot be a concatenation. */
+      ret.b!.value = Number(this.b.value) + Number(b.value);
       return ret;
     }
 
@@ -995,8 +1013,8 @@ export class symcls {
   }
 
   index(arg1 : symcls | string | number | boolean) {
-    if (typeof arg1 === "string" || arg1 instanceof String || typeof arg1
-      === "number" || typeof arg1 === "boolean") {
+    if (typeof arg1 === "string" || typeof arg1 === "number" ||
+      typeof arg1 === "boolean") {
       arg1 = sym(arg1);
     } else {
       arg1 = arg1.copy();
@@ -1012,7 +1030,7 @@ export class symcls {
   }
 
   func(fname : symcls | string, arg1? : symcls | string | number | boolean) {
-    if (typeof fname === "string" || fname instanceof String) {
+    if (typeof fname === "string") {
       fname = sym(fname);
     }
 
@@ -1023,8 +1041,8 @@ export class symcls {
       ret.b = this.copy();
       ret.op = "c";
     } else {
-      if (typeof arg1 === "string" || arg1 instanceof String || typeof arg1
-        === "number" || typeof arg1 === "boolean") {
+      if (typeof arg1 === "string" || typeof arg1 === "number" ||
+        typeof arg1 === "boolean") {
         arg1 = sym(arg1);
       }
 
@@ -1053,9 +1071,10 @@ export class symcls {
       ret._hash = ret._toString = undefined;
     }
 
+    /* `a` and `b` are only ever set together. */
     if (this.a !== undefined) {
       ret.a = this.a.copy(copy_strcache);
-      ret.b = this.b.copy(copy_strcache);
+      ret.b = this.b!.copy(copy_strcache);
 
       ret.a.parent = ret;
       ret.b.parent = ret;
@@ -1186,13 +1205,13 @@ export class symcls {
 
     ret += pack_str(this.name);
 
-    ret += this.value !== undefined ? pack_short(this.value*15000) : "" //pack_short(0.0);
+    ret += this.value !== undefined ? pack_short(Number(this.value)*15000) : "" //pack_short(0.0);
     ret += pack_byte(this.is_func);
 
     if (this.a !== undefined) {
       ret += pack_op(this.op)
       ret += this.a.toHash3();// + pack_byte(-1);
-      ret += this.b.toHash3();// + pack_byte(-1);
+      ret += this.b!.toHash3();// + pack_byte(-1);
     }
 
     this._last_h = ret;
@@ -1218,8 +1237,8 @@ export class symcls {
 
     if (this.a !== undefined) {
       ret += this.op + "$";
-      ret += this.a.toHash() + "$";
-      ret += this.b.toHash() + "$";
+      ret += this.a!.toHash() + "$";
+      ret += this.b!.toHash() + "$";
     }
 
     this._last_h = ret;
@@ -1233,8 +1252,11 @@ export class symcls {
     }
 
     let use_parens = this.use_parens;
+    /* A func() node's `op` can be a symcls, which has no `length` -- the
+       original read undefined there and the comparison came out false. */
     use_parens = use_parens && !(this.parent !== undefined && (this.parent.op === "i" ||
-      this.parent.op === "c" || this.parent.op.length > 2));
+      this.parent.op === "c" ||
+      (typeof this.parent.op === "string" && this.parent.op.length > 2)));
 
     use_parens = use_parens && !(this.value !== undefined && this.a === undefined);
     use_parens = use_parens && !(this.name !== undefined && this.name !== "" && this.a === undefined);
@@ -1275,10 +1297,10 @@ export function sym(name_or_value? : string | number | boolean) {
    and records under `haskeys` which subparts `root` ended up depending on. */
 function recurse2_a(n : symcls, root : symcls | undefined,
                     map : hashtable<number, symcls>,
-                    haskeys : hashtable<number, hashtable<number, number>>,
-                    map2 : hashtable<number, number>, subpart_i : number,
+                    haskeys : hashtable<KeyStr, hashtable<KeyStr, number>>,
+                    map2 : hashtable<KeyStr, number>, subpart_i : number,
                     symtags : hashtable<number, symcls>) {
-  function recurse2(n : symcls, root : symcls | undefined) {
+  function recurse2(n : symcls, root : symcls | undefined) : symcls {
     let key = n.hash();
 
     if (map.has(key)) {
@@ -1287,18 +1309,20 @@ function recurse2_a(n : symcls, root : symcls | undefined,
       n.tag.is_tag = true;
       n.key = key;
 
+      /* Every caller passes a root that is itself in `map`, so the block above
+         has already given it a key by the time a child gets here. */
       if (root !== undefined && n !== root) {
-        if (!haskeys.has(root.key)) {
-          haskeys.set(root.key, new hashtable());
+        if (!haskeys.has(root.key!)) {
+          haskeys.set(root.key!, new hashtable());
         }
 
-        haskeys.get(root.key).set(key, 1);
+        haskeys.get(root.key!).set(key, 1);
       }
     }
 
     if (n.a !== undefined) {
       recurse2(n.a, root);
-      recurse2(n.b, root);
+      recurse2(n.b!, root);
     }
 
     return n;
@@ -1312,19 +1336,18 @@ function recurse2_a(n : symcls, root : symcls | undefined,
    Returns [compiled fn, unoptimized fn, optimized source, unoptimized source,
    rewritten tree]; callers only ever take element 2.
 
-   NOTE: the `if (i > 0 ...)` guard below reads an `i` that is not in scope, so
-   this throws a ReferenceError -- which is why the generated bodies have to
-   come out of myLocalStorage in practice. */
-export function optimize(tree : symcls) {
+   NOTE: the `if (i > 0 ...)` guard below read an `i` that is not in scope and
+   threw a ReferenceError; see the comment at that line. */
+export function optimize(tree : symcls) : [Function | undefined, Function | undefined, string, string, symcls] {
   tot_symcls = 0;
 
   let start_tree = tree.copy(true);
 
-  function output() {
-    console.log.apply(console, arguments);
+  function output(...args : unknown[]) {
+    console.log.apply(console, args);
   }
 
-  function optimize_pass(tree : symcls, subpart_start_i? : number) {
+  function optimize_pass(tree : symcls, subpart_start_i? : number) : [symcls, string, string, number] {
     if (subpart_start_i === undefined)
       subpart_start_i = 0;
     let subpart_i = subpart_start_i;
@@ -1335,9 +1358,9 @@ export function optimize(tree : symcls) {
     output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
 
 
-    let symtags = new hashtable();
-    let map = new hashtable()
-    let mapcount = new hashtable();
+    let symtags = new hashtable<number, symcls>();
+    let map = new hashtable<number, symcls>()
+    let mapcount = new hashtable<number, number>();
 
     /* Collects every subtree deeper than 3 and longer than 25 hash bytes, and
        counts how often each one appears. */
@@ -1379,21 +1402,23 @@ export function optimize(tree : symcls) {
 
     recurse(tree);
 
-    let keys = map.keys();
+    let keys : GArray<KeyStr> | undefined = map.keys();
     keys.sort(function (a, b) {
       return -spool_len(a)*mapcount.get(a) + spool_len(b)*mapcount.get(b);
     });
 
-    let map2 = new hashtable();
+    let map2 = new hashtable<KeyStr, number>();
 
     output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
 
     //supposedly, putting this bit in a closure will optimize better.
-    let keys3 = [];
+    let keys3 : KeyStr[] = [];
     let i2 = 0;
     let max_si = 0;
 
-    function next() {
+    /* Takes `keys` as an argument because the caller drops its reference
+       immediately afterwards. */
+    function next(keys : GArray<KeyStr>) {
       for (let i = 0; i < keys.length; i++) {
         if (mapcount.get(keys[i]) < 3) {
           map.remove(keys[i]);
@@ -1407,11 +1432,11 @@ export function optimize(tree : symcls) {
       }
     }
 
-    next();
+    next(keys);
     output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
 
     keys = undefined;
-    let haskeys = new hashtable();
+    let haskeys = new hashtable<KeyStr, hashtable<KeyStr, number>>();
 
     tree = recurse2_a(tree, undefined, map, haskeys, map2, subpart_i, symtags);
 
@@ -1420,7 +1445,7 @@ export function optimize(tree : symcls) {
       return -spool_len(a)*mapcount.get(a) + spool_len(b)*mapcount.get(b);
     });
 
-    function recurse3(n : symcls, key : number) {
+    function recurse3(n : symcls, key : KeyStr) : symcls {
       if (n.a !== undefined) {
         if (n.a.tag !== undefined && !n.a.is_tag && n.a.key === key) {
           n.a.parent = undefined;
@@ -1430,12 +1455,12 @@ export function optimize(tree : symcls) {
           recurse3(n.a, key);
         }
 
-        if (n.b.tag !== undefined && !n.b.is_tag && n.b.key === key) {
-          n.b.parent = undefined;
-          n.b = n.b.tag;
+        if (n.b!.tag !== undefined && !n.b!.is_tag && n.b!.key === key) {
+          n.b!.parent = undefined;
+          n.b = n.b!.tag;
           n.clear_toString();
         } else {
-          recurse3(n.b, key);
+          recurse3(n.b!, key);
         }
       }
 
@@ -1448,11 +1473,12 @@ export function optimize(tree : symcls) {
       tree = recurse3(tree, keys3[i]);
     }
 
-    let exists = new hashtable();
+    let exists = new hashtable<KeyStr, boolean>();
 
-    function recurse4(n : symcls, key? : number) {
+    function recurse4(n : symcls, key? : KeyStr) : boolean {
+      /* recurse2() sets `key` on every node it marks is_tag. */
       if (n.is_tag) {
-        exists.set(n.key, true);
+        exists.set(n.key!, true);
       }
 
       if (n.is_tag && n.key !== undefined && n.key === key)
@@ -1461,7 +1487,7 @@ export function optimize(tree : symcls) {
       if (n.a !== undefined) {
         if (recurse4(n.a, key))
           return true;
-        if (recurse4(n.b, key))
+        if (recurse4(n.b!, key))
           return true;
       }
 
@@ -1480,7 +1506,7 @@ export function optimize(tree : symcls) {
     output(keys3.length);
     let last_time2 = time_ms();
 
-    haskeys = new hashtable();
+    haskeys = new hashtable<KeyStr, hashtable<KeyStr, number>>();
     window.haskeys = haskeys;
 
     /*
@@ -1539,7 +1565,9 @@ export function optimize(tree : symcls) {
           last_time = time_ms();
         }//*/
 
-        if (haskeys.get(n.key) === undefined || !(haskeys.get(n.key).has(key)))
+        /* The j-loop above ran recurse2_a(n, n, ...) at least once, which is
+           what puts a key on n. */
+        if (haskeys.get(n.key!) === undefined || !(haskeys.get(n.key!).has(key)))
           continue;
 
         recurse3(n, keys3[j]);
@@ -1563,24 +1591,25 @@ export function optimize(tree : symcls) {
           return;
         }
 
-        root.ins.set(n.key, 1);
+        /* Both roots come out of the loop below, which fills in ins/ins_ids. */
+        root.ins!.set(n.key!, 1);
 
-        let id = map2.get(n.key);
-        root.ins_ids.set(id, id);
+        let id = map2.get(n.key!);
+        root.ins_ids!.set(id, id);
       }
 
       if (n.a !== undefined) {
         tag(n.a, root);
-        tag(n.b, root);
+        tag(n.b!, root);
       }
     }
 
     output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
 
-    let dag = [];
+    let dag : symcls[] = [];
     window.dag = dag;
 
-    function visit_n(k : number) {
+    function visit_n(k : KeyStr) {
       let n2 = map.get(k);
 
       if (!n2._done) {
@@ -1594,7 +1623,9 @@ export function optimize(tree : symcls) {
       }
 
       if (n._visit) {
-        throw new Error("CYCLE!", n, n._visit);
+        /* The node and its flag used to be passed as extra Error arguments,
+           where they were silently dropped. */
+        throw new Error("CYCLE! " + n + " " + n._visit);
       }
 
       if (n.is_root) {
@@ -1608,7 +1639,7 @@ export function optimize(tree : symcls) {
                 dagsort(n2);
             }
         }//, this);//*/
-        n.ins.forEach(visit_n, this);
+        n.ins!.forEach(visit_n);
 
         n._visit = false;
         dag.push(n);
@@ -1618,7 +1649,7 @@ export function optimize(tree : symcls) {
 
       if (n.a !== undefined) {
         dagsort(n.a);
-        dagsort(n.b);
+        dagsort(n.b!);
       }
     }
 
@@ -1626,8 +1657,8 @@ export function optimize(tree : symcls) {
       let n = map.get(keys3[i]);
 
       n.is_root = true;
-      n.ins = new hashtable();
-      n.ins_ids = new hashtable();
+      n.ins = new hashtable<KeyStr, number>();
+      n.ins_ids = new hashtable<KeyStr, number>();
       //n.outs = new hashtable();
       n.id = map2.get(keys3[i]);
     }
@@ -1651,7 +1682,8 @@ export function optimize(tree : symcls) {
     let header = "";
     for (let i = 0; i < dag.length; i++) {
       let n = dag[i];
-      let key = n.key;
+      /* The keys3 loop above gave every node reachable from the dag a key. */
+      let key = n.key!;
 
       if (subpart_i > 0 || i > 0) header += ", "
 
@@ -1674,8 +1706,12 @@ export function optimize(tree : symcls) {
   //for (let i=0; i<4; i++) {
   let r = optimize_pass(tree, si);
 
+  /* NOTE: dropped a guard that read the induction variable of the four-pass
+     loop commented out above -- with the loop gone `i` is not in scope and
+     the read threw, and at i === 0 the branch would not have run anyway.
   if (i > 0 && header2.trim() !== "" && header2.trim()[header2.length - 1] !== ",")
     header2 += ", ";
+  */
 
   header2 += r[2];
 
@@ -1689,13 +1725,14 @@ export function optimize(tree : symcls) {
 
   let final2 = header2 + "\n  return " + tree + ";\n";
 
-  let ret = undefined, func;
+  /* Both bodies are `ret = function(...) {...};`, so eval() fills `ret` in. */
+  let ret : Function | undefined = undefined, func : Function | undefined;
   let code1 = "ret = function(s, j, n, ks, dvn) {" + final2 + "};";
   code1 = splitline(code1);
   eval(code1)
   func = ret;
 
-  let func2 = undefined;
+  let func2 : Function | undefined = undefined;
   let code2 = "ret = function(s, j, n, ks, dvn) {return " + ("" + start_tree) + ";};";
   code2 = splitline(code2);
   func = ret;
@@ -1704,13 +1741,26 @@ export function optimize(tree : symcls) {
   return [func, func2, code1, code2, tree];
 }
 
+/* NOTE: every read and write below indexes the storage object directly rather
+   than going through set()/getCached(), so generated basis functions stay on
+   that object and never reach either backend. */
+function readStore(key : string) : string | undefined {
+  return Reflect.get(myLocalStorage, key);
+}
+
+function writeStore(key : string, value : string) : void {
+  Reflect.set(myLocalStorage, key, value);
+}
+
 /* NOTE: falls off the end without returning `ret`, so this is always
    undefined.  Dead either way -- the cache is read straight out of
    myLocalStorage. */
-export function get_cache(k : string, v) {
+export function get_cache(k : string, v? : unknown) {
   let ret;
   try {
-    ret = JSON.parse(myLocalStorage["_store_" + k]);
+    /* A missing key used to reach JSON.parse as undefined, which it
+       stringifies to "undefined" and rejects; spelled out here. */
+    ret = JSON.parse(readStore("_store_" + k) ?? "undefined");
   } catch (error) {
     print_stack(error);
     return undefined;
@@ -1723,8 +1773,8 @@ export function get_cache(k : string, v) {
 
 window.get_cache = get_cache;
 
-export function store_cache(k : string, v) {
-  myLocalStorage["_store_" + k] = JSON.stringify(v);
+export function store_cache(k : string, v : unknown) {
+  writeStore("_store_" + k, JSON.stringify(v));
 }
 
 window.store_cache = store_cache;
@@ -1750,7 +1800,9 @@ window.test_sym = function test_sym() {
   let skey = "" + j + "|" + degree + "|" + klen + "|" + dvn;
   store_cache(skey, tree_func[2]);
 
-  let tst = new Float32Array(10);
+  /* number[] rather than Float32Array: basis_dv() takes a plain array, and
+     the contents are small integers either way. */
+  let tst = new Array<number>(10);
   for (let i = 0; i < tst.length; i++) {
     tst[i] = i;
   }
@@ -1768,31 +1820,37 @@ window.test_sym = function test_sym() {
     let func = window.tree_func[0];
     let func2 = basis_dv; //window.tree_func[1];
 
+    if (func === undefined) {
+      console.log("no optimized function to test");
+      return;
+    }
+
     let time1 = 0;
     let time2 = 0;
     let steps = 250, steps2 = 10;
+
+    /* NOTE: these were declared inside the two loops below, so the console.log
+       past them read names that were out of scope and threw. */
+    let r1 = 0.0, r2 = 0.0;
 
     for (let si = 0; si < steps2; si++) {
       let start_time = time_ms();
 
       for (let i = 0; i < steps; i++) {
-        let r1 = func(s + i*0.0001, j, degree, tst);
+        r1 = func(s + i*0.0001, j, degree, tst);
       }
 
       time1 += (time_ms() - start_time);
 
       start_time = time_ms();
       for (let i = 0; i < steps; i++) {
-        let r2 = func2(s + i*0.0001, j, degree, tst, dvn);
+        r2 = func2(s + i*0.0001, j, degree, tst, dvn);
       }
 
       time2 += (time_ms() - start_time);
     }
 
-    time1 = time1.toFixed(2) + "ms";
-    time2 = time2.toFixed(2) + "ms";
-
-    console.log(r1, r2, time1, time2);
+    console.log(r1, r2, time1.toFixed(2) + "ms", time2.toFixed(2) + "ms");
     //console.log(s, j, degree, tst)
     ;
   }
@@ -1840,7 +1898,8 @@ window.splitline = splitline;
 //gen_reduce is optional, false
 /* NOTE: `j` is overwritten with sym("j") on the next line, so the argument is
    ignored -- the generated function takes j at runtime instead. */
-export function gen_basis_code(j, n : number, klen : number, gen_reduce? : boolean) {
+export function gen_basis_code(j : number | symcls, n : number, klen : number,
+                               gen_reduce? : boolean) {
   let s = sym("s");
   j = sym("j");
   let ks = sym("ks");
@@ -1857,38 +1916,58 @@ export function gen_basis_code(j, n : number, klen : number, gen_reduce? : boole
   return basis_sym(s, j, n, ks, gen_reduce);*/
 }
 
-/* [degree][knotcount][j] -> compiled basis function, with a fourth [dvn] level
-   when make_dvs is set.  Only degree n, knotcount 5 (basis) or 2 (derivatives)
-   and j 0 are ever filled in. */
-function make_cache_table(maxknotsize : number, make_dvs : boolean) {
-  let basis_caches1 = new Array(12);
+/* The two shapes eval() produces: the basis functions take the knot vector,
+   the derivative ones take a derivative order as well. */
+type BasisFunc = (s : number, j : number, n : number, ks : number[]) => number;
+type BasisDvFunc = (s : number, j : number, n : number, ks : number[], dvn : number) => number;
+
+/* [degree][knotcount][j] -> compiled basis function.  Only degree n,
+   knotcount 5 and j 0 are ever filled in. */
+function make_cache_table(maxknotsize : number) : BasisFunc[][][] {
+  let basis_caches1 : BasisFunc[][][] = new Array(12);
+
   for (let i = 0; i < basis_caches1.length; i++) {
-    let arr = new Array(maxknotsize);
+    let arr : BasisFunc[][] = new Array(maxknotsize);
     basis_caches1[i] = arr;
 
     for (let j = 1; j < arr.length; j++) {
       arr[j] = new Array(j);
-      if (make_dvs) {
-        let arr2 = arr[j];
-        for (let k = 0; k < arr2.length; k++) {
-          arr2[k] = new Array(5);
-        }
-      }
     }
   }
+
   return basis_caches1;
 }
 
-export const basis_caches = make_cache_table(256, false);
-export const basis_caches_dv = make_cache_table(256, true);
+/* The same table with a fourth [dvn] level; knotcount 2 is the only one used. */
+function make_cache_table_dv(maxknotsize : number) : BasisDvFunc[][][][] {
+  let basis_caches1 : BasisDvFunc[][][][] = new Array(12);
+
+  for (let i = 0; i < basis_caches1.length; i++) {
+    let arr : BasisDvFunc[][][] = new Array(maxknotsize);
+    basis_caches1[i] = arr;
+
+    for (let j = 1; j < arr.length; j++) {
+      let arr2 : BasisDvFunc[][] = new Array(j);
+      arr[j] = arr2;
+
+      for (let k = 0; k < arr2.length; k++) {
+        arr2[k] = new Array(5);
+      }
+    }
+  }
+
+  return basis_caches1;
+}
+
+export const basis_caches = make_cache_table(256);
+export const basis_caches_dv = make_cache_table_dv(256);
 export const DV_JADD = 0.0;
 
 
 window.load_seven = function () {
-  for (let k in basis_json) {
-    let k1 = k;
+  for (let k1 in basis_json) {
+    let k = k1.split("|")
 
-    k = k.split("|")
     if (k.length < 4)
       continue;
 
@@ -1896,7 +1975,7 @@ window.load_seven = function () {
     if (k[1] === "7") {
       console.log("found!", k);
       let hash = "" + 0 + "|" + 7 + "|" + 2 + "|" + k[3];
-      myLocalStorage[hash] = basis_json[k1];
+      writeStore(hash, basis_json[k1]);
 
       let ret;
       console.log(hash, eval(basis_json[k1]))
@@ -1914,9 +1993,10 @@ window.save_local_storage = function () {
   return url;
 }
 
-function add_to_table_dv(j : number, n : number, klen : number, dvn : number, table) {
+function add_to_table_dv(j : number, n : number, klen : number, dvn : number,
+                        table : BasisDvFunc[][][][]) {
   let hash = "" + 0 + "|" + n + "|" + 2 + "|" + dvn;
-  let s = myLocalStorage[hash]; //get_cache(hash);
+  let s = readStore(hash); //get_cache(hash);
 
   if (s === undefined || s === "undefined") {
     //throw new Error("Eek!");
@@ -1926,16 +2006,17 @@ function add_to_table_dv(j : number, n : number, klen : number, dvn : number, ta
     console.log("storing basis function. . .");
     //s = "ret = function(s, j, n, ks, dvn) { return " + splitline(""+tree) + "; }";
 
-    myLocalStorage[hash] = s; //store_cache(hash, s);
+    writeStore(hash, s); //store_cache(hash, s);
   }
 
   //console.log("GENERATED");
-  let ret;
+  /* `s` is a `ret = function(...) {...}` assignment, so eval() fills this in. */
+  let ret : BasisDvFunc | undefined;
   eval(s);
 
-  table[n][2][0][dvn] = ret;
+  table[n][2][0][dvn] = ret!;
 
-  return ret;
+  return ret!;
 }
 
 /* Stand-in for the zeroth derivative; same signature as a compiled one. */
@@ -1966,21 +2047,22 @@ export function compiled_basis_dv(s : number, j : number, n : number, ks : numbe
 }
 
 /* NOTE: `j` is overwritten with sym("j") below, same as gen_basis_code(). */
-export function gen_basis_dv_code(j, degree : number, klen : number, dv : number,
-                                  gen_reduce? : boolean) {
+export function gen_basis_dv_code(j : number | symcls, degree : number, klen : number,
+                                  dv : number, gen_reduce? : boolean) {
   let s = sym("s");
   let n = degree;
 
   j = sym("j");
 
-  let ks = new Array(klen);
+  /* The per-knot symbols this loop builds are thrown away on the next line --
+     the generated code indexes a single `ks` symbol instead. */
+  let ks_syms = new Array<symcls>(klen);
   for (let i = 0; i < klen; i++) {
-    //ks[i] = gen_reduce ? sym("k"+(i+1)) : sym("ks["+i+"]");
-    //ks[i]
-    ks[i] = gen_reduce ? sym("k" + (i + 1)) : sym("ks").index(j);
+    //ks_syms[i] = gen_reduce ? sym("k"+(i+1)) : sym("ks["+i+"]");
+    ks_syms[i] = gen_reduce ? sym("k" + (i + 1)) : sym("ks").index(j);
   }
 
-  ks = sym("ks");
+  let ks = sym("ks");
   return basis_dv_sym(s, j, degree, ks, dv, gen_reduce);
 }
 
@@ -1991,7 +2073,7 @@ export function get_basis_func(j : number, n : number, klen : number) {
 
   if (ret === undefined) {
     let hash = "bs:" + n; //+"|"+klen;
-    let s = myLocalStorage[hash]; //get_cache(hash);
+    let s = readStore(hash); //get_cache(hash);
 
     if (s === undefined || s === "undefined") {
       console.log("storing basis function. . .");
@@ -2000,7 +2082,7 @@ export function get_basis_func(j : number, n : number, klen : number) {
 
       //s = "ret = function(s, j, n, ks) { return " + splitline(""+tree) + "; }";
 
-      myLocalStorage[hash] = s; //store_cache(hash, s);
+      writeStore(hash, s); //store_cache(hash, s);
     }
 
     //console.log("GENERATED");
@@ -2085,17 +2167,19 @@ export function basis_sym(s : symcls, j : number, n : number, ks : symcls[],
 /* Symbolic Cox-de Boor, emitting ks[...] index expressions so one generated
    function works for any knot vector.
 
-   NOTE: the clamping branch redeclares j1/j2/jn/jn1 with `let`, shadowing the
-   outer ones, so the clamps are discarded and the outer j1..jn1 stay
-   undefined.  Same bug in basis_dv_sym(). */
+   NOTE: the clamping branch redeclared j1/j2/jn/jn1 with `let`, so the clamps
+   went into four dead locals and the outer names stayed undefined; `jn` was
+   missing from the outer declaration entirely, and reading it below threw a
+   ReferenceError for every n > 0.  Same bug in basis_dv_sym(). */
 export function basis_sym_general(s : symcls, j : symcls, n : number, ks : symcls,
-                                  gen_reduce? : boolean) {
-  let j1, j2, jn1, kn2;
+                                  gen_reduce? : boolean) : symcls {
+  let j1 : symcls, j2 : symcls, jn : symcls, jn1 : symcls;
+
   if (_sym_do_clamping) {
-    let j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
   } else {
     j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n + 1);
   }
@@ -2155,22 +2239,24 @@ export function basis_sym_general(s : symcls, j : symcls, n : number, ks : symcl
   }
 }
 
+/* See the NOTE on basis_sym_general(): the clamping branch here shadowed
+   j1..j4 the same way. */
 export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
-                             dvn : number, gen_reduce? : boolean) {
+                             dvn : number, gen_reduce? : boolean) : symcls {
   if (dvn === 0) {
     return basis_sym_general(s, j, n, ks, gen_reduce);
   }
-  let j1, j2, jn, jn1, j3, j4;
+  let j1 : symcls, j2 : symcls, jn : symcls, jn1 : symcls, j3 : symcls, j4 : symcls;
 
   if (_sym_do_clamping) {
-    let j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
 
     //these are used if n==1
-    let j3 = j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    let j4 = j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j3 = j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    j4 = j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
   } else {
     j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n + 1);
     j3 = j.add(2), j4 = j.add(3);
@@ -2212,6 +2298,10 @@ export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
     let s = "(s >= ks[" + j1 + "] && s < ks[" + j2 + "]) ? (1.0/" + div2 + ") : (" + b + ")";
     return sym("(" + s + ")");
 
+    /* Unreachable past the return above, and written against a `s`/`b` that
+       the two string locals shadow.  Kept as the symbolic form the emitted
+       ternary was derived from.
+
     let r1 = s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
     let r2 = s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
     let ret = r1.sub(r2);
@@ -2240,6 +2330,7 @@ export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
       ret = 1.0/(ks[j2] - ks[j1]);
     else if (s >= ks[j2] && s < ks[j3])
       ret = -1.0/(ks[j3] - ks[j2]);
+    */
   } else {
     let kj1 = ks.index(j1);
     let kj2 = ks.index(j2);

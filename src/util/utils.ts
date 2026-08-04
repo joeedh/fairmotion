@@ -725,7 +725,9 @@ class hashtable<K extends Keyable, V> {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  remove(key : K) {
+  /* keys(), forEach() and the iterator all hand back keystrs rather than
+     keys, so every lookup takes one of those just as readily. */
+  remove(key : K | KeyStr) {
     if (!this.has(key)) {
       return false;
     }
@@ -764,7 +766,7 @@ class hashtable<K extends Keyable, V> {
     return this.keymap[key];
   }
 
-  get(key : K) : V {
+  get(key : K | KeyStr) : V {
     return this.items[key[Symbol.keystr]()];
   }
 
@@ -777,7 +779,7 @@ class hashtable<K extends Keyable, V> {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  has(item : K) : boolean {
+  has(item : K | KeyStr) : boolean {
     if (item === undefined)
       console.trace();
     return this.items.hasOwnProperty(item[Symbol.keystr]())

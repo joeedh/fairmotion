@@ -126,10 +126,10 @@ export const SETTINGS_VERSION = 1;
 export class AppSettings {
   static STRUCT: string;
 
-  unit_scheme: string;
-  unit: string;
+  unit_scheme!: string;
+  unit!: string;
   /* The theme as an exportTheme() script, not a live theme object. */
-  theme: string;
+  theme!: string;
   recent_paths: RecentPath[];
   tool_settings: ToolOpSettings[];
   keyMaps: KeyMapDeltaSet[];

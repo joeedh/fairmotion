@@ -38,7 +38,7 @@ export class StrokeOp extends ToolOp {
   /* Index into inputs.points that exec() should resume from. */
   _start : number;
   _verts : SplineVertex[];
-  _undo : {start_eid : number};
+  _undo! : {start_eid : number};
 
   constructor() {
     super();
@@ -369,7 +369,7 @@ export class PenToolMode extends ToolMode {
   stroke : Vector3[];
   smoothness : number;
   /* The StrokeOp currently on the toolstack head. */
-  tool : StrokeOp;
+  tool! : StrokeOp;
   highlight_spline : Spline | undefined;
 
   constructor() {

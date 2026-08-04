@@ -348,7 +348,7 @@ export class MaterialEditor extends Editor {
 
   /* Class name of the toolmode the tabs were last built for. */
   _last_toolmode : string | undefined;
-  inner : Container;
+  inner! : Container;
 
   constructor() {
     super();

@@ -271,7 +271,7 @@ export class FileSaveSVGOp extends ToolOp {
 
 export class FileSaveB64Op extends ToolOp {
   /* Server-side upload path, set by save_callback and read back in finish. */
-  _path : string;
+  _path! : string;
 
   constructor() {
     super();

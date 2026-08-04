@@ -15,7 +15,7 @@ import type {SplineFrameSet} from '../../core/frameset.js';
    spline-vertex keys and data-path keys can be iterated together. */
 export class KeyIterItem {
   /* An AnimKeyTypes value. */
-  type : number;
+  type! : number;
 
   getFlag() : number {
 
@@ -146,7 +146,7 @@ let UEID=0, UTIME=1, UFLAG=2, UX=3, UY=4, UTOT=5;
 
 export class AnimKeyTool extends ToolOp {
   /* Flat [eid, time, flag, x, y] records, UTOT wide -- see the U* indices. */
-  _undo : {spline : number[]};
+  _undo! : {spline : number[]};
 
   constructor() {
     super();
@@ -364,7 +364,7 @@ export class ToggleSelectAll extends AnimKeyTool {
 
 export class NextPrevKeyFrameOp extends AnimKeyTool {
   /* scene.time before the jump; this op only moves the playhead. */
-  _undo_time : number;
+  _undo_time! : number;
 
   constructor() {
     super();

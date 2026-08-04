@@ -1,5 +1,6 @@
-//keep up to date with vectordraw_canvas2d_worker, at least until
-//I've gotten it hooked into the es6 runtime system and can import stuff
+/* Both workers now import these rather than re-declaring them; they used to
+   carry hand-copied duplicates, which is how NOFILL came to exist in
+   vectordraw_canvas2d_worker but not here. */
 
 export const OPCODES = {
   LINESTYLE : 0,
@@ -25,7 +26,8 @@ export const OPCODES = {
   CLIP      : 20,
   DRAWIMAGE : 21,
   PUTIMAGE  : 22,
-  SETTRANSFORM : 23
+  SETTRANSFORM : 23,
+  NOFILL       : 24
 };
 
 export const MESSAGES = {

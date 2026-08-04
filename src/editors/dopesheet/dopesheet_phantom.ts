@@ -36,10 +36,10 @@ export class phantom {
   ds : DopeSheetEditor | undefined;
 
   /* Set for PATHSPLINE keys. */
-  v : SplineVertex;
+  v! : SplineVertex;
   vd;
   /* Set for DATAPATH keys. */
-  key : AnimKey;
+  key! : AnimKey;
   ch : AnimChannel | undefined;
   e;
 

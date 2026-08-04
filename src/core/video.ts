@@ -43,7 +43,7 @@ export class Video {
   url : string;
   source : HTMLSourceElement;
   /* One empty frame, grabbed before anything is drawn into the canvas. */
-  blank : ImageData;
+  blank! : ImageData;
 
   constructor(url: string) {
     this.canvas = document.createElement("canvas");

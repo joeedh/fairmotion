@@ -1164,40 +1164,40 @@ export class SimpleIsland {
   /* Scratch object draw() fills in when the caller passes no uniforms. */
   _uniforms_temp : webgl.Uniforms;
   /* Set by draw(). */
-  gl : webgl.WebGLContext;
+  gl! : webgl.WebGLContext;
 
   /* The layers makeBufferAliases() hangs directly off the island. The `2`
      variants and the two strip layers only exist once ADVANCED_LINES is on. */
-  tri_cos : GeoLayer;
-  tri_normals : GeoLayer;
-  tri_uvs : GeoLayer;
-  tri_colors : GeoLayer;
-  tri_ids : GeoLayer;
+  tri_cos! : GeoLayer;
+  tri_normals! : GeoLayer;
+  tri_uvs! : GeoLayer;
+  tri_colors! : GeoLayer;
+  tri_ids! : GeoLayer;
 
-  line_cos : GeoLayer;
-  line_normals : GeoLayer;
-  line_uvs : GeoLayer;
-  line_colors : GeoLayer;
-  line_ids : GeoLayer;
+  line_cos! : GeoLayer;
+  line_normals! : GeoLayer;
+  line_uvs! : GeoLayer;
+  line_colors! : GeoLayer;
+  line_ids! : GeoLayer;
 
-  point_cos : GeoLayer;
-  point_normals : GeoLayer;
-  point_uvs : GeoLayer;
-  point_colors : GeoLayer;
-  point_ids : GeoLayer;
+  point_cos! : GeoLayer;
+  point_normals! : GeoLayer;
+  point_uvs! : GeoLayer;
+  point_colors! : GeoLayer;
+  point_ids! : GeoLayer;
 
-  line_cos2 : GeoLayer;
-  line_normals2 : GeoLayer;
-  line_uvs2 : GeoLayer;
-  line_colors2 : GeoLayer;
-  line_ids2 : GeoLayer;
-  line_stripuvs : GeoLayer;
-  line_stripdirs : GeoLayer;
+  line_cos2! : GeoLayer;
+  line_normals2! : GeoLayer;
+  line_uvs2! : GeoLayer;
+  line_colors2! : GeoLayer;
+  line_ids2! : GeoLayer;
+  line_stripuvs! : GeoLayer;
+  line_stripdirs! : GeoLayer;
 
   /* Built on demand by getIndexBuffer(), one per primitive type. */
-  tri_indices : GeoLayer;
-  line_indices : GeoLayer;
-  point_indices : GeoLayer;
+  tri_indices! : GeoLayer;
+  line_indices! : GeoLayer;
+  point_indices! : GeoLayer;
 
   /* copy() builds an island with no mesh and fixes it up afterwards. */
   constructor(mesh? : SimpleMesh) {
@@ -1577,24 +1577,24 @@ export class SimpleIsland {
   }
 
   getIndexBuffer(ptype : number) {
-    let key = "";
+    let field : "tri_indices" | "line_indices" | "point_indices";
 
     switch (ptype) {
-      case PrimitiveTypes.TRIS:
-        key = "tri";
-        break;
       case PrimitiveTypes.LINES:
-        key = "line";
+        field = "line_indices";
         break;
       case PrimitiveTypes.POINTS:
-        key = "point";
+        field = "point_indices";
+        break;
+      /* TRIS. Previously an unrecognised ptype fell through to a layer named
+         "_indices"; only TRIS and LINES are ever passed. */
+      default:
+        field = "tri_indices";
         break;
     }
 
-    key += "_indices";
-
-    if (!this[key]) {
-      let layer = this[key] = this.layers.get(key, ptype, LayerTypes.INDEX);
+    if (!this[field]) {
+      let layer = this[field] = this.layers.get(field, ptype, LayerTypes.INDEX);
 
       layer.size = 1;
       layer.glSizeMul = 1;
@@ -1603,7 +1603,7 @@ export class SimpleIsland {
       layer.bufferType = GL_ELEMENT_ARRAY_BUFFER;
     }
 
-    return this[key];
+    return this[field];
   }
 
   _draw_tris(gl : webgl.WebGLContext, uniforms : webgl.Uniforms,
@@ -1954,7 +1954,7 @@ export class SimpleMesh {
 
   uniforms : webgl.Uniforms;
   /* Assigned by consumers, not here; islands fall back to it. */
-  program : webgl.ShaderProgram;
+  program! : webgl.ShaderProgram;
 
   constructor(layerflag = LayerTypes.LOC | LayerTypes.NORMAL | LayerTypes.UV) {
     this.layerflag = layerflag;
@@ -2119,7 +2119,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
   idgen : number;
 
   /* Assigned by destroy() but never read; the islands carry their own. */
-  regen : number;
+  regen! : number;
   /* Assigned by the constructor but never read; drawing goes through the
      islands, each of which has its own. */
   quad_editors : util.cachering<QuadEditor>;

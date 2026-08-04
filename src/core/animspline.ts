@@ -182,7 +182,7 @@ export class VertexAnimData {
   sitercache: cachering;
   spline: Spline;
   startv_eid: number;
-  layerid: number;
+  layerid!: number;
   /* Layer that was active before _set_layer() swapped ours in. */
   _start_layer_id?: number;
 

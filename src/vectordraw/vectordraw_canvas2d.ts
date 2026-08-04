@@ -103,15 +103,15 @@ export class Batch {
 
   _batch_id : number;
   paths : CanvasPath[];
-  _regen : number | boolean;
+  _regen! : number | boolean;
   /* True between posting a render job and its result arriving. */
-  pending : boolean;
+  pending! : boolean;
   onRenderDone : BatchDoneCallback | undefined;
   /* The worker's rendered tile, and where to blit it. */
   _image : ImageBitmap | undefined;
-  _image_off : Vector2;
+  _image_off! : Vector2;
   /* Zoom the cached image was rendered at; drawing rescales by the ratio. */
-  _draw_zoom : number;
+  _draw_zoom! : number;
 
   constructor() {
     this._batch_id = batch_iden++;
@@ -520,7 +520,7 @@ let last_print_time = util.time_ms();
 export class CanvasPath extends PathBase {
   dead: boolean
   /* Set when the cached image is still good but has to be re-blitted. */
-  redraw: boolean | number
+  redraw!: boolean | number
   _image_off: Array<number>
   _size2: Vector2
   path_start_i: number
@@ -534,7 +534,7 @@ export class CanvasPath extends PathBase {
   /* The finished command list handed to a render job; the recalc setter
      invalidates it. */
   _commands : number[] | undefined;
-  __recalc : number;
+  __recalc! : number;
   /* Widest stroke pushed since the last reset(), padding the aabb. */
   stroke_extra : number;
   _render_id : number;
@@ -545,8 +545,8 @@ export class CanvasPath extends PathBase {
   g : Canvas2D | undefined;
   /* The batch currently carrying this path. */
   _batch : Batch | undefined;
-  _batch_id : number;
-  hidden : boolean;
+  _batch_id! : number;
+  hidden! : boolean;
 
   constructor() {
     super();
@@ -1066,9 +1066,9 @@ export class CanvasDraw2D extends VectorDraw {
   /* Resolved once every batch in flight has finished rendering. */
   promise : Promise<void> | undefined;
   on_batches_finish : ((value? : void) => void) | undefined;
-  __regen : number | boolean;
-  _last_do_blur : boolean;
-  _last_zoom : number;
+  __regen! : number | boolean;
+  _last_do_blur! : boolean;
+  _last_zoom! : number;
 
   constructor() {
     super();

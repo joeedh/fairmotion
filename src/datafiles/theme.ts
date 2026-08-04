@@ -80,8 +80,8 @@ export class BoxWColor extends BoxColor {
 
   /* One RGBA color plus a per-corner multiplier; the four corners are
      derived on demand by the colors getter. */
-  color : number[];
-  weights : number[];
+  color! : number[];
+  weights! : number[];
 
   constructor(color? : number[], weights? : number[]) {
     super();

@@ -456,13 +456,13 @@ export class IterCache<T extends CachedIter> {
 }
 
 export class EditableIter<T extends SplineElement> {
-  list : ElementArray<T>;
-  all_layers : boolean;
-  layerset : SplineLayerSet;
+  list! : ElementArray<T>;
+  all_layers! : boolean;
+  layerset! : SplineLayerSet;
   /* Index of the next candidate in `list`. */
-  i : number;
+  i! : number;
   /* Reused across next() calls, so callers must not hold onto it. */
-  ret : {done : boolean, value : T | undefined};
+  ret! : {done : boolean, value : T | undefined};
 
   constructor(list : ElementArray<T>, layerset : SplineLayerSet, all_layers : boolean) {
     this.init(list, layerset, all_layers);
@@ -526,8 +526,8 @@ export class SelectedEditableIter {
   ret : {done : boolean, value : SplineElement | undefined}
   /* Runaway guard; next() bails once this passes 100000. */
   _c : number;
-  set : ElementArraySet<SplineElement>;
-  layerset : SplineLayerSet;
+  set! : ElementArraySet<SplineElement>;
+  layerset! : SplineLayerSet;
   /* undefined until the first next(), and again once the walk is done. */
   iter : Iterator<SplineElement> | undefined;
 
@@ -623,8 +623,8 @@ export class SelectedEditableAllLayersIter {
   ret : {done : boolean, value : SplineElement | undefined}
   /* Runaway guard; next() bails once this passes 100000. */
   _c : number;
-  set : ElementArraySet<SplineElement>;
-  layerset : SplineLayerSet;
+  set! : ElementArraySet<SplineElement>;
+  layerset! : SplineLayerSet;
   /* undefined until the first next(), and again once the walk is done. */
   iter : Iterator<SplineElement> | undefined;
 

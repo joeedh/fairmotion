@@ -145,7 +145,7 @@ export class NodeSocketType {
      _node is commented out. */
   _node: GraphNodeType | undefined;
   /* The node that owns this socket. Set by the owner, not by the constructor. */
-  node: GraphNodeType;
+  node!: GraphNodeType;
   graph_flag: number;
   graph_id: number;
   /* Snapshot of the value at the start of a cyclic solve step, taken by
@@ -518,7 +518,7 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
     /* Icon index for the node editor; -1 means none. */
     icon: number;
     /* Only CallbackNode sets this, via its create() factory. */
-    name: string;
+    name!: string;
 
     constructor(flag = 0) {
       let def = this.constructor.nodedef();

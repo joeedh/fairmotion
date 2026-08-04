@@ -88,7 +88,7 @@ export class KeyMap extends pathux.KeyMap {
   origKeyMap: KeyMap | undefined;
   /* Not a real field: the STRUCT script below writes it during a read, and
      loadSTRUCT() consumes it immediately afterwards. */
-  deltas: KeyMapDelta[];
+  deltas!: KeyMapDelta[];
 
   constructor(typeName: string, hotkeys?: HotKey[]) {
     super(hotkeys);

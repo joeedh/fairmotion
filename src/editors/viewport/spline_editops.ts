@@ -187,7 +187,7 @@ export class SplineGlobalToolOp extends ToolOp {
 //(drawspline and pathspline) at once
 export class SplineLocalToolOp extends ToolOp {
   /* The whole spline, serialized by undo_pre and read back by undo. */
-  _undo : {data : DataView};
+  _undo! : {data : DataView};
 
   constructor(apiname? : string, uiname? : string, description? : string,
               icon? : number) {
@@ -447,7 +447,7 @@ export class PastePoseOp extends SplineLocalToolOp {
 
 export class InterpStepModeOp extends ToolOp {
   /* Animation-vert eid -> its animflag before the toggle. */
-  _undo : EidUndo;
+  _undo! : EidUndo;
 
   constructor() {
     super();
@@ -1113,7 +1113,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
 export class VertPropertyBaseOp extends ToolOp {
   /* Vertex eid -> its flag before the op ran. */
-  _undo : EidUndo;
+  _undo! : EidUndo;
 
   undo_pre(ctx : FullContext) {
     let spline = ctx.spline;
@@ -1408,7 +1408,7 @@ DelVertFrame.inputs = {
 
 export class ToggleManualHandlesOp extends ToolOp {
   /* Vertex eid -> its USE_HANDLES bit before the toggle. */
-  _undo : EidUndo;
+  _undo! : EidUndo;
 
   constructor() {
     super();
@@ -1472,11 +1472,11 @@ import {ClosestModes} from "../../curve/spline_base.js";
 export class ShiftTimeOp extends ToolOp {
   start_mpos : Vector3;
   /* Set until the first on_mousemove has anchored start_mpos. */
-  first : boolean;
+  first! : boolean;
   /* NOTE: never assigned, so finish() restores the scene time to undefined. */
-  start_time : number;
+  start_time! : number;
   /* Path-vert eid -> its keyframe time before the shift. */
-  _undo : EidUndo;
+  _undo! : EidUndo;
 
   constructor() {
     super();

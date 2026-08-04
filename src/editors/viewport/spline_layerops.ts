@@ -105,7 +105,7 @@ export class ChangeLayerOp extends SplineLayerOp {
 
   /* Layer id that was active before the op, plus the active element eid in
      each of the spline's element lists. */
-  _undo : {id : number, actives : number[]};
+  _undo! : {id : number, actives : number[]};
 
   constructor(id? : number) {
     super(undefined);

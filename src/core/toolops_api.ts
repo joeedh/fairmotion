@@ -49,8 +49,8 @@ export type UndoData = ArrayBuffer | object | number | number[];
  *     extends ToolOp<I & {x: FloatProperty}, O> {}
  */
 export class ToolOp<
-  InputSlots extends pathux.PropertySlots = {},
-  OutputSlots extends pathux.PropertySlots = {},
+  InputSlots extends pathux.PropertySlots = pathux.PropertySlots,
+  OutputSlots extends pathux.PropertySlots = pathux.PropertySlots,
 > extends pathux.ToolOp<InputSlots, OutputSlots, FullContext, FullContext> {
   static STRUCT: string;
 

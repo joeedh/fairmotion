@@ -1,3 +1,6 @@
+/* Generated emscripten glue. Not hand-written and not annotated; the slice
+   fairmotion actually calls is typed as WasmModule in load_wasm.ts. */
+// @ts-nocheck
 export default Module = {};
 import {wasm_binary, wasmBinaryPath} from './load_wasm.js';
 

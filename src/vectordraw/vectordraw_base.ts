@@ -79,13 +79,13 @@ export class PathBase {
   index : number;
   aabb : [Vector2, Vector2];
   /* Blur/stroke slack baked into the aabb by update_aabb(). */
-  pad : number;
+  pad! : number;
   /* Non-zero when the path's cached geometry has to be rebuilt.  NOTE: the
      canvas2d backend replaces this with an accessor pair. */
-  recalc : number;
+  recalc! : number;
   /* Current pen position, tracked by the moveTo/lineTo/bezierTo family. */
-  lastx : number;
-  lasty : number;
+  lastx! : number;
+  lasty! : number;
 
   constructor() {
     this.off = new Vector2();
@@ -267,16 +267,16 @@ export class VectorDraw {
   matstack : Matrix4[] & {cur : number}
   matrix : Matrix4;
 
-  paths : PathBase[];
-  path_idmap : {[id : number] : PathBase};
+  paths! : PathBase[];
+  path_idmap! : {[id : number] : PathBase};
   /* Set when the path list is out of z order. */
-  dosort : boolean | number;
+  dosort! : boolean | number;
   /* Non-zero when every path has to be re-rendered. */
-  regen : number | boolean;
+  regen! : number | boolean;
   /* Whatever the last draw() call targeted. */
   canvas : DrawCanvas | undefined;
   g : Canvas2D | undefined;
-  zoom : number;
+  zoom! : number;
 
   constructor() {
     this.pan = new Vector2();

@@ -40,13 +40,13 @@ var _mh_idgen = 1;
 
 export class HandleBase {
   /* Identifies the handle to the on_click callback the toolop installs. */
-  id : string | number;
-  _hid : number;
+  id! : string | number;
+  _hid! : number;
   /* rgba, 0..1. */
-  color : number[];
-  parent : Manipulator;
+  color! : number[];
+  parent! : Manipulator;
   /* Extra px added around the handle's aabb when asking for a redraw. */
-  _redraw_pad : number;
+  _redraw_pad! : number;
 
   on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
 
@@ -406,10 +406,10 @@ export class Manipulator {
   user_data: object | undefined
   ctx: FullContext
   /* The event-dag node that ticks this manipulator once per redraw. */
-  _node: NodeBase
+  _node!: NodeBase
   /* The toolop class this widget drives, used by the manager to tell whether
      the right widget is already up. */
-  toolop_class: WidgetToolOpClass
+  toolop_class!: WidgetToolOpClass
   /* The handle the mouse is currently over. */
   active: HandleBase | undefined;
 

@@ -1708,7 +1708,7 @@ export class SplineLoop extends SplineElement {
   radial_next : SplineLoop;
   radial_prev : SplineLoop;
   /* The path this loop is part of; assigned by SplineLoopPath.fromSTRUCT(). */
-  p : SplineLoopPath;
+  p! : SplineLoopPath;
 
   constructor(f? : SplineFace, s? : SplineSegment, v? : SplineVertex) {
     super(SplineTypes.LOOP);
@@ -1796,7 +1796,7 @@ export class SplineLoopPath {
   /* NOTE: update_winding() assigns a boolean here, and the nstructjs schema
      writes it as an int. */
   winding: number;
-  itercache : cachering<SplineLoopPathIter>;
+  itercache! : cachering<SplineLoopPathIter>;
   /* Only exists between reader(ret) and the delete in fromSTRUCT(). */
   loops? : SplineLoop[];
 
@@ -2084,12 +2084,12 @@ export class ElementRefIter extends ToolIter {
   static STRUCT : string;
 
   ret : {done : boolean, value : SplineElement | undefined};
-  eset : ElementRefSet;
+  eset! : ElementRefSet;
   ctx? : FullContext;
   spline : Spline | undefined;
   iter : Iterator<number> | undefined;
   nextitem : SplineElement | undefined;
-  i : number;
+  i! : number;
   /* Only exists between reader(ret) and the delete in fromSTRUCT(). */
   saved_items? : number[];
 
@@ -2188,7 +2188,7 @@ ElementRefIter.STRUCT = `
    reload and can be handed to a ToolOp as a property. */
 export class ElementRefSet extends set<number> {
   mask : number;
-  itercaches : cachering<ElementRefIter>;
+  itercaches! : cachering<ElementRefIter>;
 
   constructor(mask? : number) {
     super();

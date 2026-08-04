@@ -9,7 +9,7 @@ export class OpStackEditor extends Editor {
 
   /* "<undostack length>:<cur>", so update() can skip the rebuild. */
   _last_toolstack_hash : string;
-  frame : Container;
+  frame! : Container;
 
   constructor() {
     super();

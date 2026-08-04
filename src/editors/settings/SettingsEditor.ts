@@ -28,7 +28,7 @@ export class SettingsEditor extends Editor {
   static STRUCT : string;
 
   /* The "Hotkeys" tab, kept so buildHotKeys() can rebuild it in place. */
-  hotkeyTab : Container;
+  hotkeyTab! : Container;
 
   constructor() {
     super();

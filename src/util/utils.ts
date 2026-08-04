@@ -92,7 +92,7 @@ var debug_int_1 = 0;
 const _fromConstructor_args: number[] = [];
 
 class cachering<T> extends Array<T> {
-  _cur : number;
+  _cur! : number;
 
   constructor (createcallback : () => T, count=32) {
     super(count);

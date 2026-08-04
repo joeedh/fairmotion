@@ -25,10 +25,10 @@ export type SelectUndo = {[id : string] : boolean};
 export class ShiftTimeOp2 extends ToolOp {
   start_mpos : Vector3;
   /* True until the first modal mousemove seeds start_mpos. */
-  first : boolean;
-  _undo : TimeUndo;
+  first! : boolean;
+  _undo! : TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
-  start_time : number;
+  start_time! : number;
 
   constructor() {
     super();
@@ -232,10 +232,10 @@ export class ShiftTimeOp2 extends ToolOp {
 
 export class ShiftTimeOp3 extends ToolOp {
   start_mpos : Vector3;
-  first : boolean;
-  _undo : TimeUndo;
+  first! : boolean;
+  _undo! : TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
-  start_time : number;
+  start_time! : number;
 
   constructor() {
     super();
@@ -425,7 +425,7 @@ export class ShiftTimeOp3 extends ToolOp {
 }
 
 export class SelectOpBase extends ToolOp {
-  _undo : SelectUndo;
+  _undo! : SelectUndo;
 
   constructor() {
     super();

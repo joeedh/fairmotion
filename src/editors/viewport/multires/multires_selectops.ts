@@ -20,9 +20,9 @@ import type {FullContext} from '../../../core/context.js';
 
 class SelectOpBase extends ToolOp {
   /* Composed point ids (see compose_id) that were selected before the op ran. */
-  _undo : number[];
+  _undo! : number[];
   /* Multires level _undo was taken at; the op's `level` input may change. */
-  _undo_level : number;
+  _undo_level! : number;
 
   constructor(actlevel? : number, uiname? : string, description? : string,
               icon? : number) {

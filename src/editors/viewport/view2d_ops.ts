@@ -37,7 +37,7 @@ export class PanOp extends ToolOp {
   is_modal: boolean
   cameramat: Matrix4;
 
-  mpos: Vector2;
+  mpos!: Vector2;
   start_mpos: Vector2;
   first: boolean;
   /* view2d.cameramat as of the drag start; every move re-derives from it. */
@@ -126,7 +126,7 @@ class ViewRotateZoomPanOp extends ToolOp {
   /* touchstate keys of the tracked touches. */
   startids: (string | undefined)[]
   /* Pan pivot, in world space. */
-  center: Vector3
+  center!: Vector3
   mv1: Vector3
   mv2: Vector3
   mv3: Vector3
@@ -374,11 +374,11 @@ class ViewRotateOp extends ToolOp {
   /* Vestigial: set to null in the constructor and never read. */
   transdata: object | null
   /* cameramat at the start of the drag. */
-  start_mat: Matrix4
+  start_mat!: Matrix4
   /* True until the first on_mousemove seeds start_mpos. */
-  first_call: boolean
+  first_call!: boolean
   /* Drag start, in normalized -1..1 viewport coordinates. */
-  start_mpos: Vector3
+  start_mpos!: Vector3
 
   constructor() {
     super();
@@ -457,17 +457,17 @@ class ViewRotateOp extends ToolOp {
 }
 
 class ViewPanOp extends ToolOp {
-  is_modal: boolean
+  is_modal!: boolean
   /* Vestigial: set to null in the constructor and never read. */
   transdata: object | null
   /* cameramat at the start of the drag. */
-  start_mat: Matrix4
+  start_mat!: Matrix4
   /* True until the first on_mousemove seeds start_mpos. */
-  first_call: boolean
+  first_call!: boolean
   /* Averaged mesh centroid, used to pick the depth the pan happens at. */
-  center: Vector3
+  center!: Vector3
   /* Drag start, in normalized -1..1 viewport coordinates. */
-  start_mpos: Vector3;
+  start_mpos!: Vector3;
 
   static tooldef() {
     return {

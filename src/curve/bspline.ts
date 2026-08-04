@@ -111,9 +111,9 @@ export class BasisCache {
   tables : Table[];
   /* Extra basis functions kept past each end of the knot vector. */
   dpad : number;
-  degree : number;
-  start : number;
-  end : number;
+  degree! : number;
+  start! : number;
+  end! : number;
 
   /* NOTE: passes no degree, so gen() runs with degree === undefined. */
   constructor(knots? : number[]) {

@@ -241,10 +241,10 @@ export class Spline extends DataBlock {
   drawer : SplineDrawer | undefined;
   selected : ElementArraySet<SplineElement>;
   draw_verts : boolean;
-  verts : ElementArray<SplineVertex>;
+  verts! : ElementArray<SplineVertex>;
   handles : ElementArray<SplineVertex>;
   segments : ElementArray<SplineSegment>;
-  faces : ElementArray<SplineFace>;
+  faces! : ElementArray<SplineFace>;
   strokeGroups : SplineStrokeGroup[];
   _strokeGroupMap : Map<number, SplineStrokeGroup>;
   drawStrokeGroups : SplineStrokeGroup[];
@@ -255,16 +255,16 @@ export class Spline extends DataBlock {
      spline_draw_sort.ts. */
   drawlist : Array<SplineFace | SplineSegment | SplineStrokeGroup>;
   /* Highest z of any layer, cached by the draw sort. */
-  _layer_maxz : number;
+  _layer_maxz! : number;
   recalc : number;
   /* Set to 1 -- and once to `true`, in fromJSON -- whenever the k-solve is
      stale. */
-  resolve : number | boolean;
+  resolve! : number | boolean;
   /* Fired once after the next solve finishes; see spline_math_hermite.ts. */
   on_resolve : (() => void) | undefined;
   /* True for frameset.pathspline, which carries keyframe timing rather than
      drawn geometry. */
-  is_anim_path : boolean;
+  is_anim_path! : boolean;
 
   solvePromise : Promise<void> | undefined;
   solveTimeout : number | undefined;
@@ -459,7 +459,9 @@ export class Spline extends DataBlock {
 
       let list = new ElementArray(type, this.idgen, this.eidmap, this.selected,
         this.layerset, this);
-      this[k] = list;
+      /* The four `verts`/`handles`/`segments`/`faces` fields are only ever
+         assigned here, each with the ElementArray for its own element type. */
+      Reflect.set(this, k, list);
       this.elist_map[type] = list;
 
       this.elists.push(list);

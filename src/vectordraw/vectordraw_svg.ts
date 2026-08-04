@@ -56,7 +56,7 @@ export class SVGPath extends PathBase {
   filternode : Element | undefined;
   clipnode : Element | undefined;
   usenode : Element | undefined;
-  hidden : boolean;
+  hidden! : boolean;
 
   constructor() {
     super();

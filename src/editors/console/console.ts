@@ -222,9 +222,9 @@ export class ConsoleEditor extends Editor {
     hitboxes : HitBox[];
     history  : ConsoleHistory;
 
-    canvas : HTMLCanvasElement
-    g : Canvas2D
-    textbox : HTMLInputElement;
+    canvas! : HTMLCanvasElement
+    g! : Canvas2D
+    textbox! : HTMLInputElement;
 
     constructor() {
         super();

@@ -75,7 +75,7 @@ export class TreeItem extends ColumnFrame {
   name: string;
 
   /* Last component of the data path this row stands for. */
-  path: string
+  path!: string
   /* Stable id used to persist the collapsed state across rebuilds. */
   pathid: number
   _collapsed: boolean
@@ -703,7 +703,7 @@ export class DopeSheetEditor extends Editor {
   nodes: ((ctx, inputs, outputs, graph) => void)[];
   mdown: boolean;
 
-  _treeData: number[]
+  _treeData!: number[]
   /* The channel rows down the left side. */
   channels: TreePanel
   /* The TreeItems for the currently-shown verts, in draw order. */
@@ -722,19 +722,19 @@ export class DopeSheetEditor extends Editor {
   /* Width and height of one frame cell, in px. */
   boxSize: number
   start_mpos: Vector2
-  grid: KeyGrid
+  grid!: KeyGrid
   /* 0 = built, 1 = needs build, 2 = build in flight. */
-  regen: number
-  selected_only: number
-  time_zero_x: number
+  regen!: number
+  selected_only!: number
+  time_zero_x!: number
   /* Set until linkEventDag has run against a live ctx. */
-  _queueDagLink: boolean
-  _last_hash1: number
-  _last_panupdate_key: string
-  _last_style_key_1: string
-  startbutton: IconButton
-  playbutton: IconButton
-  endbutton: IconButton;
+  _queueDagLink!: boolean
+  _last_hash1!: number
+  _last_panupdate_key!: string
+  _last_style_key_1!: string
+  startbutton!: IconButton
+  playbutton!: IconButton
+  endbutton!: IconButton;
 
   constructor() {
     super()

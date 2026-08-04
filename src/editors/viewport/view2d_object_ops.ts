@@ -25,7 +25,7 @@ export class SceneObjectEditor extends View2DEditor {
   /* Spline under the cursor, or undefined when nothing is. */
   highlight_spline : Spline | undefined;
   /* Only ever set by data_link(); the base class has no ctx. */
-  ctx : FullContext;
+  ctx! : FullContext;
 
   /* NOTE: the super() call below passes a fifth argument, `keymap`, which is
      neither a parameter of View2DEditor nor imported here. */

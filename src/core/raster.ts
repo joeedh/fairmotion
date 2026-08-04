@@ -54,15 +54,15 @@ class CacheStack<T extends unknown[] = number[]> extends Array<T> {
 const _viewport_ret = [[0, 0], [0, 0]];
 
 export class RasterState {
-  pos : Array<number>
-  iconsheet : IconManager
-  iconsheet16 : IconManager
+  pos! : Array<number>
+  iconsheet! : IconManager
+  iconsheet16! : IconManager
   /* Each viewport entry is a [pos, size] pair; each scissor entry is a flat
      [x, y, w, h] rect. */
-  viewport_stack : CacheStack<number[][]>
-  scissor_stack : CacheStack<number[]>;
-  size : Array<number>;
-  gl : WebGLRenderingContext;
+  viewport_stack! : CacheStack<number[][]>
+  scissor_stack! : CacheStack<number[]>;
+  size! : Array<number>;
+  gl! : WebGLRenderingContext;
   /* [x, y, w, h] of the innermost scissor, or undefined outside one. */
   cur_scissor : Array<number> | undefined;
 

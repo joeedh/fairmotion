@@ -42,7 +42,7 @@ export class FBO {
   /* Never assigned by this class -- only oldFBO has a `size`. bind() and
      _getQuad() read this.size[0], so the second call into either one throws.
      Declared to match what the code reads, not what it writes. */
-  size : Vector2;
+  size! : Vector2;
 
   constructor(gl : webgl.WebGLContext, width = 512, height = 512) {
     this.target = gl !== undefined ? gl.TEXTURE_2D : 3553;

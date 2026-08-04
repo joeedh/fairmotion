@@ -1,5 +1,8 @@
-"not_a_module";
 "use strict";
+
+/* Bundled to a classic worker script by buildtools/esbuild.mjs, so this import
+   is inlined; importScripts() below still needs a classic worker global. */
+import {OPCODES, MESSAGES} from './vectordraw_jobs_base.js';
 
 importScripts("node_modules/canvaskit-wasm/bin/canvaskit.js");
 CanvasKitInit({
@@ -55,41 +58,24 @@ for (let k in CompositeModes) {
   CompositeModes[CompositeModes[k]] = k;
 }
 
-let LINESTYLE    = 0,
-    LINEWIDTH    = 1,
-    FILLSTYLE    = 2,
-    BEGINPATH    = 3,
-    CLOSEPATH    = 4,
-    MOVETO       = 5,
-    LINETO       = 6,
-    RECT         = 7,
-    ARC          = 8,
-    CUBIC        = 9,
-    QUADRATIC    = 10,
-    STROKE       = 11,
-    FILL         = 12,
-    SAVE         = 13,
-    RESTORE      = 14,
-    TRANSLATE    = 15,
-    ROTATE       = 16,
-    SCALE        = 17,
-    SETBLUR      = 18,
-    SETCOMPOSITE = 19,
-    CLIP         = 20,
-    DRAWIMAGE    = 21,
-    PUTIMAGE     = 22,
-    SETTRANSFORM = 23;
+const {
+  LINESTYLE, LINEWIDTH, FILLSTYLE, BEGINPATH, CLOSEPATH, MOVETO, LINETO, RECT,
+  ARC, CUBIC, QUADRATIC, STROKE, FILL, SAVE, RESTORE, TRANSLATE, ROTATE, SCALE,
+  SETBLUR, SETCOMPOSITE, CLIP, DRAWIMAGE, PUTIMAGE, SETTRANSFORM,
+} = OPCODES;
 
-let MSG_NEW_JOB       = 0,
-    MSG_ADD_DATABLOCK = 1,
-    MSG_SET_COMMANDS  = 2,
-    MSG_RUN           = 3,
-    MSG_ERROR         = 10,
-    MSG_RESULT        = 11,
-    MSG_ACK           = 12,
-    MSG_CLEAR_QUEUE   = 13,
-    MSG_CANCEL_JOB    = 14,
-    MSG_WORKER_READY  = 15;
+const {
+  NEW_JOB      : MSG_NEW_JOB,
+  ADD_DATABLOCK: MSG_ADD_DATABLOCK,
+  SET_COMMANDS : MSG_SET_COMMANDS,
+  RUN          : MSG_RUN,
+  ERROR        : MSG_ERROR,
+  RESULT       : MSG_RESULT,
+  ACK          : MSG_ACK,
+  CLEAR_QUEUE  : MSG_CLEAR_QUEUE,
+  CANCEL_JOB   : MSG_CANCEL_JOB,
+  WORKER_READY : MSG_WORKER_READY,
+} = MESSAGES;
 
 /* Everything the worker carries between messages.  msg_data accumulates the
    job described by the current NEW_JOB / SET_COMMANDS / RUN sequence. */

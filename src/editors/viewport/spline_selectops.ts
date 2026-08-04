@@ -35,7 +35,7 @@ export let SelOpModes = {
 };
 
 export class SelectOpBase extends ToolOp {
-  _undo : SelectUndo;
+  _undo! : SelectUndo;
 
   /* NOTE: ToolOp's constructor takes no arguments; both of these are ignored
      (UnhideOp does the same). */

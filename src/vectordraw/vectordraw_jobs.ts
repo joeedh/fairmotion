@@ -45,7 +45,7 @@ export class Thread {
   freezelvl: number;
   /* NOTE: written only by clearOutstandingJobs(), which meant `callbacks`;
      nothing reads it. */
-  callback: object;
+  callback!: object;
 
   id : number;
   manager : ThreadManager;
@@ -235,7 +235,7 @@ export class ThreadManager {
   /* time_ms() at the last startDrawing(); drives the timeout watchdog. */
   start_time : number | undefined;
   /* Set once any worker has reported in. */
-  has_ready_thread : boolean;
+  has_ready_thread! : boolean;
 
   constructor() {
     this.threads = [];

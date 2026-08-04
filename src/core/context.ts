@@ -194,13 +194,13 @@ export class ViewContextOverlay extends ContextOverlay {
 }
 
 export class BaseContext extends Context {
-  datalib: DataLib;
-  frameset: SplineFrameSet
-  spline: Spline
-  scene: Scene
-  toolstack: ToolStack;
-  api: DataAPI
-  selectmode: int;
+  datalib!: DataLib;
+  frameset!: SplineFrameSet
+  spline!: Spline
+  scene!: Scene
+  toolstack!: ToolStack;
+  api!: DataAPI
+  selectmode!: int;
 
   constructor(state = g_app_state) {
     super(state);
@@ -282,8 +282,8 @@ export class BaseContext extends Context {
 }
 
 export class FullContext extends BaseContext {
-  view2d: View2DHandler
-  screen: FairmotionScreen;
+  view2d!: View2DHandler
+  screen!: FairmotionScreen;
 
   constructor(state = g_app_state) {
     super(state);

@@ -455,8 +455,8 @@ export class SplineElement extends DataPathNode {
   masklayer: number
   /* Set of SplineLayer ids this element belongs to; the value is always 1. */
   layers: {[layerId: number]: number}
-  flag: number
-  eid: number
+  flag!: number
+  eid!: number
   type: number;
 
   constructor(type: number) {

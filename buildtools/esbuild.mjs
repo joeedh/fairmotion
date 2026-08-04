@@ -250,9 +250,10 @@ async function buildGlobals() {
 }
 
 /*
- * Classic scripts (`"not_a_module"`), so bundle:false -- same treatment as the
- * globals, only the output lands at the target root under the name the Worker
- * constructor asks for.
+ * Bundled to IIFE, not ESM: the output is still a classic script (the Worker
+ * constructor is called without {type:"module"}, and the skia worker uses
+ * importScripts), but bundling lets the two share the opcode and message
+ * constants in vectordraw_jobs_base.ts instead of hand-copying them.
  *
  * No classRegistryPlugin: these run in their own worker global, where nothing
  * has loaded typesystem.js, so `_ESClass` does not exist. Their classes were
@@ -265,6 +266,8 @@ async function buildWorkers() {
       esbuild.context({
         ...shared,
         entryPoints: [f],
+        bundle     : true,
+        format     : "iife",
         outfile    : path.join(target.outDir, path.basename(f).replace(/\.ts$/, ".js")),
       })
     )

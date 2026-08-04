@@ -9,7 +9,7 @@ import type {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 export class ManualEditor extends Editor {
   static STRUCT : string;
 
-  browser : UIBase;
+  browser! : UIBase;
 
   constructor() {
     super();

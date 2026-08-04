@@ -19,11 +19,11 @@ export function resetAreaStacks() {
 primary app screen subclass
 */
 export class FairmotionScreen extends Screen {
-  ctx: FullContext;
+  ctx!: FullContext;
 
   /* Settings generation the keymap deltas were last loaded at. */
   _last_keymap_gen : number;
-  keymap : KeyMap;
+  keymap! : KeyMap;
   /* scene.time playback started from, restored when it stops. */
   startFrame : number;
   _lastFrameTime : number;
@@ -277,8 +277,8 @@ export class Editor extends Area {
   canvases : {[id : string] : EditorCanvas};
 
   _last_keymap_delta_gen : number;
-  keymap : KeyMap;
-  container : Container;
+  keymap! : KeyMap;
+  container! : Container;
 
   constructor() {
     super();

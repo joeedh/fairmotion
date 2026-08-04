@@ -34,6 +34,8 @@ import type {FullContext} from '../../core/context.js';
 import type {View2DHandler} from './view2d.js';
 import type {Spline} from '../../curve/spline.js';
 import type {RowFrame} from '../../path.ux/scripts/core/ui.js';
+/* PackFlags is used bare throughout buildEditMenu(); it was never imported. */
+import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
 
 /* One captured animation frame: the scene time it was taken at and the raw
    pixels of the viewport. */
@@ -71,12 +73,12 @@ export class DuplicateTransformMacro extends ToolMacro {
 };
 
 export class RenderAnimOp extends ToolOp {
-  viewport : PlaybackViewport;
+  viewport! : PlaybackViewport;
   /* Bounds of the path spline's keys, in frames. */
-  min_time : number;
-  max_time : number;
+  min_time! : number;
+  max_time! : number;
   /* setInterval handle for the capture loop. */
-  timer : number;
+  timer! : number;
 
   constructor() {
     super();
@@ -187,12 +189,12 @@ export class RenderAnimOp extends ToolOp {
 
 
 export class PlayAnimOp extends ToolOp {
-  viewport : PlaybackViewport;
+  viewport! : PlaybackViewport;
   /* time_ms() when playback started; playback position is derived from it. */
-  start_time : number;
-  timer : number;
+  start_time! : number;
+  timer! : number;
   /* Set while a blit is queued, so the interval skips a beat. */
-  doing_draw : boolean;
+  doing_draw! : boolean;
 
   constructor() {
     super();
@@ -310,12 +312,12 @@ export class SplineEditor extends View2DEditor {
   /* NOTE: the constructor assigns `vieiw3d`, so `view2d` -- read all over
      this class -- stays undefined. */
   vieiw3d : View2DHandler;
-  view2d : View2DHandler;
+  view2d! : View2DHandler;
   /* The spline the highlighted element belongs to. */
   highlight_spline : Spline | undefined;
   /* Rebuilt from scratch (`new Context()`) at each point of use rather than
      held; the field only exists because those uses assign through `this`. */
-  ctx : FullContext;
+  ctx! : FullContext;
 
   constructor(view2d : View2DHandler) {
     let keymap = new KeyMap("view2d:splinetool2");

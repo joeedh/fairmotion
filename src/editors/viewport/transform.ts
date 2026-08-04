@@ -50,7 +50,7 @@ export class TransformOp extends ToolOp {
      picked up from the first modal event. */
   user_start_mpos : Vector2 | number[] | undefined;
   transdata : TransData | undefined;
-  _undo : TransUndoData;
+  _undo! : TransUndoData;
 
   constructor(start_mpos? : number[], datamode? : number) {
     super();

@@ -56,11 +56,11 @@ export class SplineToolMode extends ToolMode {
   start_mpos: Vector2
   /* True once a touch-drag has committed an op that a second finger should
      undo. */
-  _cancel_on_touch: boolean
+  _cancel_on_touch!: boolean
   mdown: boolean;
 
-  view2d : View2DHandler;
-  selectmode : number;
+  view2d! : View2DHandler;
+  selectmode! : number;
   /* The spline the highlighted element belongs to; may be the path spline
      rather than the draw spline. */
   highlight_spline : Spline | undefined;

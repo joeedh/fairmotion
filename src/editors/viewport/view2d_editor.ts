@@ -30,7 +30,7 @@ export class View2DEditor {
   /* DataTypes value of the datablock the backend operates on. */
   lib_type : number;
   /* Set by on_mousemove/on_mouseup only; never initialised. */
-  mdown : boolean;
+  mdown! : boolean;
 
   /* NOTE: both subclasses build a KeyMap and pass it as a fifth argument, but
      this constructor has always ignored it and built its own. */

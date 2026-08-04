@@ -121,12 +121,12 @@ export function ignore_next_mouseup_event(button : number) {
 }
 
 export class EventHandler {
-  modalstack : EventHandler[];
-  modalhandler : EventHandler | null;
-  keymap : KeyMap | null;
+  modalstack! : EventHandler[];
+  modalhandler! : EventHandler | null;
+  keymap! : KeyMap | null;
   /* Non-undefined only while touch events are being delayed. */
   touch_manager : TouchEventManager | undefined;
-  touch_delay_stack : number[];
+  touch_delay_stack! : number[];
 
   constructor() {
     this.EventHandler_init();
@@ -398,7 +398,7 @@ export class VelocityPan extends EventHandler {
   /* Whoever asked for the pan; must supply on_pan(), pan_bounds and state. */
   owner;
   /* Handed in by start(), called once by end(). */
-  pop_modal_func : () => void;
+  pop_modal_func! : () => void;
 
   start_mpos : Vector2
   last_mpos : Vector2
@@ -624,9 +624,9 @@ export class VelocityPan extends EventHandler {
 
 export class TouchEventManager {
   /* Events waiting out the delay, and the time_ms() each was queued at. */
-  queue : GArray<MyMouseEvent>;
-  queue_ms : GArray<number>;
-  delay : number;
+  queue! : GArray<MyMouseEvent>;
+  queue_ms! : GArray<number>;
+  delay! : number;
   owner : EventHandler | undefined;
 
   constructor(owner? : EventHandler, delay : number = 100) {

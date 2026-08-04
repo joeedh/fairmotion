@@ -78,10 +78,35 @@ export const PropSubTypes = {
 
 /*
  * Everything from here to isTypedArray() patches path.ux's ToolProperty in
- * place: the old fairmotion property API layered on top of the toolkit's. `this`
- * is typed per-function rather than by declaration-merging ToolProperty, because
- * path.ux subclasses declare some of these names themselves.
+ * place: the old fairmotion property API layered on top of the toolkit's. The
+ * augmentation below is what makes those names visible to the typechecker, both
+ * at the patch sites and at the ~200 call sites across the app.
  */
+declare module '../path.ux/scripts/path-controller/toolsys/toolprop.js' {
+  interface ToolProperty<T = unknown, TYPE extends number = number> {
+    /* Deprecated aliases for setValue()/getValue(). */
+    set_data(d: T): void;
+    get_data(): T;
+    get_value(): T;
+
+    /* Presentation fields path.ux does not carry. */
+    unit?: string;
+    hotkey_ref?: string;
+
+    report(...args: unknown[]): void;
+    load_ui_data(prop: ToolProperty<T, TYPE>): void;
+
+    /* One callback per owner, keyed off a tag set on the closure itself. */
+    add_listener(owner: object, callback: (...args: unknown[]) => void): void;
+    remove_listener(owner: object, silent_fail?: boolean): void;
+
+    add_icons(iconmap: {[key: string]: number}): this;
+
+    /* Custom data-api get/set hooks; enabled by TPropFlags.USE_CUSTOM_GETSET. */
+    userSetData(prop: ToolProperty<T, TYPE>, val: T): T;
+    userGetData(prop: ToolProperty<T, TYPE>, val: T): T;
+  }
+}
 
 /* The three deprecated aliases. `d` is whatever the property's value type is,
    so it is left to inference rather than pinned here. */
@@ -114,8 +139,9 @@ ToolProperty.prototype.report = function (this: ToolProperty) {
 
 let propfire = ToolProperty.prototype._fire;
 
-ToolProperty.prototype._fire = function (this: ToolProperty) {
-  propfire.apply(this, arguments);
+ToolProperty.prototype._fire = function (this: ToolProperty, type: string,
+                                         arg1?: unknown, arg2?: unknown) {
+  propfire.call(this, type, arg1, arg2);
 
   if (this.update) {
     this.update(this.dataref);
@@ -124,6 +150,8 @@ ToolProperty.prototype._fire = function (this: ToolProperty) {
   if (this.api_update) {
     this.api_update(this.dataref);
   }
+
+  return this;
 };
 
 /* Copies only the presentation half of a property definition. Deliberately not
@@ -138,28 +166,19 @@ ToolProperty.prototype.load_ui_data = function (this: ToolProperty, prop: ToolPr
   this.uiRange = prop.uiRange;
   this.icon = prop.icon;
   this.radix = prop.radix;
-  this.decimalPlaces = prop.declarations;
+  /* NOTE: this read `prop.declarations`, which no property has ever had; the
+     field being copied is decimalPlaces. */
+  this.decimalPlaces = prop.decimalPlaces;
   this.step = prop.step;
   this.stepIsRelative = prop.stepIsRelative;
   this.expRate = prop.expRate;
 };
 
-/* Predates path.ux's own dispatcher: it expects .callbacks to be an array of
-   [owner, fn] pairs, which it no longer is. See docs/debugging.md. */
-ToolProperty.prototype._exec_listeners = function (this: ToolProperty, data_api_owner: object) {
-  for (let l of this.callbacks) {
-    if (RELEASE) {
-      try {
-        l[1](l[0], this, data_api_owner);
-      } catch (_err) {
-        print_stack(_err);
-        console.log("Warning: a property event listener failed", "property:", this, "callback:", l[1], "owner:", l[0])
-      }
-    } else {
-      l[1](l[0], this, data_api_owner);
-    }
-  }
-};
+/* NOTE: _exec_listeners() used to live here. It walked .callbacks as an array
+   of [owner, fn] pairs -- a shape path.ux replaced with a Record of named
+   stacks years ago -- so it threw on entry, and nothing in the tree called it.
+   Removed rather than rewritten; see docs/debugging.md. */
+
 //only one callback per owner allowed
 //any existing callback will be overwritten
 ToolProperty.prototype.add_listener = function add_listener(
@@ -167,24 +186,24 @@ ToolProperty.prototype.add_listener = function add_listener(
   owner: object,
   callback: (...args: unknown[]) => void
 ) {
-  let cb: {(): void; owner?: object} = () => {
+  let cb = () => {
     callback(...arguments);
   };
 
-  for (let cb of this.callbacks['change']) {
-    if (cb.owner === owner) {
+  for (let old of this.callbacks['change'] ?? []) {
+    if (Reflect.get(old, "owner") === owner) {
       console.warn("owner already added a callback");
       return;
     }
   }
 
   this.on('change', cb);
-  cb.owner = owner;
+  Reflect.set(cb, "owner", owner);
 }
 
 ToolProperty.prototype.remove_listener = function (this: ToolProperty, owner: object, silent_fail = false) {
-  for (let cb of this.callbacks['change']) {
-    if (cb.owner === owner) {
+  for (let cb of this.callbacks['change'] ?? []) {
+    if (Reflect.get(cb, "owner") === owner && typeof cb === "function") {
       this.off('change', cb);
     }
   }
@@ -202,6 +221,8 @@ FlagProperty.prototype.addIcons = function (this: FlagProperty, iconmap: {[key: 
       this.iconmap[this.values[k]] = iconmap[k];
     }
   }
+
+  return this;
 }
 
 ToolProperty.prototype.add_icons = function (this: FlagProperty, iconmap: {[key: string]: int}) {
@@ -330,7 +351,7 @@ export type ArrayBufferPropertyValue = ArrayBuffer | TypedArray | number[];
 export class ArrayBufferProperty extends ToolProperty<ArrayBufferPropertyValue> {
   static STRUCT: string;
 
-  data: Uint8Array | ArrayBuffer;
+  data!: Uint8Array | ArrayBuffer;
 
   constructor(
     data?: ArrayBufferPropertyValue,
@@ -684,7 +705,7 @@ ToolProperty.register(RefListProperty);
 export class TransformProperty extends ToolProperty<Matrix4UI> {
   static STRUCT: string;
 
-  data: Matrix4UI;
+  data!: Matrix4UI;
 
   constructor(
     value?: Matrix4,

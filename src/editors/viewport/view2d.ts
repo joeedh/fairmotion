@@ -90,7 +90,7 @@ export class drawline {
 export class View2DHandler extends Editor {
   enable_blur: boolean
   draw_small_verts: boolean
-  draw_bg_image: boolean
+  draw_bg_image!: boolean
   _can_select: number
   _only_render: number
   _selectmode: number
@@ -127,7 +127,7 @@ export class View2DHandler extends Editor {
   glPos: Vector2
   glSize: Vector2
   draw_tiled : boolean
-  ctx: FullContext;
+  ctx!: FullContext;
 
   /* The dag node that fires this editor's onDrawPre output. */
   _graphNode: NodeBase
@@ -143,34 +143,34 @@ export class View2DHandler extends Editor {
   /* eids of the verts whose animation paths stay drawn regardless of
      selection, or undefined when nothing is pinned. */
   pinned_paths: number[] | undefined
-  _i: number
+  _i!: number
   /* Whichever of fg/fg2 get_fg_canvas() last handed out. */
-  drawcanvas: EditorCanvas
+  drawcanvas!: EditorCanvas
   /* 2d context of the current foreground canvas. */
-  drawg: Canvas2D
+  drawg!: Canvas2D
   /* Set while a tiled draw is still resolving, to drop re-entrant redraws. */
   _draw_promise: Promise<void> | undefined
-  _makingToolBars: boolean
-  sidebar: TabContainer
+  _makingToolBars!: boolean
+  sidebar!: TabContainer
   /* Mouse position in view space, as of the last on_mousemove. */
-  mpos: Vector3
+  mpos!: Vector3
   /* Where the current left-drag started, or null when no drag is live. */
-  _mstart: Vector2 | null
+  _mstart!: Vector2 | null
   /* Concatenation of the draw-affecting toggles, to notice a change. */
-  _last_key_1: string
-  draw_video: boolean
-  video_time: number
-  startup_time: number
+  _last_key_1!: string
+  draw_video!: boolean
+  video_time!: number
+  startup_time!: number
   /* SessionFlags bitmask. */
-  session_flag: number
-  tweak_mode: number
-  extrude_mode: number
+  session_flag!: number
+  tweak_mode!: number
+  extrude_mode!: number
   /* Set by the draw_normals/draw_anim_paths/only_render setters and never
      read; the redraw it is meant to request never happens. */
-  draw_viewport: number
-  _draw_anim_paths: boolean
+  draw_viewport!: number
+  _draw_anim_paths!: boolean
   /* Suppresses the set_cameramat side effects while loadSTRUCT runs. */
-  _in_from_struct: boolean;
+  _in_from_struct!: boolean;
 
   constructor() {
     super();
@@ -1604,7 +1604,8 @@ export class View2DHandler extends Editor {
 
     //wait 3 seconds before loading video
     /* NOTE: `video` is not imported in this module, so enabling draw_video
-       throws ReferenceError. */
+       throws ReferenceError.  startup_time is never assigned either, so the
+       elapsed-time guard is NaN > 300 -- always false. */
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {
       this.video = video.manager.get("/video.mp4");
 

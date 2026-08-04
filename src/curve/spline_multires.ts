@@ -285,10 +285,10 @@ var get_point_cache = cachering.fromConstructor(BoundPoint, 12);
 class point_iter {
     ret : {done : boolean, value : BoundPoint | undefined};
     mr : MultiResLayer | undefined;
-    level : number;
-    data : Float64Array;
+    level! : number;
+    data! : Float64Array;
     /* Offset of the current record, or -1 when the list is exhausted. */
-    cur : number;
+    cur! : number;
 
     constructor() {
         this.ret = {done : true, value : undefined};
@@ -552,7 +552,7 @@ export class MultiResLayer extends CustomDataLayer {
   _freecur : number;
   points_iter_cache : cachering<point_iter>;
   /* Only ever written, by interp(). */
-  time : number;
+  time! : number;
 
   constructor(size = 16) {
       /* Was `super(this)`; CustomDataLayer takes no arguments, and reading

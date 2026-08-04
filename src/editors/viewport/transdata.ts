@@ -89,7 +89,7 @@ export class TransData {
   /* Screen-space copies of center/start_center; only filled in while the
      owning op is running modally. */
   scenter : Vector2
-  start_scenter : Vector2;
+  start_scenter! : Vector2;
 
   ctx : FullContext;
   top : TransformOp;

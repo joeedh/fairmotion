@@ -81,19 +81,19 @@ let MAXCURVELEN = 10000;
    argument instead of ten.  Recycled through drawparam_cachering below. */
 export class DrawParams {
   /* A flat run of x1, y1, x2, y2 quadruples, not a list of rects. */
-  redraw_rects : number[];
-  actlayer : SplineLayer;
-  only_render : boolean;
-  selectmode : number;
-  zoom : number;
+  redraw_rects! : number[];
+  actlayer! : SplineLayer;
+  only_render! : boolean;
+  selectmode! : number;
+  zoom! : number;
   /* The element's index in the drawlist.  NOTE: the two init() calls pass
      undefined for this; the draw loop assigns it per element. */
-  z : number;
+  z! : number;
   /* Screen-space translation since the last frame. */
-  off : Vector2;
-  spline : Spline;
-  drawlist : DrawListItem[];
-  combine_paths : boolean;
+  off! : Vector2;
+  spline! : Spline;
+  drawlist! : DrawListItem[];
+  combine_paths! : boolean;
 
   constructor() {
     this.init.apply(this, arguments);
@@ -347,13 +347,13 @@ export class SplineDrawer {
   last_totface: number;
   strokeDebug: boolean;
 
-  drawlist : DrawListItem[];
-  drawlist_layerids : number[];
-  draw_faces : boolean;
-  do_blur : boolean;
-  only_render : boolean;
+  drawlist! : DrawListItem[];
+  drawlist_layerids! : number[];
+  draw_faces! : boolean;
+  do_blur! : boolean;
+  only_render! : boolean;
   last_zoom : number;
-  last_selectmode : number;
+  last_selectmode! : number;
 
   /* Write-only: every one of these is reset to undefined at the top of each
      update() and never read again. */
@@ -362,7 +362,7 @@ export class SplineDrawer {
   last_stroke_eid : number;
   last_layer_id : number;
   last_stroke_stringid : string;
-  last_stroke_mat : Material;
+  last_stroke_mat! : Material;
 
   constructor(spline : Spline, drawer : VDCanvas = new Canvas()) {
     this.strokeDebug = false;

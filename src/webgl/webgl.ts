@@ -443,8 +443,8 @@ export class ShaderProgram {
   vertexSource : string;
   fragmentSource : string;
   /* Set by init() when defines were spliced into the sources. */
-  _vertexSource : string;
-  _fragmentSource : string;
+  _vertexSource! : string;
+  _fragmentSource! : string;
 
   attrs : string[];
   gl : WebGLContext;
@@ -457,7 +457,7 @@ export class ShaderProgram {
 
   /* SMOOTH_LINE variant of this program, generated and cached on first use by
      simplemesh.ts. */
-  _smoothline : ShaderProgram;
+  _smoothline! : ShaderProgram;
 
   /* attr name -> layer count, for the multilayer attribute machinery. */
   multilayer_attrs : {[attr : string] : number};
@@ -467,8 +467,8 @@ export class ShaderProgram {
   rebuild : number | boolean;
 
   program : WebGLProgram | undefined;
-  vertexShader : WebGLShader | null;
-  fragmentShader : WebGLShader | null;
+  vertexShader! : WebGLShader | null;
+  fragmentShader! : WebGLShader | null;
 
   uniformlocs : {[name : string] : WebGLUniformLocation | null};
   attrlocs : {[name : string] : number};
@@ -476,9 +476,9 @@ export class ShaderProgram {
   uniforms : Uniforms;
 
   /* Only set by the static load_shader() path. */
-  ready : boolean;
-  promise : Promise<ShaderProgram>;
-  then : (...args : unknown[]) => Promise<unknown>;
+  ready! : boolean;
+  promise! : Promise<ShaderProgram>;
+  then! : (...args : unknown[]) => Promise<unknown>;
 
   constructor(gl : WebGLContext, vertex : string, fragment : string,
               attributes : Iterable<string>) {
@@ -1539,7 +1539,7 @@ export class DrawMats {
 
   /* sizex / sizey. Only ever assigned by regen_mats(), so it is undefined
      until the first call -- which is also why regen_mats defaults to it. */
-  aspect : number;
+  aspect! : number;
 
   constructor() {
     this.isPerspective = true;

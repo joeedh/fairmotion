@@ -73,7 +73,7 @@ export class CurveEdit extends UIBase {
   g : Canvas2D;
   pan : Vector2;
   zoom : Vector2;
-  mdown : boolean;
+  mdown! : boolean;
 
   constructor() {
     super();
@@ -242,7 +242,7 @@ export class CurveEditor extends Editor {
 
   pan : Vector2
   zoom : Vector2;
-  edit : CurveEdit;
+  edit! : CurveEdit;
 
   constructor() {
     super();

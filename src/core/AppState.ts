@@ -510,52 +510,52 @@ export interface BlockWriteArgs extends FileWriteArgs {
 
 export class AppState {
   /* Stack of modalstate bitmasks; see ModalStates in toolops_api.ts. */
-  modalStateStack: int[];
-  modalstate: int;
+  modalStateStack!: int[];
+  modalstate!: int;
 
   /* Non-optional even though destroyScreen() nulls it: every read happens while
      a screen is live, and the only teardown path re-inits immediately after. */
-  screen: FairmotionScreen;
+  screen!: FairmotionScreen;
   /* Always the same object as .screen. The split is historical: the screen used
      to be one of several possible event sinks. */
-  eventhandler: FairmotionScreen;
+  eventhandler!: FairmotionScreen;
   active_editor?: Editor;
   active_view2d?: View2DHandler;
 
   /* Shift/ctrl emulation for tablets, set by the on-screen modifier buttons. */
-  select_multiple: boolean;
-  select_inverse: boolean;
+  select_multiple!: boolean;
+  select_inverse!: boolean;
 
-  _last_touch_mpos: number[];
-  was_touch: boolean;
+  _last_touch_mpos!: number[];
+  was_touch!: boolean;
 
-  notes: NotificationManager;
-  jobs: JobManager;
-  toolstack: ToolStack;
-  datalib: DataLib;
-  raster: RasterState;
-  session: UserSession;
-  ctx: FullContext;
+  notes!: NotificationManager;
+  jobs!: JobManager;
+  toolstack!: ToolStack;
+  datalib!: DataLib;
+  raster!: RasterState;
+  session!: UserSession;
+  ctx!: FullContext;
 
   /* makeAPI() builds both; pathcontroller is the same object under the name
      path.ux's own code expects. */
-  api: DataAPI;
-  pathcontroller: DataAPI;
+  api!: DataAPI;
+  pathcontroller!: DataAPI;
 
   /* Data-API path of the spline being edited, plus the stack push/pop of it
      walks when a tool descends into a nested spline. */
-  _active_splinepath: string;
-  spline_pathstack: string[];
+  _active_splinepath!: string;
+  spline_pathstack!: string[];
 
-  filepath: string;
-  version: number;
+  filepath!: string;
+  version!: number;
   /* Copied from the screen, whose .size is a Vector2, or a plain pair when
      there is no screen yet. */
-  size: Vector2 | number[];
+  size!: Vector2 | number[];
 
   /* Last-used inputs per tool class name, keyed by ToolOp constructor name.
      Shared across resets, hence the module-level object. */
-  toolop_input_cache: {[toolClassName: string]: unknown};
+  toolop_input_cache!: {[toolClassName: string]: unknown};
 
   /* Cleared by link_blocks() and never read; the active scene lives in the
      datalib. Declared only because that assignment is still there. */
@@ -1829,9 +1829,9 @@ export class SavedContext {
      fall through to the live g_app_state.datalib. */
   _datalib?: DataLib;
 
-  state: AppState;
-  api: DataAPI;
-  toolstack: ToolStack;
+  state!: AppState;
+  api!: DataAPI;
+  toolstack!: ToolStack;
   screen?: FairmotionScreen;
 
   /* Written by the STRUCT script, consumed and deleted by loadSTRUCT(). */
@@ -1964,18 +1964,18 @@ SavedContext {
 window.SavedContext = SavedContext;
 
 class SavedContextOld {
-  _frameset_editmode: string
+  _frameset_editmode!: string
   /* NOTE: `selectmode` is a getter with no setter, so the constructor's
      `this.selectmode = 0` below throws in strict mode. */
-  _selectmode: number
+  _selectmode!: number
   _scene: DataRef
   _frameset: DataRef
   time: number
   _spline_path: string;
   /* SceneObject id of the active object, -1 for none. */
-  _object: number;
+  _object!: number;
   /* SplineLayer id of the active layer, -1 for none. */
-  _active_spline_layer: number;
+  _active_spline_layer!: number;
 
   constructor(ctx = undefined) {
     if (ctx !== undefined) {

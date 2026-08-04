@@ -13,10 +13,10 @@ export class IconManager {
   /* Set once the sheet image has decoded. */
   ready : boolean;
   /* The GL upload was commented out, so this holds the <img> and nothing else. */
-  tex : {image: HTMLImageElement};
+  tex! : {image: HTMLImageElement};
   /* Both are written once and never read; the texture upload they belonged to
      is commented out in load(). */
-  te : Object;
+  te! : Object;
   texture : WebGLTexture | undefined;
 
   constructor(gl: WebGLRenderingContext, sheet_path: string,

@@ -352,6 +352,75 @@ declare global {
     AppState: typeof AppState;
     Context: typeof FullContext;
     DataRef: typeof DataRef;
+    __dataref: typeof DataRef;
+    SavedContext: typeof SavedContext;
+    Icons: typeof Icons;
+    charmap: typeof charmap;
+    charmap_rev: typeof charmap_rev;
+    error_dialog: PlatformErrorDialog;
+    TouchEventManager: typeof TouchEventManager;
+    touch_manager: typeof touch_manager;
+
+    _NodeBase: typeof import("./core/eventdag.js").NodeBase;
+    _SplineDrawer: typeof import("./curve/spline_draw_new.js").SplineDrawer;
+    MyKeyboardEvent: typeof import("./editors/events.js").MyKeyboardEvent;
+    MyMouseEvent: typeof import("./editors/events.js").MyMouseEvent;
+    imagecanvas_webgl: typeof import("./paint/imagecanvas_webgl.js");
+
+    /* The per-platform config.js overrides; only ORIGIN is ever honoured. */
+    _platform_config?: {[k: string]: string};
+
+    /* Set by the electron platform layer for manual zoom testing. */
+    setZoom(z: number): void;
+
+    /*
+     * NOTE: _ensure_thedimens()'s body is entirely commented out, so theWidth
+     * and theHeight are never assigned and the on_resize() call in startup.ts
+     * that reads them passes undefined. That path is CHROME_APP_MODE-only.
+     */
+    _ensure_thedimens(): void;
+    theWidth: number;
+    theHeight: number;
+
+    /* Flat color maps the theme publishes for the data api. */
+    uicolors: {[key: string]: number[]};
+    colors3d: {[key: string]: number[]};
+
+    anim_to_playback: AnimPlaybackBuffer;
+
+    import_json(): void;
+    _dom_input_node: HTMLElement | null;
+    _testParseFile(): void;
+    loadCanvasKit(): Promise<unknown>;
+
+    /* Per-render-start timestamps, keyed by the redraw source's name. */
+    redraw_start_times: {[k: string]: number};
+
+    /*
+     * Debug-console scratch. Every one of these is both written and read by
+     * live code, which is why they are here rather than left off as the
+     * header describes.
+     */
+    _d?: number;
+    d: number;
+    th: HTMLElementTagNameMap["theme-editor-x"];
+    tb: HTMLInputElement;
+    CC: import("./vectordraw/vectordraw_base.js").DrawCanvas | undefined;
+    GG: Canvas2D | undefined;
+    skcanvas: import("./vectordraw/vectordraw_base.js").DrawCanvas | undefined;
+    skg: Canvas2D | undefined;
+
+    /* The one shared WebGL context, created by imagecanvas_webgl.ts and used
+       as the default argument of its own resource-lifecycle methods. */
+    _gl: import("./webgl/webgl.js").WebGLContext;
+    KSCALE: number;
+    /* Rate-limiter timestamp for a warning in spline_types.ts. */
+    __adssad: number;
+    _setDebug(d: number): void;
+    _do_frame_debug: boolean;
+    _do_iter_err_stacktrace: boolean;
+    FrameContinue: {FC: number};
+    FrameBreak: {FB: number};
 
     /* core/ajax.ts's net API; see the bare-name declarations further down. */
     NetStatus: {new (): NetStatus};
@@ -626,6 +695,35 @@ declare global {
   const get_dir_files: NetApiGen;
   const upload_file: NetApiGen;
   const get_file_data: NetApiGen;
+
+  /*
+   * Classes and enums parked on window by the module that defines them, then
+   * named bare elsewhere. Same two-declaration rule as above: the Window member
+   * types `window.Foo`, the const types `Foo`.
+   */
+  const Context: typeof FullContext;
+  const SavedContext: typeof import("./core/AppState.js").SavedContext;
+  const Icons: typeof import("./datafiles/icon_enum.js").Icons;
+  const charmap: {[k: string]: number};
+  const charmap_rev: {[k: number]: string};
+  const error_dialog: PlatformErrorDialog;
+  const TouchEventManager: typeof import("./editors/events.js").TouchEventManager;
+  const touch_manager: import("./editors/events.js").TouchEventManager;
+
+  /*
+   * error_dialog is app.errorDialog, which takes (title, msg). Every caller in
+   * editors/app_ops.ts passes (ctx, title, undefined, true) instead, so the
+   * context object is printed as the title. See docs/debugging.md.
+   */
+  type PlatformErrorDialog = (title: unknown, msg?: unknown, ...rest: unknown[]) => void;
+
+  /* The captured-frame buffer view2d_spline_ops.ts fills during an anim
+     render. The two extra fields are stamped onto the array itself. */
+  interface AnimPlaybackBuffer
+    extends Array<import("./editors/viewport/view2d_spline_ops.js").PlaybackFrame> {
+    filesize: number;
+    viewport?: import("./editors/viewport/view2d_spline_ops.js").PlaybackViewport;
+  }
 
   /*
    * Every editor and widget is a custom element, and the code reaches for them

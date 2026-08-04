@@ -567,7 +567,7 @@ window.NetStatus = function NetStatus(this: NetStatus) {
 }
 
 export class NetJob {
-  owner: object;
+  owner!: object;
   /* The api generator driving this job; api_exec() pumps it from the
      XMLHttpRequest callbacks. Assigned after construction by call_api(). */
   iter: Generator | undefined;

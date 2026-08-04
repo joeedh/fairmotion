@@ -10,7 +10,7 @@ export type IDList = {[name : string] : number};
 
 export class IDBrowser extends Container {
   idlist : IDList;
-  listbox : ListBox;
+  listbox! : ListBox;
 
   constructor() {
     super();

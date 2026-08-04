@@ -273,14 +273,14 @@ export class DataLib {
    * constructor from blockDefine().accessorName. They are plain getters onto
    * get_datalist(), so `datalib.scenes` is the DataList, not an array.
    */
-  brushes: DataList<Brush>;
-  collections: DataList<Collection>;
-  framesets: DataList<SplineFrameSet>;
-  image_canvas: DataList<ImageCanvas>;
-  images: DataList<Image>;
-  object: DataList<SceneObject>;
-  scenes: DataList<Scene>;
-  splines: DataList<Spline>;
+  brushes!: DataList<Brush>;
+  collections!: DataList<Collection>;
+  framesets!: DataList<SplineFrameSet>;
+  image_canvas!: DataList<ImageCanvas>;
+  images!: DataList<Image>;
+  object!: DataList<SceneObject>;
+  scenes!: DataList<Scene>;
+  splines!: DataList<Spline>;
 
   constructor() {
     this.id = 0;

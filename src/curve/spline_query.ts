@@ -142,10 +142,8 @@ export class SplineQuery {
             let co = l.s.evaluate(s);
 
             if (lastco) {
-              /* NOTE: line_line_cross() takes two lines as arrays of two points;
-                 this passes four points. line_line_cross4() is the four-point
-                 form. Left alone -- swapping them changes which faces the
-                 winding test picks. */
+              /* path.ux's line_line_cross() takes four points, unlike
+                 mathlib's same-named function, which takes two point pairs. */
               if (math.line_line_cross(lastco, co, mpos, p)) {
                 sum += 1;
               }

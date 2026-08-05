@@ -409,6 +409,15 @@ type SetSlot<T> = T | typeof _set_null;
    couple give a number; either works because it is only ever an object key. */
 type KeyStr = string | number;
 
+/* The iterator protocol as this file implements it: next() hands back a
+   reusable IterRet rather than TS's IteratorResult union.  Declared as the
+   return of set's [Symbol.iterator]() so subclasses can supply their own. */
+interface IterProto<T> {
+  next() : IterRet<T>;
+
+  [Symbol.iterator]() : IterProto<T>;
+}
+
 class SetIter<T extends Keyable> {
   i : number
   done : boolean
@@ -602,7 +611,7 @@ class set<T extends Keyable> {
     return ret;
   }
 
-  [Symbol.iterator]() {
+  [Symbol.iterator]() : IterProto<T> {
     return this._itercache.next().cache_init();
   }
 

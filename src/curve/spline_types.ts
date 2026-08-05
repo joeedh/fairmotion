@@ -34,8 +34,10 @@ import {MultiResLayer, has_multires, ensure_multires, decompose_id, compose_id}
 import {
   SplineTypes, SplineFlags, ClosestModes, IsectModes, RecalcFlags,
   MaterialFlags, CustomDataLayer, CustomData, CustomDataSet,
-  SplineElement, CurveEffect
+  SplineElement, CurveEffect, layerClass, loadVec2Into3, loadVec3Into2
 } from './spline_base.js';
+import type {NodeDef} from '../core/eventdag.js';
+import type {KsArray} from './spline_math.js';
 
 import {SelMask} from '../editors/viewport/selectmode.js';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
@@ -47,6 +49,10 @@ import {
 let eval_ret_vs = cachering.fromConstructor(Vector2, 512);
 let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
 
+/* The CurveEffect chain is 3D; EffectWrapper widens the segment's 2D result
+   into one of these on the way out. */
+let effwrap_ret_vs = cachering.fromConstructor(Vector3, 512);
+
 import {bez3, bez4} from '../util/bezier.js';
 
 import type {Spline} from './spline.js';
@@ -54,10 +60,39 @@ import type {FullContext} from '../core/context.js';
 
 let _seg_aabb_ret = [new Vector3(), new Vector3()];
 
+/* Out-params the evaluators fill in; callers hand them plain arrays and
+   cachering vectors interchangeably. */
+type VecOut = number[] | Vector2 | Vector3;
+
 /* SplineVertex is not a Vector2 subclass -- mixin(SplineVertex, Vector2) at
    the bottom of this class copies the whole Vector2 prototype onto it, so
    declaration-merge that surface in rather than inheriting it. */
 export interface SplineVertex extends Vector2 {}
+
+/* What SplineVertex.toJSON() emits: an array-like of the two coordinates plus
+   the topology fields. */
+export interface SplineVertexJSON {
+  0 : number | undefined;
+  1 : number | undefined;
+  length : number;
+  frame : unknown;
+  frames : {[time : number] : number};
+  segments : number[];
+  flag : number;
+  eid : number;
+}
+
+/* What SplineSegment.toJSON() emits; handle eids are -1 when absent. */
+export interface SplineSegmentJSON {
+  frames : unknown;
+  ks : number[];
+  v1 : number;
+  v2 : number;
+  h1 : number;
+  h2 : number;
+  flag : number;
+  eid : number;
+}
 
 export class SplineVertex extends SplineElement {
   static STRUCT : string;
@@ -188,7 +223,9 @@ export class SplineVertex extends SplineElement {
   }
 
   get shift(): number {
-    if (!this.segments) return;
+    /* NOTE: returned undefined here, which every caller went on to do
+       arithmetic with; every other exit is a number. */
+    if (!this.segments) return 0.0;
 
     if (this.segments.length !== 2) {
       return 0.0;
@@ -287,7 +324,7 @@ export class SplineVertex extends SplineElement {
     }
   }
 
-  static nodedef() {
+  static nodedef() : NodeDef {
     return {
       name   : "SplineVertex",
       uiName : "SplineVertex",
@@ -330,7 +367,7 @@ export class SplineVertex extends SplineElement {
     } else {
       var s = this.owning_segment;
 
-      return (this.flag & SplineFlags.HIDE) || !this.use || s.v1.hidden || s.v2.hidden;
+      return !!(this.flag & SplineFlags.HIDE) || !this.use || s.v1.hidden || s.v2.hidden;
     }
   }
 
@@ -387,25 +424,25 @@ export class SplineVertex extends SplineElement {
 
   /* NOTE: `this.frame` does not exist on SplineVertex -- ret.frame is always
      undefined. */
-  toJSON() {
-    var ret = {};
-
-    ret.frame = this.frame;
-    ret.segments = [];
-    ret[0] = this[0];
-    ret[1] = this[1];
-    ret.frames = this.frames;
-    ret.length = 3;
+  toJSON() : SplineVertexJSON {
+    const self : SplineVertex = this;
+    let segments : number[] = [];
 
     for (var i = 0; i < this.segments.length; i++) {
       if (this.segments[i] !== undefined)
-        ret.segments.push(this.segments[i].eid);
+        segments.push(this.segments[i].eid);
     }
 
-    ret.flag = this.flag;
-    ret.eid = this.eid;
-
-    return ret;
+    return {
+      frame   : Reflect.get(self, "frame"),
+      segments: segments,
+      0       : this[0],
+      1       : this[1],
+      frames  : this.frames,
+      length  : 3,
+      flag    : this.flag,
+      eid     : this.eid
+    };
   }
 
   loadSTRUCT(reader : StructReader<this>) {
@@ -416,11 +453,12 @@ export class SplineVertex extends SplineElement {
 
     this._no_warning = false;
 
-    this.load(this.co);
+    /* `co` is a STRUCT field, so the reader above always filled it in. */
+    this.load(this.co!);
     delete this.co;
 
     for (let axis = 0; axis < 2; axis++) {
-      if (isNaN(this[axis])) {
+      if (isNaN(this[axis]!)) {
         console.warn("NaN vertex", this.eid);
         this[axis] = 0;
       }
@@ -453,7 +491,9 @@ export class ClosestPointRecord {
   /* NOTE: clears both fields to undefined even though they are declared as
      numbers; every consumer overwrites them before reading. */
   reset() {
-    this.sign = this.s = undefined;
+    Reflect.set(this, "s", undefined);
+    Reflect.set(this, "sign", undefined);
+
     return this;
   }
 }
@@ -481,7 +521,7 @@ export class EffectWrapper extends CurveEffect {
     }
 
     var seg1 = this.seg;
-    var seg2 = ceff.seg;
+    var seg2 : SplineSegment = Reflect.get(ceff, "seg");
 
     var l1 = seg1.length, l2 = seg2.length;
 
@@ -492,7 +532,7 @@ export class EffectWrapper extends CurveEffect {
     return width;
   }
 
-  _get_nextprev(donext : number, flip_out : (number | boolean)[]) {
+  _get_nextprev(donext : number, flip_out? : (number | boolean)[]) : CurveEffect | undefined {
     var seg1 = this.seg;
 
     var v = donext ? seg1.v2 : seg1.v1;
@@ -501,16 +541,17 @@ export class EffectWrapper extends CurveEffect {
 
     var seg2 = v.other_segment(seg1);
 
-    flip_out[0] = (donext && seg2.v1 === v) || (!donext && seg2.v2 === v);
+    /* The base class always hands its scratch array down. */
+    flip_out![0] = (donext && seg2.v1 === v) || (!donext && seg2.v2 === v);
 
     return seg2._evalwrap;
   }
 
-  evaluate(s : number) {
-    return this.seg.evaluate(s, undefined, undefined, undefined, true);
+  evaluate(s : number) : Vector3 {
+    return loadVec2Into3(effwrap_ret_vs.next(), this.seg.evaluate(s, undefined, undefined, undefined, true));
   }
 
-  derivative(s : number) {
+  derivative(s : number) : Vector3 {
     return this.seg.derivative(s, undefined, undefined, true);
   }
 }
@@ -541,15 +582,17 @@ export class SplineSegment extends SplineElement {
   finalz: number
   v1: SplineVertex
   v2: SplineVertex
-  h1: SplineVertex
-  h2: SplineVertex
+  /* Absent on segments with no handles; the constructor left both undefined,
+     which a bare declaration says without emitting an assignment. */
+  h1!: SplineVertex
+  h2!: SplineVertex
   w1: number
   w2: number
   shift1: number
   shift2: number
   /* The curvature vector: KTOTKS slots whose meaning depends on the order --
      see spline_math.ts. ks[KSCALE] is the arc length. */
-  ks: number[]
+  ks: KsArray
   _last_ks: number[];
 
   /* One of the loops using this segment; the rest are reachable through
@@ -600,9 +643,6 @@ export class SplineSegment extends SplineElement {
     this.z = this.finalz = 5;
 
     this._aabb = [new Vector3(), new Vector3()];
-
-    //handles are SplineVerts too
-    this.h1 = this.h2 = undefined;
 
     this.type = SplineTypes.SEGMENT;
     this.flag = 0;
@@ -743,9 +783,9 @@ export class SplineSegment extends SplineElement {
   width(s : number, outShift? : number[]) : number {
     //return this.w1 + (this.w2 - this.w1)*s;
 
-    let seg = this;
-    let v;
-    let len;
+    let seg : SplineSegment = this;
+    let v : SplineVertex;
+    let len = 0;
 
     function walk() {
       let lastv = v;
@@ -912,7 +952,8 @@ export class SplineSegment extends SplineElement {
     max.load(minmax.max);
   }
 
-  intersect(seg: SplineSegment, side1: boolean = false, side2: boolean = false, mode: number = IsectModes.CLOSEST) {
+  intersect(seg : SplineSegment, side1 : number = 0, side2 : number = 0,
+            mode : number = IsectModes.CLOSEST) {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }
@@ -926,9 +967,9 @@ export class SplineSegment extends SplineElement {
     let p3 = new Vector2();
     let p4 = new Vector2();
 
-    let mindis = undefined;
+    let mindis : number | undefined = undefined;
     let minret = new Vector2();
-    let mins, mins2;
+    let mins = 0, mins2 = 0;
 
     let s = 0, ds = 1.0/(steps - 1);
 
@@ -938,8 +979,8 @@ export class SplineSegment extends SplineElement {
       let co1 = this.evaluateSide(s1, side1);
       let co2 = this.evaluateSide(s2, side1);
 
-      let cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
-      let cl2 = seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
+      let cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2)!;
+      let cl2 = seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2)!;
 
       let p1 = cl1.co;
       let p2 = cl2.co;
@@ -952,7 +993,7 @@ export class SplineSegment extends SplineElement {
             let s5 = j ? s4 : s3;
 
             let co3 = this.evaluateSide(s5, side1);
-            let cl3 = seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
+            let cl3 = seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2)!;
 
             if (cl3.sign !== cl1.sign) {
               s2 = s5;
@@ -967,7 +1008,7 @@ export class SplineSegment extends SplineElement {
         }
 
         co1 = this.evaluateSide(s1, side1);
-        cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+        cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2)!;
         let dis1
 
         if (mode === IsectModes.START) {
@@ -1005,19 +1046,28 @@ export class SplineSegment extends SplineElement {
   /**
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
-  closest_point(p : Vector2, mode : number, fast : boolean = false,
-                widthSide? : number) : ClosestPointRecord {
+  closest_point(p : Vector2, mode : 3, fast? : boolean,
+                widthSide? : number) : ClosestPointRecord[] | undefined;
+  closest_point(p : Vector2, mode? : number, fast? : boolean,
+                widthSide? : number) : ClosestPointRecord | undefined;
+
+  closest_point(p : Vector2, mode : number = 0, fast : boolean = false,
+                widthSide? : number) : ClosestPointRecord | ClosestPointRecord[] | undefined {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }
 
-    var minret = undefined, mindis = 1e18, maxdis = 0;
+    var minret : ClosestPointRecord | undefined = undefined;
+    var allret : ClosestPointRecord[] | undefined = undefined;
+    var mindis = 1e18, maxdis = 0;
 
-    var p2 = closest_point_cache_vs.next().zero();
+    /* The 3D scratch vectors below all subtract this one; the 2D distances
+       further down read the caller's `p` directly, which holds the same two
+       components. */
+    var p3 = closest_point_cache_vs.next().zero();
     for (var i = 0; i < p.length; i++) {
-      p2[i] = p[i];
+      p3[i] = p[i];
     }
-    p = p2;
 
     if (mode === undefined) mode = 0;
     var steps = 5, s = 0, ds = 1.0/(steps);
@@ -1027,7 +1077,7 @@ export class SplineSegment extends SplineElement {
     var n3 = closest_point_cache_vs.next(), n4 = closest_point_cache_vs.next();
 
     if (mode === ClosestModes.ALL)
-      minret = [];
+      allret = [];
 
     let d1 = closest_point_cache_vs.next();
     let d2 = closest_point_cache_vs.next();
@@ -1070,9 +1120,9 @@ export class SplineSegment extends SplineElement {
 
         sco[2] = eco[2] = co[2] = 0.0;
 
-        n1.load(sco).sub(p).normalize();
-        n2.load(eco).sub(p).normalize();
-        n.load(co).sub(p);
+        loadVec2Into3(n1, sco).sub(p3).normalize();
+        loadVec2Into3(n2, eco).sub(p3).normalize();
+        loadVec2Into3(n, co).sub(p3);
         n[2] = 0.0;
         n.normalize();
 
@@ -1114,9 +1164,7 @@ export class SplineSegment extends SplineElement {
 
         if (w1 === w2) {
           //var dis1 = sco.vectorDistance(p), dis2 = eco.vectorDistance(p), dism = co.vectorDistance(p);
-          var dis1, dis2;
-
-          dis1 = ang1, dis2 = ang2;
+          let dis1 = ang1, dis2 = ang2;
           //console.log("w1===w2", w1, w2, dis1.toFixed(4), dis2.toFixed(4), dism.toFixed(4));
 
           if (dis2 < dis1) {
@@ -1147,7 +1195,7 @@ export class SplineSegment extends SplineElement {
         n1.load(this.normal(mid, true)).normalize();
       }
 
-      n2.load(co).sub(p).normalize();
+      loadVec2Into3(n2, co).sub(p3).normalize();
       let sign = 1.0;
 
       if (n2.dot(n1) < 0) {
@@ -1163,28 +1211,32 @@ export class SplineSegment extends SplineElement {
         minret = closest_point_ret_cache.next().reset();
       }
 
+      /* Either the guard just above filled this in, or we are in the ALL
+         branch below, which does not touch it. */
+      const cur = minret!;
+
       //did we come up empty?
       var dis = co.vectorDistance(p);
 
       if (mode === ClosestModes.CLOSEST) {
         if (dis < mindis) {
-          minret.co.load(co);
-          minret.s = mid;
-          minret.sign = sign;
+          cur.co.load(co);
+          cur.s = mid;
+          cur.sign = sign;
           mindis = dis;
         }
       } else if (mode === ClosestModes.START) {
         if (mid < mindis) {
-          minret.co.load(co);
-          minret.s = mid;
-          minret.sign = sign;
+          cur.co.load(co);
+          cur.s = mid;
+          cur.sign = sign;
           mindis = mid;
         }
       } else if (mode === ClosestModes.END) {
         if (mid > maxdis) {
-          minret.co.load(co);
-          minret.s = mid;
-          minret.sign = sign;
+          cur.co.load(co);
+          cur.s = mid;
+          cur.sign = sign;
           maxdis = mid;
         }
       } else if (mode === ClosestModes.ALL) {
@@ -1193,7 +1245,7 @@ export class SplineSegment extends SplineElement {
         ret.s = mid;
         ret.sign = sign;
 
-        minret.push(ret);
+        allret!.push(ret);
       }
     }
 
@@ -1218,7 +1270,7 @@ export class SplineSegment extends SplineElement {
     }
 
 
-    return minret;
+    return mode === ClosestModes.ALL ? allret : minret;
   }
 
   normal(s: number, no_effects: boolean = !ENABLE_MULTIRES) {
@@ -1235,17 +1287,19 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
 
-  ends(v: SplineVertex): number {
+  /* NOTE: all four of these fall off the end -- and hand back undefined --
+     when asked about a vertex or handle that is not on this segment. */
+  ends(v: SplineVertex): number | undefined {
     if (v === this.v1) return 0.0;
     if (v === this.v2) return 1.0;
   }
 
-  handle(v: SplineVertex): SplineVertex {
+  handle(v: SplineVertex): SplineVertex | undefined {
     if (v === this.v1) return this.h1;
     if (v === this.v2) return this.h2;
   }
 
-  handle_vertex(h: SplineVertex): SplineVertex {
+  handle_vertex(h: SplineVertex): SplineVertex | undefined {
     if (h === this.h1) return this.v1;
     if (h === this.h2) return this.v2;
   }
@@ -1268,12 +1322,14 @@ export class SplineSegment extends SplineElement {
       this.flag &= ~SplineFlags.NO_RENDER;
   }
 
+  /* `h` is one of this segment's own handles, so every lookup below finds its
+     vertex or its opposite handle. */
   update_handle(h: SplineVertex) {
-    var ov = this.handle_vertex(h);
+    var ov = this.handle_vertex(h)!;
 
     if (h.hpair !== undefined) {
       var seg = h.hpair.owning_segment;
-      var v = this.handle_vertex(h);
+      var v = ov;
 
       var len = h.hpair.vectorDistance(v);
 
@@ -1282,8 +1338,9 @@ export class SplineSegment extends SplineElement {
 
       return h.hpair;
     } else if (ov.segments.length === 2 && h.use && !(ov.flag & SplineFlags.BREAK_TANGENTS)) {
-      var h2 = h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
-      var hv = h2.owning_segment.handle_vertex(h2), len = h2.vectorDistance(hv);
+      var ownv = h.owning_vertex!;
+      var h2 = ownv.other_segment(h.owning_segment).handle(ownv)!;
+      var hv = h2.owning_segment.handle_vertex(h2)!, len = h2.vectorDistance(hv);
 
       h2.load(h).sub(hv).negate().normalize().mulScalar(len).add(hv);
 
@@ -1293,7 +1350,7 @@ export class SplineSegment extends SplineElement {
     }
   }
 
-  other_handle(h_or_v: SplineVertex): SplineVertex {
+  other_handle(h_or_v: SplineVertex): SplineVertex | undefined {
     if (h_or_v === this.v1)
       return this.h2;
     if (h_or_v === this.v2)
@@ -1310,25 +1367,24 @@ export class SplineSegment extends SplineElement {
 
   /* NOTE: `this.frames` does not exist on SplineSegment -- ret.frames is
      always undefined. */
-  toJSON() {
-    var ret = {};
+  toJSON() : SplineSegmentJSON {
+    const self : SplineSegment = this;
+    let ks : number[] = [];
 
-    ret.frames = this.frames;
-    ret.ks = []
     for (var i = 0; i < this.ks.length; i++) {
-      ret.ks.push(this.ks[i]);
+      ks.push(this.ks[i]);
     }
 
-    ret.v1 = this.v1.eid;
-    ret.v2 = this.v2.eid;
-
-    ret.h1 = this.h1 !== undefined ? this.h1.eid : -1;
-    ret.h2 = this.h2 !== undefined ? this.h2.eid : -1;
-
-    ret.eid = this.eid;
-    ret.flag = this.flag;
-
-    return ret;
+    return {
+      frames: Reflect.get(self, "frames"),
+      ks    : ks,
+      v1    : this.v1.eid,
+      v2    : this.v2.eid,
+      h1    : this.h1 !== undefined ? this.h1.eid : -1,
+      h2    : this.h2 !== undefined ? this.h2.eid : -1,
+      eid   : this.eid,
+      flag  : this.flag
+    };
   }
 
   curvature(s : number, order? : number, override_scale? : number) {
@@ -1372,7 +1428,7 @@ export class SplineSegment extends SplineElement {
   }
 
   derivative(s : number, order? : number, no_update_curve? : boolean,
-             no_effects? : boolean) : Vector2 {
+             no_effects? : boolean) : Vector3 {
     if (this.flag & SplineFlags.COINCIDENT) {
       return derivative_cache_vs.next().zero();
     }
@@ -1484,8 +1540,8 @@ export class SplineSegment extends SplineElement {
      half the local width, adjusted by the local shift. `side` picks which
      boundary; the three out params receive the boundary's derivative, its
      normal, and [width, dwidth]. */
-  evaluateSide(s : number, side : number = 0, dv_out? : number[],
-               normal_out? : number[], lw_dlw_out? : number[]) {
+  evaluateSide(s : number, side : number = 0, dv_out? : VecOut,
+               normal_out? : VecOut, lw_dlw_out? : VecOut) {
     //s = Math.min(Math.max(s, 0.00001), 0.99999);
 
     if (this.flag & SplineFlags.COINCIDENT) {
@@ -1571,13 +1627,15 @@ export class SplineSegment extends SplineElement {
       var co = eval_curve(this, s, this.v1, this.v2, this.ks, order, undefined, no_update);
       //var co = new Vector3(this.v2).sub(this.v1).mulScalar(t).add(this.v1);
 
-      return eval_ret_vs.next().load(co);
+      /* eval_curve() only comes back empty on its angle_only path, which this
+         call does not take. */
+      return eval_ret_vs.next().load(co!);
     } else {
       var wrap = this._evalwrap;
-      var last = wrap;
+      var last : CurveEffect = wrap;
 
       for (var i = 0; i < this.cdata.length; i++) {
-        if (this.cdata[i].constructor._getDef().hasCurveEffect) {
+        if (layerClass(this.cdata[i])._getDef().hasCurveEffect) {
           var eff = this.cdata[i].curve_effect(this);
           eff.set_parent(last);
 
@@ -1585,7 +1643,7 @@ export class SplineSegment extends SplineElement {
         }
       }
 
-      return eval_ret_vs.next().load(last.evaluate(s));
+      return loadVec3Into2(eval_ret_vs.next(), last.evaluate(s));
     }
   }
 
@@ -1700,23 +1758,22 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
 export class SplineLoop extends SplineElement {
   static STRUCT : string;
 
-  f : SplineFace;
-  s : SplineSegment;
-  v : SplineVertex;
-  next : SplineLoop;
-  prev : SplineLoop;
-  radial_next : SplineLoop;
-  radial_prev : SplineLoop;
+  /* Every loop is created through SplineFace.make_path(), which passes all
+     three; the ring links are stitched up right after. */
+  f! : SplineFace;
+  s! : SplineSegment;
+  v! : SplineVertex;
+  next! : SplineLoop;
+  prev! : SplineLoop;
+  radial_next! : SplineLoop;
+  radial_prev! : SplineLoop;
   /* The path this loop is part of; assigned by SplineLoopPath.fromSTRUCT(). */
   p! : SplineLoopPath;
 
   constructor(f? : SplineFace, s? : SplineSegment, v? : SplineVertex) {
     super(SplineTypes.LOOP);
 
-    this.f = f, this.s = s, this.v = v;
-
-    this.next = this.prev = undefined;
-    this.radial_next = this.radial_prev = undefined;
+    this.f = f!, this.s = s!, this.v = v!;
   }
 
   static fromSTRUCT(reader : StructReader<SplineLoop>) {
@@ -1738,13 +1795,13 @@ SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + `
 `;
 
 class SplineLoopPathIter {
-  ret : {done : boolean, value : SplineLoop | undefined};
-  path : SplineLoopPath;
+  ret : IterRet<SplineLoop>;
+  path! : SplineLoopPath;
   l : SplineLoop | undefined;
 
   constructor(path? : SplineLoopPath) {
-    this.path = path;
-    this.ret = {done: false, value: undefined};
+    this.path = path!;
+    this.ret = new IterRet<SplineLoop>();
     this.l = path != undefined ? path.l : undefined;
   }
 
@@ -1752,7 +1809,7 @@ class SplineLoopPathIter {
     this.path = path;
     this.l = path.l;
     this.ret.done = false;
-    this.ret.value = undefined;
+    this.ret.clear();
 
     return this;
   }
@@ -1762,7 +1819,7 @@ class SplineLoopPathIter {
 
     if (this.l == undefined) {
       ret.done = true;
-      ret.value = undefined;
+      ret.clear();
       return ret;
     }
 
@@ -1778,32 +1835,31 @@ class SplineLoopPathIter {
   reset() {
     this.l = this.path.l;
     this.ret.done = false;
-    this.ret.value = undefined;
+    this.ret.clear();
   }
 }
 
 /* Were `static` inside SplineLoopPath.update_winding() and .update_aabb(). */
-const _SplineLoopPath_update_winding_cent = new Vector3();
+const _SplineLoopPath_update_winding_cent = new Vector2();
 const _SplineLoopPath_update_aabb_minmax = new MinMax(3);
 
 /* One closed boundary of a face, as a ring of loops starting at `l`. */
 export class SplineLoopPath {
   static STRUCT : string;
 
-  l : SplineLoop;
-  f : SplineFace;
-  totvert : number;
+  l! : SplineLoop;
+  f! : SplineFace;
+  totvert! : number;
   /* NOTE: update_winding() assigns a boolean here, and the nstructjs schema
      writes it as an int. */
-  winding: number;
+  winding: number | boolean;
   itercache! : cachering<SplineLoopPathIter>;
   /* Only exists between reader(ret) and the delete in fromSTRUCT(). */
   loops? : SplineLoop[];
 
   constructor(l? : SplineLoop, f? : SplineFace) {
-    this.l = l;
-    this.f = f;
-    this.totvert = undefined;
+    this.l = l!;
+    this.f = f!;
     this.winding = 0;
   }
 
@@ -1851,19 +1907,22 @@ export class SplineLoopPath {
     var ret = new SplineLoopPath();
     reader(ret);
 
-    var l = ret.l = ret.loops[0];
+    /* `loops` is a STRUCT field, so the reader above always filled it in. */
+    const loops = ret.loops!;
+
+    var l = ret.l = loops[0];
     l.p = ret;
 
-    for (var i = 1; i < ret.loops.length; i++) {
-      l.next = ret.loops[i];
-      ret.loops[i].prev = l;
+    for (var i = 1; i < loops.length; i++) {
+      l.next = loops[i];
+      loops[i].prev = l;
 
-      ret.loops[i].p = ret;
-      l = ret.loops[i];
+      loops[i].p = ret;
+      l = loops[i];
     }
 
-    ret.loops[0].prev = ret.loops[ret.loops.length - 1];
-    ret.loops[ret.loops.length - 1].next = ret.loops[0];
+    loops[0].prev = loops[loops.length - 1];
+    loops[loops.length - 1].next = loops[0];
 
     delete ret.loops;
     return ret;
@@ -2083,7 +2142,7 @@ import {ToolIter, TPropIterable} from '../core/toolprops_iter.js';
 export class ElementRefIter extends ToolIter {
   static STRUCT : string;
 
-  ret : {done : boolean, value : SplineElement | undefined};
+  ret : IterRet<SplineElement>;
   eset! : ElementRefSet;
   ctx? : FullContext;
   spline : Spline | undefined;
@@ -2096,7 +2155,7 @@ export class ElementRefIter extends ToolIter {
   constructor() {
     super();
 
-    this.ret = {done: false, value: undefined};
+    this.ret = new IterRet<SplineElement>();
     this.spline = this.ctx = this.iter = undefined;
   }
 
@@ -2121,28 +2180,34 @@ export class ElementRefIter extends ToolIter {
     var ret = this.ret;
 
     if (this.spline == undefined)
-      this.spline = this.ctx.spline;
+      this.spline = this.ctx!.spline;
     if (this.iter == undefined)
       this.iter = set.prototype[Symbol.iterator].call(this.eset);
 
-    var spline = this.spline;
-    var next, e = undefined;
+    const spline = this.spline!;
+    const iter = this.iter!;
+
+    let next : IteratorResult<number> | undefined;
+    let e : SplineElement | undefined = undefined;
+
+    /* The loop breaks on `done`, so the only way back to this test is with
+       a live item. */
     do {
-      var next = this.iter.next();
+      next = iter.next();
       if (next.done) break;
 
       e = spline.eidmap[next.value];
       if (e == undefined) {
         console.log("Warning, bad eid", next.value);
       }
-    } while (next.done != true && e == undefined);
+    } while (e == undefined);
 
     if (e == undefined || next.done == true) {
       this.spline = undefined;
       this.iter = undefined;
 
       ret.done = true;
-      ret.value = undefined;
+      ret.clear();
     } else {
       ret.value = e;
     }
@@ -2168,8 +2233,11 @@ export class ElementRefIter extends ToolIter {
     var ret = new ElementRefIter();
     reader(ret);
 
-    for (var i = 0; i < ret.saved_items.length; i++) {
-      ret.add(ret.saved_items[i]);
+    /* `saved_items` is a STRUCT field, so the reader above filled it in. */
+    const items = ret.saved_items!;
+
+    for (var i = 0; i < items.length; i++) {
+      Reflect.get(ret, "add").call(ret, items[i]);
     }
     delete ret.saved_items;
 
@@ -2186,9 +2254,11 @@ ElementRefIter.STRUCT = `
 
 /* A selection set that stores eids rather than elements, so it survives a
    reload and can be handed to a ToolOp as a property. */
-export class ElementRefSet extends set<number> {
+export class ElementRefSet extends set<SplineElement | number> {
   mask : number;
   itercaches! : cachering<ElementRefIter>;
+  /* Stamped on by IterProperty (toolprops.ts) before it iterates us. */
+  ctx? : FullContext;
 
   constructor(mask? : number) {
     super();

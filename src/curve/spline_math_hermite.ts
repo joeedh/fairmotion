@@ -63,7 +63,7 @@ const POLYCURVATURE_SBEZ_DV = (s : number, k1 : number, k2 : number,
                                dv1_k1 : number, dv1_k2 : number) => (6*(k1 - k2)*(s - 1) + (3*s - 2)*dv1_k2)*s + (3*s - 1)*(s - 1)*dv1_k1;
 
 let polytheta_spower = function polytheta_spower(s : number, ks : ArrayLike<number>,
-                                                 order : number) {
+                                                 order : number) : number {
   let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
 
   switch (order) {
@@ -87,10 +87,14 @@ let polytheta_spower = function polytheta_spower(s : number, ks : ArrayLike<numb
         dv1_k1)*s + 60*(2*s5 - 6*s4 + 5*s3 - 2)*k1)*s)/120;
     }
   }
+
+  /* ORDER is 4, so the switch always returns; falling through used to hand
+     back undefined and NaN every caller downstream of it. */
+  throw new Error("unsupported curve order " + order);
 }
 
 let polycurvature_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
-                                                         order : number) {
+                                                         order : number) : number {
   let k1                     = ks[0],
       dv1_k1 = ks[1], dv2_k1 = ks[2],
       dv2_k2                 = ks[3], dv1_k2 = ks[4],
@@ -115,10 +119,12 @@ let polycurvature_spower = function polycurvature_spower(s : number, ks : ArrayL
         2*(6*s2 + 3*s + 1)*(s - 1)*(s - 1)*(s - 1)*k1))/2.0;
     }
   }
+
+  throw new Error("unsupported curve order " + order);
 }
 
 let polycurvature_dv_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
-                                                            order : number) {
+                                                            order : number) : number {
   let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
 
   switch (order) {
@@ -143,6 +149,8 @@ let polycurvature_dv_spower = function polycurvature_spower(s : number, ks : Arr
         (s - 1)*(s - 1)*dv1_k1))/2.0;
     }
   }
+
+  throw new Error("unsupported curve order " + order);
 }
 
 /*

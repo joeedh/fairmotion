@@ -151,7 +151,7 @@ export class NodeBase {
   //dag_exec(ctx, inputs, outputs, graph) {
   //} can be undefined
 
-  static nodedef() {
+  static nodedef() : NodeDef | undefined {
     /* example:
   static nodedef() { return {
     name : "",

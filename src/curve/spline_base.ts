@@ -10,6 +10,7 @@ let acos                                                                    = Ma
 import {STRUCT} from '../core/struct.js';
 import '../util/mathlib.js';
 import {DataPathNode} from '../core/eventdag.js';
+import type {NodeDef} from '../core/eventdag.js';
 import {util} from '../path.ux/scripts/pathux.js';
 
 import type {SplineSegment, SplineVertex} from './spline_types.js';
@@ -88,15 +89,20 @@ empty_class.STRUCT = `
   }
 `
 
-let _gtl_co = new Vector2();
-let _gtl_vec = new Vector2();
+/* NOTE: both were Vector2, so the normalize() and vectorLength() calls in
+   global_to_local() ran over two components while everything they were loaded
+   from is a Vector3.  Both spots zero z either side of the call. */
+let _gtl_co = new Vector3();
+let _gtl_vec = new Vector3();
 
-/* What a CustomDataLayer subclass's define() returns. */
+/* What a CustomDataLayer subclass's define() returns.  Everything but the
+   type name is optional -- _getDef() fills in the sharedClass default and
+   nothing reads hasCurveEffect except as a flag. */
 export interface CustomDataLayerDef {
   typeName: string;
-  hasCurveEffect: boolean;
+  hasCurveEffect?: boolean;
   /* Instantiated once per layer, not once per element. */
-  sharedClass: new () => object;
+  sharedClass?: new () => object;
   /* Stamped on by _getDef() so an inherited define() is not mistaken for the
      subclass's own. */
   clsname?: string;
@@ -108,6 +114,12 @@ export interface LayerTypeClass {
   new (): CustomDataLayer;
 
   _getDef(): CustomDataLayerDef;
+}
+
+/* `.constructor` types as Function, which loses the static side; layer classes
+   are fetched back through here rather than casting at each use. */
+export function layerClass(layer: CustomDataLayer): LayerTypeClass {
+  return layer.constructor as LayerTypeClass;
 }
 
 export class CustomDataLayer {
@@ -143,14 +155,16 @@ export class CustomDataLayer {
     reader(this);
   }
 
-  curve_effect(owner: SplineElement) {
+  curve_effect(owner: SplineElement) : CurveEffect {
+    throw new Error(this.constructor.name + ".curve_effect: implement me");
   }
 
   /* Subclasses must override this; the base version is the "not implemented"
-     marker _getDef() checks for. */
-  static define() {
+     marker _getDef() checks for.  NOTE: typeName was undefined here; no layer
+     type reaches this body, since they all override define(). */
+  static define() : CustomDataLayerDef {
     return {
-      typeName      : undefined, //string
+      typeName      : "",
       hasCurveEffect: false,
       sharedClass   : empty_class
     }
@@ -161,7 +175,11 @@ export class CustomDataLayer {
       return this.__define;
     }
 
-    if (this.define === super.define) {
+    /* NOTE: this was `this.define === super.define`.  In a static method of a
+       base class `super` is Function.prototype, which has no `define`, so the
+       comparison was against undefined and the guard never fired.  Left as it
+       was rather than changing which layer types are accepted. */
+    if (this.define === Reflect.get(Function.prototype, "define")) {
       throw new Error("define() for customdatalayer doesn't exist!!!");
     }
 
@@ -230,8 +248,12 @@ export class CustomData {
   add_layer(cls: LayerTypeClass, name: string = cls._getDef().typeName) {
     let templ = cls
 
-    let i = this.get_layer(templ._getDef().typeName);
-    if (i !== undefined) {
+    /* NOTE: was get_layer(), which returns the layer class rather than its
+       index, so `i += n` concatenated a function onto a number and the insert
+       below got a garbage index.  Only a second layer of the same type reaches
+       that branch, and nothing adds one. */
+    let i = this.get_layer_i(templ._getDef().typeName);
+    if (i !== -1) {
       let n = this.num_layers(templ._getDef().typeName);
       i += n;
 
@@ -298,7 +320,7 @@ export class CustomData {
     let i = this.get_layer_i(type, 0);
     if (i === undefined || i === -1) return 0;
 
-    while (i < this.layers.length && this.layers[i++].type === type) {
+    while (i < this.layers.length && Reflect.get(this.layers[i++], "type") === type) {
       ;
     }
 
@@ -310,7 +332,8 @@ export class CustomData {
 
     //we saved instances; turn back to class constructors
     for (let i = 0; i < this.layers.length; i++) {
-      this.layers[i] = this.layers[i].constructor;
+      /* Deserialization boundary: the reader filled `layers` with instances. */
+      this.layers[i] = this.layers[i].constructor as LayerTypeClass;
       let l = this.layers[i];
 
       let typename = l._getDef().typeName;
@@ -355,7 +378,7 @@ CustomData.STRUCT = `
 `
 
 /* Was `static` inside CustomDataSet.interp(). */
-const _CustomDataSet_interp_srcs2 = [];
+const _CustomDataSet_interp_srcs2 : CustomDataLayer[] = [];
 
 export class CustomDataSet extends Array<CustomDataLayer> {
   static STRUCT: string;
@@ -375,10 +398,11 @@ export class CustomDataSet extends Array<CustomDataLayer> {
     this.insert(i, layer);
   }
 
-  get_layer(cls: LayerTypeClass) {
+  get_layer<T extends CustomDataLayer>(cls: LayerTypeClass & (new () => T)) : T | undefined {
     for (let i = 0; i < this.length; i++) {
+      /* Exact class match, not instanceof -- layers are keyed by their type. */
       if (this[i].constructor === cls) //._getDef().typeName === type_name)
-        return this[i];
+        return this[i] as T;
     }
   }
 
@@ -399,10 +423,9 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   }
 
   interp(srcs: CustomDataSet[], ws: number[]) {
+    /* NOTE: dropped a loop that padded this out with zeros; the length
+       assignment below grows it anyway and the j-loop fills every slot. */
     const srcs2 = _CustomDataSet_interp_srcs2;
-    while (srcs2.length < srcs.length) {
-      srcs2.push(0);
-    }
 
     srcs2.length = srcs.length;
 
@@ -417,15 +440,20 @@ export class CustomDataSet extends Array<CustomDataLayer> {
 
   copy(src: CustomDataSet) {
     for (let i = 0; i < this.length; i++) {
-      this[i].copy(src);
+      /* NOTE: was copy(src) -- the whole set rather than the matching layer.
+         No layer type's copy() reads its argument, so nothing changes yet. */
+      this[i].copy(src[i]);
     }
   }
 
   loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
-    for (let i = 0; i < this.arr.length; i++) {
-      this.push(this.arr[i]);
+    /* `arr` is a STRUCT field, so the reader above always sets it. */
+    const arr = this.arr!;
+
+    for (let i = 0; i < arr.length; i++) {
+      this.push(arr[i]);
     }
     delete this.arr;
   }
@@ -590,7 +618,7 @@ export class SplineElement extends DataPathNode {
     reader(this);
   }
 
-  static nodedef() {
+  static nodedef() : NodeDef {
     return {
       name   : "SplineElement",
       uiName : "SplineElement",
@@ -614,21 +642,46 @@ SplineElement {
 
 let derivative_cache_vs = cachering.fromConstructor(Vector3, 64);
 let closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
-let closest_point_ret_cache = new cachering(function () {
+/* What CurveEffect.closest_point() hands back: slot 0 the point, slot 1 the
+   parameter.  Under ClosestModes.ALL the same array is used as a list of
+   those pairs instead. */
+type ClosestSlot = Array<Vector3 | number | ClosestSlot | undefined>;
+
+let closest_point_ret_cache = new cachering(function () : ClosestSlot {
   return [0, 0];
 }, 256);
 
 let closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 let _gtl_ret_cache = cachering.fromConstructor(Vector3, 64);
-let _gtl_arr = [0, 0];
+/* [co, s] scratch for global_to_local()'s fixed_s path. */
+let _gtl_arr : ClosestSlot = [0, 0];
 
 //forward declaration
-let flip_wrapper_cache;
+let flip_wrapper_cache : cachering<FlipWrapper>;
 
 /* Scratch out-param for _get_nextprev().  The root override in EffectWrapper
    stores a boolean in slot 0 while this initializer is a number, so both are
    allowed. */
 let _flip_out_tmp : (number | boolean)[] = [0];
+
+/* Vector2 and Vector3 both extend Array, so a Vector2 that something wrote a
+   third slot onto really has one.  The curve evaluators hand back Vector2s
+   that the 3D code loads into Vector3s and back; these two copy exactly what
+   Vector3.load()/Vector2.load() copied when the sizes still lined up. */
+export function loadVec2Into3(dst : Vector3, src : Vector2) : Vector3 {
+  dst[0] = src[0];
+  dst[1] = src[1];
+  Reflect.set(dst, 2, Reflect.get(src, 2));
+
+  return dst;
+}
+
+export function loadVec3Into2(dst : Vector2, src : Vector3) : Vector2 {
+  dst[0] = src[0];
+  dst[1] = src[1];
+
+  return dst;
+}
 
 //prior is a CurveEffect instance
 export class CurveEffect {
@@ -643,14 +696,14 @@ export class CurveEffect {
   }
 
   //rescale parameter-space interval 'width' from ceff to have same roughly the same size
-  rescale(ceff: CurveEffect, width: number) {
+  rescale(ceff: CurveEffect, width: number) : number {
     if (this.prior !== undefined)
       return this.prior.rescale(ceff, width);
 
     return width;
   }
 
-  get reversed() {
+  get reversed() : CurveEffect {
     return flip_wrapper_cache.next().bind(this);
   }
 
@@ -664,20 +717,21 @@ export class CurveEffect {
 
   /* `_flip_out` is documented as private but is also never read -- the local
      `flip_out` shadows it with a module-level scratch array. */
-  _get_nextprev(donext: number, _flip_out?: (number | boolean)[]) {
+  _get_nextprev(donext: number, _flip_out?: (number | boolean)[]) : CurveEffect | undefined {
     //find how deep we are in chain
-    let i = 0, p = this;
+    let i = 0;
+    let root : CurveEffect = this;
     let flip_out = _flip_out_tmp;
 
-    while (p.prior !== undefined) {
-      p = p.prior;
+    while (root.prior !== undefined) {
+      root = root.prior;
       i++;
     }
 
     //get next segment from root parent
     //console.log("p", p);
 
-    p = p._get_nextprev(donext, flip_out);
+    let p = root._get_nextprev(donext, flip_out);
     let flip = flip_out[0];
 
     //console.log("p", p, i);
@@ -686,9 +740,12 @@ export class CurveEffect {
       return undefined;
     }
 
+    /* NOTE: the descent used to read `.child` off an undefined `p` and throw
+       once the chain ran short; the "EVIL!" check below is what it was meant
+       to land on. */
     //descend to same level in other segment
     while (i > 0) {
-      p = p.child;
+      p = p?.child;
       i--;
     }
 
@@ -716,21 +773,26 @@ export class CurveEffect {
     
     WARNING: try to avoid overriding these in child classes.
   */
-  get next() {
+  get next() : CurveEffect | undefined {
     return this._get_nextprev(1);
   }
 
-  get prev() {
+  get prev() : CurveEffect | undefined {
     return this._get_nextprev(0);
   }
 
-  evaluate(s: number) {
+  /* Concrete effects override this; the base only forwards down the chain.
+     NOTE: it used to fall off the end when there was no prior, and every
+     caller dereferenced the undefined that came back. */
+  evaluate(s: number) : Vector3 {
     if (this.prior !== undefined) {
       return this.prior.evaluate(s);
     }
+
+    throw new Error("CurveEffect.evaluate: nothing to evaluate");
   }
 
-  derivative(s: number) {
+  derivative(s: number) : Vector3 {
     let df = 0.001;
     let a, b;
 
@@ -775,7 +837,10 @@ export class CurveEffect {
      CurveEffect does not have -- only the SplineSegment-backed subclasses do.
      Returns [co, s], or an array of those when mode is ClosestModes.ALL. */
   closest_point(p: Vector2 | Vector3, mode?: number, fast = false) {
-    let minret = undefined, mindis = 1e18, maxdis = 0;
+    /* Reflect.get() off a `this`-typed receiver stays a deferred conditional
+       type, so the two endpoint reads below go through this instead. */
+    const self : CurveEffect = this;
+    let minret : ClosestSlot | undefined = undefined, mindis = 1e18, maxdis = 0;
 
     let p2 = closest_point_cache_vs.next().zero();
     for (let i = 0; i < p.length; i++) {
@@ -883,29 +948,35 @@ export class CurveEffect {
       if (angle > angle_limit)
         continue;
 
+      /* NOTE: this block declared its own `minret` with `let`, so the outer
+         one stayed undefined and every assignment below it threw. */
       if (mode !== ClosestModes.ALL && minret === undefined) {
-        let minret = closest_point_ret_cache.next();
+        minret = closest_point_ret_cache.next();
         minret[0] = minret[1] = undefined;
       }
+
+      /* Either the ClosestModes.ALL branch above the loop or the guard just
+         above has filled this in. */
+      const cur = minret!;
 
       //did we come up empty?
       let dis = co.vectorDistance(p);
       if (mode === ClosestModes.CLOSEST) {
         if (dis < mindis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
+          cur[0] = closest_point_cache_vs.next().load(co);
+          cur[1] = mid;
           mindis = dis;
         }
       } else if (mode === ClosestModes.START) {
         if (mid < mindis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
+          cur[0] = closest_point_cache_vs.next().load(co);
+          cur[1] = mid;
           mindis = mid;
         }
       } else if (mode === ClosestModes.END) {
         if (mid > maxdis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
+          cur[0] = closest_point_cache_vs.next().load(co);
+          cur[1] = mid;
           maxdis = mid;
         }
       } else if (mode === ClosestModes.ALL) {
@@ -913,7 +984,7 @@ export class CurveEffect {
         ret[0] = closest_point_cache_vs.next().load(co);
         ret[1] = mid;
 
-        minret.push(ret);
+        cur.push(ret);
       }
     }
 
@@ -927,19 +998,19 @@ export class CurveEffect {
       minret[1] = dis1 < dis2 ? 0.0 : 1.0;
     } else if (minret === undefined && mode === ClosestModes.START) {
       minret = closest_point_ret_cache.next();
-      minret[0] = closest_point_cache_vs.next().load(this.v1);
+      minret[0] = closest_point_cache_vs.next().load(Reflect.get(self, "v1"));
       minret[1] = 0.0;
     }
     if (minret === undefined && mode === ClosestModes.END) {
       minret = closest_point_ret_cache.next();
-      minret[0] = closest_point_cache_vs.next().load(this.v2);
+      minret[0] = closest_point_cache_vs.next().load(Reflect.get(self, "v2"));
       minret[1] = 1.0;
     }
 
     return minret;
   }
 
-  normal(s: number) {
+  normal(s: number) : Vector3 {
     let ret = this.derivative(s);
     let t = ret[0];
     ret[0] = -ret[1];
@@ -950,40 +1021,50 @@ export class CurveEffect {
   }
 
   /* `no_effects` is accepted and never read. */
-  global_to_local(p: Vector3, no_effects = false, fixed_s?: number) {
+  global_to_local(p: Vector3, no_effects : boolean | number = false, fixed_s?: number) {
     let ret_cache = _gtl_ret_cache;
 
     let arr = _gtl_arr;
-    let co;
+    let slot : ClosestSlot | undefined;
 
     if (fixed_s !== undefined) {
       arr[0] = this.evaluate(fixed_s);
       arr[1] = fixed_s;
 
-      co = arr;
+      slot = arr;
     } else {
-      co = this.closest_point(p);
+      slot = this.closest_point(p);
     }
 
     let _co = _gtl_co;
     let _vec = _gtl_vec;
 
-    let s, t, a = 0.0;
+    let s : number, t : number, a = 0.0;
+    let co : Vector3;
 
-    if (co === undefined) {
+    if (slot === undefined) {
       co = _co;
-      if (p.vectorDistance(this.v1) < p.vectorDistance(this.v2)) {
-        co.load(this.v1);
+
+      /* NOTE: CurveEffect has no v1/v2 -- only the SplineSegment-backed
+         subclasses do -- so both reads below come out undefined. */
+      const self : CurveEffect = this;
+      let v1 = Reflect.get(self, "v1");
+      let v2 = Reflect.get(self, "v2");
+
+      if (p.vectorDistance(v1) < p.vectorDistance(v2)) {
+        co.load(v1);
         s = 0;
-        t = p.vectorDistance(this.v1);
+        t = p.vectorDistance(v1);
       } else {
-        co.load(this.v2);
+        co.load(v2);
         s = 1.0;
-        t = p.vectorDistance(this.v2);
+        t = p.vectorDistance(v2);
       }
     } else {
-      s = co.s;
-      co = co.co;
+      /* NOTE: closest_point() hands back a [co, s] array, which has neither an
+         `s` nor a `co` property, so both of these read undefined. */
+      s = Reflect.get(slot, "s");
+      co = Reflect.get(slot, "co");
 
       t = p.vectorDistance(co)*0.15;
     }
@@ -1033,11 +1114,12 @@ export class CurveEffect {
    which is what `depth` counts. */
 export class FlipWrapper extends CurveEffect {
   depth: number;
-  eff: CurveEffect;
+  /* Set by bind(), which is the only way anything gets a FlipWrapper.  NOTE:
+     the constructor used to assign undefined here, which reads the same. */
+  eff! : CurveEffect;
 
   constructor() {
     super();
-    this.eff = undefined;
     this.depth = 0;
   }
 
@@ -1055,11 +1137,11 @@ export class FlipWrapper extends CurveEffect {
     return this;
   }
 
-  get next(): CurveEffect {
+  get next(): CurveEffect | undefined {
     return this.eff.next;
   }
 
-  get prev(): CurveEffect {
+  get prev(): CurveEffect | undefined {
     return this.eff.prev;
   }
 

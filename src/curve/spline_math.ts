@@ -39,6 +39,10 @@ export function do_solve(sflags : {[name : string] : number}, spline : Spline,
   }
 }
 
+/* A segment's spiral coefficients.  A plain Array until
+   native_api.checkSegment() swaps in a wasm-backed Float64Array. */
+export type KsArray = number[] | Float64Array;
+
 export const KSCALE  = ORDER+1;
 export const KANGLE  = ORDER+2;
 export const KSTARTX = ORDER+3;
@@ -66,8 +70,8 @@ const eval_ret_vs = cachering.fromConstructor(Vector2, 256);
    it throws. Nothing reaches it while the native path is available. */
 export function eval_curve(seg : SplineSegment, s : number,
                            v1 : Vector2 | SplineVertex, v2 : Vector2 | SplineVertex,
-                           ks : Float64Array, order? : number,
-                           angle_only? : boolean, no_update? : boolean) {
+                           ks : KsArray, order? : number,
+                           angle_only? : boolean | number, no_update? : boolean) : Vector2 | undefined {
   if (native_api.isReady() && !(window.DEBUG.no_native || window.DEBUG.no_nativeEval)) {
     return native_api.evalCurve(seg, s, v1, v2, ks, angle_only, no_update);
   }

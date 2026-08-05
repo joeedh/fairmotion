@@ -116,6 +116,18 @@ class InheritFlag {
 
 window.the_global_dag = undefined;
 
+/* the_global_dag is undefined until init_event_graph() runs; everything that
+   reaches for it runs after app startup. */
+export function globalDag() : EventDag {
+  const dag = window.the_global_dag;
+
+  if (dag === undefined) {
+    throw new Error("the event graph has not been created yet");
+  }
+
+  return dag;
+}
+
 export class NodeBase {
   /* Both hooks are optional: subclasses define dag_exec() if they compute
      anything, and dag_get_datapath() if they want an IndirectNode. */

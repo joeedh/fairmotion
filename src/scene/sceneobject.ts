@@ -1,4 +1,5 @@
 import {STRUCT} from '../core/struct.js';
+import {structInherit} from '../core/struct_facade.js';
 import {DataTypes, DataBlock} from "../core/lib_api.js";
 import type {GetBlockFunc, GetBlockUserFunc} from "../core/lib_api.js";
 import type {SplineFrameSet} from "../core/frameset.js";
@@ -84,7 +85,7 @@ export class SceneObject extends DataBlock {
   }
 }
 
-SceneObject.STRUCT = STRUCT.inherit(SceneObject, DataBlock) + `
+SceneObject.STRUCT = structInherit(SceneObject, DataBlock) + `
   data     : dataref(DataBlock);
   matrix   : mat4;
   loc      : vec2;

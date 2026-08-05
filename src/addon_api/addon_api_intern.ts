@@ -3,6 +3,7 @@ import {Spline} from '../curve/spline.js';
 import {SplineFrameSet} from '../core/frameset.js';
 import type {Addon} from './addon_api.js';
 import type {DataBlockClass} from '../core/lib_api.js';
+import {structAddClass} from '../core/struct_facade.js';
 
 /* Any class nstructjs can serialize; the register() wrapper below only reads
    structName off it. */
@@ -17,7 +18,7 @@ export function bindAddonAPI(addon : Addon) {
     nstructjs : {
       register(cls : StructClass) {
         let s = new nstructjs.STRUCT();
-        s.add_class(cls);
+        structAddClass(s, cls);
 
         if (cls.structName.search(/\./) < 0) {
           throw new Error("Must add namespace prefix (e.g. addon.SomeClass) to STRUCT scripts in addons");

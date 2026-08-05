@@ -5,6 +5,8 @@ import {Matrix4, Vector2, Vector3, Vector4, util, nstructjs} from '../path.ux/sc
 /* Type-only, so this does not close a runtime import cycle with lib_api.ts. */
 import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
 import type {Container, DataAPI, DataStruct} from '../path.ux/scripts/pathux.js';
+import {structAddClass, structInherit} from '../core/struct_facade.js';
+
 let STRUCT = nstructjs.STRUCT;
 
 export class GraphCycleError extends Error {};
@@ -492,7 +494,7 @@ graph.KeyValPair {
   val : abstract(Object);
 }
 `;
-nstructjs.manager.add_class(KeyValPair);
+structAddClass(nstructjs.manager, KeyValPair);
 
 /**
  Base class for all nodes
@@ -1105,10 +1107,13 @@ export class CallbackNode extends GraphNode {
   }
 }
 
-CallbackNode.STRUCT = STRUCT.inherit(CallbackNode, Node, "graph.CallbackNode") + `
+/* NOTE: `Node` here is the DOM Node, not GraphNode -- this file has no
+   GraphNode-named `Node`.  So CallbackNode's schema inherits nothing, which is
+   what every file written so far contains.  Left as it runs. */
+CallbackNode.STRUCT = structInherit(CallbackNode, Node, "graph.CallbackNode") + `
 }
 `;
-nstructjs.manager.add_class(CallbackNode);
+structAddClass(nstructjs.manager, CallbackNode);
 
 export class GraphNodes extends Array<GraphNodeType> {
   /* The graph this list belongs to; `selected` reads its nodes. */

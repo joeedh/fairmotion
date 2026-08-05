@@ -3,6 +3,7 @@ import * as PUTL from "../util/parseutil.js";
 
 import {Matrix4, Vector2, Vector3, Vector4, Quat} from "../path.ux/scripts/pathux.js";
 import {ToolOp} from './toolops_api.js';
+import {structIsRegistered, structRegister} from './struct_facade.js';
 
 export let STRUCT = nstructjs.STRUCT;
 export function profile_reset() {}
@@ -168,24 +169,24 @@ nstructjs.STRUCT.prototype.parse_structs = function(this: nstructjs.STRUCT, buf 
   let ret = _old.call(this, buf);
 
   if (!this.structs.dataref) {
-    this.register(__dataref);
+    structRegister(this, __dataref);
   }
 
   if (!this.structs.arraybuffer) {
-    this.register(arraybufferCompat);
+    structRegister(this, arraybufferCompat);
   }
 
   //*
   if (!this.structs.mat4) {
     console.warn("PATCHING MATRIX 4");
-    this.register(Mat4Intern);
-    this.register(Mat4Compat, "mat4");
+    structRegister(this, Mat4Intern);
+    structRegister(this, Mat4Compat, "mat4");
   }
 
   for (let v of vecpatches) {
     if (!this.structs[v._structName]) {
       v.structName = v._structName;
-      this.register(v, v._structName);
+      structRegister(this, v, v._structName);
     }
   }
 
@@ -241,8 +242,8 @@ window.init_struct_packer = function(): void {
     }
 
     try {
-      if (cls.STRUCT !== undefined && !window.istruct.isRegistered(cls) && !isToolOp(cls)) {
-        window.istruct.register(cls);
+      if (cls.STRUCT !== undefined && !structIsRegistered(window.istruct, cls) && !isToolOp(cls)) {
+        structRegister(window.istruct, cls);
       }
     } catch (err) {
       if (err instanceof PUTL.PUTLParseError) {

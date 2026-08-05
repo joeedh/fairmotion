@@ -216,12 +216,13 @@ export function checkSegment(seg : SplineSegment) {
 }
 
 let evalrets = util.cachering.fromConstructor(Vector2, 64);
-/* NOTE: spline_math.ts calls this with seven arguments, so its `angle_only`
-   arrives as `no_update` and its own `no_update` is dropped on the floor.
-   Left alone here -- fixing the arity changes what the solver is told. */
+/* NOTE: spline_math.ts hands its `angle_only` to `no_update` -- the wasm path
+   has no angle-only mode and the caller's own `no_update` never arrives.  Left
+   alone: fixing it changes what the solver is told.
+   `ks` is unused; the copy into wasm memory below is commented out. */
 export function evalCurve(seg : SplineSegment, s : number,
                           v1 : SplineVertex | Vector2, v2 : SplineVertex | Vector2,
-                          ks : Float64Array, no_update = false) {
+                          ks : ArrayLike<number>, no_update = false) {
   if (!wv1) {
     init_eval_mem();
   }
@@ -458,8 +459,9 @@ function _unpacker(dview : DataView) {
 
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
+/* `steps` is vestigial -- nothing in here reads it. */
 export function do_solve(sflags : {[name : string] : number}, spline : Spline,
-                         steps : number, gk = 0.95, return_promise = false) {
+                         steps? : number, gk = 0.95, return_promise = false) {
   if (config.DISABLE_SOLVE) {
     return new Promise<void>((accept, reject) => {accept()});
   }

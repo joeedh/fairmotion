@@ -820,8 +820,9 @@ export function solve_pre(spline : Spline) {
 
 /* The JS fallback for the wasm solver.  NOTE: none of `splineflags`, `steps` or
    `gk` is read -- solve_intern() is called with hardcoded values below. */
+/* `steps` and `gk` are vestigial -- neither is read anywhere below. */
 export function do_solve(splineflags : {[name : string] : number}, spline : Spline,
-                         steps : number, gk : number) {
+                         steps? : number, gk? : number) {
   solve_pre(spline);
 
   //if (spline === new Context().frameset.pathspline)

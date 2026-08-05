@@ -19,6 +19,7 @@ import {
 } from '../core/toolprops.js';
 
 import {STRUCT} from '../core/struct.js';
+import {structInherit} from '../core/struct_facade.js';
 import * as math from '../util/mathlib.js';
 import {DataPathNode, NodeBase} from '../core/eventdag.js';
 
@@ -36,6 +37,7 @@ import {
   MaterialFlags, CustomDataLayer, CustomData, CustomDataSet,
   SplineElement, CurveEffect, layerClass, loadVec2Into3, loadVec3Into2
 } from './spline_base.js';
+import type {Co2} from './spline_base.js';
 import type {NodeDef} from '../core/eventdag.js';
 import type {KsArray} from './spline_math.js';
 
@@ -72,8 +74,8 @@ export interface SplineVertex extends Vector2 {}
 /* What SplineVertex.toJSON() emits: an array-like of the two coordinates plus
    the topology fields. */
 export interface SplineVertexJSON {
-  0 : number | undefined;
-  1 : number | undefined;
+  [i : number] : number | undefined;
+
   length : number;
   frame : unknown;
   frames : {[time : number] : number};
@@ -107,7 +109,7 @@ export class SplineVertex extends SplineElement {
   /* Only exists between reader(this) and the delete in loadSTRUCT(). */
   co? : Vector2;
 
-  constructor(co? : ArrayLike<number>) {
+  constructor(co? : Co2) {
     super(SplineTypes.VERTEX);
 
     /* SplineVertex is not a Vector2 subclass -- it borrows the methods through
@@ -121,8 +123,10 @@ export class SplineVertex extends SplineElement {
     this._no_warning = false;
 
     if (co !== undefined) {
-      this[0] = co[0];
-      this[1] = co[1];
+      /* Co2's slots carry `| undefined` only because path.ux vectors refuse a
+         plain index signature; 0 and 1 are always there. */
+      this[0] = co[0]!;
+      this[1] = co[1]!;
     }
 
     this.type = SplineTypes.VERTEX;
@@ -468,7 +472,7 @@ export class SplineVertex extends SplineElement {
   }
 };
 
-SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + `
+SplineVertex.STRUCT = structInherit(SplineVertex, SplineElement) + `
   co       : vec2          | this;
   segments : array(e, int) | e.eid;
   hpair    : int           | this.hpair != undefined? this.hpair.eid : -1;
@@ -606,7 +610,8 @@ export class SplineSegment extends SplineElement {
   z : number;
   _aabb : Vector3[];
 
-  constructor(v1: SplineVertex, v2: SplineVertex) {
+  /* copy() and fromJSON() build bare segments and fill v1/v2 in themselves. */
+  constructor(v1?: SplineVertex, v2?: SplineVertex) {
     super(SplineTypes.SEGMENT);
 
     this._evalwrap = new EffectWrapper(this);
@@ -620,8 +625,8 @@ export class SplineSegment extends SplineElement {
     this.shift1 = 0.0;
     this.shift2 = 0.0;
 
-    this.v1 = v1;
-    this.v2 = v2;
+    this.v1 = v1!;
+    this.v2 = v2!;
 
     //set by draw code.  represents id of
     //all segments that are topologically connected
@@ -1723,7 +1728,7 @@ export class SplineSegment extends SplineElement {
   }
 }
 
-SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
+SplineSegment.STRUCT = structInherit(SplineSegment, SplineElement) + `
   ks       : array(float);
 
   v1       : int | obj.v1.eid;
@@ -1783,7 +1788,7 @@ export class SplineLoop extends SplineElement {
   }
 }
 
-SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + `
+SplineLoop.STRUCT = structInherit(SplineLoop, SplineElement) + `
     f    : int | obj.f.eid;
     s    : int | obj.s.eid;
     v    : int | obj.v.eid;
@@ -2009,7 +2014,7 @@ export class SplineFace extends SplineElement {
   }
 }
 
-SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + `
+SplineFace.STRUCT = structInherit(SplineFace, SplineElement) + `
     paths  : array(SplineLoopPath);
     mat    : Material;
     aabb   : array(vec3);

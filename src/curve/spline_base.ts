@@ -664,6 +664,16 @@ let flip_wrapper_cache : cachering<FlipWrapper>;
    allowed. */
 let _flip_out_tmp : (number | boolean)[] = [0];
 
+/* Something with numeric slots 0 and 1.  Vector2/Vector3 deliberately have no
+   plain index signature -- theirs yields `number | undefined` above LEN -- so
+   they are not ArrayLike<number>, and neither is SplineVertex, which borrows
+   Vector2's prototype. */
+export type Co2 = {
+  [i : number] : number | undefined;
+
+  length : number;
+};
+
 /* Vector2 and Vector3 both extend Array, so a Vector2 that something wrote a
    third slot onto really has one.  The curve evaluators hand back Vector2s
    that the 3D code loads into Vector3s and back; these two copy exactly what

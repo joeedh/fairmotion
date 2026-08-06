@@ -15,11 +15,14 @@ and vectormath (`Vector2/3/4`, `Matrix4`, `Quat`).
 | Unit tests | vitest |
 | E2E | Playwright |
 
-Targets: an **html5 app** and an **electron app**.
+Targets: an **html5 app** and an **electron app**. Both are built by `buildtools/esbuild.mjs`
+(`pnpm build`, `pnpm build:electron`, `pnpm watch`); `buildtools/serv.mjs` serves the html5 app
+and `buildtools/electron.mjs` launches the electron one.
 
-The legacy Python build system (`js_build.py`, `js_sources.py`, `make_tsrc.py`, `configure.py`,
-`tools/extjs_cc/`) is being removed. Do not add to it, and do not resurrect the `tsrc/` copy
-scheme from the old `tsconfig.json` — sources are renamed in place so git history survives.
+`src/` is TypeScript — every live source is `.ts`, typechecked from the root `tsconfig.json`
+with `strict` and `useDefineForClassFields` on. The latter is load-bearing at runtime, not just
+for the typechecker: esbuild reads it too, and the codebase depends on define semantics for
+bare field declarations. Do not turn it off.
 
 Format with the fork's binary, not bare `prettier`:
 
@@ -82,9 +85,10 @@ through `any` at the call site.
 
 ## Legacy transpiler
 
-The old `extjs_cc` transpiler accepted non-standard syntax. In live sources this is down to
-C-style typed parameters (`foo(Number t)`), `static` locals inside method bodies, and bare
-`global x;` declarations. All are being removed. Never write new code using them.
+The old `extjs_cc` transpiler and its non-standard syntax — C-style typed parameters
+(`foo(Number t)`), `static` locals inside method bodies, bare `global x;` declarations — are
+gone from the tree. Never reintroduce them. Old docs and research reports still show pre-port
+`.js` paths and stripped C-style annotations; treat those as history, not as the current code.
 
 `#ifdef`/`#define` appearing inside template literals in `src/webgl/` is **GLSL preprocessor
 source**, not transpiler syntax. Leave it alone.

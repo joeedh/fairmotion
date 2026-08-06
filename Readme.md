@@ -1,5 +1,5 @@
 # Demo
-[Demo](http://joeedh.github.io/fairmotion/index.html)
+[Demo](https://joeedh.github.io/fairmotion/index.html)
 
 # Building and running
 

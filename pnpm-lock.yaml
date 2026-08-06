@@ -45,6 +45,9 @@ importers:
       parse5:
         specifier: 6.0.0
         version: 6.0.0
+      pngjs-nozlib:
+        specifier: ^1.0.0
+        version: 1.0.0
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
@@ -663,6 +666,10 @@ packages:
     resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
     engines: {node: '>=20'}
     hasBin: true
+
+  pngjs-nozlib@1.0.0:
+    resolution: {integrity: sha512-N1PggqLp9xDqwAoKvGohmZ3m4/N9xpY0nDZivFqQLcpLHmliHnCp9BuNCsOeqHWMuEEgFjpEaq9dZq6RZyy0fA==}
+    engines: {iojs: '>= 1.0.0', node: '>=0.10.0'}
 
   postcss@8.5.25:
     resolution: {integrity: sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw==}
@@ -1300,6 +1307,8 @@ snapshots:
       playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  pngjs-nozlib@1.0.0: {}
 
   postcss@8.5.25:
     dependencies:

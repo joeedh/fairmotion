@@ -33,6 +33,7 @@
     "happy-dom": "^20.9.0",
     "marked": "^12.0.2",
     "parse5": "6.0.0",
+    "pngjs-nozlib": "^1.0.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.7"
   },

@@ -274,6 +274,25 @@ async function buildWorkers() {
   );
 }
 
+/*
+ * path.ux's electron_api.getNativeIcon() reaches for the ICO encoder with a
+ * bare `require("./icogen.js")` (then `./icogen.cjs`) resolved against the
+ * renderer's directory, so it has to exist as a real file next to index.html --
+ * it is not part of the app bundle. The old build copied it verbatim, which
+ * stopped working when path.ux renamed it to .ts; bundling it here also folds
+ * in pngjs-nozlib, which the copy had left to a separate npm install.
+ */
+async function buildIcogen() {
+  return esbuild.context({
+    ...shared,
+    entryPoints: ["src/path.ux/scripts/platforms/electron/icogen.ts"],
+    outfile    : path.join(target.outDir, "icogen.cjs"),
+    bundle     : true,
+    format     : "cjs",
+    platform   : "node",
+  });
+}
+
 async function buildApp() {
   return esbuild.context({
     ...shared,
@@ -290,7 +309,12 @@ async function buildApp() {
    Python build (app0.js .. app11.js) would otherwise linger forever. */
 fs.rmSync(target.outDir, {recursive: true, force: true});
 
-const contexts = [...(await buildGlobals()), ...(await buildWorkers()), await buildApp()];
+const contexts = [
+  ...(await buildGlobals()),
+  ...(await buildWorkers()),
+  ...(opts.electron ? [await buildIcogen()] : []),
+  await buildApp(),
+];
 
 copyAssets();
 

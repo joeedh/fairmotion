@@ -3,8 +3,8 @@
 //interface
 let _event_dag_idgen: EIDGen | undefined = undefined;
 
-import '../util/vectormath.js';
-import type {FullContext} from './context.js';
+import "../util/vectormath.js";
+import type { FullContext } from "./context.js";
 
 /**
 
@@ -44,7 +44,6 @@ import type {FullContext} from './context.js';
  the_global_dag.link(some_node, "depend", view2d, "depend");
  */
 
-
 /*
  * What a socket carries. The type tag on the socket (DataTypes below) decides
  * which member of this union is live, and whether loadData() copies in place
@@ -64,13 +63,13 @@ export type SocketValue =
 
 /* Sockets as nodedef() declares them: either a bare default value, whose JS type
    picks the DataTypes tag, or a ready-made EventSocket to copy. */
-export type SocketDefs = {[name: string]: SocketValue | EventSocket | undefined};
+export type SocketDefs = { [name: string]: SocketValue | EventSocket | undefined };
 
 /* Which side of a node a socket sits on. */
 export type SocketDir = "i" | "o";
 
 /* Sockets after get_ndef() has resolved them. */
-export type SocketMap = {[name: string]: EventSocket};
+export type SocketMap = { [name: string]: EventSocket };
 
 export interface NodeDef {
   name?: string;
@@ -172,8 +171,12 @@ function setField(node: object, k: string, value: SocketValue | undefined) {
 }
 
 function copyVectorData(src: unknown): SocketValue {
-  if (src instanceof Vector2 || src instanceof Vector3 ||
-      src instanceof Vector4 || src instanceof Matrix4) {
+  if (
+    src instanceof Vector2 ||
+    src instanceof Vector3 ||
+    src instanceof Vector4 ||
+    src instanceof Matrix4
+  ) {
     return src.copy();
   }
 
@@ -193,7 +196,7 @@ window.the_global_dag = undefined;
 
 /* the_global_dag is undefined until init_event_graph() runs; everything that
    reaches for it runs after app startup. */
-export function globalDag() : EventDag {
+export function globalDag(): EventDag {
   const dag = window.the_global_dag;
 
   if (dag === undefined) {
@@ -222,9 +225,11 @@ export class NodeBase {
     if (node !== undefined) {
       node.dag_update(output_socket_name, data);
     } else if (DEBUG.dag) {
-      console.warn("Failed to find node data for ",
+      console.warn(
+        "Failed to find node data for ",
         this.dag_get_datapath !== undefined ? this.dag_get_datapath(g_app_state.ctx) : this,
-        "\nThis is not necassarily an error");
+        "\nThis is not necassarily an error"
+      );
     }
   }
 
@@ -238,7 +243,7 @@ export class NodeBase {
   //dag_exec(ctx, inputs, outputs, graph) {
   //} can be undefined
 
-  static nodedef() : NodeDef | undefined {
+  static nodedef(): NodeDef | undefined {
     /* example:
   static nodedef() { return {
     name : "",
@@ -265,8 +270,7 @@ export class NodeBase {
     let graph = globalDag();
     let node = graph.get_node(this, false);
 
-    if (node !== undefined)
-      graph.remove(node);
+    if (node !== undefined) graph.remove(node);
   }
 }
 
@@ -334,8 +338,7 @@ export class NodeFieldSocketWrapper extends NodeBase {
   }
 }
 
-export class UIOnlyNode extends NodeBase {
-}
+export class UIOnlyNode extends NodeBase {}
 
 export class DataPathNode extends NodeBase {
   /* Subclasses override this; the stub is here so isDataPathNode() finds the
@@ -346,7 +349,7 @@ export class DataPathNode extends NodeBase {
 
   //have to be compatible with DataPathWrapperNode too
   static isDataPathNode(obj: DagOwner): obj is DagOwner & {
-    dag_get_datapath(ctx?: FullContext): string
+    dag_get_datapath(ctx?: FullContext): string;
   } {
     return obj.dag_get_datapath !== undefined;
   }
@@ -362,41 +365,31 @@ export class DataPathWrapperNode extends NodeFieldSocketWrapper {
 export let DagFlags = {
   UPDATE: 1,
   TEMP  : 2,
-  DEAD  : 4
-}
+  DEAD  : 4,
+};
 
 /*
-* private structures
-* */
+ * private structures
+ * */
 
 function make_slot(stype: SocketDir, k: string, v: SocketValue | undefined, node?: EventNode) {
   let type;
 
-  if (v === undefined || v === null)
-    type = DataTypes.DEPEND;
-  else if (v instanceof set)
-    type = DataTypes.SET;
+  if (v === undefined || v === null) type = DataTypes.DEPEND;
+  else if (v instanceof set) type = DataTypes.SET;
   /* NOTE: this also tested `k === false`, a typo for `v === false` that could
      never fire -- a socket declared with a `false` default still ends up with
-     no datatype at all rather than BOOL. */
-  else if (v === true)
-    type = DataTypes.BOOL
-  else if (typeof v === "number")
-    type = DataTypes.NUMBER
-  else if (typeof v === "string" || v instanceof String)
-    type = DataTypes.STRING
-  else if (v instanceof Vector2)
-    type = DataTypes.VEC2
-  else if (v instanceof Vector3)
-    type = DataTypes.VEC3
-  else if (v instanceof Vector4)
-    type = DataTypes.VEC4
-  else if (v instanceof Matrix4)
-    type = DataTypes.MATRIX4
+     no datatype at all rather than BOOL. */ else if (v === true) type = DataTypes.BOOL;
+  else if (typeof v === "number") type = DataTypes.NUMBER;
+  else if (typeof v === "string" || v instanceof String) type = DataTypes.STRING;
+  else if (v instanceof Vector2) type = DataTypes.VEC2;
+  else if (v instanceof Vector3) type = DataTypes.VEC3;
+  else if (v instanceof Vector4) type = DataTypes.VEC4;
+  else if (v instanceof Matrix4) type = DataTypes.MATRIX4;
   else if (v instanceof Array) {
     for (let i = 0; i < v.length; i++) {
       //allow undefined and null?
-      if (typeof (v[i]) !== "number" && typeof (v[i]) !== undefined) {
+      if (typeof v[i] !== "number" && typeof v[i] !== undefined) {
         warntrace("WARNING: bad array being passed around!!", v);
       }
       type = DataTypes.ARRAY;
@@ -406,7 +399,6 @@ function make_slot(stype: SocketDir, k: string, v: SocketValue | undefined, node
   /* type is unset for the defaults the chain above misses; see the BOOL note. */
   return new EventSocket(k, node, stype, type!);
 }
-
 
 function get_sockets(cls: NodeBaseClass, key: "inputs" | "outputs"): SocketDefs {
   if (cls.nodedef === undefined) {
@@ -502,7 +494,7 @@ function get_ndef(cls: NodeBaseClass): FinalNodeDef {
      mutated object itself is what gets cached. */
   let final: FinalNodeDef = Object.assign(ndef, {
     inputs : build_sockets(cls, "inputs"),
-    outputs: build_sockets(cls, "outputs")
+    outputs: build_sockets(cls, "outputs"),
   });
 
   cls._cached_nodedef = final;
@@ -557,8 +549,7 @@ export class EventNode {
     return undefined;
   }
 
-  on_remove(ctx: FullContext) {
-  }
+  on_remove(ctx: FullContext) {}
 
   /*
   if field is undefined then will update
@@ -620,8 +611,7 @@ export class IndirectNode extends EventNode {
   }
 
   get_owner(ctx: FullContext): DagOwner | undefined {
-    if (this._owner !== undefined)
-      return this._owner;
+    if (this._owner !== undefined) return this._owner;
 
     this._owner = ctx.api.getValue(ctx, this.datapath);
     return this._owner;
@@ -656,12 +646,13 @@ export let DataTypes = {
   VEC4   : 64,
   MATRIX4: 128,
   ARRAY  : 256, //array of numbers only?
-  SET    : 512
-}
+  SET    : 512,
+};
 
 /* Default socket data per DataTypes tag. Mutable types are stored as factories
    so every socket gets its own instance; immutable ones are stored directly. */
-var TypeDefaults: {[type: int]: SocketValue | (() => SocketValue)} = {}, t = TypeDefaults;
+var TypeDefaults: { [type: int]: SocketValue | (() => SocketValue) } = {},
+  t = TypeDefaults;
 t[DataTypes.DEPEND] = null;
 t[DataTypes.NUMBER] = 0;
 t[DataTypes.STRING] = "";
@@ -717,7 +708,8 @@ export class EventSocket {
   flag: int;
   edges: EventEdge[];
 
-  constructor(name: string, owner: EventNode | undefined, type: SocketDir, datatype: int) { //type can be either lower-case 'i' or 'o'
+  constructor(name: string, owner: EventNode | undefined, type: SocketDir, datatype: int) {
+    //type can be either lower-case 'i' or 'o'
     this.type = type;
 
     this.name = name;
@@ -780,9 +772,9 @@ export class EventSocket {
 
     let src, dst;
     if (this.type === "i") {
-      src = b, dst = this;
+      (src = b), (dst = this);
     } else if (this.type === "o") {
-      src = this, dst = b;
+      (src = this), (dst = b);
     } else {
       throw new Error("Malformed socket type.  this.type, b.type: " + this.type + ", " + b.type);
     }
@@ -795,8 +787,7 @@ export class EventSocket {
 
   _find_edge(b: EventSocket): EventEdge | undefined {
     for (let i = 0; i < this.edges.length; i++) {
-      if (this.edges[i].opposite(this) === b)
-        return this.edges[i];
+      if (this.edges[i].opposite(this) === b) return this.edges[i];
     }
 
     return undefined;
@@ -830,7 +821,8 @@ window._NodeBase = NodeBase;
 
 //temporaries used by EventDag.prototype.link
 //the initial element is just a placeholder; link() always overwrites it
-const sarr: string[] = [""], darr: string[] = [""];
+const sarr: string[] = [""],
+  darr: string[] = [""];
 
 //for client objects that are actually functions
 function gen_callback_exec(func: DagCallback & Function, thisvar?: object) {
@@ -839,19 +831,24 @@ function gen_callback_exec(func: DagCallback & Function, thisvar?: object) {
     if (k === "toString") continue;
 
     Reflect.set(func, k, Reflect.get(NodeBase.prototype, k));
-  }//*/
+  } //*/
 
   /* A stand-in constructor, which is where link() hangs the callback's
      nodedef(). */
   Reflect.set(func, "constructor", {
     name     : func.name,
-    prototype: NodeBase.prototype
+    prototype: NodeBase.prototype,
   });
   func.prototype = NodeBase.prototype;
 
-  func.dag_exec = function (ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
+  func.dag_exec = function (
+    ctx: FullContext,
+    inputs: SocketMap,
+    outputs: SocketMap,
+    graph: EventDag
+  ) {
     return func.call(thisvar, ctx, inputs, outputs, graph);
-  }
+  };
 }
 
 export class EventDag {
@@ -864,12 +861,12 @@ export class EventDag {
   /* Guards against re-entering exec() from inside a node's dag_exec(). */
   doexec: boolean;
 
-  node_pathmap: {[path: string]: IndirectNode};
-  node_idmap: {[dagId: int]: DirectNode}; //only direct nodes have ids?
-  object_idmap: {[dagId: int]: DagOwner};
+  node_pathmap: { [path: string]: IndirectNode };
+  node_idmap: { [dagId: int]: DirectNode }; //only direct nodes have ids?
+  object_idmap: { [dagId: int]: DagOwner };
 
   /* Keyed by node.id, unlike the two maps above which are keyed by owner id. */
-  idmap: {[id: int]: EventNode};
+  idmap: { [id: int]: EventNode };
 
   ctx: FullContext;
 
@@ -895,8 +892,7 @@ export class EventDag {
 
     this.ctx = ctx;
 
-    if (_event_dag_idgen === undefined)
-      _event_dag_idgen = new EIDGen();
+    if (_event_dag_idgen === undefined) _event_dag_idgen = new EIDGen();
 
     this.object_idgen = _event_dag_idgen;
     this.idgen = new EIDGen();
@@ -957,8 +953,7 @@ export class EventDag {
   }
 
   indirect_node(ctx: FullContext | undefined, path: string, object?: DagOwner, auto_create = true) {
-    if (path in this.node_pathmap)
-      return this.node_pathmap[path];
+    if (path in this.node_pathmap) return this.node_pathmap[path];
 
     if (!auto_create) return undefined;
 
@@ -985,13 +980,12 @@ export class EventDag {
   direct_node(ctx: FullContext | undefined, object: DagOwner, auto_create = true) {
     if (object.__dag_id !== undefined && object.__dag_id in this.node_idmap) {
       this.object_idmap[object.__dag_id] = object;
-      return this.node_idmap[object.__dag_id]
+      return this.node_idmap[object.__dag_id];
     }
 
     if (!auto_create) return undefined;
 
-    if (object.__dag_id === undefined)
-      object.__dag_id = this.object_idgen.gen_id();
+    if (object.__dag_id === undefined) object.__dag_id = this.object_idgen.gen_id();
 
     let node = new DirectNode(object.__dag_id);
     node.id = object.__dag_id;
@@ -1098,14 +1092,19 @@ export class EventDag {
     if (node !== undefined && object.dag_exec !== undefined && node.dag_exec === undefined) {
       /* NOTE: `object` was cleared here to break a closure reference the
          function below never took; dropped. */
-      node.dag_exec = function (this: EventNode, ctx: FullContext, inputs: SocketMap,
-                                outputs: SocketMap, graph: EventDag) {
+      node.dag_exec = function (
+        this: EventNode,
+        ctx: FullContext,
+        inputs: SocketMap,
+        outputs: SocketMap,
+        graph: EventDag
+      ) {
         let owner = this.get_owner(ctx);
 
         if (owner !== undefined && owner.dag_exec !== undefined) {
           return owner.dag_exec(ctx, inputs, outputs, graph);
         }
-      }
+      };
     }
 
     return node;
@@ -1123,9 +1122,16 @@ export class EventDag {
 
    See NodeBase.dag_exec.
    */
-  link(src: EventNode | DagOwner, srcfield: string | string[], dst: EventNode | DagOwner,
-       dstfield: string | string[], dstthis?: object) { //dstthis is for in case src is a function
-    let obja = src, objb = dst;
+  link(
+    src: EventNode | DagOwner,
+    srcfield: string | string[],
+    dst: EventNode | DagOwner,
+    dstfield: string | string[],
+    dstthis?: object
+  ) {
+    //dstthis is for in case src is a function
+    let obja = src,
+      objb = dst;
 
     /* get_node() only comes back empty when it is told not to auto-create. */
     let srcnode = this.get_node(src)!;
@@ -1152,10 +1158,10 @@ export class EventDag {
          node's ui name is left undefined. */
       let inputs: SocketMap = {};
       let ndef = {
-        name   : "function callback node",
-        uiname : "function callback node",
+        name  : "function callback node",
+        uiname: "function callback node",
         inputs,
-        outputs: {}
+        outputs: {},
       };
 
       //don't want to make closure here
@@ -1185,8 +1191,9 @@ export class EventDag {
     /* NOTE: both fields are wrapped in an array above, so the non-array
        branch that used to follow this one was unreachable; dropped. */
     if (srcfield.length !== dstfield.length) {
-      throw new Error("Error, both arguments must be arrays of equal length: " +
-                      srcfield + ", " + dstfield);
+      throw new Error(
+        "Error, both arguments must be arrays of equal length: " + srcfield + ", " + dstfield
+      );
     }
 
     for (let i = 0; i < dstfield.length; i++) {
@@ -1248,11 +1255,11 @@ export class EventDag {
       sortlist.push(n);
     }
 
-    let nlen = this.nodes.length, nodes = this.nodes;
+    let nlen = this.nodes.length,
+      nodes = this.nodes;
     for (let i = 0; i < nlen; i++) {
       let n = nodes[i];
-      if (n.flag & DagFlags.TEMP)
-        continue;
+      if (n.flag & DagFlags.TEMP) continue;
 
       sort(n);
     }
@@ -1305,8 +1312,7 @@ export class EventDag {
         continue;
       }
 
-      if (!(n.flag & DagFlags.UPDATE))
-        continue;
+      if (!(n.flag & DagFlags.UPDATE)) continue;
 
       n.flag &= ~DagFlags.UPDATE;
 
@@ -1315,7 +1321,8 @@ export class EventDag {
 
       //console.log("Executing DAG node", owner.constructor.name);
 
-      if (owner === undefined) { //destroy!
+      if (owner === undefined) {
+        //destroy!
         console.warn("Bad owner!");
         n.flag |= DagFlags.DEAD;
         continue;
@@ -1326,7 +1333,8 @@ export class EventDag {
         let sock = n.inputs[k];
 
         for (let j = 0; j < sock.edges.length; j++) {
-          let e = sock.edges[j], s2 = e.opposite(sock);
+          let e = sock.edges[j],
+            s2 = e.opposite(sock);
 
           /* NOTE: the owner lookup below ran before the `n2 === undefined`
              test that used to follow it, so an empty socket threw here rather
@@ -1354,19 +1362,16 @@ export class EventDag {
       for (let k in n.outputs) {
         let s = n.outputs[k];
 
-        if (!(s.flag & DagFlags.UPDATE))
-          continue;
+        if (!(s.flag & DagFlags.UPDATE)) continue;
 
         s.flag &= ~DagFlags.UPDATE;
 
-        if (DEBUG.dag)
-          console.log("Propegating updated socket", k);
+        if (DEBUG.dag) console.log("Propegating updated socket", k);
 
         for (let j = 0; j < s.edges.length; j++) {
           s.edges[j].opposite(s).node!.flag |= DagFlags.UPDATE;
         }
       }
-
     }
   }
 }
@@ -1374,14 +1379,14 @@ export class EventDag {
 /* Set while a dag exec is already queued, so updateEventDag() coalesces. */
 let req: int | undefined = undefined;
 
-window.updateDataGraph = function(force?: boolean) {
+window.updateDataGraph = function (force?: boolean) {
   console.warn("use updateEventDag not updateDataGraph!");
   window.updateEventDag(force);
 };
 
 /** if force is false, will ensure a dag update is queued;
  *  otherwise dag will be executed immediately*/
-window.updateEventDag = function(force=false) {
+window.updateEventDag = function (force = false) {
   if (force) {
     the_global_dag.exec();
     return;
@@ -1404,4 +1409,4 @@ window.init_event_graph = function init_event_graph(ctx: FullContext) {
   globalDag().startUpdateTimer();
 
   _event_dag_idgen = new EIDGen();
-}
+};

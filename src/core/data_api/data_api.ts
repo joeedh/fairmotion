@@ -1,8 +1,8 @@
-import {ToolOpAbstract, ToolOp, ToolMacro} from '../toolops_api.js';
+import { ToolOpAbstract, ToolOp, ToolMacro } from "../toolops_api.js";
 
 /* Every tool lands in toolmap under both its apiname and its toolpath, so the
    same class shows up under two keys. */
-export var toolmap: {[name: string]: typeof ToolOp} = {};
+export var toolmap: { [name: string]: typeof ToolOp } = {};
 export var toollist: Array<typeof ToolOp> = [];
 
 export function register_toolops() {
@@ -15,32 +15,28 @@ export function register_toolops() {
       return false;
     }
 
-    if (t === ToolOpAbstract || t === ToolOp || t === ToolMacro)
-      return false;
+    if (t === ToolOpAbstract || t === ToolOp || t === ToolMacro) return false;
 
-    let p = t, lastp;
+    let p = t,
+      lastp;
 
     while (p && p.prototype && p.prototype.__proto__ && p !== lastp) {
       lastp = p;
       p = p.prototype.__proto__.constructor;
 
-      if (p !== undefined && p === ToolOpAbstract)
-        return true;
+      if (p !== undefined && p === ToolOpAbstract) return true;
     }
 
     return false;
   }
 
   for (let cls of defined_classes) {
-    if (!isTool(cls))
-      continue;
+    if (!isTool(cls)) continue;
 
     let def = cls.tooldef();
 
-    if (def.apiname)
-      toolmap[def.apiname] = cls;
-    if (def.toolpath)
-      toolmap[def.toolpath] = cls
+    if (def.apiname) toolmap[def.apiname] = cls;
+    if (def.toolpath) toolmap[def.toolpath] = cls;
 
     toollist.push(cls);
 

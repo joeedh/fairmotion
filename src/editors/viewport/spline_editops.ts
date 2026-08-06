@@ -1,41 +1,55 @@
-import {IntProperty, FloatProperty, CollectionProperty,
-        BoolProperty, TPropFlags, StringProperty} from '../../core/toolprops.js';
-import {ToolOp, UndoFlags, ToolFlags, ModalStates, ToolMacro} from '../../core/toolops_api.js';
-import {SplineFlags, SplineTypes, RecalcFlags, SplineVertex, SplineSegment,
-        SplineFace} from '../../curve/spline_types.js';
-import {RestrictFlags, Spline} from '../../curve/spline.js';
-import {VDAnimFlags} from '../../core/frameset.js';
-import '../../path.ux/scripts/util/struct.js'; //get istruct
-import {redo_draw_sort} from '../../curve/spline_draw.js';
+import {
+  IntProperty,
+  FloatProperty,
+  CollectionProperty,
+  BoolProperty,
+  TPropFlags,
+  StringProperty,
+} from "../../core/toolprops.js";
+import { ToolOp, UndoFlags, ToolFlags, ModalStates, ToolMacro } from "../../core/toolops_api.js";
+import {
+  SplineFlags,
+  SplineTypes,
+  RecalcFlags,
+  SplineVertex,
+  SplineSegment,
+  SplineFace,
+} from "../../curve/spline_types.js";
+import { RestrictFlags, Spline } from "../../curve/spline.js";
+import { VDAnimFlags } from "../../core/frameset.js";
+import "../../path.ux/scripts/util/struct.js"; //get istruct
+import { redo_draw_sort } from "../../curve/spline_draw.js";
 
-import {FullContext} from "../../core/context.js";
-import {TranslateOp} from './transform.js';
-import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
-import type {SplineFrameSet} from '../../core/frameset.js';
-import type {VertexAnimData} from '../../core/animspline.js';
+import { FullContext } from "../../core/context.js";
+import { TranslateOp } from "./transform.js";
+import type { PropertySlots } from "../../path.ux/scripts/pathux.js";
+import type { SplineFrameSet } from "../../core/frameset.js";
+import type { VertexAnimData } from "../../core/animspline.js";
 
 /* NOTE: `Icons` (three tooldefs), `charmap` (three on_keydown switches) and
    `istruct` (SplineLocalToolOp's undo pair) are all used bare and never
    imported by name -- the struct.js import above is side-effect only. */
 
 /* eid -> the value that eid's flag/animflag/vtime had before the op ran. */
-export type EidUndo = {[eid : number] : number};
+export type EidUndo = { [eid: number]: number };
 
 export class KeyCurrentFrame extends ToolOp {
   constructor() {
     super();
   }
 
-  static tooldef() { return {
-    toolpath  : "spline.key_current_frame",
-    uiname   : "Key Selected",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false
-  }}
+  static tooldef() {
+    return {
+      toolpath: "spline.key_current_frame",
+      uiname  : "Key Selected",
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     for (let v of ctx.frameset.spline.verts.selected.editable(ctx)) {
       v.flag |= SplineFlags.FRAME_DIRTY;
     }
@@ -49,11 +63,11 @@ export class KeyCurrentFrame extends ToolOp {
 }
 
 export class ShiftLayerOrderOp extends ToolOp<{
-  layer_id    : IntProperty,
-  off         : IntProperty,
-  spline_path : StringProperty
+  layer_id: IntProperty;
+  off: IntProperty;
+  spline_path: StringProperty;
 }> {
-  constructor(layer_id? : number, off? : number) {
+  constructor(layer_id?: number, off?: number) {
     super();
 
     if (layer_id !== undefined) {
@@ -65,21 +79,23 @@ export class ShiftLayerOrderOp extends ToolOp<{
     }
   }
 
-  static tooldef() { return {
-    uiname   : "Shift Layer Order",
-    toolpath  : "spline.shift_layer_order",
+  static tooldef() {
+    return {
+      uiname  : "Shift Layer Order",
+      toolpath: "spline.shift_layer_order",
 
-    inputs   : {
-      layer_id : new IntProperty(0),
-      off      : new IntProperty(1),
-      spline_path : new StringProperty("frameset.drawspline")
-    },
-    outputs  : {},
-    icon     : -1,
-    is_modal : false
-  }}
+      inputs: {
+        layer_id   : new IntProperty(0),
+        off        : new IntProperty(1),
+        spline_path: new StringProperty("frameset.drawspline"),
+      },
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
 
     if (!(spline instanceof Spline)) return;
@@ -90,7 +106,7 @@ export class ShiftLayerOrderOp extends ToolOp<{
 
     let off = this.inputs.off.data;
 
-    spline.layerset.change_layer_order(layer, layer.order+off);
+    spline.layerset.change_layer_order(layer, layer.order + off);
     spline.regen_sort();
   }
 }
@@ -102,9 +118,8 @@ export class SplineGlobalToolOp<
 > extends ToolOp<InputSlots, OutputSlots> {
   /* NOTE: ToolOp's constructor takes no arguments, and none of these four
      are used anyway; subclasses still pass them. */
-  constructor(apiname? : string, uiname? : string, description? : string,
-              icon? : number) {
-    super()
+  constructor(apiname?: string, uiname?: string, description?: string, icon?: number) {
+    super();
   }
 
   //okay, this is silly.  just rely on default undo handlers,
@@ -188,9 +203,9 @@ export class SplineGlobalToolOp<
     pathspline.idgen = idgen2;
     idgen2.max_cur(max_cur-1);
     */
-    //console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
- // }
-}//*/
+  //console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
+  // }
+} //*/
 
 //for tools that modify the active spline only, not both splines
 //(drawspline and pathspline) at once
@@ -199,10 +214,9 @@ export class SplineLocalToolOp<
   OutputSlots extends PropertySlots = PropertySlots,
 > extends ToolOp<InputSlots, OutputSlots> {
   /* The whole spline, serialized by undo_pre and read back by undo. */
-  declare _undo : {data : DataView};
+  declare _undo: { data: DataView };
 
-  constructor(apiname? : string, uiname? : string, description? : string,
-              icon? : number) {
+  constructor(apiname?: string, uiname?: string, description?: string, icon?: number) {
     super();
   }
 
@@ -213,22 +227,22 @@ export class SplineLocalToolOp<
   }}
   */
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     let spline = ctx.spline;
 
-    let data : number[] = [];
+    let data: number[] = [];
 
     istruct.write_object(data, spline);
 
     this._undo = {
-      data : new DataView(new Uint8Array(data).buffer)
+      data: new DataView(new Uint8Array(data).buffer),
     };
 
     //XXX flag redraw here?
     window.redraw_viewport();
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let spline = ctx.spline;
     let spline2 = istruct.read_object(this._undo.data, Spline);
 
@@ -238,8 +252,7 @@ export class SplineLocalToolOp<
     spline.on_destroy();
 
     for (let k in spline2) {
-      if (typeof k === "symbol")
-        continue;
+      if (typeof k === "symbol") continue;
 
       //don't interfere with event dag
       if (k === "inputs" || k === "outputs" || k.startsWith("dag_")) {
@@ -252,51 +265,52 @@ export class SplineLocalToolOp<
     let max_cur = spline.idgen.cur_id;
     spline.idgen = idgen;
 
-    if (is_anim_path !== undefined)
-      spline.is_anim_path = is_anim_path;
+    if (is_anim_path !== undefined) spline.is_anim_path = is_anim_path;
 
     console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
-    idgen.max_cur(max_cur-1); //minus 1 is because idgen.max_cur adds one internally
+    idgen.max_cur(max_cur - 1); //minus 1 is because idgen.max_cur adds one internally
 
     window.redraw_viewport();
   }
 
-  execPost(ctx : FullContext) {
+  execPost(ctx: FullContext) {
     window.redraw_viewport();
   }
-}//*/
+} //*/
 
 export class KeyEdgesOp extends SplineLocalToolOp {
-  uiname : string;
+  uiname: string;
 
   constructor() {
     super();
     this.uiname = "Key Edges";
   }
 
-  static tooldef() { return {
-    uiname   : "Key Edges",
-    toolpath  : "spline.key_edges",
+  static tooldef() {
+    return {
+      uiname  : "Key Edges",
+      toolpath: "spline.key_edges",
 
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false
-  }}
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     //don't call if drawspline isn't active
     return ctx.spline === ctx.frameset.spline;
   }
 
-  exec(ctx : FullContext) {
-    let prefix = "frameset.drawspline.segments["
+  exec(ctx: FullContext) {
+    let prefix = "frameset.drawspline.segments[";
     let frameset = ctx.frameset;
     let spline = frameset.spline;
 
     let edge_path_keys = {
-      z : 1,
-    }
+      z: 1,
+    };
 
     for (let s of spline.segments) {
       let path = prefix + s.eid + "]";
@@ -308,9 +322,12 @@ export class KeyEdgesOp extends SplineLocalToolOp {
       /* NOTE: DataAPI has no setAnimPathKey() and never has, so this tool
          throws on its first segment.  Kept as a dynamic lookup rather than
          invented, since the intended replacement is unknown. */
-      const setAnimPathKey = Reflect.get(ctx.api, "setAnimPathKey") as
-        (ctx : FullContext, frameset : SplineFrameSet, path : string,
-         time : number) => void;
+      const setAnimPathKey = Reflect.get(ctx.api, "setAnimPathKey") as (
+        ctx: FullContext,
+        frameset: SplineFrameSet,
+        path: string,
+        time: number
+      ) => void;
 
       setAnimPathKey.call(ctx.api, ctx, frameset, path, ctx.scene.time);
     }
@@ -318,7 +335,7 @@ export class KeyEdgesOp extends SplineLocalToolOp {
 }
 
 /* splinepath -> that spline's copied pose, as eid -> position. */
-let pose_clipboards : {[path : string] : {[eid : number] : Vector3}} = {};
+let pose_clipboards: { [path: string]: { [eid: number]: Vector3 } } = {};
 
 export class CopyPoseOp extends SplineLocalToolOp {
   constructor() {
@@ -327,27 +344,29 @@ export class CopyPoseOp extends SplineLocalToolOp {
     this.undoflag |= UndoFlags.NO_UNDO;
   }
 
-  static tooldef() { return {
-    uiname   : "Copy Pose",
-    toolpath  : "editor.copy_pose",
-    undoflag : UndoFlags.NO_UNDO,
+  static tooldef() {
+    return {
+      uiname  : "Copy Pose",
+      toolpath: "editor.copy_pose",
+      undoflag: UndoFlags.NO_UNDO,
 
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false
-  }}
+      inputs  : {},
+      outputs : {},
+      icon    : -1,
+      is_modal: false,
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let lists = [
       ctx.spline.verts.selected.editable(ctx),
-      ctx.spline.handles.selected.editable(ctx)
-    ]
+      ctx.spline.handles.selected.editable(ctx),
+    ];
 
-    let pose_clipboard : {[eid : number] : Vector3} = {};
+    let pose_clipboard: { [eid: number]: Vector3 } = {};
     pose_clipboards[ctx.splinepath] = pose_clipboard;
 
-    for (let i=0; i<2; i++) {
+    for (let i = 0; i < 2; i++) {
       for (let v of lists[i]) {
         //verts are 2d; load2() leaves the third slot at zero, as new Vector3(v) did
         pose_clipboard[v.eid] = new Vector3().load2(v);
@@ -357,33 +376,42 @@ export class CopyPoseOp extends SplineLocalToolOp {
 }
 
 export class PastePoseOp extends SplineLocalToolOp<{
-  pose : CollectionProperty<number>
+  pose: CollectionProperty<number>;
 }> {
   constructor() {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Paste Pose",
-    toolpath  : "editor.paste_pose",
+  static tooldef() {
+    return {
+      uiname  : "Paste Pose",
+      toolpath: "editor.paste_pose",
 
-    inputs   : {
-      //float array of 'eid; x, y, z; eid; x, y, z....
-      pose : new CollectionProperty([], undefined, "pose", "pose", "pose data", TPropFlags.COLL_LOOSE_TYPE)
-    },
+      inputs: {
+        //float array of 'eid; x, y, z; eid; x, y, z....
+        pose: new CollectionProperty(
+          [],
+          undefined,
+          "pose",
+          "pose",
+          "pose data",
+          TPropFlags.COLL_LOOSE_TYPE
+        ),
+      },
 
-    outputs  : {},
-    icon     : -1,
+      outputs: {},
+      icon   : -1,
 
-    //technically, according to our architectural
-    //rules anything that reads data from outside of
-    //toolop slots or the data model (and thus is
-    //not determinable for undo) has to be modal.
+      //technically, according to our architectural
+      //rules anything that reads data from outside of
+      //toolop slots or the data model (and thus is
+      //not determinable for undo) has to be modal.
 
-    is_modal : true
-  }}
+      is_modal: true,
+    };
+  }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     let spline = ctx.spline;
 
     let pose_clipboard = pose_clipboards[ctx.splinepath];
@@ -395,7 +423,7 @@ export class PastePoseOp extends SplineLocalToolOp<{
       return;
     }
 
-    let array : number[] = [];
+    let array: number[] = [];
     for (let k in pose_clipboard) {
       let v = spline.eidmap[+k];
 
@@ -407,7 +435,9 @@ export class PastePoseOp extends SplineLocalToolOp<{
       let co = pose_clipboard[+k];
 
       array.push(v.eid);
-      array.push(co[0]!); array.push(co[1]!); array.push(co[2]!);
+      array.push(co[0]!);
+      array.push(co[1]!);
+      array.push(co[2]!);
     }
 
     this.inputs.pose.flag |= TPropFlags.COLL_LOOSE_TYPE;
@@ -416,7 +446,7 @@ export class PastePoseOp extends SplineLocalToolOp<{
     this.exec(ctx);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     if (this.modalRunning) {
@@ -459,7 +489,7 @@ export class PastePoseOp extends SplineLocalToolOp<{
         continue;
       }
 
-      console.log("loading. . .", v, eid, pose[i], pose[i+1], pose[i+2]);
+      console.log("loading. . .", v, eid, pose[i], pose[i + 1], pose[i + 2]);
 
       v[0] = pose[i++]!;
       v[1] = pose[i++]!;
@@ -477,27 +507,30 @@ export class PastePoseOp extends SplineLocalToolOp<{
 
 export class InterpStepModeOp extends ToolOp {
   /* Animation-vert eid -> its animflag before the toggle. */
-  declare _undo : EidUndo;
+  declare _undo: EidUndo;
 
   constructor() {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Toggle Step Mode",
-    toolpath : "spline.toggle_step_mode",
+  static tooldef() {
+    return {
+      uiname  : "Toggle Step Mode",
+      toolpath: "spline.toggle_step_mode",
 
-    inputs   : {},
+      inputs: {},
 
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    description : "Disable/enable smooth interpolation for animation paths"
-  }}
+      outputs    : {},
+      icon       : -1,
+      is_modal   : false,
+      description: "Disable/enable smooth interpolation for animation paths",
+    };
+  }
 
-  get_animverts(ctx : FullContext) {
+  get_animverts(ctx: FullContext) {
     let vds = new set<VertexAnimData>();
-    let spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
+    let spline = ctx.frameset.spline,
+      pathspline = ctx.frameset.pathspline;
     let frameset = ctx.frameset;
 
     for (let v of spline.verts.selected.editable(ctx)) {
@@ -512,8 +545,8 @@ export class InterpStepModeOp extends ToolOp {
 
   //this operator is interesting, it operates on pathspline
   //but can get selection data from geometry spline
-  undo_pre(ctx : FullContext) {
-    let undo : EidUndo = {};
+  undo_pre(ctx: FullContext) {
+    let undo: EidUndo = {};
     let pathspline = ctx.frameset.pathspline;
 
     for (let vd of this.get_animverts(ctx)) {
@@ -523,7 +556,7 @@ export class InterpStepModeOp extends ToolOp {
     this._undo = undo;
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let undo = this._undo;
     let pathspline = ctx.frameset.pathspline;
 
@@ -537,7 +570,7 @@ export class InterpStepModeOp extends ToolOp {
     }
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let kcache = ctx.frameset.kcache;
 
     for (let vd of this.get_animverts(ctx)) {
@@ -557,23 +590,25 @@ export class DeleteVertOp extends SplineLocalToolOp {
     super();
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
 
-  static tooldef() { return {
-    uiname   : "Delete Points/Segments",
-    toolpath  : "spline.delete_verts",
+  static tooldef() {
+    return {
+      uiname  : "Delete Points/Segments",
+      toolpath: "spline.delete_verts",
 
-    inputs   : {},
+      inputs: {},
 
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    description : "Remove points and segments"
-  }}
+      outputs    : {},
+      icon       : -1,
+      is_modal   : false,
+      description: "Remove points and segments",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("delete op!");
     let spline = ctx.spline;
 
@@ -587,7 +622,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
 
     spline.propagate_update_flags();
 
-    for (let i=0; i<dellist.length; i++) {
+    for (let i = 0; i < dellist.length; i++) {
       console.log(dellist[i]);
       spline.kill_vertex(dellist[i]);
     }
@@ -611,23 +646,25 @@ export class DeleteSegmentOp extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Delete Segments",
-    toolpath  : "spline.delete_segments",
+  static tooldef() {
+    return {
+      uiname  : "Delete Segments",
+      toolpath: "spline.delete_segments",
 
-    inputs   : {},
+      inputs: {},
 
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    description : "Remove segments"
-  }}
+      outputs    : {},
+      icon       : -1,
+      is_modal   : false,
+      description: "Remove segments",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("delete op!");
     let spline = ctx.spline;
 
@@ -637,13 +674,13 @@ export class DeleteSegmentOp extends ToolOp {
       dellist.push(s);
     }
 
-    for (let i=0; i<dellist.length; i++) {
+    for (let i = 0; i < dellist.length; i++) {
       console.log(dellist[i]);
       spline.kill_segment(dellist[i]);
     }
 
     if (dellist.length > 0) {
-      for (let i=0; i<spline.segments.length; i++) {
+      for (let i = 0; i < spline.segments.length; i++) {
         let s = spline.segments[i];
         s.flag |= SplineFlags.UPDATE;
       }
@@ -653,33 +690,35 @@ export class DeleteSegmentOp extends ToolOp {
   }
 }
 
-
 export class DeleteFaceOp extends SplineLocalToolOp {
   constructor() {
     super(undefined, "Delete Faces");
   }
 
-  static tooldef() { return {
-    uiname   : "Delete Faces",
-    toolpath  : "spline.delete_faces",
+  static tooldef() {
+    return {
+      uiname  : "Delete Faces",
+      toolpath: "spline.delete_faces",
 
-    inputs   : {},
+      inputs: {},
 
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    description : "Remove faces"
-  }}
+      outputs    : {},
+      icon       : -1,
+      is_modal   : false,
+      description: "Remove faces",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("delete op!");
     let spline = ctx.spline;
 
-    let vset = new set<SplineVertex>(), sset = new set<SplineSegment>(),
+    let vset = new set<SplineVertex>(),
+      sset = new set<SplineSegment>(),
       fset = new set<SplineFace>();
 
     for (let f of spline.faces.selected.editable(ctx)) {
@@ -690,7 +729,8 @@ export class DeleteFaceOp extends SplineLocalToolOp {
       for (let path of f.paths) {
         for (let l of path) {
           let l2 = l.s.l!;
-          let _c=0, del=true;
+          let _c = 0,
+            del = true;
 
           do {
             if (_c++ > 1000) {
@@ -698,31 +738,28 @@ export class DeleteFaceOp extends SplineLocalToolOp {
               break;
             }
 
-            if (!fset.has(l2.f))
-              del = false;
+            if (!fset.has(l2.f)) del = false;
             l2 = l2.radial_next!;
           } while (l2 !== l.s.l);
 
-          if (del)
-            sset.add(l.s);
+          if (del) sset.add(l.s);
         }
       }
     }
 
     for (let s of sset) {
-      for (let si=0; si<2; si++) {
+      for (let si = 0; si < 2; si++) {
         let del = true;
         let v = si ? s.v2 : s.v1;
 
-        for (let i=0; i<v.segments.length; i++) {
-          if (!(sset.has(v.segments[i]))) {
+        for (let i = 0; i < v.segments.length; i++) {
+          if (!sset.has(v.segments[i])) {
             del = false;
             break;
           }
         }
 
-        if (del)
-          vset.add(v);
+        if (del) vset.add(v);
       }
     }
 
@@ -743,41 +780,39 @@ export class DeleteFaceOp extends SplineLocalToolOp {
   }
 }
 
-
 export class ChangeFaceZ extends SplineLocalToolOp<{
-  offset  : IntProperty,
-  selmode : IntProperty
+  offset: IntProperty;
+  selmode: IntProperty;
 }> {
-  constructor(offset? : number, selmode? : number) {
+  constructor(offset?: number, selmode?: number) {
     super(undefined);
 
-    if (offset !== undefined)
-      this.inputs.offset.setValue(offset);
-    if (selmode !== undefined)
-      this.inputs.selmode.setValue(selmode);
+    if (offset !== undefined) this.inputs.offset.setValue(offset);
+    if (selmode !== undefined) this.inputs.selmode.setValue(selmode);
   }
 
-  static tooldef() { return {
-    uiname   : "Set Order",
-    toolpath  : "spline.change_face_z",
+  static tooldef() {
+    return {
+      uiname  : "Set Order",
+      toolpath: "spline.change_face_z",
 
-    inputs   : {
-      offset   : new IntProperty(1),
-      selmode : new IntProperty(SplineTypes.FACE)
-    },
+      inputs: {
+        offset : new IntProperty(1),
+        selmode: new IntProperty(SplineTypes.FACE),
+      },
 
-    outputs  : {},
-    icon     : Icons.Z_UP,
-    is_modal : false,
-    description : "Change draw order of selected faces"
-  }}
-
-
-  static canRun(ctx : FullContext) {
-    return true;// !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
+      outputs    : {},
+      icon       : Icons.Z_UP,
+      is_modal   : false,
+      description: "Change draw order of selected faces",
+    };
   }
 
-  exec(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
+    return true; // !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
+  }
+
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     let off = this.inputs.offset.getValue();
@@ -788,7 +823,7 @@ export class ChangeFaceZ extends SplineLocalToolOp<{
     let typestr = "";
 
     if (selmode & SplineTypes.VERTEX) {
-      selmode |=  SplineTypes.SEGMENT;
+      selmode |= SplineTypes.SEGMENT;
     }
 
     if (selmode & SplineTypes.FACE) {
@@ -803,7 +838,7 @@ export class ChangeFaceZ extends SplineLocalToolOp<{
       }
     }
 
-    if (selmode & (SplineTypes.SEGMENT|SplineTypes.VERTEX)) {
+    if (selmode & (SplineTypes.SEGMENT | SplineTypes.VERTEX)) {
       typestr += "segment ";
 
       for (let s of spline.segments.selected.editable(ctx)) {
@@ -823,37 +858,39 @@ export class ChangeFaceZ extends SplineLocalToolOp<{
 }
 
 export class DissolveVertOp extends SplineLocalToolOp<{
-  verts     : CollectionProperty<number>,
-  use_verts : BoolProperty
+  verts: CollectionProperty<number>;
+  use_verts: BoolProperty;
 }> {
   constructor() {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Collapse Points",
-    toolpath  : "spline.dissolve_verts",
+  static tooldef() {
+    return {
+      uiname  : "Collapse Points",
+      toolpath: "spline.dissolve_verts",
 
-    inputs   : {
-      verts     : new CollectionProperty([], undefined, "verts", "verts"),
-      use_verts : new BoolProperty(false, "use_verts")
-    },
+      inputs: {
+        verts    : new CollectionProperty([], undefined, "verts", "verts"),
+        use_verts: new BoolProperty(false, "use_verts"),
+      },
 
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    description : "Change draw order of selected faces"
-  }}
+      outputs    : {},
+      icon       : -1,
+      is_modal   : false,
+      description: "Change draw order of selected faces",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DISSOLVE);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
-    let dellist : SplineVertex[] = [];
+    let dellist: SplineVertex[] = [];
 
-    let verts : Iterable<SplineVertex> = spline.verts.selected.editable(ctx);
+    let verts: Iterable<SplineVertex> = spline.verts.selected.editable(ctx);
 
     if (this.inputs.use_verts.data) {
       let vset = new set<SplineVertex>();
@@ -877,7 +914,7 @@ export class DissolveVertOp extends SplineLocalToolOp<{
       dellist.push(v);
     }
 
-    for (let i=0; i<dellist.length; i++) {
+    for (let i = 0; i < dellist.length; i++) {
       spline.dissolve_vertex(dellist[i]);
     }
 
@@ -887,8 +924,7 @@ export class DissolveVertOp extends SplineLocalToolOp<{
 
 //XXX need to consider an API for geometric operations
 //that differ between animation/draw splines
-function frameset_split_edge(ctx : FullContext, spline : Spline,
-                            s : SplineSegment, t = 0.5) {
+function frameset_split_edge(ctx: FullContext, spline: Spline, s: SplineSegment, t = 0.5) {
   console.log("split edge op!");
 
   let interp_animdata = spline === ctx.frameset.spline;
@@ -918,22 +954,24 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Split Segments",
-    toolpath : "spline.split_edges",
-    inputs   : {},
-    outputs  : {},
+  static tooldef() {
+    return {
+      uiname  : "Split Segments",
+      toolpath: "spline.split_edges",
+      inputs  : {},
+      outputs : {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Split selected segments"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description: "Split selected segments",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("split edge op!");
 
     let spline = ctx.spline;
@@ -952,11 +990,10 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
     for (let s of spline.segments.selected.editable(ctx)) {
       if (s.v1.hidden || s.v2.hidden) continue;
 
-      if ((s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT))
-        segs.push(s);
+      if (s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT) segs.push(s);
     }
 
-    for (let i=0; i<segs.length; i++) {
+    for (let i = 0; i < segs.length; i++) {
       let e_v = frameset_split_edge(ctx, spline, segs[i]);
       spline.verts.setselect(e_v[1], true);
     }
@@ -971,11 +1008,11 @@ export class SplitPickEdgeTransformOp extends ToolMacro<FullContext> {
      Copying the picked-edge tool's def here is what that meant to do. */
   static tooldef() {
     return {
-      uiname   : "Split Segment",
-      toolpath : "spline.split_pick_edge_transform",
-      description : SplitEdgePickOp.tooldef().description,
-      icon     : SplitEdgePickOp.tooldef().icon
-    }
+      uiname     : "Split Segment",
+      toolpath   : "spline.split_pick_edge_transform",
+      description: SplitEdgePickOp.tooldef().description,
+      icon       : SplitEdgePickOp.tooldef().icon,
+    };
   }
 
   constructor() {
@@ -990,7 +1027,7 @@ export class SplitPickEdgeTransformOp extends ToolMacro<FullContext> {
     //XXX stupidly hackish way of passing last mouse position between tools
     let modalEnd = tool.modalEnd;
 
-    tool.modalEnd = function (was_cancelled : boolean) {
+    tool.modalEnd = function (was_cancelled: boolean) {
       tool2.user_start_mpos = tool.mpos;
       console.log("                 on_modal_end successfully called", tool2.user_start_mpos);
 
@@ -1000,51 +1037,53 @@ export class SplitPickEdgeTransformOp extends ToolMacro<FullContext> {
 }
 
 export class SplitEdgePickOp extends SplineGlobalToolOp<{
-  segment_eid : IntProperty,
-  segment_t   : FloatProperty,
-  spline_path : StringProperty,
-  deselect    : BoolProperty
+  segment_eid: IntProperty;
+  segment_t: FloatProperty;
+  spline_path: StringProperty;
+  deselect: BoolProperty;
 }> {
-  mpos : Vector2;
+  mpos: Vector2;
 
   constructor() {
     super();
     this.mpos = new Vector2();
   }
 
-  static tooldef() { return {
-    uiname    : "Split Segment",
-    toolpath  : "spline.split_pick_edge",
+  static tooldef() {
+    return {
+      uiname  : "Split Segment",
+      toolpath: "spline.split_pick_edge",
 
-    inputs   : {
-      segment_eid : new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
-      segment_t   : new FloatProperty(0, "segment_t", "segment_t", "segment_t"),
-      spline_path : new StringProperty("drawspline", "spline_path", "splien_path", "spline_path"),
-      deselect : new BoolProperty(true, "deselect", "deselect", "deselect")
-    },
+      inputs: {
+        segment_eid: new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
+        segment_t  : new FloatProperty(0, "segment_t", "segment_t", "segment_t"),
+        spline_path: new StringProperty("drawspline", "spline_path", "splien_path", "spline_path"),
+        deselect   : new BoolProperty(true, "deselect", "deselect", "deselect"),
+      },
 
-    outputs  : {},
+      outputs: {},
 
-    icon     : Icons.SPLIT_EDGE,
-    is_modal : true,
-    description : "Split picked segment"
-  }}
+      icon       : Icons.SPLIT_EDGE,
+      is_modal   : true,
+      description: "Split picked segment",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
   }
 
-  on_pointerdown(e : PointerEvent) {
+  on_pointerdown(e: PointerEvent) {
     console.log("mdown", e);
     this.finish(e.button !== 0);
   }
 
-  on_pointerup(e : PointerEvent) {
+  on_pointerup(e: PointerEvent) {
     console.log("mup");
     this.finish(e.button !== 0);
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Enter"]:
       case charmap["Escape"]:
@@ -1053,7 +1092,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
     }
   }
 
-  on_pointermove(e : PointerEvent) {
+  on_pointermove(e: PointerEvent) {
     let ctx = this.modal_ctx;
 
     let mpos = ctx.view2d.getLocalMouse(e.x, e.y);
@@ -1061,8 +1100,12 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
     this.mpos.load(mpos);
 
     //a modal tool always has a toolmode; that is what launched it
-    let ret = ctx.view2d.editor!.findnearest([mpos[0]!, mpos[1]!], SplineTypes.SEGMENT,
-                                             105, ctx.view2d.edit_all_layers);
+    let ret = ctx.view2d.editor!.findnearest(
+      [mpos[0]!, mpos[1]!],
+      SplineTypes.SEGMENT,
+      105,
+      ctx.view2d.edit_all_layers
+    );
 
     if (ret === undefined) {
       this.reset_drawlines();
@@ -1089,13 +1132,14 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
     /* NOTE: the parens are misplaced -- Math.max takes all three arguments
        and Math.min gets one, so this is just max(len/20, 3, 18). */
     let steps = Math.min(Math.max(seg.length / 20, 3, 18));
-    let ds = 1.0 / (steps - 1), s = 0;
-    let lastco : Vector2 | undefined;
+    let ds = 1.0 / (steps - 1),
+      s = 0;
+    let lastco: Vector2 | undefined;
 
     let view2d = ctx.view2d;
     let canvas = view2d.get_bg_canvas();
 
-    for (let i=0; i<steps; i++, s += ds) {
+    for (let i = 0; i < steps; i++, s += ds) {
       let co = seg.evaluate(s);
 
       view2d.project(co);
@@ -1129,14 +1173,14 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
       /* NOTE: these passed the string "blue" as the colour, which drawline's
          constructor indexes character by character -- every channel came out
          NaN and the box never drew.  [0, 0, 1, 1] is what it wanted. */
-      this.new_drawline([x-w, y-w], [x-w, y+w], [0, 0, 1, 1]);
-      this.new_drawline([x-w, y+w], [x+w, y+w], [0, 0, 1, 1]);
-      this.new_drawline([x+w, y+w], [x+w, y-w], [0, 0, 1, 1]);
-      this.new_drawline([x+w, y-w], [x-w, y-w], [0, 0, 1, 1]);
+      this.new_drawline([x - w, y - w], [x - w, y + w], [0, 0, 1, 1]);
+      this.new_drawline([x - w, y + w], [x + w, y + w], [0, 0, 1, 1]);
+      this.new_drawline([x + w, y + w], [x + w, y - w], [0, 0, 1, 1]);
+      this.new_drawline([x + w, y - w], [x - w, y - w], [0, 0, 1, 1]);
     }
   }
 
-  finish(do_cancel : boolean) {
+  finish(do_cancel: boolean) {
     if (do_cancel || this.inputs.segment_eid.data === -1) {
       this.modalEnd(do_cancel);
     } else {
@@ -1145,9 +1189,9 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
     }
   }
 
-  exec(ctx : FullContext) {
-    let spline = this.inputs.spline_path.data === "pathspline"
-                 ? ctx.frameset.pathspline : ctx.frameset.spline;
+  exec(ctx: FullContext) {
+    let spline =
+      this.inputs.spline_path.data === "pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
 
     if (this.inputs.deselect.data) {
       spline.select_none(ctx, SplineTypes.ALL);
@@ -1167,11 +1211,11 @@ export class SplitEdgePickOp extends SplineGlobalToolOp<{
 
 export class VertPropertyBaseOp extends ToolOp {
   /* Vertex eid -> its flag before the op ran. */
-  declare _undo : EidUndo;
+  declare _undo: EidUndo;
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     let spline = ctx.spline;
-    let vdata : EidUndo = {};
+    let vdata: EidUndo = {};
 
     for (let v of spline.verts.selected.editable(ctx)) {
       vdata[v.eid] = v.flag;
@@ -1182,7 +1226,7 @@ export class VertPropertyBaseOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let spline = ctx.spline;
 
     for (let k in this._undo) {
@@ -1201,23 +1245,25 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Toggle Sharp Corners",
-    toolpath  : "spline.toggle_break_tangents",
+  static tooldef() {
+    return {
+      uiname  : "Toggle Sharp Corners",
+      toolpath: "spline.toggle_break_tangents",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Toggle Sharp Corners"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description: "Toggle Sharp Corners",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
     let actlayer = spline.layerset.active.id;
 
-    for (let si=0; si<2; si++) {
+    for (let si = 0; si < 2; si++) {
       let list = si ? spline.handles : spline.verts;
 
       for (let v of list.selected.editable(ctx)) {
@@ -1225,16 +1271,17 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
 
         //don't let owning vertex cancel out toggling of handle, if
         //both are selected
-        if (v.type === SplineTypes.HANDLE &&
-            (v.owning_vertex !== undefined && (v.owning_vertex.flag & SplineFlags.SELECT)))
-        {
+        if (
+          v.type === SplineTypes.HANDLE &&
+          v.owning_vertex !== undefined &&
+          v.owning_vertex.flag & SplineFlags.SELECT
+        ) {
           if (v.owning_vertex.flag & SplineFlags.BREAK_TANGENTS)
             v.flag |= SplineFlags.BREAK_TANGENTS;
-          else
-            v.flag &= ~SplineFlags.BREAK_TANGENTS;
+          else v.flag &= ~SplineFlags.BREAK_TANGENTS;
         }
 
-        v.flag ^=  SplineFlags.BREAK_TANGENTS; //event.shiftKey ? SplineFlags.BREAK_CURVATURES : SplineFlags.BREAK_TANGENTS;
+        v.flag ^= SplineFlags.BREAK_TANGENTS; //event.shiftKey ? SplineFlags.BREAK_CURVATURES : SplineFlags.BREAK_TANGENTS;
         v.flag |= SplineFlags.UPDATE;
       }
     }
@@ -1248,23 +1295,26 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Toggle Broken Curvatures",
-    toolpath  : "spline.toggle_break_curvature",
+  static tooldef() {
+    return {
+      uiname  : "Toggle Broken Curvatures",
+      toolpath: "spline.toggle_break_curvature",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Toggle Break Curvatures, enable 'draw normals'\n in display panel to\n see what this does"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description:
+        "Toggle Break Curvatures, enable 'draw normals'\n in display panel to\n see what this does",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     for (let v of spline.verts.selected.editable(ctx)) {
-      v.flag ^=  SplineFlags.BREAK_CURVATURES;
+      v.flag ^= SplineFlags.BREAK_CURVATURES;
       v.flag |= SplineFlags.UPDATE;
     }
 
@@ -1277,35 +1327,36 @@ export class ConnectHandlesOp extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Connect Handles",
-    toolpath : "spline.connect_handles",
+  static tooldef() {
+    return {
+      uiname  : "Connect Handles",
+      toolpath: "spline.connect_handles",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Pairs adjacent handles together to make a smooth curve"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description: "Pairs adjacent handles together to make a smooth curve",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
-    let h1 = undefined, h2 = undefined;
+    let h1 = undefined,
+      h2 = undefined;
 
     for (let h of spline.handles.selected.editable(ctx)) {
-      if (h1 === undefined)
-        h1 = h;
-      else if (h2 === undefined)
-        h2 = h;
-      else
-        break;
+      if (h1 === undefined) h1 = h;
+      else if (h2 === undefined) h2 = h;
+      else break;
     }
 
     if (h1 === undefined || h2 === undefined) return;
 
-    let s1 = h1.segments[0], s2 = h2.segments[0];
+    let s1 = h1.segments[0],
+      s2 = h2.segments[0];
     if (s1.handle_vertex(h1) !== s2.handle_vertex(h2)) return;
 
     console.log("Connecting handles", h1.eid, h2.eid);
@@ -1314,15 +1365,15 @@ export class ConnectHandlesOp extends ToolOp {
     h1.flag |= SplineFlags.AUTO_PAIRED_HANDLE;
     h2.flag |= SplineFlags.AUTO_PAIRED_HANDLE;
 
-    h1.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-    h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+    h1.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
+    h2.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
 
     /* NOTE: handle_vertex() returns undefined for a handle the segment does
        not own; two undefineds compare equal, so the test above lets that
        through and this used to throw. */
     let v = s1.handle_vertex(h1);
     if (v !== undefined) {
-      v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+      v.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
     }
 
     spline.connect_handles(h1, h2);
@@ -1335,37 +1386,39 @@ export class DisconnectHandlesOp extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Disconnect Handles",
-    toolpath  : "spline.disconnect_handles",
+  static tooldef() {
+    return {
+      uiname  : "Disconnect Handles",
+      toolpath: "spline.disconnect_handles",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Disconnects all handles around a point.\n  Point must have more than two segments"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description:
+        "Disconnects all handles around a point.\n  Point must have more than two segments",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
     console.log("Disconnect handles");
 
     for (let h of spline.handles.selected.editable(ctx)) {
       let v = h.owning_segment.handle_vertex(h);
-      if (h.hpair === undefined)
-        continue;
+      if (h.hpair === undefined) continue;
 
       //make handles auto to start with
       h.flag &= ~SplineFlags.AUTO_PAIRED_HANDLE;
       h.hpair.flag &= ~SplineFlags.AUTO_PAIRED_HANDLE;
 
-      h.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      h.hpair.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+      h.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
+      h.hpair.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
 
       /* NOTE: see ConnectHandlesOp -- handle_vertex() can return undefined. */
       if (v !== undefined) {
-        v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+        v.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
       }
 
       spline.disconnect_handle(h);
@@ -1379,20 +1432,22 @@ export class CurveRootFinderTest extends ToolOp {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Test Closest Point Finder",
-    toolpath  : "spline._test_closest_points",
+  static tooldef() {
+    return {
+      uiname  : "Test Closest Point Finder",
+      toolpath: "spline._test_closest_points",
 
-    inputs   : {},
-    outputs  : {},
-    undoflag : UndoFlags.NO_UNDO,
+      inputs  : {},
+      outputs : {},
+      undoflag: UndoFlags.NO_UNDO,
 
-    icon     : -1,
-    is_modal : true,
-    description : "Test closest-point-to-curve functionality"
-  }}
+      icon       : -1,
+      is_modal   : true,
+      description: "Test closest-point-to-curve functionality",
+    };
+  }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     let mpos = new Vector2([event.x, event.y]);
 
     let ctx = this.modal_ctx;
@@ -1425,11 +1480,11 @@ export class CurveRootFinderTest extends ToolOp {
     return super.end_modal(cancelled);
   }
 
-  on_mousedown(event : MouseEvent) {
+  on_mousedown(event: MouseEvent) {
     this.end_modal();
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Enter"]:
       case charmap["Escape"]:
@@ -1472,34 +1527,36 @@ DelVertFrame.inputs = {
 
 export class ToggleManualHandlesOp extends ToolOp {
   /* Vertex eid -> its USE_HANDLES bit before the toggle. */
-  declare _undo : EidUndo;
+  declare _undo: EidUndo;
 
   constructor() {
     super();
   }
 
-  static tooldef() { return {
-    uiname   : "Toggle Manual Handles",
-    toolpath  : "spline.toggle_manual_handles",
+  static tooldef() {
+    return {
+      uiname  : "Toggle Manual Handles",
+      toolpath: "spline.toggle_manual_handles",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : -1,
-    is_modal : false,
-    description : "Toggle Manual Handles"
-  }}
+      icon       : -1,
+      is_modal   : false,
+      description: "Toggle Manual Handles",
+    };
+  }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     let spline = ctx.spline;
-    let ud : EidUndo = this._undo = {};
+    let ud: EidUndo = (this._undo = {});
 
     for (let v of spline.verts.selected.editable(ctx)) {
       ud[v.eid] = v.flag & SplineFlags.USE_HANDLES;
     }
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let spline = ctx.spline;
     let ud = this._undo;
 
@@ -1511,13 +1568,13 @@ export class ToggleManualHandlesOp extends ToolOp {
         continue;
       }
 
-      v.flag = (v.flag&~SplineFlags.USE_HANDLES) | ud[+k] | SplineFlags.UPDATE;
+      v.flag = (v.flag & ~SplineFlags.USE_HANDLES) | ud[+k] | SplineFlags.UPDATE;
     }
 
     spline.resolve = 1;
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     for (let v of spline.verts.selected.editable(ctx)) {
@@ -1529,18 +1586,17 @@ export class ToggleManualHandlesOp extends ToolOp {
   }
 }
 
+import { TimeDataLayer, get_vtime, set_vtime } from "../../core/animdata.js";
+import { ClosestModes } from "../../curve/spline_base.js";
 
-import {TimeDataLayer, get_vtime, set_vtime} from '../../core/animdata.js';
-import {ClosestModes} from "../../curve/spline_base.js";
-
-export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
-  start_mpos : Vector3;
+export class ShiftTimeOp extends ToolOp<{ factor: FloatProperty }> {
+  start_mpos: Vector3;
   /* Set until the first on_mousemove has anchored start_mpos. */
-  first! : boolean;
+  first!: boolean;
   /* NOTE: never assigned, so finish() restores the scene time to undefined. */
-  start_time! : number;
+  start_time!: number;
   /* Path-vert eid -> its keyframe time before the shift. */
-  declare _undo : EidUndo;
+  declare _undo: EidUndo;
 
   constructor() {
     super();
@@ -1548,23 +1604,26 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     this.start_mpos = new Vector3();
   }
 
-  static tooldef() { return {
-    uiname   : "Move Keyframes",
-    toolpath  : "spline.shift_time",
+  static tooldef() {
+    return {
+      uiname  : "Move Keyframes",
+      toolpath: "spline.shift_time",
 
-    inputs   : {
-      factor : new FloatProperty(-1, "factor", "factor", "factor")
-    },
-    outputs  : {},
+      inputs: {
+        factor: new FloatProperty(-1, "factor", "factor", "factor"),
+      },
+      outputs: {},
 
-    icon     : -1,
-    is_modal : true,
-    description : "Move keyframes"
-  }}
+      icon       : -1,
+      is_modal   : true,
+      description: "Move keyframes",
+    };
+  }
 
-  get_curframe_animverts(ctx : FullContext) {
+  get_curframe_animverts(ctx: FullContext) {
     let vset = new set<SplineVertex>();
-    let spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
+    let spline = ctx.frameset.spline,
+      pathspline = ctx.frameset.pathspline;
     let frameset = ctx.frameset;
 
     for (let v of pathspline.verts.selected.editable(ctx)) {
@@ -1589,23 +1648,22 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     return vset;
   }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     this.first = true;
   }
 
   /* NOTE: the base parameter is `cancelled`, not a context. */
-  end_modal(ctx? : boolean) {
+  end_modal(ctx?: boolean) {
     super.end_modal(ctx);
   }
 
-  cancel(ctx : FullContext) {
-  }
+  cancel(ctx: FullContext) {}
 
-  finish(ctx : FullContext) {
+  finish(ctx: FullContext) {
     ctx.scene.change_time(ctx, this.start_time);
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     //console.log("mousemove!");
 
     if (this.first) {
@@ -1614,7 +1672,7 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     }
 
     let mpos = new Vector3([event.x, event.y, 0]);
-    let dx = -Math.floor((this.start_mpos[0] - mpos[0])/20+0.5);
+    let dx = -Math.floor((this.start_mpos[0] - mpos[0]) / 20 + 0.5);
 
     //console.log("time offset", dx);
 
@@ -1626,7 +1684,7 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     window.redraw_viewport();
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       /* NOTE: no break, so Escape falls through and still calls finish();
          and "Return"/"Space" are not charmap keys -- the DOM names are
@@ -1640,22 +1698,23 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     }
   }
 
-  on_mouseup(event : MouseEvent) {
+  on_mouseup(event: MouseEvent) {
     this.end_modal();
   }
 
-  undo_pre(ctx : FullContext) {
-    let ud : EidUndo = this._undo = {};
+  undo_pre(ctx: FullContext) {
+    let ud: EidUndo = (this._undo = {});
     for (let v of this.get_curframe_animverts(ctx)) {
       ud[v.eid] = get_vtime(v);
     }
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let spline = ctx.frameset.pathspline;
 
     for (let k in this._undo) {
-      let v = spline.eidmap[+k], time = this._undo[+k];
+      let v = spline.eidmap[+k],
+        time = this._undo[+k];
 
       /* NOTE: an eid the pathspline no longer holds used to throw here. */
       if (!(v instanceof SplineVertex)) continue;
@@ -1667,9 +1726,9 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     ctx.frameset.download();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.frameset.pathspline;
-    let starts : EidUndo = {};
+    let starts: EidUndo = {};
     let off = this.inputs.factor.data;
 
     let vset = this.get_curframe_animverts(ctx);
@@ -1682,33 +1741,36 @@ export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
     let kcache = ctx.frameset.kcache;
     for (let v of vset) {
       kcache.invalidate(v.eid, get_vtime(v));
-      set_vtime(spline, v, starts[v.eid]+off);
+      set_vtime(spline, v, starts[v.eid] + off);
 
       kcache.invalidate(v.eid, get_vtime(v));
       v.dag_update("depend");
     }
 
     for (let v of vset) {
-      let min = 0, max = 0;
+      let min = 0,
+        max = 0;
 
       if (v.segments.length === 1) {
         let s = v.segments[0];
         let v2 = s.other_vert(v);
-        let t1 =  get_vtime(v), t2 = get_vtime(v2);
+        let t1 = get_vtime(v),
+          t2 = get_vtime(v2);
 
         if (t1 < t2) {
-          min = 0, max = t2;
+          (min = 0), (max = t2);
         } else if (t1 === t2) {
           min = max = t1;
         } else {
-          min = t1, max = 100000;
+          (min = t1), (max = 100000);
         }
       } else if (v.segments.length === 2) {
         let v1 = v.segments[0].other_vert(v);
         let v2 = v.segments[1].other_vert(v);
 
-        let t1 = get_vtime(v1), t2 = get_vtime(v2);
-        min = Math.min(t1, t2), max = Math.max(t1, t2);
+        let t1 = get_vtime(v1),
+          t2 = get_vtime(v2);
+        (min = Math.min(t1, t2)), (max = Math.max(t1, t2));
       } else {
         min = 0;
         max = 100000;
@@ -1753,23 +1815,25 @@ export class DuplicateOp extends SplineLocalToolOp {
     super(undefined, "Duplicate");
   }
 
-  static tooldef() { return {
-    uiname   : "Duplicate Geometry",
-    toolpath : "spline.duplicate",
+  static tooldef() {
+    return {
+      uiname  : "Duplicate Geometry",
+      toolpath: "spline.duplicate",
 
-    inputs   : {},
-    outputs  : {},
+      inputs : {},
+      outputs: {},
 
-    icon     : Icons.DUPLICATE,
-    is_modal : false,
-    description : "Make a duplicate of selected geometry."
-  }}
+      icon       : Icons.DUPLICATE,
+      is_modal   : false,
+      description: "Make a duplicate of selected geometry.",
+    };
+  }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CREATE);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let vset = new set<SplineVertex>();
     let sset = new set<SplineSegment>();
     let fset = new set<SplineFace>();
@@ -1778,7 +1842,7 @@ export class DuplicateOp extends SplineLocalToolOp {
     let spline = ctx.spline;
 
     //handles are SplineVertexes too, and only verts are ever read back out
-    let eidmap : {[eid : number] : SplineVertex} = {};
+    let eidmap: { [eid: number]: SplineVertex } = {};
     for (let v of spline.verts.selected.editable(ctx)) {
       vset.add(v);
     }
@@ -1812,7 +1876,8 @@ export class DuplicateOp extends SplineLocalToolOp {
     }
 
     for (let s of sset) {
-      let v1 = eidmap[s.v1.eid], v2 = eidmap[s.v2.eid];
+      let v1 = eidmap[s.v1.eid],
+        v2 = eidmap[s.v2.eid];
       let ns = spline.make_segment(v1, v2);
 
       ns._aabb[0].load(s._aabb[0]);
@@ -1858,9 +1923,9 @@ export class DuplicateOp extends SplineLocalToolOp {
     */
 
     for (let f of fset) {
-      let vlists : SplineVertex[][] = [];
+      let vlists: SplineVertex[][] = [];
       for (let path of f.paths) {
-        let verts : SplineVertex[] = []
+        let verts: SplineVertex[] = [];
         vlists.push(verts);
 
         for (let l of path) {
@@ -1888,13 +1953,15 @@ export class DuplicateOp extends SplineLocalToolOp {
 }
 
 export class SplineFlipSegments extends SplineLocalToolOp {
-  static tooldef() {return {
-    uiname       : "Flip Segments",
-    toolpath     : "spline.flip_segments",
-    description  : "Flip vertex order"
-  }}
+  static tooldef() {
+    return {
+      uiname     : "Flip Segments",
+      toolpath   : "spline.flip_segments",
+      description: "Flip vertex order",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     for (let s of spline.segments.selected.editable(ctx)) {
@@ -1916,76 +1983,78 @@ export class SplineFlipSegments extends SplineLocalToolOp {
 }
 
 export class SplineMirrorOp extends SplineLocalToolOp {
-    constructor() {
-      super()
+  constructor() {
+    super();
+  }
+
+  static tooldef() {
+    return {
+      uiname  : "Flip Horizontally",
+      toolpath: "spline.mirror_verts",
+
+      inputs : {},
+      outputs: {},
+
+      icon       : -1,
+      is_modal   : false,
+      description: "Flip selected points horizontally",
+    };
+  }
+
+  exec(ctx: FullContext) {
+    let spline = ctx.spline;
+
+    let points = new set<SplineVertex>();
+    //verts are 2d, so the third slot of the old Vector3 only ever went unused
+    let cent = new Vector2();
+
+    for (let i = 0; i < 2; i++) {
+      let list = i ? spline.handles : spline.verts;
+
+      for (let v of list.selected.editable(ctx)) {
+        if (i === 1 && v.owning_vertex !== undefined && v.owning_vertex.hidden) continue;
+        if (i === 0 && v.hidden) continue;
+
+        points.add(v);
+        cent.add(v);
+      }
     }
 
-    static tooldef() { return {
-      uiname   : "Flip Horizontally",
-      toolpath : "spline.mirror_verts",
+    if (points.length === 0) return;
 
-      inputs   : {},
-      outputs  : {},
+    cent.mulScalar(1.0 / points.length);
 
-      icon     : -1,
-      is_modal : false,
-      description : "Flip selected points horizontally"
-    }}
+    for (let v of points) {
+      v.sub(cent);
+      v[0] = -v[0];
+      v.add(cent);
 
-    exec(ctx : FullContext) {
-      let spline = ctx.spline;
-
-      let points = new set<SplineVertex>();
-      //verts are 2d, so the third slot of the old Vector3 only ever went unused
-      let cent = new Vector2();
-
-      for (let i=0; i<2; i++) {
-        let list = i ? spline.handles : spline.verts;
-
-        for (let v of list.selected.editable(ctx)) {
-          if (i===1 && v.owning_vertex !== undefined && v.owning_vertex.hidden)
-            continue;
-          if (i === 0 && v.hidden)
-            continue;
-
-          points.add(v);
-          cent.add(v);
-        }
-      }
-
-      if (points.length === 0) return;
-
-      cent.mulScalar(1.0 / points.length);
-
-      for (let v of points) {
-        v.sub(cent);
-        v[0] = -v[0];
-        v.add(cent);
-
-        v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      }
-
-      spline.resolve = 1;
+      v.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
     }
+
+    spline.resolve = 1;
+  }
 }
 
 export class VertexSmoothOp extends SplineLocalToolOp<{
-  repeat     : IntProperty,
-  factor     : FloatProperty,
-  projection : FloatProperty
+  repeat: IntProperty;
+  factor: FloatProperty;
+  projection: FloatProperty;
 }> {
-  static tooldef() {return {
-    uiname : "Smooth Control Points",
-    toolpath : "spline.vertex_smooth",
-    inputs : ToolOp.inherit({
-      repeat : new IntProperty(1).saveLastValue().setRange(1, 1024).saveLastValue(),
-      factor : new FloatProperty(0.5).noUnits().setRange(0.0, 1.0).saveLastValue(),
-      projection : new FloatProperty(0.0).noUnits().setRange(0.0, 1.0).saveLastValue()
-    }),
-    outputs : ToolOp.inherit({})
-  }}
+  static tooldef() {
+    return {
+      uiname  : "Smooth Control Points",
+      toolpath: "spline.vertex_smooth",
+      inputs: ToolOp.inherit({
+        repeat    : new IntProperty(1).saveLastValue().setRange(1, 1024).saveLastValue(),
+        factor    : new FloatProperty(0.5).noUnits().setRange(0.0, 1.0).saveLastValue(),
+        projection: new FloatProperty(0.0).noUnits().setRange(0.0, 1.0).saveLastValue(),
+      }),
+      outputs : ToolOp.inherit({}),
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     let vs = new Set(spline.verts.selected.editable(ctx));
@@ -1999,7 +2068,7 @@ export class VertexSmoothOp extends SplineLocalToolOp<{
 
     proj = 1.0 - proj;
 
-    function vsmooth(v : SplineVertex) {
+    function vsmooth(v: SplineVertex) {
       co.zero();
       let tot = 0.0;
 
@@ -2034,7 +2103,7 @@ export class VertexSmoothOp extends SplineLocalToolOp<{
 
     let repeat = this.inputs.repeat.getValue();
 
-    for (let i=0; i<repeat; i++) {
+    for (let i = 0; i < repeat; i++) {
       for (let v of vs) {
         if (v.valence > 1) {
           vsmooth(v);
@@ -2048,4 +2117,3 @@ export class VertexSmoothOp extends SplineLocalToolOp<{
     window.redraw_viewport();
   }
 }
-

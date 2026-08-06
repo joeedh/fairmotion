@@ -1,71 +1,92 @@
 "use strict";
 
-import {util} from '../path.ux/scripts/pathux.js';
+import { util } from "../path.ux/scripts/pathux.js";
 
 //note: INT_MAX is ((1<<30)*4-1)
 
 const MMLEN = 8;
-const UARR = Uint16Array
-const UMAX = ((1<<16) - 1)
-const UMUL = 2
+const UARR = Uint16Array;
+const UMAX = (1 << 16) - 1;
+const UMUL = 2;
 
-const PI = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
-  ceil = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
-  asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
+const PI = Math.PI,
+  abs = Math.abs,
+  sqrt = Math.sqrt,
+  floor = Math.floor,
+  ceil = Math.ceil,
+  sin = Math.sin,
+  cos = Math.cos,
+  acos = Math.acos,
+  asin = Math.asin,
+  tan = Math.tan,
+  atan = Math.atan,
+  atan2 = Math.atan2;
 
-import * as spline_multires from './spline_multires.js';
-import {STRUCT} from '../core/struct.js';
-import {DataBlock, DataTypes} from '../core/lib_api.js';
-import {SessionFlags} from '../editors/viewport/view2d_editor.js';
-import {SelMask} from '../editors/viewport/selectmode.js';
-import {SplineQuery} from './spline_query.js';
-import {draw_spline, redo_draw_sort} from './spline_draw.js';
-import {solve} from './solver_new.js';
-import {ModalStates} from '../core/toolops_api.js';
-import {DataPathNode, globalDag} from '../core/eventdag.js';
+import * as spline_multires from "./spline_multires.js";
+import { STRUCT } from "../core/struct.js";
+import { DataBlock, DataTypes } from "../core/lib_api.js";
+import { SessionFlags } from "../editors/viewport/view2d_editor.js";
+import { SelMask } from "../editors/viewport/selectmode.js";
+import { SplineQuery } from "./spline_query.js";
+import { draw_spline, redo_draw_sort } from "./spline_draw.js";
+import { solve } from "./solver_new.js";
+import { ModalStates } from "../core/toolops_api.js";
+import { DataPathNode, globalDag } from "../core/eventdag.js";
 
-import * as config from '../config/config.js';
+import * as config from "../config/config.js";
 
 //math globals
 const FEPS = 1e-18;
-const SPI2 = Math.sqrt(PI/2);
+const SPI2 = Math.sqrt(PI / 2);
 
 export let _SOLVING = false;
 export let INCREMENTAL = 1;
 
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
-import {solver, constraint} from "./solver.js";
+import {
+  ORDER,
+  KSCALE,
+  KANGLE,
+  KSTARTX,
+  KSTARTY,
+  KSTARTZ,
+  KTOTKS,
+  INT_STEPS,
+} from "./spline_math.js";
+import { solver, constraint } from "./solver.js";
 import "../path.ux/scripts/config/const.js";
 
-import * as native_api from '../wasm/native_api.js';
+import * as native_api from "../wasm/native_api.js";
 
 import {
-  SplineFlags, SplineTypes, SplineElement, SplineVertex,
-  SplineSegment, SplineLoop, SplineLoopPath, SplineFace
-} from './spline_types.js';
-import type {SplineVertexJSON, SplineSegmentJSON} from './spline_types.js';
-import type {Co2, CustomDataSet} from './spline_base.js';
+  SplineFlags,
+  SplineTypes,
+  SplineElement,
+  SplineVertex,
+  SplineSegment,
+  SplineLoop,
+  SplineLoopPath,
+  SplineFace,
+} from "./spline_types.js";
+import type { SplineVertexJSON, SplineSegmentJSON } from "./spline_types.js";
+import type { Co2, CustomDataSet } from "./spline_base.js";
 
 import {
-  ElementArraySet, ElementArray,
-  SplineLayer, SplineLayerSet
-} from './spline_element_array.js';
+  ElementArraySet,
+  ElementArray,
+  SplineLayer,
+  SplineLayerSet,
+} from "./spline_element_array.js";
 
-import type {SplineDrawer} from './spline_draw_new.js';
-import type {BaseContext, FullContext} from '../core/context.js';
-import type {SocketMap, SocketValue, EventDag} from '../core/eventdag.js';
-import type {View2DHandler} from '../editors/viewport/view2d.js';
+import type { SplineDrawer } from "./spline_draw_new.js";
+import type { BaseContext, FullContext } from "../core/context.js";
+import type { SocketMap, SocketValue, EventDag } from "../core/eventdag.js";
+import type { View2DHandler } from "../editors/viewport/view2d.js";
 
 let _internal_idgen = 0;
 
-let rect_tmp = [
-  new Vector2(), new Vector2()
-];
+let rect_tmp = [new Vector2(), new Vector2()];
 
-import {
-  eval_curve,
-  do_solve
-} from './spline_math.js';
+import { eval_curve, do_solve } from "./spline_math.js";
 
 export let RestrictFlags = {
   NO_EXTRUDE   : 1,
@@ -74,11 +95,11 @@ export let RestrictFlags = {
   NO_DISSOLVE  : 8,
   NO_SPLIT_EDGE: 16,
   VALENCE2     : 32,
-  NO_CREATE    : 64 | 1 | 4 | 16
+  NO_CREATE    : 64 | 1 | 4 | 16,
 };
 
-function dom_bind(obj : object, name : string, dom_id : string) {
-  function checkbox() : HTMLInputElement {
+function dom_bind(obj: object, name: string, dom_id: string) {
+  function checkbox(): HTMLInputElement {
     let check = document.getElementById(dom_id);
 
     if (!(check instanceof HTMLInputElement)) {
@@ -94,7 +115,7 @@ function dom_bind(obj : object, name : string, dom_id : string) {
     },
     set: function (val) {
       checkbox().checked = !!val;
-    }
+    },
   });
 }
 
@@ -103,11 +124,11 @@ function dom_bind(obj : object, name : string, dom_id : string) {
    triple directly now that both elements exist by the time it is made. */
 export type SplitEdgeRet = [SplineSegment, SplineVertex, number];
 
-import {refVert, refSeg, refLoop} from './spline_types.js';
-import type {EidMap} from './spline_types.js';
-export type {EidMap};
+import { refVert, refSeg, refLoop } from "./spline_types.js";
+import type { EidMap } from "./spline_types.js";
+export type { EidMap };
 
-let _elist_map : {[name : string] : number} = {
+let _elist_map: { [name: string]: number } = {
   "verts"   : SplineTypes.VERTEX,
   "handles" : SplineTypes.HANDLE,
   "segments": SplineTypes.SEGMENT,
@@ -115,14 +136,14 @@ let _elist_map : {[name : string] : number} = {
 };
 
 export class AllPointsIter {
-  stage : number;
+  stage: number;
   /* Reused across next() calls; a fresh record per step would churn the GC on
      every redraw. */
-  ret : IterRet<SplineVertex>;
-  spline : Spline;
-  iter : Iterator<SplineVertex>;
+  ret: IterRet<SplineVertex>;
+  spline: Spline;
+  iter: Iterator<SplineVertex>;
 
-  constructor(spline : Spline) {
+  constructor(spline: Spline) {
     this.spline = spline;
     this.stage = 0;
     this.iter = spline.verts[Symbol.iterator]();
@@ -151,12 +172,12 @@ export class AllPointsIter {
   }
 }
 
-import {RecalcFlags} from './spline_types.js';
+import { RecalcFlags } from "./spline_types.js";
 
 let debug_id_gen = 0;
 let _se_ws = [0.5, 0.5];
 /* Both slots are written before every use; the ring only needs to exist. */
-let _se_srcs : CustomDataSet[] = [];
+let _se_srcs: CustomDataSet[] = [];
 let _trace_face_lastco = new Vector3();
 
 /*
@@ -169,40 +190,43 @@ let _trace_face_lastco = new Vector3();
 /* `verts` is a bare object with a length, the other two are real arrays; all
    three carry the active element's eid alongside their indices. */
 export type SplineJSONList<T> = {
-  [i : number] : T;
+  [i: number]: T;
 
-  length : number;
-  active? : number;
+  length: number;
+  active?: number;
 };
 
 export interface SplineJSON {
-  _cur_id : number;
-  frame : number;
-  draw_verts : boolean;
-  draw_normals : boolean;
-  verts : SplineJSONList<SplineVertexJSON>;
-  handles : SplineJSONList<SplineVertexJSON>;
-  segments : SplineJSONList<SplineSegmentJSON>;
+  _cur_id: number;
+  frame: number;
+  draw_verts: boolean;
+  draw_normals: boolean;
+  verts: SplineJSONList<SplineVertexJSON>;
+  handles: SplineJSONList<SplineVertexJSON>;
+  segments: SplineJSONList<SplineSegmentJSON>;
 }
 
 /* Uniform-grid spatial hash built by Spline.build_shash() for proportional
    editing.  Cell buckets are keyed "gx,gy" and live in the same object as the
    two fixed members, so the index signature has to admit all three shapes. */
-export type ShashForEachPoint = (this : SplineSpatialHash, co : Vector2,
-                                 radius : number,
-                                 callback : (v : SplineVertex, dis : number) => void,
-                                 thisvar? : object) => void;
+export type ShashForEachPoint = (
+  this: SplineSpatialHash,
+  co: Vector2,
+  radius: number,
+  callback: (v: SplineVertex, dis: number) => void,
+  thisvar?: object
+) => void;
 
 export interface SplineSpatialHash {
-  cellsize : number;
-  forEachPoint : ShashForEachPoint;
+  cellsize: number;
+  forEachPoint: ShashForEachPoint;
 
-  [cell : string] : number | SplineVertex[] | ShashForEachPoint;
+  [cell: string]: number | SplineVertex[] | ShashForEachPoint;
 }
 
 /* The buckets share the object with `cellsize` and `forEachPoint`, so pick the
    bucket shape back out of the index signature. */
-function shashBucket(sh : SplineSpatialHash, key : string) : SplineVertex[] | undefined {
+function shashBucket(sh: SplineSpatialHash, key: string): SplineVertex[] | undefined {
   let bucket = sh[key];
 
   return Array.isArray(bucket) ? bucket : undefined;
@@ -211,96 +235,96 @@ function shashBucket(sh : SplineSpatialHash, key : string) : SplineVertex[] | un
 /* mixin(Spline, DataPathNode) at the bottom of this file copies the whole
    DataPathNode prototype across; this is the part of it Spline uses. */
 export interface Spline {
-  dag_update(output_socket_name : string, data? : SocketValue) : void;
+  dag_update(output_socket_name: string, data?: SocketValue): void;
 
-  dag_unlink() : void;
+  dag_unlink(): void;
 }
 
 export class Spline extends DataBlock {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* eids, drained by dag_exec() once the event graph has consumed them. */
-  _vert_add_set : set<number>;
-  _vert_rem_set : set<number>;
-  _vert_time_set : set<number>;
-  actlevel : number;
-  mres_format : string[];
-  size : number[];
-  restrict : number;
-  q : SplineQuery;
-  query : SplineQuery;
-  frame : number;
-  rendermat : Matrix4;
-  _idgen : SDIDGen;
+  _vert_add_set: set<number>;
+  _vert_rem_set: set<number>;
+  _vert_time_set: set<number>;
+  actlevel: number;
+  mres_format: string[];
+  size: number[];
+  restrict: number;
+  q: SplineQuery;
+  query: SplineQuery;
+  frame: number;
+  rendermat: Matrix4;
+  _idgen: SDIDGen;
   /* Parallel to drawlist; each entry is the for..in key of the element's first
      layer, so a string.  Nothing reads them back. */
-  draw_layerlist : (string | undefined)[];
-  proportional : boolean;
-  prop_radius : number;
-  eidmap : {[eid : number] : SplineElement};
-  updateGen : number;
-  elist_map : {[type : number] : ElementArray<SplineElement>};
+  draw_layerlist: (string | undefined)[];
+  proportional: boolean;
+  prop_radius: number;
+  eidmap: { [eid: number]: SplineElement };
+  updateGen: number;
+  elist_map: { [type: number]: ElementArray<SplineElement> };
   /* The same four lists as elist_map, in _elist_map declaration order. */
-  elists : ElementArray<SplineElement>[];
-  selectmode : number;
-  _drawStrokeVertSplits : Set<number>;
-  layerset : SplineLayerSet;
+  elists: ElementArray<SplineElement>[];
+  selectmode: number;
+  _drawStrokeVertSplits: Set<number>;
+  layerset: SplineLayerSet;
   /* Built lazily by spline_draw.ts the first time this spline is drawn. */
-  drawer : SplineDrawer | undefined;
-  selected : ElementArraySet<SplineElement>;
-  draw_verts : boolean;
+  drawer: SplineDrawer | undefined;
+  selected: ElementArraySet<SplineElement>;
+  draw_verts: boolean;
   /* All four are assigned by init_elists(), through Reflect.set(). */
-  verts! : ElementArray<SplineVertex>;
-  handles! : ElementArray<SplineVertex>;
-  segments! : ElementArray<SplineSegment>;
-  faces! : ElementArray<SplineFace>;
-  strokeGroups : SplineStrokeGroup[];
-  _strokeGroupMap : Map<number, SplineStrokeGroup>;
-  drawStrokeGroups : SplineStrokeGroup[];
-  _drawStrokeGroupMap : Map<number, SplineStrokeGroup>;
-  draw_normals : boolean;
+  verts!: ElementArray<SplineVertex>;
+  handles!: ElementArray<SplineVertex>;
+  segments!: ElementArray<SplineSegment>;
+  faces!: ElementArray<SplineFace>;
+  strokeGroups: SplineStrokeGroup[];
+  _strokeGroupMap: Map<number, SplineStrokeGroup>;
+  drawStrokeGroups: SplineStrokeGroup[];
+  _drawStrokeGroupMap: Map<number, SplineStrokeGroup>;
+  draw_normals: boolean;
 
   /* Faces, segments and stroke groups mixed together, sorted back-to-front by
      spline_draw_sort.ts. */
-  drawlist : DrawListItem[];
+  drawlist: DrawListItem[];
   /* Highest z of any layer, cached by the draw sort. */
-  _layer_maxz! : number;
-  recalc : number;
+  _layer_maxz!: number;
+  recalc: number;
   /* Set to 1 -- and once to `true`, in fromJSON -- whenever the k-solve is
      stale. */
-  resolve! : number | boolean;
+  resolve!: number | boolean;
   /* Fired once after the next solve finishes; see spline_math_hermite.ts. */
-  on_resolve : (() => void) | undefined;
+  on_resolve: (() => void) | undefined;
   /* True for frameset.pathspline, which carries keyframe timing rather than
      drawn geometry. */
-  is_anim_path! : boolean;
+  is_anim_path!: boolean;
 
   /* The draw id native_api.do_solve() tags this spline's job with. */
   /* Stamped by native_api's do_solve() before each solve and read back when
      the job finishes, to tell whether it was superseded. */
-  _solve_id! : number;
-  solvePromise : Promise<void> | undefined;
-  solveTimeout : number | undefined;
-  pending_solve : Promise<void> | undefined;
-  _resolve_after : (() => void) | undefined;
-  solving : boolean | undefined;
+  _solve_id!: number;
+  solvePromise: Promise<void> | undefined;
+  solveTimeout: number | undefined;
+  pending_solve: Promise<void> | undefined;
+  _resolve_after: (() => void) | undefined;
+  solving: boolean | undefined;
 
   /* The 2D context of whichever viewport drew us last. */
-  canvas : Canvas2D | undefined;
-  last_sim_ms : number;
-  last_save_time : number;
-  _debug_id : number;
-  _internal_id : number;
+  canvas: Canvas2D | undefined;
+  last_sim_ms: number;
+  last_save_time: number;
+  _debug_id: number;
+  _internal_id: number;
 
   /* NOTE: nothing assigns `transforming`, so the proportional-edit circle in
      spline_draw.ts is dead, and `trans_cent` is only ever read -- the transform
      state moved to TransData.  The two methods that still went with it,
      duplicate_verts() and do_mirror(), had no callers left and threw a
      TypeError on their first line; they are gone. */
-  transforming : boolean | undefined;
-  trans_cent : Vector3 | undefined;
+  transforming: boolean | undefined;
+  trans_cent: Vector3 | undefined;
 
-  constructor(name? : string) {
+  constructor(name?: string) {
     super(DataTypes.SPLINE, name);
 
     this.updateGen = 0;
@@ -399,7 +423,7 @@ export class Spline extends DataBlock {
       typeIndex   : 6,
       linkOrder   : 3,
       accessorName: "splines",
-    }
+    };
   }
 
   //get resolve() {
@@ -411,10 +435,12 @@ export class Spline extends DataBlock {
   //}
 
   dag_get_datapath(): string {
-    if (this.is_anim_path || (this.verts.cdata.layers.length > 0 && this.verts.cdata.layers[0].name === "TimeDataLayer"))
+    if (
+      this.is_anim_path ||
+      (this.verts.cdata.layers.length > 0 && this.verts.cdata.layers[0].name === "TimeDataLayer")
+    )
       return "frameset.pathspline";
-    else
-      return "frameset.drawspline";
+    else return "frameset.drawspline";
   }
 
   force_full_resolve() {
@@ -432,7 +458,7 @@ export class Spline extends DataBlock {
   }
 
   check_sort() {
-    if (!this.drawlist || (this.recalc & RecalcFlags.DRAWSORT)) {
+    if (!this.drawlist || this.recalc & RecalcFlags.DRAWSORT) {
       redo_draw_sort(this);
     }
   }
@@ -469,8 +495,14 @@ export class Spline extends DataBlock {
     for (let k in _elist_map) {
       let type = _elist_map[k];
 
-      let list = new ElementArray(type, this.idgen, this.eidmap, this.selected,
-        this.layerset, this);
+      let list = new ElementArray(
+        type,
+        this.idgen,
+        this.eidmap,
+        this.selected,
+        this.layerset,
+        this
+      );
       /* The four `verts`/`handles`/`segments`/`faces` fields are only ever
          assigned here, each with the ElementArray for its own element type. */
       Reflect.set(this, k, list);
@@ -496,7 +528,7 @@ export class Spline extends DataBlock {
           this2.handles.setselect(h, state);
         }
       }
-    }
+    };
   }
 
   get idgen(): SDIDGen {
@@ -558,8 +590,7 @@ export class Spline extends DataBlock {
 
         eidmap[v.eid] = v2;
 
-        if (v === list1.active)
-          list2.active = v2;
+        if (v === list1.active) list2.active = v2;
       }
     }
 
@@ -572,8 +603,7 @@ export class Spline extends DataBlock {
       ret.segments.push(s2);
       eidmap[s2.eid] = s2;
 
-      if (s === this.segments.active)
-        ret.segments.active = s;
+      if (s === this.segments.active) ret.segments.active = s;
 
       s2.h1 = refVert(eidmap, s.h1.eid);
       s2.h2 = refVert(eidmap, s.h2.eid);
@@ -589,11 +619,9 @@ export class Spline extends DataBlock {
         s2.ks[j] = s.ks[j];
       }
 
-      if (s.h1.hpair !== undefined)
-        s2.h1.hpair = refVert(eidmap, s.h1.hpair.eid)
+      if (s.h1.hpair !== undefined) s2.h1.hpair = refVert(eidmap, s.h1.hpair.eid);
 
-      if (s.h2.hpair !== undefined)
-        s2.h2.hpair = refVert(eidmap, s.h2.hpair.eid)
+      if (s.h2.hpair !== undefined) s2.h2.hpair = refVert(eidmap, s.h2.hpair.eid);
 
       ret.copy_segment_data(s2, s);
 
@@ -605,9 +633,9 @@ export class Spline extends DataBlock {
     for (let i = 0; i < this.faces.length; i++) {
       let f = this.faces[i];
 
-      let vlists : SplineVertex[][] = [];
+      let vlists: SplineVertex[][] = [];
       for (let list of f.paths) {
-        let verts : SplineVertex[] = [];
+        let verts: SplineVertex[] = [];
         vlists.push(verts);
 
         let l = list.l;
@@ -623,8 +651,7 @@ export class Spline extends DataBlock {
       ret.copy_face_data(f2, f);
       eidmap[f2.eid] = f2;
 
-      if (f === this.faces.active)
-        ret.faces.active = f2;
+      if (f === this.faces.active) ret.faces.active = f2;
 
       for (let layeri in f.layers) {
         ret.layerset.idmap[layeri].add(f2);
@@ -681,7 +708,7 @@ export class Spline extends DataBlock {
     return new AllPointsIter(this);
   }
 
-  make_vertex(co : Co2, eid? : number) : SplineVertex {
+  make_vertex(co: Co2, eid?: number): SplineVertex {
     let v = new SplineVertex(co);
 
     v.flag |= SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
@@ -695,13 +722,13 @@ export class Spline extends DataBlock {
     return v;
   }
 
-  get_elist(type : number) : ElementArray<SplineElement> {
+  get_elist(type: number): ElementArray<SplineElement> {
     return this.elist_map[type];
   }
 
   /* NOTE: `co` is ignored -- the handle is created at the origin and every
      caller positions it afterwards with load()/interp(). */
-  make_handle(co? : Co2, __eid? : number) : SplineVertex {
+  make_handle(co?: Co2, __eid?: number): SplineVertex {
     let h = new SplineVertex();
 
     h.flag |= SplineFlags.BREAK_TANGENTS;
@@ -713,7 +740,7 @@ export class Spline extends DataBlock {
     return h;
   }
 
-  split_edge(seg : SplineSegment, s : number = 0.5) : SplitEdgeRet {
+  split_edge(seg: SplineSegment, s: number = 0.5): SplitEdgeRet {
     let co = seg.evaluate(s);
 
     let ws = _se_ws;
@@ -733,12 +760,13 @@ export class Spline extends DataBlock {
       this.verts.setselect(nv, true);
     }
 
-    let v1 = seg.v1, v2 = seg.v2;
+    let v1 = seg.v1,
+      v2 = seg.v2;
     let nseg = this.make_segment(nv, seg.v2); //XXX, this.idgen.gen_id(seg.eid, 1));
 
-    let w1 = seg.w1 + (seg.w2 - seg.w1)*s//seg.widthFunction(s);
+    let w1 = seg.w1 + (seg.w2 - seg.w1) * s; //seg.widthFunction(s);
     let w2 = seg.w2;
-    let shift1 = seg.shift1 + (seg.shift2 - seg.shift1)*s//seg.widthFunction(s);
+    let shift1 = seg.shift1 + (seg.shift2 - seg.shift1) * s; //seg.widthFunction(s);
     let shift2 = seg.shift2;
 
     seg.w2 = w1;
@@ -760,7 +788,7 @@ export class Spline extends DataBlock {
 
       let i = 0;
 
-      let lst : SplineLoop[] = [];
+      let lst: SplineLoop[] = [];
       do {
         lst.push(l);
         if (i++ > 100) {
@@ -775,7 +803,7 @@ export class Spline extends DataBlock {
         let l = lst[j];
 
         let newl = this.make_loop();
-        newl.f = l.f, newl.p = l.p;
+        (newl.f = l.f), (newl.p = l.p);
 
         if (l.v === v1) {
           newl.s = nseg;
@@ -826,7 +854,7 @@ export class Spline extends DataBlock {
     seg.v1.flag |= SplineFlags.UPDATE;
     nseg.v2.flag |= SplineFlags.UPDATE;
 
-    let ret : SplitEdgeRet = [nseg, nv, 0];
+    let ret: SplitEdgeRet = [nseg, nv, 0];
 
     if (hpair !== undefined) {
       this.connect_handles(nseg.h2, hpair);
@@ -841,7 +869,7 @@ export class Spline extends DataBlock {
     nseg.shift2 = shift2;
 
     //interpolate
-    srcs[0] = v1.cdata, srcs[1] = v2.cdata;
+    (srcs[0] = v1.cdata), (srcs[1] = v2.cdata);
     this.copy_vert_data(nv, v1);
     nv.cdata.interp(srcs, ws);
 
@@ -849,7 +877,7 @@ export class Spline extends DataBlock {
     return ret;
   }
 
-  find_segment(v1 : SplineVertex, v2 : SplineVertex) : SplineSegment | undefined {
+  find_segment(v1: SplineVertex, v2: SplineVertex): SplineSegment | undefined {
     for (let i = 0; i < v1.segments.length; i++) {
       if (v1.segments[i].other_vert(v1) === v2) return v1.segments[i];
     }
@@ -858,29 +886,28 @@ export class Spline extends DataBlock {
   }
 
   /* Every caller checks h1.hpair first. */
-  disconnect_handle(h1 : SplineVertex) {
+  disconnect_handle(h1: SplineVertex) {
     h1.hpair!.hpair = undefined;
     h1.hpair = undefined;
   }
 
   connect_handles(h1: SplineVertex, h2: SplineVertex) {
-    let s1 = h1.segments[0], s2 = h2.segments[0];
+    let s1 = h1.segments[0],
+      s2 = h2.segments[0];
     if (s1.handle_vertex(h1) !== s2.handle_vertex(h2)) {
       console.trace("Invalid call to connect_handles");
       return;
     }
 
-    if (h1.hpair !== undefined)
-      this.disconnect_handle(h1);
-    if (h2.hpair !== undefined)
-      this.disconnect_handle(h2);
+    if (h1.hpair !== undefined) this.disconnect_handle(h1);
+    if (h2.hpair !== undefined) this.disconnect_handle(h2);
 
     h1.hpair = h2;
     h2.hpair = h1;
   }
 
   export_ks(): Uint8Array {
-    let size = this.segments.length*ORDER + 1;
+    let size = this.segments.length * ORDER + 1;
     let ret = new Float32Array(size);
     let i = 1;
 
@@ -895,7 +922,7 @@ export class Spline extends DataBlock {
     return new Uint8Array(ret.buffer);
   }
 
-  import_ks(data : Uint8Array) {
+  import_ks(data: Uint8Array) {
     let i = 1;
 
     /* The blob is a Float32Array underneath; export_ks() only hands back a byte
@@ -916,26 +943,28 @@ export class Spline extends DataBlock {
   export_ks_old(): Uint16Array {
     //XXX
     let mmlen = MMLEN;
-    let size = 4/UMUL + 8/UMUL + this.segments.length*ORDER;
+    let size = 4 / UMUL + 8 / UMUL + this.segments.length * ORDER;
 
-    size += this.segments.length*(4/UMUL);
-    size += (8*Math.floor(this.segments.length/mmlen))/UMUL;
+    size += this.segments.length * (4 / UMUL);
+    size += (8 * Math.floor(this.segments.length / mmlen)) / UMUL;
 
     let ret = new UARR(size);
     let view = new DataView(ret.buffer);
 
-    let c = 0, d = 0
+    let c = 0,
+      d = 0;
 
     //write number of bytes per integer
-    view.setInt32(c*UMUL, UMUL);
-    c += 4/UMUL;
-    let mink = 0, maxk = 0;
+    view.setInt32(c * UMUL, UMUL);
+    c += 4 / UMUL;
+    let mink = 0,
+      maxk = 0;
 
     for (let i = 0; i < this.segments.length; i++) {
       let s = this.segments[i];
 
       if (d === 0) {
-        mink = 10000, maxk = -10000;
+        (mink = 10000), (maxk = -10000);
 
         for (let si = i; si < i + mmlen + 1; si++) {
           if (si >= this.segments.length) break;
@@ -947,28 +976,28 @@ export class Spline extends DataBlock {
           }
         }
 
-        view.setFloat32(c*UMUL, mink);
-        view.setFloat32(c*UMUL + 4, maxk);
+        view.setFloat32(c * UMUL, mink);
+        view.setFloat32(c * UMUL + 4, maxk);
 
-        c += 8/UMUL;
+        c += 8 / UMUL;
       }
 
-      view.setInt32(c*UMUL, s.eid);
-      c += 4/UMUL;
+      view.setInt32(c * UMUL, s.eid);
+      c += 4 / UMUL;
 
       for (let j = 0; j < ORDER; j++) {
         let k = s.ks[j];
 
-        k = (k - mink)/(maxk - mink);
+        k = (k - mink) / (maxk - mink);
         if (k < 0.0) {
           console.log("EVIL!", k, mink, maxk);
         }
-        k = Math.abs(Math.floor(k*UMAX));
+        k = Math.abs(Math.floor(k * UMAX));
 
         ret[c++] = k;
       }
 
-      d = (d + 1)%mmlen;
+      d = (d + 1) % mmlen;
     }
 
     let ret2 = ret;
@@ -989,7 +1018,7 @@ export class Spline extends DataBlock {
     return ret2; //new Uint8Array(ret2.buffer);
   }
 
-  import_ks_old(data : Uint16Array) {
+  import_ks_old(data: Uint16Array) {
     data = new UARR(data.buffer);
     /*
     let s = "";
@@ -1007,14 +1036,15 @@ export class Spline extends DataBlock {
 
     let view = new DataView(data.buffer);
     let mmlen = MMLEN;
-    let d = 0, i = 0;
+    let d = 0,
+      i = 0;
 
     let datasize = view.getInt32(0);
     if (datasize !== UMUL) {
       return undefined; //invalid
     }
 
-    i += 4/UMUL;
+    i += 4 / UMUL;
 
     /* NOTE: mink/maxk are declared inside the loop but only written every
        MMLEN-th iteration, so every other pass decodes against undefined and
@@ -1023,23 +1053,23 @@ export class Spline extends DataBlock {
       let mink, maxk;
 
       if (d === 0) {
-        mink = view.getFloat32(i*UMUL);
-        maxk = view.getFloat32(i*UMUL + 4);
+        mink = view.getFloat32(i * UMUL);
+        maxk = view.getFloat32(i * UMUL + 4);
 
-        i += 8/UMUL;
+        i += 8 / UMUL;
       }
 
-      d = (d + 1)%mmlen;
+      d = (d + 1) % mmlen;
 
       if (i >= data.length) {
         console.log("SPLINE CACHE ERROR", i, data.length);
         break;
       }
 
-      let eid = view.getInt32(i*UMUL);
-      i += 4/UMUL;
+      let eid = view.getInt32(i * UMUL);
+      i += 4 / UMUL;
 
-      let s = this.eidmap[eid]
+      let s = this.eidmap[eid];
 
       if (s === undefined || !(s instanceof SplineSegment)) {
         console.log("Could not find segment", data[i - 1]);
@@ -1048,9 +1078,9 @@ export class Spline extends DataBlock {
       }
 
       for (let j = 0; j < ORDER; j++) {
-        let k = data[i++]/UMAX;
+        let k = data[i++] / UMAX;
 
-        k = k*(maxk! - mink!) + mink!;
+        k = k * (maxk! - mink!) + mink!;
         s.ks[j] = k;
       }
     }
@@ -1140,10 +1170,8 @@ export class Spline extends DataBlock {
       this.segments.remove(s, true);
       delete this.eidmap[s.eid];
 
-      if (s.v1.segments.indexOf(s) >= 0)
-        s.v1.segments.remove(s, true);
-      if (s.v2.segments.indexOf(s) >= 0)
-        s.v2.segments.remove(s, true);
+      if (s.v1.segments.indexOf(s) >= 0) s.v1.segments.remove(s, true);
+      if (s.v2.segments.indexOf(s) >= 0) s.v2.segments.remove(s, true);
 
       if (s.h1 !== undefined && s.h1.type === SplineTypes.HANDLE) {
         this.handles.remove(s.h1, true);
@@ -1155,7 +1183,8 @@ export class Spline extends DataBlock {
       }
 
       if (s.l !== undefined) {
-        let l : SplineLoop | undefined = s.l, c;
+        let l: SplineLoop | undefined = s.l,
+          c;
         let radial_next = l!.radial_next;
 
         do {
@@ -1167,19 +1196,16 @@ export class Spline extends DataBlock {
           this.kill_face(l!.f);
           l = l!.radial_next;
 
-          if (l === undefined)
-            break;
+          if (l === undefined) break;
         } while (l !== s.l);
       }
     }
 
     for (let s of this.segments) {
       if (s.v1.segments === undefined || s.v2.segments === undefined) {
-//        if (!(s.v1 instanceof SplineVertex) || !(s.v2 instanceof SplineVertex)) {
-        if (s.h1 instanceof SplineVertex)
-          this.handles.remove(s.h1);
-        if (s.h2 instanceof SplineVertex)
-          this.handles.remove(s.h2);
+        //        if (!(s.v1 instanceof SplineVertex) || !(s.v2 instanceof SplineVertex)) {
+        if (s.h1 instanceof SplineVertex) this.handles.remove(s.h1);
+        if (s.h2 instanceof SplineVertex) this.handles.remove(s.h2);
 
         this.segments.remove(s);
         continue;
@@ -1195,18 +1221,16 @@ export class Spline extends DataBlock {
       if (s.h1 === undefined || s.h1.type !== SplineTypes.HANDLE) {
         console.log("Missing handle 1; adding. . .", s.eid, s);
         s.h1 = this.make_handle();
-        s.h1.load(s.v1).interp(s.v2, 1.0/3.0);
+        s.h1.load(s.v1).interp(s.v2, 1.0 / 3.0);
       }
 
       if (s.h2 === undefined || s.h2.type !== SplineTypes.HANDLE) {
         console.log("Missing handle 2; adding. . .", s.eid, s);
         s.h2 = this.make_handle();
-        s.h2.load(s.v2).interp(s.v2, 2.0/3.0);
+        s.h2.load(s.v2).interp(s.v2, 2.0 / 3.0);
       }
-      if (s.h1.segments[0] !== s)
-        s.h1.segments = [s];
-      if (s.h2.segments[0] !== s)
-        s.h2.segments = [s];
+      if (s.h1.segments[0] !== s) s.h1.segments = [s];
+      if (s.h2.segments[0] !== s) s.h2.segments = [s];
     }
 
     let max_eid = 0;
@@ -1219,7 +1243,7 @@ export class Spline extends DataBlock {
     }
 
     let curid = !("cur_id" in this.idgen) ? "cur_eid" : "cur_id";
-    let cur : number = Reflect.get(this.idgen, curid);
+    let cur: number = Reflect.get(this.idgen, curid);
 
     if (max_eid >= cur) {
       console.trace("IDGEN ERROR! DOOM! DOOM!");
@@ -1227,7 +1251,7 @@ export class Spline extends DataBlock {
     }
   }
 
-  select_none(ctx : BaseContext, datamode : number) {
+  select_none(ctx: BaseContext, datamode: number) {
     if (ctx === undefined) {
       throw new Error("ctx cannot be undefined");
     }
@@ -1247,17 +1271,17 @@ export class Spline extends DataBlock {
     }
   }
 
-  select_flush(datamode : number) {
+  select_flush(datamode: number) {
     if (datamode & (SplineTypes.VERTEX | SplineTypes.HANDLE)) {
       //flush upwards
       let fset = new set<SplineFace>();
       let sset = new set<SplineSegment>();
-      let fact = this.faces.active, sact = this.segments.active;
+      let fact = this.faces.active,
+        sact = this.segments.active;
 
       for (let v of this.verts.selected) {
         for (let s of v.segments) {
-          if (sset.has(s))
-            continue;
+          if (sset.has(s)) continue;
 
           if (s.other_vert(v).flag & SplineFlags.SELECT) {
             sset.add(s);
@@ -1288,8 +1312,7 @@ export class Spline extends DataBlock {
                   break;
                 }
               }
-              if (!good)
-                break;
+              if (!good) break;
             }
 
             if (good) {
@@ -1330,7 +1353,6 @@ export class Spline extends DataBlock {
       for (let f of fset) {
         this.faces.setselect(f, true);
       }
-
     } else if (datamode === SplineTypes.SEGMENT) {
       this.verts.clear_selection();
       this.faces.clear_selection();
@@ -1340,8 +1362,7 @@ export class Spline extends DataBlock {
         this.verts.setselect(s.v2, true);
 
         let l = s.l;
-        if (l === undefined)
-          continue;
+        if (l === undefined) continue;
         let c = 0;
 
         do {
@@ -1365,8 +1386,7 @@ export class Spline extends DataBlock {
                 break;
               }
             }
-            if (!good)
-              break;
+            if (!good) break;
           }
 
           if (good) {
@@ -1392,10 +1412,13 @@ export class Spline extends DataBlock {
     }
   }
 
-  make_segment(v1 : SplineVertex, v2 : SplineVertex, __eid? : number,
-               check_existing = true) : SplineSegment {
-    if (__eid === undefined)
-      __eid = this.idgen.gen_id();
+  make_segment(
+    v1: SplineVertex,
+    v2: SplineVertex,
+    __eid?: number,
+    check_existing = true
+  ): SplineSegment {
+    if (__eid === undefined) __eid = this.idgen.gen_id();
 
     if (check_existing) {
       let seg = this.find_segment(v1, v2);
@@ -1407,8 +1430,8 @@ export class Spline extends DataBlock {
     seg.h1 = this.make_handle();
     seg.h2 = this.make_handle();
 
-    seg.h1.load(v1).interp(v2, 1.0/3.0);
-    seg.h2.load(v1).interp(v2, 2.0/3.0);
+    seg.h1.load(v1).interp(v2, 1.0 / 3.0);
+    seg.h2.load(v1).interp(v2, 2.0 / 3.0);
 
     seg.h1.segments.push(seg);
     seg.h2.segments.push(seg);
@@ -1429,7 +1452,7 @@ export class Spline extends DataBlock {
   }
 
   /* NOTE: returns `this`, not the segment. */
-  flip_segment(seg : SplineSegment) {
+  flip_segment(seg: SplineSegment) {
     let t = seg.v1;
     seg.v1 = seg.v2;
     seg.v2 = t;
@@ -1475,7 +1498,7 @@ export class Spline extends DataBlock {
 
   /* NOTE: `custom_eid` is dead -- the -1 sentinel is normalized away and the
      face is then pushed without it, so the caller's eid never sticks. */
-  make_face(vlists : SplineVertex[][], custom_eid? : number) : SplineFace {
+  make_face(vlists: SplineVertex[][], custom_eid?: number): SplineFace {
     let f = new SplineFace();
 
     if (custom_eid === -1) custom_eid = undefined;
@@ -1490,7 +1513,7 @@ export class Spline extends DataBlock {
       }
 
       //detect duplicates
-      let vset : {[eid : number] : number} = {};
+      let vset: { [eid: number]: number } = {};
       for (let j = 0; j < verts.length; j++) {
         if (verts[j].eid in vset) {
           console.log(vlists);
@@ -1502,7 +1525,7 @@ export class Spline extends DataBlock {
 
     /* NOTE: never initialized, so Math.min(min_z, s.z) below is NaN on the
        first segment and stays NaN -- `f.z = min_z - 1` always comes out NaN. */
-    let min_z : number | undefined;
+    let min_z: number | undefined;
 
     for (let i = 0; i < vlists.length; i++) {
       let verts = vlists[i];
@@ -1512,9 +1535,11 @@ export class Spline extends DataBlock {
       list.totvert = verts.length;
       f.paths.push(list);
 
-      let l : SplineLoop | undefined = undefined, prevl : SplineLoop | undefined = undefined;
+      let l: SplineLoop | undefined = undefined,
+        prevl: SplineLoop | undefined = undefined;
       for (let j = 0; j < verts.length; j++) {
-        let v1 = verts[j], v2 = verts[(j + 1)%verts.length];
+        let v1 = verts[j],
+          v2 = verts[(j + 1) % verts.length];
 
         let exists = this.find_segment(v1, v2);
 
@@ -1587,8 +1612,7 @@ export class Spline extends DataBlock {
     delete this.eidmap[l.eid];
   }
 
-  _element_kill(e : SplineElement) {
-  }
+  _element_kill(e: SplineElement) {}
 
   kill_face(f: SplineFace) {
     for (let i = 0; i < f.paths.length; i++) {
@@ -1615,11 +1639,9 @@ export class Spline extends DataBlock {
       }
     }
 
-    if (seg.v1.segments !== undefined)
-      seg.v1.segments.remove(seg, soft_error);
+    if (seg.v1.segments !== undefined) seg.v1.segments.remove(seg, soft_error);
 
-    if (seg.v2.segments !== undefined)
-      seg.v2.segments.remove(seg, soft_error);
+    if (seg.v2.segments !== undefined) seg.v2.segments.remove(seg, soft_error);
 
     this.handles.remove(seg.h1, soft_error);
     this.handles.remove(seg.h2, soft_error);
@@ -1632,7 +1654,7 @@ export class Spline extends DataBlock {
     let obj = this.toJSON();
     let buf = JSON.stringify(obj);
 
-    let blob = new Blob([buf], {type: "application/json"});
+    let blob = new Blob([buf], { type: "application/json" });
 
     let obj_url = window.URL.createObjectURL(blob);
     window.open(obj_url);
@@ -1643,7 +1665,7 @@ export class Spline extends DataBlock {
       throw new Error("spline.dissolve_vertex called in error");
     }
 
-    let ls2 : SplineLoop[] = [];
+    let ls2: SplineLoop[] = [];
 
     if (v.segments.length !== 2) return;
 
@@ -1652,7 +1674,7 @@ export class Spline extends DataBlock {
 
       if (s.l === undefined) continue;
 
-      let lst : SplineLoop[] = [];
+      let lst: SplineLoop[] = [];
       let l = s.l;
       let _i = 0;
       do {
@@ -1668,15 +1690,13 @@ export class Spline extends DataBlock {
       for (let j = 0; j < lst.length; j++) {
         let l = lst[j];
 
-        if (l.v !== v && l.next.v !== v)
-          continue;
+        if (l.v !== v && l.next.v !== v) continue;
 
         if (l.v !== v) {
           l = l.next;
         }
 
-        if (l === l.p.l)
-          l.p.l = l.next;
+        if (l === l.p.l) l.p.l = l.next;
 
         if (l.p.totvert <= 3 || l.p.l === l) {
           console.log("DESTROYING FACE!!", l.f.eid);
@@ -1698,9 +1718,11 @@ export class Spline extends DataBlock {
     }
 
     if (v.segments.length === 2) {
-      let s1 = v.segments[0], s2 = v.segments[1];
+      let s1 = v.segments[0],
+        s2 = v.segments[1];
 
-      let v1 = s1.other_vert(v), v2 = s2.other_vert(v);
+      let v1 = s1.other_vert(v),
+        v2 = s2.other_vert(v);
       let existing = this.find_segment(v1, v2);
       let w1 = v === s1.v1 ? s1.w2 : s1.w1;
       let w2 = v === s2.v1 ? s2.w2 : s2.w1;
@@ -1783,7 +1805,7 @@ export class Spline extends DataBlock {
   /* NOTE: the disconnect_handle() call below reads this.hpair -- a Spline has
      no hpair, so the branch never runs and the handle pairing of `v` is left to
      kill_segment(). */
-  kill_vertex(v : SplineVertex) {
+  kill_vertex(v: SplineVertex) {
     if (!(v.eid in this.eidmap)) {
       throw new Error("spline.kill_vertex called in error");
     }
@@ -1800,10 +1822,9 @@ export class Spline extends DataBlock {
 
     /* NOTE: reads `hpair` off the spline rather than off `v`, so it is always
        undefined and nothing is ever disconnected here. */
-    const self : Spline = this;
-    let hpair : SplineVertex | undefined = Reflect.get(self, "hpair");
-    if (hpair !== undefined)
-      this.disconnect_handle(hpair);
+    const self: Spline = this;
+    let hpair: SplineVertex | undefined = Reflect.get(self, "hpair");
+    if (hpair !== undefined) this.disconnect_handle(hpair);
 
     while (v.segments.length > 0) {
       let last = v.segments.length;
@@ -1824,13 +1845,14 @@ export class Spline extends DataBlock {
     this.verts.remove(v);
   }
 
-  _vert_flag_update(v : SplineVertex, depth : number, limit : number) {
+  _vert_flag_update(v: SplineVertex, depth: number, limit: number) {
     if (depth >= limit) return;
 
     v.flag |= SplineFlags.TEMP_TAG;
 
     for (let i = 0; i < v.segments.length; i++) {
-      let s = v.segments[i], v2 = s.other_vert(v);
+      let s = v.segments[i],
+        v2 = s.other_vert(v);
 
       if (v2 === undefined || v2.segments === undefined) {
         console.trace("ERROR 1: v, s, v2:", v, s, v2);
@@ -1846,7 +1868,6 @@ export class Spline extends DataBlock {
           has_tan = true;
         }
       }
-
 
       if (!has_tan) {
         //continue;
@@ -1864,9 +1885,10 @@ export class Spline extends DataBlock {
     }
 
     for (let j = 0; j < v.segments.length; j++) {
-      let s = v.segments[j], v2 = s.other_vert(v);
+      let s = v.segments[j],
+        v2 = s.other_vert(v);
 
-      if (v2.segments.length > 2 || (v2.flag & SplineFlags.BREAK_TANGENTS))
+      if (v2.segments.length > 2 || v2.flag & SplineFlags.BREAK_TANGENTS)
         v2.flag |= SplineFlags.TEMP_TAG;
     }
   }
@@ -1877,8 +1899,7 @@ export class Spline extends DataBlock {
     }
 
     for (let seg of this.segments) {
-      if (!(seg.flag & SplineFlags.REDRAW_PRE))
-        continue;
+      if (!(seg.flag & SplineFlags.REDRAW_PRE)) continue;
 
       for (let i = 0; i < 2; i++) {
         let v = i ? seg.v2 : seg.v1;
@@ -1889,8 +1910,7 @@ export class Spline extends DataBlock {
           seg2.flag |= SplineFlags.TEMP_TAG;
           let l = seg2.l;
 
-          if (l === undefined)
-            continue;
+          if (l === undefined) continue;
 
           let _i = 0;
           do {
@@ -1919,10 +1939,10 @@ export class Spline extends DataBlock {
 
   propagate_update_flags() {
     for (let seg of this.segments) {
-      if ((seg.v1.flag & SplineFlags.UPDATE) && (seg.v1.flag & SplineFlags.BREAK_TANGENTS)) {
+      if (seg.v1.flag & SplineFlags.UPDATE && seg.v1.flag & SplineFlags.BREAK_TANGENTS) {
         seg.v2.flag |= SplineFlags.UPDATE;
       }
-      if ((seg.v2.flag & SplineFlags.UPDATE) && (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
+      if (seg.v2.flag & SplineFlags.UPDATE && seg.v2.flag & SplineFlags.BREAK_TANGENTS) {
         seg.v1.flag |= SplineFlags.UPDATE;
       }
     }
@@ -1952,14 +1972,14 @@ export class Spline extends DataBlock {
 
   /*NOTE: we override any pre-existing this._resolve_after callback.
           this is to avoid excessive queueing*/
-  solve(steps? : number, gk? : number, force_queue = false) : Promise<void> {
+  solve(steps?: number, gk?: number, force_queue = false): Promise<void> {
     let this2 = this;
 
     /* NOTE: dead -- solve_intern() has its own copy and nothing here calls
        this one. */
     let dag_trigger = function () {
       this2.dag_update("on_solve", true);
-    }
+    };
 
     if (this.pending_solve !== undefined && force_queue) {
       let this2 = this;
@@ -1971,17 +1991,17 @@ export class Spline extends DataBlock {
 
       return this.pending_solve;
     } else if (this.pending_solve !== undefined) {
-      let do_accept : () => void;
+      let do_accept: () => void;
 
       let promise = new Promise<void>(function (accept, reject) {
         do_accept = function () {
           accept();
-        }
+        };
       });
 
       this._resolve_after = function () {
         do_accept();
-      }
+      };
 
       return promise;
     } else {
@@ -1999,7 +2019,7 @@ export class Spline extends DataBlock {
   }
 
   //XXX: get rid of steps, gk
-  solve_intern(steps? : number, gk? : number) : Promise<void> {
+  solve_intern(steps?: number, gk?: number): Promise<void> {
     let this2 = this;
 
     let dag_trigger = function () {
@@ -2007,7 +2027,7 @@ export class Spline extends DataBlock {
 
       //XXX hack, need to fix windowmanager.js to call this more often
       globalDag().exec(g_app_state.screen.ctx);
-    }
+    };
 
     //propagate update flags to draw flags
     for (let v of this.verts) {
@@ -2018,8 +2038,7 @@ export class Spline extends DataBlock {
           seg.flag |= SplineFlags.REDRAW_PRE;
 
           let l = seg.l;
-          if (!l)
-            continue;
+          if (!l) continue;
 
           let _i = 0;
           do {
@@ -2048,39 +2067,41 @@ export class Spline extends DataBlock {
       /* return_promise is true, so this always comes back with one. */
       let ret = native_api.do_solve(SplineFlags, this, steps, gk, true);
 
-      ret!.then(function () {
-        window._block_drawing--;
+      ret!
+        .then(function () {
+          window._block_drawing--;
 
-        this2.pending_solve = undefined;
-        this2.solving = false;
-        this2._do_post_solve();
+          this2.pending_solve = undefined;
+          this2.solving = false;
+          this2._do_post_solve();
 
-        dag_trigger();
+          dag_trigger();
 
-        if (this2._resolve_after) {
-          let cb = this2._resolve_after;
-          this2._resolve_after = undefined;
+          if (this2._resolve_after) {
+            let cb = this2._resolve_after;
+            this2._resolve_after = undefined;
 
-          this2.pending_solve = this2.solve_intern().then(function () {
-            cb.call(this2);
-          });
-          this2.solving = true;
-        }
-      }).catch(error => {
-        window._block_drawing--;
+            this2.pending_solve = this2.solve_intern().then(function () {
+              cb.call(this2);
+            });
+            this2.solving = true;
+          }
+        })
+        .catch((error) => {
+          window._block_drawing--;
 
-        console.error(error.stack);
-        console.error(error.message);
-      });
+          console.error(error.stack);
+          console.error(error.message);
+        });
 
       return ret!;
     } else {
-      let do_accept : () => void;
+      let do_accept: () => void;
 
       let promise = new Promise<void>(function (accept, reject) {
         do_accept = function () {
           accept();
-        }
+        };
       });
 
       window._block_drawing++;
@@ -2107,7 +2128,6 @@ export class Spline extends DataBlock {
           });
           this2.solving = true;
         }
-
       }, 10);
 
       return promise;
@@ -2136,7 +2156,7 @@ export class Spline extends DataBlock {
     }
   }
 
-  solve_p(steps? : number, gk? : number) {
+  solve_p(steps?: number, gk?: number) {
     console.trace("solve_p: DEPRECATED");
 
     return this.solve(steps, gk);
@@ -2156,10 +2176,11 @@ export class Spline extends DataBlock {
         let seg = l.s;
 
         let flip = seg.v1 !== l.v;
-        let s = flip ? seg.ks[KSCALE] : 0, ds = flip ? -2 : 2;
+        let s = flip ? seg.ks[KSCALE] : 0,
+          ds = flip ? -2 : 2;
 
         while ((!flip && s < seg.ks[KSCALE]) || (flip && s >= 0)) {
-          let co = seg.evaluate(s/seg.length);
+          let co = seg.evaluate(s / seg.length);
 
           if (first) {
             first = false;
@@ -2179,33 +2200,31 @@ export class Spline extends DataBlock {
   /* Dead: nothing calls this.  The `thisvar !== undefined` test used to read a
      variable called `thislet`, an over-eager var->let rename that would have
      thrown a ReferenceError on the first call. */
-  forEachPoint(cb : (v : SplineVertex) => void, thisvar? : object) {
+  forEachPoint(cb: (v: SplineVertex) => void, thisvar?: object) {
     for (let si = 0; si < 2; si++) {
       let list = si ? this.handles : this.verts;
       let last_len = list.length;
 
       for (let i = 0; i < list.length; i++) {
-        if (thisvar !== undefined)
-          cb.call(thisvar, list[i]);
-        else
-          cb(list[i]);
+        if (thisvar !== undefined) cb.call(thisvar, list[i]);
+        else cb(list[i]);
 
         last_len = list.length;
       }
     }
   }
 
-  build_shash() : SplineSpatialHash {
+  build_shash(): SplineSpatialHash {
     let cellsize = 150;
     let sqrt2 = sqrt(2);
 
-    function hash(x : number, y : number, cellsize : number) {
-      return Math.floor(x/cellsize) + "," + Math.floor(y/cellsize);
+    function hash(x: number, y: number, cellsize: number) {
+      return Math.floor(x / cellsize) + "," + Math.floor(y / cellsize);
     }
 
-    let sh : SplineSpatialHash = {
+    let sh: SplineSpatialHash = {
       cellsize    : cellsize,
-      forEachPoint: sh_lookupPoints
+      forEachPoint: sh_lookupPoints,
     };
 
     for (let si = 0; si < 2; si++) {
@@ -2224,21 +2243,24 @@ export class Spline extends DataBlock {
       }
     }
 
-    function sh_lookupPoints(this : SplineSpatialHash,
-                             co : Vector2, radius : number,
-                             callback : (v : SplineVertex, dis : number) => void,
-                             thisvar? : object) {
+    function sh_lookupPoints(
+      this: SplineSpatialHash,
+      co: Vector2,
+      radius: number,
+      callback: (v: SplineVertex, dis: number) => void,
+      thisvar?: object
+    ) {
       let cellsize = this.cellsize;
-      let cellradius = Math.ceil(sqrt2*radius/cellsize);
+      let cellradius = Math.ceil((sqrt2 * radius) / cellsize);
 
-      let sx = Math.floor(co[0]/cellsize) - cellradius;
-      let sy = Math.floor(co[1]/cellsize) - cellradius;
-      let ex = Math.ceil(co[0]/cellsize) + cellradius;
-      let ey = Math.ceil(co[1]/cellsize) + cellradius;
+      let sx = Math.floor(co[0] / cellsize) - cellradius;
+      let sy = Math.floor(co[1] / cellsize) - cellradius;
+      let ex = Math.ceil(co[0] / cellsize) + cellradius;
+      let ey = Math.ceil(co[1] / cellsize) + cellradius;
 
       for (let x = sx; x <= ex; x++) {
         for (let y = sy; y <= ey; y++) {
-          let h = hash(x*cellsize, y*cellsize, cellsize);
+          let h = hash(x * cellsize, y * cellsize, cellsize);
           let list = shashBucket(this, h);
 
           if (list === undefined) continue;
@@ -2270,8 +2292,7 @@ export class Spline extends DataBlock {
 
   has_highlight(selmask = 255) {
     for (let list of this.elists) {
-      if ((list.type & selmask) && list.highlight)
-        return true;
+      if (list.type & selmask && list.highlight) return true;
     }
 
     return false;
@@ -2287,16 +2308,15 @@ export class Spline extends DataBlock {
     for (let i = 0; i < this.elists.length; i++) {
       let elist = this.elists[i];
 
-      if (elist.active !== undefined && elist.active.hidden)
-        elist.active = undefined;
+      if (elist.active !== undefined && elist.active.hidden) elist.active = undefined;
     }
   }
 
-  clear_active(e? : SplineElement) {
+  clear_active(e?: SplineElement) {
     this.set_active(undefined);
   }
 
-  set_active(e? : SplineElement) {
+  set_active(e?: SplineElement) {
     if (e === undefined) {
       for (let i = 0; i < this.elists.length; i++) {
         this.elists[i].active = undefined;
@@ -2308,23 +2328,23 @@ export class Spline extends DataBlock {
     elist.active = e;
   }
 
-  setselect(e : SplineElement, state : boolean) {
+  setselect(e: SplineElement, state: boolean) {
     let elist = this.get_elist(e.type);
     elist.setselect(e, state);
   }
 
-  clear_selection(e? : SplineElement) {
+  clear_selection(e?: SplineElement) {
     for (let i = 0; i < this.elists.length; i++) {
       this.elists[i].clear_selection();
     }
   }
 
-  toJSON() : SplineJSON {
+  toJSON(): SplineJSON {
     /* `verts` is a bare length-carrying object, the other two real arrays,
        exactly as fromJSON() expects to read them back. */
-    let verts : SplineJSONList<SplineVertexJSON> = {length: this.verts.length};
-    let handles : SplineVertexJSON[] & {active? : number} = [];
-    let segments : SplineSegmentJSON[] & {active? : number} = [];
+    let verts: SplineJSONList<SplineVertexJSON> = { length: this.verts.length };
+    let handles: SplineVertexJSON[] & { active?: number } = [];
+    let segments: SplineSegmentJSON[] & { active?: number } = [];
 
     for (let i = 0; i < this.verts.length; i++) {
       verts[i] = this.verts[i].toJSON();
@@ -2332,11 +2352,9 @@ export class Spline extends DataBlock {
 
     verts.active = this.verts.active !== undefined ? this.verts.active.eid : undefined;
 
-    if (this.handles.active !== undefined)
-      handles.active = this.handles.active.eid;
+    if (this.handles.active !== undefined) handles.active = this.handles.active.eid;
 
-    if (this.segments.active !== undefined)
-      segments.active = this.segments.active.eid;
+    if (this.segments.active !== undefined) segments.active = this.segments.active.eid;
 
     for (let i = 0; i < this.segments.length; i++) {
       segments.push(this.segments[i].toJSON());
@@ -2353,7 +2371,7 @@ export class Spline extends DataBlock {
       handles     : handles,
       draw_verts  : this.draw_verts,
       draw_normals: this.draw_normals,
-      _cur_id     : this.idgen.cur_id
+      _cur_id     : this.idgen.cur_id,
     };
   }
 
@@ -2366,12 +2384,13 @@ export class Spline extends DataBlock {
     this.updateGen++;
   }
 
-  import_json(obj : SplineJSON) {
+  import_json(obj: SplineJSON) {
     let spline2 = Spline.fromJSON(obj);
 
-    let miny = 1e18, maxy = 1e-18;
+    let miny = 1e18,
+      maxy = 1e-18;
 
-    let newmap : {[eid : number] : SplineVertex} = {};
+    let newmap: { [eid: number]: SplineVertex } = {};
     for (let i = 0; i < spline2.verts.length; i++) {
       let v = spline2.verts[i];
 
@@ -2385,9 +2404,10 @@ export class Spline extends DataBlock {
     }
 
     for (let i = 0; i < spline2.verts.length; i++) {
-      let v = spline2.verts[i], nv = newmap[v.eid];
+      let v = spline2.verts[i],
+        nv = newmap[v.eid];
 
-      nv[1] = ((maxy - miny) - (nv[1] - miny)) + miny;
+      nv[1] = maxy - miny - (nv[1] - miny) + miny;
     }
 
     /* The new segment used to be filed in newmap under its own eid as well;
@@ -2395,7 +2415,8 @@ export class Spline extends DataBlock {
     for (let i = 0; i < spline2.segments.length; i++) {
       let seg = spline2.segments[i];
 
-      let v1 = newmap[seg.v1.eid], v2 = newmap[seg.v2.eid];
+      let v1 = newmap[seg.v1.eid],
+        v2 = newmap[seg.v2.eid];
       let nseg = this.make_segment(v1, v2);
 
       nseg.flag = seg.flag | SplineFlags.UPDATE | SplineFlags.FRAME_DIRTY;
@@ -2404,10 +2425,10 @@ export class Spline extends DataBlock {
     this.resolve = 1;
   }
 
-  segmentNeedsResort(seg : SplineSegment) {
+  segmentNeedsResort(seg: SplineSegment) {
     /* Only read by the unreachable material-split scan after the return
        below. */
-    let sliced : SplineVertex | undefined;
+    let sliced: SplineVertex | undefined;
 
     let resort1 = vertexIsSplit(this, seg.v1);
     let resort2 = vertexIsSplit(this, seg.v2);
@@ -2450,7 +2471,7 @@ export class Spline extends DataBlock {
     splitSegmentGroups(this);
   }
 
-  static fromJSON(obj : SplineJSON) : Spline {
+  static fromJSON(obj: SplineJSON): Spline {
     let spline = new Spline();
 
     spline.idgen.cur_id = obj._cur_id;
@@ -2458,13 +2479,13 @@ export class Spline extends DataBlock {
     spline.draw_verts = obj.draw_verts;
     spline.draw_normals = obj.draw_normals;
 
-    let eidmap : EidMap = {};
+    let eidmap: EidMap = {};
 
     /* The segments a vertex names do not exist until the loop below, so hold
        onto the eid lists and resolve them all at the end.  This used to patch
        each list in place and hand the same array to the vertex; `obj` is a
        JSON.parse() result the caller drops on the way out either way. */
-    let vert_segment_eids : [SplineVertex, number[]][] = [];
+    let vert_segment_eids: [SplineVertex, number[]][] = [];
 
     for (let i = 0; i < obj.verts.length; i++) {
       let cv = obj.verts[i];
@@ -2494,8 +2515,10 @@ export class Spline extends DataBlock {
       let s = obj.segments[i];
       let segments = obj.segments;
 
-      let v1 = refVert(eidmap, s.v1), v2 = refVert(eidmap, s.v2);
-      let h1 = refVert(eidmap, s.h1), h2 = refVert(eidmap, s.h2);
+      let v1 = refVert(eidmap, s.v1),
+        v2 = refVert(eidmap, s.v2);
+      let h1 = refVert(eidmap, s.h1),
+        h2 = refVert(eidmap, s.h2);
 
       let seg = new SplineSegment();
 
@@ -2518,18 +2541,17 @@ export class Spline extends DataBlock {
         }
       }
 
-      seg.v1 = v1, seg.v2 = v2, seg.h1 = h1, seg.h2 = h2;
+      (seg.v1 = v1), (seg.v2 = v2), (seg.h1 = h1), (seg.h2 = h2);
 
       spline.segments.push(seg);
       eidmap[seg.eid] = seg;
     }
 
     for (let [v, eids] of vert_segment_eids) {
-      v.segments = eids.map(eid => refSeg(eidmap, eid));
+      v.segments = eids.map((eid) => refSeg(eidmap, eid));
     }
 
-    if (obj.verts.active !== undefined)
-      spline.verts.active = refVert(eidmap, obj.verts.active);
+    if (obj.verts.active !== undefined) spline.verts.active = refVert(eidmap, obj.verts.active);
 
     if (obj.handles.active !== undefined)
       spline.handles.active = refVert(eidmap, obj.handles.active);
@@ -2543,7 +2565,7 @@ export class Spline extends DataBlock {
   }
 
   prune_singles() {
-    let del : SplineVertex[] = [];
+    let del: SplineVertex[] = [];
 
     for (let i = 0; i < this.verts.length; i++) {
       let v = this.verts[i];
@@ -2578,10 +2600,19 @@ export class Spline extends DataBlock {
   /* only_render and draw_normals are the view2d toggles, which are stored as
      0/1 ints; every use of them here is a truth test. The two time-helper
      arguments are optional because frameset.draw() passes neither. */
-  draw(redraw_rects : number[], g : Canvas2D,
-       editor : View2DHandler, matrix : Matrix4, selectmode : number,
-       only_render : number | boolean, draw_normals : number | boolean, alpha : number,
-       draw_time_helpers? : boolean, curtime? : number, ignore_layers? : boolean) {
+  draw(
+    redraw_rects: number[],
+    g: Canvas2D,
+    editor: View2DHandler,
+    matrix: Matrix4,
+    selectmode: number,
+    only_render: number | boolean,
+    draw_normals: number | boolean,
+    alpha: number,
+    draw_time_helpers?: boolean,
+    curtime?: number,
+    ignore_layers?: boolean
+  ) {
     this.canvas = g;
     this.selectmode = selectmode;
 
@@ -2589,11 +2620,23 @@ export class Spline extends DataBlock {
 
     this.checkSolve();
 
-    return draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render,
-      draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
+    return draw_spline(
+      this,
+      redraw_rects,
+      g,
+      editor,
+      matrix,
+      selectmode,
+      only_render,
+      draw_normals,
+      alpha,
+      draw_time_helpers,
+      curtime,
+      ignore_layers
+    );
   }
 
-  loadSTRUCT(reader : StructReader<this>) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -2603,8 +2646,8 @@ export class Spline extends DataBlock {
     // -- okay, now that we're using loadSTRUCT, is this line still necassary?
     this.query = this.q = new SplineQuery(this);
 
-    let eidmap : EidMap = {};
-    const self : Spline = this;
+    let eidmap: EidMap = {};
+    const self: Spline = this;
 
     this.elists = [];
     this.elist_map = {};
@@ -2612,7 +2655,7 @@ export class Spline extends DataBlock {
     //restore elist stuff
     for (let k in _elist_map) {
       let type = _elist_map[k];
-      let v : ElementArray<SplineElement> | undefined = Reflect.get(self, k);
+      let v: ElementArray<SplineElement> | undefined = Reflect.get(self, k);
 
       if (v === undefined) continue;
 
@@ -2629,8 +2672,7 @@ export class Spline extends DataBlock {
         let v = list[i];
 
         eidmap[v.eid] = v;
-        if (v.type === SplineTypes.VERTEX)
-          v.hpair = undefined;
+        if (v.type === SplineTypes.VERTEX) v.hpair = undefined;
       }
     }
 
@@ -2712,8 +2754,8 @@ export class Spline extends DataBlock {
 
     /* nstructjs reads the `selected` iter back as a plain array of eids laid
        over the real field; the ElementArraySet is what we are building here. */
-    const raw : {selected : unknown} = self;
-    const selected_eids : unknown[] = Array.isArray(raw.selected) ? raw.selected : [];
+    const raw: { selected: unknown } = self;
+    const selected_eids: unknown[] = Array.isArray(raw.selected) ? raw.selected : [];
 
     for (let i = 0; i < selected_eids.length; i++) {
       let eid = selected_eids[i];
@@ -2728,14 +2770,38 @@ export class Spline extends DataBlock {
 
     this.selected = selected;
 
-    this.verts.afterSTRUCT(SplineTypes.VERTEX, this.idgen, this.eidmap,
-      this.selected, this.layerset, this);
-    this.handles.afterSTRUCT(SplineTypes.HANDLE, this.idgen, this.eidmap,
-      this.selected, this.layerset, this);
-    this.segments.afterSTRUCT(SplineTypes.SEGMENT, this.idgen, this.eidmap,
-      this.selected, this.layerset, this);
-    this.faces.afterSTRUCT(SplineTypes.FACE, this.idgen, this.eidmap, this.selected,
-      this.layerset, this);
+    this.verts.afterSTRUCT(
+      SplineTypes.VERTEX,
+      this.idgen,
+      this.eidmap,
+      this.selected,
+      this.layerset,
+      this
+    );
+    this.handles.afterSTRUCT(
+      SplineTypes.HANDLE,
+      this.idgen,
+      this.eidmap,
+      this.selected,
+      this.layerset,
+      this
+    );
+    this.segments.afterSTRUCT(
+      SplineTypes.SEGMENT,
+      this.idgen,
+      this.eidmap,
+      this.selected,
+      this.layerset,
+      this
+    );
+    this.faces.afterSTRUCT(
+      SplineTypes.FACE,
+      this.idgen,
+      this.eidmap,
+      this.selected,
+      this.layerset,
+      this
+    );
 
     if (this.layerset === undefined) {
       this.layerset = new SplineLayerSet();
@@ -2763,7 +2829,7 @@ export class Spline extends DataBlock {
       }
     }
 
-    let arr : string[] = [];
+    let arr: string[] = [];
     for (let i = 0; i < spline_multires._format.length; i++) {
       arr.push(spline_multires._format[i]);
     }
@@ -2776,7 +2842,7 @@ export class Spline extends DataBlock {
     return this;
   }
 
-  flagUpdateVertTime(v? : SplineVertex) {
+  flagUpdateVertTime(v?: SplineVertex) {
     if (v) {
       this._vert_time_set.add(v.eid);
     }
@@ -2785,12 +2851,11 @@ export class Spline extends DataBlock {
   }
 
   /* `v` is ignored; the socket carries no payload. */
-  flagUpdateKeyframes(v? : SplineVertex) {
+  flagUpdateKeyframes(v?: SplineVertex) {
     this.dag_update("on_keyframe_insert", 1);
   }
 
-  dag_exec(ctx : FullContext, inputs : SocketMap, outputs : SocketMap,
-           graph : EventDag) {
+  dag_exec(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
     outputs.on_vert_add.loadData(this._vert_add_set);
 
     this._vert_add_set = new set<number>();
@@ -2805,22 +2870,22 @@ export class Spline extends DataBlock {
       outputs: {
         on_keyframe_insert : null,
         on_solve           : null, //null means depend socket type
-        on_vert_time_change: new set(),  //set of eids
+        on_vert_time_change: new set(), //set of eids
         on_vert_add        : new set(), //set of eids
         on_vert_remove     : new set(), //set of eids
-        on_vert_change     : null //simple event, not a set
+        on_vert_change     : null, //simple event, not a set
       },
-      inputs : {}
-    }
+      inputs : {},
+    };
   }
 }
-;
-
 mixin(Spline, DataPathNode);
 
 //on_solve : 0
 
-Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
+Spline.STRUCT =
+  STRUCT.inherit(Spline, DataBlock) +
+  `
     idgen    : SDIDGen;
 
     selected : iter(e, int) | e.eid;
@@ -2837,8 +2902,13 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     mres_format : array(string);
     strokeGroups : array(SplineStrokeGroup);
 }
-`
+`;
 DataBlock.register(Spline);
 
-import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups, vertexIsSplit} from "./spline_strokegroup.js";
-import type {DrawListItem} from "./spline_strokegroup.js";
+import {
+  SplineStrokeGroup,
+  buildSegmentGroups,
+  splitSegmentGroups,
+  vertexIsSplit,
+} from "./spline_strokegroup.js";
+import type { DrawListItem } from "./spline_strokegroup.js";

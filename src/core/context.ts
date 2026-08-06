@@ -1,11 +1,15 @@
-import {ContextOverlay, Context, LockedContext} from "../path.ux/scripts/path-controller/controller/context.js";
-import {SavedToolDefaults, DataAPI} from '../path.ux/scripts/pathux.js';
-import {DataLib} from './lib_api.js';
-import type {AppState} from './AppState.js';
-import type {ToolStack} from './toolstack.js';
-import type {ToolOp} from './toolops_api.js';
-import type {ToolMode} from '../editors/viewport/toolmodes/toolmode.js';
-import type {AppSettings} from './UserSettings.js';
+import {
+  ContextOverlay,
+  Context,
+  LockedContext,
+} from "../path.ux/scripts/path-controller/controller/context.js";
+import { SavedToolDefaults, DataAPI } from "../path.ux/scripts/pathux.js";
+import { DataLib } from "./lib_api.js";
+import type { AppState } from "./AppState.js";
+import type { ToolStack } from "./toolstack.js";
+import type { ToolOp } from "./toolops_api.js";
+import type { ToolMode } from "../editors/viewport/toolmodes/toolmode.js";
+import type { AppSettings } from "./UserSettings.js";
 
 /*
  * How BaseContext.saveProperty encodes one context member so it survives an
@@ -61,7 +65,9 @@ export class BaseContextOverlay extends ContextOverlay {
   }
 
   get splinepath(): string {
-    return g_app_state.active_splinepath === undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
+    return g_app_state.active_splinepath === undefined
+      ? "frameset.drawspline"
+      : g_app_state.active_splinepath;
   }
 
   get filepath(): string {
@@ -110,7 +116,6 @@ export class BaseContextOverlay extends ContextOverlay {
     //return g_app_state.datalib.framesets.active;
   }
 
-
   get scene(): Scene {
     var list = this.datalib.scenes;
 
@@ -153,7 +158,6 @@ export class BaseContextOverlay extends ContextOverlay {
 
     return ret; //g_app_state.active_view2d;
   }
-
 }
 
 export class ViewContextOverlay extends ContextOverlay {
@@ -238,13 +242,13 @@ export class BaseContext extends Context {
   declare state: AppState;
 
   declare datalib: DataLib;
-  declare frameset: SplineFrameSet
-  declare spline: Spline
-  declare scene: Scene
+  declare frameset: SplineFrameSet;
+  declare spline: Spline;
+  declare scene: Scene;
   declare toolstack: ToolStack;
   /* path.ux's ContextLike requires `api : DataAPI<this>`; the app only ever
      builds one API and it is defined over FullContext. */
-  declare api: DataAPI<FullContext>
+  declare api: DataAPI<FullContext>;
   declare selectmode: int;
 
   /* The rest of what BaseContextOverlay supplies. Without these, every lookup
@@ -299,7 +303,7 @@ export class BaseContext extends Context {
       return {
         type : "passthru",
         key  : key,
-        value: v
+        value: v,
       };
     }
 
@@ -307,7 +311,7 @@ export class BaseContext extends Context {
       return {
         type : "lookup",
         key  : key,
-        value: v
+        value: v,
       };
     }
 
@@ -321,14 +325,14 @@ export class BaseContext extends Context {
       return {
         type : "path",
         key  : key,
-        value: this.splinepath
-      }
+        value: this.splinepath,
+      };
     } else if (v instanceof DataBlock) {
       return {
         type : "block",
         key  : key,
-        value: new DataRef(v)
-      }
+        value: new DataRef(v),
+      };
     }
 
     return lookup(v);
@@ -348,7 +352,7 @@ export class BaseContext extends Context {
 }
 
 export class FullContext extends BaseContext {
-  declare view2d: View2DHandler
+  declare view2d: View2DHandler;
   declare screen: FairmotionScreen;
 
   /* The rest of what ViewContextOverlay supplies; see BaseContext. */
@@ -373,17 +377,17 @@ export class FullContext extends BaseContext {
 
 window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
 
-import {SplineFrameSet} from './frameset.js';
-import {DataTypes, DataBlock, DataRef} from "./lib_api.js";
+import { SplineFrameSet } from "./frameset.js";
+import { DataTypes, DataBlock, DataRef } from "./lib_api.js";
 
-import {Editor, FairmotionScreen} from "../editors/editor_base.js";
-import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
-import {CurveEditor} from '../editors/curve/CurveEditor.js';
-import {OpStackEditor} from '../editors/ops/ops_editor.js';
-import {ConsoleEditor} from '../editors/console/console.js';
-import {DopeSheetEditor} from '../editors/dopesheet/DopeSheetEditor.js';
+import { Editor, FairmotionScreen } from "../editors/editor_base.js";
+import { SettingsEditor } from "../editors/settings/SettingsEditor.js";
+import { CurveEditor } from "../editors/curve/CurveEditor.js";
+import { OpStackEditor } from "../editors/ops/ops_editor.js";
+import { ConsoleEditor } from "../editors/console/console.js";
+import { DopeSheetEditor } from "../editors/dopesheet/DopeSheetEditor.js";
 
-import {View2DHandler} from '../editors/viewport/view2d.js';
-import {Scene} from "../scene/scene.js";
-import {Spline} from "../curve/spline.js";
+import { View2DHandler } from "../editors/viewport/view2d.js";
+import { Scene } from "../scene/scene.js";
+import { Spline } from "../curve/spline.js";
 //import {ToolStack} from './toolstack.js';

@@ -2,28 +2,23 @@
 
 /* advanced batch based system with caching */
 
-import * as config from '../config/config.js';
-import * as util from '../path.ux/scripts/util/util.js';
+import * as config from "../config/config.js";
+import * as util from "../path.ux/scripts/util/util.js";
 
-import {
-  MinMax
-} from '../util/mathlib.js';
-import * as math from '../path.ux/scripts/util/math.js'
+import { MinMax } from "../util/mathlib.js";
+import * as math from "../path.ux/scripts/util/math.js";
 
-import {
-  VectorFlags, VectorVertex, PathBase,
-  VectorDraw
-} from './vectordraw_base.js';
-import type {ColorLike, DrawCanvas} from './vectordraw_base.js';
+import { VectorFlags, VectorVertex, PathBase, VectorDraw } from "./vectordraw_base.js";
+import type { ColorLike, DrawCanvas } from "./vectordraw_base.js";
 
 /* An axis-aligned box in canvas pixels. */
-export type Viewport = {pos : Vector2, size : Vector2};
+export type Viewport = { pos: Vector2; size: Vector2 };
 
 /* Batches hand themselves back once their render job lands. */
-export type BatchDoneCallback = (batch? : Batch) => void;
+export type BatchDoneCallback = (batch?: Batch) => void;
 
-import {OPCODES} from './vectordraw_jobs_base.js';
-import * as vectordraw_jobs from './vectordraw_jobs.js';
+import { OPCODES } from "./vectordraw_jobs_base.js";
+import * as vectordraw_jobs from "./vectordraw_jobs.js";
 
 let debug = 0;
 
@@ -34,12 +29,19 @@ for (let i = 1; i < canvaspath_draw_args_tmps.length; i++) {
 }
 const canvaspath_draw_vs = util.cachering.fromConstructor(Vector2, 32);
 
-const MOVETO = OPCODES.MOVETO, BEZIERTO = OPCODES.QUADRATIC, LINETO = OPCODES.LINETO, BEGINPATH = OPCODES.BEGINPATH,
-      CUBICTO                                                                                   = OPCODES.CUBIC, CLOSEPATH                                                        = OPCODES.CLOSEPATH, LINEWIDTH = OPCODES.LINEWIDTH,
-      LINESTYLE                                                                                 = OPCODES.LINESTYLE, STROKE                                                     = OPCODES.STROKE, FILL                              = OPCODES.FILL;
+const MOVETO = OPCODES.MOVETO,
+  BEZIERTO = OPCODES.QUADRATIC,
+  LINETO = OPCODES.LINETO,
+  BEGINPATH = OPCODES.BEGINPATH,
+  CUBICTO = OPCODES.CUBIC,
+  CLOSEPATH = OPCODES.CLOSEPATH,
+  LINEWIDTH = OPCODES.LINEWIDTH,
+  LINESTYLE = OPCODES.LINESTYLE,
+  STROKE = OPCODES.STROKE,
+  FILL = OPCODES.FILL;
 
 /* opcode -> how many numbers follow it in a command stream. */
-let arglens : {[opcode : number] : number} = {};
+let arglens: { [opcode: number]: number } = {};
 
 arglens[FILL] = 0;
 arglens[STROKE] = 0;
@@ -56,9 +58,9 @@ let render_idgen = 1;
 let batch_iden = 1;
 
 export class CachedF64Array {
-  array : number[] = [];
+  array: number[] = [];
   /* Grown on demand and reused; finish() may hand back a subarray view. */
-  f64array : Float64Array | undefined = undefined;
+  f64array: Float64Array | undefined = undefined;
 
   constructor() {
     this.array = [];
@@ -90,28 +92,28 @@ export class CachedF64Array {
 }
 
 export class Batch {
-  generation: number
-  path_idmap: {[id : number] : CanvasPath}
-  isBlurBatch: boolean
-  gen_req: number
+  generation: number;
+  path_idmap: { [id: number]: CanvasPath };
+  isBlurBatch: boolean;
+  gen_req: number;
   #last_pan: Vector2 = new Vector2();
-  viewport: Viewport
-  realViewport: Viewport
+  viewport: Viewport;
+  realViewport: Viewport;
   patharea: number;
   dpi_scale: number;
   _commands: CachedF64Array;
 
-  _batch_id : number;
-  paths : CanvasPath[];
-  _regen! : number | boolean;
+  _batch_id: number;
+  paths: CanvasPath[];
+  _regen!: number | boolean;
   /* True between posting a render job and its result arriving. */
-  pending! : boolean;
-  onRenderDone : BatchDoneCallback | undefined;
+  pending!: boolean;
+  onRenderDone: BatchDoneCallback | undefined;
   /* The worker's rendered tile, and where to blit it. */
-  _image : ImageBitmap | undefined;
-  _image_off! : Vector2;
+  _image: ImageBitmap | undefined;
+  _image_off!: Vector2;
   /* Zoom the cached image was rendered at; drawing rescales by the ratio. */
-  _draw_zoom! : number;
+  _draw_zoom!: number;
 
   constructor() {
     this._batch_id = batch_iden++;
@@ -130,18 +132,18 @@ export class Batch {
 
     this.viewport = {
       pos : new Vector2(),
-      size: new Vector2([1, 1])
+      size: new Vector2([1, 1]),
     };
 
     this.realViewport = {
       pos : new Vector2(),
-      size: new Vector2([1, 1])
-    }
+      size: new Vector2([1, 1]),
+    };
 
     this.patharea = 0;
   }
 
-  set regen(v : number | boolean) {
+  set regen(v: number | boolean) {
     this._regen = v;
 
     if (debug && v) {
@@ -161,19 +163,20 @@ export class Batch {
     this.generation = 0;
 
     let draw = {
-      matrix: new Matrix4()
-    }
+      matrix: new Matrix4(),
+    };
     p.update_aabb(draw);
 
-    let min = p.aabb[0], max = p.aabb[1];
+    let min = p.aabb[0],
+      max = p.aabb[1];
     if (p.blur > 0) {
-      min.addScalar(-p.blur*0.5);
-      max.addScalar(p.blur*0.5);
+      min.addScalar(-p.blur * 0.5);
+      max.addScalar(p.blur * 0.5);
     }
     let w = max[0] - min[0];
     let h = max[1] - min[1];
 
-    this.patharea += w*h;
+    this.patharea += w * h;
 
     p._batch = this;
 
@@ -225,8 +228,7 @@ export class Batch {
   }
 
   has(p: CanvasPath) {
-    if (!p._batch_id)
-      return false;
+    if (!p._batch_id) return false;
 
     return p._batch_id in this.path_idmap;
   }
@@ -242,14 +244,19 @@ export class Batch {
 
     let cv = {
       pos : new Vector2(),
-      size: new Vector2([canvas.width, canvas.height])
+      size: new Vector2([canvas.width, canvas.height]),
     };
 
     cv.pos[0] -= p[0];
     cv.pos[1] -= p[1];
 
     let clip1 = math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
-    let clip2 = math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
+    let clip2 = math.aabb_intersect_2d(
+      this.realViewport.pos,
+      this.realViewport.size,
+      cv.pos,
+      cv.size
+    );
 
     const debug = 0;
 
@@ -284,19 +291,22 @@ export class Batch {
     return bad;
   }
 
-  _getPaddedViewport(canvas : DrawCanvas, cpad = 128) {
-    let dpi_scale = canvas.dpi_scale*this.dpi_scale;
+  _getPaddedViewport(canvas: DrawCanvas, cpad = 128) {
+    let dpi_scale = canvas.dpi_scale * this.dpi_scale;
     cpad /= dpi_scale;
 
     return {
       pos : new Vector2([-cpad, -cpad]),
-      size: new Vector2([canvas.width*canvas.dpi_scale + cpad*2, canvas.height*canvas.dpi_scale + cpad*2])
-    }
+      size: new Vector2([
+        canvas.width * canvas.dpi_scale + cpad * 2,
+        canvas.height * canvas.dpi_scale + cpad * 2,
+      ]),
+    };
   }
 
-  gen(draw : CanvasDraw2D) {
+  gen(draw: CanvasDraw2D) {
     if (this.gen_req-- > 0) {
-      return
+      return;
     }
 
     this.gen_req = 10;
@@ -310,7 +320,8 @@ export class Batch {
       draw.push_transform(matrix, false);
     }
 
-    let canvas = draw.canvas, g = draw.g;
+    let canvas = draw.canvas,
+      g = draw.g;
     if (debug) console.warn("generating batch of size " + this.paths.length);
 
     let min = new Vector2([1e17, 1e17]);
@@ -318,7 +329,7 @@ export class Batch {
 
     let zoom = draw.matrix.$matrix.m11;
 
-    function setMat(p : CanvasPath, set_off = false) {
+    function setMat(p: CanvasPath, set_off = false) {
       let mat = new Matrix4();
 
       if (set_off) {
@@ -331,7 +342,6 @@ export class Batch {
       draw.push_transform(mat, false);
       return mat;
     }
-
 
     let blocking = false;
 
@@ -359,8 +369,8 @@ export class Batch {
 
     this.realViewport = {
       pos : new Vector2(min),
-      size: new Vector2(max).sub(min)
-    }
+      size: new Vector2(max).sub(min),
+    };
 
     /* Clip to something reasonably close to the viewport. */
     let min2 = new Vector2(min);
@@ -384,8 +394,8 @@ export class Batch {
 
     this.viewport = {
       pos : new Vector2(box.pos),
-      size: new Vector2(box.size)
-    }
+      size: new Vector2(box.size),
+    };
 
     let width = ~~(max[0] - min[0]);
     let height = ~~(max[1] - min[1]);
@@ -430,28 +440,30 @@ export class Batch {
     this.pending = true;
 
     //blocking = false;
-    vectordraw_jobs.manager.postRenderJob(renderid, f64commands, undefined, !blocking).then((data : ImageBitmap) => {
-      this.pending = false;
+    vectordraw_jobs.manager
+      .postRenderJob(renderid, f64commands, undefined, !blocking)
+      .then((data: ImageBitmap) => {
+        this.pending = false;
 
-      if (this.onRenderDone) {
-        this.onRenderDone(this);
-      }
+        if (this.onRenderDone) {
+          this.onRenderDone(this);
+        }
 
-      if (debug) console.warn("Got render result!");
-      this.gen_req = 0;
+        if (debug) console.warn("Got render result!");
+        this.gen_req = 0;
 
-      this.#last_pan.load(last_pan);
+        this.#last_pan.load(last_pan);
 
-      //this.__image = undefined;
-      this._image = data;
-      this._image_off = min;
-      this._draw_zoom = zoom;
+        //this.__image = undefined;
+        this._image = data;
+        this._image_off = min;
+        this._draw_zoom = zoom;
 
-      window.redraw_viewport();
-    });
+        window.redraw_viewport();
+      });
   }
 
-  check(draw : CanvasDraw2D) {
+  check(draw: CanvasDraw2D) {
     if (this.paths.length === 0) {
       return;
     }
@@ -462,17 +474,19 @@ export class Batch {
     }
   }
 
-  draw(draw : CanvasDraw2D) {
+  draw(draw: CanvasDraw2D) {
     this.check(draw);
 
-    let canvas = draw.canvas, g = draw.g;
+    let canvas = draw.canvas,
+      g = draw.g;
     let zoom = draw.matrix.$matrix.m11; /* Scale should always be uniform, I think. */
-    let offx = 0, offy = 0;
+    let offx = 0,
+      offy = 0;
 
-    let scale = zoom/this._draw_zoom;
+    let scale = zoom / this._draw_zoom;
 
-    offx = draw.pan[0] - this.#last_pan[0]*scale;
-    offy = (draw.canvas.height - draw.pan[1]) - this.#last_pan[1]*scale;
+    offx = draw.pan[0] - this.#last_pan[0] * scale;
+    offy = draw.canvas.height - draw.pan[1] - this.#last_pan[1] * scale;
     offx /= scale;
     offy /= scale;
 
@@ -521,36 +535,36 @@ let canvaspath_temp_mats = util.cachering.fromConstructor(Matrix4, 128);
 let last_print_time = util.time_ms();
 
 export class CanvasPath extends PathBase {
-  dead: boolean
+  dead: boolean;
   /* Set when the cached image is still good but has to be re-blitted. */
-  redraw!: boolean | number
-  _image_off: Array<number>
-  _size2: Vector2
-  path_start_i: number
-  first: boolean
-  z: number
+  redraw!: boolean | number;
+  _image_off: Array<number>;
+  _size2: Vector2;
+  path_start_i: number;
+  first: boolean;
+  z: number;
   nofill: boolean;
   _mm: MinMax;
 
   /* Raw opcode stream this path appends to.  destroy() nulls it out, but
      nothing touches a path afterwards, so it is not declared optional. */
-  commands : number[];
+  commands: number[];
   /* The finished command list handed to a render job; the recalc setter
      invalidates it. */
-  _commands : number[] | undefined;
-  __recalc! : number;
+  _commands: number[] | undefined;
+  __recalc!: number;
   /* Widest stroke pushed since the last reset(), padding the aabb. */
-  stroke_extra : number;
-  _render_id : number;
-  _image : ImageBitmap | undefined;
+  stroke_extra: number;
+  _render_id: number;
+  _image: ImageBitmap | undefined;
   /* Swapped in for aabb/size while rendering into another path's canvas. */
-  _aabb2 : [Vector2, Vector2];
-  canvas : DrawCanvas | undefined;
-  g : Canvas2D | undefined;
+  _aabb2: [Vector2, Vector2];
+  canvas: DrawCanvas | undefined;
+  g: Canvas2D | undefined;
   /* The batch currently carrying this path. */
-  _batch : Batch | undefined;
-  _batch_id! : number;
-  declare hidden : boolean;
+  _batch: Batch | undefined;
+  _batch_id!: number;
+  declare hidden: boolean;
 
   constructor() {
     super();
@@ -587,10 +601,10 @@ export class CanvasPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color? : ColorLike, width? : number) {
+  pushStroke(color?: ColorLike, width?: number) {
     if (color) {
       let a = color.length > 3 ? color[3]! : 1.0;
-      this._pushCmd(LINESTYLE, ~~(color[0]!*255), ~~(color[1]!*255), ~~(color[2]!*255), a);
+      this._pushCmd(LINESTYLE, ~~(color[0]! * 255), ~~(color[1]! * 255), ~~(color[2]! * 255), a);
     }
 
     if (width !== undefined) {
@@ -607,11 +621,11 @@ export class CanvasPath extends PathBase {
 
   /* Only the transform is read, and Batch.add() passes a bare identity
      matrix rather than a whole VectorDraw. */
-  update_aabb(draw : {matrix : Matrix4}, fast_mode = false) {
+  update_aabb(draw: { matrix: Matrix4 }, fast_mode = false) {
     let tmp = canvaspath_temp_vs.next().zero();
     let mm = this._mm;
-    let pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
-    pad += this.stroke_extra*3;
+    let pad = (this.pad = this.blur > 0 ? this.blur + 15 : 0);
+    pad += this.stroke_extra * 3;
 
     mm.reset();
 
@@ -620,7 +634,8 @@ export class CanvasPath extends PathBase {
     }
 
     let prev = -1;
-    let cs = this.commands, i = 0;
+    let cs = this.commands,
+      i = 0;
     while (i < cs.length) {
       let cmd = cs[i++];
       let arglen = arglens[cmd];
@@ -631,7 +646,13 @@ export class CanvasPath extends PathBase {
         continue;
       }
 
-      if (cmd !== OPCODES.LINETO && cmd !== OPCODES.MOVETO && cmd !== OPCODES.CUBIC && cmd !== OPCODES.QUADRATIC && cmd !== OPCODES.ARC) {
+      if (
+        cmd !== OPCODES.LINETO &&
+        cmd !== OPCODES.MOVETO &&
+        cmd !== OPCODES.CUBIC &&
+        cmd !== OPCODES.QUADRATIC &&
+        cmd !== OPCODES.ARC
+      ) {
         i += arglen;
         continue;
       }
@@ -670,12 +691,13 @@ export class CanvasPath extends PathBase {
     this._pushCmd(CLOSEPATH);
   }
 
-  undo() { //remove last added path
+  undo() {
+    //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
   }
 
-  _pushCmd(...args : number[]) {
+  _pushCmd(...args: number[]) {
     let arglen = arguments.length;
 
     for (let i = 0; i < arglen; i++) {
@@ -691,7 +713,7 @@ export class CanvasPath extends PathBase {
     this.first = false;
   }
 
-  moveTo(x : number, y : number) {
+  moveTo(x: number, y: number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
@@ -699,20 +721,19 @@ export class CanvasPath extends PathBase {
 
   /* `subdiv` is here for PathBase's signature and ignored -- the batch
      renderer emits the curve whole. */
-  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
-          y4 : number, subdiv? : number) {
+  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, subdiv?: number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
 
-  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
+  bezierTo(x2: number, y2: number, x3: number, y3: number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
 
-  lineTo(x2 : number, y2 : number) {
+  lineTo(x2: number, y2: number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
@@ -723,7 +744,7 @@ export class CanvasPath extends PathBase {
     this.lasty = y2;
   }
 
-  destroy(draw : VectorDraw) {
+  destroy(draw: VectorDraw) {
     if (this._batch) {
       this._batch.remove(this);
     }
@@ -733,9 +754,11 @@ export class CanvasPath extends PathBase {
   }
 
   //renders into another path's canvas
-  genInto(draw : CanvasDraw2D, path : CanvasPath, commands : number[],
-          clip_mode = false) {
-    let oldc = this.canvas, oldg = this.g, oldaabb = this.aabb, oldsize = this.size;
+  genInto(draw: CanvasDraw2D, path: CanvasPath, commands: number[], clip_mode = false) {
+    let oldc = this.canvas,
+      oldg = this.g,
+      oldaabb = this.aabb,
+      oldsize = this.size;
 
     this.aabb = this._aabb2;
     this.aabb[0].load(path.aabb[0]);
@@ -753,12 +776,11 @@ export class CanvasPath extends PathBase {
     this.size = oldsize;
   }
 
-  gen_commands(draw : CanvasDraw2D, commands : number[], _check_tag = 0,
-               clip_mode = false) {
-    let r = ~~(this.color[0]*255),
-        g = ~~(this.color[1]*255),
-        b = ~~(this.color[2]*255),
-        a = this.color[3];
+  gen_commands(draw: CanvasDraw2D, commands: number[], _check_tag = 0, clip_mode = false) {
+    let r = ~~(this.color[0] * 255),
+      g = ~~(this.color[1] * 255),
+      b = ~~(this.color[2] * 255),
+      a = this.color[3];
 
     if (!clip_mode) {
       commands.push(OPCODES.FILLSTYLE);
@@ -785,7 +807,7 @@ export class CanvasPath extends PathBase {
     return commands;
   }
 
-  round(matrix : Matrix4) {
+  round(matrix: Matrix4) {
     let co = new Vector2();
     let imat = new Matrix4(matrix);
     imat.invert();
@@ -817,7 +839,7 @@ export class CanvasPath extends PathBase {
         co.mulScalar(d);
         co.addScalar(0.5);
         co.floor();
-        co.mulScalar(1.0/d);
+        co.mulScalar(1.0 / d);
         co.multVecMatrix(imat);
 
         cs[j2] = co[0];
@@ -827,11 +849,11 @@ export class CanvasPath extends PathBase {
     //*/
   }
 
-  get recalc() : number {
+  get recalc(): number {
     return this.__recalc;
   }
 
-  set recalc(v : number) {
+  set recalc(v: number) {
     if (v) {
       this._commands = undefined;
     }
@@ -847,7 +869,7 @@ export class CanvasPath extends PathBase {
   }
 
   /* Attempts to avoid regenerating the final command list.*/
-  genSmart(draw : CanvasDraw2D) {
+  genSmart(draw: CanvasDraw2D) {
     if (!this._commands || this.recalc) {
       return this.gen(draw);
     }
@@ -882,8 +904,7 @@ export class CanvasPath extends PathBase {
     cmds[i++] = m.m42;
   }
 
-  gen(draw : CanvasDraw2D, _check_tag = 0, clip_mode = false,
-      independent = false) {
+  gen(draw: CanvasDraw2D, _check_tag = 0, clip_mode = false, independent = false) {
     if (_check_tag && !this.recalc) {
       console.log("infinite loop in clip stack");
       return;
@@ -893,23 +914,24 @@ export class CanvasPath extends PathBase {
 
     this.update_aabb(draw);
 
-    let w = this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]);
-    let h = this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]);
+    let w = (this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]));
+    let h = (this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]));
 
     if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
       let w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
       let h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
-      let dw = w - w2, dh = h - h2;
+      let dw = w - w2,
+        dh = h - h2;
 
-      this.aabb[0][0] += dw*0.5;
-      this.aabb[0][1] += dh*0.5;
-      this.aabb[1][0] -= dw*0.5;
-      this.aabb[1][1] -= dh*0.5;
+      this.aabb[0][0] += dw * 0.5;
+      this.aabb[0][1] += dh * 0.5;
+      this.aabb[1][0] -= dw * 0.5;
+      this.aabb[1][1] -= dh * 0.5;
 
       this.size[0] = w2;
       this.size[1] = h2;
 
-      w = w2, h = h2;
+      (w = w2), (h = h2);
     }
 
     this.matrix.load(draw.matrix);
@@ -955,7 +977,7 @@ export class CanvasPath extends PathBase {
     this._commands = commands2;
   }
 
-  reset(draw? : VectorDraw) {
+  reset(draw?: VectorDraw) {
     this.stroke_extra = 0;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -963,9 +985,8 @@ export class CanvasPath extends PathBase {
     this.first = true;
   }
 
-  draw(draw : CanvasDraw2D, offx = 0, offy = 0, canvas = draw.canvas,
-       g = draw.g) {
-    offx += this.off[0], offy += this.off[1];
+  draw(draw: CanvasDraw2D, offx = 0, offy = 0, canvas = draw.canvas, g = draw.g) {
+    (offx += this.off[0]), (offy += this.off[1]);
 
     if (this.recalc) {
       this.recalc = 0;
@@ -983,13 +1004,23 @@ export class CanvasPath extends PathBase {
     g.drawImage(this._image, this._image_off[0] + offx, this._image_off[1] + offy);
 
     g.beginPath();
-    g.rect(this._image_off[0] + offx, this._image_off[1] + offy, this._image.width, this._image.height);
-    g.rect(this._image_off[0] + offx, this._image_off[1] + offy, this._image.width, this._image.height);
+    g.rect(
+      this._image_off[0] + offx,
+      this._image_off[1] + offy,
+      this._image.width,
+      this._image.height
+    );
+    g.rect(
+      this._image_off[0] + offx,
+      this._image_off[1] + offy,
+      this._image.width,
+      this._image.height
+    );
     g.fillStyle = "rgba(0,255,0,0.4)";
     g.fill();
   }
 
-  update(draw? : VectorDraw) {
+  update(draw?: VectorDraw) {
     this.recalc = 1;
   }
 }
@@ -998,7 +1029,7 @@ export class Batches extends Array<Batch> {
   /* Write head into the pool; entries past it are recycled next frame. */
   cur: number;
   /* The batches actually drawn this frame, in order. */
-  drawlist : Batch[];
+  drawlist: Batch[];
 
   constructor() {
     super();
@@ -1007,7 +1038,7 @@ export class Batches extends Array<Batch> {
     this.drawlist = [];
   }
 
-  getHead(onBatchDone : BatchDoneCallback) {
+  getHead(onBatchDone: BatchDoneCallback) {
     if (this.drawlist.length > 0) {
       return this.drawlist[this.drawlist.length - 1];
     }
@@ -1015,7 +1046,7 @@ export class Batches extends Array<Batch> {
     return this.requestBatch(onBatchDone);
   }
 
-  requestBatch(onrenderdone : BatchDoneCallback) {
+  requestBatch(onrenderdone: BatchDoneCallback) {
     let ret;
 
     if (this.cur < this.length) {
@@ -1037,7 +1068,7 @@ export class Batches extends Array<Batch> {
     return ret;
   }
 
-  remove(batch : Batch) {
+  remove(batch: Batch) {
     let i = this.indexOf(batch);
 
     this.drawlist.remove(batch);
@@ -1049,7 +1080,6 @@ export class Batches extends Array<Batch> {
       this.cur--;
     }
   }
-
 
   destroy() {
     this.drawlist.length = 0;
@@ -1069,17 +1099,17 @@ export class Batches extends Array<Batch> {
 }
 
 export class CanvasDraw2D extends VectorDraw<CanvasPath> {
-  paths: CanvasPath[]
-  path_idmap: {[id : number] : CanvasPath}
+  paths: CanvasPath[];
+  path_idmap: { [id: number]: CanvasPath };
   #last_pan: Vector2 = new Vector2();
   batches: Batches;
 
   /* Resolved once every batch in flight has finished rendering. */
-  promise : Promise<void> | undefined;
-  on_batches_finish : ((value? : void) => void) | undefined;
-  __regen! : number | boolean;
-  _last_do_blur! : boolean;
-  _last_zoom! : number;
+  promise: Promise<void> | undefined;
+  on_batches_finish: ((value?: void) => void) | undefined;
+  __regen!: number | boolean;
+  _last_do_blur!: boolean;
+  _last_zoom!: number;
 
   constructor() {
     super();
@@ -1091,7 +1121,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
+    this.matstack = Object.assign(new Array<Matrix4>(256), { cur: 0 });
     this.matrix = new Matrix4();
     this.#last_pan = new Vector2();
 
@@ -1106,7 +1136,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
     this.onBatchDone = this.onBatchDone.bind(this);
   }
 
-  onBatchDone(batch? : Batch) {
+  onBatchDone(batch?: Batch) {
     let ok = true;
     for (let b of this.batches.drawlist) {
       if (b.pending) {
@@ -1172,7 +1202,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
     }
   }
 
-  set regen(v : number | boolean) {
+  set regen(v: number | boolean) {
     this.__regen = v;
     //console.warn("regen");
   }
@@ -1189,7 +1219,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
     return vectordraw_jobs.manager.haveJobs;
   }
 
-  updateBatches(g : Canvas2D) {
+  updateBatches(g: Canvas2D) {
     if (!!this.do_blur !== !!this._last_do_blur) {
       this._last_do_blur = !!this.do_blur;
       this.regen = 1;
@@ -1212,7 +1242,10 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
 
     let batch;
 
-    let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length/vectordraw_jobs.manager.max_threads);
+    let blimit =
+      this.paths.length < 15
+        ? 15
+        : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
     //console.log("batch limit", blimit);
 
     batch = this.batches.getHead(this.onBatchDone);
@@ -1308,19 +1341,19 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
       let needsblur = false;
 
       if (!path._batch) {
-        let w1 = batch.patharea/(canvas.width*canvas.height);
-        let w2 = this.batches.length > 10 ? 1.0/(this.batches.length - 9) : 0.0;
+        let w1 = batch.patharea / (canvas.width * canvas.height);
+        let w2 = this.batches.length > 10 ? 1.0 / (this.batches.length - 9) : 0.0;
 
         if (needsblur) {
           if (!batch.isBlurBatch) {
             batch = this.batches.requestBatch(this.onBatchDone);
             batch.isBlurBatch = true;
-            batch.dpi_scale = path.blur*zoom > 50 ? 0.1 : 0.25;
+            batch.dpi_scale = path.blur * zoom > 50 ? 0.1 : 0.25;
           } else {
-            let scale = path.blur*zoom > 50 ? 0.1 : 0.25;
+            let scale = path.blur * zoom > 50 ? 0.1 : 0.25;
             batch.dpi_scale = Math.min(batch.dpi_scale, scale);
           }
-        } else if (batch.isBlurBatch || (batch.paths.length*(1.0 + w1*4.0) > blimit)) {
+        } else if (batch.isBlurBatch || batch.paths.length * (1.0 + w1 * 4.0) > blimit) {
           batch = this.batches.requestBatch(this.onBatchDone);
         }
 
@@ -1341,7 +1374,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
     }
   }
 
-  draw(g : Canvas2D) {
+  draw(g: Canvas2D) {
     //return;
     this.updateBatches(g);
 
@@ -1372,7 +1405,7 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
   }
 
   //set draw matrix
-  set_matrix(matrix : Matrix4) {
+  set_matrix(matrix: Matrix4) {
     super.set_matrix(matrix);
   }
 }

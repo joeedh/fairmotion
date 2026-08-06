@@ -1,28 +1,38 @@
 "use strict";
 
-import {STRUCT} from './struct.js';
-import {DataBlock, DataTypes} from './lib_api.js';
-import {Spline, RestrictFlags} from '../curve/spline.js';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment, SplineVertex} from '../curve/spline_types.js';
+import { STRUCT } from "./struct.js";
+import { DataBlock, DataTypes } from "./lib_api.js";
+import { Spline, RestrictFlags } from "../curve/spline.js";
 import {
-  TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
-  AnimInterpModes, AnimKeyFlags
-} from './animdata.js';
-import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
+  CustomDataLayer,
+  SplineTypes,
+  SplineFlags,
+  SplineSegment,
+  SplineVertex,
+} from "../curve/spline_types.js";
+import {
+  TimeDataLayer,
+  get_vtime,
+  set_vtime,
+  AnimChannel,
+  AnimKey,
+  AnimInterpModes,
+  AnimKeyFlags,
+} from "./animdata.js";
+import { SplineLayerFlags, SplineLayerSet } from "../curve/spline_element_array.js";
 
-import '../path.ux/scripts/util/struct.js';
+import "../path.ux/scripts/util/struct.js";
 
-let restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
-  RestrictFlags.NO_CONNECT;
+let restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE | RestrictFlags.NO_CONNECT;
 
 let vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 
-import {PropTypes} from './toolprops.js';
+import { PropTypes } from "./toolprops.js";
 
 export class VertexAnimIter {
   /* `value` is only meaningful while `done` is false, which is what a for..of
      over this iterator sees; the done case leaves it undefined. */
-  ret: {done: boolean; value: SplineVertex}
+  ret: { done: boolean; value: SplineVertex };
   stop: boolean;
 
   /* The path being walked, and the current vertex/segment along it. All three
@@ -32,13 +42,12 @@ export class VertexAnimIter {
   s?: SplineSegment;
 
   constructor(vd?: VertexAnimData) {
-    this.ret = {done: false, value: undefined!};
+    this.ret = { done: false, value: undefined! };
     this.stop = false;
 
     /* NOTE: this called VertexAnimIter.init(this, vd), but init() is an
        instance method, so constructing one with a vd threw a TypeError. */
-    if (vd !== undefined)
-      this.init(vd);
+    if (vd !== undefined) this.init(vd);
   }
 
   init(vd: VertexAnimData) {
@@ -46,10 +55,8 @@ export class VertexAnimIter {
     this.v = vd.startv;
     this.stop = false;
 
-    if (this.v !== undefined && this.v.segments.length !== 0)
-      this.s = this.v.segments[0];
-    else
-      this.s = undefined;
+    if (this.v !== undefined && this.v.segments.length !== 0) this.s = this.v.segments[0];
+    else this.s = undefined;
 
     this.ret.done = false;
     this.ret.value = undefined!;
@@ -82,8 +89,7 @@ export class VertexAnimIter {
 
     if (this.stop || this.s === undefined) {
       this.v = undefined;
-      if (ret.value === undefined)
-        ret.done = true;
+      if (ret.value === undefined) ret.done = true;
       return ret;
     }
 
@@ -101,7 +107,7 @@ export class VertexAnimIter {
 
 export class SegmentAnimIter {
   /* Same shape as VertexAnimIter.ret. */
-  ret: {done: boolean; value: SplineSegment}
+  ret: { done: boolean; value: SplineSegment };
   stop: boolean;
 
   vd?: VertexAnimData;
@@ -109,15 +115,13 @@ export class SegmentAnimIter {
   s?: SplineSegment;
 
   constructor(vd?: VertexAnimData) {
-    this.ret = {done: false, value: undefined!};
+    this.ret = { done: false, value: undefined! };
     this.stop = false;
 
     /* NOTE: `this.v` is still unset here, so the outer test is always false
        and init() is never reached; the call itself named the instance method
        off the class, which would have thrown had it run. */
-    if (this.v !== undefined && this.v.segments.length !== 0)
-      if (vd !== undefined)
-        this.init(vd);
+    if (this.v !== undefined && this.v.segments.length !== 0) if (vd !== undefined) this.init(vd);
   }
 
   init(vd: VertexAnimData) {
@@ -125,10 +129,8 @@ export class SegmentAnimIter {
     this.v = vd.startv;
     this.stop = false;
 
-    if (this.v !== undefined)
-      this.s = this.v.segments[0];
-    else
-      this.s = undefined;
+    if (this.v !== undefined) this.s = this.v.segments[0];
+    else this.s = undefined;
 
     this.ret.done = false;
     this.ret.value = undefined!;
@@ -168,7 +170,7 @@ export let VDAnimFlags = {
   SELECT           : 1,
   STEP_FUNC        : 2,
   HIDE             : 4,
-  OWNER_IS_EDITABLE: 8 //owner is selected and visible
+  OWNER_IS_EDITABLE: 8, //owner is selected and visible
 };
 
 let dvcache = cachering.fromConstructor(Vector2, 256);
@@ -176,11 +178,11 @@ let dvcache = cachering.fromConstructor(Vector2, 256);
 export class VertexAnimData {
   static STRUCT: string;
 
-  animflag: number
-  flag: number
-  visible: boolean
+  animflag: number;
+  flag: number;
+  visible: boolean;
   /* Maps pathspline vertex eid -> the time that vertex sits at. */
-  path_times: {[eid: number]: number}
+  path_times: { [eid: number]: number };
   cur_time: number;
 
   /* eid of the *scene* spline vertex this path animates. */
@@ -296,7 +298,7 @@ export class VertexAnimData {
       return;
     }
 
-    this.spline.layerset.active = this.spline.layerset.idmap[this.layerid]
+    this.spline.layerset.active = this.spline.layerset.idmap[this.layerid];
   }
 
   [Symbol.keystr]() {
@@ -307,8 +309,7 @@ export class VertexAnimData {
     if (this._start_layer_id !== undefined) {
       let layer = this.spline.layerset.idmap[this._start_layer_id];
 
-      if (layer !== undefined)
-        this.spline.layerset.active = layer;
+      if (layer !== undefined) this.spline.layerset.active = layer;
     }
 
     this._start_layer_id = undefined;
@@ -482,12 +483,12 @@ export class VertexAnimData {
   }
 
   draw(g: CanvasRenderingContext2D, matrix: Matrix4, alpha: number, time: number) {
-    if (!(this.visible))
-      return;
+    if (!this.visible) return;
 
     let step_func = this.animflag & VDAnimFlags.STEP_FUNC;
 
-    let start = this.start_time, end = this.end_time;
+    let start = this.start_time,
+      end = this.end_time;
 
     g.lineWidth = 2.0;
     g.strokeStyle = "rgba(100,100,100," + alpha + ")";
@@ -517,7 +518,7 @@ export class VertexAnimData {
 
       g.beginPath();
 
-      let green = Math.floor(((t - start)/(end - start))*255);
+      let green = Math.floor(((t - start) / (end - start)) * 255);
       g.strokeStyle = "rgba(10, " + green + ",10," + alpha + ")";
 
       /*if (t === start+dt)
@@ -548,7 +549,7 @@ export class VertexAnimData {
     let a = this.evaluate(time)!;
     let b = this.evaluate(time + df)!;
 
-    b.sub(a).mulScalar(1.0/df);
+    b.sub(a).mulScalar(1.0 / df);
     return dvcache.next().load(b);
   }
 
@@ -561,8 +562,7 @@ export class VertexAnimData {
     let v = this.startv;
     let step_func = this.animflag & VDAnimFlags.STEP_FUNC;
 
-    if (v === undefined)
-      return vertanimdata_eval_cache.next().zero();
+    if (v === undefined) return vertanimdata_eval_cache.next().zero();
 
     let co = vertanimdata_eval_cache.next();
     if (time <= get_vtime(v)) {
@@ -604,11 +604,14 @@ export class VertexAnimData {
     }
 
     //console.log("eval 3", get_vtime(v));
-    let nextv = v, nextv2 = v;
-    let alen1 = s !== undefined ? s.length : 1, alen2 = alen1;
-    let alen0 = lasts !== undefined ? lasts.length : alen1, alen3 = alen1;
+    let nextv = v,
+      nextv2 = v;
+    let alen1 = s !== undefined ? s.length : 1,
+      alen2 = alen1;
+    let alen0 = lasts !== undefined ? lasts.length : alen1,
+      alen3 = alen1;
     let nexts;
-  
+
     if (v.segments.length === 2) {
       nexts = v.other_segment(s);
 
@@ -688,33 +691,47 @@ export class VertexAnimData {
     if (lastv === v || get_vtime(lastv) === time) {
       co.load(v);
     } else {
-      let pt2 = get_vtime(lastv2), pt = get_vtime(lastv), vt = get_vtime(v);
-      let nt = get_vtime(nextv), nt2 = get_vtime(nextv2);
+      let pt2 = get_vtime(lastv2),
+        pt = get_vtime(lastv),
+        vt = get_vtime(v);
+      let nt = get_vtime(nextv),
+        nt2 = get_vtime(nextv2);
 
-      let t = (time - pt)/(vt - pt);
+      let t = (time - pt) / (vt - pt);
 
-      let a = pt, b, c, d = vt;
+      let a = pt,
+        b,
+        c,
+        d = vt;
       let arclength1 = alen0;
       let arclength2 = alen1;
       let arclength3 = alen2;
 
-      let t0 = pt2, t2, t3 = pt, t6 = vt, t9 = nt;
+      let t0 = pt2,
+        t2,
+        t3 = pt,
+        t6 = vt,
+        t9 = nt;
 
-      let t1 = pt2 + (pt - pt2)*(1.0/3.0);
-      let t8 = vt + (nt - vt)*(2.0/3.0);
+      let t1 = pt2 + (pt - pt2) * (1.0 / 3.0);
+      let t8 = vt + (nt - vt) * (2.0 / 3.0);
 
-      b = (-(t0 - t1)*(t3 - t6)*arclength1 + (t0 - t3)*arclength2*t3)/((t0 - t3)*arclength2);
-      c = ((t3 - t6)*(t8 - t9)*arclength3 + (t6 - t9)*arclength2*t6)/((t6 - t9)*arclength2);
+      b =
+        (-(t0 - t1) * (t3 - t6) * arclength1 + (t0 - t3) * arclength2 * t3) /
+        ((t0 - t3) * arclength2);
+      c =
+        ((t3 - t6) * (t8 - t9) * arclength3 + (t6 - t9) * arclength2 * t6) /
+        ((t6 - t9) * arclength2);
 
-      let r1 = alen0/alen1;
-      let r2 = alen1/alen2;
+      let r1 = alen0 / alen1;
+      let r2 = alen1 / alen2;
 
       //console.log("r1, r2", r1.toFixed(3), r2.toFixed(3));
 
       //b = pt + (vt-pt)*(1.0/3.0)*r1;
       //c = pt + (vt-pt)*(2.0/3.0)*r2;
-      b = pt + r1*(vt - pt2)/3.0;
-      c = vt - r2*(nt - pt)/3.0;
+      b = pt + (r1 * (vt - pt2)) / 3.0;
+      c = vt - (r2 * (nt - pt)) / 3.0;
 
       //if (b > pt-pt2) b = pt-pt2;
       //if (c > vt-pt)  c = vt-pt;
@@ -723,8 +740,12 @@ export class VertexAnimData {
       t1 = b;
       t2 = c;
       t3 = d;
-      let tt = -(3*(t0 - t1)*t - t0 + 3*(2*t1 - t2 - t0)*t*t +
-        (3*t2 - t3 - 3*t1 + t0)*t*t*t);
+      let tt = -(
+        3 * (t0 - t1) * t -
+        t0 +
+        3 * (2 * t1 - t2 - t0) * t * t +
+        (3 * t2 - t3 - 3 * t1 + t0) * t * t * t
+      );
       //*/
 
       tt = Math.abs(tt);

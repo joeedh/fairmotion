@@ -1,43 +1,57 @@
-import '../../../path.ux/scripts/util/vectormath.js';
+import "../../../path.ux/scripts/util/vectormath.js";
 
-import {IntProperty, FloatProperty, CollectionProperty,
-        BoolProperty, TPropFlags, Vec3Property} from '../../../core/toolprops.js';
-import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../../core/toolops_api.js';
-import {SplineFlags, SplineTypes, RecalcFlags, refSeg} from '../../../curve/spline_types.js';
-import type {SplineSegment} from '../../../curve/spline_types.js';
-import type {FullContext} from '../../../core/context.js';
-import type {ToolDef} from '../../../core/toolops_api.js';
-import {RestrictFlags, Spline} from '../../../curve/spline.js';
-import {redo_draw_sort} from '../../../curve/spline_draw.js';
+import {
+  IntProperty,
+  FloatProperty,
+  CollectionProperty,
+  BoolProperty,
+  TPropFlags,
+  Vec3Property,
+} from "../../../core/toolprops.js";
+import { ToolOp, UndoFlags, ToolFlags, ModalStates } from "../../../core/toolops_api.js";
+import { SplineFlags, SplineTypes, RecalcFlags, refSeg } from "../../../curve/spline_types.js";
+import type { SplineSegment } from "../../../curve/spline_types.js";
+import type { FullContext } from "../../../core/context.js";
+import type { ToolDef } from "../../../core/toolops_api.js";
+import { RestrictFlags, Spline } from "../../../curve/spline.js";
+import { redo_draw_sort } from "../../../curve/spline_draw.js";
 
-import {SplineLocalToolOp} from '../spline_editops.js';
+import { SplineLocalToolOp } from "../spline_editops.js";
 
-import {ensure_multires, MResFlags, BoundPoint, MultiResLayer,
-        compose_id, decompose_id, has_multires, iterpoints, MultiResGlobal
-       } from '../../../curve/spline_multires.js';
+import {
+  ensure_multires,
+  MResFlags,
+  BoundPoint,
+  MultiResLayer,
+  compose_id,
+  decompose_id,
+  has_multires,
+  iterpoints,
+  MultiResGlobal,
+} from "../../../curve/spline_multires.js";
 
 /* Was `static` inside CreateMResPoint.exec(). */
 const _exec_vec = new Vector3();
 
 export class CreateMResPoint extends SplineLocalToolOp<{
-  segment : IntProperty,
-  co      : Vec3Property,
-  level   : IntProperty
+  segment: IntProperty;
+  co: Vec3Property;
+  level: IntProperty;
 }> {
   /* NOTE: these were a `CreateMResPoint.inputs = {...}` assignment after the
      class body.  path.ux only ever reads tooldef().inputs, so this.inputs was
      empty and the constructor below threw on every run. */
-  static tooldef() : ToolDef {
+  static tooldef(): ToolDef {
     return {
-      inputs : {
+      inputs: {
         segment: new IntProperty(0),
         co     : new Vec3Property(),
-        level  : new IntProperty(0)
-      }
-    }
+        level  : new IntProperty(0),
+      },
+    };
   }
 
-  constructor(seg? : SplineSegment | number, co? : Vector3) {
+  constructor(seg?: SplineSegment | number, co?: Vector3) {
     super("create_mres_point", "Add Detail Point", "", -1);
 
     if (seg != undefined) {
@@ -49,7 +63,7 @@ export class CreateMResPoint extends SplineLocalToolOp<{
     }
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var spline = ctx.spline;
     var level = this.inputs.level.data;
 
@@ -78,7 +92,8 @@ export class CreateMResPoint extends SplineLocalToolOp<{
     var p = mr.add_point(level, co);
 
     var cp = seg.closest_point(co);
-    var t=10.0, s=0.5;
+    var t = 10.0,
+      s = 0.5;
     if (cp !== undefined) {
       s = cp.s;
       t = cp.co.vectorDistance(co);
@@ -110,8 +125,7 @@ export class CreateMResPoint extends SplineLocalToolOp<{
     var id = compose_id(p.seg, p.id);
     /* shared_data is a heterogeneous store keyed by layer type; the
        MultiResLayer slot always holds a MultiResGlobal. */
-    let shared = spline.segments.cdata.get_shared('MultiResLayer') as MultiResGlobal;
+    let shared = spline.segments.cdata.get_shared("MultiResLayer") as MultiResGlobal;
     shared.active = id;
   }
 }
-

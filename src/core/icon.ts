@@ -6,45 +6,48 @@ const _enum_to_xy_ret = [0, 0];
 
 export class IconManager {
   /* Where the sheet image is fetched from. */
-  path : string;
+  path: string;
   /* Size of the whole sheet, and of one icon cell within it, in pixels. */
-  size : Vector2
-  cellsize : Vector2
+  size: Vector2;
+  cellsize: Vector2;
   /* Set once the sheet image has decoded. */
-  ready : boolean;
+  ready: boolean;
   /* The GL upload was commented out, so this holds the <img> and nothing else. */
-  tex! : {image: HTMLImageElement};
+  tex!: { image: HTMLImageElement };
   /* Both are written once and never read; the texture upload they belonged to
      is commented out in load(). */
-  te! : Object;
-  texture : WebGLTexture | undefined;
+  te!: Object;
+  texture: WebGLTexture | undefined;
 
   /* `gl` is optional because every use of it in load() is commented out, and
      RasterState builds its two sheets before there is a context. */
-  constructor(gl: WebGLRenderingContext | undefined, sheet_path: string,
-              imgsize: Array<number>, iconsize: Array<number>)
-  {
+  constructor(
+    gl: WebGLRenderingContext | undefined,
+    sheet_path: string,
+    imgsize: Array<number>,
+    iconsize: Array<number>
+  ) {
     this.path = sheet_path;
     this.size = new Vector2(imgsize);
     this.cellsize = new Vector2(iconsize);
-    
+
     this.load(gl);
     this.texture = undefined;
     this.ready = false;
   }
-  
+
   load(gl: WebGLRenderingContext | undefined) {
     //load texture
     //this.tex = gl.createTexture();
-    this.tex = {image: new Image()};
+    this.tex = { image: new Image() };
     this.tex.image.src = this.path;
-    
+
     this.te = {};
     var thetex = this.tex;
     var this2 = this;
-    this.tex.image.onload = function() {
+    this.tex.image.onload = function () {
       var tex = thetex;
-      
+
       /*gl.bindTexture(gl.TEXTURE_2D, tex);
       //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tex.image);
@@ -52,54 +55,57 @@ export class IconManager {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       */
       this2.ready = true;
-    }
+    };
   }
-  
-  get_tile(tile: number) : Array<float> {
+
+  get_tile(tile: number): Array<float> {
     var ret: float[] = [];
     this.gen_tile(tile, ret);
-    
+
     return ret;
   }
-  
+
   enum_to_xy(tile: number) {
     const ret = _enum_to_xy_ret;
 
     var size = this.size;
     var cellsize = this.cellsize;
-    
-    var fx = Math.floor(size[0]/cellsize[0]);
-    
-    var y = Math.floor(tile/fx);
-    var x = tile%fx;
-    
-    x *= cellsize[0]; y *= cellsize[1];
-    
+
+    var fx = Math.floor(size[0] / cellsize[0]);
+
+    var y = Math.floor(tile / fx);
+    var x = tile % fx;
+
+    x *= cellsize[0];
+    y *= cellsize[1];
+
     ret[0] = x;
     ret[1] = y;
-    
+
     return ret;
   }
-  
+
   gen_tile(tile: number, texcos: float[]) {
     var size = this.size;
     var cellsize = this.cellsize;
-    
-    var fx = Math.floor(size[0]/cellsize[0]);
-    
-    var y = Math.floor(tile/fx);
-    var x = tile%fx;
-    
-    x = (x*cellsize[0])/size[0]; y = (y*cellsize[1])/size[1];
-    
+
+    var fx = Math.floor(size[0] / cellsize[0]);
+
+    var y = Math.floor(tile / fx);
+    var x = tile % fx;
+
+    x = (x * cellsize[0]) / size[0];
+    y = (y * cellsize[1]) / size[1];
+
     /*
     for (var i=0; i<3*2; i++) {
       texcos.push(y);
     }
     return;
     */
-    
-    var u = 1.0 / size[0], v = 1.0 / size[1];
+
+    var u = 1.0 / size[0],
+      v = 1.0 / size[1];
     u *= cellsize[0];
     v *= cellsize[1];
     /*
@@ -109,19 +115,25 @@ export class IconManager {
     v = -1.0;
     // */
     y += v;
-    texcos.push(x); texcos.push(y); //0
-    texcos.push(x); texcos.push(y-v); //1
-    texcos.push(x+u); texcos.push(y-v); //2
-    
-    texcos.push(x); texcos.push(y); //0
-    texcos.push(x+u); texcos.push(y-v); //2
-    texcos.push(x+u); texcos.push(y); //3
+    texcos.push(x);
+    texcos.push(y); //0
+    texcos.push(x);
+    texcos.push(y - v); //1
+    texcos.push(x + u);
+    texcos.push(y - v); //2
+
+    texcos.push(x);
+    texcos.push(y); //0
+    texcos.push(x + u);
+    texcos.push(y - v); //2
+    texcos.push(x + u);
+    texcos.push(y); //3
   }
 }
 
 var icon_vshader = `
 
-`
+`;
 
 var icon_fshader = `
-`
+`;

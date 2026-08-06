@@ -1,44 +1,43 @@
 "use strict";
 
-import {STRUCT} from '../../core/struct.js';
-import {KeyMap, HotKey} from '../../core/keymap.js';
+import { STRUCT } from "../../core/struct.js";
+import { KeyMap, HotKey } from "../../core/keymap.js";
 
 /* NOTE: this import was commented out, so on_tick() below threw a
    ReferenceError every time it ran. */
-import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops.js";
-import {ToolModes} from "./selectmode.js";
-import type {View2DHandler} from './view2d.js';
-import type {ToolModeHit} from './toolmodes/toolmode.js';
-import type {FullContext} from '../../core/context.js';
-import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../../core/lib_api.js';
+import { WidgetResizeOp, WidgetRotateOp } from "./transform_ops.js";
+import { ToolModes } from "./selectmode.js";
+import type { View2DHandler } from "./view2d.js";
+import type { ToolModeHit } from "./toolmodes/toolmode.js";
+import type { FullContext } from "../../core/context.js";
+import type { DataBlock, GetBlockFunc, GetBlockUserFunc } from "../../core/lib_api.js";
 
 //bitmask
 //VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
-export {EditModes, EditorTypes, SessionFlags} from './view2d_base.js';
+export { EditModes, EditorTypes, SessionFlags } from "./view2d_base.js";
 
 let v3d_idgen = 0;
 
 export class View2DEditor {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  keymap : KeyMap
-  selectmode : number;
+  keymap: KeyMap;
+  selectmode: number;
 
-  name : string;
-  _id : number;
+  name: string;
+  _id: number;
   /* EditModes value -- which element kind this backend edits. */
-  type : number;
+  type: number;
   /* EditorTypes value. */
-  editor_type : number;
+  editor_type: number;
   /* DataTypes value of the datablock the backend operates on. */
-  lib_type : number;
+  lib_type: number;
   /* Set by on_mousemove/on_mouseup only; never initialised. */
-  mdown! : boolean;
+  mdown!: boolean;
 
   /* NOTE: both subclasses build a KeyMap and pass it as a fifth argument, but
      this constructor has always ignored it and built its own. */
-  constructor(name : string, editor_type : number, type : number,
-              lib_type : number, _keymap? : KeyMap) {
+  constructor(name: string, editor_type: number, type: number, lib_type: number, _keymap?: KeyMap) {
     this.name = name;
     this._id = v3d_idgen++;
     this.type = type;
@@ -54,7 +53,7 @@ export class View2DEditor {
     presence of fromSTRUCT.  Need to review
     that.
    */
-  static fromSTRUCT(reader : (obj : object) => void) {
+  static fromSTRUCT(reader: (obj: object) => void) {
     var obj = {};
 
     reader(obj);
@@ -62,25 +61,21 @@ export class View2DEditor {
     return obj;
   }
 
-  get_keymaps() : KeyMap[] {
+  get_keymaps(): KeyMap[] {
     return [this.keymap];
   }
 
-  on_area_inactive(view2d : View2DHandler) {
-  }
+  on_area_inactive(view2d: View2DHandler) {}
 
-  editor_duplicate(view2d : View2DHandler) {
+  editor_duplicate(view2d: View2DHandler) {
     throw new Error("implement me!");
   }
 
-  data_link(block : DataBlock, getblock : GetBlockFunc,
-            getblock_us : GetBlockUserFunc) {
-  }
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {}
 
-  add_menu(view2d : View2DHandler, mpos : number[], add_title = true) {
-  }
+  add_menu(view2d: View2DHandler, mpos: number[], add_title = true) {}
 
-  on_tick(ctx : FullContext) {
+  on_tick(ctx: FullContext) {
     let widgets = [WidgetResizeOp, WidgetRotateOp];
 
     if (ctx.view2d.toolmode == ToolModes.RESIZE) {
@@ -98,56 +93,52 @@ export class View2DEditor {
     var k = this.keymap;
   }
 
-  set_selectmode(mode : number) {
+  set_selectmode(mode: number) {
     this.selectmode = mode;
   }
 
   //returns number of selected items
-  do_select(event : MouseEvent, mpos : number[], view2d : View2DHandler,
-            do_multiple : boolean) {
+  do_select(event: MouseEvent, mpos: number[], view2d: View2DHandler, do_multiple: boolean) {
     //console.log("XXX do_select!", mpos);
     return false;
   }
 
-  tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
+  tools_menu(ctx: FullContext, mpos: number[], view2d: View2DHandler) {
     //let ops = [];
     //var menu = view2d.toolop_menu(ctx, "Tools", ops);
     //view2d.call_menu(menu, view2d, mpos);
   }
 
-  on_inactive(view2d : View2DHandler) {
-  }
+  on_inactive(view2d: View2DHandler) {}
 
-  on_active(view2d : View2DHandler) {
-  }
+  on_active(view2d: View2DHandler) {}
 
-  rightclick_menu(event : MouseEvent, view2d : View2DHandler) {
-  }
+  rightclick_menu(event: MouseEvent, view2d: View2DHandler) {}
 
-  on_mousedown(event : MouseEvent) {
-  }
+  on_mousedown(event: MouseEvent) {}
   //returns [spline, element, mindis]
-  findnearest(mpos : number[], selectmask : number, limit : number,
-              ignore_layers : boolean) : ToolModeHit | undefined {
+  findnearest(
+    mpos: number[],
+    selectmask: number,
+    limit: number,
+    ignore_layers: boolean
+  ): ToolModeHit | undefined {
     return undefined;
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     this.mdown = true;
   }
 
-  on_mouseup(event : MouseEvent) {
+  on_mouseup(event: MouseEvent) {
     this.mdown = false;
   }
 
-  do_alt_select(event : MouseEvent, mpos : number[], view2d : View2DHandler) {
-  }
+  do_alt_select(event: MouseEvent, mpos: number[], view2d: View2DHandler) {}
 
-  gen_edit_menu(add_title = false) {
-  }
+  gen_edit_menu(add_title = false) {}
 
-  delete_menu(event : MouseEvent) {
-  }
+  delete_menu(event: MouseEvent) {}
 }
 
 View2DEditor.STRUCT = `

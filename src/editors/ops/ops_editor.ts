@@ -1,16 +1,16 @@
-import type {FullContext} from "../../core/context.js";
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
-import {Editor} from '../editor_base.js';
-import type {Container} from '../../path.ux/scripts/core/ui.js';
+import type { FullContext } from "../../core/context.js";
+import { Area } from "../../path.ux/scripts/screen/ScreenArea.js";
+import { STRUCT } from "../../core/struct.js";
+import { UIBase } from "../../path.ux/scripts/core/ui_base.js";
+import { Editor } from "../editor_base.js";
+import type { Container } from "../../path.ux/scripts/core/ui.js";
 
 export class OpStackEditor extends Editor {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* "<undostack length>:<cur>", so update() can skip the rebuild. */
-  _last_toolstack_hash : string;
-  frame! : Container<FullContext>;
+  _last_toolstack_hash: string;
+  frame!: Container<FullContext>;
 
   constructor() {
     super();
@@ -26,11 +26,11 @@ export class OpStackEditor extends Editor {
     let stack = ctx.toolstack;
     let frame = this.frame;
 
-    for (let i=0; i<stack.undostack.length; i++) {
+    for (let i = 0; i < stack.undostack.length; i++) {
       let tool = stack.undostack[i];
 
       let cls = tool.constructor;
-      let name : string | undefined;
+      let name: string | undefined;
 
       if (cls.tooldef) {
         name = cls.tooldef().uiname;
@@ -41,7 +41,7 @@ export class OpStackEditor extends Editor {
 
       let panel = frame.panel(name);
       for (let k in tool.inputs) {
-        let path = `operator_stack[${i}].${k}`
+        let path = `operator_stack[${i}].${k}`;
         try {
           panel.prop(path);
         } catch (error) {
@@ -76,18 +76,22 @@ export class OpStackEditor extends Editor {
     this.frame = this.container.col();
   }
 
-  static define() { return {
-    tagname : "opstack-editor-x",
-    areaname : "opstack_editor",
-    uiname : "Operator Stack",
-    hidden : true
-  }}
+  static define() {
+    return {
+      tagname : "opstack-editor-x",
+      areaname: "opstack_editor",
+      uiname  : "Operator Stack",
+      hidden  : true,
+    };
+  }
 
   copy() {
     return document.createElement("opstack-editor-x");
   }
 }
-OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + `
+OpStackEditor.STRUCT =
+  STRUCT.inherit(OpStackEditor, Area) +
+  `
 }
 `;
 Editor.register(OpStackEditor);

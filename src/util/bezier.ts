@@ -41,106 +41,178 @@ off fort;
 
 */
 
-export function d2bez3(k1 : number, k2 : number, k3 : number, s : number) {
-  return 2.0 * (k1 - k2 - (k2 - k3))
+export function d2bez3(k1: number, k2: number, k3: number, s: number) {
+  return 2.0 * (k1 - k2 - (k2 - k3));
 }
 
-export function dbez3(k1 : number, k2 : number, k3 : number, s : number) {
-  return 2.0*(k1*s-k1-2.0*k2*s+k2+k3*s)
+export function dbez3(k1: number, k2: number, k3: number, s: number) {
+  return 2.0 * (k1 * s - k1 - 2.0 * k2 * s + k2 + k3 * s);
 }
 
-export function bez3(k1 : number, k2 : number, k3 : number, s : number) {
-  return ((k1-k2)*s-k1-((k2-k3)*s-k2))*s-((k1-k2)*s-k1);
+export function bez3(k1: number, k2: number, k3: number, s: number) {
+  return ((k1 - k2) * s - k1 - ((k2 - k3) * s - k2)) * s - ((k1 - k2) * s - k1);
 }
 
-export function ibez3(k1 : number, k2 : number, k3 : number, s : number) {
-  return (-(((2.0 * s - 3.0) * k2 - k3 * s) * s - (s ** 2 - 3.0 * s + 3.0) * k1) * s) / 3.0
+export function ibez3(k1: number, k2: number, k3: number, s: number) {
+  return (-(((2.0 * s - 3.0) * k2 - k3 * s) * s - (s ** 2 - 3.0 * s + 3.0) * k1) * s) / 3.0;
 }
 
-export function d2bez4(k1 : number, k2 : number, k3 : number, k4 : number, s : number) {
-  return -6.0*(k1*s-k1-3.0*k2*s+2.0*k2+3.0*k3*s-k3-k4*s);
+export function d2bez4(k1: number, k2: number, k3: number, k4: number, s: number) {
+  return -6.0 * (k1 * s - k1 - 3.0 * k2 * s + 2.0 * k2 + 3.0 * k3 * s - k3 - k4 * s);
 }
 
-export function dbez4(k1 : number, k2 : number, k3 : number, k4 : number, s : number) {
-  return -3.0*(k1*s**2-2.0*k1*s+k1-3.0*k2*s**2+4.0*k2*s-k2+3.0*k3*s**2-2.0*k3*s-k4*s**2);
+export function dbez4(k1: number, k2: number, k3: number, k4: number, s: number) {
+  return (
+    -3.0 *
+    (k1 * s ** 2 -
+      2.0 * k1 * s +
+      k1 -
+      3.0 * k2 * s ** 2 +
+      4.0 * k2 * s -
+      k2 +
+      3.0 * k3 * s ** 2 -
+      2.0 * k3 * s -
+      k4 * s ** 2)
+  );
 }
 
-export function bez4(k1 : number, k2 : number, k3 : number, k4 : number, s : number) {
-  return -(((3.0*(s-1.0)*k3-k4*s)*s-3.0*(s-1.0)**2*k2)*s+(s-1.0)**3*k1);
+export function bez4(k1: number, k2: number, k3: number, k4: number, s: number) {
+  return -(
+    ((3.0 * (s - 1.0) * k3 - k4 * s) * s - 3.0 * (s - 1.0) ** 2 * k2) * s +
+    (s - 1.0) ** 3 * k1
+  );
 }
 
-export function ibez4(k1 : number, k2 : number, k3 : number, k4 : number, s : number) {
-  return (-(((3.0*s-4.0)*k3-k4*s)*s**2+(s**2-2.0*s+2.0)*(s-2.0)*k1-(3.0*s**2-8.0*s+6.0)*k2*s)*s)/4.0;
+export function ibez4(k1: number, k2: number, k3: number, k4: number, s: number) {
+  return (
+    (-(
+      ((3.0 * s - 4.0) * k3 - k4 * s) * s ** 2 +
+      (s ** 2 - 2.0 * s + 2.0) * (s - 2.0) * k1 -
+      (3.0 * s ** 2 - 8.0 * s + 6.0) * k2 * s
+    ) *
+      s) /
+    4.0
+  );
 }
 
-export function curv4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : number, y3 : number, x4 : number, y4 : number, s : number) {
+export function curv4(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+  x4: number,
+  y4: number,
+  s: number
+) {
   let dx1 = dbez4(x1, x2, x3, x4, s);
   let dy1 = dbez4(y1, y2, y3, y4, s);
 
   let dx2 = d2bez4(x1, x2, x3, x4, s);
   let dy2 = d2bez4(y1, y2, y3, y4, s);
 
-  return (dx1*dy2 - dy1*dx2) / Math.pow(dx1*dx1 + dy1*dy1, 3.0/2.0);
+  return (dx1 * dy2 - dy1 * dx2) / Math.pow(dx1 * dx1 + dy1 * dy1, 3.0 / 2.0);
 }
 
-export function dcurv4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : number, y3 : number, x4 : number, y4 : number, s : number) {
+export function dcurv4(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+  x4: number,
+  y4: number,
+  s: number
+) {
   let df = 0.00001;
-  let a = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s-df);
-  let b = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s+df);
+  let a = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s - df);
+  let b = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s + df);
 
-  return (b - a) / (df*2.0);
+  return (b - a) / (df * 2.0);
 }
 
-export function bez_self_isect4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : number, y3 : number, x4 : number, y4 : number) {
+export function bez_self_isect4(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+  x4: number,
+  y4: number
+) {
   return;
   let steps = 8;
-  let s=0, ds = 1.0 / (steps-1);
+  let s = 0,
+    ds = 1.0 / (steps - 1);
 
-  for (let i=0; i<steps; i++, s += ds) {
+  for (let i = 0; i < steps; i++, s += ds) {
     let ax = bez4(x1, x2, x3, x4, s);
     let ay = bez4(y1, y2, y3, y4, s);
 
     let s2 = 0.0;
-    for (let j=0; j<steps; j++, s2 += ds) {
+    for (let j = 0; j < steps; j++, s2 += ds) {
       if (j === i) continue;
-
-
     }
   }
 }
 
-export function lenbez4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : number, y3 : number, x4 : number, y4 : number, s1 : number) {
+export function lenbez4(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+  x4: number,
+  y4: number,
+  s1: number
+) {
   const steps = 16;
-  let ds = s1 / steps, s = 0.0;
+  let ds = s1 / steps,
+    s = 0.0;
 
   let len = 0.0;
-  for (let i=0; i<steps; i++, s += ds) {
+  for (let i = 0; i < steps; i++, s += ds) {
     let dk = 0.0;
     let k = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s);
     let dx = dbez4(x1, x2, x3, x4, s);
     let dy = dbez4(y1, y2, y3, y4, s);
-    let l = Math.sqrt(dx*dx + dy*dy);
+    let l = Math.sqrt(dx * dx + dy * dy);
 
-    len += l*ds;
+    len += l * ds;
   }
 
   return len;
 }
 
-export function thbez4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : number, y3 : number, x4 : number, y4 : number, s1 : number) {
+export function thbez4(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+  x4: number,
+  y4: number,
+  s1: number
+) {
   let len = 1.0; //lenbez4(x1, y1, x2, y2, x3, y3, x4, y4, 1.0);
 
   if (s1 === 0.0) {
-    return curv4(x1, y1, x2, y2, x3, y3, x4, y4, s1)*len;
+    return curv4(x1, y1, x2, y2, x3, y3, x4, y4, s1) * len;
   }
 
   const steps = 18;
-  let ds = s1 / steps, s = 0.0;
-  let lastk : number | undefined = undefined;
+  let ds = s1 / steps,
+    s = 0.0;
+  let lastk: number | undefined = undefined;
   let sum = 0.0;
 
   s = 0.0;
-  for (let i=0; i<steps; i++, s += ds) {
+  for (let i = 0; i < steps; i++, s += ds) {
     let dk = 0.0;
     let k = curv4(x1, y1, x2, y2, x3, y3, x4, y4, s);
 
@@ -159,7 +231,6 @@ export function thbez4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : 
       //l = Math.sqrt(dx*dx + dy*dy);
     }
 
-
     //lx = x;
     //ly = y;
 
@@ -167,7 +238,7 @@ export function thbez4(x1 : number, y1 : number, x2 : number, y2 : number, x3 : 
       dk = (k - lastk) / ds;
     }
 
-    sum += k*ds;// + 0.5*dk*ds*ds;
+    sum += k * ds; // + 0.5*dk*ds*ds;
     lastk = k;
   }
 

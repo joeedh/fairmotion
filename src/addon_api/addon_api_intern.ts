@@ -1,44 +1,50 @@
-import {nstructjs, util, cconst} from '../path.ux/scripts/pathux.js';
-import {Spline} from '../curve/spline.js';
-import {SplineFrameSet} from '../core/frameset.js';
-import type {Addon} from './addon_api.js';
-import type {DataBlockClass} from '../core/lib_api.js';
-import {structAddClass} from '../core/struct_facade.js';
+import { nstructjs, util, cconst } from "../path.ux/scripts/pathux.js";
+import { Spline } from "../curve/spline.js";
+import { SplineFrameSet } from "../core/frameset.js";
+import type { Addon } from "./addon_api.js";
+import type { DataBlockClass } from "../core/lib_api.js";
+import { structAddClass } from "../core/struct_facade.js";
 
 /* Any class nstructjs can serialize; the register() wrapper below only reads
    structName off it. */
-export type StructClass = Function & {structName : string};
+export type StructClass = Function & { structName: string };
 
-export function bindAddonAPI(addon : Addon) {
+export function bindAddonAPI(addon: Addon) {
   return {
-    registerCustomBlockData(datablock_cls : DataBlockClass, cls : StructClass) {
+    registerCustomBlockData(datablock_cls: DataBlockClass, cls: StructClass) {
       //console.log("Registering custom datablock for addon", addon);
       throw new Error("implement me!");
     },
-    nstructjs : {
-      register(cls : StructClass) {
+    nstructjs: {
+      register(cls: StructClass) {
         let s = new nstructjs.STRUCT();
         structAddClass(s, cls);
 
         if (cls.structName.search(/\./) < 0) {
-          throw new Error("Must add namespace prefix (e.g. addon.SomeClass) to STRUCT scripts in addons");
+          throw new Error(
+            "Must add namespace prefix (e.g. addon.SomeClass) to STRUCT scripts in addons"
+          );
         }
 
         nstructjs.register(cls);
       },
 
-      inherit(cls : Function, parent : Function, structName? : string) {
+      inherit(cls: Function, parent: Function, structName?: string) {
         if (structName === undefined) {
-          throw new Error("structName cannot be undefined, and don't forget to add a module prefix, e.g. addon.SomeClass");
+          throw new Error(
+            "structName cannot be undefined, and don't forget to add a module prefix, e.g. addon.SomeClass"
+          );
         } else if (structName.search(/\./) < 0) {
-          throw new Error("You must add a module prefix to addon STRUCT scripts, e.g. addon.SomeClass");
+          throw new Error(
+            "You must add a module prefix to addon STRUCT scripts, e.g. addon.SomeClass"
+          );
         }
 
         return nstructjs.inherit(cls, parent, structName);
       },
-      STRUCT : nstructjs.STRUCT
+      STRUCT: nstructjs.STRUCT,
     },
-    Spline : Spline,
-    SplineFrameSet : SplineFrameSet
-  }
+    Spline        : Spline,
+    SplineFrameSet: SplineFrameSet,
+  };
 }

@@ -1,17 +1,17 @@
-import {STRUCT} from '../core/struct.js';
-import {DataBlock, DataRef, DataTypes} from '../core/lib_api.js';
-import {SplineFrameSet} from "../core/frameset.js";
-import {SceneObject, ObjectFlags} from './sceneobject.js';
-import {DataPathNode} from '../core/eventdag.js';
-import {SplineElement} from "../curve/spline_base.js";
-import {ToolModes, asNamedList, makeNamedList} from "../editors/viewport/toolmodes/toolmode.js";
-import {SelMask} from "../editors/viewport/selectmode.js";
-import {Collection} from './collection.js';
+import { STRUCT } from "../core/struct.js";
+import { DataBlock, DataRef, DataTypes } from "../core/lib_api.js";
+import { SplineFrameSet } from "../core/frameset.js";
+import { SceneObject, ObjectFlags } from "./sceneobject.js";
+import { DataPathNode } from "../core/eventdag.js";
+import { SplineElement } from "../curve/spline_base.js";
+import { ToolModes, asNamedList, makeNamedList } from "../editors/viewport/toolmodes/toolmode.js";
+import { SelMask } from "../editors/viewport/selectmode.js";
+import { Collection } from "./collection.js";
 
-import type {ToolMode, NamedList} from "../editors/viewport/toolmodes/toolmode.js";
-import type {DataLib, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
-import type {FullContext} from '../core/context.js';
-import type {DagCallback, SocketValue} from '../core/eventdag.js';
+import type { ToolMode, NamedList } from "../editors/viewport/toolmodes/toolmode.js";
+import type { DataLib, GetBlockFunc, GetBlockUserFunc } from "../core/lib_api.js";
+import type { FullContext } from "../core/context.js";
+import type { DagCallback, SocketValue } from "../core/eventdag.js";
 
 /* A dag callback as linkDag() registers them; link() stamps NodeBase's
    prototype onto the function object itself. */
@@ -19,8 +19,8 @@ export type SceneDagNode = DagCallback;
 
 export class ObjectList extends Array<SceneObject> {
   /* Keyed on SceneObject.id, not lib_id. */
-  idmap: {[id : number] : SceneObject}
-  namemap: {[name : string] : SceneObject};
+  idmap: { [id: number]: SceneObject };
+  namemap: { [name: string]: SceneObject };
   scene: Scene;
   active: SceneObject | undefined;
 
@@ -33,7 +33,7 @@ export class ObjectList extends Array<SceneObject> {
     this.active = undefined;
   }
 
-  get(id_or_string : number | string) {
+  get(id_or_string: number | string) {
     if (typeof id_or_string == "string") {
       return this.namemap[id_or_string];
     } else {
@@ -41,7 +41,7 @@ export class ObjectList extends Array<SceneObject> {
     }
   }
 
-  has(ob : SceneObject) {
+  has(ob: SceneObject) {
     return ob.id in this.idmap;
     //return super.indexOf(ob) >= 0;
   }
@@ -59,7 +59,7 @@ export class ObjectList extends Array<SceneObject> {
     super.push(ob);
   }
 
-  remove(ob : SceneObject) {
+  remove(ob: SceneObject) {
     delete this.idmap[ob.id];
     delete this.namemap[ob.name];
     super.remove(ob);
@@ -84,17 +84,16 @@ export class ObjectList extends Array<SceneObject> {
      iterates the result with `for..in`, which walks a function's own
      enumerable keys and so finds nothing.  Object transform has been dead the
      whole time; the loops walk the list itself now, but nothing reaches them. */
-  get editable() : () => Generator<SceneObject> {
+  get editable(): () => Generator<SceneObject> {
     let this2 = this;
 
-    return (function* () {
+    return function* () {
       for (let ob of this2) {
-        if (ob.flag & ObjectFlags.HIDE)
-          continue;
+        if (ob.flag & ObjectFlags.HIDE) continue;
 
         yield ob;
       }
-    });
+    };
   }
 
   //for now, there is no difference between editable list of objects and visible
@@ -104,30 +103,27 @@ export class ObjectList extends Array<SceneObject> {
 
   /* NOTE: `bad` was computed and then never tested, so this yielded hidden and
      unselected objects too. */
-  get selected_editable() : () => Generator<SceneObject> {
+  get selected_editable(): () => Generator<SceneObject> {
     let this2 = this;
 
-    return (function* () {
+    return function* () {
       for (let ob of this2) {
-        if (ob.flag & ObjectFlags.HIDE)
-          continue;
+        if (ob.flag & ObjectFlags.HIDE) continue;
 
-        if (!(ob.flag & ObjectFlags.SELECT))
-          continue;
+        if (!(ob.flag & ObjectFlags.SELECT)) continue;
 
         yield ob;
       }
-    });
+    };
   }
 }
 
-
 /*
-* BAD!
-* idea for how layers will work between objects:
-* to start with, have all objects share a common mapping
-* from ids to layer names
-* */
+ * BAD!
+ * idea for how layers will work between objects:
+ * to start with, have all objects share a common mapping
+ * from ids to layer names
+ * */
 
 /*
 class LayerIDItem {
@@ -224,18 +220,18 @@ export class ToolModeSwitchError extends Error {}
 /* mixin(Scene, DataPathNode) at the bottom of this file copies the whole
    DataPathNode prototype across; this is the part of it Scene uses. */
 export interface Scene {
-  dag_update(output_socket_name : string, data? : SocketValue) : void;
+  dag_update(output_socket_name: string, data?: SocketValue): void;
 }
 
 export class Scene extends DataBlock {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  edit_all_layers: boolean
-  objects: ObjectList
-  object_idgen: EIDGen
-  toolmode_i: number
-  active_splinepath: string
-  time: number
+  edit_all_layers: boolean;
+  objects: ObjectList;
+  object_idgen: EIDGen;
+  toolmode_i: number;
+  active_splinepath: string;
+  time: number;
   fps: number;
 
   /* One entry per linkDag() call; only used as an "already linked" flag. */
@@ -259,7 +255,7 @@ export class Scene extends DataBlock {
       typeIndex   : 5,
       linkOrder   : 1,
       accessorName: "scenes",
-    }
+    };
   }
 
   constructor() {
@@ -294,7 +290,7 @@ export class Scene extends DataBlock {
     this.time = 1;
   }
 
-  _initCollection(datalib : DataLib) {
+  _initCollection(datalib: DataLib) {
     let collection = new Collection();
 
     this.collection = collection;
@@ -305,7 +301,7 @@ export class Scene extends DataBlock {
     collection.lib_adduser(this, "collection");
   }
 
-  switchToolMode(tname : string) {
+  switchToolMode(tname: string) {
     let tool = this.toolmodes.map[tname];
 
     if (!tool) {
@@ -337,18 +333,18 @@ export class Scene extends DataBlock {
     this.toolmode.ctx = g_app_state.ctx;
   }
 
-  get toolmode() : ToolMode {
+  get toolmode(): ToolMode {
     return this.toolmodes[this.toolmode_i];
   }
 
-  setActiveObject(ob : SceneObject) {
+  setActiveObject(ob: SceneObject) {
     this.objects.active = ob;
 
     this.dag_update("on_active_set", true);
   }
 
   //returns sceneobject
-  addFrameset(datalib : DataLib, fs: SplineFrameSet) {
+  addFrameset(datalib: DataLib, fs: SplineFrameSet) {
     let ob = new SceneObject(fs);
     datalib.add(ob);
 
@@ -361,23 +357,19 @@ export class Scene extends DataBlock {
     return ob;
   }
 
-  change_time(ctx : FullContext, time : number, _update_animation = true) {
-    if (_DEBUG.timeChange)
-      console.warn("Time change!", time, this.time);
+  change_time(ctx: FullContext, time: number, _update_animation = true) {
+    if (_DEBUG.timeChange) console.warn("Time change!", time, this.time);
 
     if (isNaN(this.time)) {
       console.warn("EEK corruption!");
       this.time = ctx.frameset.time;
 
-      if (isNaN(this.time))
-        this.time = 1;
+      if (isNaN(this.time)) this.time = 1;
 
-      if (isNaN(time))
-        time = 1;
+      if (isNaN(time)) time = 1;
     }
 
-    if (time === this.time)
-      return;
+    if (time === this.time) return;
 
     if (isNaN(time)) return;
 
@@ -408,7 +400,7 @@ export class Scene extends DataBlock {
     return ret;
   }
 
-  add(ob : SceneObject) {
+  add(ob: SceneObject) {
     this.objects.add(ob);
     if (this.collection) {
       this.collection.add(ob);
@@ -417,19 +409,17 @@ export class Scene extends DataBlock {
     return this;
   }
 
-  remove(ob : SceneObject) {
+  remove(ob: SceneObject) {
     return this.objects.remove(ob);
   }
 
-  dag_exec() {
-
-  }
+  dag_exec() {}
 
   dag_get_datapath() {
     return "datalib.items[" + this.lib_id + "]";
   }
 
-  loadSTRUCT(reader : StructReader<this>) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -453,8 +443,7 @@ export class Scene extends DataBlock {
     return this;
   }
 
-  data_link(block : DataBlock, getblock : GetBlockFunc,
-            getblock_us : GetBlockUserFunc) {
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     super.data_link(block, getblock, getblock_us);
 
     if (this.collection !== undefined) {
@@ -499,25 +488,21 @@ export class Scene extends DataBlock {
     //  g_app_state.switch_active_spline(this.active_splinepath);
   }
 
-  linkDag(ctx : FullContext) {
-    let on_sel : SceneDagNode = function (ctx, inputs, outputs, graph) {
+  linkDag(ctx: FullContext) {
+    let on_sel: SceneDagNode = function (ctx, inputs, outputs, graph) {
       console.warn("on select called through eventdag!");
       ctx.frameset.sync_vdata_selstate(ctx);
-    }
+    };
 
-    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"],
-      on_sel, ["eid"]);
-    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"],
-      on_sel, ["eid"]);
-    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_add"],
-      on_sel, ["eid"]);
-    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_sub"],
-      on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_add"], on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_sub"], on_sel, ["eid"]);
 
     this.dagnodes.push(on_sel);
   }
 
-  on_tick(ctx : FullContext) {
+  on_tick(ctx: FullContext) {
     if (this.dagnodes.length === 0) {
       this.linkDag(ctx);
     }
@@ -529,14 +514,16 @@ export class Scene extends DataBlock {
       uiname : "scene",
       outputs: {
         on_active_set : null,
-        on_time_change: null
+        on_time_change: null,
       },
-      inputs : {}
-    }
+      inputs : {},
+    };
   }
 }
 
-Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
+Scene.STRUCT =
+  STRUCT.inherit(Scene, DataBlock) +
+  `
     time              : float;
     active_splinepath : string;
     collection        : DataRef | DataRef.fromBlock(this.collection);

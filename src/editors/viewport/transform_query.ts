@@ -1,14 +1,13 @@
-import {TransDataType} from './transdata.js';
-import {SelMask} from './selectmode.js';
-import {TransSceneObject} from './transform_object.js';
-import {TransSplineVert} from './transform_spline.js';
-import type {FullContext} from '../../core/context.js';
+import { TransDataType } from "./transdata.js";
+import { SelMask } from "./selectmode.js";
+import { TransSceneObject } from "./transform_object.js";
+import { TransSplineVert } from "./transform_spline.js";
+import type { FullContext } from "../../core/context.js";
 
-export function getTransDataType(ctx : FullContext) {
+export function getTransDataType(ctx: FullContext) {
   if (ctx.view2d.selectmode == SelMask.OBJECT) {
     return TransSceneObject;
   } else {
     return TransSplineVert;
   }
 }
-

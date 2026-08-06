@@ -1,37 +1,43 @@
-import type {FullContext} from "../../core/context.js";
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {STRUCT} from '../../core/struct.js';
-import {Editor} from '../editor_base.js';
+import type { FullContext } from "../../core/context.js";
+import { Area } from "../../path.ux/scripts/screen/ScreenArea.js";
+import { STRUCT } from "../../core/struct.js";
+import { Editor } from "../editor_base.js";
 import {
-  keymap, reverse_keymap, saveUIData, loadUIData, pushModalLight, popModalLight, exportTheme
-} from '../../path.ux/scripts/pathux.js';
-import type {Container} from '../../path.ux/scripts/core/ui.js';
-import type {ThemeEditor} from '../../path.ux/scripts/widgets/theme_editor.js';
-import type {KeyModifiers} from '../../path.ux/scripts/pathux.js';
-import type {KeyMap, HotKey} from '../../core/keymap.js';
+  keymap,
+  reverse_keymap,
+  saveUIData,
+  loadUIData,
+  pushModalLight,
+  popModalLight,
+  exportTheme,
+} from "../../path.ux/scripts/pathux.js";
+import type { Container } from "../../path.ux/scripts/core/ui.js";
+import type { ThemeEditor } from "../../path.ux/scripts/widgets/theme_editor.js";
+import type { KeyModifiers } from "../../path.ux/scripts/pathux.js";
+import type { KeyMap, HotKey } from "../../core/keymap.js";
 
 let basic_colors = {
-  'white' : [1, 1, 1],
-  'grey'  : [0.5, 0.5, 0.5],
-  'gray'  : [0.5, 0.5, 0.5],
-  'black' : [0, 0, 0],
-  'red'   : [1, 0, 0],
-  'yellow': [1, 1, 0],
-  'green' : [0, 1, 0],
-  'teal'  : [0, 1, 1],
-  'cyan'  : [0, 1, 1],
-  'blue'  : [0, 0, 1],
-  'orange': [1, 0.5, 0.25],
-  'brown' : [0.5, 0.4, 0.3],
-  'purple': [1, 0, 1],
-  'pink'  : [1, 0.5, 0.5]
+  "white" : [1, 1, 1],
+  "grey"  : [0.5, 0.5, 0.5],
+  "gray"  : [0.5, 0.5, 0.5],
+  "black" : [0, 0, 0],
+  "red"   : [1, 0, 0],
+  "yellow": [1, 1, 0],
+  "green" : [0, 1, 0],
+  "teal"  : [0, 1, 1],
+  "cyan"  : [0, 1, 1],
+  "blue"  : [0, 0, 1],
+  "orange": [1, 0.5, 0.25],
+  "brown" : [0.5, 0.4, 0.3],
+  "purple": [1, 0, 1],
+  "pink"  : [1, 0.5, 0.5],
 };
 
 export class SettingsEditor extends Editor {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* The "Hotkeys" tab, kept so buildHotKeys() can rebuild it in place. */
-  hotkeyTab! : Container<FullContext>;
+  hotkeyTab!: Container<FullContext>;
 
   constructor() {
     super();
@@ -58,13 +64,17 @@ export class SettingsEditor extends Editor {
       theme = theme.replace(/var theme/, "export const theme");
 
       theme = `import {CSSFont} from '../path.ux/scripts/pathux.js';\n\n` + theme;
-      theme = `
+      theme =
+        `
 /*
  * WARNING: AUTO-GENERATED FILE
  *
  * Copy to scripts/editors/theme.js
  */
-      `.trim() + "\n\n" + theme + "\n";
+      `.trim() +
+        "\n\n" +
+        theme +
+        "\n";
 
       console.log(theme);
 
@@ -77,14 +87,13 @@ export class SettingsEditor extends Editor {
       window.open(url);
     });
 
-
     this.style.overflowY = "scroll";
 
-    let th : ThemeEditor<FullContext> = document.createElement("theme-editor-x");
+    let th: ThemeEditor<FullContext> = document.createElement("theme-editor-x");
     th.onchange = () => {
       console.log("settings change");
       g_app_state.settings.save();
-    }
+    };
 
     let row = tab.row();
     row.button("Reload Defaults", () => {
@@ -102,7 +111,7 @@ export class SettingsEditor extends Editor {
     this.buildHotKeys(tab);
   }
 
-  buildHotKeys(tab : Container<FullContext> = this.hotkeyTab) {
+  buildHotKeys(tab: Container<FullContext> = this.hotkeyTab) {
     if (!this.ctx || !this.ctx.screen) {
       this.doOnce(this.buildHotKeys);
       return;
@@ -119,20 +128,20 @@ export class SettingsEditor extends Editor {
       this.buildHotKeys(tab);
     });
 
-    let build = (tab : Container<FullContext>, label : string, keymaps : Iterable<KeyMap>) => {
+    let build = (tab: Container<FullContext>, label: string, keymaps: Iterable<KeyMap>) => {
       let panel = tab.panel(label);
 
-      let changePre = (hk : HotKey, handler : HotKey["action"], keymap : KeyMap) => {
+      let changePre = (hk: HotKey, handler: HotKey["action"], keymap: KeyMap) => {
         keymap.ensureWrite();
-      }
+      };
 
-      let changePost = (hk : HotKey, handler : HotKey["action"], keymap : KeyMap) => {
+      let changePost = (hk: HotKey, handler: HotKey["action"], keymap: KeyMap) => {
         this.ctx.state.settings.updateKeyDeltas(keymap.typeName, keymap);
-      }
+      };
 
-      let getHotKeyLabel = (hk : HotKey) => {
+      let getHotKeyLabel = (hk: HotKey) => {
         let key = hk.buildString(); //hk[Symbol.keystr]();
-        let name : HotKey["action"] | undefined = hk.uiname ?? hk.action;
+        let name: HotKey["action"] | undefined = hk.uiname ?? hk.action;
 
         if (!hk.uiname && typeof hk.action === "string") {
           let cls = this.ctx.api.parseToolPath(hk.action);
@@ -145,10 +154,14 @@ export class SettingsEditor extends Editor {
         }
 
         return name + ": " + key;
-      }
+      };
 
-      let makeKeyPanel = (panel2 : Container<FullContext>, hk : HotKey,
-                          handler : HotKey["action"], keymap : KeyMap) => {
+      let makeKeyPanel = (
+        panel2: Container<FullContext>,
+        hk: HotKey,
+        handler: HotKey["action"],
+        keymap: KeyMap
+      ) => {
         let row = panel2.row();
 
         /* NOTE: each of these was followed by a `panel2.headerLabel = ...`.
@@ -165,7 +178,7 @@ export class SettingsEditor extends Editor {
 
         /* Uppercase because that is what hk.mods holds; the button shows the
            lowercase spelling it always did. */
-        function makeModifier(mod : KeyModifiers) {
+        function makeModifier(mod: KeyModifiers) {
           row.button(mod.toLowerCase(), () => {
             keymap.ensureWrite();
 
@@ -193,7 +206,7 @@ export class SettingsEditor extends Editor {
            number until the key is changed, at which point the handler below
            relabels it through reverse_keymap. */
         let keyButton = row.button("" + hk.key, () => {
-          let modaldata : ReturnType<typeof pushModalLight> | undefined;
+          let modaldata: ReturnType<typeof pushModalLight> | undefined;
           let start_time = 0;
 
           let checkEnd = () => {
@@ -203,12 +216,12 @@ export class SettingsEditor extends Editor {
 
             popModalLight(modaldata);
             modaldata = undefined;
-          }
+          };
 
           start_time = time_ms();
 
           modaldata = pushModalLight({
-            on_keydown(e : KeyboardEvent) {
+            on_keydown(e: KeyboardEvent) {
               console.log("Got hotkey!", e.keyCode);
 
               if (modaldata) {
@@ -224,16 +237,16 @@ export class SettingsEditor extends Editor {
               setPanel2Title();
             },
 
-            on_mousedown(e : MouseEvent) {
+            on_mousedown(e: MouseEvent) {
               checkEnd();
             },
 
-            on_mouseup(e : MouseEvent) {
+            on_mouseup(e: MouseEvent) {
               checkEnd();
             },
           });
         });
-      }
+      };
 
       for (let keymap of keymaps) {
         for (let key of keymap) {
@@ -246,8 +259,7 @@ export class SettingsEditor extends Editor {
       }
 
       panel.closed = true;
-    }
-
+    };
 
     for (let kmset of this.ctx.screen.getKeySets()) {
       build(tab, kmset.name, kmset);
@@ -266,8 +278,8 @@ export class SettingsEditor extends Editor {
       tagname : "settings-editor-x",
       areaname: "settings_editor",
       uiname  : "Settings",
-      icon    : Icons.SETTINGS_EDITOR
-    }
+      icon    : Icons.SETTINGS_EDITOR,
+    };
   }
 
   copy() {
@@ -275,7 +287,9 @@ export class SettingsEditor extends Editor {
   }
 }
 
-SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area) + `
+SettingsEditor.STRUCT =
+  STRUCT.inherit(SettingsEditor, Area) +
+  `
 }
 `;
 Editor.register(SettingsEditor);

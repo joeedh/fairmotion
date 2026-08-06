@@ -1,2 +1,2 @@
-import './splinetool.js';
-import './pentool.js';
+import "./splinetool.js";
+import "./pentool.js";

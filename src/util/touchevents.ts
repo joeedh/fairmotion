@@ -4,18 +4,18 @@
    `touches` is indexed by identifier and each touch is treated as an [x, y]
    pair, which is not what a real TouchList holds. */
 interface TouchLikeEvent {
-  touches : Record<string, [number, number]>;
+  touches: Record<string, [number, number]>;
 }
 
 class TouchManager {
-  pattern : set<string>
-  idxmap : Record<number, string>
+  pattern: set<string>;
+  idxmap: Record<number, string>;
   /* Seeded with 0 per touch, then replaced with an [dx, dy] pair by update(). */
-  deltas : Record<string, number | number[]>;
-  tot : number;
-  event : TouchLikeEvent;
+  deltas: Record<string, number | number[]>;
+  tot: number;
+  event: TouchLikeEvent;
 
-  constructor(event : TouchLikeEvent) {
+  constructor(event: TouchLikeEvent) {
     let keys = Object.keys(event.touches);
 
     this.pattern = new set(keys);
@@ -25,7 +25,7 @@ class TouchManager {
     this.tot = keys.length;
     this.event = event;
     this.deltas = {};
-    
+
     //create a mapping from integer sequence 0..<tot,
     //to the identifiers within the event.
     var i = 0;
@@ -34,40 +34,40 @@ class TouchManager {
       this.deltas[k] = 0.0;
     }
   }
-  
-  update(event : TouchLikeEvent) {
+
+  update(event: TouchLikeEvent) {
     if (this.valid(event)) {
       for (var k in event.touches) {
         var t2 = event.touches[k];
         var t1 = this.event.touches[k];
-        
-        var d = [t2[0]-t1[0], t2[1]-t1[1]];
-        
+
+        var d = [t2[0] - t1[0], t2[1] - t1[1]];
+
         this.deltas[k] = d;
       }
     }
-    
+
     this.event = event;
   }
-  
-  delta(i : number) {
+
+  delta(i: number) {
     return this.deltas[this.idxmap[i]];
   }
-  
-  get(i : number) {
+
+  get(i: number) {
     return this.event.touches[this.idxmap[i]];
   }
-  
+
   /* NOTE: the has() below read a bare `pattern`, i.e. a ReferenceError on
      every call.  It means this.pattern. */
-  valid(event=this.event) : boolean {
+  valid(event = this.event): boolean {
     var keys = Object.keys(event.touches);
     if (keys.length != this.pattern.length) return false;
-    
-    for (var i=0; i<keys.length; i++) {
+
+    for (var i = 0; i < keys.length; i++) {
       if (!this.pattern.has(keys[i])) return false;
     }
-    
+
     return true;
   }
 }

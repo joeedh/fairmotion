@@ -1,12 +1,12 @@
-import {BaseContext, FullContext} from "./context.js";
-import {ToolFlags, ToolMacro, ToolOp, UndoFlags} from "./toolops_api.js";
-import {CollectionProperty, StringProperty, TPropFlags} from "./toolprops.js";
-import {ToolProperty} from "./toolops_api.js";
-import * as pathux from '../path.ux/scripts/pathux.js';
+import { BaseContext, FullContext } from "./context.js";
+import { ToolFlags, ToolMacro, ToolOp, UndoFlags } from "./toolops_api.js";
+import { CollectionProperty, StringProperty, TPropFlags } from "./toolprops.js";
+import { ToolProperty } from "./toolops_api.js";
+import * as pathux from "../path.ux/scripts/pathux.js";
 
-import {globalDag} from './eventdag.js';
-import {USE_PATHUX_API} from './const.js';
-import type {AppState} from './AppState.js';
+import { globalDag } from "./eventdag.js";
+import { USE_PATHUX_API } from "./const.js";
+import type { AppState } from "./AppState.js";
 
 export class ToolStack extends pathux.ToolStack<FullContext, FullContext, ToolOp> {
   static STRUCT: string;
@@ -14,7 +14,7 @@ export class ToolStack extends pathux.ToolStack<FullContext, FullContext, ToolOp
   /* undocur and undostack are accessors, not fields: the stack *is* this array
      and `cur` is where undo/redo sits in it. The names are what the STRUCT
      script at the bottom of this file writes. */
-  valcache: {[toolClassName: string]: unknown};
+  valcache: { [toolClassName: string]: unknown };
   appstate: AppState;
   do_truncate: boolean;
 
@@ -118,7 +118,7 @@ export class ToolStack extends pathux.ToolStack<FullContext, FullContext, ToolOp
   }
 
   rebuild_last_tool(tool: ToolOp) {
-   console.warn("toolstack.rebuild_last_tool called!");
+    console.warn("toolstack.rebuild_last_tool called!");
   }
 
   //macro members come back out of ToolMacro.tools as path.ux ToolOps
@@ -129,15 +129,13 @@ export class ToolStack extends pathux.ToolStack<FullContext, FullContext, ToolOp
 
     for (let k in tool.inputs) {
       let p = tool.inputs[k];
-      if (p instanceof CollectionProperty)
-        p.flag &= ~TPropFlags.COLL_LOOSE_TYPE;
+      if (p instanceof CollectionProperty) p.flag &= ~TPropFlags.COLL_LOOSE_TYPE;
     }
     for (let k in tool.outputs) {
       /* NOTE: keyed off outputs but read from inputs, so output collections
          never get their loose-type flag cleared.  Left as-is. */
       let p = tool.inputs[k];
-      if (p instanceof CollectionProperty)
-        p.flag &= ~TPropFlags.COLL_LOOSE_TYPE;
+      if (p instanceof CollectionProperty) p.flag &= ~TPropFlags.COLL_LOOSE_TYPE;
     }
 
     if (tool instanceof ToolMacro) {
@@ -195,4 +193,4 @@ ToolStack.STRUCT = `
     undocur   : int;
     undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
   }
-`
+`;

@@ -3,17 +3,17 @@
 import "../editors/events.js";
 import "./toolprops_iter.js";
 
-import {STRUCT} from "./struct.js";
-import {EventHandler} from "../editors/events.js";
-import {charmap} from "../editors/events.js";
+import { STRUCT } from "./struct.js";
+import { EventHandler } from "../editors/events.js";
+import { charmap } from "../editors/events.js";
 
 /* NOTE: DataBlock was never imported here at all.  The old transpiler put every
    module in one scope so the bare name resolved; under ES modules each
    `x instanceof DataBlock` below threw a ReferenceError, which took
    DataRefList.push() and _b() with it.  lib_api imports nothing that leads back
    to this file, so a value import is safe. */
-import {DataBlock} from "./lib_api.js";
-import type {DataLib, GetBlockFunc, GetBlockUserFunc} from "./lib_api.js";
+import { DataBlock } from "./lib_api.js";
+import type { DataLib, GetBlockFunc, GetBlockUserFunc } from "./lib_api.js";
 /* DataRef is not imported: lib_api.ts publishes it on window and this file
    constructs it by the bare name. See globals.d.ts. */
 
@@ -47,7 +47,6 @@ import type {DataLib, GetBlockFunc, GetBlockUserFunc} from "./lib_api.js";
    modules, and its pop(i) called Array.prototype.pop, which takes no argument
    and drops the last element rather than element i. */
 
-
 /* NOTE: a DataArrayRem() factory sat here, with no callers. */
 
 /* NOTE: a SceneObjRem() factory sat here.  It had no callers and unparented
@@ -77,15 +76,19 @@ function DataRem(dst: DataBlock, field: string) {
 */
 
 export function wrap_getblock_us(datalib: DataLib): GetBlockUserFunc {
-  return function (dataref: DataRef | undefined, block: DataBlock, fieldname: string,
-                   add_user?: boolean, refname?: string, rem_func?: () => void) {
+  return function (
+    dataref: DataRef | undefined,
+    block: DataBlock,
+    fieldname: string,
+    add_user?: boolean,
+    refname?: string,
+    rem_func?: () => void
+  ) {
     if (dataref == undefined) return;
 
-    if (rem_func == undefined)
-      rem_func = DataRem(block, fieldname);
+    if (rem_func == undefined) rem_func = DataRem(block, fieldname);
 
-    if (refname == undefined)
-      refname = fieldname;
+    if (refname == undefined) refname = fieldname;
 
     var id = dataref[0];
     //var lib_id = dataref[1];
@@ -96,12 +99,15 @@ export function wrap_getblock_us(datalib: DataLib): GetBlockUserFunc {
       var b = datalib.get(id);
 
       if (b != undefined) {
-        if (add_user)
-          b.lib_adduser(block, refname, rem_func);
+        if (add_user) b.lib_adduser(block, refname, rem_func);
       } else {
-        warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!",
-                   "  dataref: "].join("\n"), dataref);
-
+        warntrace(
+          [
+            "WARNING WARNING WARNING saved block reference isn't in database!!!",
+            "  dataref: ",
+          ].join("\n"),
+          dataref
+        );
       }
 
       return b;
@@ -123,15 +129,19 @@ export function wrap_getblock(datalib: DataLib): GetBlockFunc {
 
       if (b != undefined) {
       } else {
-        warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!",
-                   "  dataref: "].join("\n"), dataref);
+        warntrace(
+          [
+            "WARNING WARNING WARNING saved block reference isn't in database!!!",
+            "  dataref: ",
+          ].join("\n"),
+          dataref
+        );
       }
 
       return b;
     }
-  }
+  };
 }
-
 
 /*
   DataRefList.  A simple container for block references.
@@ -147,13 +157,14 @@ export class DataRefList extends GArray<DataRef | DataBlock> {
      setter; falls back to g_app_state.datalib while it is unset. */
   datalib: DataLib | undefined;
 
-  constructor(lst: Iterable<DataBlock | DataRef> | (DataBlock | DataRef)[] | undefined = undefined) {
+  constructor(
+    lst: Iterable<DataBlock | DataRef> | (DataBlock | DataRef)[] | undefined = undefined
+  ) {
     super();
 
     this.datalib = undefined;
 
-    if (lst == undefined)
-      return;
+    if (lst == undefined) return;
 
     if (lst instanceof Array) {
       for (var i = 0; i < lst.length; i++) {
@@ -175,11 +186,11 @@ export class DataRefList extends GArray<DataRef | DataBlock> {
      subclass anyway.  Iterating a DataRefList now yields the stored refs. */
 
   //we don't want all of ctx, just the current datalib
-  set ctx(ctx: {datalib: DataLib} | undefined) {
+  set ctx(ctx: { datalib: DataLib } | undefined) {
     this.datalib = ctx!.datalib;
   }
 
-  get ctx(): {datalib: DataLib} | undefined {
+  get ctx(): { datalib: DataLib } | undefined {
     return undefined;
   }
 
@@ -284,8 +295,7 @@ export class DataRefList extends GArray<DataRef | DataBlock> {
       /* NOTE: neither DataRef nor DataBlock has an `id` (a ref's is ref[0], a
          block's is lib_id), so this compares undefined with undefined and
          matches element 0 for any argument. */
-      if (Reflect.get(this[i], "id") == Reflect.get(ref, "id"))
-        return i;
+      if (Reflect.get(this[i], "id") == Reflect.get(ref, "id")) return i;
     }
 
     return -1;
@@ -310,8 +320,8 @@ export class DataRefList extends GArray<DataRef | DataBlock> {
     super.prepend(ref);
   }
 
-  static fromSTRUCT(reader: StructReader<{list?: DataRef[]}>) {
-    var ret: {list?: DataRef[]} = {};
+  static fromSTRUCT(reader: StructReader<{ list?: DataRef[] }>) {
+    var ret: { list?: DataRef[] } = {};
     reader(ret);
 
     return new DataRefList(ret.list);

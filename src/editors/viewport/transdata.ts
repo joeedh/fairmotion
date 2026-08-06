@@ -1,19 +1,17 @@
 "use strict";
 
-import {
-  MinMax
-} from '../../util/mathlib.js';
+import { MinMax } from "../../util/mathlib.js";
 
-import type {FullContext} from '../../core/context.js';
-import type {TransformOp} from './transform.js';
-import type {SplineLayer} from '../../curve/spline_element_array.js';
+import type { FullContext } from "../../core/context.js";
+import type { TransformOp } from "./transform.js";
+import type { SplineLayer } from "../../curve/spline_element_array.js";
 
 /* What TransSceneObject remembers about one object. */
 export interface ObjectTransUndo {
-  matrix : Matrix4;
-  loc    : Vector2;
-  scale  : Vector2;
-  rot    : number;
+  matrix: Matrix4;
+  loc: Vector2;
+  scale: Vector2;
+  rot: number;
 }
 
 /* Scratch object a TransformOp hands to every TransDataType's undo_pre(),
@@ -21,31 +19,30 @@ export interface ObjectTransUndo {
    only the type that wrote a key ever reads it -- hence all optional. */
 export type TransUndoData = {
   /* Written by TransformOp.undo_pre() itself, before any backend runs. */
-  edit_all_layers? : boolean;
+  edit_all_layers?: boolean;
   /* TransSplineVert: flat [eid, w1, w2] and [eid, x, y] records. */
-  sseg?    : number[];
-  svert?   : number[];
+  sseg?: number[];
+  svert?: number[];
   /* TransSceneObject, keyed by object id. */
-  object?  : {[id : number] : ObjectTransUndo};
+  object?: { [id: number]: ObjectTransUndo };
   /* TransMultiRes: flat [composed point id, x, y] records. */
-  mr_undo? : number[];
+  mr_undo?: number[];
 };
 
 export class TransDataItem<Data = unknown, StartData = unknown> {
-  w : number;
+  w: number;
   /* The element being transformed -- a SplineVertex, a SceneObject, a
      dopesheet key -- and whatever snapshot its type took of it.  Each
      TransDataType names its own payload; the shared bag leaves them unknown
      and recovers the kind with instanceof. */
-  data : Data;
-  start_data : StartData;
-  type : typeof TransDataType;
+  data: Data;
+  start_data: StartData;
+  type: typeof TransDataType;
   /* Distance to the nearest selected element, for proportional edit; -1
      means "not a proportional-falloff participant". */
-  dis : number;
+  dis: number;
 
-  constructor(data? : Data, type? : typeof TransDataType,
-              start_data? : StartData) {
+  constructor(data?: Data, type?: typeof TransDataType, start_data?: StartData) {
     /* `!` erases at runtime, so a bare new TransDataItem() still leaves these
        undefined exactly as it did before -- transform_object relies on it. */
     this.data = data!;
@@ -62,71 +59,74 @@ export class TransDataItem<Data = unknown, StartData = unknown> {
 export class TransDataType {
   /* Which SelMask bits this backend handles; set on each subclass below the
      class body. */
-  static selectmode : number;
+  static selectmode: number;
 
-  static apply(ctx : FullContext, td : TransData, item : TransDataItem,
-               mat : Matrix4, w : number, scaleWidths? : boolean) {
-  }
+  static apply(
+    ctx: FullContext,
+    td: TransData,
+    item: TransDataItem,
+    mat: Matrix4,
+    w: number,
+    scaleWidths?: boolean
+  ) {}
 
-  static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
-  }
+  static undo_pre(ctx: FullContext, td: TransData, undo_obj: TransUndoData) {}
 
-  static getDataPath(ctx : FullContext, td : TransData, ti : TransDataItem) : string | undefined {
+  static getDataPath(ctx: FullContext, td: TransData, ti: TransDataItem): string | undefined {
     return undefined;
   }
 
-  static undo(ctx : FullContext, undo_obj : TransUndoData) {
-  }
+  static undo(ctx: FullContext, undo_obj: TransUndoData) {}
 
-  static update(ctx : FullContext, td : TransData) {
-  }
+  static update(ctx: FullContext, td: TransData) {}
 
-  static calc_prop_distances(ctx : FullContext, td : TransData, data : TransDataItem[]) {
-  }
+  static calc_prop_distances(ctx: FullContext, td: TransData, data: TransDataItem[]) {}
 
-  static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
-  }
+  static gen_data(ctx: FullContext, td: TransData, data: TransDataItem[]) {}
 
-  static iter_data(ctx : FullContext, td : TransData) : Iterable<TransDataItem> {
-    let data : TransDataItem[] = [];
+  static iter_data(ctx: FullContext, td: TransData): Iterable<TransDataItem> {
+    let data: TransDataItem[] = [];
     this.gen_data(ctx, td, data);
 
     return data;
   }
 
   //this one gets a modal context
-  static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
-  }
+  static calc_draw_aabb(ctx: FullContext, td: TransData, minmax: MinMax) {}
 
-  static aabb(ctx : FullContext, td : TransData, item : TransDataItem,
-              minmax : MinMax, selected_only : boolean) {
-  }
+  static aabb(
+    ctx: FullContext,
+    td: TransData,
+    item: TransDataItem,
+    minmax: MinMax,
+    selected_only: boolean
+  ) {}
 }
 TransDataType.selectmode = -1;
 
 export class TransData {
-  data : GArray<TransDataItem>
-  undodata : TransUndoData
-  center : Vector2
-  start_center : Vector2
-  minmax : MinMax
+  data: GArray<TransDataItem>;
+  undodata: TransUndoData;
+  center: Vector2;
+  start_center: Vector2;
+  minmax: MinMax;
   /* Screen-space copies of center/start_center; only filled in while the
      owning op is running modally. */
-  scenter : Vector2
-  start_scenter! : Vector2;
+  scenter: Vector2;
+  start_scenter!: Vector2;
 
-  ctx : FullContext;
-  top : TransformOp;
+  ctx: FullContext;
+  top: TransformOp;
   /* SelMask bits this transform is editing. */
-  datamode : number;
-  edit_all_layers : boolean;
-  layer : SplineLayer;
-  types : (typeof TransDataType)[];
+  datamode: number;
+  edit_all_layers: boolean;
+  layer: SplineLayer;
+  types: (typeof TransDataType)[];
   /* Proportional (magnet) edit state, copied off the op's inputs. */
-  doprop : boolean;
-  propradius : number;
+  doprop: boolean;
+  propradius: number;
 
-  constructor(ctx : FullContext, top : TransformOp, datamode : number) {
+  constructor(ctx: FullContext, top: TransformOp, datamode: number) {
     this.ctx = ctx;
     this.top = top;
     this.datamode = datamode;
@@ -153,8 +153,7 @@ export class TransData {
       }
     }
 
-    if (this.doprop)
-      this.calc_propweights();
+    if (this.doprop) this.calc_propweights();
 
     for (let d of this.data) {
       d.type.aabb(ctx, this, d, this.minmax, true);
@@ -179,20 +178,18 @@ export class TransData {
     }
   }
 
-  calc_propweights(radius : number = this.propradius) {
+  calc_propweights(radius: number = this.propradius) {
     this.propradius = radius;
 
     for (let t of this.types) {
-      if (t.selectmode & this.datamode)
-        t.calc_prop_distances(this.ctx, this, this.data);
+      if (t.selectmode & this.datamode) t.calc_prop_distances(this.ctx, this, this.data);
     }
 
     let r = radius;
     for (let tv of this.data) {
-      if (tv.dis === -1)
-        continue;
+      if (tv.dis === -1) continue;
 
-      tv.w = tv.dis > r ? 0 : 1.0 - tv.dis/r;
+      tv.w = tv.dis > r ? 0 : 1.0 - tv.dis / r;
     }
   }
 }

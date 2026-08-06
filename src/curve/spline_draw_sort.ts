@@ -1,34 +1,57 @@
-import {aabb_isect_minmax2d} from '../util/mathlib.js';
-import {ENABLE_MULTIRES} from '../config/config.js';
+import { aabb_isect_minmax2d } from "../util/mathlib.js";
+import { ENABLE_MULTIRES } from "../config/config.js";
 
-import {SessionFlags} from '../editors/viewport/view2d_editor.js';
-import {SelMask} from '../editors/viewport/selectmode.js';
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
-import {get_vtime} from '../core/animdata.js';
+import { SessionFlags } from "../editors/viewport/view2d_editor.js";
+import { SelMask } from "../editors/viewport/selectmode.js";
+import {
+  ORDER,
+  KSCALE,
+  KANGLE,
+  KSTARTX,
+  KSTARTY,
+  KSTARTZ,
+  KTOTKS,
+  INT_STEPS,
+} from "./spline_math.js";
+import { get_vtime } from "../core/animdata.js";
 
-import {iterpoints, MultiResLayer, MResFlags, has_multires} from './spline_multires.js';
+import { iterpoints, MultiResLayer, MResFlags, has_multires } from "./spline_multires.js";
 
-import {evillog} from "../core/evillog.js";
+import { evillog } from "../core/evillog.js";
 
 let spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 let spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
 let PI = Math.PI;
-let pow                                                                        = Math.pow, cos                                                        = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,
-    ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
+let pow = Math.pow,
+  cos = Math.cos,
+  sin = Math.sin,
+  abs = Math.abs,
+  floor = Math.floor,
+  ceil = Math.ceil,
+  sqrt = Math.sqrt,
+  log = Math.log,
+  acos = Math.acos,
+  asin = Math.asin;
 
 import {
-  SplineFlags, SplineTypes, SplineElement, SplineVertex,
-  SplineSegment, SplineLoop, SplineLoopPath, SplineFace,
-  RecalcFlags, MaterialFlags
-} from './spline_types.js';
+  SplineFlags,
+  SplineTypes,
+  SplineElement,
+  SplineVertex,
+  SplineSegment,
+  SplineLoop,
+  SplineLoopPath,
+  SplineFace,
+  RecalcFlags,
+  MaterialFlags,
+} from "./spline_types.js";
 
-import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
+import { ElementArray, SplineLayerFlags } from "./spline_element_array.js";
 
-import type {SplineLayer} from './spline_element_array.js';
-import type {SplineStrokeGroup} from './spline_strokegroup.js';
-import type {Spline} from './spline.js';
-
+import type { SplineLayer } from "./spline_element_array.js";
+import type { SplineStrokeGroup } from "./spline_strokegroup.js";
+import type { Spline } from "./spline.js";
 
 export function calc_string_ids(spline: Spline, startid = 0) {
   for (let group of spline.drawStrokeGroups) {
@@ -47,17 +70,17 @@ const _sort_layer_segments_lists = new cachering<SplineSegment[]>(function () {
 /* Returns the layer's visible segments, ordered so that chains of two-valence
    vertices come out contiguous.  The list is owned by the cachering above --
    copy it before the next call. */
-export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
+export function sort_layer_segments(layer: SplineLayer, spline: Spline) {
   const lists = _sort_layer_segments_lists;
 
   let list = lists.next();
   list.length = 0;
 
-  let visit : {[eid : number] : number} = {};
+  let visit: { [eid: number]: number } = {};
   let layerid = layer.id;
   let topogroup_idgen = 0;
 
-  function recurse(seg : SplineSegment, start_seg : SplineSegment = seg) {
+  function recurse(seg: SplineSegment, start_seg: SplineSegment = seg) {
     if (seg.eid in visit) {
       return;
     }
@@ -68,8 +91,7 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
 
     for (let i = 0; i < 2; i++) {
       let v = i ? seg.v2 : seg.v1;
-      if (v.segments.length !== 2)
-        continue;
+      if (v.segments.length !== 2) continue;
 
       for (let seg2 of v.segments) {
         if (!(seg2.eid in visit)) {
@@ -78,7 +100,7 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
       }
     }
 
-    if (!seg.hidden || (seg.flag & SplineFlags.GHOST)) {
+    if (!seg.hidden || seg.flag & SplineFlags.GHOST) {
       //if (!start_seg.hidden || (start_seg.flag & SplineFlags.GHOST)) {
       list.push(seg);
     }
@@ -97,14 +119,11 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
   } else*/
   if (1) {
     for (let seg of layer) {
-      if (!(seg instanceof SplineSegment))
-        continue;
-      if (!(layerid in seg.layers))
-        continue;
+      if (!(seg instanceof SplineSegment)) continue;
+      if (!(layerid in seg.layers)) continue;
 
       //start at one-valence verts first
-      if (seg.v1.segments.length === 2 && seg.v2.segments.length === 2)
-        continue;
+      if (seg.v1.segments.length === 2 && seg.v2.segments.length === 2) continue;
 
       if (!(seg.eid in visit)) {
         topogroup_idgen++;
@@ -114,10 +133,8 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
 
     //we should be  finished, but just in case. . .
     for (let seg of layer) {
-      if (!(seg instanceof SplineSegment))
-        continue;
-      if (!(layerid in seg.layers))
-        continue;
+      if (!(seg instanceof SplineSegment)) continue;
+      if (!(layerid in seg.layers)) continue;
 
       if (!(seg.eid in visit)) {
         topogroup_idgen++;
@@ -155,7 +172,7 @@ export function redo_draw_sort(spline: Spline) {
       if (seg === undefined) {
         evillog("Missing segment in draw stroke group! patching. . .");
 
-        let lst : SplineSegment[] = [];
+        let lst: SplineSegment[] = [];
         for (let seg2 of g.segments) {
           if (seg2) {
             lst.push(seg2);
@@ -189,22 +206,18 @@ export function redo_draw_sort(spline: Spline) {
   }
 
   for (let f of spline.faces) {
-    if (f.hidden && !(f.flag & SplineFlags.GHOST))
-      continue;
+    if (f.hidden && !(f.flag & SplineFlags.GHOST)) continue;
 
-    if (isNaN(f.z))
-      f.z = 0;
+    if (isNaN(f.z)) f.z = 0;
 
     max_z = Math.max(max_z, f.z + 1);
     min_z = Math.min(min_z, f.z);
   }
 
   for (let s of spline.segments) {
-    if (s.hidden && !(s.flag & SplineFlags.GHOST))
-      continue;
+    if (s.hidden && !(s.flag & SplineFlags.GHOST)) continue;
 
-    if (isNaN(s.z))
-      s.z = 0;
+    if (isNaN(s.z)) s.z = 0;
 
     max_z = Math.max(max_z, s.z + 2);
     min_z = Math.min(min_z, s.z);
@@ -213,7 +226,7 @@ export function redo_draw_sort(spline: Spline) {
   /* Sort key: the element's layer order, then its own z within the layer.
      Segments owned by a face are pushed above every face they touch. */
   //check_face is optional, defaults to true
-  function calc_z(e : SplineFace | SplineSegment, check_face = true) : number {
+  function calc_z(e: SplineFace | SplineSegment, check_face = true): number {
     if (isNaN(e.z)) {
       e.z = 0;
     }
@@ -233,7 +246,7 @@ export function redo_draw_sort(spline: Spline) {
 
         /* NOTE: this tested f_max_z against undefined first, but calc_z()
            always returns a number. */
-        f_max_z = Math.max(f_max_z, calc_z(l.f))
+        f_max_z = Math.max(f_max_z, calc_z(l.f));
 
         l = l.radial_next;
       } while (l !== e.l);
@@ -257,11 +270,11 @@ export function redo_draw_sort(spline: Spline) {
     let z = gmaxz.get(e) || e.z;
 
     let layer = layerset.idmap[layerid];
-    return layer.order*(max_z - min_z) + (z - min_z);
+    return layer.order * (max_z - min_z) + (z - min_z);
   }
 
   /* Dead; nothing calls it. */
-  function get_layer(e : SplineElement) {
+  function get_layer(e: SplineElement) {
     for (let k in e.layers) {
       return k;
     }
@@ -273,8 +286,8 @@ export function redo_draw_sort(spline: Spline) {
 
   /* Only faces and segments go in during this pass; the stroke-group pass at
      the bottom is what widens it back to DrawListItem. */
-  let dl : (SplineFace | SplineSegment)[] = [];
-  let ll : (string | undefined)[] = []; //layer id of which layer each draw element lives in
+  let dl: (SplineFace | SplineSegment)[] = [];
+  let ll: (string | undefined)[] = []; //layer id of which layer each draw element lives in
 
   spline.drawlist = dl;
   spline.draw_layerlist = ll;
@@ -283,15 +296,14 @@ export function redo_draw_sort(spline: Spline) {
   for (let f of spline.faces) {
     f.finalz = -1;
 
-    if (f.hidden && !(f.flag & SplineFlags.GHOST))
-      continue;
+    if (f.hidden && !(f.flag & SplineFlags.GHOST)) continue;
 
     dl.push(f);
   }
 
   //okay, build segment list by layers
 
-  let visit : {[eid : number] : number} = {};
+  let visit: { [eid: number]: number } = {};
   for (let i = 0; i < spline.layerset.length; i++) {
     let layer = spline.layerset[i];
 
@@ -299,8 +311,7 @@ export function redo_draw_sort(spline: Spline) {
     for (let j = 0; j < elist.length; j++) {
       let s = elist[j];
 
-      if (!(s.eid in visit))
-        dl.push(elist[j]);
+      if (!(s.eid in visit)) dl.push(elist[j]);
 
       visit[s.eid] = 1;
     }
@@ -310,8 +321,7 @@ export function redo_draw_sort(spline: Spline) {
   for (let s of spline.segments) {
     s.finalz = -1;
 
-    if (s.hidden && !(s.flag & SplineFlags.GHOST))
-      continue;
+    if (s.hidden && !(s.flag & SplineFlags.GHOST)) continue;
 
     if (!(s.eid in visit)) {
       //XXX
@@ -321,7 +331,7 @@ export function redo_draw_sort(spline: Spline) {
     }
   }
 
-  let zs : {[eid : number] : number} = {};
+  let zs: { [eid: number]: number } = {};
   for (let e of dl) {
     zs[e.eid] = calc_z(e);
   }
@@ -334,7 +344,7 @@ export function redo_draw_sort(spline: Spline) {
   }
 
   for (let i = 0; i < dl.length; i++) {
-    let lk : string | undefined = undefined;
+    let lk: string | undefined = undefined;
     for (let k in dl[i].layers) {
       lk = k;
       break;
@@ -342,7 +352,6 @@ export function redo_draw_sort(spline: Spline) {
 
     ll.push(lk);
   }
-
 
   let visit2 = new Set<SplineStrokeGroup | SplineVertex>();
   /* Stroke groups stand in for their segments here, so this is not a list of
@@ -358,8 +367,7 @@ export function redo_draw_sort(spline: Spline) {
         continue;
       }
 
-      if (visit2.has(g))
-        continue;
+      if (visit2.has(g)) continue;
 
       visit2.add(g);
       list2.push(g);

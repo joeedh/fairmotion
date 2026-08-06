@@ -1,33 +1,38 @@
-import type {SplineSegment} from './spline_types.js';
-import type {KsArray} from './spline_math.js';
+import type { SplineSegment } from "./spline_types.js";
+import type { KsArray } from "./spline_math.js";
 /* Cyclic -- spline_math_hermite.js imports this module -- but KSCALE is only
    read from inside solve() below, long after both have finished loading. */
-import {KSCALE} from './spline_math_hermite.js';
+import { KSCALE } from "./spline_math_hermite.js";
 
 //math globals
 var SQRT2 = Math.sqrt(2.0);
 var FEPS = 1e-17;
 var PI = Math.PI;
-var sin = Math.sin, cos = Math.cos, atan2 = Math.atan2;
-var sqrt = Math.sqrt, pow = Math.pow, log = Math.log, abs=Math.abs;
-var SPI2 = Math.sqrt(PI/2);
+var sin = Math.sin,
+  cos = Math.cos,
+  atan2 = Math.atan2;
+var sqrt = Math.sqrt,
+  pow = Math.pow,
+  log = Math.log,
+  abs = Math.abs;
+var SPI2 = Math.sqrt(PI / 2);
 
 /* Everything the solver itself touches. `constraint<Params>` satisfies this for
    any Params, which is how one list can hold constraints whose evaluators take
    completely different payloads. */
 export interface AnyConstraint {
-  limit : number;
-  type : string;
-  klst : KsArray[];
-  klen : number[];
-  glst : number[][];
-  k : number;
-  k2? : number;
+  limit: number;
+  type: string;
+  klst: KsArray[];
+  klen: number[];
+  glst: number[][];
+  k: number;
+  k2?: number;
   /* `type` says which layout this holds; only the matching evaluator, and
      native_api's packer, know how to read it. */
-  params : unknown[];
+  params: unknown[];
 
-  exec(do_gs? : boolean) : number;
+  exec(do_gs?: boolean): number;
 }
 
 /* One scalar equation over one or more curvature vectors. `ceval` returns the
@@ -37,25 +42,30 @@ export interface AnyConstraint {
    tangents, arc-length parameters. Nothing here reads it; it is handed straight
    back to `ceval`. */
 export class constraint<Params extends unknown[]> implements AnyConstraint {
-  limit : number;
-  type : string;
+  limit: number;
+  type: string;
   /* The curvature vectors this constraint touches. */
-  klst : KsArray[];
+  klst: KsArray[];
   /* How many entries of each klst[i] participate, one per klst entry. */
-  klen : number[];
+  klen: number[];
   /* d(residual)/d(klst[i][j]), same shape as klst. */
-  glst : number[][];
-  ceval : (params : Params) => number;
-  params : Params;
+  glst: number[][];
+  ceval: (params: Params) => number;
+  params: Params;
   /* Step scale. `k2` is an optional late-iteration override the solver switches
      to after eight steps; nothing in this file sets it. */
-  k : number;
-  k2? : number;
+  k: number;
+  k2?: number;
 
-  constructor(typename : string, k : number, klst : KsArray[],
-              klen : number | number[],
-              ceval : (params : Params) => number, params : Params,
-              limit? : number) {
+  constructor(
+    typename: string,
+    k: number,
+    klst: KsArray[],
+    klen: number | number[],
+    ceval: (params: Params) => number,
+    params: Params,
+    limit?: number
+  ) {
     if (limit == undefined) limit = 0.00001;
 
     this.limit = limit;
@@ -67,22 +77,22 @@ export class constraint<Params extends unknown[]> implements AnyConstraint {
     this.klen = [];
 
     if (!(klen instanceof Array)) {
-      for (var i=0; i<klst.length; i++) {
+      for (var i = 0; i < klst.length; i++) {
         this.klen.push(klen);
       }
     } else {
       this.klen = klen;
     }
 
-    this.glst = []
-    for (var i=0; i<klst.length; i++) {
-      var gs : number[] = [];
+    this.glst = [];
+    for (var i = 0; i < klst.length; i++) {
+      var gs: number[] = [];
       this.glst.push(gs);
 
       /* NOTE: bounded by the `klen` parameter rather than this.klen, so an
          array-valued klen is compared through its toString: one entry works by
          accident, more give NaN and no gradient slots at all. */
-      for (var j=0; j<Number(klen); j++) {
+      for (var j = 0; j < Number(klen); j++) {
         gs.push(0);
       }
     }
@@ -90,9 +100,8 @@ export class constraint<Params extends unknown[]> implements AnyConstraint {
     this.k = k;
   }
 
-  exec(do_gs? : boolean) {
-    if (do_gs == undefined)
-      do_gs = true;
+  exec(do_gs?: boolean) {
+    if (do_gs == undefined) do_gs = true;
 
     var r1 = this.ceval(this.params);
     if (abs(r1) <= this.limit) return 0.0;
@@ -100,19 +109,19 @@ export class constraint<Params extends unknown[]> implements AnyConstraint {
     if (!do_gs) return r1;
 
     var df = 0.000003;
-    for (var ki=0; ki<this.klst.length; ki++) {
+    for (var ki = 0; ki < this.klst.length; ki++) {
       var ks = this.klst[ki];
       var gs = this.glst[ki];
 
       //var origscale = ks.length > 5 ? ks[KSCALE] : -1;
 
-      for (var i=0; i<this.klen[ki]; i++) {
+      for (var i = 0; i < this.klen[ki]; i++) {
         var orig = ks[i];
 
         ks[i] += df;
 
         var r2 = this.ceval(this.params);
-        gs[i] = (r2-r1)/df;
+        gs[i] = (r2 - r1) / df;
 
         ks[i] = orig;
         if (ks.length > 5) {
@@ -195,9 +204,9 @@ export class simple_constraint {
 */
 
 export class solver {
-  threshold : number;
-  cs : AnyConstraint[];
-  edge_segs : SplineSegment[];
+  threshold: number;
+  cs: AnyConstraint[];
+  edge_segs: SplineSegment[];
 
   constructor() {
     this.cs = [];
@@ -210,26 +219,25 @@ export class solver {
     this.edge_segs = [];
   }
 
-  add (c : AnyConstraint) {
+  add(c: AnyConstraint) {
     this.cs.push(c);
   }
 
   /* NOTE: KSCALE used not to be imported here -- the import at the bottom of
      the file was commented out -- so the damping factor `mul` below threw a
      ReferenceError every time this JS fallback ran. */
-  solve (steps : number, gk : number, final_solve : boolean,
-         edge_segs : SplineSegment[]) {
+  solve(steps: number, gk: number, final_solve: boolean, edge_segs: SplineSegment[]) {
     if (gk == undefined) gk = 1.0;
 
     var err = 0.0;
     var clen = this.cs.length;
 
-    for (var i=0; i<steps; i++) {
+    for (var i = 0; i < steps; i++) {
       //reset outer most segments to their original state
-      for (var j=0; j<edge_segs.length; j++) {
+      for (var j = 0; j < edge_segs.length; j++) {
         var seg = edge_segs[j];
         var ks = seg.ks;
-        for (var k=0; k<ks.length; k++) {
+        for (var k = 0; k < ks.length; k++) {
           ks[k] = seg._last_ks[k];
         }
       }
@@ -243,9 +251,9 @@ export class solver {
       err = 0.0;
       var cs = this.cs;
 
-      var visit : {[j : number] : number} = {};
-      for (var j=0; j<cs.length; j++) {
-        var j2 = i%2 ? clen-j-1 : j;
+      var visit: { [j: number]: number } = {};
+      for (var j = 0; j < cs.length; j++) {
+        var j2 = i % 2 ? clen - j - 1 : j;
 
         /*
         do {
@@ -274,27 +282,28 @@ export class solver {
           console.log(s);
         }*/
 
-        var klst = c.klst, glst = c.glst;
+        var klst = c.klst,
+          glst = c.glst;
 
         var totgs = 0.0;
         //var kg = 1.0;
 
-        for (var ki=0; ki<klst.length; ki++) {
+        for (var ki = 0; ki < klst.length; ki++) {
           //r = c.exec(true);
 
           var klen = c.klen[ki];
           var gs = glst[ki];
 
           totgs = 0.0;
-          for (var k=0; k<klen; k++) {
-            totgs += gs[k]*gs[k];
+          for (var k = 0; k < klen; k++) {
+            totgs += gs[k] * gs[k];
           }
 
           if (totgs == 0.0) continue;
-          var rmul = r/totgs;
+          var rmul = r / totgs;
 
-          ks=klst[ki];
-          gs=glst[ki];
+          ks = klst[ki];
+          gs = glst[ki];
 
           var ck = i > 8 && c.k2 !== undefined ? c.k2 : c.k;
           //ck = c.k2 != undefined ? 0.8 : c.k;
@@ -302,8 +311,8 @@ export class solver {
           //stupid hack to suppress numerical instability
           let mul = 1.0 / Math.pow(1.0 + ks[KSCALE], 0.25);
 
-          for (var k=0; k<klen; k++) {
-            ks[k] += -rmul*gs[k]*ck*gk*mul;
+          for (var k = 0; k < klen; k++) {
+            ks[k] += -rmul * gs[k] * ck * gk * mul;
           }
 
           //kg *= 0.5;
@@ -311,21 +320,20 @@ export class solver {
       }
     }
 
-    for (var j=0; j<edge_segs.length; j++) {
+    for (var j = 0; j < edge_segs.length; j++) {
       var seg = edge_segs[j];
       var ks = seg.ks;
 
-      for (var k=0; k<ks.length; k++) {
+      for (var k = 0; k < ks.length; k++) {
         seg.ks[k] = seg._last_ks[k];
       }
     }
 
-    if (final_solve || isNaN(err)) { // && err > this.threshold) {
+    if (final_solve || isNaN(err)) {
+      // && err > this.threshold) {
       console.log("err", err, "steps", i, "\n");
     }
 
     return i;
   }
 }
-
-

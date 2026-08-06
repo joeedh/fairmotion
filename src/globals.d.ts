@@ -22,13 +22,13 @@
  */
 
 import type * as vectormath from "./path.ux/scripts/util/vectormath.js";
-import type {AppState} from "./core/AppState.js";
-import type {FullContext} from "./core/context.js";
-import type {EventDag} from "./core/eventdag.js";
-import type {DataRef} from "./core/lib_api.js";
-import type {Spline} from "./curve/spline.js";
-import type {Theme, ColorTheme} from "./datafiles/theme.js";
-import type {ModuleCallback as AddonModuleCallback} from "./addon_api/addon_api.js";
+import type { AppState } from "./core/AppState.js";
+import type { FullContext } from "./core/context.js";
+import type { EventDag } from "./core/eventdag.js";
+import type { DataRef } from "./core/lib_api.js";
+import type { Spline } from "./curve/spline.js";
+import type { Theme, ColorTheme } from "./datafiles/theme.js";
+import type { ModuleCallback as AddonModuleCallback } from "./addon_api/addon_api.js";
 
 declare global {
   /*
@@ -99,7 +99,7 @@ declare global {
   /* The iterator convention fairmotion's element lists follow: an iterator that
      also carries `.editable`, the sub-iterator of items on unhidden/unlocked
      layers. Where nothing can be hidden it is just a self reference. */
-  type EditableIter<T> = Generator<T, void, unknown> & {editable?: EditableIter<T>};
+  type EditableIter<T> = Generator<T, void, unknown> & { editable?: EditableIter<T> };
 
   /* What esbuild's classRegistryPlugin appends to every module: the list
      init_struct_packer() and init_toolop_structs() walk. Entries carry an
@@ -112,7 +112,7 @@ declare global {
     structName?: string;
     /* Present on the ToolOp subclasses in the list. init_toolop_structs()
        filters on it, so it is optional here rather than in a separate type. */
-    tooldef?: () => {toolpath?: string; apiname?: string};
+    tooldef?: () => { toolpath?: string; apiname?: string };
 
     /* Stamped by _ESClass.register(); eventdag.ts walks the chain back up. */
     __parent__?: ESClassRegistryEntry;
@@ -136,7 +136,7 @@ declare global {
 
   interface CoverageModule {
     /* Keyed by file name concatenated with line number. */
-    lines: {[hash: string]: CoverageLine};
+    lines: { [hash: string]: CoverageLine };
     Line: new (file: string, line: number) => CoverageLine;
     getLine(file: string, line: number): CoverageLine;
     /* Per-file hit ratios, worst first, one "file,ratio" per line. */
@@ -193,8 +193,8 @@ declare global {
   type SkEmulatedCanvas = import("./vectordraw/vectordraw_base.js").DrawCanvas & {
     dispose(): void;
     Lk: unknown;
-    mm: {Lk: unknown; flush(): void};
-    cf: {flush(): void};
+    mm: { Lk: unknown; flush(): void };
+    cf: { flush(): void };
   };
 
   /* The global the canvaskit.js script tag installs. */
@@ -202,15 +202,15 @@ declare global {
     ready(): Promise<CanvasKitModule>;
   }
 
-  function CanvasKitInit(opts: {locateFile(file: string): string}): CanvasKitInitPromise;
+  function CanvasKitInit(opts: { locateFile(file: string): string }): CanvasKitInitPromise;
 
   interface CanvasKitModule {
     MakeCanvas(width: number, height: number): SkEmulatedCanvas;
     MakeSWCanvasSurface(canvas: unknown): SkSurface;
     currentContext(): unknown;
     Color(r: number, g: number, b: number, a: number): number;
-    BlendMode: {[name: string]: number};
-    PaintStyle: {[name: string]: number};
+    BlendMode: { [name: string]: number };
+    PaintStyle: { [name: string]: number };
     SkMatrix: {
       identity(): number[];
       scaled(sx: number, sy: number): number[];
@@ -219,8 +219,8 @@ declare global {
       /* Minified internal. */
       Ka(m: number[]): number[];
     };
-    SkPaint: {new (): SkPaint};
-    SkPath: {new (): SkPath};
+    SkPaint: { new (): SkPaint };
+    SkPath: { new (): SkPath };
   }
 
   const CanvasKit: CanvasKitModule;
@@ -236,10 +236,10 @@ declare global {
   const the_global_dag: EventDag;
 
   const RELEASE: boolean;
-  const DEBUG: {[k: string]: boolean | number};
+  const DEBUG: { [k: string]: boolean | number };
   /* Fairmotion's own debug flags (config.ts); DEBUG above is path.ux's.
      A couple of the flags are numbers rather than booleans. */
-  const _DEBUG: {[k: string]: boolean | number};
+  const _DEBUG: { [k: string]: boolean | number };
   const IsMobile: boolean;
   const CHROME_APP_MODE: boolean;
   const UNIT_TESTER: boolean;
@@ -248,7 +248,7 @@ declare global {
   const fairmotion_file_ext: string;
   const fairmotion_settings_filename: string;
 
-  const FEATURES: {save_toolstack: boolean};
+  const FEATURES: { save_toolstack: boolean };
   const use_octree_select: boolean;
   const fuzzy_ui_press_hotspot: number;
   const new_api_parser: boolean;
@@ -291,7 +291,7 @@ declare global {
 
   /* window.addEventListener() is replaced by redraw_globals.ts and stamps
      _is_killscreen on every callback it is handed -- see docs/debugging.md. */
-  type KillscreenCallback = ((e: KillscreenEvent) => void) & {_is_killscreen?: number};
+  type KillscreenCallback = ((e: KillscreenEvent) => void) & { _is_killscreen?: number };
 
   function init_struct_packer(): void;
   function init_toolop_structs(): void;
@@ -310,7 +310,7 @@ declare global {
 
   /* A snapshot of `window` taken once init_struct_packer() finishes, used as
      the evaluation environment for STRUCT helper expressions. */
-  const safe_global: {[k: string]: unknown};
+  const safe_global: { [k: string]: unknown };
 
   /* nstructjs's struct manager, and the concatenated STRUCT scripts that were
      fed to it. Both are read back when writing a file. */
@@ -377,7 +377,7 @@ declare global {
 
   /* Never assigned anywhere: load_seven() reads a prebuilt table of generated
      basis functions that no longer ships, so calling it throws. */
-  const basis_json: {[key: string]: string};
+  const basis_json: { [key: string]: string };
 
   /* Not defined anywhere either -- optimize()'s cycle check throws a
      ReferenceError before it can throw this. */
@@ -399,7 +399,7 @@ declare global {
   /* crypto-js, used only to SHA1 a password for the old AllShape login. */
   const CryptoJS: {
     SHA1(message: string): object;
-    enc: {Base64: {stringify(words: object): string}};
+    enc: { Base64: { stringify(words: object): string } };
   };
 
   /* What chrome.fileSystem.chooseEntry() yields. Only the members
@@ -420,22 +420,22 @@ declare global {
   interface ChooseEntryParams {
     type: string;
     suggestedName?: string;
-    accepts?: {description: string; extensions: string[]}[];
+    accepts?: { description: string; extensions: string[] }[];
   }
 
   /* The slice of the extension API the chrome-app backends use. */
   const chrome: {
     storage: {
       local: {
-        set(items: {[k: string]: string}): void;
-        get(key: string, cb: (value: {[k: string]: string}) => void): void;
+        set(items: { [k: string]: string }): void;
+        get(key: string, cb: (value: { [k: string]: string }) => void): void;
       };
     };
     fileSystem: {
       chooseEntry(params: ChooseEntryParams, cb: (entry: ChromeFileEntry) => void): void;
       retainEntry(entry: ChromeFileEntry): string;
     };
-    runtime: {lastError?: {string: string}};
+    runtime: { lastError?: { string: string } };
   };
 
   interface Window {
@@ -477,7 +477,7 @@ declare global {
     imagecanvas_webgl: typeof import("./paint/imagecanvas_webgl.js");
 
     /* The per-platform config.js overrides; only ORIGIN is ever honoured. */
-    _platform_config?: {[k: string]: string};
+    _platform_config?: { [k: string]: string };
 
     /* Set by the electron platform layer for manual zoom testing. */
     setZoom(z: number): void;
@@ -492,8 +492,8 @@ declare global {
     theHeight: number;
 
     /* Flat color maps the theme publishes for the data api. */
-    uicolors: {[key: string]: number[] | number[][]};
-    colors3d: {[key: string]: number[]};
+    uicolors: { [key: string]: number[] | number[][] };
+    colors3d: { [key: string]: number[] };
 
     anim_to_playback: AnimPlaybackBuffer;
 
@@ -503,7 +503,7 @@ declare global {
     loadCanvasKit(): void;
 
     /* Per-render-start timestamps, keyed by the redraw source's name. */
-    redraw_start_times: {[k: string]: number};
+    redraw_start_times: { [k: string]: number };
 
     /*
      * Debug-console scratch. Every one of these is both written and read by
@@ -528,11 +528,11 @@ declare global {
     _setDebug(d: number): void;
     _do_frame_debug: boolean;
     _do_iter_err_stacktrace: boolean;
-    FrameContinue: {FC: number};
-    FrameBreak: {FB: number};
+    FrameContinue: { FC: number };
+    FrameBreak: { FB: number };
 
     /* core/ajax.ts's net API; see the bare-name declarations further down. */
-    NetStatus: {new (): NetStatus};
+    NetStatus: { new (): NetStatus };
     NetJob: typeof NetJob;
     api_exec: typeof api_exec;
     call_api: typeof call_api;
@@ -541,19 +541,28 @@ declare global {
     get_dir_files: typeof get_dir_files;
     upload_file: typeof upload_file;
     get_file_data: typeof get_file_data;
-    AuthSessionGen: (job: NetJob, user: string, password: string,
-                     refresh_token?: string) => Generator;
-    auth_session: (user: string, password: string, finish?: Function,
-                   error?: Function, status?: Function) => object;
+    AuthSessionGen: (
+      job: NetJob,
+      user: string,
+      password: string,
+      refresh_token?: string
+    ) => Generator;
+    auth_session: (
+      user: string,
+      password: string,
+      finish?: Function,
+      error?: Function,
+      status?: Function
+    ) => object;
 
     RELEASE: boolean;
-    DEBUG: {[k: string]: boolean | number};
-    _DEBUG: {[k: string]: boolean | number};
+    DEBUG: { [k: string]: boolean | number };
+    _DEBUG: { [k: string]: boolean | number };
     IsMobile: boolean;
 
     /* Only ever called from inside nstructjs schema strings, which the struct
        evaluator resolves against the global scope. */
-    obj_values_to_array<T>(obj: {[k: string]: T}): T[];
+    obj_values_to_array<T>(obj: { [k: string]: T }): T[];
     CHROME_APP_MODE: boolean;
     UNIT_TESTER: boolean;
     /* Set by src/core/startup/typelogger.ts. utils.ts leaves Array's iterator
@@ -564,7 +573,7 @@ declare global {
     fairmotion_file_ext: string;
     fairmotion_settings_filename: string;
 
-    FEATURES: {save_toolstack: boolean};
+    FEATURES: { save_toolstack: boolean };
     use_octree_select: boolean;
     fuzzy_ui_press_hotspot: number;
     new_api_parser: boolean;
@@ -596,8 +605,7 @@ declare global {
 
     /* The addon loader's module wrapper. Only ever called from the source
        parseFile() generates and loadModule() eval()s. */
-    _addon_define(fileid: number, path: string, deps: string[],
-                  func: AddonModuleCallback): void;
+    _addon_define(fileid: number, path: string, deps: string[], func: AddonModuleCallback): void;
 
     /* The unpatched DOM methods, saved before redraw_globals.ts replaces them. */
     _addEventListener: typeof window.addEventListener;
@@ -628,7 +636,7 @@ declare global {
        Installed by core/startup/startup.ts, called bare from its own listener. */
     _handle_key_exclude(e: KeyboardEvent): void;
 
-    safe_global: {[k: string]: unknown};
+    safe_global: { [k: string]: unknown };
     istruct: import("nstructjs").STRUCT;
     _struct_scripts: string;
     _fstructs: string;
@@ -649,7 +657,7 @@ declare global {
 
     /* esprima is a UMD bundle loaded as a plain script; safe_eval.ts parses
        STRUCT helper expressions with it. */
-    esprima: {parse(code: string): {body: object[]}};
+    esprima: { parse(code: string): { body: object[] } };
 
     /* One inputs/outputs entry of a serialized ToolOp. Published on window
        because the generated STRUCT scripts name it by bare identifier. */
@@ -676,7 +684,7 @@ declare global {
      * canvas with the owner that can tear it down. Nothing writes it any more --
      * AppState.reset_state() only drains it -- so it is always empty in practice.
      */
-    active_canvases: {[name: string]: [unknown, {kill_canvas(name: string): void}]};
+    active_canvases: { [name: string]: [unknown, { kill_canvas(name: string): void }] };
 
     /* Debug entry points. window.__fm is the handle the Playwright specs
        drive the app through; the _test* ones are console helpers. */
@@ -687,14 +695,14 @@ declare global {
 
     /* Console handles for the WebGL layer. Written once at module scope and
        never read back in-tree, but the writes still need a declared member. */
-    _ShaderDef: {[name: string]: import("./webgl/webgl.js").ShaderDef};
-    _Shaders: {[name: string]: import("./webgl/webgl.js").ShaderProgram};
+    _ShaderDef: { [name: string]: import("./webgl/webgl.js").ShaderDef };
+    _Shaders: { [name: string]: import("./webgl/webgl.js").ShaderProgram };
     _ShaderProgram: typeof import("./webgl/webgl.js").ShaderProgram;
     /* GL enum value -> its name, built by init_webgl() off the live context. */
-    _constmap: {[value: number]: string};
+    _constmap: { [value: number]: string };
     /* _Shapes and _ShapeOBJs are deliberately absent: simplemesh_shapes.ts is
        one unassigned template literal, so nothing in it runs. */
-    glRanges: {[gltype: number]: number[]};
+    glRanges: { [gltype: number]: number[] };
     debugproxy: typeof import("./webgl/simplemesh.js").debugproxy;
 
     /* Assigned by the wasm and CanvasKit loaders once their modules resolve. */
@@ -731,7 +739,7 @@ declare global {
     test(s: number, j?: number): void;
 
     /* bspline's string pool, both directions. */
-    _str_idhash: {[hash: string]: number};
+    _str_idhash: { [hash: string]: number };
     _str_idhash_rev: Record<KeyStr, string>;
     /* Two debugging handles optimize() leaves behind per run. */
     haskeys: hashtable<KeyStr, hashtable<KeyStr, number>>;
@@ -784,7 +792,7 @@ declare global {
     mode?: string,
     data?: Document | XMLHttpRequestBodyInit,
     mime?: string,
-    extra_headers?: {[k: string]: string},
+    extra_headers?: { [k: string]: string },
     responseType?: XMLHttpRequestResponseType
   ): void;
 
@@ -796,15 +804,19 @@ declare global {
     status?: Function
   ): Promise<unknown>;
 
-  const create_folder: NetApiGen<{folderid: string; name: string}>;
+  const create_folder: NetApiGen<{ folderid: string; name: string }>;
   const get_user_info: NetApiGen;
-  const get_dir_files: NetApiGen<{path?: string; id?: string}>;
-  const upload_file: NetApiGen<{data: ArrayBuffer; url: string; chunk_url: string}>;
-  const get_file_data: NetApiGen<{path?: string; id?: string}>;
+  const get_dir_files: NetApiGen<{ path?: string; id?: string }>;
+  const upload_file: NetApiGen<{ data: ArrayBuffer; url: string; chunk_url: string }>;
+  const get_file_data: NetApiGen<{ path?: string; id?: string }>;
 
   /* auth_session() is the only caller, and it has no callers itself. */
-  const AuthSessionGen: (job: NetJob, user: string, password: string,
-                         refresh_token?: string) => Generator;
+  const AuthSessionGen: (
+    job: NetJob,
+    user: string,
+    password: string,
+    refresh_token?: string
+  ) => Generator;
 
   /*
    * Classes and enums parked on window by the module that defines them, then

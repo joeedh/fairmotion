@@ -1,38 +1,41 @@
 "use strict";
 
-import * as config from '../config/config.js';
+import * as config from "../config/config.js";
 
-import {
-  MinMax
-} from '../util/mathlib.js';
+import { MinMax } from "../util/mathlib.js";
 
-import {
-  VectorFlags, VectorVertex, PathBase,
-  VectorDraw
-} from './vectordraw_base.js';
-import type {ColorLike} from './vectordraw_base.js';
+import { VectorFlags, VectorVertex, PathBase, VectorDraw } from "./vectordraw_base.js";
+import type { ColorLike } from "./vectordraw_base.js";
 
 var canvaspath_draw_mat_tmps = new cachering(() => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(32);
-for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
+for (var i = 1; i < canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
-var canvaspath_draw_vs = new cachering(function() {
+var canvaspath_draw_vs = new cachering(function () {
   return new Vector2();
 }, 32);
 
-var CCMD=0, CARGLEN=1;
+var CCMD = 0,
+  CARGLEN = 1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6,
-    STROKEWIDTH=7, NOAUTOFILL=8, FILL=9;
+var MOVETO = 0,
+  BEZIERTO = 1,
+  LINETO = 2,
+  BEGINPATH = 3,
+  CUBICTO = 4,
+  STROKE = 5,
+  STROKECOLOR = 6,
+  STROKEWIDTH = 7,
+  NOAUTOFILL = 8,
+  FILL = 9;
 
 /* const, so createElementNS() below resolves to its SVG overload. */
 const NS = "http://www.w3.org/2000/svg";
-const XLS = "http://www.w3.org/1999/xlink"
+const XLS = "http://www.w3.org/1999/xlink";
 
-export function makeElement(type : string,
-                            attrs : {[k : string] : string | number} = {}) {
+export function makeElement(type: string, attrs: { [k: string]: string | number } = {}) {
   var ret = document.createElementNS(NS, type);
   for (var k in attrs) {
     ret.setAttributeNS(null, k, "" + attrs[k]);
@@ -44,32 +47,32 @@ export function makeElement(type : string,
 /* getElementById() is typed for HTML documents, and every id looked up in this
    module names a node makeElement() built; a miss reads as undefined rather
    than null. */
-function findElement(id : string) : SVGElement | undefined {
+function findElement(id: string): SVGElement | undefined {
   let ret = document.getElementById(id);
   return ret instanceof SVGElement ? ret : undefined;
 }
 
 export class SVGPath extends PathBase {
-  _last_off : Vector2
-  path_start_i : number
-  first : boolean
-  _mm : MinMax;
+  _last_off: Vector2;
+  path_start_i: number;
+  first: boolean;
+  _mm: MinMax;
 
   /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
-  commands : number[];
+  commands: number[];
   /* The z this path's <use> node was last emitted at; the draw loop
      re-sorts when it drifts. */
-  _last_z : number | undefined;
+  _last_z: number | undefined;
   /* The <path>, its blur <filter>, the <clipPath>, and the <use> node that
      places it inside the main group. */
-  domnode : SVGElement | undefined;
-  filternode : SVGElement | undefined;
-  clipnode : SVGElement | undefined;
-  usenode : SVGElement | undefined;
-  declare hidden : boolean;
+  domnode: SVGElement | undefined;
+  filternode: SVGElement | undefined;
+  clipnode: SVGElement | undefined;
+  usenode: SVGElement | undefined;
+  declare hidden: boolean;
 
   /* Anything clipping an SVG path is another SVG path. */
-  declare clip_paths : set<SVGPath>;
+  declare clip_paths: set<SVGPath>;
 
   constructor() {
     super();
@@ -94,10 +97,10 @@ export class SVGPath extends PathBase {
     this._mm = new MinMax(2);
   }
 
-  update_aabb(draw : SVGDraw2D, fast_mode = false) {
+  update_aabb(draw: SVGDraw2D, fast_mode = false) {
     var tmp = new Vector2();
     var mm = this._mm;
-    var pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
+    var pad = (this.pad = this.blur > 0 ? this.blur * draw.zoom + 15 : 0);
 
     mm.reset();
 
@@ -106,7 +109,8 @@ export class SVGPath extends PathBase {
     }
 
     var prev = -1;
-    var cs = this.commands, i = 0;
+    var cs = this.commands,
+      i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
@@ -121,8 +125,8 @@ export class SVGPath extends PathBase {
         continue;
       }
 
-      for (var j=0; j<arglen; j += 2) {
-        tmp[0] = cs[i++], tmp[1] = cs[i++];
+      for (var j = 0; j < arglen; j += 2) {
+        (tmp[0] = cs[i++]), (tmp[1] = cs[i++]);
         tmp.multVecMatrix(draw.matrix);
 
         mm.minmax(tmp);
@@ -140,7 +144,8 @@ export class SVGPath extends PathBase {
     this._pushCmd(BEGINPATH);
   }
 
-  undo() { //remove last added path
+  undo() {
+    //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
   }
@@ -149,7 +154,7 @@ export class SVGPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color? : ColorLike, width? : number) {
+  pushStroke(color?: ColorLike, width?: number) {
     if (color) {
       let a = color[3] || 1.0;
       this._pushCmd(STROKECOLOR, color[0]!, color[1]!, color[2]!, a, 0.5);
@@ -166,40 +171,39 @@ export class SVGPath extends PathBase {
     this._pushCmd(NOAUTOFILL);
   }
 
-  _pushCmd(...args : number[]) {
+  _pushCmd(...args: number[]) {
     var arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
     this.commands.push(arglen);
 
-    for (var i=0; i<arglen; i++) {
-      this.commands.push(arguments[i+1]);
+    for (var i = 0; i < arglen; i++) {
+      this.commands.push(arguments[i + 1]);
     }
 
     this.recalc = 1;
     this.first = false;
   }
 
-  moveTo(x : number, y : number) {
+  moveTo(x: number, y: number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
 
-  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
+  bezierTo(x2: number, y2: number, x3: number, y3: number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
 
-  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
-          y4 : number) {
+  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
   }
 
-  lineTo(x2 : number, y2 : number) {
+  lineTo(x2: number, y2: number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
@@ -210,7 +214,7 @@ export class SVGPath extends PathBase {
     this.lasty = y2;
   }
 
-  destroy(draw : VectorDraw) {
+  destroy(draw: VectorDraw) {
     if (this.domnode) {
       this.domnode.remove();
       this.domnode = undefined;
@@ -227,12 +231,12 @@ export class SVGPath extends PathBase {
     }
   }
 
-  get_dom_id(draw : SVGDraw2D, id2 = 0) {
+  get_dom_id(draw: SVGDraw2D, id2 = 0) {
     /* draw() builds the svg before any path becomes reachable. */
     return draw.svg!.id + "_path_" + this.id + "_" + id2;
   }
 
-  gen(draw : SVGDraw2D, _check_tag = 0) {
+  gen(draw: SVGDraw2D, _check_tag = 0) {
     //console.log("path gen", this.id);
 
     if (_check_tag && !this.recalc) {
@@ -243,7 +247,9 @@ export class SVGPath extends PathBase {
     this.recalc = 0;
 
     /* Same as get_dom_id(): all three exist before a path can be drawn. */
-    let svg = draw.svg!, defs = draw.defs!, group = draw.group!;
+    let svg = draw.svg!,
+      defs = draw.defs!,
+      group = draw.group!;
 
     var do_clip = this.clip_paths.length > 0;
     var do_blur = this.blur > 0.0;
@@ -252,22 +258,23 @@ export class SVGPath extends PathBase {
 
     this.update_aabb(draw);
 
-    var w = this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
-    var h = this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
+    var w = (this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]));
+    var h = (this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]));
 
     if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
       var w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
       var h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
-      var dw = w - w2, dh = h - h2;
+      var dw = w - w2,
+        dh = h - h2;
 
-      this.aabb[0][0] += dw*0.5;
-      this.aabb[0][1] += dh*0.5;
-      this.aabb[1][0] -= dw*0.5;
-      this.aabb[1][1] -= dh*0.5;
+      this.aabb[0][0] += dw * 0.5;
+      this.aabb[0][1] += dh * 0.5;
+      this.aabb[1][0] -= dw * 0.5;
+      this.aabb[1][1] -= dh * 0.5;
 
       this.size[0] = w2;
       this.size[1] = h2;
-      w = w2, h = h2;
+      (w = w2), (h = h2);
     }
 
     var domid = this.get_dom_id(draw);
@@ -293,10 +300,10 @@ export class SVGPath extends PathBase {
         }
 
         usenode = makeElement("use", {
-          "id" : useid
+          "id": useid,
         });
 
-        usenode.setAttributeNS(XLS, "xlink:href", "#"+domid);
+        usenode.setAttributeNS(XLS, "xlink:href", "#" + domid);
         group.appendChild(usenode);
 
         this.usenode = usenode;
@@ -308,7 +315,7 @@ export class SVGPath extends PathBase {
     }
 
     //force update of z position if necassary
-    for (var i=0; i<group.childNodes.length; i++) {
+    for (var i = 0; i < group.childNodes.length; i++) {
       if (group.childNodes[i] === this.usenode) {
         this._last_z = i; //account for defs node
         //console.log("Found last z!", this.z, this._last_z);
@@ -317,46 +324,49 @@ export class SVGPath extends PathBase {
     }
 
     var fid = svg.id + "_" + this.id + "_blur";
-    var blur : Element | null = null, filter : SVGElement | undefined;
+    var blur: Element | null = null,
+      filter: SVGElement | undefined;
 
-    if (this.blur*draw.zoom > 1) {
+    if (this.blur * draw.zoom > 1) {
       if (!this.filternode) {
         filter = this.filternode = findElement(fid);
       } else {
         filter = this.filternode;
       }
 
-      var w2 = w - this.pad*2, h2 = h - this.pad*2;
-      var wratio = 2.0*(w / w2)*100.0, hratio = 2.0*(h / h2)*100.0;
+      var w2 = w - this.pad * 2,
+        h2 = h - this.pad * 2;
+      var wratio = 2.0 * (w / w2) * 100.0,
+        hratio = 2.0 * (h / h2) * 100.0;
 
-      var fx = ""+(-wratio/4)+"%", fy=""+(-hratio/4)+"%",
-          fwidth=""+wratio+"%", fheight=""+hratio+"%";
+      var fx = "" + -wratio / 4 + "%",
+        fy = "" + -hratio / 4 + "%",
+        fwidth = "" + wratio + "%",
+        fheight = "" + hratio + "%";
 
       if (!filter) {
         //console.log("wratio, hratio:", wratio.toFixed(4), hratio.toFixed(4));
 
         filter = this.filternode = makeElement("filter", {
-          id : fid,
-          x : fx,
-          y : fy,
+          id    : fid,
+          x     : fx,
+          y     : fy,
           width : fwidth,
-          height : fheight
+          height: fheight,
         });
 
         blur = makeElement("feGaussianBlur", {
-          stdDeviation : ~~(Math.abs(this.blur*draw.zoom*0.25)),
-          "in" : "SourceGraphic"
+          stdDeviation: ~~Math.abs(this.blur * draw.zoom * 0.25),
+          "in"        : "SourceGraphic",
         });
 
         filter.appendChild(blur);
         defs.appendChild(filter);
 
-        node.setAttributeNS(null, "filter", "url(#"+fid+")");
+        node.setAttributeNS(null, "filter", "url(#" + fid + ")");
       } else {
-        if (filter.getAttributeNS(null, "x") !== fx)
-          filter.setAttributeNS(null, "x", fx);
-        if (filter.getAttributeNS(null, "y") !== fy)
-          filter.setAttributeNS(null, "y", fy);
+        if (filter.getAttributeNS(null, "x") !== fx) filter.setAttributeNS(null, "x", fx);
+        if (filter.getAttributeNS(null, "y") !== fy) filter.setAttributeNS(null, "y", fy);
         if (filter.getAttributeNS(null, "width") !== fwidth)
           filter.setAttributeNS(null, "width", fwidth);
         if (filter.getAttributeNS(null, "height") !== fheight)
@@ -366,10 +376,12 @@ export class SVGPath extends PathBase {
            attribute calls below, and the filter has no other children. */
         blur = filter.firstElementChild;
 
-        if (!blur!.hasAttributeNS(null, "stdDeviation") ||
-            parseFloat(blur!.getAttributeNS(null, "stdDeviation")!) !== ~~(this.blur*draw.zoom*0.5))
-        {
-          blur!.setAttributeNS(null, "stdDeviation", "" + ~~(this.blur*draw.zoom*0.5));
+        if (
+          !blur!.hasAttributeNS(null, "stdDeviation") ||
+          parseFloat(blur!.getAttributeNS(null, "stdDeviation")!) !==
+            ~~(this.blur * draw.zoom * 0.5)
+        ) {
+          blur!.setAttributeNS(null, "stdDeviation", "" + ~~(this.blur * draw.zoom * 0.5));
         }
       }
     } else if (this.filternode) {
@@ -390,7 +402,7 @@ export class SVGPath extends PathBase {
 
       if (!clip) {
         clip = this.clipnode = makeElement("clipPath", {
-          id : clipid
+          id: clipid,
         });
         defs.appendChild(clip);
 
@@ -403,7 +415,7 @@ export class SVGPath extends PathBase {
           var clipuse = makeElement("use");
           //console.log(clipuse.constructor);
 
-          clipuse.setAttributeNS(XLS, "xlink:href", "#"+path.domnode!.getAttributeNS(null, "id"));
+          clipuse.setAttributeNS(XLS, "xlink:href", "#" + path.domnode!.getAttributeNS(null, "id"));
           //usenode.setAttributeNS(null, "x", path.off[0]);
           //usenode.setAttributeNS(null, "y", path.off[1]);
 
@@ -414,11 +426,11 @@ export class SVGPath extends PathBase {
         }
       }
 
-      node.setAttributeNS(null, "clip-path", "url(#"+clipid+")");
+      node.setAttributeNS(null, "clip-path", "url(#" + clipid + ")");
     } else if (this.clipnode) {
-     node.removeAttributeNS(null, "clip-path");
-     this.clipnode.remove();
-     this.clipnode = undefined;
+      node.removeAttributeNS(null, "clip-path");
+      this.clipnode.remove();
+      this.clipnode = undefined;
     }
 
     /*
@@ -444,12 +456,12 @@ export class SVGPath extends PathBase {
       return;
     }
 
-    var r = ~~(this.color[0]*255),
-        g = ~~(this.color[1]*255),
-        b = ~~(this.color[2]*255),
-        a = this.color[3];
+    var r = ~~(this.color[0] * 255),
+      g = ~~(this.color[1] * 255),
+      b = ~~(this.color[2] * 255),
+      a = this.color[3];
 
-    node.setAttributeNS(null, "fill", "rgba("+r+","+g+","+b+","+a+")");
+    node.setAttributeNS(null, "fill", "rgba(" + r + "," + g + "," + b + "," + a + ")");
     /*
     if (do_blur) {
       var doff = 25000;
@@ -463,7 +475,8 @@ export class SVGPath extends PathBase {
 
     var d = "";
 
-    var cs = this.commands, i = 0;
+    var cs = this.commands,
+      i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
@@ -478,13 +491,16 @@ export class SVGPath extends PathBase {
         case STROKE:
           break;
         case STROKECOLOR:
-          let r = cs[i++], g2 = cs[i++], b = cs[i++], a = cs[i++];
-          r = ~~(r*255);
-          g2 = ~~(g2*255);
-          b = ~~(b*255);
+          let r = cs[i++],
+            g2 = cs[i++],
+            b = cs[i++],
+            a = cs[i++];
+          r = ~~(r * 255);
+          g2 = ~~(g2 * 255);
+          b = ~~(b * 255);
           a = a || 1.0;
 
-          node.setAttributeNS(null, "fill", "rgba("+r+","+g2+","+b+","+a+")");
+          node.setAttributeNS(null, "fill", "rgba(" + r + "," + g2 + "," + b + "," + a + ")");
           break;
         case STROKEWIDTH:
           let w = cs[i++];
@@ -495,7 +511,7 @@ export class SVGPath extends PathBase {
         case BEZIERTO:
         case BEGINPATH: {
           for (var j = 0; j < arglen; j += 2) {
-            co[0] = cs[i++], co[1] = cs[i++];
+            (co[0] = cs[i++]), (co[1] = cs[i++]);
             co.multVecMatrix(mat);
 
             //nan check
@@ -506,7 +522,7 @@ export class SVGPath extends PathBase {
               co[1] = 0;
             }
 
-            tmp[j] = co[0], tmp[j + 1] = co[1];
+            (tmp[j] = co[0]), (tmp[j + 1] = co[1]);
           }
 
           switch (cmd) {
@@ -520,7 +536,19 @@ export class SVGPath extends PathBase {
               d += "Q" + tmp[0] + " " + tmp[1] + " " + tmp[2] + " " + tmp[3];
               break;
             case CUBICTO:
-              d += "C" + tmp[0] + " " + tmp[1] + " " + tmp[2] + " " + tmp[3] + " " + tmp[4] + " " + tmp[5];
+              d +=
+                "C" +
+                tmp[0] +
+                " " +
+                tmp[1] +
+                " " +
+                tmp[2] +
+                " " +
+                tmp[3] +
+                " " +
+                tmp[4] +
+                " " +
+                tmp[5];
               break;
             case BEGINPATH:
               //XXX does svg have this within path elements?
@@ -533,13 +561,13 @@ export class SVGPath extends PathBase {
         default:
           i += arglen;
           break;
-      }//*/
+      } //*/
     }
 
     node.setAttributeNS(null, "d", d);
   }
 
-  reset(draw? : VectorDraw) {
+  reset(draw?: VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -548,9 +576,8 @@ export class SVGPath extends PathBase {
     this.first = true;
   }
 
-  draw(draw : SVGDraw2D, offx = 0, offy = 0, canvas = draw.canvas,
-       g = draw.g) {
-    offx += this.off[0], offy += this.off[1];
+  draw(draw: SVGDraw2D, offx = 0, offy = 0, canvas = draw.canvas, g = draw.g) {
+    (offx += this.off[0]), (offy += this.off[1]);
 
     this._last_z = this.z;
 
@@ -578,11 +605,11 @@ export class SVGPath extends PathBase {
 
 export class SVGDraw2D extends VectorDraw<SVGPath> {
   /* The <svg> this draw owns, plus the two children every path hangs off. */
-  svg : SVGElement | undefined;
-  defs : SVGElement | undefined;
-  group : SVGElement | undefined;
+  svg: SVGElement | undefined;
+  defs: SVGElement | undefined;
+  group: SVGElement | undefined;
   /* Zoom/pan digest; a change forces every path to regenerate. */
-  _last_update_key : string | undefined;
+  _last_update_key: string | undefined;
 
   constructor() {
     super();
@@ -591,23 +618,22 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
+    this.matstack = Object.assign(new Array<Matrix4>(256), { cur: 0 });
     this.matrix = new Matrix4();
 
-    for (var i=0; i<this.matstack.length; i++) {
+    for (var i = 0; i < this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
     this.matstack.cur = 0;
   }
 
-  static get_canvas(id : string, width : number, height : number,
-                    zindex : number) {
+  static get_canvas(id: string, width: number, height: number, zindex: number) {
     var ret = findElement(id);
 
     if (!ret) {
       ret = makeElement("svg", {
-        width  : width,
-        height : height
+        width : width,
+        height: height,
       });
 
       ret.id = id;
@@ -615,7 +641,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
       ret.style.position = "absolute";
       ret.style.setProperty("z-index", "" + zindex);
 
-      console.trace("\tZINDEX: ", zindex)
+      console.trace("\tZINDEX: ", zindex);
 
       document.body.appendChild(ret);
     }
@@ -634,7 +660,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     return ret;
   }
 
-  has_path(id : number, z : number, check_z = true) {
+  has_path(id: number, z: number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -648,7 +674,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
   }
 
   //creates new path if necessary.  z is required
-  get_path(id : number, z : number, check_z = true) {
+  get_path(id: number, z: number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -677,7 +703,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     }
   }
 
-  static kill_canvas(svg? : Element) {
+  static kill_canvas(svg?: Element) {
     if (svg) {
       svg.remove();
     }
@@ -699,10 +725,16 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     }
   }
 
-  draw(g : Canvas2D) {
+  draw(g: Canvas2D) {
     var canvas = g.canvas;
 
-    let updateKey = "" + this.matrix.$matrix.m11.toFixed(4) + ":" + this.matrix.$matrix.m41.toFixed(2) + ":" + this.matrix.$matrix.m42.toFixed(2);
+    let updateKey =
+      "" +
+      this.matrix.$matrix.m11.toFixed(4) +
+      ":" +
+      this.matrix.$matrix.m41.toFixed(2) +
+      ":" +
+      this.matrix.$matrix.m42.toFixed(2);
     let recalc_all = false;
 
     if (updateKey !== this._last_update_key) {
@@ -740,7 +772,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
 
     if (!defs) {
       defs = makeElement("defs", {
-        id : defsid
+        id: defsid,
       });
       defs.id = defsid;
       this.svg.appendChild(defs);
@@ -752,7 +784,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
 
     if (!group) {
       group = makeElement("g", {
-        id : groupid
+        id: groupid,
       });
       this.svg.appendChild(group);
     }
@@ -773,8 +805,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     if (this.svg.style["left"] !== canvas.style["left"])
       this.svg.style["left"] = canvas.style["left"];
 
-    if (this.svg.style["top"] !== canvas.style["top"])
-      this.svg.style["top"] = canvas.style["top"];
+    if (this.svg.style["top"] !== canvas.style["top"]) this.svg.style["top"] = canvas.style["top"];
 
     for (let path of this.paths) {
       if (path.z !== path._last_z) {
@@ -796,7 +827,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
       console.log("SVG sort!");
 
       this.dosort = 0;
-      this.paths.sort(function(a, b) {
+      this.paths.sort(function (a, b) {
         /* get_path() gives every path a z. */
         return a.z! - b.z!;
       });
@@ -804,7 +835,7 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
       //clear all use nodes;
       /* children, not childNodes: only elements have a tagName. */
       var cs = this.group.children;
-      for (var i=0; i<cs.length; i++) {
+      for (var i = 0; i < cs.length; i++) {
         var n = cs[i];
 
         if (n.tagName.toUpperCase() === "USE") {
@@ -820,11 +851,11 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
         }
 
         var useid = path.get_dom_id(this) + "_use";
-        var usenode = path.usenode = makeElement("use", {
-          "id" : useid
-        });
+        var usenode = (path.usenode = makeElement("use", {
+          "id": useid,
+        }));
 
-        usenode.setAttributeNS(XLS, "xlink:href", "#"+path.get_dom_id(this));
+        usenode.setAttributeNS(XLS, "xlink:href", "#" + path.get_dom_id(this));
 
         //force setting of transform property
         path._last_off[0] = path._last_off[1] = 1e17;
@@ -838,13 +869,12 @@ export class SVGDraw2D extends VectorDraw<SVGPath> {
     }
 
     for (let path of this.paths) {
-      if (!path.hidden)
-        path.draw(this);
+      if (!path.hidden) path.draw(this);
     }
   }
 
   //set draw matrix
-  set_matrix(matrix : Matrix4) {
+  set_matrix(matrix: Matrix4) {
     super.set_matrix(matrix);
 
     this.zoom = matrix.$matrix.m11;

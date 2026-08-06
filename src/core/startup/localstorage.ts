@@ -36,14 +36,14 @@ window.MyLocalStorage_LS = class MyLocalStorage_LS {
 window.MyLocalStorage_ChromeApp = class MyLocalStorage_ChromeApp {
   /* null marks a key chrome.storage failed to read, so getCached() can tell
      "known missing" from "never asked". */
-  cache: {[key: string]: string | null};
+  cache: { [key: string]: string | null };
 
   constructor() {
     this.cache = {};
   }
 
   set(key: string, val: string): void {
-    let obj: {[key: string]: string} = {};
+    let obj: { [key: string]: string } = {};
     obj[key] = val;
 
     chrome.storage.local.set(obj);
@@ -65,7 +65,7 @@ window.MyLocalStorage_ChromeApp = class MyLocalStorage_ChromeApp {
         } else {
           /* NOTE: a `value !== {}` disjunct led this test; it compares object
              references, so it was always true. */
-          let item : string | {[k : string] : string} = value;
+          let item: string | { [k: string]: string } = value;
 
           if (value !== undefined && key in value) {
             item = value[key];

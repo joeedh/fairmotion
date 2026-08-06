@@ -1,16 +1,16 @@
-import {DataBlock, DataRef, DataTypes, BlockFlags} from './lib_api.js';
-import type {GetBlockFunc, GetBlockUserFunc} from './lib_api.js';
-import {STRUCT} from './struct.js';
-import {ModalStates} from './toolops_api.js';
-import {SelMask} from '../editors/viewport/selectmode.js';
-import {SessionFlags} from '../editors/viewport/view2d_editor.js';
-import * as strutils from '../util/strutils.js';
+import { DataBlock, DataRef, DataTypes, BlockFlags } from "./lib_api.js";
+import type { GetBlockFunc, GetBlockUserFunc } from "./lib_api.js";
+import { STRUCT } from "./struct.js";
+import { ModalStates } from "./toolops_api.js";
+import { SelMask } from "../editors/viewport/selectmode.js";
+import { SessionFlags } from "../editors/viewport/view2d_editor.js";
+import * as strutils from "../util/strutils.js";
 
-import '../path.ux/scripts/util/vectormath.js';
+import "../path.ux/scripts/util/vectormath.js";
 
 export var ImageFlags = {
   SELECT: 1,
-  VALID : 2
+  VALID : 2,
 };
 
 export class Image extends DataBlock {
@@ -42,8 +42,8 @@ export class Image extends DataBlock {
       uiName      : "Image",
       accessorName: "images",
       typeIndex   : 8,
-      linkOrder   : 0
-    }
+      linkOrder   : 0,
+    };
   }
 
   get_dom_image() {
@@ -53,14 +53,10 @@ export class Image extends DataBlock {
 
       if (this.path != undefined) {
         var p = this.path.toLowerCase();
-        if (p.endsWith(".jpg"))
-          mimetype = "image/jpeg";
-        else if (p.endsWith(".bmp"))
-          mimetype = "image/bitmap";
-        else if (p.endsWith(".gif"))
-          mimetype = "image/gif";
-        else if (p.endsWith(".tif"))
-          mimetype = "image/tiff";
+        if (p.endsWith(".jpg")) mimetype = "image/jpeg";
+        else if (p.endsWith(".bmp")) mimetype = "image/bitmap";
+        else if (p.endsWith(".gif")) mimetype = "image/gif";
+        else if (p.endsWith(".tif")) mimetype = "image/tiff";
       }
 
       if (this.data !== undefined) {
@@ -69,7 +65,7 @@ export class Image extends DataBlock {
 
       img.onload = () => {
         window.redraw_viewport();
-      }
+      };
 
       this._dom = img;
     }
@@ -97,7 +93,9 @@ export class Image extends DataBlock {
   }
 }
 
-Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
+Image.STRUCT =
+  STRUCT.inherit(Image, DataBlock) +
+  `
   path  : string;
   size  : array(int);
   data  : arraybuffer | this._get_data();
@@ -108,8 +106,8 @@ DataBlock.register(Image);
 export class ImageUser {
   static STRUCT: string;
 
-  off: Vector2
-  scale: Vector2
+  off: Vector2;
+  scale: Vector2;
   flag: number;
   /* A dataref while the file is being read; data_link() swaps it for the real
      block. Undefined when nothing is assigned. */

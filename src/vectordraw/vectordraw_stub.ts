@@ -1,35 +1,33 @@
 "use strict";
 
-import * as config from '../config/config.js';
+import * as config from "../config/config.js";
 
-import {
-  MinMax
-} from '../util/mathlib.js';
+import { MinMax } from "../util/mathlib.js";
 
-import {
-  VectorFlags, VectorVertex, PathBase,
-  VectorDraw
-} from './vectordraw_base.js';
-import type {DrawCanvas} from './vectordraw_base.js';
+import { VectorFlags, VectorVertex, PathBase, VectorDraw } from "./vectordraw_base.js";
+import type { DrawCanvas } from "./vectordraw_base.js";
 
 var canvaspath_draw_mat_tmps = new cachering(() => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(8);
-for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
+for (var i = 1; i < canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
-var canvaspath_draw_vs = new cachering(function() {
+var canvaspath_draw_vs = new cachering(function () {
   return new Vector2();
 }, 32);
 
-var CCMD=0, CARGLEN=1;
+var CCMD = 0,
+  CARGLEN = 1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+var MOVETO = 0,
+  BEZIERTO = 1,
+  LINETO = 2,
+  BEGINPATH = 3;
 var NS = "http://www.w3.org/2000/svg";
-var XLS = "http://www.w3.org/1999/xlink"
+var XLS = "http://www.w3.org/1999/xlink";
 
-export function makeElement(type : string,
-                            attrs : {[k : string] : string} = {}) {
+export function makeElement(type: string, attrs: { [k: string]: string } = {}) {
   var ret = document.createElementNS(NS, type);
   for (var k in attrs) {
     ret.setAttributeNS(null, k, attrs[k]);
@@ -39,17 +37,17 @@ export function makeElement(type : string,
 }
 
 export class StubCanvasPath extends PathBase {
-  _last_off : Vector2
-  path_start_i : number
-  first : boolean
-  _mm : MinMax;
+  _last_off: Vector2;
+  path_start_i: number;
+  first: boolean;
+  _mm: MinMax;
 
   /* Flat opcode stream: [cmd, arglen, ...args] repeated. */
-  commands : number[];
+  commands: number[];
   /* Never read back; the stub keeps no per-z state. */
-  _last_z : number | undefined;
-  domnode : Element | undefined;
-  filternode : Element | undefined;
+  _last_z: number | undefined;
+  domnode: Element | undefined;
+  filternode: Element | undefined;
 
   constructor() {
     super();
@@ -74,10 +72,10 @@ export class StubCanvasPath extends PathBase {
     this._mm = new MinMax(2);
   }
 
-  update_aabb(draw : VectorDraw, fast_mode = false) {
+  update_aabb(draw: VectorDraw, fast_mode = false) {
     var tmp = new Vector2();
     var mm = this._mm;
-    var pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
+    var pad = (this.pad = this.blur > 0 ? this.blur * draw.zoom + 15 : 0);
 
     mm.reset();
 
@@ -86,7 +84,8 @@ export class StubCanvasPath extends PathBase {
     }
 
     var prev = -1;
-    var cs = this.commands, i = 0;
+    var cs = this.commands,
+      i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
@@ -97,8 +96,8 @@ export class StubCanvasPath extends PathBase {
         continue;
       }
 
-      for (var j=0; j<arglen; j += 2) {
-        tmp[0] = cs[i++], tmp[1] = cs[i++];
+      for (var j = 0; j < arglen; j += 2) {
+        (tmp[0] = cs[i++]), (tmp[1] = cs[i++]);
         tmp.multVecMatrix(draw.matrix);
 
         mm.minmax(tmp);
@@ -116,38 +115,39 @@ export class StubCanvasPath extends PathBase {
     this._pushCmd(BEGINPATH);
   }
 
-  undo() { //remove last added path
+  undo() {
+    //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
   }
 
-  _pushCmd(...args : number[]) {
+  _pushCmd(...args: number[]) {
     var arglen = arguments.length - 1;
 
     this.commands.push(arguments[0]);
     this.commands.push(arglen);
 
-    for (var i=0; i<arglen; i++) {
-      this.commands.push(arguments[i+1]);
+    for (var i = 0; i < arglen; i++) {
+      this.commands.push(arguments[i + 1]);
     }
 
     this.recalc = 1;
     this.first = false;
   }
 
-  moveTo(x : number, y : number) {
+  moveTo(x: number, y: number) {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
   }
 
-  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
+  bezierTo(x2: number, y2: number, x3: number, y3: number) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
     this.lasty = y3;
   }
 
-  lineTo(x2 : number, y2 : number) {
+  lineTo(x2: number, y2: number) {
     if (this.first) {
       this.moveTo(x2, y2);
       return;
@@ -158,13 +158,11 @@ export class StubCanvasPath extends PathBase {
     this.lasty = y2;
   }
 
-  destroy(draw : VectorDraw) {
-  }
+  destroy(draw: VectorDraw) {}
 
-  gen(draw : StubCanvasDraw2D, _check_tag = 0) {
-  }
+  gen(draw: StubCanvasDraw2D, _check_tag = 0) {}
 
-  reset(draw? : VectorDraw) {
+  reset(draw?: VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -173,9 +171,7 @@ export class StubCanvasPath extends PathBase {
     this.first = true;
   }
 
-  draw(draw : StubCanvasDraw2D, offx = 0, offy = 0,
-       canvas = draw.canvas, g = draw.g) {
-  }
+  draw(draw: StubCanvasDraw2D, offx = 0, offy = 0, canvas = draw.canvas, g = draw.g) {}
 
   update() {
     this.recalc = 1;
@@ -183,8 +179,8 @@ export class StubCanvasPath extends PathBase {
 }
 
 export class StubCanvasDraw2D extends VectorDraw {
-  paths : StubCanvasPath[]
-  path_idmap : {[id : number] : StubCanvasPath}
+  paths: StubCanvasPath[];
+  path_idmap: { [id: number]: StubCanvasPath };
 
   constructor() {
     super();
@@ -193,17 +189,16 @@ export class StubCanvasDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
+    this.matstack = Object.assign(new Array<Matrix4>(256), { cur: 0 });
     this.matrix = new Matrix4();
 
-    for (var i=0; i<this.matstack.length; i++) {
+    for (var i = 0; i < this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
     this.matstack.cur = 0;
   }
 
-  static get_canvas(id : string, width : number, height : number,
-                    zindex : number) {
+  static get_canvas(id: string, width: number, height: number, zindex: number) {
     let ret = document.getElementById(id) as HTMLCanvasElement | null;
 
     /* the loose `== undefined` also matched the null getElementById returns. */
@@ -221,7 +216,7 @@ export class StubCanvasDraw2D extends VectorDraw {
     return ret;
   }
 
-  has_path(id : number, z : number, check_z = true) {
+  has_path(id: number, z: number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -235,7 +230,7 @@ export class StubCanvasDraw2D extends VectorDraw {
   }
 
   //creates new path if necessary.  z is required
-  get_path(id : number, z : number, check_z = true) {
+  get_path(id: number, z: number, check_z = true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -259,16 +254,13 @@ export class StubCanvasDraw2D extends VectorDraw {
     return ret;
   }
 
-  update() {
-  }
+  update() {}
 
-  static kill_canvas(svg : Element) {
-  }
+  static kill_canvas(svg: Element) {}
 
-  destroy() {
-  }
+  destroy() {}
 
-  draw(g : Canvas2D) {
+  draw(g: Canvas2D) {
     var canvas = g.canvas;
 
     canvas.style["background"] = "rgba(0,0,0,0)";
@@ -278,7 +270,7 @@ export class StubCanvasDraw2D extends VectorDraw {
   }
 
   //set draw matrix
-  set_matrix(matrix : Matrix4) {
+  set_matrix(matrix: Matrix4) {
     super.set_matrix(matrix);
 
     this.zoom = matrix.$matrix.m11;

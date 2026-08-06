@@ -1,73 +1,81 @@
 "use strict";
 
-import {UIBase} from "../../../path.ux/scripts/core/ui_base.js";
+import { UIBase } from "../../../path.ux/scripts/core/ui_base.js";
 
-import {ExtrudeVertOp} from '../spline_createops.js';
+import { ExtrudeVertOp } from "../spline_createops.js";
 
-import {KeyMap, HotKey} from '../../../core/keymap.js';
+import { KeyMap, HotKey } from "../../../core/keymap.js";
 
-import {SelectLinkedOp, SelectOneOp, SelOpModes} from '../spline_selectops.js';
-import {TranslateOp} from '../transform.js';
+import { SelectLinkedOp, SelectOneOp, SelOpModes } from "../spline_selectops.js";
+import { TranslateOp } from "../transform.js";
 
-import {SelMask, ToolModes} from '../selectmode.js';
+import { SelMask, ToolModes } from "../selectmode.js";
 import {
-  SplineTypes, SplineFlags, SplineVertex,
-  SplineSegment, SplineFace
-} from '../../../curve/spline_types.js';
+  SplineTypes,
+  SplineFlags,
+  SplineVertex,
+  SplineSegment,
+  SplineFace,
+} from "../../../curve/spline_types.js";
 
-import {View2DEditor, SessionFlags} from '../view2d_editor.js';
-import {redraw_element} from '../../../curve/spline_draw.js';
-import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../../core/toolops_api.js';
+import { View2DEditor, SessionFlags } from "../view2d_editor.js";
+import { redraw_element } from "../../../curve/spline_draw.js";
+import { UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro } from "../../../core/toolops_api.js";
 
 import {
-  DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
-  ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-  DisconnectHandlesOp, SplitEdgePickOp
-} from '../spline_editops.js';
+  DeleteVertOp,
+  DeleteSegmentOp,
+  DeleteFaceOp,
+  ChangeFaceZ,
+  SplitEdgeOp,
+  DuplicateOp,
+  DisconnectHandlesOp,
+  SplitEdgePickOp,
+} from "../spline_editops.js";
 
 import * as util from "../../../path.ux/scripts/util/util.js";
 
-import {ToolMode} from "./toolmode.js";
-import type {ToolModeHit} from "./toolmode.js";
-import {nstructjs} from "../../../path.ux/scripts/pathux.js";
-import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
+import { ToolMode } from "./toolmode.js";
+import type { ToolModeHit } from "./toolmode.js";
+import { nstructjs } from "../../../path.ux/scripts/pathux.js";
+import { WidgetResizeOp, WidgetRotateOp } from "../transform_ops.js";
 
-import {PanOp} from '../view2d_ops.js';
-import type {FullContext} from '../../../core/context.js';
-import type {View2DHandler} from '../view2d.js';
-import type {Spline} from '../../../curve/spline.js';
-import type {Scene} from '../../../scene/scene.js';
-import type {GetBlockFunc, GetBlockUserFunc} from '../../../core/lib_api.js';
-import type {Container} from '../../../path.ux/scripts/core/ui.js';
+import { PanOp } from "../view2d_ops.js";
+import type { FullContext } from "../../../core/context.js";
+import type { View2DHandler } from "../view2d.js";
+import type { Spline } from "../../../curve/spline.js";
+import type { Scene } from "../../../scene/scene.js";
+import type { GetBlockFunc, GetBlockUserFunc } from "../../../core/lib_api.js";
+import type { Container } from "../../../path.ux/scripts/core/ui.js";
 
-window.anim_to_playback = Object.assign([], {filesize: 0});
+window.anim_to_playback = Object.assign([], { filesize: 0 });
 
 /* NOTE: DeleteVertOp/DeleteSegmentOp, WidgetResizeOp/WidgetRotateOp and
    ToolModes are each imported twice above.  `this.view2d` and
    `this.selectmode`, used throughout, are never assigned by this class or by
    ToolMode -- they read as undefined. */
 export class SplineToolMode extends ToolMode {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  mpos: Vector2
-  last_mpos: Vector2
-  start_mpos: Vector2
+  mpos: Vector2;
+  last_mpos: Vector2;
+  start_mpos: Vector2;
   /* True once a touch-drag has committed an op that a second finger should
      undo. */
-  _cancel_on_touch!: boolean
+  _cancel_on_touch!: boolean;
   mdown: boolean;
 
-  declare view2d : View2DHandler;
-  declare selectmode : number;
+  declare view2d: View2DHandler;
+  declare selectmode: number;
   /* The spline the highlighted element belongs to; may be the path spline
      rather than the draw spline. */
-  highlight_spline : Spline | undefined;
+  highlight_spline: Spline | undefined;
 
   /* Pointer ids currently down, keyed by pointerId. */
-  _undo_touches : Map<number, object>;
-  _first_touch_id : number;
+  _undo_touches: Map<number, object>;
+  _first_touch_id: number;
   /* View2DHandler hands the mode its context before it goes active. */
-  declare ctx : FullContext;
+  declare ctx: FullContext;
 
   constructor() {
     super();
@@ -85,33 +93,23 @@ export class SplineToolMode extends ToolMode {
     this._first_touch_id = -1;
   }
 
-  rightClickMenu(e : MouseEvent, localX : number, localY : number,
-                 view2d : View2DHandler) {
+  rightClickMenu(e: MouseEvent, localX: number, localY: number, view2d: View2DHandler) {}
 
-  }
-
-  draw(view2d : View2DHandler) {
+  draw(view2d: View2DHandler) {
     super.draw(view2d);
   }
-
 
   duplicate() {
     return new this.cls();
   }
 
-  static contextOverride() {
+  static contextOverride() {}
 
-  }
+  static buildSideBar(container: Container<FullContext>) {}
 
-  static buildSideBar(container : Container<FullContext>) {
+  static buildHeader(container: Container<FullContext>) {}
 
-  }
-
-  static buildHeader(container : Container<FullContext>) {
-
-  }
-
-  static buildProperties(container : Container<FullContext>) {
+  static buildProperties(container: Container<FullContext>) {
     let panel = container.panel("Tools");
 
     panel.toolPanel("spline.vertex_smooth()");
@@ -135,7 +133,6 @@ export class SplineToolMode extends ToolMode {
         ctx.view2d.widgets.ensure_not_toolop(ctx, cls);
       }
     }
-
   }
 
   static toolDefine() {
@@ -146,14 +143,14 @@ export class SplineToolMode extends ToolMode {
       icon       : -1,
       nodeInputs : {},
       nodeOutputs: {},
-      nodeFlag   : 0
-    }
+      nodeFlag   : 0,
+    };
   }
 
   defineKeyMap() {
     let this2 = this;
 
-    function del_tool(ctx : FullContext) {
+    function del_tool(ctx: FullContext) {
       console.log("delete");
 
       if (this2.selectmode & SelMask.SEGMENT) {
@@ -201,31 +198,39 @@ export class SplineToolMode extends ToolMode {
       new HotKey("E", [], "spline.split_edges()|Split Segments"),
       new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"),
       new HotKey("C", [], "view2d.circle_select()|Circle Select"),
-      new HotKey("Z", [], function (this : unknown, ctx : FullContext) {
-        console.warn("ZKEY", arguments, this);
+      new HotKey(
+        "Z",
+        [],
+        function (this: unknown, ctx: FullContext) {
+          console.warn("ZKEY", arguments, this);
 
-        ctx.view2d.only_render ^= 1;
-        window.redraw_viewport();
-      }, "Toggle Only Render"),
-      new HotKey("W", [], function (ctx : FullContext) {
-        let mpos = ctx.keymap_mpos;
-        mpos = ctx.screen.mpos;
-        ctx.view2d.tools_menu(ctx, mpos);
-      }, "Tools Menu")
+          ctx.view2d.only_render ^= 1;
+          window.redraw_viewport();
+        },
+        "Toggle Only Render"
+      ),
+      new HotKey(
+        "W",
+        [],
+        function (ctx: FullContext) {
+          let mpos = ctx.keymap_mpos;
+          mpos = ctx.screen.mpos;
+          ctx.view2d.tools_menu(ctx, mpos);
+        },
+        "Tools Menu"
+      ),
     ]);
     return;
-    let k = this.keymap = new KeyMap("view2d:splinetool");
-
+    let k = (this.keymap = new KeyMap("view2d:splinetool"));
 
     /*k.add_tool(new HotKey("C", [], "Connect Handles"),
                "spline.connect_handles()");
     k.add_tool(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
                "spline.disconnect_handles()");
     */
-
   }
 
-  tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
+  tools_menu(ctx: FullContext, mpos: number[], view2d: View2DHandler) {
     let ops = [
       "spline.flip_segments()",
       "spline.key_edges()",
@@ -235,7 +240,7 @@ export class SplineToolMode extends ToolMode {
       "spline.toggle_step_mode()",
       "spline.toggle_manual_handles()",
       "editor.paste_pose()",
-      "editor.copy_pose()"
+      "editor.copy_pose()",
     ];
 
     let menu = view2d.toolop_menu(ctx, "Tools", ops);
@@ -243,11 +248,11 @@ export class SplineToolMode extends ToolMode {
     view2d.call_menu(menu, view2d, mpos);
   }
 
-  _get_spline() : Spline {
+  _get_spline(): Spline {
     return this.ctx.spline;
   }
 
-  on_mousedown(event : PointerEvent) {
+  on_mousedown(event: PointerEvent) {
     if (this._do_touch_undo(event)) {
       return true;
     }
@@ -291,7 +296,10 @@ export class SplineToolMode extends ToolMode {
       let can_append = toolmode === ToolModes.APPEND;
 
       can_append = can_append && !!(this.selectmode & (SelMask.VERTEX | SelMask.HANDLE));
-      can_append = can_append && spline.verts.highlight === undefined && spline.handles.highlight === undefined;
+      can_append =
+        can_append &&
+        spline.verts.highlight === undefined &&
+        spline.handles.highlight === undefined;
 
       if (can_append) {
         let co = new Vector3([event.x, event.y, 0]);
@@ -316,15 +324,16 @@ export class SplineToolMode extends ToolMode {
         for (let i = 0; i < spline.elists.length; i++) {
           let list = spline.elists[i];
 
-          if (!(this.selectmode & list.type))
-            continue;
-          ;
-          if (list.highlight === undefined)
-            continue;
+          if (!(this.selectmode & list.type)) continue;
+          if (list.highlight === undefined) continue;
 
-          let op = new SelectOneOp(list.highlight, !event.shiftKey,
+          let op = new SelectOneOp(
+            list.highlight,
+            !event.shiftKey,
             !(list.highlight.flag & SplineFlags.SELECT),
-            this.selectmode, true);
+            this.selectmode,
+            true
+          );
           //console.log("exec selectoneop op");
 
           g_app_state.toolstack.execTool(this.ctx, op);
@@ -360,12 +369,16 @@ export class SplineToolMode extends ToolMode {
   }
 
   //returns [spline, element, mindis]
-  findnearest(mpos: number[], selectmask: number, limit: number,
-              ignore_layers : boolean) : ToolModeHit | undefined {
+  findnearest(
+    mpos: number[],
+    selectmask: number,
+    limit: number,
+    ignore_layers: boolean
+  ): ToolModeHit | undefined {
     let frameset = this.ctx.frameset;
     let editor = this.ctx.view2d;
 
-    let closest : ToolModeHit | undefined = undefined;
+    let closest: ToolModeHit | undefined = undefined;
     let mindis = 1e17;
 
     let found = false;
@@ -379,7 +392,13 @@ export class SplineToolMode extends ToolMode {
       this.ensure_paths_off();
 
       //XXXXX FIXME: spline.q.findnearest modifies mpos!!
-      let ret = this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+      let ret = this.ctx.spline.q.findnearest(
+        editor,
+        [mpos[0], mpos[1]],
+        selectmask,
+        limit,
+        ignore_layers
+      );
       if (ret != undefined) {
         return [this.ctx.spline, ret[0], ret[1]];
       } else {
@@ -397,7 +416,13 @@ export class SplineToolMode extends ToolMode {
     /* NOTE: this called q.zrest(), which SplineQuery has never defined -- with
        draw_anim_paths on, findnearest() threw TypeError before it got anywhere.
        The other two copies of this method call findnearest() here. */
-    let ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+    let ret = drawspline.q.findnearest(
+      editor,
+      [mpos[0], mpos[1]],
+      selectmask,
+      limit,
+      ignore_layers
+    );
     if (ret !== undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
@@ -418,13 +443,12 @@ export class SplineToolMode extends ToolMode {
       }
     }
 
-    if (!found)
-      return undefined;
+    if (!found) return undefined;
 
     return closest;
   }
 
-  updateHighlight(x : number, y : number, was_touch : boolean) {
+  updateHighlight(x: number, y: number, was_touch: boolean) {
     if (this.ctx.state.modalstate === ModalStates.TRANSFORMING) {
       return;
     }
@@ -435,14 +459,18 @@ export class SplineToolMode extends ToolMode {
     if (this.ctx.view2d.selectmode & SelMask.SEGMENT) {
       limit = 55;
     } else {
-
-      limit = (util.isMobile() || was_touch) ? 25 : 15;
+      limit = util.isMobile() || was_touch ? 25 : 15;
     }
 
     limit *= UIBase.getDPI();
     if (toolmode === ToolModes.SELECT) limit *= 3;
 
-    let ret = this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
+    let ret = this.findnearest(
+      [x, y],
+      this.ctx.view2d.selectmode,
+      limit,
+      this.ctx.view2d.edit_all_layers
+    );
 
     let redraw = false;
 
@@ -476,7 +504,7 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  _do_touch_undo(event : PointerEvent) {
+  _do_touch_undo(event: PointerEvent) {
     //console.log(event.touches && event.touches.length > 1, this._cancel_on_touch, "<---");
 
     if (event.pointerType === "touch") {
@@ -501,9 +529,9 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  on_mousemove(event: PointerEvent) : boolean | undefined {
+  on_mousemove(event: PointerEvent): boolean | undefined {
     if (this.ctx === undefined) return;
-    this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
+    (this.mpos[0] = event.x), (this.mpos[1] = event.y), (this.mpos[2] = 0.0);
     let selectmode = this.selectmode;
 
     if (this._do_touch_undo(event)) {
@@ -512,7 +540,7 @@ export class SplineToolMode extends ToolMode {
 
     this.updateHighlight(event.x, event.y, !!event.touches);
 
-    let translate = (this.mdown && this.start_mpos.vectorDistance(this.mpos) > 15/UIBase.getDPI());
+    let translate = this.mdown && this.start_mpos.vectorDistance(this.mpos) > 15 / UIBase.getDPI();
     //translate = translate && !this._cancel_on_touch;
     //translate = translate && (!this.highlight_spline || !this.highlight_spline.has_highlight());
 
@@ -560,7 +588,7 @@ export class SplineToolMode extends ToolMode {
     this._cancel_on_touch = cancel;
   }
 
-  on_mouseup(event: PointerEvent) : boolean | undefined {
+  on_mouseup(event: PointerEvent): boolean | undefined {
     this._clear_undo_touch(false);
     this.start_mpos[0] = event.x;
     this.start_mpos[1] = event.y;
@@ -573,14 +601,13 @@ export class SplineToolMode extends ToolMode {
     return;
   }
 
-  do_alt_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler) {
-  }
+  do_alt_select(event: MouseEvent, mpos: Vector3, view2d: View2DHandler) {}
 
-  getKeyMaps() : KeyMap[] {
+  getKeyMaps(): KeyMap[] {
     if (this.keymap === undefined) {
       this.defineKeyMap();
     }
-    return [this.keymap]
+    return [this.keymap];
   }
 
   static buildEditMenu() {
@@ -603,7 +630,7 @@ export class SplineToolMode extends ToolMode {
       "spline.toggle_select_all(mode='DESELECT')|Deselect All",
       "view2d.circle_select()",
       "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked::L",
-      "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked::Shift+L"
+      "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked::Shift+L",
     ];
   }
 
@@ -611,8 +638,7 @@ export class SplineToolMode extends ToolMode {
      no such method exists anywhere in the codebase, and nothing ever called
      delete_menu on a toolmode, so it was dead and broken both. */
 
-  dataLink(scene: Scene, getblock: GetBlockFunc,
-           getblock_us: GetBlockUserFunc) {
+  dataLink(scene: Scene, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     this.ctx = g_app_state.ctx;
   }
 
@@ -621,7 +647,9 @@ export class SplineToolMode extends ToolMode {
   }
 }
 
-SplineToolMode.STRUCT = nstructjs.inherit(SplineToolMode, ToolMode) + `
+SplineToolMode.STRUCT =
+  nstructjs.inherit(SplineToolMode, ToolMode) +
+  `
 }`;
 
 ToolMode.register(SplineToolMode);

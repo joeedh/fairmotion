@@ -2,50 +2,57 @@
 
 /*** THIS FILE IS OUTDATED AND NO LONGER USED, see ./toolmodes/splinetool.js****/
 
-import {ExtrudeVertOp} from './spline_createops.js';
-import * as spline_selectops from './spline_selectops.js';
-import {WidgetResizeOp, WidgetRotateOp} from './transform_ops.js';
+import { ExtrudeVertOp } from "./spline_createops.js";
+import * as spline_selectops from "./spline_selectops.js";
+import { WidgetResizeOp, WidgetRotateOp } from "./transform_ops.js";
 
-import {DataTypes} from '../../core/lib_api.js';
-import {EditModes} from './view2d_editor.js';
+import { DataTypes } from "../../core/lib_api.js";
+import { EditModes } from "./view2d_editor.js";
 let EditModes2 = EditModes;
 
-import {KeyMap, HotKey} from '../../core/keymap.js';
+import { KeyMap, HotKey } from "../../core/keymap.js";
 
-import {charmap} from '../events.js';
+import { charmap } from "../events.js";
 
-import {SelectLinkedOp, SelectOneOp} from './spline_selectops.js';
-import {TranslateOp} from './transform.js';
+import { SelectLinkedOp, SelectOneOp } from "./spline_selectops.js";
+import { TranslateOp } from "./transform.js";
 
-import {SelMask, ToolModes} from './selectmode.js';
-import {SplineTypes, SplineFlags} from '../../curve/spline_types.js';
+import { SelMask, ToolModes } from "./selectmode.js";
+import { SplineTypes, SplineFlags } from "../../curve/spline_types.js";
 
-import {View2DEditor, SessionFlags} from './view2d_editor.js';
-import {DataBlock} from '../../core/lib_api.js';
-import {redraw_element} from '../../curve/spline_draw.js';
-import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../core/toolops_api.js';
+import { View2DEditor, SessionFlags } from "./view2d_editor.js";
+import { DataBlock } from "../../core/lib_api.js";
+import { redraw_element } from "../../curve/spline_draw.js";
+import { UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro } from "../../core/toolops_api.js";
 
-import {get_vtime} from '../../core/animdata.js';
+import { get_vtime } from "../../core/animdata.js";
 
-import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
-  ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-  DisconnectHandlesOp, SplitEdgePickOp} from './spline_editops.js';
-import type {FullContext} from '../../core/context.js';
-import type {View2DHandler} from './view2d.js';
-import type {Spline} from '../../curve/spline.js';
-import type {ToolModeHit} from './toolmodes/toolmode.js';
-import type {RowFrame} from '../../path.ux/scripts/core/ui.js';
+import {
+  DeleteVertOp,
+  DeleteSegmentOp,
+  DeleteFaceOp,
+  ChangeFaceZ,
+  SplitEdgeOp,
+  DuplicateOp,
+  DisconnectHandlesOp,
+  SplitEdgePickOp,
+} from "./spline_editops.js";
+import type { FullContext } from "../../core/context.js";
+import type { View2DHandler } from "./view2d.js";
+import type { Spline } from "../../curve/spline.js";
+import type { ToolModeHit } from "./toolmodes/toolmode.js";
+import type { RowFrame } from "../../path.ux/scripts/core/ui.js";
 /* PackFlags is used bare throughout buildEditMenu(); it was never imported. */
-import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
+import { PackFlags } from "../../path.ux/scripts/core/ui_base.js";
 
 /* One captured animation frame: the scene time it was taken at and the raw
    pixels of the viewport. */
-export type PlaybackFrame = {time : number, data : ImageData};
+export type PlaybackFrame = { time: number; data: ImageData };
 
 /* The rectangle of the page the playback code grabs and blits back. */
-export type PlaybackViewport = {pos : number[], size : number[]};
+export type PlaybackViewport = { pos: number[]; size: number[] };
 
-window.anim_to_playback = Object.assign([], {filesize: 0});
+window.anim_to_playback = Object.assign([], { filesize: 0 });
 
 export class DuplicateTransformMacro extends ToolMacro<FullContext> {
   constructor() {
@@ -54,7 +61,7 @@ export class DuplicateTransformMacro extends ToolMacro<FullContext> {
     super();
   }
 
-  static invoke(ctx : FullContext, args : {[k : string] : unknown}) {
+  static invoke(ctx: FullContext, args: { [k: string]: unknown }) {
     let tool = new DuplicateOp();
     let macro = new DuplicateTransformMacro();
 
@@ -62,59 +69,64 @@ export class DuplicateTransformMacro extends ToolMacro<FullContext> {
 
     /* mpos is a Vector3; TransformOp only ever feeds it to new Vector2(). */
     let mpos = ctx.view2d.mpos;
-    let transop = new TranslateOp([mpos[0], mpos[1]], 1|2);
+    let transop = new TranslateOp([mpos[0], mpos[1]], 1 | 2);
     macro.add(transop);
 
     return macro;
   }
 
-  static tooldef() {return {
-    uiname   : "Duplicate",
-    toolpath  : "spline.duplicate_transform",
-    is_modal : true,
-    icon : Icons.DUPLICATE,
-    description : "Duplicate geometry"
-  }}
-};
+  static tooldef() {
+    return {
+      uiname     : "Duplicate",
+      toolpath   : "spline.duplicate_transform",
+      is_modal   : true,
+      icon       : Icons.DUPLICATE,
+      description: "Duplicate geometry",
+    };
+  }
+}
 
 export class RenderAnimOp extends ToolOp {
-  viewport! : PlaybackViewport;
+  viewport!: PlaybackViewport;
   /* Bounds of the path spline's keys, in frames. */
-  min_time! : number;
-  max_time! : number;
+  min_time!: number;
+  max_time!: number;
   /* setInterval handle for the capture loop. */
-  timer! : number;
+  timer!: number;
 
   constructor() {
     super();
   }
 
-  static tooldef() {return {
-    uiname   : "Render",
-    toolpath  : "view2d.render_anim",
-    is_modal : true,
-    inputs   : {},
-    outputs  : {},
-    undoflag : UndoFlags.NO_UNDO
-  }}
+  static tooldef() {
+    return {
+      uiname  : "Render",
+      toolpath: "view2d.render_anim",
+      is_modal: true,
+      inputs  : {},
+      outputs : {},
+      undoflag: UndoFlags.NO_UNDO,
+    };
+  }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     super.start_modal(ctx);
     console.log("Anim render start!");
 
-    window.anim_to_playback = Object.assign([], {filesize: 0});
+    window.anim_to_playback = Object.assign([], { filesize: 0 });
 
     this.viewport = {
-      pos  : [ctx.view2d.pos[0], window.innerHeight-(ctx.view2d.pos[1]+ctx.view2d.size[1])],
-      size : [ctx.view2d.size[0], ctx.view2d.size[1]]
-    }
+      pos : [ctx.view2d.pos[0], window.innerHeight - (ctx.view2d.pos[1] + ctx.view2d.size[1])],
+      size: [ctx.view2d.size[0], ctx.view2d.size[1]],
+    };
 
     window.anim_to_playback.viewport = this.viewport;
 
     let this2 = this;
     let pathspline = ctx.frameset.pathspline;
 
-    let min_time = 1e17, max_time = 0;
+    let min_time = 1e17,
+      max_time = 0;
 
     for (let v of pathspline.verts) {
       let time = get_vtime(v);
@@ -131,7 +143,7 @@ export class RenderAnimOp extends ToolOp {
     this.min_time = min_time;
     this.max_time = max_time;
 
-    this.timer = window.setInterval(function() {
+    this.timer = window.setInterval(function () {
       this2.render_frame();
     }, 10);
   }
@@ -139,23 +151,23 @@ export class RenderAnimOp extends ToolOp {
   render_frame() {
     let ctx = this.modal_ctx;
     if (ctx === undefined || !this.modalRunning) {
-      console.log("Timer end")
+      console.log("Timer end");
       window.clearInterval(this.timer);
       this.end();
       return;
     }
 
     let scene = ctx.scene;
-    if (scene.time >= this.max_time+25) {
-        this.end(ctx);
-        return;
+    if (scene.time >= this.max_time + 25) {
+      this.end(ctx);
+      return;
     }
 
     console.log("rendering frame", scene.time);
 
     let vd = this.viewport;
     let canvas = document.createElement("canvas");
-    canvas.width = vd.size[0], canvas.height = vd.size[1];
+    (canvas.width = vd.size[0]), (canvas.height = vd.size[1]);
 
     /* NOTE: was ctx.view2d.draw_canvas_ctx, which no View2DHandler has, so
        every render frame threw TypeError on the getImageData below.  The
@@ -169,24 +181,23 @@ export class RenderAnimOp extends ToolOp {
     let image = canvas.toDataURL();
 
     let frame = {
-      time : scene.time,
-      data : idata
-    }
+      time: scene.time,
+      data: idata,
+    };
 
     window.anim_to_playback.push(frame);
     window.anim_to_playback.filesize += image.length;
 
-    scene.change_time(ctx, scene.time+1);
+    scene.change_time(ctx, scene.time + 1);
     window.redraw_viewport();
   }
 
-  end(ctx? : FullContext) {
-    if (this.timer !== undefined)
-      window.clearInterval(this.timer);
-    this.end_modal()
+  end(ctx?: FullContext) {
+    if (this.timer !== undefined) window.clearInterval(this.timer);
+    this.end_modal();
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Escape"]:
         this.end(this.modal_ctx);
@@ -194,45 +205,45 @@ export class RenderAnimOp extends ToolOp {
   }
 }
 
-
 export class PlayAnimOp extends ToolOp {
-  viewport! : PlaybackViewport;
+  viewport!: PlaybackViewport;
   /* time_ms() when playback started; playback position is derived from it. */
-  start_time! : number;
-  timer! : number;
+  start_time!: number;
+  timer!: number;
   /* Set while a blit is queued, so the interval skips a beat. */
-  doing_draw! : boolean;
+  doing_draw!: boolean;
 
   constructor() {
     super();
   }
 
-  static tooldef() {return {
-    uiname   : "Play",
-    toolpath  : "view2d.play_anim",
-    is_modal : true,
-    inputs   : {},
-    outputs  : {},
-    undoflag : UndoFlags.NO_UNDO
-  }}
+  static tooldef() {
+    return {
+      uiname  : "Play",
+      toolpath: "view2d.play_anim",
+      is_modal: true,
+      inputs  : {},
+      outputs : {},
+      undoflag: UndoFlags.NO_UNDO,
+    };
+  }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     super.start_modal(ctx);
     console.log("Anim render start!");
 
     this.viewport = {
-      pos  : [ctx.view2d.pos[0], window.innerHeight-(ctx.view2d.pos[1]+ctx.view2d.size[1])],
-      size : [ctx.view2d.size[0], ctx.view2d.size[1]]
-    }
+      pos : [ctx.view2d.pos[0], window.innerHeight - (ctx.view2d.pos[1] + ctx.view2d.size[1])],
+      size: [ctx.view2d.size[0], ctx.view2d.size[1]],
+    };
 
     let this2 = this;
     let pathspline = ctx.frameset.pathspline;
 
     this.start_time = time_ms();
 
-    this.timer = window.setInterval(function() {
-      if (this2.doing_draw)
-        return;
+    this.timer = window.setInterval(function () {
+      if (this2.doing_draw) return;
       this2.render_frame();
     }, 10);
   }
@@ -240,7 +251,7 @@ export class PlayAnimOp extends ToolOp {
   render_frame() {
     let ctx = this.modal_ctx;
     if (ctx === undefined || !this.modalRunning) {
-      console.log("Timer end")
+      console.log("Timer end");
       window.clearInterval(this.timer);
       this.end();
       return;
@@ -252,7 +263,7 @@ export class PlayAnimOp extends ToolOp {
 
     let time = time_ms() - this.start_time;
 
-    time = (time / 1000.0)*24.0;
+    time = (time / 1000.0) * 24.0;
     let fi = Math.floor(time);
 
     vd = window.anim_to_playback.viewport!;
@@ -283,20 +294,19 @@ export class PlayAnimOp extends ToolOp {
       /* the `g1._putImageData !== undefined` branch that used to sit here was
          dead: nothing in the codebase ever stamps _putImageData on a context. */
       if (frame !== undefined) {
-        g1.putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
+        g1.putImageData(frame.data, pos[0], window.innerHeight - (pos[1] + vd.size[1]));
       }
-    }
+    };
 
     requestAnimationFrame(draw);
   }
 
-  end(ctx? : FullContext) {
-    if (this.timer !== undefined)
-      window.clearInterval(this.timer);
-    this.end_modal()
+  end(ctx?: FullContext) {
+    if (this.timer !== undefined) window.clearInterval(this.timer);
+    this.end_modal();
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Escape"]:
         this.end(this.modal_ctx);

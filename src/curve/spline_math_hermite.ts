@@ -1,23 +1,32 @@
-"USE_PREPROCESSOR"
+"USE_PREPROCESSOR";
 "use strict";
 
 //hermite clothoid
 
-import {SplineFlags, SplineTypes} from './spline_base.js';
-import {solver, constraint} from "./solver.js";
-import {ModalStates} from '../core/toolops_api.js';
+import { SplineFlags, SplineTypes } from "./spline_base.js";
+import { solver, constraint } from "./solver.js";
+import { ModalStates } from "../core/toolops_api.js";
 
-import type {AnyConstraint} from './solver.js';
-import type {Spline} from './spline.js';
-import type {SplineSegment, SplineVertex} from './spline_types.js';
+import type { AnyConstraint } from "./solver.js";
+import type { Spline } from "./spline.js";
+import type { SplineSegment, SplineVertex } from "./spline_types.js";
 
 //math globals
 let FEPS = 1e-18;
 let PI = Math.PI;
-let sin = Math.sin, acos = Math.acos, asin = Math.asin, atan2 = Math.atan2, sqrt = Math.sqrt;
-let cos = Math.cos, pow = Math.pow, abs = Math.abs, floor = Math.floor, ceil = Math.ceil;
-let mmax = Math.max, mmin = Math.min;
-let SPI2 = Math.sqrt(PI/2);
+let sin = Math.sin,
+  acos = Math.acos,
+  asin = Math.asin,
+  atan2 = Math.atan2,
+  sqrt = Math.sqrt;
+let cos = Math.cos,
+  pow = Math.pow,
+  abs = Math.abs,
+  floor = Math.floor,
+  ceil = Math.ceil;
+let mmax = Math.max,
+  mmin = Math.min;
+let SPI2 = Math.sqrt(PI / 2);
 let INCREMENTAL = true;
 
 export let ORDER = 4; //keep in sync with WASM! wasm/spline.h
@@ -34,124 +43,237 @@ window.KSCALE = KSCALE;
 export let KTOTKS = ORDER + 6;
 export let INT_STEPS = 4;
 
-export function set_int_steps(steps : number) {
+export function set_int_steps(steps: number) {
   INT_STEPS = steps;
 }
 
 /* Ignores its argument; it exists to mirror set_int_steps(). */
-export function get_int_steps(steps? : number) {
+export function get_int_steps(steps?: number) {
   return INT_STEPS;
 }
 
 let _approx_cache_vs = cachering.fromConstructor(Vector3, 32);
 
-const POLYTHETA_BEZ = (s : number, k1 : number, k2 : number, k3 : number,
-                       k4 : number) => (-(((3*(s) - 4)*k3 - k4*(s))*(s)*(s) + ((s)*(s) - 2*(s) + 2)*((s) - 2)*k1 - (3*(s)*(s) - 8*(s) + 6)*k2*(s))*(s))*0.25;
-const POLYCURVATURE_BEZ = (s : number, k1 : number, k2 : number, k3 : number,
-                           k4 : number) => (-(((3*((s) - 1)*k3 - k4*(s))*(s) - 3*((s) - 1)*((s) - 1)*k2)*(s) + ((s) - 1)*((s) - 1)*((s) - 1)*k1));
-const POLYCURVATURE_BEZ_DV = (s : number, k1 : number, k2 : number, k3 : number,
-                              k4 : number) => (-3*(k1*(s)*(s) - 2*k1*(s) + k1 - 3*k2*(s)*(s) + 4*k2*(s) - k2 + 3*k3*(s)*(s) - 2*k3*(s) - k4*(s)*(s)));
-const POLYTHETA_SBEZ = (s : number, k1 : number, k2 : number,
-                        dv1_k1 : number, dv1_k2 : number) => {
-  let s2 = s*s, s3 = s2*s;
-  return (((((3*s - 4)*dv1_k2 - 6*(s - 2)*k2)*s + (3*s2 - 8*s + 6)*dv1_k1)*s + 6*(s3 - 2*s2 + 2)*k1)*s)/12;
-}
+const POLYTHETA_BEZ = (s: number, k1: number, k2: number, k3: number, k4: number) =>
+  -(
+    ((3 * s - 4) * k3 - k4 * s) * s * s +
+    (s * s - 2 * s + 2) * (s - 2) * k1 -
+    (3 * s * s - 8 * s + 6) * k2 * s
+  ) *
+  s *
+  0.25;
+const POLYCURVATURE_BEZ = (s: number, k1: number, k2: number, k3: number, k4: number) =>
+  -(
+    ((3 * (s - 1) * k3 - k4 * s) * s - 3 * (s - 1) * (s - 1) * k2) * s +
+    (s - 1) * (s - 1) * (s - 1) * k1
+  );
+const POLYCURVATURE_BEZ_DV = (s: number, k1: number, k2: number, k3: number, k4: number) =>
+  -3 *
+  (k1 * s * s -
+    2 * k1 * s +
+    k1 -
+    3 * k2 * s * s +
+    4 * k2 * s -
+    k2 +
+    3 * k3 * s * s -
+    2 * k3 * s -
+    k4 * s * s);
+const POLYTHETA_SBEZ = (s: number, k1: number, k2: number, dv1_k1: number, dv1_k2: number) => {
+  let s2 = s * s,
+    s3 = s2 * s;
+  return (
+    (((((3 * s - 4) * dv1_k2 - 6 * (s - 2) * k2) * s + (3 * s2 - 8 * s + 6) * dv1_k1) * s +
+      6 * (s3 - 2 * s2 + 2) * k1) *
+      s) /
+    12
+  );
+};
 
-const POLYCURVATURE_SBEZ = (s : number, k1 : number, k2 : number,
-                            dv1_k1 : number, dv1_k2 : number) => (((s - 1)*dv1_k1 + dv1_k2*s)*(s - 1) - (2*s - 3)*k2*s)*s + (2*s + 1)*(s - 1)*(s - 1)*k1
-const POLYCURVATURE_SBEZ_DV = (s : number, k1 : number, k2 : number,
-                               dv1_k1 : number, dv1_k2 : number) => (6*(k1 - k2)*(s - 1) + (3*s - 2)*dv1_k2)*s + (3*s - 1)*(s - 1)*dv1_k1;
+const POLYCURVATURE_SBEZ = (s: number, k1: number, k2: number, dv1_k1: number, dv1_k2: number) =>
+  (((s - 1) * dv1_k1 + dv1_k2 * s) * (s - 1) - (2 * s - 3) * k2 * s) * s +
+  (2 * s + 1) * (s - 1) * (s - 1) * k1;
+const POLYCURVATURE_SBEZ_DV = (s: number, k1: number, k2: number, dv1_k1: number, dv1_k2: number) =>
+  (6 * (k1 - k2) * (s - 1) + (3 * s - 2) * dv1_k2) * s + (3 * s - 1) * (s - 1) * dv1_k1;
 
-let polytheta_spower = function polytheta_spower(s : number, ks : ArrayLike<number>,
-                                                 order : number) : number {
-  let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
+let polytheta_spower = function polytheta_spower(
+  s: number,
+  ks: ArrayLike<number>,
+  order: number
+): number {
+  let s2 = s * s,
+    s3 = s2 * s,
+    s4 = s3 * s,
+    s5 = s4 * s,
+    s6 = s5 * s,
+    s7 = s6 * s,
+    s8 = s7 * s,
+    s9 = s8 * s;
 
   switch (order) {
     case 2: {
-      let k1 = ks[0], k2 = ks[1];
+      let k1 = ks[0],
+        k2 = ks[1];
 
-      return (-((s - 2)*k1 - k2*s)*s)/2.0;
+      return (-((s - 2) * k1 - k2 * s) * s) / 2.0;
     }
     case 4: {
-      let k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      let k1 = ks[0],
+        dv1_k1 = ks[1],
+        dv1_k2 = ks[2],
+        k2 = ks[3];
 
-      return (((((3*s - 4)*dv1_k2 - 6*(s - 2)*k2)*s + (3*s2 - 8*s + 6)*dv1_k1)*s + 6
-        *(s3 - 2*s2 + 2)*k1)*s)/12;
+      return (
+        (((((3 * s - 4) * dv1_k2 - 6 * (s - 2) * k2) * s + (3 * s2 - 8 * s + 6) * dv1_k1) * s +
+          6 * (s3 - 2 * s2 + 2) * k1) *
+          s) /
+        12
+      );
     }
     case 6: {
-      let k1 = ks[0], dv1_k1 = ks[1], dv2_k1 = ks[2], dv2_k2 = ks[3], dv1_k2 = ks[4], k2 = ks[5];
+      let k1 = ks[0],
+        dv1_k1 = ks[1],
+        dv2_k1 = ks[2],
+        dv2_k2 = ks[3],
+        dv1_k2 = ks[4],
+        k2 = ks[5];
 
-      return (-((((60*dv1_k2*s2 - 168*dv1_k2*s + 120*dv1_k2 - 10*dv2_k2*s2
-          + 24*dv2_k2*s - 15*dv2_k2 - 120*k2*s2 + 360*k2*s - 300*k2)*s + (10*s3
-          - 36*s2 + 45*s - 20)*dv2_k1)*s + 12*(5*s4 - 16*s3 + 15*s2 - 5)*
-        dv1_k1)*s + 60*(2*s5 - 6*s4 + 5*s3 - 2)*k1)*s)/120;
+      return (
+        (-(
+          (((60 * dv1_k2 * s2 -
+            168 * dv1_k2 * s +
+            120 * dv1_k2 -
+            10 * dv2_k2 * s2 +
+            24 * dv2_k2 * s -
+            15 * dv2_k2 -
+            120 * k2 * s2 +
+            360 * k2 * s -
+            300 * k2) *
+            s +
+            (10 * s3 - 36 * s2 + 45 * s - 20) * dv2_k1) *
+            s +
+            12 * (5 * s4 - 16 * s3 + 15 * s2 - 5) * dv1_k1) *
+            s +
+          60 * (2 * s5 - 6 * s4 + 5 * s3 - 2) * k1
+        ) *
+          s) /
+        120
+      );
     }
   }
 
   /* ORDER is 4, so the switch always returns; falling through used to hand
      back undefined and NaN every caller downstream of it. */
   throw new Error("unsupported curve order " + order);
-}
+};
 
-let polycurvature_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
-                                                         order : number) : number {
-  let k1                     = ks[0],
-      dv1_k1 = ks[1], dv2_k1 = ks[2],
-      dv2_k2                 = ks[3], dv1_k2 = ks[4],
-      k2                     = ks[5];
+let polycurvature_spower = function polycurvature_spower(
+  s: number,
+  ks: ArrayLike<number>,
+  order: number
+): number {
+  let k1 = ks[0],
+    dv1_k1 = ks[1],
+    dv2_k1 = ks[2],
+    dv2_k2 = ks[3],
+    dv1_k2 = ks[4],
+    k2 = ks[5];
 
-  let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
+  let s2 = s * s,
+    s3 = s2 * s,
+    s4 = s3 * s,
+    s5 = s4 * s,
+    s6 = s5 * s,
+    s7 = s6 * s,
+    s8 = s7 * s,
+    s9 = s8 * s;
 
   switch (order) {
     case 2: {
-      let k1 = ks[0], k2 = ks[1];
+      let k1 = ks[0],
+        k2 = ks[1];
 
-      return -((s - 1)*k1 - k2*s);
+      return -((s - 1) * k1 - k2 * s);
     }
     case 4: {
-      let k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      let k1 = ks[0],
+        dv1_k1 = ks[1],
+        dv1_k2 = ks[2],
+        k2 = ks[3];
 
-      return (((s - 1)*dv1_k1 + dv1_k2*s)*(s - 1) - (2*s - 3)*k2*s)*s + (2*s + 1)*(s - 1)*(s - 1)*k1;
+      return (
+        (((s - 1) * dv1_k1 + dv1_k2 * s) * (s - 1) - (2 * s - 3) * k2 * s) * s +
+        (2 * s + 1) * (s - 1) * (s - 1) * k1
+      );
     }
     case 6: {
-      return (-((((((s - 1)*dv2_k1 - dv2_k2*s)*(s - 1) + 2*(3*s - 4)*dv1_k2*s)*s + 2
-          *(3*s + 1)*(s - 1)*(s - 1)*dv1_k1)*(s - 1) - 2*(6*s2 - 15*s + 10)*k2*s2)*s +
-        2*(6*s2 + 3*s + 1)*(s - 1)*(s - 1)*(s - 1)*k1))/2.0;
+      return (
+        -(
+          (((((s - 1) * dv2_k1 - dv2_k2 * s) * (s - 1) + 2 * (3 * s - 4) * dv1_k2 * s) * s +
+            2 * (3 * s + 1) * (s - 1) * (s - 1) * dv1_k1) *
+            (s - 1) -
+            2 * (6 * s2 - 15 * s + 10) * k2 * s2) *
+            s +
+          2 * (6 * s2 + 3 * s + 1) * (s - 1) * (s - 1) * (s - 1) * k1
+        ) / 2.0
+      );
     }
   }
 
   throw new Error("unsupported curve order " + order);
-}
+};
 
-let polycurvature_dv_spower = function polycurvature_spower(s : number, ks : ArrayLike<number>,
-                                                            order : number) : number {
-  let s2 = s*s, s3 = s2*s, s4 = s3*s, s5 = s4*s, s6 = s5*s, s7 = s6*s, s8 = s7*s, s9 = s8*s;
+let polycurvature_dv_spower = function polycurvature_spower(
+  s: number,
+  ks: ArrayLike<number>,
+  order: number
+): number {
+  let s2 = s * s,
+    s3 = s2 * s,
+    s4 = s3 * s,
+    s5 = s4 * s,
+    s6 = s5 * s,
+    s7 = s6 * s,
+    s8 = s7 * s,
+    s9 = s8 * s;
 
   switch (order) {
     case 2: {
-      let k1 = ks[0], k2 = ks[1];
+      let k1 = ks[0],
+        k2 = ks[1];
 
       return -(k1 - k2);
     }
     case 4: {
-      let k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      let k1 = ks[0],
+        dv1_k1 = ks[1],
+        dv1_k2 = ks[2],
+        k2 = ks[3];
 
-      return (6*(k1 - k2)*(s - 1) + (3*s - 2)*dv1_k2)*s + (3*s - 1)*(s - 1)*dv1_k1;
+      return (6 * (k1 - k2) * (s - 1) + (3 * s - 2) * dv1_k2) * s + (3 * s - 1) * (s - 1) * dv1_k1;
     }
     case 6: {
-      let k1                     = ks[0],
-          dv1_k1                 = ks[1], dv2_k1 = ks[2],
-          dv2_k2 = ks[3], dv1_k2 = ks[4],
-          k2                     = ks[5];
+      let k1 = ks[0],
+        dv1_k1 = ks[1],
+        dv2_k1 = ks[2],
+        dv2_k2 = ks[3],
+        dv1_k2 = ks[4],
+        k2 = ks[5];
 
-      return (-(((2*(30*(k1 - k2)*(s - 1)*(s - 1) + (5*s - 6)*(3*s - 2)*dv1_k2) - (5*s - 3)*
-          (s - 1)*dv2_k2)*s + (5*s - 2)*(s - 1)*(s - 1)*dv2_k1)*s + 2*(5*s + 1)*(3*s - 1)*
-        (s - 1)*(s - 1)*dv1_k1))/2.0;
+      return (
+        -(
+          ((2 * (30 * (k1 - k2) * (s - 1) * (s - 1) + (5 * s - 6) * (3 * s - 2) * dv1_k2) -
+            (5 * s - 3) * (s - 1) * dv2_k2) *
+            s +
+            (5 * s - 2) * (s - 1) * (s - 1) * dv2_k1) *
+            s +
+          2 * (5 * s + 1) * (3 * s - 1) * (s - 1) * (s - 1) * dv1_k1
+        ) / 2.0
+      );
     }
   }
 
   throw new Error("unsupported curve order " + order);
-}
+};
 
 /*
 let polycurvature_dv2_spower = function polycurvature_dv2_spower(s, ks, order) {
@@ -179,23 +301,25 @@ let polycurvature_dv2_spower = function polycurvature_dv2_spower(s, ks, order) {
   }
 }*/
 
-export let spower_funcs = [
-  polytheta_spower,
-  polycurvature_spower,
-  polycurvature_dv_spower
-];
+export let spower_funcs = [polytheta_spower, polycurvature_spower, polycurvature_dv_spower];
 
 let approx_ret_cache = cachering.fromConstructor(Vector3, 42);
 //let ONE_INT_STEPS = 1.0/INT_STEPS;
 
-const FAST_INT_STEPS = 3
-const ONE_INT_STEPS = 0.333333333
+const FAST_INT_STEPS = 3;
+const ONE_INT_STEPS = 0.333333333;
 
-import '../path.ux/scripts/util/vectormath.js';
+import "../path.ux/scripts/util/vectormath.js";
 
-let acache = [new Vector3(), new Vector3(), new Vector3(),
-              new Vector3(), new Vector3(), new Vector3(),
-              new Vector3()]
+let acache = [
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+];
 let acur = 0;
 
 let eval_curve_vs = cachering.fromConstructor(Vector2, 64);
@@ -207,47 +331,76 @@ let _eval_start = new Vector2();
 
    NOTE: neither `order` nor `dis` is read -- the SBEZ basis below is order-4
    only.  eval_curve() in spline_math.ts calls this with three arguments. */
-export function approx(s1 : number, ks : ArrayLike<number>, order? : number,
-                       dis? : number, steps? : number) {
+export function approx(
+  s1: number,
+  ks: ArrayLike<number>,
+  order?: number,
+  dis?: number,
+  steps?: number
+) {
   s1 *= 1.0 - 0.0000001;
 
-  if (steps === undefined)
-    steps = INT_STEPS;
+  if (steps === undefined) steps = INT_STEPS;
 
-  let s = 0, ds = s1/steps;
+  let s = 0,
+    ds = s1 / steps;
 
-  let ds2 = ds*ds, ds3 = ds2*ds, ds4 = ds3*ds;
+  let ds2 = ds * ds,
+    ds3 = ds2 * ds,
+    ds4 = ds3 * ds;
 
   let ret = approx_ret_cache.next();
   ret[0] = ret[1] = 0.0;
-  let x = 0, y = 0;
+  let x = 0,
+    y = 0;
 
-  let k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+  let k1 = ks[0],
+    dv1_k1 = ks[1],
+    dv1_k2 = ks[2],
+    k2 = ks[3];
 
   for (let i = 0; i < steps; i++) {
     let st = s + 0.5;
-    let s2 = st*st, s3 = st*st*st, s4 = s2*s2, s5 = s4*st, s6 = s5*st, s7 = s6*st, s8 = s7*st, s9 = s8*st, s10 = s9*st;
+    let s2 = st * st,
+      s3 = st * st * st,
+      s4 = s2 * s2,
+      s5 = s4 * st,
+      s6 = s5 * st,
+      s7 = s6 * st,
+      s8 = s7 * st,
+      s9 = s8 * st,
+      s10 = s9 * st;
 
     let th = POLYTHETA_SBEZ(st, k1, k2, dv1_k1, dv1_k2);
-    let dx = sin(th), dy = cos(th);
+    let dx = sin(th),
+      dy = cos(th);
 
     let kt = POLYCURVATURE_SBEZ(st, k1, k2, dv1_k1, dv1_k2);
     let dkt = POLYCURVATURE_SBEZ_DV(st, k1, k2, dv1_k1, dv1_k2);
-    let dk2t = POLYCURVATURE_SBEZ_DV((st + 0.0001), k1, k2, dv1_k1, dv1_k2);
+    let dk2t = POLYCURVATURE_SBEZ_DV(st + 0.0001, k1, k2, dv1_k1, dv1_k2);
 
-    dk2t = (dk2t - dkt)/(0.0001);
+    dk2t = (dk2t - dkt) / 0.0001;
 
-    let kt2 = kt*kt, kt3 = kt*kt*kt;
+    let kt2 = kt * kt,
+      kt3 = kt * kt * kt;
 
-    x += ((5*(4*((dy*dkt - kt2*dx)*ds2 + 3*(
-      dy*kt*ds + 2*dx)) + ((dk2t - kt3)*dy - 3*
-      dkt*kt*dx)*ds3) - (((4*dk2t - kt3)*kt + 3*dkt*dkt)
-      *dx + 6*dy*dkt*kt2)*ds4)*ds)/120;
+    x +=
+      ((5 *
+        (4 * ((dy * dkt - kt2 * dx) * ds2 + 3 * (dy * kt * ds + 2 * dx)) +
+          ((dk2t - kt3) * dy - 3 * dkt * kt * dx) * ds3) -
+        (((4 * dk2t - kt3) * kt + 3 * dkt * dkt) * dx + 6 * dy * dkt * kt2) * ds4) *
+        ds) /
+      120;
 
-    y += (-(5*(4*((dy*kt2 + dkt*dx)*ds2 - 3*(2*
-      dy - kt*dx*ds)) + ((dk2t - kt3)*dx + 3
-      *dy*dkt*kt)*ds3) + (((4*dk2t - kt3)*kt + 3*dkt*dkt)
-      *dy - 6*dkt*kt2*dx)*ds4)*ds)/120;
+    y +=
+      (-(
+        5 *
+          (4 * ((dy * kt2 + dkt * dx) * ds2 - 3 * (2 * dy - kt * dx * ds)) +
+            ((dk2t - kt3) * dx + 3 * dy * dkt * kt) * ds3) +
+        (((4 * dk2t - kt3) * kt + 3 * dkt * dkt) * dy - 6 * dkt * kt2 * dx) * ds4
+      ) *
+        ds) /
+      120;
 
     s += ds;
   }
@@ -264,9 +417,9 @@ export let spiralcurvature_dv = polycurvature_dv_spower;
 
 /* Dead: `used` is reset every build_solver() call and nothing ever fills
    `list`.  Constraints are allocated fresh each time. */
-const con_cache : {list : AnyConstraint[], used : number} = {
+const con_cache: { list: AnyConstraint[]; used: number } = {
   list: [],
-  used: 0
+  used: 0,
 };
 
 /* Payloads for the constraint evaluators below.  A constraint hands its payload
@@ -292,8 +445,7 @@ export type CopyParams = [SplineSegment, SplineVertex];
    skips the constraint -- no manual-tangent constraint has ever reached the
    solver.  Reproduced exactly here; giving z a real value would switch them all
    on for the first time. */
-function handle_tangent(h : SplineVertex | undefined,
-                        v : SplineVertex | undefined) : Vector3 {
+function handle_tangent(h: SplineVertex | undefined, v: SplineVertex | undefined): Vector3 {
   /* `new Vector3(undefined)` is the zero vector, and sub() on a missing `v`
      threw, so the `!`s below are the old behavior too. */
   let ret = new Vector3();
@@ -312,28 +464,30 @@ function handle_tangent(h : SplineVertex | undefined,
 
 /* `goal_order` is vestigial -- nothing below reads it.  `do_basic` only picks
    between the two curvature evaluators, so undefined means the spower one. */
-export function build_solver(spline : Spline, order : number,
-                             goal_order : number | undefined, gk : number,
-                             do_basic : boolean | undefined,
-                             update_verts? : set<SplineVertex>) {
+export function build_solver(
+  spline: Spline,
+  order: number,
+  goal_order: number | undefined,
+  gk: number,
+  do_basic: boolean | undefined,
+  update_verts?: set<SplineVertex>
+) {
   let slv = new solver();
   con_cache.used = 0;
 
-  if (order === undefined)
-    order = ORDER;
-  if (gk === undefined)
-    gk = 1.0;
+  if (order === undefined) order = ORDER;
+  if (gk === undefined) gk = 1.0;
 
   let UPDATE = SplineFlags.UPDATE;
 
   for (let seg of spline.segments) {
-    let ok = !!((seg.v1.flag & SplineFlags.UPDATE) && (seg.v2.flag & SplineFlags.UPDATE));
+    let ok = !!(seg.v1.flag & SplineFlags.UPDATE && seg.v2.flag & SplineFlags.UPDATE);
 
     for (let i = 0; !ok && i < 2; i++) {
       let v = i ? seg.v2 : seg.v1;
 
       for (let seg2 of v.segments) {
-        let ok2 = (seg2.v1.flag & SplineFlags.UPDATE) && (seg2.v2.flag & SplineFlags.UPDATE);
+        let ok2 = seg2.v1.flag & SplineFlags.UPDATE && seg2.v2.flag & SplineFlags.UPDATE;
         if (ok2) {
           ok = true;
           break;
@@ -352,8 +506,10 @@ export function build_solver(spline : Spline, order : number,
     }
   }
 
-  function hard_tan_c(params : HardTanParams) {
-    let seg = params[0], tan = params[1], s = params[2];
+  function hard_tan_c(params: HardTanParams) {
+    let seg = params[0],
+      tan = params[1],
+      s = params[2];
 
     let dv = seg.derivative(s, order, undefined, true);
     dv.normalize();
@@ -370,16 +526,16 @@ export function build_solver(spline : Spline, order : number,
     return abs(dv.vectorDistance(tan));
   }
 
-  function tan_c(params : TanParams) {
-    let seg1 = params[0], seg2 = params[1];
-    let v : SplineVertex | undefined, s1 = 0, s2 = 0;
+  function tan_c(params: TanParams) {
+    let seg1 = params[0],
+      seg2 = params[1];
+    let v: SplineVertex | undefined,
+      s1 = 0,
+      s2 = 0;
 
-    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2)
-      v = seg1.v1;
-    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2)
-      v = seg1.v2;
-    else
-      console.trace("EVIL INCARNATE!");
+    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2) v = seg1.v1;
+    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2) v = seg1.v2;
+    else console.trace("EVIL INCARNATE!");
 
     let eps = 0.0001;
     s1 = v === seg1.v1 ? eps : 1.0 - eps;
@@ -411,12 +567,14 @@ export function build_solver(spline : Spline, order : number,
   }
 
   /* Dead; the two constraints that used it are commented out below. */
-  function handle_curv_c(params : HandleCurvParams) {
+  function handle_curv_c(params: HandleCurvParams) {
     if (order < 4) return 0;
 
     //HARD CLAMP
-    let seg1 = params[0], seg2 = params[1];
-    let h1 = params[2], h2 = params[3];
+    let seg1 = params[0],
+      seg2 = params[1];
+    let h1 = params[2],
+      h2 = params[3];
 
     let len1 = seg1.ks[KSCALE] - h1.vectorDistance(seg1.handle_vertex(h1)!);
     let len2 = seg2.ks[KSCALE] - h2.vectorDistance(seg2.handle_vertex(h2)!);
@@ -424,8 +582,8 @@ export function build_solver(spline : Spline, order : number,
     let k1i = h1 === seg1.h1 ? 1 : order - 2;
     let k2i = h2 === seg2.h1 ? 1 : order - 2;
 
-    let k1 = (len1 !== 0.0 ? 1.0/len1 : 0.0)*seg1.ks[KSCALE];
-    let k2 = (len2 !== 0.0 ? 1.0/len2 : 0.0)*seg2.ks[KSCALE];
+    let k1 = (len1 !== 0.0 ? 1.0 / len1 : 0.0) * seg1.ks[KSCALE];
+    let k2 = (len2 !== 0.0 ? 1.0 / len2 : 0.0) * seg2.ks[KSCALE];
 
     let s1 = seg1.ks[k1i] < 0.0 ? -1 : 1;
     let s2 = seg2.ks[k2i] < 0.0 ? -1 : 1;
@@ -437,33 +595,33 @@ export function build_solver(spline : Spline, order : number,
 
     console.log(k1, k2);
 
-    if (abs(seg1.ks[k1i]) < k1) seg1.ks[k1i] = k1*s1;
-    if (abs(seg2.ks[k2i]) < k2) seg2.ks[k2i] = k2*s2;
+    if (abs(seg1.ks[k1i]) < k1) seg1.ks[k1i] = k1 * s1;
+    if (abs(seg2.ks[k2i]) < k2) seg2.ks[k2i] = k2 * s2;
 
     return 0;
   }
 
   /* Dead; nothing builds a copy_c constraint. */
-  function copy_c(params : CopyParams) {
-    let v = params[1], seg = params[0];
+  function copy_c(params: CopyParams) {
+    let v = params[1],
+      seg = params[0];
 
     let s1 = v === seg.v1 ? 0 : order - 1;
     let s2 = v === seg.v1 ? order - 1 : 0;
 
-    seg.ks[s1] += (seg.ks[s2] - seg.ks[s1])*gk*0.5;
+    seg.ks[s1] += (seg.ks[s2] - seg.ks[s1]) * gk * 0.5;
 
     return 0.0;
   }
 
-  function get_ratio(seg1 : SplineSegment, seg2 : SplineSegment) {
-    let ratio = seg1.ks[KSCALE]/seg2.ks[KSCALE];
+  function get_ratio(seg1: SplineSegment, seg2: SplineSegment) {
+    let ratio = seg1.ks[KSCALE] / seg2.ks[KSCALE];
 
     if (seg2.ks[KSCALE] === 0.0) {
       return 100000.0;
     }
 
-    if (ratio > 1.0)
-      ratio = 1.0/ratio;
+    if (ratio > 1.0) ratio = 1.0 / ratio;
 
     if (isNaN(ratio)) {
       console.log("NaN 3!");
@@ -473,32 +631,30 @@ export function build_solver(spline : Spline, order : number,
     return Math.pow(ratio, 2.0);
   }
 
-  function curv_c_spower(params : CurvParams) {
+  function curv_c_spower(params: CurvParams) {
     //HARD CLAMP
-    let seg1 = params[0], seg2 = params[1];
-    let v : SplineVertex | undefined, s1, s2;
+    let seg1 = params[0],
+      seg2 = params[1];
+    let v: SplineVertex | undefined, s1, s2;
 
     // /*
     seg1.evaluate(0.5);
     seg2.evaluate(0.5);
     //*/
 
-    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2)
-      v = seg1.v1;
-    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2)
-      v = seg1.v2;
-    else
-      console.trace("EVIL INCARNATE!");
+    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2) v = seg1.v1;
+    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2) v = seg1.v2;
+    else console.trace("EVIL INCARNATE!");
 
     let ratio = get_ratio(seg1, seg2);
-    let mfac = ratio*gk*0.7;
+    let mfac = ratio * gk * 0.7;
 
     s1 = v === seg1.v1 ? 0 : order - 1;
     s2 = v === seg2.v1 ? 0 : order - 1;
 
     let sz1 = seg1.ks[KSCALE];
     let sz2 = seg2.ks[KSCALE];
-    let k2sign = s1 === s2 ? -1.0 : 1.0
+    let k2sign = s1 === s2 ? -1.0 : 1.0;
 
     //deg2 dk: -(k1-k2);
 
@@ -508,65 +664,65 @@ export function build_solver(spline : Spline, order : number,
       let s1 = v === seg1.v1 ? i : order - 1 - i;
       let s2 = v === seg2.v1 ? i : order - 1 - i;
 
-      let k1 = seg1.ks[s1]/sz1;
-      let k2 = k2sign*seg2.ks[s2]/sz2;
+      let k1 = seg1.ks[s1] / sz1;
+      let k2 = (k2sign * seg2.ks[s2]) / sz2;
 
-      let goalk = (k1 + k2)*0.5;
+      let goalk = (k1 + k2) * 0.5;
       ret += abs(k1 - goalk) + abs(k2 - goalk);
 
-      seg1.ks[s1] += (goalk*sz1 - seg1.ks[s1])*mfac;
-      seg2.ks[s2] += (k2sign*goalk*sz2 - seg2.ks[s2])*mfac;
+      seg1.ks[s1] += (goalk * sz1 - seg1.ks[s1]) * mfac;
+      seg2.ks[s2] += (k2sign * goalk * sz2 - seg2.ks[s2]) * mfac;
     }
 
-    return ret*5.0;
+    return ret * 5.0;
   }
 
-  function curv_c_spower_basic(params : CurvParams) {
+  function curv_c_spower_basic(params: CurvParams) {
     //HARD CLAMP
-    let seg1 = params[0], seg2 = params[1];
-    let v : SplineVertex | undefined, s1 = 0, s2 = 0;
+    let seg1 = params[0],
+      seg2 = params[1];
+    let v: SplineVertex | undefined,
+      s1 = 0,
+      s2 = 0;
 
     // /*
     seg1.evaluate(0.5);
     seg2.evaluate(0.5);
     //*/
 
-    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2)
-      v = seg1.v1;
-    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2)
-      v = seg1.v2;
-    else
-      console.trace("EVIL INCARNATE!");
+    if (seg1.v1 === seg2.v1 || seg1.v1 === seg2.v2) v = seg1.v1;
+    else if (seg1.v2 === seg2.v1 || seg1.v2 === seg2.v2) v = seg1.v2;
+    else console.trace("EVIL INCARNATE!");
 
     let ratio = get_ratio(seg1, seg2);
-    let mfac = ratio*gk*0.7;
+    let mfac = ratio * gk * 0.7;
 
     s1 = v === seg1.v1 ? 0 : order - 1;
     s2 = v === seg2.v1 ? 0 : order - 1;
 
-    let sz1 = seg1.ks[KSCALE]
-    let sz2 = seg2.ks[KSCALE]
-    let k2sign = s1 === s2 ? -1.0 : 1.0
+    let sz1 = seg1.ks[KSCALE];
+    let sz2 = seg2.ks[KSCALE];
+    let k2sign = s1 === s2 ? -1.0 : 1.0;
 
     //deg2 dk: -(k1-k2);
 
     let ret = 0.0;
 
     //constrain all derivatives
-    let len = Math.floor(order/2);
+    let len = Math.floor(order / 2);
     for (let i = 0; i < 1; i++) {
       let s1 = v === seg1.v1 ? i : order - 1 - i;
       let s2 = v === seg2.v1 ? i : order - 1 - i;
 
-      let k1 = seg1.ks[s1]/sz1;
-      let k2 = k2sign*seg2.ks[s2]/sz2;
+      let k1 = seg1.ks[s1] / sz1;
+      let k2 = (k2sign * seg2.ks[s2]) / sz2;
 
-      let goalk = (k1 + k2)*0.5;
+      let goalk = (k1 + k2) * 0.5;
       ret += abs(k1 - goalk) + abs(k2 - goalk);
 
       if (i === 0) {
-        seg1.ks[s1] += (goalk*sz1 - seg1.ks[s1])*mfac;
-        seg2.ks[s2] += (k2sign*goalk*sz2 - seg2.ks[s2])*mfac;
+        seg1.ks[s1] += (goalk * sz1 - seg1.ks[s1]) * mfac;
+        seg2.ks[s2] += (k2sign * goalk * sz2 - seg2.ks[s2]) * mfac;
       } else if (i === 1) {
         seg1.ks[s1] = seg1.ks[order - 1] - seg1.ks[0];
         seg2.ks[s2] = seg2.ks[order - 1] - seg2.ks[0];
@@ -587,7 +743,7 @@ export function build_solver(spline : Spline, order : number,
 
     let bad = !h.use;
     bad = bad || seg.v1.vectorDistance(seg.v2) < 2;
-    bad = bad || !((v!.flag) & SplineFlags.UPDATE);
+    bad = bad || !(v!.flag & SplineFlags.UPDATE);
     bad = bad || !h.owning_vertex;
 
     if (bad) {
@@ -596,8 +752,7 @@ export function build_solver(spline : Spline, order : number,
 
     let tan1 = handle_tangent(h, seg.handle_vertex(h));
 
-    if (h === seg.h2)
-      tan1.negate();
+    if (h === seg.h2) tan1.negate();
 
     if (isNaN(tan1.dot(tan1)) || tan1.dot(tan1) === 0.0) {
       console.log("NaN 4!");
@@ -607,29 +762,31 @@ export function build_solver(spline : Spline, order : number,
     let s = h === seg.h1 ? 0 : 1;
     //let do_curv = (v.flag & SplineFlags.BREAK_CURVATURES);
 
-    let do_tan = !((h.flag) & SplineFlags.BREAK_TANGENTS);
+    let do_tan = !(h.flag & SplineFlags.BREAK_TANGENTS);
     do_tan = do_tan && !(h.flag & SplineFlags.AUTO_PAIRED_HANDLE);
 
     if (do_tan) {
       let tc = new constraint("hard_tan_c", 0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
       tc.k2 = 1.0;
 
-      if (update_verts)
-        update_verts.add(h);
+      if (update_verts) update_verts.add(h);
       slv.add(tc);
     }
 
     if (h.hpair === undefined) continue;
 
-    let ss1 = seg, h2 = h.hpair, ss2 = h2.owning_segment;
+    let ss1 = seg,
+      h2 = h.hpair,
+      ss2 = h2.owning_segment;
 
-    if ((h.flag & SplineFlags.AUTO_PAIRED_HANDLE) &&
-      !((seg.handle_vertex(h)!.flag & SplineFlags.BREAK_TANGENTS))) {
+    if (
+      h.flag & SplineFlags.AUTO_PAIRED_HANDLE &&
+      !(seg.handle_vertex(h)!.flag & SplineFlags.BREAK_TANGENTS)
+    ) {
       let tc = new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
-      tc.k2 = 0.8
+      tc.k2 = 0.8;
 
-      if (update_verts)
-        update_verts.add(h);
+      if (update_verts) update_verts.add(h);
       slv.add(tc);
     }
 
@@ -647,13 +804,12 @@ export function build_solver(spline : Spline, order : number,
     cc = new constraint<CurvParams>("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
 
-    if (update_verts)
-      update_verts.add(h);
+    if (update_verts) update_verts.add(h);
   }
 
   let limits = {
     v_curve_limit: 12,
-    v_tan_limit  : 1
+    v_tan_limit  : 1,
   };
 
   let manual_w = 0.08;
@@ -663,7 +819,7 @@ export function build_solver(spline : Spline, order : number,
   for (let v of spline.verts) {
     let bad = !(v.flag & SplineFlags.UPDATE);
     bad = bad || !(v.flag & SplineFlags.USE_HANDLES);
-    bad = bad || (v.segments.length !== 1);
+    bad = bad || v.segments.length !== 1;
 
     if (bad) {
       continue;
@@ -682,18 +838,18 @@ export function build_solver(spline : Spline, order : number,
     tc.k2 = manual_w_2;
 
     slv.add(tc);
-    if (update_verts)
-      update_verts.add(v);
+    if (update_verts) update_verts.add(v);
   }
 
   for (let v of spline.verts) {
     let bad = !(v.flag & SplineFlags.UPDATE);
-    bad = bad || (v.segments.length !== 2);
+    bad = bad || v.segments.length !== 2;
     if (bad) {
       continue;
     }
 
-    let ss1 = v.segments[0], ss2 = v.segments[1];
+    let ss1 = v.segments[0],
+      ss2 = v.segments[1];
 
     //ignore anything connected to a zero-length segment
     for (let j = 0; j < v.segments.length; j++) {
@@ -715,16 +871,16 @@ export function build_solver(spline : Spline, order : number,
 
     if (!(v.flag & (SplineFlags.BREAK_TANGENTS | SplineFlags.USE_HANDLES))) {
       let tc = new constraint("tan_c", 0.5, [ss2.ks], order, tan_c, [ss1, ss2]);
-      tc.k2 = 0.8
+      tc.k2 = 0.8;
       slv.add(tc);
 
       tc = new constraint("tan_c", 0.5, [ss1.ks], order, tan_c, [ss2, ss1]);
-      tc.k2 = 0.8
+      tc.k2 = 0.8;
       slv.add(tc);
 
-      if (update_verts)
-        update_verts.add(v);
-    } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) { //manual handles
+      if (update_verts) update_verts.add(v);
+    } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) {
+      //manual handles
       let h = ss1.handle(v);
       let tan = handle_tangent(h, v);
 
@@ -751,25 +907,21 @@ export function build_solver(spline : Spline, order : number,
 
       slv.add(tc);
 
-      if (update_verts)
-        update_verts.add(v);
+      if (update_verts) update_verts.add(v);
     } else {
       continue;
     }
 
-    if (v.flag & SplineFlags.BREAK_CURVATURES)
-      continue;
-    if (v.flag & SplineFlags.USE_HANDLES)
-      continue;
+    if (v.flag & SplineFlags.BREAK_CURVATURES) continue;
+    if (v.flag & SplineFlags.USE_HANDLES) continue;
 
     if (mindis === 0.0) {
       bad = true;
     } else {
-      bad = bad || maxdis/mindis > 9.0;
+      bad = bad || maxdis / mindis > 9.0;
     }
 
-    if (bad)
-      continue;
+    if (bad) continue;
 
     //if (mindis < limits.v_curve_limit)
     //  continue;
@@ -780,15 +932,20 @@ export function build_solver(spline : Spline, order : number,
     cc = new constraint<CurvParams>("curv_c", 1, [ss2.ks], order, curv_c, [ss2, ss1]);
     slv.add(cc);
 
-    if (update_verts)
-      update_verts.add(v);
+    if (update_verts) update_verts.add(v);
   }
 
   return slv;
 }
 
-function solve_intern(spline : Spline, order = ORDER, goal_order = ORDER, steps = 65,
-                      gk = 1.0, do_basic = false) {
+function solve_intern(
+  spline: Spline,
+  order = ORDER,
+  goal_order = ORDER,
+  steps = 65,
+  gk = 1.0,
+  do_basic = false
+) {
   let start_time = time_ms();
   window._SOLVING = true;
 
@@ -807,13 +964,12 @@ function solve_intern(spline : Spline, order = ORDER, goal_order = ORDER, steps 
   }
 
   let end_time = time_ms() - start_time;
-  if (end_time > 50)
-    console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
+  if (end_time > 50) console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 
 /* Zeroes the curvatures of every segment whose two vertices are both flagged
    for update, so the solve starts from a clean slate. */
-export function solve_pre(spline : Spline) {
+export function solve_pre(spline: Spline) {
   for (let i = 0; i < 3; i++) {
     spline.propagate_update_flags();
   }
@@ -821,8 +977,7 @@ export function solve_pre(spline : Spline) {
   for (let seg of spline.segments) {
     seg.updateCoincident();
 
-    if (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE))
-      continue;
+    if (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE)) continue;
 
     for (let i = 0; i < seg.ks.length; i++) {
       seg.ks[i] = 0.0;
@@ -851,8 +1006,12 @@ export function solve_pre(spline : Spline) {
 /* The JS fallback for the wasm solver.  NOTE: none of `splineflags`, `steps` or
    `gk` is read -- solve_intern() is called with hardcoded values below. */
 /* `steps` and `gk` are vestigial -- neither is read anywhere below. */
-export function do_solve(splineflags : {[name : string] : number}, spline : Spline,
-                         steps? : number, gk? : number) {
+export function do_solve(
+  splineflags: { [name: string]: number },
+  spline: Spline,
+  steps?: number,
+  gk?: number
+) {
   solve_pre(spline);
 
   //if (spline === new Context().frameset.pathspline)
@@ -878,15 +1037,13 @@ export function do_solve(splineflags : {[name : string] : number}, spline : Spli
        typo for TRANSFORMING, so it was always true and the aabb update always
        ran. Dropped rather than corrected -- honouring it would stop aabbs
        refreshing mid-transform, which is a behavior change. */
-    if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
-      seg.update_aabb();
+    if (seg.v1.flag & SplineFlags.UPDATE || seg.v2.flag & SplineFlags.UPDATE) seg.update_aabb();
   }
 
   for (let f of spline.faces) {
     for (let path of f.paths) {
       for (let l of path) {
-        if (l.v.flag & SplineFlags.UPDATE)
-          f.flag |= SplineFlags.UPDATE_AABB;
+        if (l.v.flag & SplineFlags.UPDATE) f.flag |= SplineFlags.UPDATE_AABB;
       }
     }
   }
@@ -908,4 +1065,3 @@ export function do_solve(splineflags : {[name : string] : number}, spline : Spli
     spline.on_resolve = undefined;
   }
 }
-

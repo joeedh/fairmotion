@@ -1,6 +1,6 @@
-import {nstructjs} from "../path.ux/scripts/pathux.js";
+import { nstructjs } from "../path.ux/scripts/pathux.js";
 
-import type {StructableClass, StructableInstance} from "nstructjs";
+import type { StructableClass, StructableInstance } from "nstructjs";
 
 /* What nstructjs really wants from a class handed to register()/inherit() is a
    name, a schema and a prototype to build instances on.  Its own
@@ -15,32 +15,41 @@ import type {StructableClass, StructableInstance} from "nstructjs";
    scripts it serves are built at module scope, so anything it pulled in would
    have to be initialised first. */
 export interface StructRegisterable {
-  STRUCT? : string;
-  structName? : string;
-  name? : string;
-  prototype? : object;
+  STRUCT?: string;
+  structName?: string;
+  name?: string;
+  prototype?: object;
 }
 
-function asStructable(cls : StructRegisterable) : StructableClass<StructableInstance> {
+function asStructable(cls: StructRegisterable): StructableClass<StructableInstance> {
   return cls as StructableClass<StructableInstance>;
 }
 
-export function structInherit(child : StructRegisterable, parent : StructRegisterable,
-                              structName? : string) : string {
+export function structInherit(
+  child: StructRegisterable,
+  parent: StructRegisterable,
+  structName?: string
+): string {
   return nstructjs.STRUCT.inherit(asStructable(child), asStructable(parent), structName);
 }
 
-export function structRegister(manager : nstructjs.STRUCT, cls : StructRegisterable,
-                               structName? : string) : void {
+export function structRegister(
+  manager: nstructjs.STRUCT,
+  cls: StructRegisterable,
+  structName?: string
+): void {
   manager.register(asStructable(cls), structName);
 }
 
-export function structAddClass(manager : nstructjs.STRUCT, cls : StructRegisterable,
-                               structName? : string) : void {
+export function structAddClass(
+  manager: nstructjs.STRUCT,
+  cls: StructRegisterable,
+  structName?: string
+): void {
   manager.add_class(asStructable(cls), structName);
 }
 
-export function structIsRegistered(manager : nstructjs.STRUCT, cls : StructRegisterable) : boolean {
+export function structIsRegistered(manager: nstructjs.STRUCT, cls: StructRegisterable): boolean {
   return manager.isRegistered(asStructable(cls));
 }
 
@@ -48,8 +57,10 @@ export function structIsRegistered(manager : nstructjs.STRUCT, cls : StructRegis
    runtime it unpacks a plain byte array just as happily, and it hands back an
    instance of the class it was given.  Callers name that class, so they know
    the type -- pass it as T. */
-export function structReadObject<T>(manager : nstructjs.STRUCT,
-                                    data : DataView | Uint8Array | number[],
-                                    cls : StructRegisterable) : T {
+export function structReadObject<T>(
+  manager: nstructjs.STRUCT,
+  data: DataView | Uint8Array | number[],
+  cls: StructRegisterable
+): T {
   return manager.readObject(data, asStructable(cls)) as T;
 }

@@ -1,9 +1,9 @@
-import {ShaderProgram} from './webgl.js';
-import type {ShaderDef as ShaderDefT, WebGLContext} from './webgl.js';
-import {Matrix4} from '../path.ux/scripts/pathux.js';
+import { ShaderProgram } from "./webgl.js";
+import type { ShaderDef as ShaderDefT, WebGLContext } from "./webgl.js";
+import { Matrix4 } from "../path.ux/scripts/pathux.js";
 
 export const RectShader = {
-  vertex : `precision mediump float;
+  vertex: `precision mediump float;
 uniform mat4 viewMatrix;
 
 attribute vec2 position;
@@ -18,7 +18,7 @@ void main() {
   vUv = uv; 
 }
 `,
-  fragment : `precision mediump float;
+  fragment: `precision mediump float;
 
 uniform mat4 viewMatrix;
 varying vec2 vUv;
@@ -32,22 +32,20 @@ void main() {
 `,
   attributes: ["position", "uv"],
   uniforms: {
-    viewMatrix : new Matrix4()
-  }
-}
+    viewMatrix: new Matrix4(),
+  },
+};
 
 /* The shader sources, and the compiled programs loadShaders() builds from
    them. Both are keyed by the same names; `Shaders` stays empty until a
    context exists. */
-export const ShaderDef : {[name : string] : ShaderDefT} = window._ShaderDef = {
-  RectShader
-};
+export const ShaderDef: { [name: string]: ShaderDefT } = (window._ShaderDef = {
+  RectShader,
+});
 
-export const Shaders : {[name : string] : ShaderProgram} = window._Shaders = {
+export const Shaders: { [name: string]: ShaderProgram } = (window._Shaders = {});
 
-};
-
-export function loadShader(gl : WebGLContext, sdef : ShaderDefT) {
+export function loadShader(gl: WebGLContext, sdef: ShaderDefT) {
   let sp = new ShaderProgram(gl, sdef.vertex, sdef.fragment, sdef.attributes);
 
   sp.uniforms = sdef.uniforms || {};
@@ -56,11 +54,10 @@ export function loadShader(gl : WebGLContext, sdef : ShaderDefT) {
   return sp;
 }
 
-export function loadShaders(gl : WebGLContext) {
+export function loadShaders(gl: WebGLContext) {
   for (let k in ShaderDef) {
     let sdef = ShaderDef[k];
 
     Shaders[k] = loadShader(gl, sdef);
   }
 }
-

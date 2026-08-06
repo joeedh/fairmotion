@@ -1,18 +1,30 @@
-import {SelMask} from '../editors/viewport/selectmode.js';
+import { SelMask } from "../editors/viewport/selectmode.js";
 import {
-  has_multires, compose_id, decompose_id,
-  MResFlags, MultiResLayer
-} from './spline_multires.js';
+  has_multires,
+  compose_id,
+  decompose_id,
+  MResFlags,
+  MultiResLayer,
+} from "./spline_multires.js";
 
-let PI = Math.PI, abs = Math.abs, sqrt = Math.sqrt, floor = Math.floor,
-  ceil = Math.ceil, sin = Math.sin, cos = Math.cos, acos = Math.acos,
-  asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
-import {SplineFlags} from "./spline_base.js";
-import * as math from '../path.ux/scripts/util/math.js';
+let PI = Math.PI,
+  abs = Math.abs,
+  sqrt = Math.sqrt,
+  floor = Math.floor,
+  ceil = Math.ceil,
+  sin = Math.sin,
+  cos = Math.cos,
+  acos = Math.acos,
+  asin = Math.asin,
+  tan = Math.tan,
+  atan = Math.atan,
+  atan2 = Math.atan2;
+import { SplineFlags } from "./spline_base.js";
+import * as math from "../path.ux/scripts/util/math.js";
 
-import type {Spline} from './spline.js';
-import type {SplineVertex, SplineSegment, SplineFace} from './spline_types.js';
-import type {View2DHandler} from '../editors/viewport/view2d.js';
+import type { Spline } from "./spline.js";
+import type { SplineVertex, SplineSegment, SplineFace } from "./spline_types.js";
+import type { View2DHandler } from "../editors/viewport/view2d.js";
 
 /* What every findnearest_* returns: the element, its screen-space distance, and
    the SelMask bit saying which of the four it is. */
@@ -30,8 +42,13 @@ export class SplineQuery {
     this.spline = spline;
   }
 
-  findnearest(editor: View2DHandler, mpos: Vector2 | number[], selectmask: number,
-              limit?: number, ignore_layers?: boolean) {
+  findnearest(
+    editor: View2DHandler,
+    mpos: Vector2 | number[],
+    selectmask: number,
+    limit?: number,
+    ignore_layers?: boolean
+  ) {
     if (limit === undefined) limit = 15;
     let dis = 1e18;
     let data: NearestHit | undefined = undefined;
@@ -74,11 +91,16 @@ export class SplineQuery {
     return data;
   }
 
-  findnearest_segment(editor: View2DHandler, mpos: Vector2 | number[], limit: number,
-                      ignore_layers?: boolean): NearestHit | undefined {
+  findnearest_segment(
+    editor: View2DHandler,
+    mpos: Vector2 | number[],
+    limit: number,
+    ignore_layers?: boolean
+  ): NearestHit | undefined {
     let spline = this.spline;
     let actlayer = spline.layerset.active;
-    let sret: SplineSegment | undefined = undefined, mindis = limit;
+    let sret: SplineSegment | undefined = undefined,
+      mindis = limit;
 
     mpos = findnearest_segment_tmp.load(mpos);
 
@@ -94,8 +116,8 @@ export class SplineQuery {
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
       if (!ignore_layers && !seg.in_layer(actlayer)) continue;
 
-      let dis = sqrt((co[0] - mpos[0])*(co[0] - mpos[0]) + (co[1] - mpos[1])*(co[1] - mpos[1]));
-      let width = seg.width(s)*0.5;
+      let dis = sqrt((co[0] - mpos[0]) * (co[0] - mpos[0]) + (co[1] - mpos[1]) * (co[1] - mpos[1]));
+      let width = seg.width(s) * 0.5;
 
       dis = Math.max(dis - width, 0.0);
 
@@ -105,14 +127,19 @@ export class SplineQuery {
       }
     }
 
-    if (sret !== undefined)
-      return [sret, mindis, SelMask.SEGMENT];
+    if (sret !== undefined) return [sret, mindis, SelMask.SEGMENT];
   }
 
-  findnearest_face(editor: View2DHandler, mpos: Vector2 | number[], limit: number,
-                   ignore_layers?: boolean): NearestHit | undefined {
-    let spline = this.spline, actlayer = spline.layerset.active;
-    let mindis = 0, closest: SplineFace | undefined = undefined;
+  findnearest_face(
+    editor: View2DHandler,
+    mpos: Vector2 | number[],
+    limit: number,
+    ignore_layers?: boolean
+  ): NearestHit | undefined {
+    let spline = this.spline,
+      actlayer = spline.layerset.active;
+    let mindis = 0,
+      closest: SplineFace | undefined = undefined;
 
     let p = new Vector2([5000, 5001]);
     mpos = new Vector2(mpos);
@@ -120,7 +147,6 @@ export class SplineQuery {
     editor.unproject(mpos);
 
     p.add(mpos);
-
 
     //console.log(mpos, p);
 
@@ -132,10 +158,12 @@ export class SplineQuery {
 
       for (let list of f.paths) {
         for (let l of list) {
-          let v1 = l.v, v2 = l.next.v;
+          let v1 = l.v,
+            v2 = l.next.v;
 
           let steps = 4; //subdivide clothoids 4 times
-          let s = 0.0, ds = 1.0/(steps - 1);
+          let s = 0.0,
+            ds = 1.0 / (steps - 1);
           let lastco: Vector2 | undefined = undefined;
 
           for (let i = 0; i < steps; i++, s += ds) {
@@ -155,11 +183,11 @@ export class SplineQuery {
 
       //console.log("SUM", sum, f.eid);
 
-      if (sum%2 !== 1) {
+      if (sum % 2 !== 1) {
         continue;
       }
 
-      let dist = -f.finalz + (f.flag & SplineFlags.SELECT)*1000;
+      let dist = -f.finalz + (f.flag & SplineFlags.SELECT) * 1000;
 
       //console.log("DIST", dist);
       if (!closest || dist < mindis) {
@@ -206,9 +234,13 @@ export class SplineQuery {
      */
   }
 
-  findnearest_vert(editor: View2DHandler, mpos: Vector2 | number[], limit?: number,
-                   do_handles?: boolean,
-                   ignore_layers?: boolean): NearestHit | undefined {
+  findnearest_vert(
+    editor: View2DHandler,
+    mpos: Vector2 | number[],
+    limit?: number,
+    do_handles?: boolean,
+    ignore_layers?: boolean
+  ): NearestHit | undefined {
     let spline = this.spline;
     let actlayer = spline.layerset.active;
 

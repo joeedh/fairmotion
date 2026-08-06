@@ -1,27 +1,34 @@
-import {PathBase, VectorDraw} from './vectordraw_base.js';
-import type {ColorLike, DrawCanvas} from './vectordraw_base.js';
+import { PathBase, VectorDraw } from "./vectordraw_base.js";
+import type { ColorLike, DrawCanvas } from "./vectordraw_base.js";
 
-let MOVETO = 0, LINETO = 1, CUBICTO = 2, QUADTO = 3, RECT = 4, SETLINEWIDTH = 5, STROKE = 6, FILL = 7, CLIP = 8;
+let MOVETO = 0,
+  LINETO = 1,
+  CUBICTO = 2,
+  QUADTO = 3,
+  RECT = 4,
+  SETLINEWIDTH = 5,
+  STROKE = 6,
+  FILL = 7,
+  CLIP = 8;
 const goodCommands = new Set([MOVETO, LINETO, CUBICTO, QUADTO]);
 
-import {Vector3, Matrix4} from '../path.ux/scripts/pathux.js';
+import { Vector3, Matrix4 } from "../path.ux/scripts/pathux.js";
 
 let ptmp = new Vector3();
 let mtmp = new Matrix4();
 
 export class PathCommand {
   /* One of the MOVETO..CLIP opcodes at the top of this file. */
-  cmd : number | undefined;
-  r : number | undefined;
-  g : number | undefined;
-  b : number | undefined;
-  a : number | undefined;
-  lineWidth : number | undefined;
+  cmd: number | undefined;
+  r: number | undefined;
+  g: number | undefined;
+  b: number | undefined;
+  a: number | undefined;
+  lineWidth: number | undefined;
   /* Set only on the geometry-carrying commands. */
-  path : Path2D | undefined;
+  path: Path2D | undefined;
 
-  constructor(cmd? : number, r? : number, g? : number, b? : number,
-              a? : number, lineWidth? : number) {
+  constructor(cmd?: number, r?: number, g?: number, b?: number, a?: number, lineWidth?: number) {
     this.cmd = cmd;
     this.r = r;
     this.g = g;
@@ -40,19 +47,19 @@ export class Path2DPath extends PathBase {
   /* opcode, argument count, then that many arguments, repeated. */
   commands: Array<number>;
 
-  g : CanvasRenderingContext2D;
+  g: CanvasRenderingContext2D;
   /* Cleared by _pushPath(); update_aabb() rebuilds the box. */
-  need_aabb : boolean;
+  need_aabb: boolean;
   /* The Path2D currently being appended to; _pushPath() sets it below, before
      anything can read it. */
-  actpath! : Path2D;
+  actpath!: Path2D;
   /* The full command list. */
-  paths : PathCommand[];
+  paths: PathCommand[];
 
   /* NOTE: this stored the CanvasPath2D itself in `this.matrix`, which is
      declared a Matrix4.  Nothing read it before draw()/update_aabb() replaced
      it, so taking the draw object's matrix here is equivalent. */
-  constructor(draw : CanvasPath2D, g : CanvasRenderingContext2D, id : number, z : number) {
+  constructor(draw: CanvasPath2D, g: CanvasRenderingContext2D, id: number, z: number) {
     super();
 
     this.matrix = draw.matrix;
@@ -73,7 +80,7 @@ export class Path2DPath extends PathBase {
     this._pushPath();
   }
 
-  pushCmd(cmd : number, ...args : number[]) {
+  pushCmd(cmd: number, ...args: number[]) {
     this.commands.push(cmd);
     this.commands.push(arguments.length - 1);
 
@@ -111,27 +118,26 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
-          y4 : number, subdiv = 1) {
+  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, subdiv = 1) {
     this.pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.actpath.bezierCurveTo(x2, y2, x3, y3, x4, y4);
     return this;
   }
 
-  bezierTo(x2 : number, y2 : number, x3 : number, y3 : number) {
+  bezierTo(x2: number, y2: number, x3: number, y3: number) {
     this.pushCmd(QUADTO, x2, y2, x3, y3);
     this.actpath.quadraticCurveTo(x2, y2, x3, y3);
     return this;
   }
 
-  moveTo(x : number, y : number) {
+  moveTo(x: number, y: number) {
     this.pushCmd(MOVETO, x, y);
     this.actpath.moveTo(x, y);
 
     return this;
   }
 
-  lineTo(x : number, y : number) {
+  lineTo(x: number, y: number) {
     this.pushCmd(LINETO, x, y);
     this.actpath.lineTo(x, y);
     return this;
@@ -139,7 +145,7 @@ export class Path2DPath extends PathBase {
 
   /* NOTE: unlike pushFill/pushClip, the PathCommand built here is never
      pushed onto this.paths -- only the numeric command list gets the stroke. */
-  pushStroke(color? : ColorLike, width? : number) {
+  pushStroke(color?: ColorLike, width?: number) {
     let cmd = new PathCommand(STROKE);
 
     if (color && width !== undefined) {
@@ -182,7 +188,7 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  update_aabb(draw? : {matrix : Matrix4}, fast_mode = false) {
+  update_aabb(draw?: { matrix: Matrix4 }, fast_mode = false) {
     let cs = this.commands;
     let i = 0;
 
@@ -199,14 +205,15 @@ export class Path2DPath extends PathBase {
     let ok = false;
 
     while (i < cs.length) {
-      let cmd = cs[i], totarg = cs[i + 1];
+      let cmd = cs[i],
+        totarg = cs[i + 1];
 
       if (goodCommands.has(cmd)) {
-        let totpoint = totarg>>1;
+        let totpoint = totarg >> 1;
 
         for (let j = 0; j < totpoint; j++) {
-          let x = cs[i + 1 + j*2];
-          let y = cs[i + 1 + j*2 + 1];
+          let x = cs[i + 1 + j * 2];
+          let y = cs[i + 1 + j * 2 + 1];
 
           ptmp[0] = x;
           ptmp[1] = y;
@@ -236,7 +243,7 @@ export class Path2DPath extends PathBase {
     }
   }
 
-  draw(matrix : Matrix4, clipMode = false) {
+  draw(matrix: Matrix4, clipMode = false) {
     let g = this.g;
 
     this.matrix = matrix;
@@ -259,21 +266,21 @@ export class Path2DPath extends PathBase {
     let mat = matrix.$matrix;
     let [offx, offy] = this.off;
 
-    g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41+offx, mat.m42+offy);
+    g.setTransform(mat.m11, mat.m12, mat.m21, mat.m22, mat.m41 + offx, mat.m42 + offy);
 
-    let curi = 0
+    let curi = 0;
     let paths = this.paths;
 
     let do_blur = this.blur > 1 && !clipMode;
     let zoom = mat.m11;
 
     if (do_blur) {
-      g.filter = "blur(" + (this.blur*0.25*zoom) + "px)";
+      g.filter = "blur(" + this.blur * 0.25 * zoom + "px)";
     } else {
       g.filter = "none";
     }
 
-    for (let i=0; i<paths.length; i++) {
+    for (let i = 0; i < paths.length; i++) {
       let cmd = paths[i];
 
       if (!cmd.path) {
@@ -312,9 +319,9 @@ export class Path2DPath extends PathBase {
               }
 
               if (cmd.r !== undefined) {
-                let cr = ~~(cmd.r*255);
-                let cg = ~~(cmd.g!*255);
-                let cb = ~~(cmd.b!*255);
+                let cr = ~~(cmd.r * 255);
+                let cg = ~~(cmd.g! * 255);
+                let cb = ~~(cmd.b! * 255);
                 let ca = cmd.a;
 
                 g.strokeStyle = `rgba(${cr},${cg},${cb},${ca})`;
@@ -336,10 +343,10 @@ export class Path2DPath extends PathBase {
     if (clipMode) {
       g.clip();
     } else if (this.autoFill) {
-      let r  = ~~(this.color[0]*255),
-          g1 = ~~(this.color[1]*255),
-          b  = ~~(this.color[2]*255),
-          a  = this.color[3];
+      let r = ~~(this.color[0] * 255),
+        g1 = ~~(this.color[1] * 255),
+        b = ~~(this.color[2] * 255),
+        a = this.color[3];
 
       let fstyle = "rgba(" + r + "," + g1 + "," + b + "," + a + ")";
       g.fillStyle = fstyle;
@@ -377,21 +384,19 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  update() {
-
-  }
+  update() {}
 }
 
 export class CanvasPath2D extends VectorDraw<Path2DPath> {
-  paths : Path2DPath[];
-  path_idmap : {[id : number] : Path2DPath};
+  paths: Path2DPath[];
+  path_idmap: { [id: number]: Path2DPath };
   /* This backend composites into its own buffer and blits it onto whatever
      draw() is handed, so these are plain DOM objects rather than the
      dpi_scale-stamped Canvas2D the base class declares. */
-  offscreen : HTMLCanvasElement;
-  offscreenG : CanvasRenderingContext2D;
+  offscreen: HTMLCanvasElement;
+  offscreenG: CanvasRenderingContext2D;
   /* Set when a path's z changed and the draw order is stale. */
-  resort : boolean;
+  resort: boolean;
 
   constructor() {
     super();
@@ -408,7 +413,7 @@ export class CanvasPath2D extends VectorDraw<Path2DPath> {
     this.zoom = 1.0;
   }
 
-  set_matrix(matrix : Matrix4) {
+  set_matrix(matrix: Matrix4) {
     super.set_matrix(matrix);
 
     for (let p of this.paths) {
@@ -418,7 +423,7 @@ export class CanvasPath2D extends VectorDraw<Path2DPath> {
     this.zoom = matrix.$matrix.m11;
   }
 
-  draw(finalg : Canvas2D) {
+  draw(finalg: Canvas2D) {
     this.zoom = this.matrix.$matrix.m11;
 
     if (this.resort) {
@@ -445,8 +450,7 @@ export class CanvasPath2D extends VectorDraw<Path2DPath> {
     finalg.drawImage(canvas, 0, 0);
   }
 
-
-  has_path(id : number, z : number, check_z = true) : boolean {
+  has_path(id: number, z: number, check_z = true): boolean {
     if (!(id in this.path_idmap)) {
       return false;
     }
@@ -455,7 +459,7 @@ export class CanvasPath2D extends VectorDraw<Path2DPath> {
     return check_z ? path.z === z : true;
   }
 
-  get_path(id : number, z : number, check_z = true) : Path2DPath {
+  get_path(id: number, z: number, check_z = true): Path2DPath {
     let path;
 
     if (id in this.path_idmap) {

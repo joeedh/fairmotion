@@ -1,29 +1,32 @@
-import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
-import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js';
-import {RestrictFlags, Spline} from '../../curve/spline.js';
-import {SplineLocalToolOp} from './spline_editops.js';
+import { ToolOp, UndoFlags, ToolFlags } from "../../core/toolops_api.js";
+import { SplineFlags, SplineTypes, RecalcFlags } from "../../curve/spline_types.js";
+import { RestrictFlags, Spline } from "../../curve/spline.js";
+import { SplineLocalToolOp } from "./spline_editops.js";
 import {
-  StringProperty, IntProperty, FloatProperty,
-  BoolProperty, CollectionProperty
-} from '../../core/toolprops.js';
-import type {FullContext} from '../../core/context.js';
-import type {ToolDef} from '../../core/toolops_api.js';
-import type {SplineElement} from '../../curve/spline_types.js';
-import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
+  StringProperty,
+  IntProperty,
+  FloatProperty,
+  BoolProperty,
+  CollectionProperty,
+} from "../../core/toolprops.js";
+import type { FullContext } from "../../core/context.js";
+import type { ToolDef } from "../../core/toolops_api.js";
+import type { SplineElement } from "../../curve/spline_types.js";
+import type { PropertySlots } from "../../path.ux/scripts/pathux.js";
 
 export class SplineLayerOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SplineLocalToolOp<InputSlots & {spline_path : StringProperty}, OutputSlots> {
-  static tooldef() : ToolDef {
+> extends SplineLocalToolOp<InputSlots & { spline_path: StringProperty }, OutputSlots> {
+  static tooldef(): ToolDef {
     return {
       inputs: ToolOp.inherit({
-        spline_path: new StringProperty("frameset.drawspline")
-      })
-    }
+        spline_path: new StringProperty("frameset.drawspline"),
+      }),
+    };
   }
 
-  get_spline(ctx : FullContext) : Spline {
+  get_spline(ctx: FullContext): Spline {
     let spline = ctx.api.getValue<Spline>(ctx, this.inputs.spline_path.data);
 
     /* Every caller dereferences the result immediately; a path that fails to
@@ -39,16 +42,17 @@ export class SplineLayerOp<
 export class AddLayerOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SplineLayerOp<InputSlots & {name : StringProperty, make_active : BoolProperty},
-                        OutputSlots & {layerid : IntProperty}> {
-  constructor(name? : string) {
+> extends SplineLayerOp<
+  InputSlots & { name: StringProperty; make_active: BoolProperty },
+  OutputSlots & { layerid: IntProperty }
+> {
+  constructor(name?: string) {
     super(undefined, "Add Layer");
 
-    if (name !== undefined)
-      this.inputs.name.set_data(name);
+    if (name !== undefined) this.inputs.name.set_data(name);
   }
 
-  static tooldef() : ToolDef {
+  static tooldef(): ToolDef {
     return {
       uiname  : "Add Layer",
       toolpath: "spline.layers.add",
@@ -58,14 +62,14 @@ export class AddLayerOp<
         make_active: new BoolProperty(true, "Make Active"),
       }),
 
-      outputs : ToolOp.inherit({
-        layerid: new IntProperty(0, "layerid", "layerid", "New Layer ID")
+      outputs: ToolOp.inherit({
+        layerid: new IntProperty(0, "layerid", "layerid", "New Layer ID"),
       }),
-      is_modal: false
+      is_modal: false,
     };
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     /* NOTE: this returned `this`, the class itself, which is merely truthy --
        the commented-out body below is what it meant to do. */
     return true;
@@ -90,7 +94,7 @@ export class AddLayerOp<
     this.get_spline(ctx).regen_sort();
   }//*/
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.warn(ctx, ctx.api);
     let spline = this.get_spline(ctx);
 
@@ -115,16 +119,16 @@ export class AddLayerOp<
 export class ChangeLayerOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SplineLayerOp<InputSlots & {layerid : IntProperty}, OutputSlots> {
-  static tooldef() : ToolDef {
+> extends SplineLayerOp<InputSlots & { layerid: IntProperty }, OutputSlots> {
+  static tooldef(): ToolDef {
     return {
       uiname  : "Change Layer",
       toolpath: "spline.layers.set",
 
-      inputs  : ToolOp.inherit({
-        layerid: new IntProperty(0, "layerid", "layerid", "Layer ID")
+      inputs: ToolOp.inherit({
+        layerid: new IntProperty(0, "layerid", "layerid", "Layer ID"),
       }),
-      is_modal: false
+      is_modal: false,
     };
   }
 
@@ -132,16 +136,15 @@ export class ChangeLayerOp<
      each of the spline's element lists.  Not `_undo`: the base class stores a
      whole serialized spline there, and undo_pre/undo below replace both ends
      of that. */
-  _undo_layer! : {id : number, actives : number[]};
+  _undo_layer!: { id: number; actives: number[] };
 
-  constructor(id? : number) {
+  constructor(id?: number) {
     super(undefined);
 
-    if (id !== undefined)
-      this.inputs.layerid.set_data(id);
+    if (id !== undefined) this.inputs.layerid.set_data(id);
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     let spline = this.get_spline(ctx);
 
     let actives = [];
@@ -151,11 +154,11 @@ export class ChangeLayerOp<
 
     this._undo_layer = {
       id     : this.get_spline(ctx).layerset.active.id,
-      actives: actives
-    }
+      actives: actives,
+    };
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this._undo_layer.id];
     let actives = this._undo_layer.actives;
@@ -172,7 +175,7 @@ export class ChangeLayerOp<
     spline.layerset.active = layer;
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this.inputs.layerid.data];
 
@@ -189,37 +192,37 @@ export class ChangeLayerOp<
     spline.layerset.active = layer;
     window.redraw_viewport();
   }
-};
+}
 
 export class ChangeElementLayerOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SplineLayerOp<InputSlots & {old_layer : IntProperty, new_layer : IntProperty},
-                        OutputSlots> {
-  constructor(old_layer? : number, new_layer? : number) {
+> extends SplineLayerOp<
+  InputSlots & { old_layer: IntProperty; new_layer: IntProperty },
+  OutputSlots
+> {
+  constructor(old_layer?: number, new_layer?: number) {
     super(undefined, "Move to Layer");
 
-    if (old_layer !== undefined)
-      this.inputs.old_layer.set_data(old_layer);
+    if (old_layer !== undefined) this.inputs.old_layer.set_data(old_layer);
 
-    if (new_layer !== undefined)
-      this.inputs.new_layer.set_data(new_layer);
+    if (new_layer !== undefined) this.inputs.new_layer.set_data(new_layer);
   }
 
-  static tooldef() : ToolDef {
+  static tooldef(): ToolDef {
     return {
       toolpath: "spline.move_to_layer",
       uiname  : "Move To Layer",
       path    : "spline.move_to_layer",
-      inputs  : ToolOp.inherit({
+      inputs: ToolOp.inherit({
         old_layer: new IntProperty(0),
-        new_layer: new IntProperty(0)
+        new_layer: new IntProperty(0),
       }),
-      outputs : {}
-    }
+      outputs : {},
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = this.get_spline(ctx);
 
     let oldid = this.inputs.old_layer.data;
@@ -256,24 +259,24 @@ export class ChangeElementLayerOp<
 export class DeleteLayerOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SplineLayerOp<InputSlots & {layer_id : IntProperty}, OutputSlots> {
+> extends SplineLayerOp<InputSlots & { layer_id: IntProperty }, OutputSlots> {
   constructor() {
     super(undefined);
   }
 
-  static tooldef() : ToolDef {
+  static tooldef(): ToolDef {
     return {
       uiname  : "Delete Layer",
       toolpath: "spline.layers.remove",
 
-      inputs  : ToolOp.inherit({
-        layer_id: new IntProperty(-1)
+      inputs: ToolOp.inherit({
+        layer_id: new IntProperty(-1),
       }),
-      is_modal: false
-    }
+      is_modal: false,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = this.get_spline(ctx);
     let layer = spline.layerset.idmap[this.inputs.layer_id.data];
 

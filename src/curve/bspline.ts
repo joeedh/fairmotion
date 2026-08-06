@@ -30,65 +30,65 @@ let ITOT = _i;
    of `ds`.  The samples live twice over: interleaved in the flat `t` array and
    split across w/dv/dv2/dv3/dv4, and only the split copy is read back. */
 export class Table {
-  start : number;
-  end : number;
-  ds : number;
-  size : number;
+  start: number;
+  end: number;
+  ds: number;
+  size: number;
 
   /* size * ITOT floats, [w, dv, dv2, dv3, dv4] per step. */
-  t : Float64Array;
+  t: Float64Array;
 
-  w : number[];
-  dv : number[];
-  dv2 : number[];
-  dv3 : number[];
-  dv4 : number[];
+  w: number[];
+  dv: number[];
+  dv2: number[];
+  dv3: number[];
+  dv4: number[];
 
   /* Powers of ds, precomputed for the Taylor blend in BasisCache.basis().
      Only ds2..ds7 are ever read. */
-  ds2 : number;
-  ds3 : number;
-  ds4 : number;
-  ds5 : number;
-  ds6 : number;
-  ds7 : number;
-  ds8 : number;
-  ds9 : number;
+  ds2: number;
+  ds3: number;
+  ds4: number;
+  ds5: number;
+  ds6: number;
+  ds7: number;
+  ds8: number;
+  ds9: number;
 
-  constructor(size : number, start : number, end : number, ds : number) {
-  this.start = start;
-  this.end = end;
-  this.ds = ds;
-  this.size = size;
+  constructor(size: number, start: number, end: number, ds: number) {
+    this.start = start;
+    this.end = end;
+    this.ds = ds;
+    this.size = size;
 
-  this.t = new Float64Array(size*ITOT);
-  //return; //XXX
+    this.t = new Float64Array(size * ITOT);
+    //return; //XXX
 
-  this.w = new Array(size);
-  this.dv = new Array(size);
-  this.dv2 = new Array(size);
-  this.dv3 = new Array(size);
-  this.dv4 = new Array(size);
+    this.w = new Array(size);
+    this.dv = new Array(size);
+    this.dv2 = new Array(size);
+    this.dv3 = new Array(size);
+    this.dv4 = new Array(size);
 
-  this.start = start;
-  this.end = end;
+    this.start = start;
+    this.end = end;
 
-  this.ds = ds;
+    this.ds = ds;
 
-  this.ds2 = ds*ds;
-  this.ds3 = ds*ds*ds;
-  this.ds4 = ds*ds*ds*ds;
-  this.ds5 = ds*ds*ds*ds*ds;
-  this.ds6 = ds*ds*ds*ds*ds*ds;
-  this.ds7 = ds*ds*ds*ds*ds*ds*ds;
-  this.ds8 = ds*ds*ds*ds*ds*ds*ds*ds;
-  this.ds9 = ds*ds*ds*ds*ds*ds*ds*ds*ds;
+    this.ds2 = ds * ds;
+    this.ds3 = ds * ds * ds;
+    this.ds4 = ds * ds * ds * ds;
+    this.ds5 = ds * ds * ds * ds * ds;
+    this.ds6 = ds * ds * ds * ds * ds * ds;
+    this.ds7 = ds * ds * ds * ds * ds * ds * ds;
+    this.ds8 = ds * ds * ds * ds * ds * ds * ds * ds;
+    this.ds9 = ds * ds * ds * ds * ds * ds * ds * ds * ds;
   }
 }
 
 /* uniform_basis()'s memo, keyed by a packed s/j/n hash.  Dead -- the lookup
    sits behind an early return. */
-let cache : {[hash : number] : number} = {};
+let cache: { [hash: number]: number } = {};
 
 window.NO_CACHE = false;
 
@@ -105,18 +105,18 @@ for (let i = 0; i < uniform_vec.length; i++) {
    Unused: nothing constructs a BasisCache. */
 export class BasisCache {
   /* Samples per table; picked from the degree in gen(). */
-  size! : number;
-  recalc : number;
+  size!: number;
+  recalc: number;
   /* One table per basis function, index j + degree + dpad. */
-  tables : Table[];
+  tables: Table[];
   /* Extra basis functions kept past each end of the knot vector. */
-  dpad : number;
-  degree! : number;
-  start! : number;
-  end! : number;
+  dpad: number;
+  degree!: number;
+  start!: number;
+  end!: number;
 
   /* NOTE: passes no degree, so gen() runs with degree === undefined. */
-  constructor(knots? : number[]) {
+  constructor(knots?: number[]) {
     //this.size is calculated from degree, in gen()
     this.recalc = 1;
     this.tables = [];
@@ -128,7 +128,7 @@ export class BasisCache {
     }
   }
 
-  gen(ks : number[], degree : number) {
+  gen(ks: number[], degree: number) {
     if (NO_CACHE) {
       this.recalc = 1;
       return;
@@ -140,10 +140,8 @@ export class BasisCache {
     console.log("start generating tables");
 
     let sz = 14;
-    if (degree < 3)
-      sz = 128;
-    else if (degree < 4)
-      sz = 40;
+    if (degree < 3) sz = 128;
+    else if (degree < 4) sz = 40;
 
     this.size = sz; //Math.floor(300/degree)+1.0;
     this.degree = degree;
@@ -153,13 +151,12 @@ export class BasisCache {
       let j1 = Math.max(0, i - degree - dpad);
       let j2 = Math.min(ks.length - 1, i + degree + dpad);
 
-      if (i === -degree - dpad)
-        j1 = 0;
+      if (i === -degree - dpad) j1 = 0;
 
       let tstart = ks[j1];
       let tend = ks[j2];
 
-      let ds = (tend - tstart)/(this.size - 1.0);
+      let ds = (tend - tstart) / (this.size - 1.0);
       let table = new Table(this.size, tstart, tend, ds);
       /*
       let table = {
@@ -188,11 +185,13 @@ export class BasisCache {
 
     this.recalc = 0;
 
-    if (ks.length === 0)
-      return;
+    if (ks.length === 0) return;
 
-    let start = ks[0], end = ks[ks.length - 1];
-    let s = start, steps = this.size, ds = (end - start)/(steps - 1.0);
+    let start = ks[0],
+      end = ks[ks.length - 1];
+    let s = start,
+      steps = this.size,
+      ds = (end - start) / (steps - 1.0);
 
     this.start = start;
     this.end = end;
@@ -205,7 +204,7 @@ export class BasisCache {
       let j1 = Math.min(Math.max(j + degree + dpad, 0), this.tables.length - 1);
 
       let table = this.tables[j1];
-      start = table.start, end = table.end, ds = table.ds;
+      (start = table.start), (end = table.end), (ds = table.ds);
 
       let ac = 0.0;
       for (let i = 0, s2 = start; i < steps; i++, s2 += ds) {
@@ -251,7 +250,7 @@ export class BasisCache {
         //*
         dv = dv2 = dv3 = dv4 = 0.0;
 
-        let w = table.w[i] = basis(s, j, degree, ks);
+        let w = (table.w[i] = basis(s, j, degree, ks));
 
         table.t[ac++] = w;
 
@@ -262,7 +261,7 @@ export class BasisCache {
         //let eps = -0.0001;
         /* NOTE: was another `s2`, which put the loop's `s2` in this block's
            temporal dead zone -- `let s = s2` at the top of the body threw. */
-        let s3 = s;//*(1.0-eps) + eps;
+        let s3 = s; //*(1.0-eps) + eps;
 
         dv = basis_dv(s3, j, degree, ks, 1);
         table.t[ac++] = dv;
@@ -303,7 +302,7 @@ export class BasisCache {
     this.recalc = 1;
   }
 
-  basis(s : number, j : number, n : number, ks : number[], no_cache? : boolean) {
+  basis(s: number, j: number, n: number, ks: number[], no_cache?: boolean) {
     let origs = s;
 
     if (NO_CACHE || (no_cache !== undefined && no_cache)) {
@@ -314,20 +313,20 @@ export class BasisCache {
       this.gen(ks, n);
     }
 
-
     j = min(max(j + n + this.dpad, 0), this.tables.length - 1);
 
     let table = this.tables[j];
-    let start = table.start, end = table.end, ds = table.ds;
+    let start = table.start,
+      end = table.end,
+      ds = table.ds;
 
-    if (s < start || s >= end)
-      return 0.0;
+    if (s < start || s >= end) return 0.0;
 
-    let div = (end - start);
+    let div = end - start;
     let tsize = this.size;
 
-    s = (s - start)/div;
-    s = min(max(s, 0.0), 1.0)*(tsize - 1.0);
+    s = (s - start) / div;
+    s = min(max(s, 0.0), 1.0) * (tsize - 1.0);
 
     let t = s;
     s = floor(s);
@@ -337,8 +336,8 @@ export class BasisCache {
 
     let s2 = min(s + 1, tsize);
 
-    let ac1 = s*ITOT;
-    let ac2 = s2*ITOT;
+    let ac1 = s * ITOT;
+    let ac2 = s2 * ITOT;
 
     let tb = table.t;
 
@@ -355,8 +354,16 @@ export class BasisCache {
     //return w1; //table.t[ac1];
     //*/
     //*
-    let w1 = table.w[s], dv1a = table.dv[s], dv2a = table.dv2[s], dv3a = table.dv3[s], dv4a = table.dv4[s];
-    let w2 = table.w[s2], dv1b = table.dv[s2], dv2b = table.dv2[s2], dv3b = table.dv3[s2], dv4b = table.dv4[s2];
+    let w1 = table.w[s],
+      dv1a = table.dv[s],
+      dv2a = table.dv2[s],
+      dv3a = table.dv3[s],
+      dv4a = table.dv4[s];
+    let w2 = table.w[s2],
+      dv1b = table.dv[s2],
+      dv2b = table.dv2[s2],
+      dv3b = table.dv3[s2],
+      dv4b = table.dv4[s2];
     //return w1;
     //*/
     //let w3 = tba[c2++], dv1c = tba[c2++], dv2b=tba[c2++],
@@ -397,7 +404,6 @@ export class BasisCache {
 
     //return w1 + (w2 - w1)*t;
 
-
     /*
         on factor;
         off period;
@@ -423,7 +429,6 @@ export class BasisCache {
         r1 + (r2 - r1)*s;
     */
 
-
     //return w;
     //*
 
@@ -434,26 +439,65 @@ export class BasisCache {
     t2 *= -ds;
 
     let eps = 0.000001;
-    t3 = (t3*(1.0 - eps*2.0)) + eps;
+    t3 = t3 * (1.0 - eps * 2.0) + eps;
 
     //see basistaylor.reduce
-    s = t3*ds;
+    s = t3 * ds;
 
     /* NOTE: s3..s8 were assigned without a declaration; `s2` is the one
        declared above and keeps its assignment order. */
-    s2 = s*s;
-    let s3 = s*s*s, s4 = s2*s2, s5 = s4*s, s6 = s3*s3, s7 = s6*s, s8 = s7*s;
+    s2 = s * s;
+    let s3 = s * s * s,
+      s4 = s2 * s2,
+      s5 = s4 * s,
+      s6 = s3 * s3,
+      s7 = s6 * s,
+      s8 = s7 * s;
     // let ds2=table.ds2, ds3 = table.ds3, ds4=table.ds4, ds5=table.ds5;
     //let ds6=table.ds6, ds7=table.ds7;
-    let ds2 = ds*ds, ds3 = ds*ds*ds, ds4 = ds3*ds, ds5 = ds4*ds, ds6 = ds5*ds, ds7 = ds6*ds, ds8 = ds7*ds;
+    let ds2 = ds * ds,
+      ds3 = ds * ds * ds,
+      ds4 = ds3 * ds,
+      ds5 = ds4 * ds,
+      ds6 = ds5 * ds,
+      ds7 = ds6 * ds,
+      ds8 = ds7 * ds;
 
-    let polynomial = ((((dv3a*s3 + 6*w1 + 3*dv2a*s2 + 6*dv1a*s)*ds5 + 3*(2*ds3*
-        dv3a + ds3*dv3b + 20*ds2*dv2a - 14*ds2*dv2b + 90*ds*dv1a + 78*ds*
-        dv1b + 168*w1 - 168*w2)*s5)*ds - (4*ds3*dv3a + 3*ds3*dv3b + 45*
-        ds2*dv2a - 39*ds2*dv2b + 216*ds*dv1a + 204*ds*dv1b + 420*w1 - 420*w2)*
-      s6)*ds + ((dv3a + dv3b)*ds3 + 120*(w1 - w2) + 12*(dv2a - dv2b)*ds2 +
-      60*(dv1a + dv1b)*ds)*s7 - ((4*dv3a + dv3b)*ds3 + 210*(w1 - w2) + 15*(2
-      *dv2a - dv2b)*ds2 + 30*(4*dv1a + 3*dv1b)*ds)*ds3*s4)/(6*ds7);
+    let polynomial =
+      ((((dv3a * s3 + 6 * w1 + 3 * dv2a * s2 + 6 * dv1a * s) * ds5 +
+        3 *
+          (2 * ds3 * dv3a +
+            ds3 * dv3b +
+            20 * ds2 * dv2a -
+            14 * ds2 * dv2b +
+            90 * ds * dv1a +
+            78 * ds * dv1b +
+            168 * w1 -
+            168 * w2) *
+          s5) *
+        ds -
+        (4 * ds3 * dv3a +
+          3 * ds3 * dv3b +
+          45 * ds2 * dv2a -
+          39 * ds2 * dv2b +
+          216 * ds * dv1a +
+          204 * ds * dv1b +
+          420 * w1 -
+          420 * w2) *
+          s6) *
+        ds +
+        ((dv3a + dv3b) * ds3 +
+          120 * (w1 - w2) +
+          12 * (dv2a - dv2b) * ds2 +
+          60 * (dv1a + dv1b) * ds) *
+          s7 -
+        ((4 * dv3a + dv3b) * ds3 +
+          210 * (w1 - w2) +
+          15 * (2 * dv2a - dv2b) * ds2 +
+          30 * (4 * dv1a + 3 * dv1b) * ds) *
+          ds3 *
+          s4) /
+      (6 * ds7);
 
     if (isNaN(polynomial)) {
       // throw new Error();
@@ -491,10 +535,10 @@ export class BasisCache {
 /* The recycled entry basis_dv_cache hands out: 32 slots plus the (j, n) the
    derivative was sampled for. */
 class BasisDvEntry extends Array<number> {
-  j : number | undefined;
-  n : number | undefined;
+  j: number | undefined;
+  n: number | undefined;
 
-  init(j : number, n : number) {
+  init(j: number, n: number) {
     this.j = j;
     this.n = n;
 
@@ -520,8 +564,7 @@ let basis_dv_cache = new cachering(function () {
 
 /* The dvn'th derivative of basis function j of degree n.  Everything after
    the compiled_basis_dv() call is the reference recursion. */
-export function basis_dv(s : number, j : number, n : number, ks : number[],
-                         dvn : number = 1) : number {
+export function basis_dv(s: number, j: number, n: number, ks: number[], dvn: number = 1): number {
   return compiled_basis_dv(s, j, n, ks, dvn);
 
   if (dvn === 0) {
@@ -529,7 +572,10 @@ export function basis_dv(s : number, j : number, n : number, ks : number[],
   }
 
   let klen = ks.length;
-  let j1 = j, j2 = j + 1, jn = j + n, jn1 = j + n + 1;
+  let j1 = j,
+    j2 = j + 1,
+    jn = j + n,
+    jn1 = j + n + 1;
 
   j1 = min(max(j1, 0.0), klen - 1);
   j2 = min(max(j2, 0.0), klen - 1);
@@ -571,10 +617,8 @@ export function basis_dv(s : number, j : number, n : number, ks : number[],
     //    return ks[j3]-ks[j1];
 
     let ret = 0.0;
-    if (s >= ks[j1] && s < ks[j2])
-      ret = 1.0/(ks[j2] - ks[j1]);
-    else if (s >= ks[j2] && s < ks[j3])
-      ret = -1.0/(ks[j3] - ks[j2]);
+    if (s >= ks[j1] && s < ks[j2]) ret = 1.0 / (ks[j2] - ks[j1]);
+    else if (s >= ks[j2] && s < ks[j3]) ret = -1.0 / (ks[j3] - ks[j2]);
 
     return ret;
   } else {
@@ -583,28 +627,31 @@ export function basis_dv(s : number, j : number, n : number, ks : number[],
     let kjn = ks[jn] + 0.0000000001;
     let kjn1 = ks[jn1] + 0.0000000001;
 
-    let div = ((kj1 - kjn)*(kj2 - kjn1));
+    let div = (kj1 - kjn) * (kj2 - kjn1);
 
     if (div === 0.0) {
       div = 0.0;
     }
     let lastdv = basis_dv(s, j, n - 1, ks, dvn - 1);
 
-    let ret = ((kj1 - s)*basis_dv(s, j, n - 1, ks, dvn) -
-      dvn*basis_dv(s, j, n - 1, ks, dvn - 1))*(kj2 - kjn1);
-    ret -= ((kjn1 - s)*basis_dv(s, j + 1, n - 1, ks, dvn) -
-      dvn*basis_dv(s, j + 1, n - 1, ks, dvn - 1))*(kj1 - kjn);
+    let ret =
+      ((kj1 - s) * basis_dv(s, j, n - 1, ks, dvn) - dvn * basis_dv(s, j, n - 1, ks, dvn - 1)) *
+      (kj2 - kjn1);
+    ret -=
+      ((kjn1 - s) * basis_dv(s, j + 1, n - 1, ks, dvn) -
+        dvn * basis_dv(s, j + 1, n - 1, ks, dvn - 1)) *
+      (kj1 - kjn);
 
-    if (div !== 0.0)
-      ret /= div;
-    else
-      ret /= 0.0001;
+    if (div !== 0.0) ret /= div;
+    else ret /= 0.0001;
 
     return ret;
   }
 }
 
-let min = Math.min, max = Math.max, floor = Math.floor;
+let min = Math.min,
+  max = Math.max,
+  floor = Math.floor;
 
 let dtmp = new Array<number>(64);
 /* Dead: the knot-padding block that used it is commented out in deBoor(). */
@@ -623,8 +670,13 @@ Arguments
   c: Array of control points.
   p: Degree of B-spline.
 */
-export function deBoor(k : number, x : number, knots : number[], controls : number[],
-                       degree : number) : number {
+export function deBoor(
+  k: number,
+  x: number,
+  knots: number[],
+  controls: number[],
+  degree: number
+): number {
   let p = degree;
 
   //pad knot vector
@@ -651,8 +703,8 @@ export function deBoor(k : number, x : number, knots : number[], controls : numb
 
   for (let r = 1; r < p + 1; r++) {
     for (let j = p; j > r - 1; j--) {
-      let alpha = (x - t[j + k - p])/(t[j + 1 + k - r] - t[j + k - p])
-      d[j] = (1.0 - alpha)*d[j - 1] + alpha*d[j]
+      let alpha = (x - t[j + k - p]) / (t[j + 1 + k - r] - t[j + k - p]);
+      d[j] = (1.0 - alpha) * d[j - 1] + alpha * d[j];
     }
   }
 
@@ -661,14 +713,16 @@ export function deBoor(k : number, x : number, knots : number[], controls : numb
 
 /* Basis function j of degree n at s.  Everything after the compiled_basis()
    call is the reference Cox-de Boor recursion. */
-export function basis(s : number, j : number, n : number, ks : number[],
-                      no_cache = false) : number {
+export function basis(s: number, j: number, n: number, ks: number[], no_cache = false): number {
   //if (!no_cache) {
   return compiled_basis(s, j, n, ks);
   //}
 
   let klen = ks.length;
-  let j1 = j, j2 = j + 1, jn = j + n, jn1 = j + n + 1;
+  let j1 = j,
+    j2 = j + 1,
+    jn = j + n,
+    jn1 = j + n + 1;
 
   j1 = min(max(j1, 0.0), klen - 1);
   j2 = min(max(j2, 0.0), klen - 1);
@@ -678,55 +732,55 @@ export function basis(s : number, j : number, n : number, ks : number[],
   if (n === 0) {
     /* The comparison was returned as a boolean and every caller multiplied
        through it, coercing to 1/0; spelled out here. */
-    return (s >= ks[j1] && s < ks[j2]) ? 1.0 : 0.0;
+    return s >= ks[j1] && s < ks[j2] ? 1.0 : 0.0;
   } else {
     let A = s - ks[j1];
     let div = ks[jn] - ks[j1];
     div += 0.00001;
 
     //A = div !== 0.0 ? (A / div)*basis(s, j, n-1, ks) : 0.0;
-    A = (A/div)*basis(s, j, n - 1, ks);
+    A = (A / div) * basis(s, j, n - 1, ks);
 
     let B = ks[jn1] - s;
     div = ks[jn1] - ks[j2];
     div += 0.00001;
 
     //B = div !== 0.0 ? (B / div)*basis(s, j+1, n-1, ks) : 0.0;
-    B = (B/div)*basis(s, j + 1, n - 1, ks);
+    B = (B / div) * basis(s, j + 1, n - 1, ks);
 
     return A + B;
   }
 }
 
-export function uniform_basis_intern(s : number, j : number, n : number) {
+export function uniform_basis_intern(s: number, j: number, n: number) {
   let ret = basis(s, j, n, uniform_vec);
 
   if (n === 0) {
-    return (s >= j && s < j + 1) ? 1.0 : 0.0;
+    return s >= j && s < j + 1 ? 1.0 : 0.0;
   } else {
-    let A = (s - j)/n;
-    let B = (n + j + 1 - s)/n;
+    let A = (s - j) / n;
+    let B = (n + j + 1 - s) / n;
 
-    return uniform_basis(s, j, n - 1)*A + uniform_basis(s, j + 1, n - 1)*B;
+    return uniform_basis(s, j, n - 1) * A + uniform_basis(s, j + 1, n - 1) * B;
   }
 }
 
-function get_hash(h : number) {
+function get_hash(h: number) {
   return cache[h];
 }
 
-function set_hash(h : number, val : number) {
+function set_hash(h: number, val: number) {
   cache[h] = val;
 }
 
-export function uniform_basis(s : number, j : number, n : number, len? : number) {
+export function uniform_basis(s: number, j: number, n: number, len?: number) {
   uniform_vec.length = len === undefined ? 1024 : len;
 
   return basis(s, j, n, uniform_vec);
 
   //j = max(j, 0);
 
-  let hash = s + j*100.0 + n*10000.0;
+  let hash = s + j * 100.0 + n * 10000.0;
 
   let ret = get_hash(hash);
   if (ret === undefined) {
@@ -749,21 +803,21 @@ let RNDLEN = 1024;
 let rndtab = new Float64Array(RNDLEN);
 
 for (let i = 0; i < rndtab.length; i++) {
-  rndtab[i] = Math.random()*0.99999999;
+  rndtab[i] = Math.random() * 0.99999999;
 }
 
 /* A short fingerprint of `key`, sampled at fixed pseudo-random offsets.
    Published on window as a console helper; nothing in-tree calls it. */
-function precheck(key : string) {
+function precheck(key: string) {
   let s1 = "";
-  let seed = key.length%RNDLEN;
-  seed = floor(rndtab[seed]*RNDLEN);
+  let seed = key.length % RNDLEN;
+  seed = floor(rndtab[seed] * RNDLEN);
 
   let klen = key.length;
 
   for (let i = 0; i < strpre; i++) {
-    s1 += key[floor(rndtab[seed]*klen)];
-    seed = (seed + 1)%RNDLEN;
+    s1 += key[floor(rndtab[seed] * klen)];
+    seed = (seed + 1) % RNDLEN;
   }
 
   return s1;
@@ -775,7 +829,7 @@ let _fview = new Float32Array(_vbuf.buffer);
 let _iview = new Int32Array(_vbuf.buffer);
 let _sview = new Int16Array(_vbuf.buffer);
 
-function pack_float(f : number) {
+function pack_float(f: number) {
   let s = "";
   //_view.setFloat32(0, f);
   _fview[0] = f;
@@ -787,7 +841,7 @@ function pack_float(f : number) {
   return s;
 }
 
-function pack_int(f : number) {
+function pack_int(f: number) {
   let s = "";
   //_view.setFloat32(0, f);
   _iview[0] = f;
@@ -799,7 +853,7 @@ function pack_int(f : number) {
   return s;
 }
 
-function pack_short(f : number) {
+function pack_short(f: number) {
   let s = "";
   //_view.setFloat32(0, f);
   _sview[0] = f;
@@ -813,14 +867,14 @@ function pack_short(f : number) {
 
 /* toHash3() packs `is_func` through here, so a boolean lands in
    fromCharCode() and becomes \x00 or \x01. */
-function pack_byte(f : number | boolean) {
+function pack_byte(f: number | boolean) {
   return String.fromCharCode(Number(f));
 }
 
-let tiny_strpool : {[name : string] : number} = {};
+let tiny_strpool: { [name: string]: number } = {};
 let tiny_strpool_idgen = 1;
 
-function pack_str(f : string) {
+function pack_str(f: string) {
   let ret = "";
 
   if (!(f in tiny_strpool)) {
@@ -830,13 +884,13 @@ function pack_str(f : string) {
   return pack_short(tiny_strpool[f]);
 }
 
-let tiny_strpool2 : {[op : string] : number} = {};
+let tiny_strpool2: { [op: string]: number } = {};
 let tiny_strpool_idgen2 = 1;
 
 /* NOTE: symcls.op is a symcls rather than a string for two-argument func()
    nodes, and toHash3() hands it straight to this -- so the pool is keyed by
    whatever the node stringifies to. */
-function pack_op(f : string | symcls | undefined) {
+function pack_op(f: string | symcls | undefined) {
   let key = "" + f;
 
   if (!(key in tiny_strpool2)) {
@@ -851,13 +905,13 @@ window.pack_float = pack_float;
 window.precheck = precheck;
 
 /* Dead. */
-let _str_prehash = {}
+let _str_prehash = {};
 /* Two halves of a string pool: hash string -> small int id, and back. */
-let _str_idhash : {[hash : string] : number} = window._str_idhash = {};
-let _str_idhash_rev : Record<KeyStr, string> = window._str_idhash_rev = {};
+let _str_idhash: { [hash: string]: number } = (window._str_idhash = {});
+let _str_idhash_rev: Record<KeyStr, string> = (window._str_idhash_rev = {});
 let _str_idgen = 0;
 
-function spool(hash : string) {
+function spool(hash: string) {
   if (hash in _str_idhash) {
     return _str_idhash[hash];
   } else {
@@ -870,7 +924,7 @@ function spool(hash : string) {
   }
 }
 
-function spool_len(id : KeyStr) {
+function spool_len(id: KeyStr) {
   return _str_idhash_rev[id].length;
 }
 
@@ -884,37 +938,37 @@ let KILL_ZEROS = true;
    `op` doubles as the function name for func() nodes, plus two pseudo-ops:
    "i" for indexing (a[b]) and "c" for a call (a(b)). */
 export class symcls {
-  _id : number;
+  _id: number;
   /* Memoized toHash3() output. */
-  _last_h : string | undefined;
-  value : number | boolean | undefined;
-  name : string;
-  a : symcls | undefined;
-  b : symcls | undefined;
-  use_parens : boolean;
+  _last_h: string | undefined;
+  value: number | boolean | undefined;
+  name: string;
+  a: symcls | undefined;
+  b: symcls | undefined;
+  use_parens: boolean;
   /* A symcls for two-argument func() nodes -- see pack_op(). */
-  op : string | symcls | undefined;
-  parent : symcls | undefined;
+  op: string | symcls | undefined;
+  parent: symcls | undefined;
   /* Memoized toString() output, and the pooled id of toHash(). */
-  _toString : string | undefined;
-  _hash : number | undefined;
-  is_func : boolean;
+  _toString: string | undefined;
+  _hash: number | undefined;
+  is_func: boolean;
 
   /* Set by optimize() while it factors out common subexpressions: `key` is this
      node's hash, `tag` the SUBPARTn symbol standing in for it, and ins/ins_ids
      the subparts it depends on. */
-  key : KeyStr | undefined;
-  tag : symcls | undefined;
-  _done : boolean;
-  _visit : boolean;
-  id : number | undefined;
-  ins : hashtable<KeyStr, number> | undefined;
-  ins_ids : hashtable<KeyStr, number> | undefined;
-  is_tag : boolean | undefined;
-  is_root : boolean | undefined;
+  key: KeyStr | undefined;
+  tag: symcls | undefined;
+  _done: boolean;
+  _visit: boolean;
+  id: number | undefined;
+  ins: hashtable<KeyStr, number> | undefined;
+  ins_ids: hashtable<KeyStr, number> | undefined;
+  is_tag: boolean | undefined;
+  is_root: boolean | undefined;
 
   /* NOTE: `op` is never used -- binop() sets it on the result instead. */
-  constructor(name_or_value? : string | number | boolean, op? : string) {
+  constructor(name_or_value?: string | number | boolean, op?: string) {
     this._id = tot_symcls++;
 
     this._last_h = undefined;
@@ -955,7 +1009,7 @@ export class symcls {
 
   /* Builds `this op b`, folding constants and dropping identity operands as it
      goes.  Both operands are copied, so no node is ever shared. */
-  binop(b : symcls | string | number | boolean, op : string) : symcls {
+  binop(b: symcls | string | number | boolean, op: string): symcls {
     if (typeof b === "string" || typeof b === "number" || typeof b === "boolean") {
       b = new symcls(b);
     }
@@ -973,7 +1027,7 @@ export class symcls {
 
     if (KILL_ZEROS && a.value !== undefined && a.value === 0.0 && (op === "*" || op === "/")) {
       return sym(0);
-    } else if (KILL_ZEROS && b.value !== undefined && b.value === 0.0 && (op === "*")) {
+    } else if (KILL_ZEROS && b.value !== undefined && b.value === 0.0 && op === "*") {
       return sym(0);
     } else if (KILL_ZEROS && this.a === undefined && this.value === 0.0 && op === "+") {
       return b.copy();
@@ -985,9 +1039,7 @@ export class symcls {
       return this.copy();
     }
 
-    if (this.b !== undefined && this.b.value !== undefined &&
-      b.value !== undefined && op === "+") {
-
+    if (this.b !== undefined && this.b.value !== undefined && b.value !== undefined && op === "+") {
       ret = this.copy();
 
       /* copy() keeps `b`, so this.b !== undefined implies ret.b !== undefined;
@@ -1012,9 +1064,8 @@ export class symcls {
     return this._hash;
   }
 
-  index(arg1 : symcls | string | number | boolean) {
-    if (typeof arg1 === "string" || typeof arg1 === "number" ||
-      typeof arg1 === "boolean") {
+  index(arg1: symcls | string | number | boolean) {
+    if (typeof arg1 === "string" || typeof arg1 === "number" || typeof arg1 === "boolean") {
       arg1 = sym(arg1);
     } else {
       arg1 = arg1.copy();
@@ -1029,7 +1080,7 @@ export class symcls {
     return ret;
   }
 
-  func(fname : symcls | string, arg1? : symcls | string | number | boolean) {
+  func(fname: symcls | string, arg1?: symcls | string | number | boolean) {
     if (typeof fname === "string") {
       fname = sym(fname);
     }
@@ -1041,8 +1092,7 @@ export class symcls {
       ret.b = this.copy();
       ret.op = "c";
     } else {
-      if (typeof arg1 === "string" || typeof arg1 === "number" ||
-        typeof arg1 === "boolean") {
+      if (typeof arg1 === "string" || typeof arg1 === "number" || typeof arg1 === "boolean") {
         arg1 = sym(arg1);
       }
 
@@ -1056,7 +1106,7 @@ export class symcls {
     return ret;
   }
 
-  copy(copy_strcache? : boolean) : symcls {
+  copy(copy_strcache?: boolean): symcls {
     let ret = new symcls();
     ret.name = this.name;
     ret.value = this.value;
@@ -1087,23 +1137,23 @@ export class symcls {
     return this.binop(-1.0, "*");
   }
 
-  add(b : symcls | string | number | boolean) {
+  add(b: symcls | string | number | boolean) {
     return this.binop(b, "+");
   }
 
-  sub(b : symcls | string | number | boolean) {
+  sub(b: symcls | string | number | boolean) {
     return this.binop(b, "-");
   }
 
-  mul(b : symcls | string | number | boolean) {
+  mul(b: symcls | string | number | boolean) {
     return this.binop(b, "*");
   }
 
-  div(b : symcls | string | number | boolean) {
+  div(b: symcls | string | number | boolean) {
     return this.binop(b, "/");
   }
 
-  pow(b : symcls | string | number | boolean) {
+  pow(b: symcls | string | number | boolean) {
     return this.binop(b, "p");
   }
 
@@ -1120,7 +1170,9 @@ export class symcls {
 
   /* Dead: an iterative rewrite of toHash(), superseded by toHash3(). */
   toHash2() {
-    let stack = toHash2_stack, stack2 = toHash2_stack_2, top = 0;
+    let stack = toHash2_stack,
+      stack2 = toHash2_stack_2,
+      top = 0;
     let stack3 = toHash2_stack_3;
 
     //stack is main stack
@@ -1205,13 +1257,13 @@ export class symcls {
 
     ret += pack_str(this.name);
 
-    ret += this.value !== undefined ? pack_short(Number(this.value)*15000) : "" //pack_short(0.0);
+    ret += this.value !== undefined ? pack_short(Number(this.value) * 15000) : ""; //pack_short(0.0);
     ret += pack_byte(this.is_func);
 
     if (this.a !== undefined) {
-      ret += pack_op(this.op)
-      ret += this.a.toHash3();// + pack_byte(-1);
-      ret += this.b!.toHash3();// + pack_byte(-1);
+      ret += pack_op(this.op);
+      ret += this.a.toHash3(); // + pack_byte(-1);
+      ret += this.b!.toHash3(); // + pack_byte(-1);
     }
 
     this._last_h = ret;
@@ -1254,12 +1306,18 @@ export class symcls {
     let use_parens = this.use_parens;
     /* A func() node's `op` can be a symcls, which has no `length` -- the
        original read undefined there and the comparison came out false. */
-    use_parens = use_parens && !(this.parent !== undefined && (this.parent.op === "i" ||
-      this.parent.op === "c" ||
-      (typeof this.parent.op === "string" && this.parent.op.length > 2)));
+    use_parens =
+      use_parens &&
+      !(
+        this.parent !== undefined &&
+        (this.parent.op === "i" ||
+          this.parent.op === "c" ||
+          (typeof this.parent.op === "string" && this.parent.op.length > 2))
+      );
 
     use_parens = use_parens && !(this.value !== undefined && this.a === undefined);
-    use_parens = use_parens && !(this.name !== undefined && this.name !== "" && this.a === undefined);
+    use_parens =
+      use_parens && !(this.name !== undefined && this.name !== "" && this.a === undefined);
 
     let s = use_parens ? "(" : "";
 
@@ -1289,18 +1347,22 @@ export class symcls {
   }
 }
 
-export function sym(name_or_value? : string | number | boolean) {
+export function sym(name_or_value?: string | number | boolean) {
   return new symcls(name_or_value);
 }
 
 /* Replaces every subtree of `n` whose hash is in `map` with its SUBPART tag,
    and records under `haskeys` which subparts `root` ended up depending on. */
-function recurse2_a(n : symcls, root : symcls | undefined,
-                    map : hashtable<number, symcls>,
-                    haskeys : hashtable<KeyStr, hashtable<KeyStr, number>>,
-                    map2 : hashtable<KeyStr, number>, subpart_i : number,
-                    symtags : hashtable<number, symcls>) {
-  function recurse2(n : symcls, root : symcls | undefined) : symcls {
+function recurse2_a(
+  n: symcls,
+  root: symcls | undefined,
+  map: hashtable<number, symcls>,
+  haskeys: hashtable<KeyStr, hashtable<KeyStr, number>>,
+  map2: hashtable<KeyStr, number>,
+  subpart_i: number,
+  symtags: hashtable<number, symcls>
+) {
+  function recurse2(n: symcls, root: symcls | undefined): symcls {
     let key = n.hash();
 
     if (map.has(key)) {
@@ -1338,44 +1400,45 @@ function recurse2_a(n : symcls, root : symcls | undefined,
 
    NOTE: the `if (i > 0 ...)` guard below read an `i` that is not in scope and
    threw a ReferenceError; see the comment at that line. */
-export function optimize(tree : symcls) : [Function | undefined, Function | undefined, string, string, symcls] {
+export function optimize(
+  tree: symcls
+): [Function | undefined, Function | undefined, string, string, symcls] {
   tot_symcls = 0;
 
   let start_tree = tree.copy(true);
 
-  function output(...args : unknown[]) {
+  function output(...args: unknown[]) {
     console.log.apply(console, args);
   }
 
-  function optimize_pass(tree : symcls, subpart_start_i? : number) : [symcls, string, string, number] {
-    if (subpart_start_i === undefined)
-      subpart_start_i = 0;
+  function optimize_pass(tree: symcls, subpart_start_i?: number): [symcls, string, string, number] {
+    if (subpart_start_i === undefined) subpart_start_i = 0;
     let subpart_i = subpart_start_i;
 
     let totstep = 8;
     let curstage = 1;
 
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
-
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     let symtags = new hashtable<number, symcls>();
-    let map = new hashtable<number, symcls>()
+    let map = new hashtable<number, symcls>();
     let mapcount = new hashtable<number, number>();
 
     /* Collects every subtree deeper than 3 and longer than 25 hash bytes, and
        counts how often each one appears. */
-    function recurse(n : symcls, depth? : number) {
-      if (depth === undefined)
-        depth = 0;
+    function recurse(n: symcls, depth?: number) {
+      if (depth === undefined) depth = 0;
 
-      if (n.a === undefined) // || n.a.a === undefined)
+      if (n.a === undefined)
+        // || n.a.a === undefined)
         return;
 
       let hash;
       if (n.a !== undefined) {
         let str = n.toHash();
 
-        if (str.length < 25) { //n.a === undefined || n.a.a === undefined) {//str.length < 30) {
+        if (str.length < 25) {
+          //n.a === undefined || n.a.a === undefined) {//str.length < 30) {
           return;
         }
       }
@@ -1402,23 +1465,23 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
 
     recurse(tree);
 
-    let keys : GArray<KeyStr> | undefined = map.keys();
+    let keys: GArray<KeyStr> | undefined = map.keys();
     keys.sort(function (a, b) {
-      return -spool_len(a)*mapcount.get(a) + spool_len(b)*mapcount.get(b);
+      return -spool_len(a) * mapcount.get(a) + spool_len(b) * mapcount.get(b);
     });
 
     let map2 = new hashtable<KeyStr, number>();
 
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     //supposedly, putting this bit in a closure will optimize better.
-    let keys3 : KeyStr[] = [];
+    let keys3: KeyStr[] = [];
     let i2 = 0;
     let max_si = 0;
 
     /* Takes `keys` as an argument because the caller drops its reference
        immediately afterwards. */
-    function next(keys : GArray<KeyStr>) {
+    function next(keys: GArray<KeyStr>) {
       for (let i = 0; i < keys.length; i++) {
         if (mapcount.get(keys[i]) < 3) {
           map.remove(keys[i]);
@@ -1428,12 +1491,12 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
         map2.set(keys[i], i2++);
         max_si = max(map2.get(keys[i]), max_si);
 
-        symtags.set(i2 - 1, sym("SUBPART" + ((i2 - 1) + subpart_i)));
+        symtags.set(i2 - 1, sym("SUBPART" + (i2 - 1 + subpart_i)));
       }
     }
 
     next(keys);
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     keys = undefined;
     let haskeys = new hashtable<KeyStr, hashtable<KeyStr, number>>();
@@ -1442,10 +1505,10 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
 
     keys3 = map2.keys();
     keys3.sort(function (a, b) {
-      return -spool_len(a)*mapcount.get(a) + spool_len(b)*mapcount.get(b);
+      return -spool_len(a) * mapcount.get(a) + spool_len(b) * mapcount.get(b);
     });
 
-    function recurse3(n : symcls, key : KeyStr) : symcls {
+    function recurse3(n: symcls, key: KeyStr): symcls {
       if (n.a !== undefined) {
         if (n.a.tag !== undefined && !n.a.is_tag && n.a.key === key) {
           n.a.parent = undefined;
@@ -1467,7 +1530,7 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
       return n;
     }
 
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     for (let i = 0; i < keys3.length; i++) {
       tree = recurse3(tree, keys3[i]);
@@ -1475,34 +1538,31 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
 
     let exists = new hashtable<KeyStr, boolean>();
 
-    function recurse4(n : symcls, key? : KeyStr) : boolean {
+    function recurse4(n: symcls, key?: KeyStr): boolean {
       /* recurse2() sets `key` on every node it marks is_tag. */
       if (n.is_tag) {
         exists.set(n.key!, true);
       }
 
-      if (n.is_tag && n.key !== undefined && n.key === key)
-        return true;
+      if (n.is_tag && n.key !== undefined && n.key === key) return true;
 
       if (n.a !== undefined) {
-        if (recurse4(n.a, key))
-          return true;
-        if (recurse4(n.b!, key))
-          return true;
+        if (recurse4(n.a, key)) return true;
+        if (recurse4(n.b!, key)) return true;
       }
 
       return false;
     }
 
     recurse4(tree);
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     keys3.sort(function (a, b) {
       return -map2.get(a) + map2.get(b);
     });
 
     //apply substitutions to substitutions, too
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
     output(keys3.length);
     let last_time2 = time_ms();
 
@@ -1541,8 +1601,7 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
 
       for (let j = 0; j < keys3.length; j++) {
         //for (let j=keys3.length-1; j>= 0; j--) {
-        if (i === j)
-          continue;
+        if (i === j) continue;
 
         if (time_ms() - last_time > 500) {
           output("  subkey part 1:", j + 1, "of", keys3.length + ", for", i + 1);
@@ -1557,18 +1616,16 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
         //for (let j=keys3.length-1; j>= 0; j--) {
         let key = keys3[j];
 
-        if (i === j)
-          continue;
+        if (i === j) continue;
 
         if (time_ms() - last_time > 500) {
           output("  subkey part 2", j + 1, "of", keys3.length + ", for", i + 1);
           last_time = time_ms();
-        }//*/
+        } //*/
 
         /* The j-loop above ran recurse2_a(n, n, ...) at least once, which is
            what puts a key on n. */
-        if (haskeys.get(n.key!) === undefined || !(haskeys.get(n.key!).has(key)))
-          continue;
+        if (haskeys.get(n.key!) === undefined || !haskeys.get(n.key!).has(key)) continue;
 
         recurse3(n, keys3[j]);
         recurse4(n, keys3[j]);
@@ -1577,11 +1634,11 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
       }
     }
 
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
     /* Records root's dependency on every SUBPART below it, so dagsort() can
        order the emitted assignments. */
-    function tag(n : symcls, root : symcls) {
+    function tag(n: symcls, root: symcls) {
       if (n !== root && n.is_tag) {
         let k = n.key;
 
@@ -1604,12 +1661,12 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
       }
     }
 
-    output("begin optimization stage " + (curstage++) + " of " + totstep + ". . .");
+    output("begin optimization stage " + curstage++ + " of " + totstep + ". . .");
 
-    let dag : symcls[] = [];
+    let dag: symcls[] = [];
     window.dag = dag;
 
-    function visit_n(k : KeyStr) {
+    function visit_n(k: KeyStr) {
       let n2 = map.get(k);
 
       if (!n2._done) {
@@ -1617,7 +1674,7 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
       }
     }
 
-    function dagsort(n : symcls) {
+    function dagsort(n: symcls) {
       if (n._done) {
         return;
       }
@@ -1685,11 +1742,11 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
       /* The keys3 loop above gave every node reachable from the dag a key. */
       let key = n.key!;
 
-      if (subpart_i > 0 || i > 0) header += ", "
+      if (subpart_i > 0 || i > 0) header += ", ";
 
       n.clear_toString();
 
-      header += "\n    "
+      header += "\n    ";
       header += "SUBPART" + map2.get(key) + " = " + "" + n;
     }
     header += "\n";
@@ -1720,23 +1777,23 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
   //console.log("\n\n\n\n");
   //}
   header2 = header2.trim();
-  if (header2.trim() !== "")
-    header2 = "let " + header2 + ";\n";
+  if (header2.trim() !== "") header2 = "let " + header2 + ";\n";
 
   let final2 = header2 + "\n  return " + tree + ";\n";
 
   /* Both bodies are `ret = function(...) {...};`, so eval() fills `ret` in. */
-  let ret : Function | undefined = undefined, func : Function | undefined;
+  let ret: Function | undefined = undefined,
+    func: Function | undefined;
   let code1 = "ret = function(s, j, n, ks, dvn) {" + final2 + "};";
   code1 = splitline(code1);
-  eval(code1)
+  eval(code1);
   func = ret;
 
-  let func2 : Function | undefined = undefined;
+  let func2: Function | undefined = undefined;
   let code2 = "ret = function(s, j, n, ks, dvn) {return " + ("" + start_tree) + ";};";
   code2 = splitline(code2);
   func = ret;
-  eval(code2)
+  eval(code2);
 
   return [func, func2, code1, code2, tree];
 }
@@ -1744,18 +1801,18 @@ export function optimize(tree : symcls) : [Function | undefined, Function | unde
 /* NOTE: every read and write below indexes the storage object directly rather
    than going through set()/getCached(), so generated basis functions stay on
    that object and never reach either backend. */
-function readStore(key : string) : string | undefined {
+function readStore(key: string): string | undefined {
   return Reflect.get(myLocalStorage, key);
 }
 
-function writeStore(key : string, value : string) : void {
+function writeStore(key: string, value: string): void {
   Reflect.set(myLocalStorage, key, value);
 }
 
 /* NOTE: falls off the end without returning `ret`, so this is always
    undefined.  Dead either way -- the cache is read straight out of
    myLocalStorage. */
-export function get_cache(k : string, v? : unknown) {
+export function get_cache(k: string, v?: unknown) {
   let ret;
   try {
     /* A missing key used to reach JSON.parse as undefined, which it
@@ -1773,18 +1830,19 @@ export function get_cache(k : string, v? : unknown) {
 
 window.get_cache = get_cache;
 
-export function store_cache(k : string, v : unknown) {
+export function store_cache(k: string, v: unknown) {
   writeStore("_store_" + k, JSON.stringify(v));
 }
 
 window.store_cache = store_cache;
 
 window.test_sym = function test_sym() {
-
   let x = sym("x");
   x = x.binop(2, "*");
 
-  let degree = 2, klen = 10, j = 2;
+  let degree = 2,
+    klen = 10,
+    j = 2;
   let dvn = 1;
 
   KILL_ZEROS = false;
@@ -1809,13 +1867,16 @@ window.test_sym = function test_sym() {
 
   let finals = tree_func[2];
 
-  console.log("ratio: ", finals.replace(" ", "").replace("\n", "").length/("" + start_tree).replace(" ", "").replace("\n", "").length);
+  console.log(
+    "ratio: ",
+    finals.replace(" ", "").replace("\n", "").length /
+      ("" + start_tree).replace(" ", "").replace("\n", "").length
+  );
 
   window.test = function (s, j) {
     console.log("testing...");
 
-    if (j === undefined)
-      j = 3.0;
+    if (j === undefined) j = 3.0;
 
     let func = window.tree_func[0];
     let func2 = basis_dv; //window.tree_func[1];
@@ -1827,41 +1888,42 @@ window.test_sym = function test_sym() {
 
     let time1 = 0;
     let time2 = 0;
-    let steps = 250, steps2 = 10;
+    let steps = 250,
+      steps2 = 10;
 
     /* NOTE: these were declared inside the two loops below, so the console.log
        past them read names that were out of scope and threw. */
-    let r1 = 0.0, r2 = 0.0;
+    let r1 = 0.0,
+      r2 = 0.0;
 
     for (let si = 0; si < steps2; si++) {
       let start_time = time_ms();
 
       for (let i = 0; i < steps; i++) {
-        r1 = func(s + i*0.0001, j, degree, tst);
+        r1 = func(s + i * 0.0001, j, degree, tst);
       }
 
-      time1 += (time_ms() - start_time);
+      time1 += time_ms() - start_time;
 
       start_time = time_ms();
       for (let i = 0; i < steps; i++) {
-        r2 = func2(s + i*0.0001, j, degree, tst, dvn);
+        r2 = func2(s + i * 0.0001, j, degree, tst, dvn);
       }
 
-      time2 += (time_ms() - start_time);
+      time2 += time_ms() - start_time;
     }
 
     console.log(r1, r2, time1.toFixed(2) + "ms", time2.toFixed(2) + "ms");
     //console.log(s, j, degree, tst)
-    ;
-  }
+  };
 
   let dv_test = "" + tree;
 
   let dv_test2 = "";
   let ci = 0;
-  let set = {"(": 0, ")": 0, "+": 0, "/": 0, "*": 0};
+  let set = { "(": 0, ")": 0, "+": 0, "/": 0, "*": 0 };
   for (let i = 0; i < dv_test.length; i++, ci++) {
-    if (ci > 79 && (dv_test[i] in set)) {
+    if (ci > 79 && dv_test[i] in set) {
       dv_test2 += "\n";
       ci = 0.0;
     }
@@ -1871,18 +1933,18 @@ window.test_sym = function test_sym() {
 
   //return "let a = function(s, j, n, ks, dv) { return "+dv_test+";}";
   //return dv_test;
-}
+};
 window.sym = sym;
 
 /* Breaks a generated function body at operator characters so no emitted line
    runs much past 80 columns. */
-function splitline(dv_test : string) {
+function splitline(dv_test: string) {
   let dv_test2 = "";
   let ci = 0;
-  let set = {"(": 0, ")": 0, "+": 0, "/": 0, "*": 0};
+  let set = { "(": 0, ")": 0, "+": 0, "/": 0, "*": 0 };
 
   for (let i = 0; i < dv_test.length; i++, ci++) {
-    if (ci > 79 && (dv_test[i] in set)) {
+    if (ci > 79 && dv_test[i] in set) {
       dv_test2 += "\n";
       ci = 0.0;
     }
@@ -1894,12 +1956,10 @@ function splitline(dv_test : string) {
 
 window.splitline = splitline;
 
-
 //gen_reduce is optional, false
 /* NOTE: `j` is overwritten with sym("j") on the next line, so the argument is
    ignored -- the generated function takes j at runtime instead. */
-export function gen_basis_code(j : number | symcls, n : number, klen : number,
-                               gen_reduce? : boolean) {
+export function gen_basis_code(j: number | symcls, n: number, klen: number, gen_reduce?: boolean) {
   let s = sym("s");
   j = sym("j");
   let ks = sym("ks");
@@ -1918,16 +1978,16 @@ export function gen_basis_code(j : number | symcls, n : number, klen : number,
 
 /* The two shapes eval() produces: the basis functions take the knot vector,
    the derivative ones take a derivative order as well. */
-type BasisFunc = (s : number, j : number, n : number, ks : number[]) => number;
-type BasisDvFunc = (s : number, j : number, n : number, ks : number[], dvn : number) => number;
+type BasisFunc = (s: number, j: number, n: number, ks: number[]) => number;
+type BasisDvFunc = (s: number, j: number, n: number, ks: number[], dvn: number) => number;
 
 /* [degree][knotcount][j] -> compiled basis function.  Only degree n,
    knotcount 5 and j 0 are ever filled in. */
-function make_cache_table(maxknotsize : number) : BasisFunc[][][] {
-  let basis_caches1 : BasisFunc[][][] = new Array(12);
+function make_cache_table(maxknotsize: number): BasisFunc[][][] {
+  let basis_caches1: BasisFunc[][][] = new Array(12);
 
   for (let i = 0; i < basis_caches1.length; i++) {
-    let arr : BasisFunc[][] = new Array(maxknotsize);
+    let arr: BasisFunc[][] = new Array(maxknotsize);
     basis_caches1[i] = arr;
 
     for (let j = 1; j < arr.length; j++) {
@@ -1939,15 +1999,15 @@ function make_cache_table(maxknotsize : number) : BasisFunc[][][] {
 }
 
 /* The same table with a fourth [dvn] level; knotcount 2 is the only one used. */
-function make_cache_table_dv(maxknotsize : number) : BasisDvFunc[][][][] {
-  let basis_caches1 : BasisDvFunc[][][][] = new Array(12);
+function make_cache_table_dv(maxknotsize: number): BasisDvFunc[][][][] {
+  let basis_caches1: BasisDvFunc[][][][] = new Array(12);
 
   for (let i = 0; i < basis_caches1.length; i++) {
-    let arr : BasisDvFunc[][][] = new Array(maxknotsize);
+    let arr: BasisDvFunc[][][] = new Array(maxknotsize);
     basis_caches1[i] = arr;
 
     for (let j = 1; j < arr.length; j++) {
-      let arr2 : BasisDvFunc[][] = new Array(j);
+      let arr2: BasisDvFunc[][] = new Array(j);
       arr[j] = arr2;
 
       for (let k = 0; k < arr2.length; k++) {
@@ -1963,13 +2023,11 @@ export const basis_caches = make_cache_table(256);
 export const basis_caches_dv = make_cache_table_dv(256);
 export const DV_JADD = 0.0;
 
-
 window.load_seven = function () {
   for (let k1 in basis_json) {
-    let k = k1.split("|")
+    let k = k1.split("|");
 
-    if (k.length < 4)
-      continue;
+    if (k.length < 4) continue;
 
     console.log(k);
     if (k[1] === "7") {
@@ -1978,23 +2036,28 @@ window.load_seven = function () {
       writeStore(hash, basis_json[k1]);
 
       let ret;
-      console.log(hash, eval(basis_json[k1]))
+      console.log(hash, eval(basis_json[k1]));
     }
   }
-}
+};
 
 window.save_local_storage = function () {
   let ret = JSON.stringify(myLocalStorage);
-  let blob = new Blob([ret], {type: "application/binary"});
+  let blob = new Blob([ret], { type: "application/binary" });
   let url = URL.createObjectURL(blob);
   console.log(url);
 
   window.open(url);
   return url;
-}
+};
 
-function add_to_table_dv(j : number, n : number, klen : number, dvn : number,
-                        table : BasisDvFunc[][][][]) {
+function add_to_table_dv(
+  j: number,
+  n: number,
+  klen: number,
+  dvn: number,
+  table: BasisDvFunc[][][][]
+) {
   let hash = "" + 0 + "|" + n + "|" + 2 + "|" + dvn;
   let s = readStore(hash); //get_cache(hash);
 
@@ -2011,7 +2074,7 @@ function add_to_table_dv(j : number, n : number, klen : number, dvn : number,
 
   //console.log("GENERATED");
   /* `s` is a `ret = function(...) {...}` assignment, so eval() fills this in. */
-  let ret : BasisDvFunc | undefined;
+  let ret: BasisDvFunc | undefined;
   eval(s);
 
   table[n][2][0][dvn] = ret!;
@@ -2020,11 +2083,11 @@ function add_to_table_dv(j : number, n : number, klen : number, dvn : number,
 }
 
 /* Stand-in for the zeroth derivative; same signature as a compiled one. */
-let zero = function (s : number, j : number, n : number, ks : number[], dvn : number) {
+let zero = function (s: number, j: number, n: number, ks: number[], dvn: number) {
   return 0.0;
-}
+};
 
-export function get_basis_dv_func(j : number, n : number, klen : number, dvn : number) {
+export function get_basis_dv_func(j: number, n: number, klen: number, dvn: number) {
   if (dvn <= 0) {
     return zero;
   }
@@ -2040,15 +2103,19 @@ export function get_basis_dv_func(j : number, n : number, klen : number, dvn : n
 
 window.get_basis_dv_func = get_basis_dv_func;
 
-export function compiled_basis_dv(s : number, j : number, n : number, ks : number[],
-                                  dvn : number) {
+export function compiled_basis_dv(s: number, j: number, n: number, ks: number[], dvn: number) {
   let func = get_basis_dv_func(j, n, ks.length, dvn);
   return func(s, j, n, ks, dvn);
 }
 
 /* NOTE: `j` is overwritten with sym("j") below, same as gen_basis_code(). */
-export function gen_basis_dv_code(j : number | symcls, degree : number, klen : number,
-                                  dv : number, gen_reduce? : boolean) {
+export function gen_basis_dv_code(
+  j: number | symcls,
+  degree: number,
+  klen: number,
+  dv: number,
+  gen_reduce?: boolean
+) {
   let s = sym("s");
   let n = degree;
 
@@ -2066,7 +2133,7 @@ export function gen_basis_dv_code(j : number | symcls, degree : number, klen : n
   return basis_dv_sym(s, j, degree, ks, dv, gen_reduce);
 }
 
-export function get_basis_func(j : number, n : number, klen : number) {
+export function get_basis_func(j: number, n: number, klen: number) {
   let KLEN = 5;
 
   let ret = basis_caches[n][KLEN][j];
@@ -2094,7 +2161,7 @@ export function get_basis_func(j : number, n : number, klen : number) {
   return ret;
 }
 
-export function compiled_basis(s : number, j : number, n : number, ks : number[]) {
+export function compiled_basis(s: number, j: number, n: number, ks: number[]) {
   let func = get_basis_func(j, n, ks.length);
   return func(s, j, n, ks);
 }
@@ -2106,18 +2173,20 @@ window._sym_more_symbolic = false;
 
 /* Symbolic Cox-de Boor over a fixed array of knot symbols.  Superseded by
    basis_sym_general(), which indexes one `ks` symbol instead. */
-export function basis_sym(s : symcls, j : number, n : number, ks : symcls[],
-                          gen_reduce? : boolean) {
+export function basis_sym(s: symcls, j: number, n: number, ks: symcls[], gen_reduce?: boolean) {
   let klen = ks.length;
 
-  let j1 = j, j2 = j + 1, jn = j + n, jn1 = j + n + 1;
+  let j1 = j,
+    j2 = j + 1,
+    jn = j + n,
+    jn1 = j + n + 1;
 
   j1 = _sym_do_clamping ? min(max(j1, 0.0), klen - 1) : j1;
   j2 = _sym_do_clamping ? min(max(j2, 0.0), klen - 1) : j2;
   jn = _sym_do_clamping ? min(max(jn, 0.0), klen - 1) : jn;
   jn1 = _sym_do_clamping ? min(max(jn1, 0.0), klen - 1) : jn1;
 
-//        console.log(j, j1, klen, j2, jn, jn1, klen, n);
+  //        console.log(j, j1, klen, j2, jn, jn1, klen, n);
   /*
   if (_sym_more_symbolic && n === 1) {
       return sym(j1).func("lin", j2);
@@ -2143,21 +2212,23 @@ export function basis_sym(s : symcls, j : number, n : number, ks : symcls[],
     let div = ks[jn].sub(ks[j1]); //ks[jn] - ks[j1];
 
     let cancelA = div.binop(0.0, "!=");
-    if (_sym_eps1 !== 0.0)
-      div = div.add(_sym_eps1);
+    if (_sym_eps1 !== 0.0) div = div.add(_sym_eps1);
 
     //A = div !== 0.0 ? (A / div)*basis(s, j, n-1, ks) : 0.0;
 
-    A = A.mul(basis_sym(s, j, n - 1, ks, gen_reduce)).div(div).mul(cancelA);
+    A = A.mul(basis_sym(s, j, n - 1, ks, gen_reduce))
+      .div(div)
+      .mul(cancelA);
 
     let B = ks[jn1].sub(s);
     div = ks[jn1].sub(ks[j2]);
 
     let cancelB = div.binop(0.0, "!=");
-    if (_sym_eps1 !== 0.0)
-      div = div.add(_sym_eps1);
+    if (_sym_eps1 !== 0.0) div = div.add(_sym_eps1);
 
-    B = B.mul(basis_sym(s, j + 1, n - 1, ks, gen_reduce)).div(div).mul(cancelB);
+    B = B.mul(basis_sym(s, j + 1, n - 1, ks, gen_reduce))
+      .div(div)
+      .mul(cancelB);
     //B = div !== 0.0 ? (B / div)*basis(s, j+1, n-1, ks) : 0.0;
 
     return A.add(B);
@@ -2171,21 +2242,29 @@ export function basis_sym(s : symcls, j : number, n : number, ks : symcls[],
    went into four dead locals and the outer names stayed undefined; `jn` was
    missing from the outer declaration entirely, and reading it below threw a
    ReferenceError for every n > 0.  Same bug in basis_dv_sym(). */
-export function basis_sym_general(s : symcls, j : symcls, n : number, ks : symcls,
-                                  gen_reduce? : boolean) : symcls {
-  let j1 : symcls, j2 : symcls, jn : symcls, jn1 : symcls;
+export function basis_sym_general(
+  s: symcls,
+  j: symcls,
+  n: number,
+  ks: symcls,
+  gen_reduce?: boolean
+): symcls {
+  let j1: symcls, j2: symcls, jn: symcls, jn1: symcls;
 
   if (_sym_do_clamping) {
     j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
     j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
     jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn1 = j
+      .add(n + 1)
+      .func("max", 0.0)
+      .func("min", sym("(ks.length-1)"));
   } else {
-    j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n + 1);
+    (j1 = j), (j2 = j.add(1)), (jn = j.add(n)), (jn1 = j.add(n + 1));
   }
 
   if (_sym_more_symbolic && n === 1) {
-    return sym("lin(" + j1 + "," + j2 + "," + jn1 + ")");// // j1.func("lin", j2);
+    return sym("lin(" + j1 + "," + j2 + "," + jn1 + ")"); // // j1.func("lin", j2);
   } else if (_sym_more_symbolic && n === 0) {
     return j1.func("step", j2);
   }
@@ -2209,30 +2288,38 @@ export function basis_sym_general(s : symcls, j : symcls, n : number, ks : symcl
     r1 = r1.add(eps1);
     r2 = r2.add(eps1);
 
-    r1 = r1.div(r1.func("abs")).mul(0.5).add(0.5 - eps1);
-    r2 = r2.div(r2.func("abs")).mul(0.5).add(0.5 + eps1);
+    r1 = r1
+      .div(r1.func("abs"))
+      .mul(0.5)
+      .add(0.5 - eps1);
+    r2 = r2
+      .div(r2.func("abs"))
+      .mul(0.5)
+      .add(0.5 + eps1);
     //return r1.mul(r2);
   } else {
     let A = s.sub(ks.index(j1)); //A = s-ks[j1];
     let div = ks.index(jn).sub(ks.index(j1)); //ks[jn] - ks[j1];
 
     let cancelA = div.binop(0.0, "!=");
-    if (_sym_eps1 !== undefined)
-      div = div.add(_sym_eps1);
+    if (_sym_eps1 !== undefined) div = div.add(_sym_eps1);
 
     //A = div !== 0.0 ? (A / div)*basis(s, j, n-1, ks) : 0.0;
 
-    A = A.mul(basis_sym_general(s, j, n - 1, ks, gen_reduce)).div(div).mul(cancelA);
+    A = A.mul(basis_sym_general(s, j, n - 1, ks, gen_reduce))
+      .div(div)
+      .mul(cancelA);
 
     let B = ks.index(jn1).sub(s);
     div = ks.index(jn1).sub(ks.index(j2));
 
     let cancelB = div.binop(0.0, "!=");
 
-    if (_sym_eps1 !== undefined)
-      div = div.add(_sym_eps1);
+    if (_sym_eps1 !== undefined) div = div.add(_sym_eps1);
 
-    B = B.mul(basis_sym_general(s, j.add(1), n - 1, ks, gen_reduce)).div(div).mul(cancelB);
+    B = B.mul(basis_sym_general(s, j.add(1), n - 1, ks, gen_reduce))
+      .div(div)
+      .mul(cancelB);
     //B = div !== 0.0 ? (B / div)*basis(s, j+1, n-1, ks) : 0.0;
 
     return A.add(B);
@@ -2241,25 +2328,34 @@ export function basis_sym_general(s : symcls, j : symcls, n : number, ks : symcl
 
 /* See the NOTE on basis_sym_general(): the clamping branch here shadowed
    j1..j4 the same way. */
-export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
-                             dvn : number, gen_reduce? : boolean) : symcls {
+export function basis_dv_sym(
+  s: symcls,
+  j: symcls,
+  n: number,
+  ks: symcls,
+  dvn: number,
+  gen_reduce?: boolean
+): symcls {
   if (dvn === 0) {
     return basis_sym_general(s, j, n, ks, gen_reduce);
   }
-  let j1 : symcls, j2 : symcls, jn : symcls, jn1 : symcls, j3 : symcls, j4 : symcls;
+  let j1: symcls, j2: symcls, jn: symcls, jn1: symcls, j3: symcls, j4: symcls;
 
   if (_sym_do_clamping) {
     j1 = j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
     j2 = j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
     jn = j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
-    jn1 = j.add(n + 1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    jn1 = j
+      .add(n + 1)
+      .func("max", 0.0)
+      .func("min", sym("(ks.length-1)"));
 
     //these are used if n==1
     j3 = j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
     j4 = j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
   } else {
-    j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n + 1);
-    j3 = j.add(2), j4 = j.add(3);
+    (j1 = j), (j2 = j.add(1)), (jn = j.add(n)), (jn1 = j.add(n + 1));
+    (j3 = j.add(2)), (j4 = j.add(3));
   }
 
   //let j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
@@ -2337,7 +2433,7 @@ export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
     let kjn = ks.index(jn);
     let kjn1 = ks.index(jn1);
 
-    kjn.add(_sym_eps2)
+    kjn.add(_sym_eps2);
     if (!_sym_more_symbolic) {
       kj1 = kj1.sub(_sym_eps2);
       kj2 = kj2.sub(_sym_eps2);
@@ -2353,12 +2449,16 @@ export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
       div = div.add(0.0); //((kj1-kjn)*(kj2-kjn1));
     }
 
-    let ret = (kj1.sub(s).mul(basis_dv_sym(s, j, n - 1, ks, dvn, gen_reduce)).sub(
-      basis_dv_sym(s, j, n - 1, ks, dvn - 1, gen_reduce).mul(dvn)));
+    let ret = kj1
+      .sub(s)
+      .mul(basis_dv_sym(s, j, n - 1, ks, dvn, gen_reduce))
+      .sub(basis_dv_sym(s, j, n - 1, ks, dvn - 1, gen_reduce).mul(dvn));
     ret = ret.mul(kj2.sub(kjn1));
 
-    let ret2 = (kjn1.sub(s).mul(basis_dv_sym(s, j.add(1.0), n - 1, ks, dvn)).sub(
-      basis_dv_sym(s, j.add(1.0), n - 1, ks, dvn - 1, gen_reduce).mul(dvn)));
+    let ret2 = kjn1
+      .sub(s)
+      .mul(basis_dv_sym(s, j.add(1.0), n - 1, ks, dvn))
+      .sub(basis_dv_sym(s, j.add(1.0), n - 1, ks, dvn - 1, gen_reduce).mul(dvn));
     ret2 = ret2.mul(kj1.sub(kjn));
 
     ret = ret.sub(ret2).div(div);
@@ -2370,26 +2470,32 @@ export function basis_dv_sym(s : symcls, j : symcls, n : number, ks : symcls,
   }
 }
 
-let _jit = [0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905,
-            0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158, 0.8813679129816592,
-            0.1114522460848093, 0.6895110581535846, 0.6958548363763839, 0.3031193600036204, 0.37011902872473,
-            0.2962806692812592, 0.028554908465594053, 0.823489741422236, 0.46635359339416027, 0.32072878000326455,
-            0.790815538726747, 0.24832243379205465, 0.4548102973494679, 0.17482145293615758, 0.12876217160373926,
-            0.47663668682798743, 0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465,
-            0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474, 0.5500841496977955,
-            0.056078286841511726, 0.2025157359894365, 0.3545380241703242, 0.37520054122433066, 0.9240472037345171,
-            0.5759296049363911, 0.23126523662358522, 0.8160425815731287, 0.2655198322609067, 0.5174507955089211,
-            0.5305957165546715, 0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697,
-            0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936, 0.2482534891460091,
-            0.9248246876522899, 0.5719250738620758, 0.8759879691060632, 0.014760041143745184, 0.27814899617806077,
-            0.8179157497361302, 0.8425747095607221, 0.5784667218104005, 0.8781018694862723, 0.25768745923414826,
-            0.12491370760835707, 0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821,
-            0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208, 0.26263241469860077,
-            0.16050022304989398, 0.7419972626958042, 0.10826557059772313, 0.15192136517725885, 0.08435141341760755,
-            0.8828735174611211, 0.9579186830669641, 0.4730489938519895, 0.13362190243788064, 0.3206780105829239,
-            0.5988038030918688, 0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996,
-            0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383, 0.31904217251576483,
-            0.285037521738559, 0.25403662770986557, 0.20903456234373152, 0.8835178036242723, 0.8222054259385914,
-            0.5918245937209576];
+let _jit = [
+  0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905,
+  0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158,
+  0.8813679129816592, 0.1114522460848093, 0.6895110581535846, 0.6958548363763839,
+  0.3031193600036204, 0.37011902872473, 0.2962806692812592, 0.028554908465594053, 0.823489741422236,
+  0.46635359339416027, 0.32072878000326455, 0.790815538726747, 0.24832243379205465,
+  0.4548102973494679, 0.17482145293615758, 0.12876217160373926, 0.47663668682798743,
+  0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465,
+  0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474,
+  0.5500841496977955, 0.056078286841511726, 0.2025157359894365, 0.3545380241703242,
+  0.37520054122433066, 0.9240472037345171, 0.5759296049363911, 0.23126523662358522,
+  0.8160425815731287, 0.2655198322609067, 0.5174507955089211, 0.5305957165546715,
+  0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697,
+  0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936,
+  0.2482534891460091, 0.9248246876522899, 0.5719250738620758, 0.8759879691060632,
+  0.014760041143745184, 0.27814899617806077, 0.8179157497361302, 0.8425747095607221,
+  0.5784667218104005, 0.8781018694862723, 0.25768745923414826, 0.12491370760835707,
+  0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821,
+  0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208,
+  0.26263241469860077, 0.16050022304989398, 0.7419972626958042, 0.10826557059772313,
+  0.15192136517725885, 0.08435141341760755, 0.8828735174611211, 0.9579186830669641,
+  0.4730489938519895, 0.13362190243788064, 0.3206780105829239, 0.5988038030918688,
+  0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996,
+  0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383,
+  0.31904217251576483, 0.285037521738559, 0.25403662770986557, 0.20903456234373152,
+  0.8835178036242723, 0.8222054259385914, 0.5918245937209576,
+];
 window._jit = _jit;
 window._jit_cur = 0;

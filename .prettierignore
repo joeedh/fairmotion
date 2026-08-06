@@ -1,0 +1,10 @@
+# path.ux is a submodule (joeedh/path.ux) with its own formatting setup.
+# The "src/**/*.ts" glob in package.json's format script would otherwise
+# descend into it and dirty a separate repo.
+src/path.ux
+
+build
+dist
+node_modules
+playwright-report
+test-results

@@ -1,9 +1,9 @@
-import {nstructjs} from "../path.ux/scripts/pathux.js";
+import { nstructjs } from "../path.ux/scripts/pathux.js";
 import * as PUTL from "../util/parseutil.js";
 
-import {Matrix4, Vector2, Vector3, Vector4, Quat} from "../path.ux/scripts/pathux.js";
-import {ToolOp} from './toolops_api.js';
-import {structIsRegistered, structRegister} from './struct_facade.js';
+import { Matrix4, Vector2, Vector3, Vector4, Quat } from "../path.ux/scripts/pathux.js";
+import { ToolOp } from "./toolops_api.js";
+import { structIsRegistered, structRegister } from "./struct_facade.js";
 
 export let STRUCT = nstructjs.STRUCT;
 export function profile_reset() {}
@@ -13,17 +13,17 @@ export function profile_report() {}
    between reader() and a class's own fix-up a field holds its *serialised*
    type -- usually an id where the class declares an object. This reads such a
    field back as the type it really has at that moment. */
-export function readSerialized<T>(obj : object, key : string) : T {
+export function readSerialized<T>(obj: object, key: string): T {
   return Reflect.get(obj, key) as T;
 }
 
 /*
-*
-* Fairmotion exports big-endian files
-*
-* */
+ *
+ * Fairmotion exports big-endian files
+ *
+ * */
 window.STRUCT_ENDIAN = false;
-console.log(nstructjs)
+console.log(nstructjs);
 nstructjs.setEndian(false);
 
 /* Files written before ArrayBuffer had a struct type stored the bytes in a
@@ -42,7 +42,7 @@ export class arraybufferCompat extends Array<byte> {
     this.length = 0;
     let d = this._data;
 
-    for (let i=0; i<d.length; i++) {
+    for (let i = 0; i < d.length; i++) {
       this.push(d[i]);
     }
   }
@@ -59,7 +59,7 @@ nstructjs.setDebugMode(false);
 
 window.istruct = nstructjs.manager;
 
-function patch_dataref_type(buf : string) {
+function patch_dataref_type(buf: string) {
   return buf.replace(/dataref\([a-zA-Z0-9_$]+\)/g, "dataref");
 }
 
@@ -132,22 +132,22 @@ interface VecPatch {
 let vecpatches: VecPatch[] = [];
 
 function makeVecPatch(cls: new () => object, size: int, name: string) {
-  let s = "_"+name + "{\n";
-  for (let i=0; i<size; i++) {
-    s += `  ${i} : float;\n`
+  let s = "_" + name + "{\n";
+  for (let i = 0; i < size; i++) {
+    s += `  ${i} : float;\n`;
   }
   s += "}\n";
 
   let dummycls: VecPatch = {
-    fromSTRUCT(reader : Function) {
+    fromSTRUCT(reader: Function) {
       let ret = new cls();
       reader(ret);
       return ret;
     },
-    prototype   : {},
-    STRUCT      : s,
-    name        : name,
-    _structName : name
+    prototype  : {},
+    STRUCT     : s,
+    name       : name,
+    _structName: name,
   };
 
   vecpatches.push(dummycls);
@@ -161,7 +161,7 @@ makeVecPatch(Vector4, 4, "quat");
 /*backwards compatibility for files saved with older in-house STRUCT implementation*/
 
 let _old = nstructjs.STRUCT.prototype.parse_structs;
-nstructjs.STRUCT.prototype.parse_structs = function(this: nstructjs.STRUCT, buf : string) {
+nstructjs.STRUCT.prototype.parse_structs = function (this: nstructjs.STRUCT, buf: string) {
   window._fstructs = buf;
 
   buf = patch_dataref_type(buf);
@@ -197,7 +197,7 @@ export function gen_struct_str() {
   return nstructjs.write_scripts(window.istruct);
 }
 
-window.init_struct_packer = function(): void {
+window.init_struct_packer = function (): void {
   init_toolop_structs();
 
   /* Registration failures are collected rather than thrown, so that one bad
@@ -227,10 +227,16 @@ window.init_struct_packer = function(): void {
     }
 
     return false;
-  }
+  };
 
   for (var cls of window.defined_classes) {
-    if (cls.name == "Matrix4UI" || cls.name == "Matrix4" || cls.name == "Vector3" || cls.name == "Vector4" || cls.name == "Vector2") {
+    if (
+      cls.name == "Matrix4UI" ||
+      cls.name == "Matrix4" ||
+      cls.name == "Vector3" ||
+      cls.name == "Vector4" ||
+      cls.name == "Vector2"
+    ) {
       //XXX dumb, kind of locked into the custom vector STRUCT types that's not in nstructjs
       //since I now use the vectormath in path.ux, I have to specially make sure I don't
       //parse the STRUCT scripts there
@@ -247,7 +253,7 @@ window.init_struct_packer = function(): void {
       }
     } catch (err) {
       if (err instanceof PUTL.PUTLParseError) {
-        console.log("cls.structName: ", cls.structName)
+        console.log("cls.structName: ", cls.structName);
         print_stack(err);
         console.log("Error parsing struct: " + err.message);
       } else if (err instanceof Error) {
@@ -258,7 +264,7 @@ window.init_struct_packer = function(): void {
     }
   }
 
-  for (var i=0; i<errs.length; i++) {
+  for (var i = 0; i < errs.length; i++) {
     let err = errs[i][0];
     let cls = errs[i][1];
 
@@ -266,8 +272,7 @@ window.init_struct_packer = function(): void {
     print_stack(err);
 
     //throw last error
-    if (i === errs.length-1)
-      throw err;
+    if (i === errs.length - 1) throw err;
   }
 
   nstructjs.validateStructs();
@@ -286,7 +291,7 @@ window.init_struct_packer = function(): void {
 
     safe_global[k] = Reflect.get(window, k);
   }
-}
+};
 
 //the ancient, original design comment, preserved for posterity:
 

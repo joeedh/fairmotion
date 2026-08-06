@@ -1,28 +1,26 @@
-import * as config from '../config/config.js';
+import * as config from "../config/config.js";
 
-import {urlencode, b64decode, b64encode} from '../util/strutils.js';
+import { urlencode, b64decode, b64encode } from "../util/strutils.js";
 
-import {ToolFlags, UndoFlags} from '../core/toolops_api.js';
-import {StringProperty} from '../core/toolprops.js';
+import { ToolFlags, UndoFlags } from "../core/toolops_api.js";
+import { StringProperty } from "../core/toolprops.js";
 
-import {export_svg} from '../util/svg_export.js';
+import { export_svg } from "../util/svg_export.js";
 
-import {ToolOp} from '../core/toolops_api.js';
-import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi/fileapi.js';
-import * as platform from '../../platforms/platform.js';
-import type {FullContext} from '../core/context.js';
+import { ToolOp } from "../core/toolops_api.js";
+import { get_root_folderid, get_current_dir, path_to_id } from "../core/fileapi/fileapi.js";
+import * as platform from "../../platforms/platform.js";
+import type { FullContext } from "../core/context.js";
 
-export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
-var fdialog_exclude_chars = new set([
-  "*",
-  "\\",
-  ";",
-  ":",
-  "&",
-  "^"
-]);
+export var FileDialogModes = { OPEN: "Open", SAVE: "Save" };
+var fdialog_exclude_chars = new set(["*", "\\", ";", ":", "&", "^"]);
 
-import {open_file, save_file, save_with_dialog, can_access_path} from '../core/fileapi/fileapi.js';
+import {
+  open_file,
+  save_file,
+  save_with_dialog,
+  can_access_path,
+} from "../core/fileapi/fileapi.js";
 
 //import {Icons} from 'icon_enum';
 
@@ -32,7 +30,6 @@ export class AppQuitOp extends ToolOp {
 
     this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
-
   }
 
   static tooldef() {
@@ -41,12 +38,12 @@ export class AppQuitOp extends ToolOp {
       uiname  : "Exit",
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-    }
+    };
   }
 
-  exec(ctx : FullContext) {
-    let {ipcRenderer} = require('electron');
-    ipcRenderer.invoke('quit-fairmotion');
+  exec(ctx: FullContext) {
+    let { ipcRenderer } = require("electron");
+    ipcRenderer.invoke("quit-fairmotion");
   }
 }
 
@@ -56,46 +53,50 @@ export class FileOpenOp extends ToolOp {
 
     this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
-
   }
 
   static tooldef() {
     return {
       toolpath: "appstate.open",
       uiname  : "Open",
-      inputs  : {
-        path: new StringProperty("", "path", "File Path", "File Path")
+      inputs: {
+        path: new StringProperty("", "path", "File Path", "File Path"),
       },
       outputs : {},
       icon    : Icons.RESIZE,
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("File open");
 
-//    if (config.USE_HTML5_FILEAPI) {
+    //    if (config.USE_HTML5_FILEAPI) {
 
-    open_file(function (buf: ArrayBuffer, fname: string, filepath: string) {
-      console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
+    open_file(
+      function (buf: ArrayBuffer, fname: string, filepath: string) {
+        console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
 
-      if (filepath !== undefined) {
-        g_app_state.session.settings.add_recent_file(filepath);
-        //g_app_state.session.settings.server_update(true);
-      }
+        if (filepath !== undefined) {
+          g_app_state.session.settings.add_recent_file(filepath);
+          //g_app_state.session.settings.server_update(true);
+        }
 
-      g_app_state.load_user_file_new(new DataView(buf), filepath);
-    }, this, true, "Fairmotion Files", ["fmo"]);
+        g_app_state.load_user_file_new(new DataView(buf), filepath);
+      },
+      this,
+      true,
+      "Fairmotion Files",
+      ["fmo"]
+    );
 
     return;
   }
 
-//  }
+  //  }
 }
-
 
 export class OpenRecentOp extends ToolOp {
   constructor(do_progress = true) {
@@ -111,16 +112,15 @@ export class OpenRecentOp extends ToolOp {
       icon    : -1,
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.error("Implement me!");
     ctx.error("Implement me!");
   }
 }
-
 
 export class FileSaveAsOp extends ToolOp {
   do_progress: boolean;
@@ -140,24 +140,30 @@ export class FileSaveAsOp extends ToolOp {
       icon    : -1,
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("File save As");
 
     var mesh_data = g_app_state.create_user_file_new().buffer;
 
-    save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
-      error_dialog(ctx, "Could not write file", undefined, true);
-    }, (path : string) => {
-      g_app_state.filepath = path;
-      g_app_state.notes.label("File saved");
-    });
+    save_with_dialog(
+      mesh_data,
+      undefined,
+      "Fairmotion Files",
+      ["fmo"],
+      function () {
+        error_dialog(ctx, "Could not write file", undefined, true);
+      },
+      (path: string) => {
+        g_app_state.filepath = path;
+        g_app_state.notes.label("File saved");
+      }
+    );
   }
 }
-
 
 export class FileSaveOp extends ToolOp {
   do_progress: boolean;
@@ -177,11 +183,11 @@ export class FileSaveOp extends ToolOp {
       icon    : -1,
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("File save");
 
     var mesh_data = g_app_state.create_user_file_new().buffer;
@@ -192,22 +198,33 @@ export class FileSaveOp extends ToolOp {
     ok = ok && can_access_path(path);
 
     if (!ok) {
-      save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
-        error_dialog(ctx, "Could not write file", undefined, true);
-      }, (path : string) => {
-        g_app_state.filepath = path;
-        g_app_state.notes.label("File saved");
-      });
+      save_with_dialog(
+        mesh_data,
+        undefined,
+        "Fairmotion Files",
+        ["fmo"],
+        function () {
+          error_dialog(ctx, "Could not write file", undefined, true);
+        },
+        (path: string) => {
+          g_app_state.filepath = path;
+          g_app_state.notes.label("File saved");
+        }
+      );
     } else {
-      save_file(mesh_data, path, () => {
-        error_dialog(ctx, "Could not write file", undefined, true);
-      }, () => {
-        g_app_state.notes.label("File saved");
-      });
+      save_file(
+        mesh_data,
+        path,
+        () => {
+          error_dialog(ctx, "Could not write file", undefined, true);
+        },
+        () => {
+          g_app_state.notes.label("File saved");
+        }
+      );
     }
   }
 }
-
 
 export class FileSaveSVGOp extends ToolOp {
   constructor() {
@@ -218,18 +235,18 @@ export class FileSaveSVGOp extends ToolOp {
     return {
       toolpath: "appstate.export_svg",
       uiname  : "Export SVG",
-      inputs  : {
-        path: new StringProperty("", "path", "File Path", "File Path")
+      inputs: {
+        path: new StringProperty("", "path", "File Path", "File Path"),
       },
       outputs : {},
       icon    : -1,
       is_modal: false,
       undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
+      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("Export SVG");
 
     /* NOTE: `Context` is not imported in this module (nor exported anywhere
@@ -245,13 +262,12 @@ export class FileSaveSVGOp extends ToolOp {
         name = "untitled";
       }
 
-      if (name.endsWith(".fmo"))
-        name = name.slice(0, name.length - 4);
+      if (name.endsWith(".fmo")) name = name.slice(0, name.length - 4);
     } else {
       name = "document";
     }
 
-    var blob = new Blob([buf], {type: "text/svg+xml"});
+    var blob = new Blob([buf], { type: "text/svg+xml" });
 
     if (config.CHROME_APP_MODE) {
       save_with_dialog(buf, undefined, "SVG", ["svg"], function () {
@@ -272,15 +288,17 @@ export class FileSaveSVGOp extends ToolOp {
    ProgressDialog, file_dialog and a bare `ajax` -- none of which exist anywhere
    in the tree -- so running it would have thrown a ReferenceError. */
 
-import {ImportJSONOp} from './viewport/spline_createops.js';
+import { ImportJSONOp } from "./viewport/spline_createops.js";
 
-var _dom_input_node : HTMLInputElement = undefined!;
-export var import_json = window.import_json = function import_json() {
+var _dom_input_node: HTMLInputElement = undefined!;
+export var import_json = (window.import_json = function import_json() {
   console.log("import json!");
 
   if (_dom_input_node == undefined) {
     let elem = document.getElementById("fileinput");
-    window._dom_input_node = _dom_input_node = (elem instanceof HTMLInputElement ? elem : undefined)!;
+    window._dom_input_node = _dom_input_node = (
+      elem instanceof HTMLInputElement ? elem : undefined
+    )!;
   }
 
   _dom_input_node.style.visibility = "visible";
@@ -296,15 +314,15 @@ export var import_json = window.import_json = function import_json() {
     console.log("file", f);
 
     var reader = new FileReader();
-    reader.onload = function (data : ProgressEvent) {
+    reader.onload = function (data: ProgressEvent) {
       /* readAsText below, so result is always a string. */
       let text = typeof reader.result === "string" ? reader.result : undefined!;
       var obj = JSON.parse(text);
 
       var tool = new ImportJSONOp(text);
       g_app_state.toolstack.execTool(g_app_state.ctx, tool);
-    }
+    };
 
     reader.readAsText(f);
-  }
-}
+  };
+});

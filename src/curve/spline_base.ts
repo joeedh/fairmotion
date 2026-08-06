@@ -1,31 +1,41 @@
-import {
-  TPropFlags, PropTypes
-} from '../core/toolprops.js';
+import { TPropFlags, PropTypes } from "../core/toolprops.js";
 
-let acos                                                                    = Math.acos, asin = Math.asin, abs                                 = Math.abs, log = Math.log,
-    sqrt = Math.sqrt, pow = Math.pow, PI = Math.PI, floor = Math.floor, min = Math.min,
-    max                                                                     = Math.max, sin                                                     = Math.sin, cos = Math.cos, tan = Math.tan, atan    = Math.atan,
-    atan2                                                                   = Math.atan2, exp = Math.exp;
+let acos = Math.acos,
+  asin = Math.asin,
+  abs = Math.abs,
+  log = Math.log,
+  sqrt = Math.sqrt,
+  pow = Math.pow,
+  PI = Math.PI,
+  floor = Math.floor,
+  min = Math.min,
+  max = Math.max,
+  sin = Math.sin,
+  cos = Math.cos,
+  tan = Math.tan,
+  atan = Math.atan,
+  atan2 = Math.atan2,
+  exp = Math.exp;
 
-import {STRUCT} from '../core/struct.js';
-import '../util/mathlib.js';
-import {DataPathNode} from '../core/eventdag.js';
-import type {NodeDef} from '../core/eventdag.js';
-import {util} from '../path.ux/scripts/pathux.js';
+import { STRUCT } from "../core/struct.js";
+import "../util/mathlib.js";
+import { DataPathNode } from "../core/eventdag.js";
+import type { NodeDef } from "../core/eventdag.js";
+import { util } from "../path.ux/scripts/pathux.js";
 
-import type {SplineSegment, SplineVertex} from './spline_types.js';
-import type {ElementArray, SplineLayer} from './spline_element_array.js';
+import type { SplineSegment, SplineVertex } from "./spline_types.js";
+import type { ElementArray, SplineLayer } from "./spline_element_array.js";
 
 export const MaterialFlags = {
   SELECT      : 1,
-  MASK_TO_FACE: 2
+  MASK_TO_FACE: 2,
 };
 
 export const RecalcFlags = {
   DRAWSORT: 1,
   SOLVE   : 2,
-  ALL     : 1 | 2
-}
+  ALL     : 1 | 2,
+};
 
 export const SplineFlags = {
   SELECT          : 1,
@@ -39,15 +49,15 @@ export const SplineFlags = {
   PINNED          : 256,
 
   NO_RENDER         : 512, //used by segments
-  AUTO_PAIRED_HANDLE: 1<<10,
-  UPDATE_AABB       : 1<<11,
-  DRAW_TEMP         : 1<<12,
-  GHOST             : 1<<13,
-  UI_SELECT         : 1<<14,
-  FIXED_KS          : 1<<21, //internal to solver code
-  REDRAW_PRE        : 1<<22,
-  REDRAW            : 1<<23,
-  COINCIDENT        : 1<<24
+  AUTO_PAIRED_HANDLE: 1 << 10,
+  UPDATE_AABB       : 1 << 11,
+  DRAW_TEMP         : 1 << 12,
+  GHOST             : 1 << 13,
+  UI_SELECT         : 1 << 14,
+  FIXED_KS          : 1 << 21, //internal to solver code
+  REDRAW_PRE        : 1 << 22,
+  REDRAW            : 1 << 23,
+  COINCIDENT        : 1 << 24,
 };
 
 /* `as const` so element.type is a discriminant: SplineVertex/Segment/Loop/Face
@@ -59,21 +69,21 @@ export const SplineTypes = {
   SEGMENT: 4,
   LOOP   : 8,
   FACE   : 16,
-  ALL    : 31
+  ALL    : 31,
 } as const;
 
 export const ClosestModes = {
   CLOSEST: 0,
   START  : 1,
   END    : 2,
-  ALL    : 3
+  ALL    : 3,
 };
 
 export const IsectModes = {
   CLOSEST : 0,
   START   : 1,
   END     : 2,
-  ENDSTART: 3
+  ENDSTART: 3,
 };
 
 /* Placeholder for a layer type that declares no shared data. */
@@ -90,7 +100,7 @@ export class empty_class {
 empty_class.STRUCT = `
   empty_class {
   }
-`
+`;
 
 /* NOTE: both were Vector2, so the normalize() and vectorLength() calls in
    global_to_local() ran over two components while everything they were loaded
@@ -137,40 +147,39 @@ export class CustomDataLayer {
     this.shared = undefined;
   }
 
-  segment_split(old_segment: SplineSegment, old_v1: SplineVertex, old_v2: SplineVertex,
-                new_segments: SplineSegment[]) {
-  }
+  segment_split(
+    old_segment: SplineSegment,
+    old_v1: SplineVertex,
+    old_v2: SplineVertex,
+    new_segments: SplineSegment[]
+  ) {}
 
-  update(owner: SplineElement) {
-  }
+  update(owner: SplineElement) {}
 
-  post_solve(owner: SplineElement) {
-  }
+  post_solve(owner: SplineElement) {}
 
   /* Weighted blend of the same layer on `srcs` into this one. */
-  interp(srcs: CustomDataLayer[], ws: number[]) {
-  }
+  interp(srcs: CustomDataLayer[], ws: number[]) {}
 
-  copy(src: CustomDataLayer) {
-  }
+  copy(src: CustomDataLayer) {}
 
   loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 
-  curve_effect(owner: SplineElement) : CurveEffect {
+  curve_effect(owner: SplineElement): CurveEffect {
     throw new Error(this.constructor.name + ".curve_effect: implement me");
   }
 
   /* Subclasses must override this; the base version is the "not implemented"
      marker _getDef() checks for.  NOTE: typeName was undefined here; no layer
      type reaches this body, since they all override define(). */
-  static define() : CustomDataLayerDef {
+  static define(): CustomDataLayerDef {
     return {
       typeName      : "",
       hasCurveEffect: false,
-      sharedClass   : empty_class
-    }
+      sharedClass   : empty_class,
+    };
   }
 
   static _getDef(): CustomDataLayerDef {
@@ -189,8 +198,7 @@ export class CustomDataLayer {
     let def = this.define();
     def.clsname = this.name;
 
-    if (!def.sharedClass)
-      def.sharedClass = empty_class;
+    if (!def.sharedClass) def.sharedClass = empty_class;
 
     this.__define = def;
     return def;
@@ -216,7 +224,7 @@ export class CustomData {
   };
 
   /* Layer type name -> index of the first layer of that type. */
-  startmap: {[typeName: string]: number};
+  startmap: { [typeName: string]: number };
 
   layers: LayerTypeClass[];
   /* One shared-data instance per entry of `layers`, same index. */
@@ -224,15 +232,17 @@ export class CustomData {
 
   /* Both callbacks are optional -- ElementArray builds its CustomData without
      them (see the commented-out arguments at that call site). */
-  constructor(owner: Iterable<SplineElement>,
-              layer_add_callback?: (cls: LayerTypeClass, i: number, shared: object) => void,
-              layer_del_callback?: (cls: LayerTypeClass, i: number) => void) {
+  constructor(
+    owner: Iterable<SplineElement>,
+    layer_add_callback?: (cls: LayerTypeClass, i: number, shared: object) => void,
+    layer_del_callback?: (cls: LayerTypeClass, i: number) => void
+  ) {
     this.owner = owner; //owning ElementArray
 
     this.callbacks = {
       on_add: layer_add_callback,
-      on_del: layer_del_callback
-    }
+      on_del: layer_del_callback,
+    };
 
     this.layers = [];
     this.shared_data = [];
@@ -251,7 +261,7 @@ export class CustomData {
 
   /* `name` is accepted and never read -- the layer is keyed by its typeName. */
   add_layer(cls: LayerTypeClass, name: string = cls._getDef().typeName) {
-    let templ = cls
+    let templ = cls;
 
     /* NOTE: was get_layer(), which returns the layer class rather than its
        index, so `i += n` concatenated a function onto a number and the insert
@@ -272,7 +282,7 @@ export class CustomData {
 
     let scls = templ._getDef().sharedClass;
     scls = scls === undefined ? empty_class : scls;
-    let shared = new scls;
+    let shared = new scls();
 
     this.shared_data.push(shared);
 
@@ -280,8 +290,7 @@ export class CustomData {
       e.cdata.on_add(templ, i, shared);
     }
 
-    if (this.callbacks.on_add !== undefined)
-      this.callbacks.on_add(templ, i, shared);
+    if (this.callbacks.on_add !== undefined) this.callbacks.on_add(templ, i, shared);
   }
 
   gen_edata() {
@@ -302,8 +311,7 @@ export class CustomData {
   }
 
   get_layer_i(type: string, i = 0) {
-    if (!(type in this.startmap))
-      return -1;
+    if (!(type in this.startmap)) return -1;
 
     return this.startmap[type] + i;
   }
@@ -313,7 +321,6 @@ export class CustomData {
   }
 
   get_layer(type: string, i: number = 0) {
-
     return this.layers[this.startmap[type] + i];
   }
 
@@ -325,9 +332,7 @@ export class CustomData {
     let i = this.get_layer_i(type, 0);
     if (i === undefined || i === -1) return 0;
 
-    while (i < this.layers.length && Reflect.get(this.layers[i++], "type") === type) {
-      ;
-    }
+    while (i < this.layers.length && Reflect.get(this.layers[i++], "type") === type) {}
 
     return i;
   }
@@ -353,12 +358,10 @@ export class CustomData {
 
         let scls = layer._getDef().sharedClass;
         scls = scls === undefined ? empty_class : scls;
-        let shared = new scls;
+        let shared = new scls();
 
-        if (this.shared_data.length > i)
-          this.shared_data[i] = shared;
-        else
-          this.shared_data.push(shared);
+        if (this.shared_data.length > i) this.shared_data[i] = shared;
+        else this.shared_data.push(shared);
       }
     }
   }
@@ -380,10 +383,10 @@ CustomData.STRUCT = `
     layers      : array(e, abstract(CustomDataLayer)) | new e();
     shared_data : array(abstract(Object));
   }
-`
+`;
 
 /* Was `static` inside CustomDataSet.interp(). */
-const _CustomDataSet_interp_srcs2 : CustomDataLayer[] = [];
+const _CustomDataSet_interp_srcs2: CustomDataLayer[] = [];
 
 export class CustomDataSet extends Array<CustomDataLayer> {
   static STRUCT: string;
@@ -403,10 +406,11 @@ export class CustomDataSet extends Array<CustomDataLayer> {
     this.insert(i, layer);
   }
 
-  get_layer<T extends CustomDataLayer>(cls: LayerTypeClass & (new () => T)) : T | undefined {
+  get_layer<T extends CustomDataLayer>(cls: LayerTypeClass & (new () => T)): T | undefined {
     for (let i = 0; i < this.length; i++) {
       /* Exact class match, not instanceof -- layers are keyed by their type. */
-      if (this[i].constructor === cls) //._getDef().typeName === type_name)
+      if (this[i].constructor === cls)
+        //._getDef().typeName === type_name)
         return this[i] as T;
     }
   }
@@ -418,14 +422,16 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   }
 
   /* Dead stub; nothing calls it and it returns nothing. */
-  get_data(layout: object, layer_name: string) {
-  }
+  get_data(layout: object, layer_name: string) {}
 
-  //note that old_segment will not be valid, so you can only 
+  //note that old_segment will not be valid, so you can only
   //access things like flags.  ditto for new_segments.
-  on_segment_split(old_segment: SplineSegment, old_v1: SplineVertex,
-                   old_v2: SplineVertex, new_segments: SplineSegment[]) {
-  }
+  on_segment_split(
+    old_segment: SplineSegment,
+    old_v1: SplineVertex,
+    old_v2: SplineVertex,
+    new_segments: SplineSegment[]
+  ) {}
 
   interp(srcs: CustomDataSet[], ws: number[]) {
     /* NOTE: dropped a loop that padded this out with zeros; the length
@@ -470,9 +476,8 @@ CustomDataSet.STRUCT = `
   }
 `;
 
-
 /* Last time each warning id was printed, so flagwarn() can rate-limit. */
-let times: {[id: number]: number} = {};
+let times: { [id: number]: number } = {};
 
 function flagwarn(msg: string, id: number) {
   if (!(id in times)) {
@@ -488,12 +493,12 @@ function flagwarn(msg: string, id: number) {
 export class SplineElement extends DataPathNode {
   static STRUCT: string;
 
-  cdata: CustomDataSet
-  masklayer: number
+  cdata: CustomDataSet;
+  masklayer: number;
   /* Set of SplineLayer ids this element belongs to; the value is always 1. */
-  layers: {[layerId: number]: number}
-  flag!: number
-  eid!: number
+  layers: { [layerId: number]: number };
+  flag!: number;
+  eid!: number;
   type: number;
 
   constructor(type: number) {
@@ -525,9 +530,7 @@ export class SplineElement extends DataPathNode {
   }
   //*/
 
-  onDestroy() {
-
-  }
+  onDestroy() {}
 
   has_layer() {
     for (let k in this.layers) {
@@ -561,7 +564,7 @@ export class SplineElement extends DataPathNode {
 
     suffix += "[" + this.eid + "]";
 
-    //hrm, prefix should be either spline.ctx.frameset.drawspline, 
+    //hrm, prefix should be either spline.ctx.frameset.drawspline,
     //or spline.ctx.frameset.pathspline
 
     //test for presence of customdata time layer, I guess;
@@ -569,8 +572,7 @@ export class SplineElement extends DataPathNode {
     let name = "drawspline";
 
     for (let i = 0; i < this.cdata.length; i++) {
-      if (this.cdata[i].constructor.name === "TimeDataLayer")
-        name = "pathspline";
+      if (this.cdata[i].constructor.name === "TimeDataLayer") name = "pathspline";
     }
 
     return "frameset." + name + suffix;
@@ -582,23 +584,19 @@ export class SplineElement extends DataPathNode {
 
   /* Overridden by every concrete element type; the base exists only to catch a
      subclass that forgot one. */
-  get aabb() : Vector3[] {
+  get aabb(): Vector3[] {
     console.trace("Implement Me!");
     return [];
   }
 
   sethide(state: boolean) {
-    if (state)
-      this.flag |= SplineFlags.HIDE;
-    else
-      this.flag &= ~SplineFlags.HIDE;
+    if (state) this.flag |= SplineFlags.HIDE;
+    else this.flag &= ~SplineFlags.HIDE;
   }
 
   set hidden(state: boolean) {
-    if (state)
-      this.flag |= SplineFlags.HIDE;
-    else
-      this.flag &= ~SplineFlags.HIDE;
+    if (state) this.flag |= SplineFlags.HIDE;
+    else this.flag &= ~SplineFlags.HIDE;
   }
 
   get hidden(): boolean {
@@ -623,16 +621,16 @@ export class SplineElement extends DataPathNode {
     reader(this);
   }
 
-  static nodedef() : NodeDef {
+  static nodedef(): NodeDef {
     return {
       name   : "SplineElement",
       uiName : "SplineElement",
       outputs: {
         depend   : undefined,
         on_select: 0.0,
-        eid      : 0.0
-      }
-    }
+        eid      : 0.0,
+      },
+    };
   }
 }
 
@@ -652,38 +650,38 @@ let closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
    those pairs instead. */
 type ClosestSlot = Array<Vector3 | number | ClosestSlot | undefined>;
 
-let closest_point_ret_cache = new cachering(function () : ClosestSlot {
+let closest_point_ret_cache = new cachering(function (): ClosestSlot {
   return [0, 0];
 }, 256);
 
 let closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 let _gtl_ret_cache = cachering.fromConstructor(Vector3, 64);
 /* [co, s] scratch for global_to_local()'s fixed_s path. */
-let _gtl_arr : ClosestSlot = [0, 0];
+let _gtl_arr: ClosestSlot = [0, 0];
 
 //forward declaration
-let flip_wrapper_cache : cachering<FlipWrapper>;
+let flip_wrapper_cache: cachering<FlipWrapper>;
 
 /* Scratch out-param for _get_nextprev().  The root override in EffectWrapper
    stores a boolean in slot 0 while this initializer is a number, so both are
    allowed. */
-let _flip_out_tmp : (number | boolean)[] = [0];
+let _flip_out_tmp: (number | boolean)[] = [0];
 
 /* Something with numeric slots 0 and 1.  Vector2/Vector3 deliberately have no
    plain index signature -- theirs yields `number | undefined` above LEN -- so
    they are not ArrayLike<number>, and neither is SplineVertex, which borrows
    Vector2's prototype. */
 export type Co2 = {
-  [i : number] : number | undefined;
+  [i: number]: number | undefined;
 
-  length : number;
+  length: number;
 };
 
 /* Vector2 and Vector3 both extend Array, so a Vector2 that something wrote a
    third slot onto really has one.  The curve evaluators hand back Vector2s
    that the 3D code loads into Vector3s and back; these two copy exactly what
    Vector3.load()/Vector2.load() copied when the sizes still lined up. */
-export function loadVec2Into3(dst : Vector3, src : Vector2) : Vector3 {
+export function loadVec2Into3(dst: Vector3, src: Vector2): Vector3 {
   dst[0] = src[0];
   dst[1] = src[1];
   Reflect.set(dst, 2, Reflect.get(src, 2));
@@ -691,7 +689,7 @@ export function loadVec2Into3(dst : Vector3, src : Vector2) : Vector3 {
   return dst;
 }
 
-export function loadVec3Into2(dst : Vector2, src : Vector3) : Vector2 {
+export function loadVec3Into2(dst: Vector2, src: Vector3): Vector2 {
   dst[0] = src[0];
   dst[1] = src[1];
 
@@ -711,14 +709,13 @@ export class CurveEffect {
   }
 
   //rescale parameter-space interval 'width' from ceff to have same roughly the same size
-  rescale(ceff: CurveEffect, width: number) : number {
-    if (this.prior !== undefined)
-      return this.prior.rescale(ceff, width);
+  rescale(ceff: CurveEffect, width: number): number {
+    if (this.prior !== undefined) return this.prior.rescale(ceff, width);
 
     return width;
   }
 
-  get reversed() : CurveEffect {
+  get reversed(): CurveEffect {
     return flip_wrapper_cache.next().bind(this);
   }
 
@@ -732,10 +729,10 @@ export class CurveEffect {
 
   /* `_flip_out` is documented as private but is also never read -- the local
      `flip_out` shadows it with a module-level scratch array. */
-  _get_nextprev(donext: number, _flip_out?: (number | boolean)[]) : CurveEffect | undefined {
+  _get_nextprev(donext: number, _flip_out?: (number | boolean)[]): CurveEffect | undefined {
     //find how deep we are in chain
     let i = 0;
-    let root : CurveEffect = this;
+    let root: CurveEffect = this;
     let flip_out = _flip_out_tmp;
 
     while (root.prior !== undefined) {
@@ -769,8 +766,7 @@ export class CurveEffect {
       return undefined;
     }
 
-    if (flip)
-      p = p.reversed;
+    if (flip) p = p.reversed;
 
     return p;
   }
@@ -788,18 +784,18 @@ export class CurveEffect {
     
     WARNING: try to avoid overriding these in child classes.
   */
-  get next() : CurveEffect | undefined {
+  get next(): CurveEffect | undefined {
     return this._get_nextprev(1);
   }
 
-  get prev() : CurveEffect | undefined {
+  get prev(): CurveEffect | undefined {
     return this._get_nextprev(0);
   }
 
   /* Concrete effects override this; the base only forwards down the chain.
      NOTE: it used to fall off the end when there was no prior, and every
      caller dereferenced the undefined that came back. */
-  evaluate(s: number) : Vector3 {
+  evaluate(s: number): Vector3 {
     if (this.prior !== undefined) {
       return this.prior.evaluate(s);
     }
@@ -807,7 +803,7 @@ export class CurveEffect {
     throw new Error("CurveEffect.evaluate: nothing to evaluate");
   }
 
-  derivative(s: number) : Vector3 {
+  derivative(s: number): Vector3 {
     let df = 0.001;
     let a, b;
 
@@ -819,7 +815,7 @@ export class CurveEffect {
       b = this.evaluate(s);
     }
 
-    b.sub(a).mulScalar(1.0/df);
+    b.sub(a).mulScalar(1.0 / df);
     return b;
   }
 
@@ -836,7 +832,7 @@ export class CurveEffect {
       b = this.derivative(s);
     }
 
-    b.sub(a).mulScalar(1.0/df);
+    b.sub(a).mulScalar(1.0 / df);
     return b;
   }
 
@@ -845,7 +841,9 @@ export class CurveEffect {
     let dv1 = this.derivative(s);
     let dv2 = this.derivative(s);
 
-    return (dv2[0]*dv1[1] - dv2[1]*dv1[0])/Math.pow(dv1[0]*dv1[0] + dv1[1]*dv1[1], 3.0/2.0);
+    return (
+      (dv2[0] * dv1[1] - dv2[1] * dv1[0]) / Math.pow(dv1[0] * dv1[0] + dv1[1] * dv1[1], 3.0 / 2.0)
+    );
   }
 
   /* NOTE: the two fallbacks at the bottom read this.v1/this.v2, which
@@ -854,8 +852,10 @@ export class CurveEffect {
   closest_point(p: Vector2 | Vector3, mode?: number, fast = false) {
     /* Reflect.get() off a `this`-typed receiver stays a deferred conditional
        type, so the two endpoint reads below go through this instead. */
-    const self : CurveEffect = this;
-    let minret : ClosestSlot | undefined = undefined, mindis = 1e18, maxdis = 0;
+    const self: CurveEffect = this;
+    let minret: ClosestSlot | undefined = undefined,
+      mindis = 1e18,
+      maxdis = 0;
 
     let p2 = closest_point_cache_vs.next().zero();
     for (let i = 0; i < p.length; i++) {
@@ -864,29 +864,33 @@ export class CurveEffect {
     p = p2;
 
     if (mode === undefined) mode = 0;
-    let steps = 5, s = 0, ds = 1.0/(steps);
+    let steps = 5,
+      s = 0,
+      ds = 1.0 / steps;
 
     let n = closest_point_cache_vs.next();
-    let n1 = closest_point_cache_vs.next(), n2 = closest_point_cache_vs.next();
-    let n3 = closest_point_cache_vs.next(), n4 = closest_point_cache_vs.next();
+    let n1 = closest_point_cache_vs.next(),
+      n2 = closest_point_cache_vs.next();
+    let n3 = closest_point_cache_vs.next(),
+      n4 = closest_point_cache_vs.next();
 
-    if (mode === ClosestModes.ALL)
-      minret = [];
+    if (mode === ClosestModes.ALL) minret = [];
 
     for (let i = 0; i < steps; i++, s += ds) {
-      let start = s - 0.00001, end = s + ds + 0.00001;
+      let start = s - 0.00001,
+        end = s + ds + 0.00001;
 
       start = Math.min(Math.max(start, 0.0), 1.0);
       end = Math.min(Math.max(end, 0.0), 1.0);
 
-      let mid = (start + end)*0.5;
+      let mid = (start + end) * 0.5;
       let bad = false;
 
       let angle_limit = fast ? 0.65 : 0.2;
 
       let steps = fast ? 5 : 20;
       for (let j = 0; j < steps; j++) {
-        mid = (start + end)*0.5;
+        mid = (start + end) * 0.5;
 
         let co = this.evaluate(mid);
         let sco = this.evaluate(start);
@@ -905,8 +909,7 @@ export class CurveEffect {
         if (n.dot(dm) < 0) dm.negate();
 
         let mang = acos(n.normalizedDot(dm));
-        if (mang < 0.001)
-          break;
+        if (mang < 0.001) break;
 
         let ang1 = acos(n1.normalizedDot(d1));
         let ang2 = acos(n2.normalizedDot(d2));
@@ -921,7 +924,7 @@ export class CurveEffect {
 
         if (j === 0 && w1 === w2) {
           bad = true;
-          break
+          break;
         } else if (w1 === w2) {
           //break;
         }
@@ -930,7 +933,7 @@ export class CurveEffect {
           //let dis1 = sco.vectorDistance(p), dis2 = eco.vectorDistance(p), dism = co.vectorDistance(p);
           let dis1, dis2;
 
-          dis1 = ang1, dis2 = ang2;
+          (dis1 = ang1), (dis2 = ang2);
           //console.log("w1==w2", w1, w2, dis1.toFixed(4), dis2.toFixed(4), dism.toFixed(4));
 
           if (dis2 < dis1) {
@@ -947,8 +950,7 @@ export class CurveEffect {
         }
       }
 
-      if (bad)
-        continue;
+      if (bad) continue;
 
       //make sure angle is close enough to 90 degrees for our purposes. . .
       let co = this.evaluate(mid);
@@ -960,8 +962,7 @@ export class CurveEffect {
       }
 
       let angle = acos(Math.min(Math.max(n1.dot(n2), -1), 1));
-      if (angle > angle_limit)
-        continue;
+      if (angle > angle_limit) continue;
 
       /* NOTE: this block declared its own `minret` with `let`, so the outer
          one stayed undefined and every assignment below it threw. */
@@ -1004,9 +1005,11 @@ export class CurveEffect {
     }
 
     if (minret === undefined && mode === ClosestModes.CLOSEST) {
-      let v1 = this.evaluate(0), v2 = this.evaluate(1);
+      let v1 = this.evaluate(0),
+        v2 = this.evaluate(1);
 
-      let dis1 = v1.vectorDistance(p), dis2 = v2.vectorDistance(p);
+      let dis1 = v1.vectorDistance(p),
+        dis2 = v2.vectorDistance(p);
 
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(dis1 < dis2 ? v1 : v2);
@@ -1025,7 +1028,7 @@ export class CurveEffect {
     return minret;
   }
 
-  normal(s: number) : Vector3 {
+  normal(s: number): Vector3 {
     let ret = this.derivative(s);
     let t = ret[0];
     ret[0] = -ret[1];
@@ -1036,11 +1039,11 @@ export class CurveEffect {
   }
 
   /* `no_effects` is accepted and never read. */
-  global_to_local(p: Vector3, no_effects : boolean | number = false, fixed_s?: number) {
+  global_to_local(p: Vector3, no_effects: boolean | number = false, fixed_s?: number) {
     let ret_cache = _gtl_ret_cache;
 
     let arr = _gtl_arr;
-    let slot : ClosestSlot | undefined;
+    let slot: ClosestSlot | undefined;
 
     if (fixed_s !== undefined) {
       arr[0] = this.evaluate(fixed_s);
@@ -1054,15 +1057,17 @@ export class CurveEffect {
     let _co = _gtl_co;
     let _vec = _gtl_vec;
 
-    let s : number, t : number, a = 0.0;
-    let co : Vector3;
+    let s: number,
+      t: number,
+      a = 0.0;
+    let co: Vector3;
 
     if (slot === undefined) {
       co = _co;
 
       /* NOTE: CurveEffect has no v1/v2 -- only the SplineSegment-backed
          subclasses do -- so both reads below come out undefined. */
-      const self : CurveEffect = this;
+      const self: CurveEffect = this;
       let v1 = Reflect.get(self, "v1");
       let v2 = Reflect.get(self, "v2");
 
@@ -1081,14 +1086,14 @@ export class CurveEffect {
       s = Reflect.get(slot, "s");
       co = Reflect.get(slot, "co");
 
-      t = p.vectorDistance(co)*0.15;
+      t = p.vectorDistance(co) * 0.15;
     }
 
     let n1 = this.normal(s).normalize();
     let n2 = _vec.zero().load(p).sub(co).normalize();
     n1[2] = n2[2] = 0.0;
 
-    a = asin(n1[0]*n2[1] - n1[1]*n2[0]);
+    a = asin(n1[0] * n2[1] - n1[1] * n2[0]);
     let dot = n1.dot(n2);
 
     //console.log("dot", dot, "a", a, cos(a));
@@ -1099,7 +1104,7 @@ export class CurveEffect {
 
     if (dot < 0.0) {
       t = -t;
-      a = 2.0*Math.PI - a;
+      a = 2.0 * Math.PI - a;
     }
 
     let ret = ret_cache.next();
@@ -1112,7 +1117,9 @@ export class CurveEffect {
   }
 
   local_to_global(p: Vector3) {
-    let s = p[0], t = p[1], a = p[2];
+    let s = p[0],
+      t = p[1],
+      a = p[2];
 
     let co = this.evaluate(s);
     let no = this.normal(s).normalize();
@@ -1131,7 +1138,7 @@ export class FlipWrapper extends CurveEffect {
   depth: number;
   /* Set by bind(), which is the only way anything gets a FlipWrapper.  NOTE:
      the constructor used to assign undefined here, which reads the same. */
-  eff! : CurveEffect;
+  eff!: CurveEffect;
 
   constructor() {
     super();

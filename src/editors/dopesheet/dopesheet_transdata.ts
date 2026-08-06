@@ -1,21 +1,19 @@
 "use strict";
 
-import {
-  MinMax
-} from '../../util/mathlib.js';
+import { MinMax } from "../../util/mathlib.js";
 
-import {TransDataItem, TransDataType} from '../viewport/transdata.js';
-import {get_vtime, set_vtime} from '../../core/animdata.js';
-import type {TransData, TransUndoData} from '../viewport/transdata.js';
-import type {FullContext} from '../../core/context.js';
-import {SplineVertex} from '../../curve/spline_types.js';
+import { TransDataItem, TransDataType } from "../viewport/transdata.js";
+import { get_vtime, set_vtime } from "../../core/animdata.js";
+import type { TransData, TransUndoData } from "../viewport/transdata.js";
+import type { FullContext } from "../../core/context.js";
+import { SplineVertex } from "../../curve/spline_types.js";
 
 class TransKey {
-  v : SplineVertex;
+  v: SplineVertex;
   /* The key's time before the transform started, for undo. */
-  start_time : number;
+  start_time: number;
 
-  constructor(v : SplineVertex) {
+  constructor(v: SplineVertex) {
     this.v = v;
     this.start_time = get_vtime(v);
   }
@@ -29,27 +27,21 @@ export type DopeTransItem = TransDataItem<SplineVertex, number>;
    TransformOp.ensure_transdata(), which only ever registers TransSplineVert --
    so none of the methods below have ever run. */
 export class TransDopeSheetType extends TransDataType {
-  static apply(ctx : FullContext, td : TransData, item : DopeTransItem,
-               mat : Matrix4, w : number) {
-  }
+  static apply(ctx: FullContext, td: TransData, item: DopeTransItem, mat: Matrix4, w: number) {}
 
-  static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
-  }
+  static undo_pre(ctx: FullContext, td: TransData, undo_obj: TransUndoData) {}
 
-  static undo(ctx : FullContext, undo_obj : TransUndoData) {
-  }
+  static undo(ctx: FullContext, undo_obj: TransUndoData) {}
 
-  static update(ctx : FullContext, td : TransData) {
+  static update(ctx: FullContext, td: TransData) {
     var fs = ctx.frameset;
 
     fs.check_vdata_integrity();
   }
 
-  static calc_prop_distances(ctx : FullContext, td : TransData,
-                             data : TransDataItem[]) {
-  }
+  static calc_prop_distances(ctx: FullContext, td: TransData, data: TransDataItem[]) {}
 
-  static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
+  static gen_data(ctx: FullContext, td: TransData, data: TransDataItem[]) {
     var doprop = td.doprop;
     var proprad = td.propradius;
 
@@ -83,7 +75,7 @@ export class TransDopeSheetType extends TransDataType {
      no `editor`. */
 
   //this one gets a modal context
-  static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
+  static calc_draw_aabb(ctx: FullContext, td: TransData, minmax: MinMax) {
     /*
     static vec = new Vector2();
     vec[0] = 0;
@@ -106,8 +98,13 @@ export class TransDopeSheetType extends TransDataType {
     }*/
   }
 
-  static aabb(ctx : FullContext, td : TransData, item : DopeTransItem,
-              minmax : MinMax, selected_only : boolean) {
+  static aabb(
+    ctx: FullContext,
+    td: TransData,
+    item: DopeTransItem,
+    minmax: MinMax,
+    selected_only: boolean
+  ) {
     /*
     static vec = new Vector2();
     vec[0] = 0;

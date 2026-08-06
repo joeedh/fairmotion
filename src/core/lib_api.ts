@@ -1,17 +1,17 @@
 "use strict";
 
-import {STRUCT} from './struct.js';
+import { STRUCT } from "./struct.js";
 
-import type {FullContext} from './context.js';
-import type {Brush} from '../brush/brush.js';
-import type {SplineFrameSet} from './frameset.js';
-import type {Image} from './imageblock.js';
-import type {Spline} from '../curve/spline.js';
-import type {ImageCanvas} from '../paint/imagecanvas.js';
-import type {Collection} from '../scene/collection.js';
-import type {Scene} from '../scene/scene.js';
-import type {SceneObject} from '../scene/sceneobject.js';
-import type {AnimChannel, AnimKey} from './animdata.js';
+import type { FullContext } from "./context.js";
+import type { Brush } from "../brush/brush.js";
+import type { SplineFrameSet } from "./frameset.js";
+import type { Image } from "./imageblock.js";
+import type { Spline } from "../curve/spline.js";
+import type { ImageCanvas } from "../paint/imagecanvas.js";
+import type { Collection } from "../scene/collection.js";
+import type { Scene } from "../scene/scene.js";
+import type { SceneObject } from "../scene/sceneobject.js";
+import type { AnimChannel, AnimKey } from "./animdata.js";
 
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.
@@ -34,7 +34,6 @@ import type {AnimChannel, AnimKey} from './animdata.js';
  change .linkOrder to manipulate the order of datablock relinking.
  */
 
-
 /*
 DataBlock refactor:
  - Add blockDefine static method
@@ -42,19 +41,19 @@ DataBlock refactor:
 */
 
 /* Keyed by the upper-cased typeName from blockDefine(), e.g. DataTypes.SCENE. */
-export const DataTypes: {[typeName: string]: int} = {};
+export const DataTypes: { [typeName: string]: int } = {};
 export const LinkOrder: int[] = [];
 
 // DataNames maps integer data types to ui-friendly names, e.g. DataNames[0] == "Object"
-export const DataNames: {[typeIndex: number]: string} = {}
+export const DataNames: { [typeIndex: number]: string } = {};
 
 //other than SELECT, the first two bytes
 //of block.flag are reserved for exclusive
-//use by subclasses.  
+//use by subclasses.
 export var BlockFlags = {
   SELECT   : 1,
-  FAKE_USER: (1<<16),
-  DELETED  : (1<<17)
+  FAKE_USER: 1 << 16,
+  DELETED  : 1 << 17,
 };
 
 /*
@@ -82,12 +81,14 @@ export type GetBlockUserFunc = (
 export class DataRef extends Array<int> {
   static STRUCT: string;
 
-  constructor(block_or_id?: DataBlock | DataRef | int[] | int, lib: DataLib | int | undefined = undefined) {
+  constructor(
+    block_or_id?: DataBlock | DataRef | int[] | int,
+    lib: DataLib | int | undefined = undefined
+  ) {
     super(2);
     this.length = 2;
 
-    if (lib !== undefined && lib instanceof DataLib)
-      lib = lib.id;
+    if (lib !== undefined && lib instanceof DataLib) lib = lib.id;
 
     if (block_or_id instanceof DataBlock) {
       var block = block_or_id;
@@ -96,10 +97,8 @@ export class DataRef extends Array<int> {
       /* NOTE: this read `lib.id` off a value the branch above had already
          reduced from a DataLib to its id, so a caller that passed a library
          stored undefined here rather than the id. */
-      if (lib !== undefined)
-        this[1] = lib;
-      else
-        this[1] = block.lib_lib !== undefined ? block.lib_lib.id : -1;
+      if (lib !== undefined) this[1] = lib;
+      else this[1] = block.lib_lib !== undefined ? block.lib_lib.id : -1;
     } else if (block_or_id instanceof Array) {
       this[0] = block_or_id[0];
       this[1] = block_or_id[1];
@@ -184,7 +183,7 @@ window.DataRef = DataRef;
 
 //sometimes we need to serialize DataRef
 //structures themselves, as opposed to auto-generating
-//them from library block references, which is what the.  
+//them from library block references, which is what the.
 //(lowercase) dataref STRUCT type does.
 DataRef.STRUCT = `
   DataRef {
@@ -210,8 +209,8 @@ window.__dataref = DataRefCompat;
 /* All the blocks of one type in a DataLib, plus that type's active block. */
 export class DataList<T extends DataBlock = DataBlock> {
   list: GArray<T>;
-  namemap: {[name: string]: T};
-  idmap: {[lib_id: number]: T};
+  namemap: { [name: string]: T };
+  idmap: { [lib_id: number]: T };
   type: int;
   active?: T;
 
@@ -248,8 +247,7 @@ export class DataList<T extends DataBlock = DataBlock> {
   }
 
   get(id: int | DataRef): T {
-    if (id instanceof DataRef)
-      id = id.id;
+    if (id instanceof DataRef) id = id.id;
 
     return this.idmap[id];
   }
@@ -269,7 +267,7 @@ export class DataLib {
   /* typeIndex -> DataList. Keyed by DataList[Symbol.keystr](), which is the
      type integer. */
   datalists: hashtable<int, DataList>;
-  idmap: {[lib_id: number]: DataBlock};
+  idmap: { [lib_id: number]: DataBlock };
   idgen: EIDGen;
   lib_anim_idgen: EIDGen;
 
@@ -315,7 +313,7 @@ export class DataLib {
       Object.defineProperty(this, name, {
         get() {
           return this.get_datalist(typeId);
-        }
+        },
       });
     }
   }
@@ -325,7 +323,6 @@ export class DataLib {
 
     return def.accessorName || def.typeName.toLowerCase();
   }
-
 
   clear() {
     this.on_destroy();
@@ -348,7 +345,7 @@ export class DataLib {
           yield block;
         }
       }
-    })()
+    })();
   }
 
   on_destroy() {
@@ -367,7 +364,11 @@ export class DataLib {
           block.on_destroy();
         } catch (err) {
           print_stack(err);
-          console.trace("WARNING: failed to execute on_destroy handler for block", block.name, block);
+          console.trace(
+            "WARNING: failed to execute on_destroy handler for block",
+            block.name,
+            block
+          );
         }
       }
     }
@@ -426,8 +427,7 @@ export class DataLib {
       if (name in list.namemap) {
         var j = name.length - 1;
         for (j; j >= 0; j--) {
-          if (name[j] == ".")
-            break;
+          if (name[j] == ".") break;
         }
 
         /* NOTE: an `if (name == 0)` test sat here, comparing a non-empty name
@@ -448,8 +448,7 @@ export class DataLib {
   }
 
   add(block: DataBlock, set_id?: boolean) {
-    if (set_id === undefined)
-      set_id = true;
+    if (set_id === undefined) set_id = true;
 
     //ensure unique name
     var name = this.gen_name(block, block.name);
@@ -468,8 +467,7 @@ export class DataLib {
     }
 
     var dl: DataList = this.datalists.get(block.lib_type);
-    if (dl.active === undefined)
-      dl.active = block;
+    if (dl.active === undefined) dl.active = block;
 
     dl.list.push(block);
     dl.namemap[block.name] = block;
@@ -500,8 +498,7 @@ export class DataLib {
   }
 
   get(id: DataRef | int): DataBlock {
-    if (id instanceof DataRef)
-      id = id.id;
+    if (id instanceof DataRef) id = id.id;
 
     return this.idmap[id];
   }
@@ -512,7 +509,7 @@ DataLib {
   lib_anim_idgen : EIDGen;
   idgen          : EIDGen;
 }
-`
+`;
 
 /*
  * One entry in a block's lib_users list: who holds the reference, and what to
@@ -561,7 +558,7 @@ export interface DataBlockClass {
 }
 
 export const BlockClasses: DataBlockClass[] = [];
-export const BlockTypeMap: {[typeIndex: number]: DataBlockClass} = {}
+export const BlockTypeMap: { [typeIndex: number]: DataBlockClass } = {};
 
 /*
 ADDON: 8
@@ -599,14 +596,14 @@ function regenLinkOrder() {
 
 var _db_hash_id = 1;
 
-import {GraphNode, mixinGraphNode} from '../graph/graph.js';
+import { GraphNode, mixinGraphNode } from "../graph/graph.js";
 
 export class DataBlock {
   static STRUCT: string;
 
   /* Free-form per-addon storage. It is a plain map at runtime; loadSTRUCT()
      converts the _DictKey array the file carries back into one. */
-  addon_data: {[key: string]: unknown};
+  addon_data: { [key: string]: unknown };
   declare ["constructor"]: DataBlockClass;
 
   lib_anim_channels: GArray<AnimChannel>;
@@ -614,8 +611,8 @@ export class DataBlock {
   lib_anim_idgen: EIDGen;
   /* data_link() registers each channel here under its own id and each of its
      keys under theirs. */
-  lib_anim_idmap: {[id: number]: AnimChannel | AnimKey};
-  lib_anim_pathmap: {[path: string]: AnimChannel};
+  lib_anim_idmap: { [id: number]: AnimChannel | AnimKey };
+  lib_anim_pathmap: { [path: string]: AnimChannel };
   lib_users: GArray<UserRef>;
   lib_refs: number;
   flag: number;
@@ -640,7 +637,7 @@ export class DataBlock {
       icon        : -1,
       linkOrder   : undefined, //priority in file load linking, defaults to 10000
       typeIndex   : -1, //for compatiblity with old api, must be defined
-    }
+    };
   }
 
   static register(cls: DataBlockClass) {
@@ -683,7 +680,8 @@ export class DataBlock {
     BlockTypeMap[def.typeIndex] = cls;
     DataTypes[typeid] = def.typeIndex;
 
-    DataNames[DataTypes[typeid]] = typeid.charAt(0).toUpperCase() + typeid.slice(1, typeid.length).toLowerCase();
+    DataNames[DataTypes[typeid]] =
+      typeid.charAt(0).toUpperCase() + typeid.slice(1, typeid.length).toLowerCase();
 
     regenLinkOrder();
   }
@@ -703,8 +701,7 @@ export class DataBlock {
     this.addon_data = {};
 
     //name is optional
-    if (name === undefined)
-      name = "unnamed";
+    if (name === undefined) name = "unnamed";
 
     this.lib_anim_channels = new GArray<AnimChannel>();
     //this.lib_anim_idgen = new EIDGen();
@@ -728,27 +725,22 @@ export class DataBlock {
     this.flag = 0;
   }
 
-  on_add(lib: DataLib) {
-  }
+  on_add(lib: DataLib) {}
 
-  on_remove() {
-  }
+  on_remove() {}
 
-  on_destroy() {
-  }
+  on_destroy() {}
 
-  copy() {
-  }
+  copy() {}
 
-  copyTo(b: DataBlock) {
-  }
+  copyTo(b: DataBlock) {}
 
   /* NOTE: every caller in the app invokes this with no argument, meaning to
      *set* the fake user -- but an omitted `val` is falsy, so those calls take
      the clearing branch instead. Left as-is; correcting it would change which
      datablocks survive a purge. */
   set_fake_user(val: boolean = false) {
-    if ((this.flag & BlockFlags.FAKE_USER) && !val) {
+    if (this.flag & BlockFlags.FAKE_USER && !val) {
       this.flag &= ~BlockFlags.FAKE_USER;
       this.lib_refs -= 1;
     } else if (!(this.flag & BlockFlags.FAKE_USER) && val) {
@@ -793,11 +785,10 @@ export class DataBlock {
   lib_adduser(user: object, name: string, remfunc?: (user: object, block: DataBlock) => void) {
     //remove_lib should be optional?
 
-    var ref = new UserRef()
+    var ref = new UserRef();
     ref.user = user;
     ref.name = name;
-    if (remfunc)
-      ref.rem_func = remfunc;
+    if (remfunc) ref.rem_func = remfunc;
 
     this.lib_users.push(ref);
     this.lib_refs++;
@@ -835,8 +826,7 @@ export class DataBlock {
     }
   }
 
-  afterSTRUCT() {
-  }
+  afterSTRUCT() {}
 
   /* The file carries addon_data as an array of _DictKey; flatten it back into
      the map the rest of the code expects.  The return type covers both shapes
@@ -845,7 +835,7 @@ export class DataBlock {
   loadSTRUCT(reader: StructReader<this>): this | void {
     reader(this);
 
-    var map: {[key: string]: unknown} = {};
+    var map: { [key: string]: unknown } = {};
 
     /* nstructjs leaves the _DictKey array the file carries in addon_data; it
        becomes a map again below. */
@@ -922,7 +912,7 @@ DataBlock.STRUCT = `
   }
 `;
 
-import {ToolIter} from './toolprops_iter.js';
+import { ToolIter } from "./toolprops_iter.js";
 
 export const NodeDataBlock = mixinGraphNode(DataBlock, "NodeDataBlock");
 

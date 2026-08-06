@@ -18,10 +18,10 @@ file api implementation
  export function openRecent(thisvar, id);
 */
 
-import * as config from '../../config/config.js';
-import * as fileapi_chrome from './fileapi_chrome.js';
-import * as fileapi_electron from './fileapi_electron.js';
-import * as fileapi_html5 from './fileapi_html5.js';
+import * as config from "../../config/config.js";
+import * as fileapi_chrome from "./fileapi_chrome.js";
+import * as fileapi_electron from "./fileapi_electron.js";
+import * as fileapi_html5 from "./fileapi_html5.js";
 
 /* Handed the file's contents, its display name, and an id the backend can
    re-open it by later -- a path on electron, a retained entry key on chrome. */
@@ -49,22 +49,22 @@ function backend() {
 
 //XXX analyze how this works, probably allshape code
 export function get_root_folderid() {
-  return '/';
+  return "/";
 }
 
 //XXX analyze how this works, probably allshape code
 export function get_current_dir() {
-  return '';
+  return "";
 }
 
 //XXX analyze how this works, probably allshape code
 export function path_to_id() {
-  return '';
+  return "";
 }
 
 //XXX analyze how this works, probably allshape code
 export function id_to_path() {
-  return '';
+  return "";
 }
 
 /* The three backends disagree on the argument lists for open_file and

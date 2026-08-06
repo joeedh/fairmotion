@@ -1,30 +1,54 @@
-import {aabb_isect_minmax2d} from '../util/mathlib.js';
-import {ENABLE_MULTIRES} from '../config/config.js';
+import { aabb_isect_minmax2d } from "../util/mathlib.js";
+import { ENABLE_MULTIRES } from "../config/config.js";
 
-import {SessionFlags} from '../editors/viewport/view2d_editor.js';
-import {SelMask} from '../editors/viewport/selectmode.js';
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
-import {get_vtime} from '../core/animdata.js';
+import { SessionFlags } from "../editors/viewport/view2d_editor.js";
+import { SelMask } from "../editors/viewport/selectmode.js";
+import {
+  ORDER,
+  KSCALE,
+  KANGLE,
+  KSTARTX,
+  KSTARTY,
+  KSTARTZ,
+  KTOTKS,
+  INT_STEPS,
+} from "./spline_math.js";
+import { get_vtime } from "../core/animdata.js";
 
 let spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 let spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
 let PI = Math.PI;
-let pow                                                                        = Math.pow, cos                                                        = Math.cos, sin                                        = Math.sin, abs = Math.abs, floor = Math.floor,
-    ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
+let pow = Math.pow,
+  cos = Math.cos,
+  sin = Math.sin,
+  abs = Math.abs,
+  floor = Math.floor,
+  ceil = Math.ceil,
+  sqrt = Math.sqrt,
+  log = Math.log,
+  acos = Math.acos,
+  asin = Math.asin;
 
 export const DRAW_MAXCURVELEN = 10000;
 
 import {
-  SplineFlags, SplineTypes, SplineElement, SplineVertex,
-  SplineSegment, SplineLoop, SplineLoopPath, SplineFace,
-  RecalcFlags, MaterialFlags
-} from './spline_types.js';
+  SplineFlags,
+  SplineTypes,
+  SplineElement,
+  SplineVertex,
+  SplineSegment,
+  SplineLoop,
+  SplineLoopPath,
+  SplineFace,
+  RecalcFlags,
+  MaterialFlags,
+} from "./spline_types.js";
 
-import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
+import { ElementArray, SplineLayerFlags } from "./spline_element_array.js";
 
-import type {Spline} from './spline.js';
-import type {View2DHandler} from '../editors/viewport/view2d.js';
+import type { Spline } from "./spline.js";
+import type { View2DHandler } from "../editors/viewport/view2d.js";
 
 //obsolete:
 //var uclr_h = "#22ff11"
@@ -37,20 +61,26 @@ import type {View2DHandler} from '../editors/viewport/view2d.js';
 export const ColorFlags = {
   SELECT   : 1,
   ACTIVE   : 2,
-  HIGHLIGHT: 4
+  HIGHLIGHT: 4,
 };
 
 /* The eight SELECT/ACTIVE/HIGHLIGHT combinations.  FlagMap and the two color
    tables below are all keyed by exactly these, which is what lets the loops
    that build the colormaps walk one and index another. */
 export const ColorStates = [
-  "UNSELECT", "SELECT", "ACTIVE", "HIGHLIGHT", "SELECT_ACTIVE",
-  "SELECT_HIGHLIGHT", "HIGHLIGHT_ACTIVE", "SELECT_HIGHLIGHT_ACTIVE"
+  "UNSELECT",
+  "SELECT",
+  "ACTIVE",
+  "HIGHLIGHT",
+  "SELECT_ACTIVE",
+  "SELECT_HIGHLIGHT",
+  "HIGHLIGHT_ACTIVE",
+  "SELECT_HIGHLIGHT_ACTIVE",
 ] as const;
 
-export type ColorStateName = typeof ColorStates[number];
+export type ColorStateName = (typeof ColorStates)[number];
 
-export const FlagMap : Record<ColorStateName, number> = {
+export const FlagMap: Record<ColorStateName, number> = {
   UNSELECT               : 0,
   SELECT                 : ColorFlags.SELECT,
   ACTIVE                 : ColorFlags.ACTIVE,
@@ -58,22 +88,22 @@ export const FlagMap : Record<ColorStateName, number> = {
   SELECT_ACTIVE          : ColorFlags.SELECT | ColorFlags.ACTIVE,
   SELECT_HIGHLIGHT       : ColorFlags.SELECT | ColorFlags.HIGHLIGHT,
   HIGHLIGHT_ACTIVE       : ColorFlags.HIGHLIGHT | ColorFlags.ACTIVE,
-  SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT | ColorFlags.ACTIVE | ColorFlags.HIGHLIGHT
+  SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT | ColorFlags.ACTIVE | ColorFlags.HIGHLIGHT,
 };
 
 /* Componentwise lerp of two rgb triples. */
-function mix(a : number[], b : number[], t : number) {
+function mix(a: number[], b: number[], t: number) {
   let ret = [0, 0, 0];
 
   for (let i = 0; i < 3; i++) {
-    ret[i] = a[i] + (b[i] - a[i])*t;
+    ret[i] = a[i] + (b[i] - a[i]) * t;
   }
 
   return ret;
 }
 
 //unnest table
-export const ElementColor : Record<ColorStateName, number[]> = {
+export const ElementColor: Record<ColorStateName, number[]> = {
   UNSELECT               : [1, 0.133, 0.07],
   SELECT                 : [1, 0.6, 0.26],
   HIGHLIGHT              : [1, 0.93, 0.4],
@@ -81,10 +111,10 @@ export const ElementColor : Record<ColorStateName, number[]> = {
   SELECT_ACTIVE          : mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7),
   SELECT_HIGHLIGHT       : [1, 1, 0.8],
   HIGHLIGHT_ACTIVE       : mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5),
-  SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]
+  SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0],
 };
 
-export const HandleColor : Record<ColorStateName, number[]> = {
+export const HandleColor: Record<ColorStateName, number[]> = {
   UNSELECT               : [0.2, 0.7, 0.07],
   SELECT                 : [0.1, 1, 0.26],
   HIGHLIGHT              : [0.2, 0.93, 0.4],
@@ -92,16 +122,22 @@ export const HandleColor : Record<ColorStateName, number[]> = {
   SELECT_ACTIVE          : mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7),
   SELECT_HIGHLIGHT       : [1, 1, 0.8],
   HIGHLIGHT_ACTIVE       : mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5),
-  SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]
+  SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0],
 };
 HandleColor.SELECT_ACTIVE = mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5);
 HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.5);
 HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
-HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
+HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(
+  mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5),
+  HandleColor.HIGHLIGHT,
+  0.5
+);
 
-function rgb2css(color : number[]) {
-  let r = color[0], g = color[1], b = color[2];
-  return "rgb(" + (~~(r*255)) + "," + (~~(g*255)) + "," + (~~(b*255)) + ")";
+function rgb2css(color: number[]) {
+  let r = color[0],
+    g = color[1],
+    b = color[2];
+  return "rgb(" + ~~(r * 255) + "," + ~~(g * 255) + "," + ~~(b * 255) + ")";
 }
 
 //create final lookup table
@@ -121,7 +157,7 @@ for (let k of ColorStates) {
 
 /* Which of the SELECT/ACTIVE/HIGHLIGHT bits `e` has, as an index into the two
    colormaps above. */
-function get_element_flag<T extends SplineElement>(e : T, list : ElementArray<T>) {
+function get_element_flag<T extends SplineElement>(e: T, list: ElementArray<T>) {
   let f = 0;
 
   f |= e.flag & SplineFlags.SELECT ? ColorFlags.SELECT : 0;
@@ -131,27 +167,24 @@ function get_element_flag<T extends SplineElement>(e : T, list : ElementArray<T>
   return f;
 }
 
-export function get_element_color<T extends SplineElement>(e : T, list : ElementArray<T>) {
-  if (e.type == SplineTypes.HANDLE)
-    return handle_colormap[get_element_flag(e, list)];
-  else
-    return element_colormap[get_element_flag(e, list)];
+export function get_element_color<T extends SplineElement>(e: T, list: ElementArray<T>) {
+  if (e.type == SplineTypes.HANDLE) return handle_colormap[get_element_flag(e, list)];
+  else return element_colormap[get_element_flag(e, list)];
 }
-
 
 const VERT_SIZE = 3.0;
 const SMALL_VERT_SIZE = 1.0;
 
-import {SplineDrawer} from './spline_draw_new.js';
-import {redo_draw_sort} from './spline_draw_sort.js';
-import {Vector2} from '../util/vectormath.js';
+import { SplineDrawer } from "./spline_draw_new.js";
+import { redo_draw_sort } from "./spline_draw_sort.js";
+import { Vector2 } from "../util/vectormath.js";
 
-export * from './spline_draw_sort';
+export * from "./spline_draw_sort";
 
 /* NOTE: `g.strokeColor` below is not a canvas property -- the assignment is a
    no-op and the normals draw in whatever stroke style was already set.  The
    canvas spelling is strokeStyle. */
-export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number) {
+export function draw_curve_normals(spline: Spline, g: Canvas2D, zoom: number) {
   for (let seg of spline.segments) {
     if (seg.v1.hidden || seg.v2.hidden) continue;
     //if (seg.hidden) continue;
@@ -163,19 +196,20 @@ export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number)
     //prevent infinite loops caused by degenerate infinite-length curves
     if (length > DRAW_MAXCURVELEN) length = DRAW_MAXCURVELEN;
 
-    let ls = 0.0, dls = 5/zoom;
+    let ls = 0.0,
+      dls = 5 / zoom;
 
     for (ls = 0; ls < length; ls += dls) {
-      let s = ls/length;
+      let s = ls / length;
       if (s > 1.0) continue;
 
       let co = seg.evaluate(s);
       let n = seg.normal(s).normalize();
       let k = seg.curvature(s);
 
-      n.mulScalar(k*(window._d != undefined ? window._d : 1000)/zoom);
+      n.mulScalar((k * (window._d != undefined ? window._d : 1000)) / zoom);
 
-      g.lineWidth = 1;//*zoom;
+      g.lineWidth = 1; //*zoom;
 
       /* NOTE: there is no `strokeColor` on a 2d context -- it is strokeStyle --
          and "%2233bb" is not a color either, so this debug overlay has always
@@ -190,21 +224,29 @@ export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number)
   }
 }
 
-
 /* Draws the spline's faces and strokes through the SplineDrawer, then the
    editing overlay -- segment outlines, handles and vertices -- straight onto
    `g`.  Returns the drawer's promise.
 
    `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
    rects.  `alpha` is forwarded to nothing and unused here. */
-export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas2D,
-                            editor : View2DHandler, matrix : Matrix4, selectmode : number,
-                            only_render : number | boolean, draw_normals : number | boolean,
-                            alpha : number, draw_time_helpers? : boolean, curtime? : number,
-                            ignore_layers? : boolean) {
+export function draw_spline(
+  spline: Spline,
+  redraw_rects: number[],
+  g: Canvas2D,
+  editor: View2DHandler,
+  matrix: Matrix4,
+  selectmode: number,
+  only_render: number | boolean,
+  draw_normals: number | boolean,
+  alpha: number,
+  draw_time_helpers?: boolean,
+  curtime?: number,
+  ignore_layers?: boolean
+) {
   spline.canvas = g;
 
-  if (spline.drawlist === undefined || (spline.recalc & RecalcFlags.DRAWSORT)) {
+  if (spline.drawlist === undefined || spline.recalc & RecalcFlags.DRAWSORT) {
     redo_draw_sort(spline);
   }
 
@@ -219,15 +261,24 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
      change every line width and vertex size this function draws. */
   let zoom = 1.0;
 
-
-  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix,
-    redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers,
-    editor.draw_stroke_debug);
+  spline.drawer.update(
+    spline,
+    spline.drawlist,
+    spline.draw_layerlist,
+    matrix,
+    redraw_rects,
+    only_render,
+    selectmode,
+    g,
+    zoom,
+    editor,
+    ignore_layers,
+    editor.draw_stroke_debug
+  );
 
   let promise = spline.drawer.draw(editor.drawg);
 
   let actlayer = spline.layerset.active;
-
 
   /*
     matrix = new Matrix4(matrix);
@@ -243,10 +294,12 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
 
   //*/
 
-  if (!only_render && draw_normals)
-    draw_curve_normals(spline, g, zoom);
+  if (!only_render && draw_normals) draw_curve_normals(spline, g, zoom);
 
-  let r = [[0, 0], [0, 0]];
+  let r = [
+    [0, 0],
+    [0, 0],
+  ];
 
   for (let s of spline.segments) {
     s.flag &= ~SplineFlags.DRAW_TEMP;
@@ -257,39 +310,43 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
 
   let vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
 
-  if (only_render)
-    return promise;
+  if (only_render) return promise;
 
   //draw element handles
 
   let tmp1 = new Vector2();
   let tmp2 = new Vector2();
-  let last_clr : string | undefined = undefined;
+  let last_clr: string | undefined = undefined;
 
   g.beginPath();
   if (selectmode & SelMask.SEGMENT) {
     let dv = new Vector2();
 
     for (let seg of spline.segments) {
-      let skip = (!ignore_layers && !seg.in_layer(actlayer));
+      let skip = !ignore_layers && !seg.in_layer(actlayer);
       skip = skip || (seg.flag & SplineFlags.HIDE) !== 0;
-      skip = skip || (!(seg.flag & SplineFlags.SELECT) && seg !== spline.segments.active && seg !== spline.segments.highlight);
+      skip =
+        skip ||
+        (!(seg.flag & SplineFlags.SELECT) &&
+          seg !== spline.segments.active &&
+          seg !== spline.segments.highlight);
 
       if (skip) {
         continue;
       }
 
-      let steps = seg.length/24;
+      let steps = seg.length / 24;
       steps = Math.min(Math.max(steps, 3), 64);
       steps = isNaN(steps) ? 3 : steps;
 
-      let s = 0, ds = 1.0/(steps - 1);
+      let s = 0,
+        ds = 1.0 / (steps - 1);
 
       g.beginPath();
 
       for (let side = 0; side < 2; side++) {
         /* Written but never read. */
-        let lastp : Vector2 | undefined = undefined;
+        let lastp: Vector2 | undefined = undefined;
 
         for (let i = 0; i < steps; i++, s += ds) {
           let p = seg.evaluateSide(s, side, dv);
@@ -317,39 +374,36 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
 
   g.beginPath();
   if (selectmode & SelMask.HANDLE) {
-    let w = vert_size*g.canvas.dpi_scale/zoom;
+    let w = (vert_size * g.canvas.dpi_scale) / zoom;
 
     for (let v of spline.handles) {
       let clr = get_element_color(v, spline.handles);
 
-      if (!ignore_layers && !v.owning_segment.in_layer(actlayer))
-        continue;
-      if (v.owning_segment !== undefined && (v.owning_segment.flag & SplineFlags.HIDE))
-        continue;
-      if (v.owning_vertex !== undefined && (v.owning_vertex.flag & SplineFlags.HIDE))
-        continue;
-      if (!v.use)
-        continue;
+      if (!ignore_layers && !v.owning_segment.in_layer(actlayer)) continue;
+      if (v.owning_segment !== undefined && v.owning_segment.flag & SplineFlags.HIDE) continue;
+      if (v.owning_vertex !== undefined && v.owning_vertex.flag & SplineFlags.HIDE) continue;
+      if (!v.use) continue;
 
-      if ((v.flag & SplineFlags.AUTO_PAIRED_HANDLE) && v.hpair !== undefined && (v.segments.length > 2)) {
+      if (
+        v.flag & SplineFlags.AUTO_PAIRED_HANDLE &&
+        v.hpair !== undefined &&
+        v.segments.length > 2
+      ) {
         continue;
       }
 
-      if (v.flag & SplineFlags.HIDE)
-        continue;
-
+      if (v.flag & SplineFlags.HIDE) continue;
 
       tmp1.load(v).multVecMatrix(matrix);
 
       g.beginPath();
-      if (clr !== last_clr)
-        g.fillStyle = clr;
+      if (clr !== last_clr) g.fillStyle = clr;
       last_clr = clr;
-      g.rect(tmp1[0] - w, tmp1[1] - w, w*2, w*2);
-      g.fill()
+      g.rect(tmp1[0] - w, tmp1[1] - w, w * 2, w * 2);
+      g.fill();
 
       g.beginPath();
-      g.lineWidth = 1;//*zoom;
+      g.lineWidth = 1; //*zoom;
 
       let ov = v.owning_segment.handle_vertex(v);
 
@@ -369,16 +423,14 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
   }
 
   if (selectmode & SelMask.VERTEX) {
-    let w = vert_size*g.canvas.dpi_scale/zoom;
+    let w = (vert_size * g.canvas.dpi_scale) / zoom;
 
     for (let i = 0; i < spline.verts.length; i++) {
       let v = spline.verts[i];
       let clr = get_element_color(v, spline.verts);
 
-      if (!ignore_layers && !v.in_layer(actlayer))
-        continue;
+      if (!ignore_layers && !v.in_layer(actlayer)) continue;
       if (v.flag & SplineFlags.HIDE) continue;
-
 
       let co = tmp1.load(v);
       co.multVecMatrix(matrix);
@@ -389,19 +441,18 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
         if (curtime === time) {
           g.beginPath();
           g.fillStyle = "#33ffaa";
-          g.rect(co[0] - w*2, co[1] - w*2, w*4, w*4);
-          g.fill()
+          g.rect(co[0] - w * 2, co[1] - w * 2, w * 4, w * 4);
+          g.fill();
           g.fillStyle = clr;
         }
       }
 
       g.beginPath();
-      if (clr !== last_clr)
-        g.fillStyle = clr;
+      if (clr !== last_clr) g.fillStyle = clr;
 
       last_clr = clr;
-      g.rect(co[0] - w, co[1] - w, w*2, w*2);
-      g.fill()
+      g.rect(co[0] - w, co[1] - w, w * 2, w * 2);
+      g.fill();
     }
   }
 
@@ -420,7 +471,7 @@ let __aabb = [new Vector2(), new Vector2()];
 
 /* Flags `e` for redraw and tells the viewport to repaint its bounding box,
    grown by a fixed screen-space margin. */
-export function redraw_element(e : SplineElement, view2d? : View2DHandler) {
+export function redraw_element(e: SplineElement, view2d?: View2DHandler) {
   let margin = __margin;
   let aabb = __aabb;
 
@@ -428,8 +479,7 @@ export function redraw_element(e : SplineElement, view2d? : View2DHandler) {
 
   margin[0] = margin[1] = 15.0;
 
-  if (view2d !== undefined)
-    margin.mulScalar(1.0/view2d.zoom);
+  if (view2d !== undefined) margin.mulScalar(1.0 / view2d.zoom);
 
   let e_aabb = e.aabb;
 

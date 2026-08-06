@@ -5,53 +5,53 @@
    this file used to re-assign it from outside; ESM namespaces are sealed, so
    that is now both unnecessary and a strict-mode TypeError. */
 
-import '../editors/all.js';
+import "../editors/all.js";
 
-import * as platform from '../../platforms/platform.js';
+import * as platform from "../../platforms/platform.js";
 
-import * as electron_api from '../path.ux/scripts/platforms/electron/electron_api.js';
-import {ToolStack} from './toolstack.js';
+import * as electron_api from "../path.ux/scripts/platforms/electron/electron_api.js";
+import { ToolStack } from "./toolstack.js";
 
 if (window.haveElectron) {
   electron_api.checkInit();
 }
 
-import * as theme from '../editors/theme.js';
+import * as theme from "../editors/theme.js";
 
-import * as config from '../config/config.js';
-import * as html5_fileapi from './fileapi/fileapi.js';
+import * as config from "../config/config.js";
+import * as html5_fileapi from "./fileapi/fileapi.js";
 
-import {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
+import { FullContext, BaseContext, BaseContextOverlay } from "./context.js";
 
-import {makeAPI} from './data_api/data_api_define.js';
+import { makeAPI } from "./data_api/data_api_define.js";
 
-export {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
-import {BlockTypeMap} from './lib_api.js';
-import {SplineFrameSet} from "./frameset.js";
-import {ConsoleEditor} from '../editors/console/console.js';
-import {CurveEditor} from '../editors/curve/CurveEditor.js';
-import {OpStackEditor} from '../editors/ops/ops_editor.js';
-import {View2DHandler} from '../editors/viewport/view2d.js';
-import {MaterialEditor} from "../editors/material/MaterialEditor.js";
-import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
-import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
-import {MenuBar} from '../editors/menubar/MenuBar.js';
-import {registerToolStackGetter} from '../path.ux/scripts/screen/FrameManager_ops.js';
-import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
+export { FullContext, BaseContext, BaseContextOverlay } from "./context.js";
+import { BlockTypeMap } from "./lib_api.js";
+import { SplineFrameSet } from "./frameset.js";
+import { ConsoleEditor } from "../editors/console/console.js";
+import { CurveEditor } from "../editors/curve/CurveEditor.js";
+import { OpStackEditor } from "../editors/ops/ops_editor.js";
+import { View2DHandler } from "../editors/viewport/view2d.js";
+import { MaterialEditor } from "../editors/material/MaterialEditor.js";
+import { DopeSheetEditor } from "../editors/dopesheet/DopeSheetEditor.js";
+import { SettingsEditor } from "../editors/settings/SettingsEditor.js";
+import { MenuBar } from "../editors/menubar/MenuBar.js";
+import { registerToolStackGetter } from "../path.ux/scripts/screen/FrameManager_ops.js";
+import { FairmotionScreen, resetAreaStacks } from "../editors/editor_base.js";
 
-import {iconmanager, setIconMap, setTheme} from '../path.ux/scripts/core/ui_base.js';
-import {Editor} from '../editors/editor_base.js';
+import { iconmanager, setIconMap, setTheme } from "../path.ux/scripts/core/ui_base.js";
+import { Editor } from "../editors/editor_base.js";
 
-import cconst from '../path.ux/scripts/config/const.js';
-import {termColor} from '../path.ux/scripts/util/util.js';
+import cconst from "../path.ux/scripts/config/const.js";
+import { termColor } from "../path.ux/scripts/util/util.js";
 
-import {USE_PATHUX_API} from './const.js';
+import { USE_PATHUX_API } from "./const.js";
 
-import {Area} from '../path.ux/scripts/screen/ScreenArea.js';
+import { Area } from "../path.ux/scripts/screen/ScreenArea.js";
 
 Area.prototype.getScreen = () => {
   return g_app_state.screen;
-}
+};
 
 registerToolStackGetter(() => {
   return g_app_state.toolstack;
@@ -59,21 +59,20 @@ registerToolStackGetter(() => {
 
 //can't I have the screen area registration code generate this for me?
 export let AreaTypes = {
-  VIEW2D: View2DHandler,
-  SETTINGS: SettingsEditor,
-  OPSTACK: OpStackEditor,
-  MATERIAL: MaterialEditor,
+  VIEW2D   : View2DHandler,
+  SETTINGS : SettingsEditor,
+  OPSTACK  : OpStackEditor,
+  MATERIAL : MaterialEditor,
   DOPESHEET: DopeSheetEditor,
-  CURVE: CurveEditor,
-  MENUBAR: MenuBar
+  CURVE    : CurveEditor,
+  MENUBAR  : MenuBar,
 };
 
-import {setAreaTypes} from "../path.ux/scripts/screen/ScreenArea.js";
+import { setAreaTypes } from "../path.ux/scripts/screen/ScreenArea.js";
 
 setAreaTypes(AreaTypes);
 
-import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
-
+import { Screen } from "../path.ux/scripts/screen/FrameManager.js";
 
 export function get_app_div() {
   let app = document.getElementById("app");
@@ -143,57 +142,74 @@ export function gen_screen(unused: undefined, w: int, h: int): void {
   screen.listen();
 }
 
-import './startup/startup_file_example.js';
-import {startup_file} from './startup/startup_file.js';
+import "./startup/startup_file_example.js";
+import { startup_file } from "./startup/startup_file.js";
 
 //$XXX import {gen_screen} from 'FrameManager';
-import {wrap_getblock, wrap_getblock_us} from './lib_utils.js';
+import { wrap_getblock, wrap_getblock_us } from "./lib_utils.js";
 //$XXX import {UICanvas} from 'UICanvas';
-import {urlencode, b64decode, b64encode} from '../util/strutils.js';
-import {BasicFileOp} from '../editors/viewport/view2d_ops.js';
-import {AppSettings} from './UserSettings.js';
-import {RasterState} from './raster.js';
-import {NotificationManager} from './notifications.js';
-import {ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
-import {DataLib, DataBlock, DataRef, DataTypes} from './lib_api.js';
-import type {GetBlockFunc, GetBlockUserFunc} from './lib_api.js';
-import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from './toolops_api.js';
-import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from './toolprops.js';
-import {Scene} from '../scene/scene.js';
+import { urlencode, b64decode, b64encode } from "../util/strutils.js";
+import { BasicFileOp } from "../editors/viewport/view2d_ops.js";
+import { AppSettings } from "./UserSettings.js";
+import { RasterState } from "./raster.js";
+import { NotificationManager } from "./notifications.js";
+import { ScreenArea } from "../path.ux/scripts/screen/ScreenArea.js";
+import { DataLib, DataBlock, DataRef, DataTypes } from "./lib_api.js";
+import type { GetBlockFunc, GetBlockUserFunc } from "./lib_api.js";
+import { ToolMacro, ToolOp, UndoFlags, ToolFlags } from "./toolops_api.js";
+import { PropTypes, TPropFlags, StringProperty, CollectionProperty } from "./toolprops.js";
+import { Scene } from "../scene/scene.js";
 /* Used bare by load_blocks() to deserialize THME blocks; the import was
    missing, which under the bundle is a ReferenceError, not a no-op. */
-import {Theme} from '../datafiles/theme.js';
-import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
-import type {Spline} from '../curve/spline.js';
-import type {SavedContextProperty} from './context.js';
-import {structReadObject} from './struct_facade.js';
-import {getAreaConstructor} from '../path.ux/scripts/screen/area_base.js';
-import type {DataAPI} from '../path.ux/scripts/pathux.js';
+import { Theme } from "../datafiles/theme.js";
+import { SplineTypes, SplineFlags } from "../curve/spline_base.js";
+import type { Spline } from "../curve/spline.js";
+import type { SavedContextProperty } from "./context.js";
+import { structReadObject } from "./struct_facade.js";
+import { getAreaConstructor } from "../path.ux/scripts/screen/area_base.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
 
 import {
-  pack_byte, pack_short, pack_int, pack_float,
-  pack_double, pack_vec2, pack_vec3, pack_vec4,
-  pack_mat4, pack_quat, pack_dataref, pack_string,
-  pack_static_string, unpack_byte, unpack_short,
-  unpack_int, unpack_float, unpack_double, unpack_vec2,
-  unpack_vec3, unpack_vec4, unpack_mat4, unpack_quat,
-  unpack_dataref, unpack_string, unpack_static_string,
-  unpack_bytes, unpack_ctx
-} from './ajax.js';
+  pack_byte,
+  pack_short,
+  pack_int,
+  pack_float,
+  pack_double,
+  pack_vec2,
+  pack_vec3,
+  pack_vec4,
+  pack_mat4,
+  pack_quat,
+  pack_dataref,
+  pack_string,
+  pack_static_string,
+  unpack_byte,
+  unpack_short,
+  unpack_int,
+  unpack_float,
+  unpack_double,
+  unpack_vec2,
+  unpack_vec3,
+  unpack_vec4,
+  unpack_mat4,
+  unpack_quat,
+  unpack_dataref,
+  unpack_string,
+  unpack_static_string,
+  unpack_bytes,
+  unpack_ctx,
+} from "./ajax.js";
 
 //include "src/config/config_defines.js"
 
 //#ifdef PACK_PROFILE
-import {
-  profile_reset, profile_report, gen_struct_str,
-  STRUCT
-} from './struct.js';
+import { profile_reset, profile_report, gen_struct_str, STRUCT } from "./struct.js";
 //#endif
 
 /* Publishes window.__fm for playwright and cdp.mjs. */
-import './debug_api.js';
+import "./debug_api.js";
 
-export let FileFlags = {COMPRESSED_LZSTRING: 1};
+export let FileFlags = { COMPRESSED_LZSTRING: 1 };
 
 /*
  * One block as read off disk. `type` is the 4-char block id (BLCK, SCRN, DLIB,
@@ -219,8 +235,7 @@ export class FileData {
   fstructs: import("nstructjs").STRUCT;
   version: number;
 
-  constructor(blocks: FileBlock[], fstructs: import("nstructjs").STRUCT,
-              version: number) {
+  constructor(blocks: FileBlock[], fstructs: import("nstructjs").STRUCT, version: number) {
     this.blocks = blocks;
     this.fstructs = fstructs;
     this.version = version;
@@ -290,7 +305,7 @@ function patchScreen(appstate: AppState, fstructs: import("nstructjs").STRUCT, d
 
     structName: "Screen",
     name      : "Screen",
-    prototype : Object.create(Object.prototype)
+    prototype : Object.create(Object.prototype),
   };
 
   let sdata = structReadObject<PatchedScreen>(fstructs, data, fakeclass);
@@ -332,7 +347,7 @@ function patchScreen(appstate: AppState, fstructs: import("nstructjs").STRUCT, d
 /* A UserSession as it round-trips through localStorage: fields only, and
    .settings is discarded on read in favour of a fresh AppSettings.load(). */
 interface UserSessionJSON {
-  tokens: {[name: string]: string};
+  tokens: { [name: string]: string };
   username: string;
   password: string;
   is_logged_in: boolean;
@@ -341,11 +356,11 @@ interface UserSessionJSON {
 
 //truly ancient class, from AllShape.
 class UserSession {
-  tokens: {[name: string]: string}
-  username: string
-  password: string
-  is_logged_in: boolean
-  loaded_settings: boolean
+  tokens: { [name: string]: string };
+  username: string;
+  password: string;
+  is_logged_in: boolean;
+  loaded_settings: boolean;
   settings: AppSettings;
   /* AllShape's server-side account id. Nothing sets it any more. */
   userid?: string;
@@ -405,7 +420,7 @@ class UserSession {
   }
 
   static fromJSON(obj: UserSessionJSON) {
-    let us = new UserSession;
+    let us = new UserSession();
 
     us.tokens = obj.tokens;
     us.username = obj.username;
@@ -439,8 +454,7 @@ let load_default_file = function (g: AppState, size: int[] = [512, 512]): boolea
   for (let i = 0; i < 2; i++) {
     let file = i == 0 ? myLocalStorage.getCached("startup_file") : startup_file;
 
-    if (file)
-      file = file.trim().replace(/[\n\r]/g, "");
+    if (file) file = file.trim().replace(/[\n\r]/g, "");
 
     if (file) {
       //try {
@@ -491,17 +505,17 @@ window.gen_default_file = function gen_default_file(size = [512, 512], force_new
 
   //now create screen
   gen_screen(undefined, size[0], size[1]);
-}
+};
 
 function output_startup_file(): string {
   /* NOTE: a failed chrome.storage read caches null here, which used to make
      the loop below throw on str.length. */
   let str = myLocalStorage.getCached("startup_file") ?? "";
-  let out = ""
+  let out = "";
 
   for (let i = 0; i < str.length; i++) {
     out += str[i];
-    if (((i + 1) % 77) === 0) {
+    if ((i + 1) % 77 === 0) {
       out += "\n";
     }
   }
@@ -530,7 +544,7 @@ export interface FileWriteArgs {
 /* write_blocks() takes an explicit map of 4-char block IDs to objects instead
    of pulling them off the app state. */
 export interface BlockWriteArgs extends FileWriteArgs {
-  blocks: {[fourCharId: string]: object};
+  blocks: { [fourCharId: string]: object };
 }
 
 export class AppState {
@@ -580,7 +594,7 @@ export class AppState {
 
   /* Last-used inputs per tool class name, keyed by ToolOp constructor name.
      Shared across resets, hence the module-level object. */
-  toolop_input_cache!: {[toolClassName: string]: unknown};
+  toolop_input_cache!: { [toolClassName: string]: unknown };
 
   /* Cleared by link_blocks() and never read; the active scene lives in the
      datalib. Declared only because that assignment is still there. */
@@ -606,7 +620,7 @@ export class AppState {
     this.active_editor = undefined;
 
     this.select_multiple = false; //basically, this is shift key emulation for tablets
-    this.select_inverse = false;  //same as select_mutiple
+    this.select_inverse = false; //same as select_mutiple
 
     this._last_touch_mpos = [0, 0];
     this.notes = new NotificationManager();
@@ -622,7 +636,7 @@ export class AppState {
     this.api = makeAPI();
     this.pathcontroller = this.api;
 
-    this.filepath = ""
+    this.filepath = "";
     this.version = g_app_version;
     this.size = screen !== undefined ? screen.size : new Vector2([512, 512]);
     this.raster = new RasterState(undefined, screen !== undefined ? screen.size : [512, 512]);
@@ -640,7 +654,8 @@ export class AppState {
       if (myLocalStorage.hasCached("session")) {
         try {
           this.session = UserSession.fromJSON(
-            JSON.parse(myLocalStorage.getCached("session") ?? "null"));
+            JSON.parse(myLocalStorage.getCached("session") ?? "null")
+          );
         } catch (error) {
           print_stack(error);
           console.log("Error loading json session object:", myLocalStorage.getCached("session"));
@@ -688,8 +703,7 @@ export class AppState {
 
     //console.log("SPATH 1", scene !== undefined ? scene.active_splinepath : "");
 
-    if (scene instanceof Scene)
-      return scene.active_splinepath;
+    if (scene instanceof Scene) return scene.active_splinepath;
 
     //console.log("SPATH 2");
 
@@ -702,8 +716,7 @@ export class AppState {
     //console.trace(val);
 
     let scene = this.datalib.get_active(DataTypes.SCENE);
-    if (scene instanceof Scene)
-      scene.active_splinepath = val;
+    if (scene instanceof Scene) scene.active_splinepath = val;
   }
 
   destroy() {
@@ -744,8 +757,7 @@ export class AppState {
     window.active_canvases = {};
 
     try {
-      if (this.screen !== undefined)
-        this.destroyScreen();
+      if (this.screen !== undefined) this.destroyScreen();
     } catch (error) {
       print_stack(error);
       console.log("ERROR: failed to fully destroy screen context");
@@ -767,10 +779,10 @@ export class AppState {
 
   set_startup_file() {
     let buf = this.create_user_file_new({
-      gen_dataview: true,
-      compress: true,
-      save_theme: false,
-      save_toolstack: false
+      gen_dataview  : true,
+      compress      : true,
+      save_theme    : false,
+      save_toolstack: false,
     });
 
     //gen_dataview above means this is always the DataView branch
@@ -796,8 +808,8 @@ export class AppState {
   //file minus ui data, used by BasicFileDataOp
   create_scene_file() {
     let buf = this.create_user_file_new({
-      save_screen: false,
-      save_toolstack: false
+      save_screen   : false,
+      save_toolstack: false,
     });
 
     return buf;
@@ -805,8 +817,8 @@ export class AppState {
 
   create_undo_file() {
     let buf = this.create_user_file_new({
-      save_screen: false,
-      save_toolstack: false
+      save_screen   : false,
+      save_toolstack: false,
     });
 
     return buf;
@@ -816,8 +828,7 @@ export class AppState {
   //is a root toolop that stores
   //saved data
   load_scene_file(scenefile: DataView) {
-    if (the_global_dag !== undefined)
-      the_global_dag.reset_cache();
+    if (the_global_dag !== undefined) the_global_dag.reset_cache();
 
     let screen = this.screen;
     let toolstack = this.toolstack;
@@ -850,8 +861,7 @@ export class AppState {
     this.toolstack = toolstack;
     this.screen.ctx = this.ctx = new FullContext();
 
-    if (the_global_dag !== undefined)
-      the_global_dag.reset_cache();
+    if (the_global_dag !== undefined) the_global_dag.reset_cache();
     window.redraw_viewport();
   }
 
@@ -907,30 +917,29 @@ export class AppState {
   */
   /* Every caller leaves gen_dataview at its default of true, so that case gets
      a concrete DataView back rather than the three-way union. */
-  create_user_file_new(args?: FileWriteArgs & {gen_dataview?: true}): DataView<ArrayBuffer>;
-  create_user_file_new(args: FileWriteArgs): DataView<ArrayBuffer> | Uint8Array<ArrayBuffer> | byte[];
+  create_user_file_new(args?: FileWriteArgs & { gen_dataview?: true }): DataView<ArrayBuffer>;
+  create_user_file_new(
+    args: FileWriteArgs
+  ): DataView<ArrayBuffer> | Uint8Array<ArrayBuffer> | byte[];
   create_user_file_new(args: FileWriteArgs = {}) {
-    let gen_dataview = true, compress = false;
-    let save_screen = true, save_toolstack = false;
-    let save_theme = false, save_datalib = true;
+    let gen_dataview = true,
+      compress = false;
+    let save_screen = true,
+      save_toolstack = false;
+    let save_theme = false,
+      save_datalib = true;
 
-    if (args.save_datalib !== undefined)
-      save_datalib = args.save_datalib;
+    if (args.save_datalib !== undefined) save_datalib = args.save_datalib;
 
-    if (args.gen_dataview !== undefined)
-      gen_dataview = args.gen_dataview;
+    if (args.gen_dataview !== undefined) gen_dataview = args.gen_dataview;
 
-    if (args.compress !== undefined)
-      compress = args.compress;
+    if (args.compress !== undefined) compress = args.compress;
 
-    if (args.save_screen !== undefined)
-      save_screen = args.save_screen;
+    if (args.save_screen !== undefined) save_screen = args.save_screen;
 
-    if (args.save_toolstack !== undefined)
-      save_toolstack = args.save_toolstack;
+    if (args.save_toolstack !== undefined) save_toolstack = args.save_toolstack;
 
-    if (args.save_theme !== undefined)
-      save_theme = args.save_theme;
+    if (args.save_theme !== undefined) save_theme = args.save_theme;
 
     function bheader(data: byte[], type: string, subtype: string) {
       pack_static_string(data, type, 4);
@@ -966,23 +975,23 @@ export class AppState {
     pack_string(data, buf);
 
     //reset struct profiler, if its enabled
-//#ifdef PACK_PROFILE
+    //#ifdef PACK_PROFILE
     profile_reset();
-//#endif
+    //#endif
 
     //save datalib data, note that data blocks are saved independently
     if (save_datalib) {
       let data2: byte[] = [];
 
       istruct.write_object(data2, this.datalib);
-      bheader(data, "DLIB", "STRT")
+      bheader(data, "DLIB", "STRT");
       pack_int(data, data2.length);
       data = data.concat(data2);
     }
 
     if (save_screen) {
       //write screen block
-      let data2: byte[] = []
+      let data2: byte[] = [];
       istruct.write_object(data2, this.screen);
 
       bheader(data, "SCRN", "STRT");
@@ -1013,9 +1022,9 @@ export class AppState {
       }
     }
 
-//#ifdef PACK_PROFILE
+    //#ifdef PACK_PROFILE
     profile_report();
-//#endif
+    //#endif
 
     if (save_toolstack) {
       console.log("writing toolstack");
@@ -1050,7 +1059,7 @@ export class AppState {
       let d = new Uint8Array(d16.buffer);
       console.log("  file size", d.length);
 
-      let out = new Uint8Array(d.length + headerdata.length)
+      let out = new Uint8Array(d.length + headerdata.length);
       for (let i = 0; i < headerdata.length; i++) {
         out[i] = headerdata[i];
       }
@@ -1058,17 +1067,13 @@ export class AppState {
         out[i + headerdata.length] = d[i];
       }
 
-      if (gen_dataview)
-        return new DataView(out.buffer);
-      else
-        return out;
+      if (gen_dataview) return new DataView(out.buffer);
+      else return out;
     } else {
       console.log("  file size", data.length);
 
-      if (gen_dataview)
-        return new DataView(new Uint8Array(data).buffer);
-      else
-        return data;
+      if (gen_dataview) return new DataView(new Uint8Array(data).buffer);
+      else return data;
     }
   }
 
@@ -1076,19 +1081,18 @@ export class AppState {
   //STRUCT-compatible objects.
   /* Both callers leave gen_dataview at its default of true, so that case gets
      a concrete DataView back rather than the three-way union. */
-  write_blocks(args: BlockWriteArgs & {gen_dataview?: true}): DataView<ArrayBuffer>;
+  write_blocks(args: BlockWriteArgs & { gen_dataview?: true }): DataView<ArrayBuffer>;
   write_blocks(args: BlockWriteArgs): DataView<ArrayBuffer> | Uint8Array<ArrayBuffer> | byte[];
   write_blocks(args: BlockWriteArgs) {
-    let gen_dataview = true, compress = false;
+    let gen_dataview = true,
+      compress = false;
     let save_screen = args.save_screen !== undefined ? args.save_screen : true;
     let save_toolstack = args.save_toolstack !== undefined ? args.save_toolstack : false;
     let save_theme = false;
     let blocks = args["blocks"];
 
-    if (args.gen_dataview !== undefined)
-      gen_dataview = args.gen_dataview;
-    if (args.compress !== undefined)
-      compress = args.compress;
+    if (args.gen_dataview !== undefined) gen_dataview = args.gen_dataview;
+    if (args.compress !== undefined) compress = args.compress;
 
     function bheader(data: byte[], type: string, subtype: string) {
       pack_static_string(data, type, 4);
@@ -1124,7 +1128,7 @@ export class AppState {
     pack_string(data, buf);
 
     for (let k in blocks) {
-      let data2: byte[] = []
+      let data2: byte[] = [];
       istruct.write_object(data2, blocks[k]);
 
       bheader(data, k, "STRT");
@@ -1144,7 +1148,7 @@ export class AppState {
       let d = new Uint8Array(d16.buffer);
       console.log("  file size:", d.length);
 
-      let out = new Uint8Array(d.length + headerdata.length)
+      let out = new Uint8Array(d.length + headerdata.length);
       for (let i = 0; i < headerdata.length; i++) {
         out[i] = headerdata[i];
       }
@@ -1152,17 +1156,13 @@ export class AppState {
         out[i + headerdata.length] = d[i];
       }
 
-      if (gen_dataview)
-        return new DataView(out.buffer);
-      else
-        return out;
+      if (gen_dataview) return new DataView(out.buffer);
+      else return out;
     } else {
       console.log("  file size:", data.length);
 
-      if (gen_dataview)
-        return new DataView(new Uint8Array(data).buffer);
-      else
-        return data;
+      if (gen_dataview) return new DataView(new Uint8Array(data).buffer);
+      else return data;
     }
   }
 
@@ -1197,7 +1197,10 @@ export class AppState {
             let v2 = s.other_vert(v1);
 
             console.log("patching handle!", h.eid);
-            h.load(v2).sub(v1).mulScalar(1.0 / 3.0).add(v1);
+            h.load(v2)
+              .sub(v1)
+              .mulScalar(1.0 / 3.0)
+              .add(v1);
           }
         }
       }
@@ -1244,7 +1247,7 @@ export class AppState {
     }
 
     //spline equation changed, force resolves
-    if (version < 0.050) {
+    if (version < 0.05) {
       for (let frameset of datalib.framesets) {
         startup_warning("Spline equation changed; forcing resolve. . .", version);
 
@@ -1319,9 +1322,8 @@ export class AppState {
       }
     }
 
-
     if (version < 0.053) {
-      let map: {[lib_id: number]: number} = {};
+      let map: { [lib_id: number]: number } = {};
       let max_id = -1;
 
       for (let block of this.datalib.allBlocks) {
@@ -1353,19 +1355,26 @@ export class AppState {
   }
 
   load_path(path_handle: string) {
-    platform.app.openFile(path_handle).then((buf: Uint8Array) => {
-      let dview = new DataView(buf.buffer);
-      this.load_user_file_new(dview, path_handle);
-    }).catch((error: {toString(): string}) => {
-      this.ctx.error(error.toString());
-    });
+    platform.app
+      .openFile(path_handle)
+      .then((buf: Uint8Array) => {
+        let dview = new DataView(buf.buffer);
+        this.load_user_file_new(dview, path_handle);
+      })
+      .catch((error: { toString(): string }) => {
+        this.ctx.error(error.toString());
+      });
   }
 
-  load_user_file_new(data: DataView, path?: string, uctx?: unpack_ctx, use_existing_screen = false) {
+  load_user_file_new(
+    data: DataView,
+    path?: string,
+    uctx?: unpack_ctx,
+    use_existing_screen = false
+  ) {
     //fixes a bug where some files loaded with squished
     //size.  probably need to track down actual cause, though.
-    if (this.screen !== undefined)
-      this.size = new Vector2(this.screen.size);
+    if (this.screen !== undefined) this.size = new Vector2(this.screen.size);
 
     if (uctx === undefined) {
       uctx = new unpack_ctx();
@@ -1386,19 +1395,17 @@ export class AppState {
     let version = version_major + version_minor;
 
     if (file_flag & FileFlags.COMPRESSED_LZSTRING) {
-      if (DEBUG.compression)
-        console.log("decompressing. . .");
+      if (DEBUG.compression) console.log("decompressing. . .");
 
       let d16 = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
-      let s = ""
+      let s = "";
       for (let i = 0; i < d16.length; i++) {
         s += String.fromCharCode(d16[i]);
       }
-      let raw = LZString.decompress(s)
+      let raw = LZString.decompress(s);
 
       let data2 = new Uint8Array(raw.length);
-      if (DEBUG.compression)
-        console.log("uncompressed length: ", raw.length);
+      if (DEBUG.compression) console.log("uncompressed length: ", raw.length);
 
       for (let i = 0; i < raw.length; i++) {
         data2[i] = raw.charCodeAt(i);
@@ -1445,7 +1452,7 @@ export class AppState {
         break;
       }
 
-      blocks.push({type: type, subtype: subtype, len: len, data: bdata});
+      blocks.push({ type: type, subtype: subtype, len: len, data: bdata });
     }
 
     if (datalib === undefined) {
@@ -1464,7 +1471,8 @@ export class AppState {
         if (typeof b.data === "string") {
           b.data = JSON.parse(b.data);
         }
-      } else if (b.subtype === "STRT") { //struct data should only be lib blocks
+      } else if (b.subtype === "STRT") {
+        //struct data should only be lib blocks
         if (b.type === "BLCK") {
           //a BLCK payload is packed as [datablock type id, struct bytes]
           let [dtype, bytes] = b.data as [number, number[]];
@@ -1524,8 +1532,11 @@ export class AppState {
       for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
 
-        if (block.subtype === "STRT" && !_nonblocks.has(block.type) &&
-            block.data instanceof DataBlock) {
+        if (
+          block.subtype === "STRT" &&
+          !_nonblocks.has(block.type) &&
+          block.data instanceof DataBlock
+        ) {
           block.data.data_link(block.data, getblock, getblock_us);
         }
       }
@@ -1612,16 +1623,14 @@ export class AppState {
 
     /* Flattens a macro's members into the two parallel patch lists, so the
        loop below can hand each member the macro's saved context. */
-    function add_macro(p1: ToolOp[], p2: SavedContext[],
-                       tool: ToolOp & ToolMacro<FullContext>) {
+    function add_macro(p1: ToolOp[], p2: SavedContext[], tool: ToolOp & ToolMacro<FullContext>) {
       p1.push(tool);
       p2.push(tool.saved_context!);
 
       /* path.ux types a macro's members with its own ToolOp; everything
          fairmotion puts in a macro is a fairmotion one. */
       for (let t of tool.tools as ToolOp[]) {
-        if (t instanceof ToolMacro)
-          add_macro(p1, p2, t);
+        if (t instanceof ToolMacro) add_macro(p1, p2, t);
 
         t.parent = tool;
 
@@ -1738,19 +1747,17 @@ export class AppState {
     let version = version_major + version_minor;
 
     if (file_flag & FileFlags.COMPRESSED_LZSTRING) {
-      if (DEBUG.compression)
-        console.log("decompressing. . .");
+      if (DEBUG.compression) console.log("decompressing. . .");
 
       let d16 = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
-      let s = ""
+      let s = "";
       for (let i = 0; i < d16.length; i++) {
         s += String.fromCharCode(d16[i]);
       }
-      let raw = LZString.decompress(s)
+      let raw = LZString.decompress(s);
 
       let data2 = new Uint8Array(raw.length);
-      if (DEBUG.compression)
-        console.log("uncompressed length: ", raw.length);
+      if (DEBUG.compression) console.log("uncompressed length: ", raw.length);
 
       for (let i = 0; i < raw.length; i++) {
         data2[i] = raw.charCodeAt(i);
@@ -1787,10 +1794,15 @@ export class AppState {
       } else {
         console.log(subtype, type, uctx.i, data.byteLength);
         console.trace();
-        throw new Error("Unknown block type '" + subtype + "', " + JSON.stringify({subtype: subtype, type: type}));
+        throw new Error(
+          "Unknown block type '" +
+            subtype +
+            "', " +
+            JSON.stringify({ subtype: subtype, type: type })
+        );
       }
 
-      blocks.push({type: type, subtype: subtype, len: len, data: bdata});
+      blocks.push({ type: type, subtype: subtype, len: len, data: bdata });
     }
 
     return new FileData(blocks, fstructs, version);
@@ -1811,7 +1823,8 @@ export class AppState {
         if (typeof b.data === "string") {
           b.data = JSON.parse(b.data);
         }
-      } else if (b.subtype === "STRT") { //struct data should only be lib blocks
+      } else if (b.subtype === "STRT") {
+        //struct data should only be lib blocks
         if (b.type === "BLCK") {
           //a BLCK payload is packed as [datablock type id, struct bytes]
           let [dtype, bytes] = b.data as [number, number[]];
@@ -1843,11 +1856,15 @@ export class AppState {
     for (let i = 0; i < blocks.length; i++) {
       let block = blocks[i];
 
-      if (block !== undefined && (typeof (block.data) === "string" || block.data instanceof String))
+      if (block !== undefined && (typeof block.data === "string" || block.data instanceof String))
         continue;
 
-      if (block.data instanceof DataBlock &&
-        block.subtype === "STRT" && block.type !== "SCRN" && block.type !== "THME") {
+      if (
+        block.data instanceof DataBlock &&
+        block.subtype === "STRT" &&
+        block.type !== "SCRN" &&
+        block.type !== "THME"
+      ) {
         block.data.data_link(block.data, getblock, getblock_us);
       }
     }
@@ -1899,7 +1916,7 @@ export class SavedContext {
    * "path" a data-API path to re-evaluate, "passthru" a plain value, and
    * "lookup" a value that was an object and so could not be saved at all.
    */
-  _props: {[k: string]: {type: string; key: string; value?: unknown}};
+  _props: { [k: string]: { type: string; key: string; value?: unknown } };
 
   /* Only set when the saved context pinned a specific library; otherwise reads
      fall through to the live g_app_state.datalib. */
@@ -1921,7 +1938,7 @@ export class SavedContext {
     this._datalib = undefined;
 
     if (ctx) {
-      this.save(ctx)
+      this.save(ctx);
     } else {
       ctx = g_app_state.ctx;
 
@@ -1966,8 +1983,8 @@ export class SavedContext {
         } else {
           return ctx[k];
         }
-      }
-    })
+      },
+    });
   }
 
   set_context(ctx: FullContext) {
@@ -2003,9 +2020,9 @@ export class SavedContext {
       }
 
       this._props[k] = {
-        type: type,
-        key: k,
-        value: val
+        type : type,
+        key  : k,
+        value: val,
       };
 
       this.make(k);
@@ -2068,17 +2085,13 @@ export class _ToolContext {
   constructor(frameset?: SplineFrameSet, spline?: Spline, scene?: Scene, splinepath?: string) {
     let ctx = new FullContext().toLocked();
 
-    if (splinepath === undefined)
-      splinepath = ctx.splinepath;
+    if (splinepath === undefined) splinepath = ctx.splinepath;
 
-    if (frameset === undefined)
-      frameset = ctx.frameset;
+    if (frameset === undefined) frameset = ctx.frameset;
 
-    if (spline === undefined && frameset !== undefined)
-      spline = ctx.spline;
+    if (spline === undefined && frameset !== undefined) spline = ctx.spline;
 
-    if (scene === undefined)
-      scene = ctx.scene;
+    if (scene === undefined) scene = ctx.scene;
 
     this.datalib = g_app_state.datalib;
 
@@ -2131,5 +2144,3 @@ function Context() {
 }
 create_prototype(Context);
 */
-
-

@@ -1,13 +1,17 @@
-import * as pathux from '../path.ux/scripts/pathux.js';
-import type {FullContext} from './context.js';
+import * as pathux from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "./context.js";
 
 export class HotKey extends pathux.HotKey {
   /* The unmodified binding this one was cloned from, set by
      KeyMap.ensureWrite() so _save_deltas() can diff against it. */
   origHotKey: HotKey | undefined;
 
-  constructor(key: keyof typeof pathux.keymap, modifiers: pathux.KeyModifiers[],
-              action: string | ((ctx: FullContext) => void), uiname?: string) {
+  constructor(
+    key: keyof typeof pathux.keymap,
+    modifiers: pathux.KeyModifiers[],
+    action: string | ((ctx: FullContext) => void),
+    uiname?: string
+  ) {
     super(key, modifiers, action, uiname);
     this.origHotKey = undefined;
   }
@@ -58,7 +62,7 @@ export class KeyMapDelta {
   constructor() {
     this.key = -1;
     this.modifiers = [];
-    this.hotkeyRef = '';
+    this.hotkeyRef = "";
   }
 }
 
@@ -210,7 +214,8 @@ export class KeyMap extends pathux.KeyMap<FullContext, HotKey> {
 
     for (let delta of deltas) {
       for (let i = 0; i < this.length; i++) {
-        let hk1 = this[i], hk2 = orig[i];
+        let hk1 = this[i],
+          hk2 = orig[i];
 
         if (this._buildKey(hk2) !== delta.hotkeyRef) {
           continue;

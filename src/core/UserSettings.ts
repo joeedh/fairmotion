@@ -1,25 +1,25 @@
-import * as config from '../config/config.js';
+import * as config from "../config/config.js";
 
-import {reload_default_theme} from '../datafiles/theme.js';
-import {b64encode, b64decode} from '../util/strutils.js';
+import { reload_default_theme } from "../datafiles/theme.js";
+import { b64encode, b64decode } from "../util/strutils.js";
 //#XXX import {download_file} from 'dialogs';
-import {exportTheme} from '../path.ux/scripts/core/ui_theme.js';
-import type {ThemeRecord} from '../path.ux/scripts/core/ui_theme.js';
+import { exportTheme } from "../path.ux/scripts/core/ui_theme.js";
+import type { ThemeRecord } from "../path.ux/scripts/core/ui_theme.js";
 /* Not referenced directly: the script exportTheme() writes calls `new CSSFont`,
    and loadTheme() evals it in this scope. */
-import {CSSFont} from '../path.ux/scripts/core/cssfont.js';
-import {setTheme} from '../path.ux/scripts/core/ui_base.js';
-import * as ui_base from '../path.ux/scripts/core/ui_base.js';
-import {theme} from '../editors/theme.js';
-import * as util from '../path.ux/scripts/util/util.js';
-import {KeyMapDeltaSet, KeyMapDelta, KeyMap} from './keymap.js';
-import type * as pathux from '../path.ux/scripts/pathux.js';
+import { CSSFont } from "../path.ux/scripts/core/cssfont.js";
+import { setTheme } from "../path.ux/scripts/core/ui_base.js";
+import * as ui_base from "../path.ux/scripts/core/ui_base.js";
+import { theme } from "../editors/theme.js";
+import * as util from "../path.ux/scripts/util/util.js";
+import { KeyMapDeltaSet, KeyMapDelta, KeyMap } from "./keymap.js";
+import type * as pathux from "../path.ux/scripts/pathux.js";
 
 let defaultTheme = exportTheme(theme);
 
-export function loadTheme(str : string) {
+export function loadTheme(str: string) {
   /* The exported script assigns the theme into this local. */
-  var theme : ThemeRecord = undefined!;
+  var theme: ThemeRecord = undefined!;
   eval(str);
 
   setTheme(theme);
@@ -33,7 +33,7 @@ export class RecentPath {
   path: string;
   displayname: string;
 
-  constructor(path : string, displayname : string) {
+  constructor(path: string, displayname: string) {
     this.path = path;
     this.displayname = displayname;
   }
@@ -56,10 +56,11 @@ export class ToolOpSettings {
   name: string;
   /* Per-tool saved property values. They are whatever a ToolProperty's
      getValue() returned, round-tripped through JSON. */
-  entries: {[key: string]: unknown};
+  entries: { [key: string]: unknown };
 
   constructor(toolcls?: pathux.IToolOpConstructor) {
-    if (toolcls === undefined) { //called from nstructjs
+    if (toolcls === undefined) {
+      //called from nstructjs
       this.name = "";
       this.entries = {};
     } else {
@@ -100,17 +101,17 @@ export class ToolOpSettings {
   loadSTRUCT(reader: StructReader<this>) {
     reader(this);
 
-    let raw : unknown = this.entries;
+    let raw: unknown = this.entries;
     this.entries = {};
 
     if (!Array.isArray(raw)) {
       return;
     }
 
-    for (let i=0; i<raw.length; i++) {
-      let pair : unknown[] = raw[i];
+    for (let i = 0; i < raw.length; i++) {
+      let pair: unknown[] = raw[i];
       let k = String(pair[0]);
-      let v : unknown = pair[1];
+      let v: unknown = pair[1];
 
       try {
         v = JSON.parse(String(pair[1]));
@@ -159,7 +160,7 @@ export class AppSettings {
     this.keyDeltaGen = 0; //used to signal that key mappings have changed
   }
 
-  updateKeyDeltas(typeName : string, keymap : KeyMap) {
+  updateKeyDeltas(typeName: string, keymap: KeyMap) {
     for (let kd of this.keyMaps) {
       if (kd.typeName === typeName) {
         this.keyMaps.remove(kd);
@@ -170,7 +171,7 @@ export class AppSettings {
     this.keyDeltaGen++;
   }
 
-  getKeyMapDeltaSet(typeName : string) {
+  getKeyMapDeltaSet(typeName: string) {
     for (let kd of this.keyMaps) {
       if (kd.typeName === typeName) {
         return kd;
@@ -215,16 +216,16 @@ export class AppSettings {
     return this._getToolOpS(toolcls).get(k) as T;
   }
 
-  reload_defaults(load_theme=false) {
+  reload_defaults(load_theme = false) {
     this.unit_scheme = "imperial";
     this.unit = "in";
     this.theme = defaultTheme;
-    
+
     if (load_theme) {
       loadTheme(this.theme);
     }
   }
-  
+
   reloadDefaultTheme() {
     this.theme = defaultTheme;
     loadTheme(this.theme);
@@ -235,7 +236,7 @@ export class AppSettings {
     return this;
   }
 
-  loadFrom(b: AppSettings, load_theme=true) {
+  loadFrom(b: AppSettings, load_theme = true) {
     this.unit = b.unit;
     this.unit_scheme = b.unit_scheme;
     this.theme = b.theme;
@@ -278,7 +279,7 @@ export class AppSettings {
 
         var settings = undefined;
 
-        for (var i=0; i<blocks.length; i++) {
+        for (var i = 0; i < blocks.length; i++) {
           let bdata = blocks[i].data;
 
           if (blocks[i].type === "USET" && bdata instanceof DataView) {
@@ -286,7 +287,7 @@ export class AppSettings {
             console.log("  found settings.");
           }
         }
-        
+
         if (settings === undefined) {
           console.trace("  could not find settings block");
           reject("could not find settings block, but did get a file");
@@ -308,14 +309,14 @@ export class AppSettings {
   }
 
   gen_file() {
-    let blocks = {USET : this};
-    
-    var args = {blocks : blocks};
+    let blocks = { USET: this };
+
+    var args = { blocks: blocks };
     return g_app_state.write_blocks(args);
   }
 
   find_recent_path(path: string) {
-    for (var i=0; i<this.recent_paths.length; i++) {
+    for (var i = 0; i < this.recent_paths.length; i++) {
       if (this.recent_paths[i].path === path) {
         return i;
       }
@@ -324,7 +325,7 @@ export class AppSettings {
     return -1;
   }
 
-  add_recent_file(path: string, displayname=path) {
+  add_recent_file(path: string, displayname = path) {
     let rpath = new RecentPath(path, displayname);
 
     var rp = this.find_recent_path(path);
@@ -373,10 +374,8 @@ AppSettings {
 }
 `;
 
-
 /* NOTE: an OldAppSettings datablock class, a SettUploadManager queue (published
    as window._settings_manager), an UploadJob and an upload_settings() helper sat
    here.  Nothing outside this file ever named any of them, the only entry point
    into the cluster was OldAppSettings.server_update(), and its download() path
    called a `download_file` that exists nowhere in the tree. */
-

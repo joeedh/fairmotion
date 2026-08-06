@@ -1,60 +1,77 @@
 "use strict";
 
-let PI                                                        = Math.PI, abs                                         = Math.abs, sqrt                        = Math.sqrt, floor = Math.floor,
-    ceil                                                      = Math.ceil, sin                                     = Math.sin, cos                     = Math.cos, acos = Math.acos,
-    asin = Math.asin, tan = Math.tan, atan = Math.atan, atan2 = Math.atan2;
+let PI = Math.PI,
+  abs = Math.abs,
+  sqrt = Math.sqrt,
+  floor = Math.floor,
+  ceil = Math.ceil,
+  sin = Math.sin,
+  cos = Math.cos,
+  acos = Math.acos,
+  asin = Math.asin,
+  tan = Math.tan,
+  atan = Math.atan,
+  atan2 = Math.atan2;
 
-import {ToolOp} from '../../core/toolops_api.js';
-import type {ToolDef} from '../../core/toolops_api.js';
-import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
+import { ToolOp } from "../../core/toolops_api.js";
+import type { ToolDef } from "../../core/toolops_api.js";
+import type { PropertySlots } from "../../path.ux/scripts/pathux.js";
 import {
-  IntProperty, BoolProperty, EnumProperty,
-  StringProperty, FlagProperty, CollectionProperty
-} from '../../core/toolprops.js';
+  IntProperty,
+  BoolProperty,
+  EnumProperty,
+  StringProperty,
+  FlagProperty,
+  CollectionProperty,
+} from "../../core/toolprops.js";
 
 import {
-  SplineFlags, SplineTypes, SplineVertex,
-  SplineSegment, SplineFace
-} from '../../curve/spline_types.js';
-import {redraw_element} from '../../curve/spline_draw.js';
-import {get_vtime} from '../../core/animdata.js';
-import type {FullContext} from '../../core/context.js';
-import type {SplineElement} from '../../curve/spline_base.js';
+  SplineFlags,
+  SplineTypes,
+  SplineVertex,
+  SplineSegment,
+  SplineFace,
+} from "../../curve/spline_types.js";
+import { redraw_element } from "../../curve/spline_draw.js";
+import { get_vtime } from "../../core/animdata.js";
+import type { FullContext } from "../../core/context.js";
+import type { SplineElement } from "../../curve/spline_base.js";
 
 /* The selected eids, with the four active-element eids hung off the array
    itself -- which is how the original JS wrote it. */
 export type SelectUndo = number[] & {
-  active_vert    : number,
-  active_handle  : number,
-  active_segment : number,
-  active_face    : number,
+  active_vert: number;
+  active_handle: number;
+  active_segment: number;
+  active_face: number;
 };
 
 export let SelOpModes = {
   AUTO    : 0,
   SELECT  : 1,
-  DESELECT: 2
+  DESELECT: 2,
 };
 
 export class SelectOpBase<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends ToolOp<InputSlots & {
-  mode     : EnumProperty,
-  datamode : IntProperty,
-  flush    : BoolProperty,
-}, OutputSlots> {
-  declare _undo : SelectUndo;
+> extends ToolOp<
+  InputSlots & {
+    mode: EnumProperty;
+    datamode: IntProperty;
+    flush: BoolProperty;
+  },
+  OutputSlots
+> {
+  declare _undo: SelectUndo;
 
   /* NOTE: ToolOp's constructor takes no arguments; uiname is ignored
      (UnhideOp does the same). */
-  constructor(datamode? : number, do_flush? : boolean, uiname? : string) {
+  constructor(datamode?: number, do_flush?: boolean, uiname?: string) {
     super();
 
-    if (datamode !== undefined)
-      this.inputs.datamode.setValue(datamode);
-    if (do_flush !== undefined)
-      this.inputs.flush.setValue(do_flush);
+    if (datamode !== undefined) this.inputs.datamode.setValue(datamode);
+    if (do_flush !== undefined) this.inputs.flush.setValue(do_flush);
   }
 
   static tooldef(): ToolDef {
@@ -62,12 +79,12 @@ export class SelectOpBase<
       inputs: {
         mode    : new EnumProperty("AUTO", SelOpModes, "mode", "mode"),
         datamode: new IntProperty(0), //datamode
-        flush   : new BoolProperty(false)
-      }
-    }
+        flush   : new BoolProperty(false),
+      },
+    };
   }
 
-  static invoke(ctx : FullContext, args : {selectmode? : number}) {
+  static invoke(ctx: FullContext, args: { selectmode?: number }) {
     let datamode;
 
     let ret = super.invoke(ctx, args);
@@ -83,18 +100,18 @@ export class SelectOpBase<
     return ret;
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     let spline = ctx.spline;
-    let eids : number[] = [];
+    let eids: number[] = [];
 
     /* the four actives are overwritten unconditionally below; they are seeded
        here only so the array carries SelectUndo's shape from the start. */
-    let ud = this._undo = Object.assign(eids, {
+    let ud = (this._undo = Object.assign(eids, {
       active_vert   : -1,
       active_handle : -1,
       active_segment: -1,
       active_face   : -1,
-    });
+    }));
 
     for (let v of spline.verts.selected) {
       ud.push(v.eid);
@@ -114,7 +131,7 @@ export class SelectOpBase<
     ud.active_face = spline.faces.active !== undefined ? spline.faces.active.eid : -1;
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let ud = this._undo;
     let spline = ctx.spline;
 
@@ -135,8 +152,10 @@ export class SelectOpBase<
 
     /* eidmap is keyed by element type; the instanceof guards drop a saved eid
        whose element came back as the wrong kind (and -1, which is absent). */
-    let av = eidmap[ud.active_vert], ah = eidmap[ud.active_handle];
-    let as_ = eidmap[ud.active_segment], af = eidmap[ud.active_face];
+    let av = eidmap[ud.active_vert],
+      ah = eidmap[ud.active_handle];
+    let as_ = eidmap[ud.active_segment],
+      af = eidmap[ud.active_face];
 
     spline.verts.active = av instanceof SplineVertex ? av : undefined;
     spline.handles.active = ah instanceof SplineVertex ? ah : undefined;
@@ -146,33 +165,32 @@ export class SelectOpBase<
 }
 
 export class SelectOneOp extends SelectOpBase<{
-  eid        : IntProperty,
-  state      : BoolProperty,
-  set_active : BoolProperty,
-  unique     : BoolProperty,
+  eid: IntProperty;
+  state: BoolProperty;
+  set_active: BoolProperty;
+  unique: BoolProperty;
 }> {
-  constructor(e? : SplineElement, unique = true, mode = true, datamode = 0, do_flush = false) {
+  constructor(e?: SplineElement, unique = true, mode = true, datamode = 0, do_flush = false) {
     super(datamode, do_flush, "Select Element");
 
     this.inputs.unique.setValue(unique);
     this.inputs.state.setValue(mode);
 
-    if (e != undefined)
-      this.inputs.eid.setValue(e.eid);
+    if (e != undefined) this.inputs.eid.setValue(e.eid);
   }
 
   static tooldef() {
     return {
       toolpath   : "spline.select_one",
       uiname     : "Select Element",
-      inputs     : ToolOp.inherit({
+      inputs: ToolOp.inherit({
         eid       : new IntProperty(-1),
         state     : new BoolProperty(true),
         set_active: new BoolProperty(true),
-        unique    : new BoolProperty(true)
+        unique    : new BoolProperty(true),
       }),
-      description: "Select Element"
-    }
+      description: "Select Element",
+    };
   }
 
   exec(ctx: FullContext) {
@@ -223,17 +241,17 @@ export class ToggleSelectAllOp extends SelectOpBase {
       toolpath: "spline.toggle_select_all",
       icon    : Icons.TOGGLE_SEL_ALL,
 
-      inputs: ToolOp.inherit({})
-    }
+      inputs: ToolOp.inherit({}),
+    };
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     super.undo_pre(ctx);
 
     redraw_viewport();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("toggle select!");
 
     let spline = ctx.spline;
@@ -242,7 +260,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
     let totsel = 0.0;
 
     //why this context override? - joeedh
-    let iterctx = mode === SelOpModes.AUTO ? {edit_all_layers: false} : ctx;
+    let iterctx = mode === SelOpModes.AUTO ? { edit_all_layers: false } : ctx;
 
     if (mode === SelOpModes.AUTO) {
       for (let v of spline.verts.editable(iterctx)) {
@@ -299,12 +317,11 @@ export class ToggleSelectAllOp extends SelectOpBase {
 export class SelectLinkedOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends SelectOpBase<InputSlots & {vertex_eid : IntProperty}, OutputSlots> {
-  constructor(mode? : number, datamode? : number) {
+> extends SelectOpBase<InputSlots & { vertex_eid: IntProperty }, OutputSlots> {
+  constructor(mode?: number, datamode?: number) {
     super(datamode);
 
-    if (mode !== undefined)
-      this.inputs.mode.setValue(mode);
+    if (mode !== undefined) this.inputs.mode.setValue(mode);
   }
 
   static tooldef(): ToolDef {
@@ -314,11 +331,11 @@ export class SelectLinkedOp<
 
       inputs: ToolOp.inherit({
         vertex_eid: new IntProperty(-1),
-      })
-    }
+      }),
+    };
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     super.undo_pre(ctx);
 
     window.redraw_viewport();
@@ -337,13 +354,14 @@ export class SelectLinkedOp<
     let visit = new set();
     let verts = spline.verts;
 
-    function recurse(v : SplineVertex) {
+    function recurse(v: SplineVertex) {
       visit.add(v);
 
       verts.setselect(v, state);
 
       for (let i = 0; i < v.segments.length; i++) {
-        let seg = v.segments[i], v2 = seg.other_vert(v);
+        let seg = v.segments[i],
+          v2 = seg.other_vert(v);
         if (!visit.has(v2)) {
           recurse(v2);
         }
@@ -362,13 +380,13 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
       toolpath: "spline.select_linked_pick",
 
       inputs  : ToolOp.inherit(),
-      is_modal: true
-    }
+      is_modal: true,
+    };
   }
 
   /* async purely for the return type: the base declares a promise and this
      override never awaits anything. */
-  async modalStart(ctx : FullContext) {
+  async modalStart(ctx: FullContext) {
     console.log("Select linked pick", ctx);
     this.modalEnd();
 
@@ -382,7 +400,13 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
 
     console.log("mpos", mpos);
 
-    let ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
+    let ret = ctx.spline.q.findnearest_vert(
+      ctx.view2d,
+      mpos,
+      55,
+      undefined,
+      ctx.view2d.edit_all_layers
+    );
 
     console.log("[de]select linked", ret);
 
@@ -395,21 +419,18 @@ export class PickSelectLinkedOp extends SelectLinkedOp {
   }
 }
 
-
 //let selmode_enum = selectmode_enum.copy();
 //selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;
 
 export class HideOp extends SelectOpBase<{
-  selmode : IntProperty,
-  ghost   : BoolProperty,
+  selmode: IntProperty;
+  ghost: BoolProperty;
 }> {
-  constructor(mode? : number, ghost? : boolean) {
+  constructor(mode?: number, ghost?: boolean) {
     super(undefined, undefined, "Hide");
 
-    if (mode != undefined)
-      this.inputs.selmode.setValue(mode);
-    if (ghost != undefined)
-      this.inputs.ghost.setValue(ghost);
+    if (mode != undefined) this.inputs.selmode.setValue(mode);
+    if (ghost != undefined) this.inputs.ghost.setValue(ghost);
   }
 
   static tooldef() {
@@ -419,19 +440,19 @@ export class HideOp extends SelectOpBase<{
 
       inputs: ToolOp.inherit({
         selmode: new IntProperty(1 | 2),
-        ghost  : new BoolProperty(false)
+        ghost  : new BoolProperty(false),
       }),
 
-      outputs: ToolOp.inherit({})
-    }
+      outputs: ToolOp.inherit({}),
+    };
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     super.undo_pre(ctx);
     window.redraw_viewport();
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let ud = this._undo;
     let spline = ctx.spline;
 
@@ -445,7 +466,7 @@ export class HideOp extends SelectOpBase<{
     window.redraw_viewport();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
 
     let mode = this.inputs.selmode.data;
@@ -456,8 +477,7 @@ export class HideOp extends SelectOpBase<{
       if (!(elist.type & mode)) continue;
 
       for (let e of elist.selected) {
-        if (!(layer.id in e.layers))
-          continue;
+        if (!(layer.id in e.layers)) continue;
 
         e.sethide(true);
 
@@ -476,20 +496,18 @@ export class HideOp extends SelectOpBase<{
 }
 
 export class UnhideOp extends ToolOp<{
-  selmode : IntProperty,
-  ghost   : BoolProperty,
+  selmode: IntProperty;
+  ghost: BoolProperty;
 }> {
   /* Flat [eid, flag] pairs for every element that was hidden; undefined
      until undo_pre runs. */
-  _undo : number[] | undefined;
+  _undo: number[] | undefined;
 
-  constructor(mode? : number, ghost? : boolean) {
+  constructor(mode?: number, ghost?: boolean) {
     super();
 
-    if (mode != undefined)
-      this.inputs.selmode.setValue(mode);
-    if (ghost != undefined)
-      this.inputs.ghost.setValue(ghost);
+    if (mode != undefined) this.inputs.selmode.setValue(mode);
+    if (ghost != undefined) this.inputs.ghost.setValue(ghost);
 
     this._undo = undefined;
   }
@@ -501,15 +519,15 @@ export class UnhideOp extends ToolOp<{
 
       inputs: ToolOp.inherit({
         selmode: new IntProperty(1 | 2),
-        ghost  : new BoolProperty(false)
+        ghost  : new BoolProperty(false),
       }),
 
-      outputs: ToolOp.inherit({})
-    }
+      outputs: ToolOp.inherit({}),
+    };
   }
 
-  undo_pre(ctx : FullContext) {
-    let ud : number[] = this._undo = [];
+  undo_pre(ctx: FullContext) {
+    let ud: number[] = (this._undo = []);
     let spline = ctx.spline;
 
     for (let elist of spline.elists) {
@@ -524,7 +542,7 @@ export class UnhideOp extends ToolOp<{
     window.redraw_viewport();
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     let ud = this._undo!;
     let spline = ctx.spline;
 
@@ -538,14 +556,13 @@ export class UnhideOp extends ToolOp<{
       /* NOTE: this read an undeclared `selstate`, so undoing an Unhide threw
          ReferenceError as soon as one selected element came back.  The saved
          flag says the element was selected, hence true. */
-      if (flag & SplineFlags.SELECT)
-        spline.setselect(e, true);
+      if (flag & SplineFlags.SELECT) spline.setselect(e, true);
     }
 
     window.redraw_viewport();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
     let layer = spline.layerset.active;
 
@@ -553,50 +570,45 @@ export class UnhideOp extends ToolOp<{
     let ghost = this.inputs.ghost.data;
 
     for (let elist of spline.elists) {
-      if (!(mode & elist.type))
-        continue;
+      if (!(mode & elist.type)) continue;
 
       for (let e of elist) {
-        if (!(layer.id in e.layers))
-          continue;
+        if (!(layer.id in e.layers)) continue;
         //if (e.hidden) { //flag & SplineFlags.HIDE) {
-        if (!ghost && (e.flag & SplineFlags.GHOST))
-          continue;
+        if (!ghost && e.flag & SplineFlags.GHOST) continue;
 
         let was_hidden = e.flag & SplineFlags.HIDE;
 
         e.flag &= ~(SplineFlags.HIDE | SplineFlags.GHOST);
         e.sethide(false);
 
-        if (was_hidden)
-          spline.setselect(e, true);
+        if (was_hidden) spline.setselect(e, true);
         //}
       }
     }
   }
 }
 
-import {ElementRefSet} from '../../curve/spline_types.js';
+import { ElementRefSet } from "../../curve/spline_types.js";
 
 let _last_radius = 45;
 
 export class CircleSelectOp extends SelectOpBase<{
-  add_elements : CollectionProperty<SplineElement>,
-  sub_elements : CollectionProperty<SplineElement>,
+  add_elements: CollectionProperty<SplineElement>;
+  sub_elements: CollectionProperty<SplineElement>;
 }> {
   /* Screen-space mouse position, in the editor's own coordinates. */
-  mpos : Vector3;
-  mdown : boolean;
+  mpos: Vector3;
+  mdown: boolean;
   /* Whether the brush selects or deselects. */
-  sel_or_unsel : boolean;
+  sel_or_unsel: boolean;
   /* Brush radius in px; persisted across invocations in _last_radius. */
-  radius : number;
+  radius: number;
 
-  constructor(datamode? : number, do_flush = true) {
+  constructor(datamode?: number, do_flush = true) {
     super(datamode, do_flush, "Circle Select");
 
-    if (isNaN(_last_radius) || _last_radius <= 0)
-      _last_radius = 45;
+    if (isNaN(_last_radius) || _last_radius <= 0) _last_radius = 45;
 
     this.mpos = new Vector3();
     this.mdown = false;
@@ -612,30 +624,37 @@ export class CircleSelectOp extends SelectOpBase<{
       //note that for the inherited mode property,
       //tablets need to ability to only add or subtract, don't switch between doing both with e.g. shift or right mouse
       inputs: ToolOp.inherit({
-        add_elements: new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment,
-                                                                                  SplineFace],
-          "elements", "Elements", "Elements"),
-        sub_elements: new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment,
-                                                                                  SplineFace],
-          "elements", "Elements", "Elements"),
+        add_elements: new CollectionProperty(
+          new ElementRefSet(SplineTypes.ALL),
+          [SplineVertex, SplineSegment, SplineFace],
+          "elements",
+          "Elements",
+          "Elements"
+        ),
+        sub_elements: new CollectionProperty(
+          new ElementRefSet(SplineTypes.ALL),
+          [SplineVertex, SplineSegment, SplineFace],
+          "elements",
+          "Elements",
+          "Elements"
+        ),
       }),
 
       outputs    : ToolOp.inherit({}),
       icon       : Icons.CIRCLE_SEL,
       is_modal   : true,
-      description: "Select in a circle.\nRight click to deselect."
-    }
+      description: "Select in a circle.\nRight click to deselect.",
+    };
   }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     this.radius = _last_radius;
 
     let mpos = ctx.view2d.mpos;
-    if (mpos != undefined)
-      this.on_mousemove({x: mpos[0], y: mpos[1]});
+    if (mpos != undefined) this.on_mousemove({ x: mpos[0], y: mpos[1] });
   }
 
-  on_mousewheel(e : WheelEvent) {
+  on_mousewheel(e: WheelEvent) {
     let dt = e.deltaY;
 
     dt *= 0.2;
@@ -652,7 +671,8 @@ export class CircleSelectOp extends SelectOpBase<{
     this.reset_drawlines();
 
     let steps = 64;
-    let t = -Math.PI, dt = (Math.PI*2.0)/steps;
+    let t = -Math.PI,
+      dt = (Math.PI * 2.0) / steps;
     let lastco = new Vector3();
     let co = new Vector3();
 
@@ -662,8 +682,8 @@ export class CircleSelectOp extends SelectOpBase<{
     let radius = this.radius;
 
     for (let i = 0; i < steps + 1; i++, t += dt) {
-      co[0] = sin(t)*radius + mpos[0];
-      co[1] = cos(t)*radius + mpos[1];
+      co[0] = sin(t) * radius + mpos[0];
+      co[1] = cos(t) * radius + mpos[1];
 
       if (i > 0) {
         /* make_drawline builds Vector2s out of these; the z was never read. */
@@ -676,7 +696,7 @@ export class CircleSelectOp extends SelectOpBase<{
     window.redraw_viewport();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.spline;
     let eset_add = this.inputs.add_elements;
     let eset_sub = this.inputs.sub_elements;
@@ -701,9 +721,10 @@ export class CircleSelectOp extends SelectOpBase<{
     }
   }
 
-  do_sel(sel_or_unsel : boolean) {
+  do_sel(sel_or_unsel: boolean) {
     let datamode = this.inputs.datamode.data;
-    let ctx = this.modal_ctx, spline = ctx.spline;
+    let ctx = this.modal_ctx,
+      spline = ctx.spline;
     let editor = ctx.view2d;
 
     let co = new Vector3();
@@ -725,8 +746,7 @@ export class CircleSelectOp extends SelectOpBase<{
 
     if (datamode & SplineTypes.VERTEX) {
       for (let i = 0; i < 2; i++) {
-        if (i && !(datamode & SplineTypes.HANDLE))
-          break;
+        if (i && !(datamode & SplineTypes.HANDLE)) break;
 
         let list = i ? spline.handles : spline.verts;
 
@@ -757,7 +777,7 @@ export class CircleSelectOp extends SelectOpBase<{
     }
   }
 
-  on_mousemove(event : {x : number, y : number}) {
+  on_mousemove(event: { x: number; y: number }) {
     let ctx = this.modal_ctx;
     let spline = ctx.spline;
     let editor = ctx.view2d;
@@ -781,13 +801,13 @@ export class CircleSelectOp extends SelectOpBase<{
   }
 
   /* NOTE: the base parameter is `cancelled`, not a context. */
-  end_modal(ctx? : boolean) {
+  end_modal(ctx?: boolean) {
     super.end_modal(ctx);
 
     _last_radius = this.radius;
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     console.log(event.keyCode);
     let ctx = this.modal_ctx;
     let spline = ctx.spline;
@@ -814,7 +834,7 @@ export class CircleSelectOp extends SelectOpBase<{
     }
   }
 
-  on_mousedown(event : MouseEvent) {
+  on_mousedown(event: MouseEvent) {
     let auto = this.inputs.mode.get_data() == SelOpModes.AUTO;
 
     console.log("auto", auto);
@@ -827,10 +847,9 @@ export class CircleSelectOp extends SelectOpBase<{
     this.mdown = true;
   }
 
-  on_mouseup(event : MouseEvent) {
+  on_mouseup(event: MouseEvent) {
     console.log("modal end!");
     this.mdown = false;
     this.end_modal();
   }
 }
-

@@ -1,34 +1,41 @@
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {STRUCT} from '../../core/struct.js';
-import {Container} from '../../path.ux/scripts/core/ui.js';
-import {Editor} from '../editor_base.js';
+import { Area } from "../../path.ux/scripts/screen/ScreenArea.js";
+import { STRUCT } from "../../core/struct.js";
+import { Container } from "../../path.ux/scripts/core/ui.js";
+import { Editor } from "../editor_base.js";
 
-import {PackFlags, UIBase, saveUIData, loadUIData} from '../../path.ux/scripts/core/ui_base.js';
-import {ShiftLayerOrderOp} from '../viewport/spline_editops.js';
-import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
+import { PackFlags, UIBase, saveUIData, loadUIData } from "../../path.ux/scripts/core/ui_base.js";
+import { ShiftLayerOrderOp } from "../viewport/spline_editops.js";
+import {
+  AddLayerOp,
+  DeleteLayerOp,
+  ChangeLayerOp,
+  ChangeElementLayerOp,
+} from "../viewport/spline_layerops.js";
 
-import '../../path.ux/scripts/widgets/ui_table.js';
-import '../../path.ux/scripts/widgets/ui_menu.js';
-import '../../path.ux/scripts/widgets/ui_listbox.js';
+import "../../path.ux/scripts/widgets/ui_table.js";
+import "../../path.ux/scripts/widgets/ui_menu.js";
+import "../../path.ux/scripts/widgets/ui_listbox.js";
 
-import {LastToolPanel} from '../../path.ux/scripts/widgets/ui_lasttool.js';
-import {TPropFlags} from '../../core/toolprops.js';
-import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
-import type {FullContext} from '../../core/context.js';
+import { LastToolPanel } from "../../path.ux/scripts/widgets/ui_lasttool.js";
+import { TPropFlags } from "../../core/toolprops.js";
+import type { TabContainer } from "../../path.ux/scripts/widgets/ui_tabs.js";
+import type { FullContext } from "../../core/context.js";
 
 export class MyLastToolPanel extends LastToolPanel<FullContext> {
-  getToolStackHead(ctx : FullContext) {
+  getToolStackHead(ctx: FullContext) {
     return ctx.toolstack.head;
   }
 
-  static define() {return {
-    tagname : 'last-tool-panel-fairmotion-x'
-  }}
+  static define() {
+    return {
+      tagname: "last-tool-panel-fairmotion-x",
+    };
+  }
 }
 
 UIBase.register(MyLastToolPanel);
 
-function list<T>(iter : Iterable<T>) : T[] {
+function list<T>(iter: Iterable<T>): T[] {
   let ret = [];
 
   for (let item of iter) {
@@ -40,13 +47,13 @@ function list<T>(iter : Iterable<T>) : T[] {
 
 export class LayerPanel extends Container<FullContext> {
   /* layerset.active.id at the last rebuild(), so update() can spot a change. */
-  last_active_id : number
-  last_total_layers : number
+  last_active_id: number;
+  last_total_layers: number;
   /* Set numerically by update()'s |=, cleared with `false` by rebuild(). */
-  do_rebuild : number | boolean
+  do_rebuild: number | boolean;
   /* Countdown of extra update() passes to run.  NOTE: the only writer was the
      dead _old() below, so this has always stayed 0. */
-  delayed_recalc : number;
+  delayed_recalc: number;
 
   /* Only ever built through document.createElement("layerpanel-x"), so the
      `ctx` this used to take was always undefined. */
@@ -115,7 +122,7 @@ export class LayerPanel extends Container<FullContext> {
 
     let listbox = this.listbox<number>();
 
-    for (let i=spline.layerset.length-1; i>= 0; i--) {
+    for (let i = spline.layerset.length - 1; i >= 0; i--) {
       let layer = spline.layerset[i];
 
       let row = listbox.addItem(layer.name, layer.id);
@@ -140,42 +147,63 @@ export class LayerPanel extends Container<FullContext> {
 
       console.log("Changing layers!", id);
       g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id!));
-    }
+    };
     let row = this.row();
 
-    row.iconbutton(Icons.SMALL_PLUS, "Add Layer", () => {
-      g_app_state.toolstack.execTool(this.ctx, new AddLayerOp());
-      this.rebuild();
-    }, undefined);
-    row.iconbutton(Icons.SCROLL_UP, "Move Up", () => {
-      console.log("Shift layers up");
-      let ctx = new Context(), spline = ctx.frameset.spline;
-      let layer = spline.layerset.active;
+    row.iconbutton(
+      Icons.SMALL_PLUS,
+      "Add Layer",
+      () => {
+        g_app_state.toolstack.execTool(this.ctx, new AddLayerOp());
+        this.rebuild();
+      },
+      undefined
+    );
+    row.iconbutton(
+      Icons.SCROLL_UP,
+      "Move Up",
+      () => {
+        console.log("Shift layers up");
+        let ctx = new Context(),
+          spline = ctx.frameset.spline;
+        let layer = spline.layerset.active;
 
-      let tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-      this.rebuild();
-    }, undefined);
-    row.iconbutton(Icons.SCROLL_DOWN, "Move Down", () => {
-      console.log("Shift layers down");
-      let ctx = new Context(), spline = ctx.frameset.spline;
-      let layer = spline.layerset.active;
+        let tool = new ShiftLayerOrderOp(layer.id, 1);
+        g_app_state.toolstack.execTool(this.ctx, tool);
+        this.rebuild();
+      },
+      undefined
+    );
+    row.iconbutton(
+      Icons.SCROLL_DOWN,
+      "Move Down",
+      () => {
+        console.log("Shift layers down");
+        let ctx = new Context(),
+          spline = ctx.frameset.spline;
+        let layer = spline.layerset.active;
 
-      let tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-      this.rebuild();
-    }, undefined);
-    row.iconbutton(Icons.SMALL_MINUS, "Remove Layer", () => {
-      let tool = new DeleteLayerOp();
-      let layer = this.ctx.spline.layerset.active;
+        let tool = new ShiftLayerOrderOp(layer.id, -1);
+        g_app_state.toolstack.execTool(this.ctx, tool);
+        this.rebuild();
+      },
+      undefined
+    );
+    row.iconbutton(
+      Icons.SMALL_MINUS,
+      "Remove Layer",
+      () => {
+        let tool = new DeleteLayerOp();
+        let layer = this.ctx.spline.layerset.active;
 
-      if (layer === undefined)
-        return;
+        if (layer === undefined) return;
 
-      tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-      this.rebuild();
-    }, undefined);
+        tool.inputs.layer_id.set_data(layer.id);
+        g_app_state.toolstack.execTool(this.ctx, tool);
+        this.rebuild();
+      },
+      undefined
+    );
 
     row = this.row();
     row.button("Move Up", () => {
@@ -184,13 +212,12 @@ export class LayerPanel extends Container<FullContext> {
 
       console.log("oldl", oldl);
 
-      if (oldl.order === lset.length-1) return;
-      let newl = lset[oldl.order+1];
+      if (oldl.order === lset.length - 1) return;
+      let newl = lset[oldl.order + 1];
 
       let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
       this.ctx.toolstack.execTool(this.ctx, tool);
-
     });
 
     row.button("Move Down", () => {
@@ -200,15 +227,15 @@ export class LayerPanel extends Container<FullContext> {
       console.log("oldl", oldl);
 
       if (oldl.order === 0) return;
-      let newl = lset[oldl.order-1];
+      let newl = lset[oldl.order - 1];
 
       let tool = new ChangeElementLayerOp(oldl.id, newl.id);
 
       this.ctx.toolstack.execTool(this.ctx, tool);
     });
 
-    row.prop('frameset.drawspline.active_layer.flag[HIDE]');
-    row.prop('frameset.drawspline.active_layer.flag[CAN_SELECT]');
+    row.prop("frameset.drawspline.active_layer.flag[HIDE]");
+    row.prop("frameset.drawspline.active_layer.flag[CAN_SELECT]");
 
     this.flushUpdate();
   }
@@ -218,18 +245,20 @@ export class LayerPanel extends Container<FullContext> {
      UIListBox, UIButton and a bare `spline` -- none of which exist in this
      module -- so it could only ever have thrown. */
 
-  static define() {return {
-    tagname : "layerpanel-x"
-  }}
-};
+  static define() {
+    return {
+      tagname: "layerpanel-x",
+    };
+  }
+}
 UIBase.register(LayerPanel);
 
 export class MaterialEditor extends Editor {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* Class name of the toolmode the tabs were last built for. */
-  _last_toolmode : string | undefined;
-  inner! : Container<FullContext>;
+  _last_toolmode: string | undefined;
+  inner!: Container<FullContext>;
 
   constructor() {
     super();
@@ -295,7 +324,7 @@ export class MaterialEditor extends Editor {
 
     //tabs.style["width"] = "300px";
     //tabs.style["height"] = "400px";
-    tabs.float(1, 35*UIBase.getDPI(), 7);
+    tabs.float(1, 35 * UIBase.getDPI(), 7);
 
     let tab = tabs.tab("Workspace");
     let toolmode = this.ctx.toolmode;
@@ -313,14 +342,14 @@ export class MaterialEditor extends Editor {
     this.update();
   }
 
-  lastToolPanel(tabs : TabContainer<FullContext>) {
+  lastToolPanel(tabs: TabContainer<FullContext>) {
     let tab = tabs.tab("Most Recent Command");
 
     let panel = document.createElement("last-tool-panel-fairmotion-x");
     tab.add(panel);
   }
 
-  fillPanel(tabs : TabContainer<FullContext>) {
+  fillPanel(tabs: TabContainer<FullContext>) {
     let ctx = this.ctx;
 
     let panel = tabs.tab("Fill");
@@ -335,15 +364,13 @@ export class MaterialEditor extends Editor {
     //let set_path = "spline.editable_faces[{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}]";
     let set_path = "spline.editable_faces[{$.flag & 1}]";
 
-    panel2.prop("spline.active_face.mat.fillcolor", undefined,
-      set_path + ".mat.fillcolor");
-    panel.prop("spline.active_face.mat.blur", undefined,
-      set_path + ".mat.blur");
+    panel2.prop("spline.active_face.mat.fillcolor", undefined, set_path + ".mat.fillcolor");
+    panel.prop("spline.active_face.mat.blur", undefined, set_path + ".mat.blur");
 
-    return panel
+    return panel;
   }
 
-  strokePanel(tabs : TabContainer<FullContext>) {
+  strokePanel(tabs: TabContainer<FullContext>) {
     let panel = tabs.tab("Stroke");
 
     let ctx = this.ctx;
@@ -357,30 +384,34 @@ export class MaterialEditor extends Editor {
     //panel.label("Stroke Color");
     let panel2 = panel.panel("Stroke Color");
 
-    panel2.prop("spline.active_segment.mat.strokecolor", undefined,
-      set_prefix + ".mat.strokecolor");
+    panel2.prop(
+      "spline.active_segment.mat.strokecolor",
+      undefined,
+      set_prefix + ".mat.strokecolor"
+    );
 
-    panel.prop("spline.active_segment.mat.linewidth", undefined,
-      set_prefix + ".mat.linewidth");
-    panel.prop("spline.active_segment.mat.blur", undefined,
-      set_prefix + ".mat.blur");
-    panel.prop("spline.active_segment.renderable", undefined,
-      set_prefix + ".mat.renderable");
+    panel.prop("spline.active_segment.mat.linewidth", undefined, set_prefix + ".mat.linewidth");
+    panel.prop("spline.active_segment.mat.blur", undefined, set_prefix + ".mat.blur");
+    panel.prop("spline.active_segment.renderable", undefined, set_prefix + ".mat.renderable");
 
-    panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined,
-      set_prefix + ".mat.flag[MASK_TO_FACE]");
-
+    panel.prop(
+      "spline.active_segment.mat.flag[MASK_TO_FACE]",
+      undefined,
+      set_prefix + ".mat.flag[MASK_TO_FACE]"
+    );
 
     panel2 = panel2.panel("Double Stroking");
-    panel2.prop("spline.active_segment.mat.strokecolor2", undefined,
-      set_prefix + ".mat.strokecolor2");
+    panel2.prop(
+      "spline.active_segment.mat.strokecolor2",
+      undefined,
+      set_prefix + ".mat.strokecolor2"
+    );
 
-    panel2.prop("spline.active_segment.mat.linewidth2", undefined,
-      set_prefix + ".mat.linewidth2");
+    panel2.prop("spline.active_segment.mat.linewidth2", undefined, set_prefix + ".mat.linewidth2");
 
     panel2 = panel.panel("Vertex Width");
-    panel2.prop("spline.active_vertex.width", undefined, set_prefix+".width");
-    panel2.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
+    panel2.prop("spline.active_vertex.width", undefined, set_prefix + ".width");
+    panel2.prop("spline.active_vertex.shift", undefined, set_prefix + ".shift");
 
     panel2 = panel.panel("Segment Width");
     panel2.prop("spline.active_segment.w1", undefined, set_prefix + ".w1");
@@ -388,10 +419,10 @@ export class MaterialEditor extends Editor {
     panel2.prop("spline.active_segment.shift1", undefined, set_prefix + ".shift1");
     panel2.prop("spline.active_segment.shift2", undefined, set_prefix + ".shift2");
 
-    return panel
+    return panel;
   }
 
-  layersPanel(tabs : TabContainer<FullContext>) {
+  layersPanel(tabs: TabContainer<FullContext>) {
     let ctx = this.ctx;
     let panel = tabs.tab("Layers");
 
@@ -399,28 +430,43 @@ export class MaterialEditor extends Editor {
     //return new LayerPanel(new Context());
   }
 
-  vertexPanel(tabs : TabContainer<FullContext>) {
+  vertexPanel(tabs: TabContainer<FullContext>) {
     let ctx = this.ctx;
     let tab = tabs.tab("Control Point");
 
     let set_prefix = "spline.editable_verts[{$.flag & 1}]";
 
     let panel = tab.panel("Vertex");
-    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix + ".flag[BREAK_TANGENTS]");
-    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix + ".flag[BREAK_CURVATURES]");
-    panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix + ".flag[USE_HANDLES]");
+    panel.prop(
+      "spline.active_vertex.flag[BREAK_TANGENTS]",
+      undefined,
+      set_prefix + ".flag[BREAK_TANGENTS]"
+    );
+    panel.prop(
+      "spline.active_vertex.flag[BREAK_CURVATURES]",
+      undefined,
+      set_prefix + ".flag[BREAK_CURVATURES]"
+    );
+    panel.prop(
+      "spline.active_vertex.flag[USE_HANDLES]",
+      undefined,
+      set_prefix + ".flag[USE_HANDLES]"
+    );
     panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix + ".flag[GHOST]");
 
-    panel.prop("spline.active_vertex.width", undefined, set_prefix+".width");
-    panel.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
+    panel.prop("spline.active_vertex.width", undefined, set_prefix + ".width");
+    panel.prop("spline.active_vertex.shift", undefined, set_prefix + ".shift");
 
-    panel = tab.panel("Animation Settings")
+    panel = tab.panel("Animation Settings");
 
     set_prefix = "frameset.keypaths[{$.animflag & 8}]";
-    panel.prop("frameset.active_keypath.animflag[STEP_FUNC]", undefined, set_prefix + ".animflag[STEP_FUNC]");
+    panel.prop(
+      "frameset.active_keypath.animflag[STEP_FUNC]",
+      undefined,
+      set_prefix + ".animflag[STEP_FUNC]"
+    );
     return panel;
   }
-
 
   define_keymap() {
     let k = this.keymap;
@@ -430,14 +476,18 @@ export class MaterialEditor extends Editor {
     return document.createElement("material-editor-x");
   }
 
-  static define() { return {
-    tagname : "material-editor-x",
-    areaname : "material_editor",
-    uiname : "Properties",
-    icon : Icons.MATERIAL_EDITOR
-  }}
+  static define() {
+    return {
+      tagname : "material-editor-x",
+      areaname: "material_editor",
+      uiname  : "Properties",
+      icon    : Icons.MATERIAL_EDITOR,
+    };
+  }
 }
-MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + `
+MaterialEditor.STRUCT =
+  STRUCT.inherit(MaterialEditor, Area) +
+  `
 }
 `;
 Editor.register(MaterialEditor);

@@ -1,21 +1,28 @@
 "use strict";
 
 //multitouch
-import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
+import { ToolOp, UndoFlags, ToolFlags } from "../../core/toolops_api.js";
 
-import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
-import {b64decode} from '../../util/strutils.js';
-import {Vector2, Vector3, Matrix4, Vector4, Quat} from '../../path.ux/scripts/pathux.js';
+import {
+  Vec2Property,
+  Vec3Property,
+  IntProperty,
+  StringProperty,
+  TPropFlags,
+} from "../../core/toolprops.js";
+import { b64decode } from "../../util/strutils.js";
+import { Vector2, Vector3, Matrix4, Vector4, Quat } from "../../path.ux/scripts/pathux.js";
 
-import type {FullContext} from '../../core/context.js';
-import type {drawline} from './view2d.js';
+import type { FullContext } from "../../core/context.js";
+import type { drawline } from "./view2d.js";
 
-let exec_pan_v1 = new Vector3(), exec_pan_v2 = new Vector3();
+let exec_pan_v1 = new Vector3(),
+  exec_pan_v2 = new Vector3();
 
 export class View2dOp extends ToolOp {
   /* NOTE: filled by nothing -- makeTempLine pushes onto `drawlines` (the base
      class list) via new_drawline, and resetTempGeom clears that same list. */
-  tempLines : drawline[];
+  tempLines: drawline[];
 
   constructor() {
     super();
@@ -23,7 +30,7 @@ export class View2dOp extends ToolOp {
     this.tempLines = [];
   }
 
-  makeTempLine(v1 : Vector2, v2 : Vector2, color : number[]) {
+  makeTempLine(v1: Vector2, v2: Vector2, color: number[]) {
     return this.new_drawline(v1, v2, color);
   }
 
@@ -33,7 +40,7 @@ export class View2dOp extends ToolOp {
 }
 
 export class PanOp extends ToolOp {
-  is_modal: boolean
+  is_modal: boolean;
   cameramat: Matrix4;
 
   mpos!: Vector2;
@@ -42,7 +49,7 @@ export class PanOp extends ToolOp {
   /* view2d.cameramat as of the drag start; every move re-derives from it. */
   start_cameramat: Matrix4;
 
-  constructor(start_mpos? : Vector2 | number[]) {
+  constructor(start_mpos?: Vector2 | number[]) {
     super();
 
     this.is_modal = true;
@@ -65,14 +72,16 @@ export class PanOp extends ToolOp {
 
   static tooldef() {
     return {
-      uiname: "Pan", toolpath: "view2d.pan",
+      uiname  : "Pan",
+      toolpath: "view2d.pan",
 
       undoflag: UndoFlags.NO_UNDO,
 
-      inputs: {}, outputs: {},
+      inputs : {},
+      outputs: {},
 
-      is_modal: true
-    }
+      is_modal: true,
+    };
   }
 
   /* NOTE: `event.touches` below is a TouchEvent property; on a PointerEvent
@@ -92,7 +101,7 @@ export class PanOp extends ToolOp {
       return;
     }
 
-    mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
+    mpos.sub(this.start_mpos).mulScalar(1.0 / ctx.view2d.zoom);
     mpos[1] = -mpos[1];
 
     this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
@@ -119,8 +128,8 @@ export class PanOp extends ToolOp {
 /* NOTE: b64decode was not imported here, so exec() threw ReferenceError; the
    import is now at the top of the file.  SavedContext is fine -- AppState puts
    it on window. */
-export class BasicFileDataOp extends ToolOp<{data: StringProperty}> {
-  is_modal: boolean
+export class BasicFileDataOp extends ToolOp<{ data: StringProperty }> {
+  is_modal: boolean;
 
   constructor(data: string) {
     super();
@@ -136,16 +145,17 @@ export class BasicFileDataOp extends ToolOp<{data: StringProperty}> {
 
   static tooldef() {
     return {
-      uiname  : "internal file load op", toolpath: "app.basic_file_with_data",
+      uiname  : "internal file load op",
+      toolpath: "app.basic_file_with_data",
       undoflag: UndoFlags.NO_UNDO | UndoFlags.IS_UNDO_ROOT | UndoFlags.UNDO_BARRIER,
 
       inputs: {
         /* NOTE: TPropFlags.PRIVATE used to sit in the description slot, so the
            property never actually got the flag.  Left unset rather than moved --
            granting it would change what the tool API exposes. */
-        data: new StringProperty("", "filedata", "file data in base64", "")
-      }
-    }
+        data: new StringProperty("", "filedata", "file data in base64", ""),
+      },
+    };
   }
 
   exec(ctx: FullContext) {
@@ -156,9 +166,9 @@ export class BasicFileDataOp extends ToolOp<{data: StringProperty}> {
   }
 }
 
-import {Spline} from "../../curve/spline.js";
-import {SplineFrameSet} from "../../core/frameset.js";
-import {Scene} from '../../scene/scene.js';
+import { Spline } from "../../curve/spline.js";
+import { SplineFrameSet } from "../../core/frameset.js";
+import { Scene } from "../../scene/scene.js";
 
 export class BasicFileOp extends ToolOp {
   constructor() {
@@ -167,9 +177,11 @@ export class BasicFileOp extends ToolOp {
 
   static tooldef() {
     return {
-      toolpath: "app.basic_file", uiname: "Make Basic File (internal)",
-      undoflag: UndoFlags.IS_UNDO_ROOT | UndoFlags.UNDO_BARRIER, description: "Internal tool op; makes basic file"
-    }
+      toolpath   : "app.basic_file",
+      uiname     : "Make Basic File (internal)",
+      undoflag   : UndoFlags.IS_UNDO_ROOT | UndoFlags.UNDO_BARRIER,
+      description: "Internal tool op; makes basic file",
+    };
   }
 
   exec(ctx: FullContext) {
@@ -191,13 +203,13 @@ export class BasicFileOp extends ToolOp {
   }
 }
 
-import {FloatProperty} from '../../core/toolprops.js';
+import { FloatProperty } from "../../core/toolprops.js";
 
-export class FrameChangeOp extends ToolOp<{frame: FloatProperty}> {
+export class FrameChangeOp extends ToolOp<{ frame: FloatProperty }> {
   /* scene.time before the change; undefined until undo_pre runs. */
-  _undo : number | undefined;
+  _undo: number | undefined;
 
-  constructor(frame? : number) {
+  constructor(frame?: number) {
     super();
 
     this._undo = undefined;
@@ -207,41 +219,44 @@ export class FrameChangeOp extends ToolOp<{frame: FloatProperty}> {
 
   static tooldef() {
     return {
-      toolpath: "scene.change_frame", uiname: "Change Frame",
+      toolpath: "scene.change_frame",
+      uiname  : "Change Frame",
 
       inputs: {
-        frame: new FloatProperty(0, "frame", "frame", "frame")
-      }
-    }
+        frame: new FloatProperty(0, "frame", "frame", "frame"),
+      },
+    };
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     this._undo = ctx.scene.time;
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     ctx.scene.change_time(ctx, this._undo!);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     ctx.scene.change_time(ctx, this.inputs.frame.data);
   }
 }
 
-import {SimpleCanvasDraw2D} from '../../vectordraw/vectordraw_canvas2d_simple.js';
-import {draw_spline} from '../../curve/spline_draw.js';
-import {save_file} from '../../core/fileapi/fileapi.js';
-import {SplineDrawer} from '../../curve/spline_draw_new.js';
+import { SimpleCanvasDraw2D } from "../../vectordraw/vectordraw_canvas2d_simple.js";
+import { draw_spline } from "../../curve/spline_draw.js";
+import { save_file } from "../../core/fileapi/fileapi.js";
+import { SplineDrawer } from "../../curve/spline_draw_new.js";
 
 export class ExportCanvasImage extends ToolOp {
   static tooldef() {
     return {
-      toolpath: "view2d.export_image", uiname: "Save Canvas Image", description: "Export visible canvas",
-      undoflag: UndoFlags.NO_UNDO
-    }
+      toolpath   : "view2d.export_image",
+      uiname     : "Save Canvas Image",
+      description: "Export visible canvas",
+      undoflag   : UndoFlags.NO_UNDO,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     /* the export path only runs from the viewport's own menu. */
     let view2d = g_app_state.active_view2d!;
     let spline = ctx.frameset.spline;
@@ -249,7 +264,7 @@ export class ExportCanvasImage extends ToolOp {
     /* NOTE: the canvas used to be handed over bare, but spline_draw reads
        g.canvas.dpi_scale when sizing vertices, so every one of them came out
        NaN in the exported image.  Built the way Editor.getCanvas does it. */
-    let canvas = Object.assign(document.createElement("canvas"), {dpi_scale: 1.0});
+    let canvas = Object.assign(document.createElement("canvas"), { dpi_scale: 1.0 });
     canvas.width = view2d.size[0];
     canvas.height = view2d.size[1];
 
@@ -258,10 +273,10 @@ export class ExportCanvasImage extends ToolOp {
        getter with no setter, so Object.assign threw a TypeError here; it is
        already the canvas the context came from. */
     let g = Object.assign(canvas.getContext("2d")!, {
-      dpi_scale: 1.0,
-      width    : canvas.width,
-      height   : canvas.height,
-      _irender_mat: new Matrix4()
+      dpi_scale   : 1.0,
+      width       : canvas.width,
+      height      : canvas.height,
+      _irender_mat: new Matrix4(),
     });
 
     let vecdrawer = new SimpleCanvasDraw2D();
@@ -278,10 +293,33 @@ export class ExportCanvasImage extends ToolOp {
 
     //force full update
     drawer.recalc_all = true;
-    drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(), [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
+    drawer.update(
+      spline,
+      spline.drawlist,
+      spline.draw_layerlist,
+      view2d.genMatrix(),
+      [],
+      view2d.only_render,
+      view2d.selectmode,
+      g,
+      view2d.zoom,
+      view2d
+    );
 
     try {
-      draw_spline(spline, [], g, view2d, view2d.genMatrix(), view2d.selectmode, view2d.only_render, view2d.draw_normals, 1.0, true, ctx.frameset.time);
+      draw_spline(
+        spline,
+        [],
+        g,
+        view2d,
+        view2d.genMatrix(),
+        view2d.selectmode,
+        view2d.only_render,
+        view2d.draw_normals,
+        1.0,
+        true,
+        ctx.frameset.time
+      );
     } catch (error) {
       print_stack(error);
       console.trace("Draw error");
@@ -314,4 +352,4 @@ export class ExportCanvasImage extends ToolOp {
       return;
     });
   }
-};
+}

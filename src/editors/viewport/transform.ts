@@ -1,56 +1,60 @@
-import {
-  MinMax
-} from '../../util/mathlib.js';
+import { MinMax } from "../../util/mathlib.js";
 
-import {SelMask} from './selectmode.js';
+import { SelMask } from "./selectmode.js";
 
 import {
-  Vec2Property, BoolProperty, FloatProperty, IntProperty,
-  CollectionProperty, TPropFlags, EnumProperty
-} from '../../core/toolprops.js';
+  Vec2Property,
+  BoolProperty,
+  FloatProperty,
+  IntProperty,
+  CollectionProperty,
+  TPropFlags,
+  EnumProperty,
+} from "../../core/toolprops.js";
 
-import {ToolOp, ToolDef, ModalStates} from '../../core/toolops_api.js';
+import { ToolOp, ToolDef, ModalStates } from "../../core/toolops_api.js";
 
-import {TransDataItem, TransDataType, TransData} from './transdata.js';
-import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
-import {SessionFlags} from './view2d_base.js';
+import { TransDataItem, TransDataType, TransData } from "./transdata.js";
+import { TransDopeSheetType } from "../dopesheet/dopesheet_transdata.js";
+import { SessionFlags } from "./view2d_base.js";
 
 import {
-  clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
-  JobTypes
-} from '../../wasm/native_api.js';
+  clear_jobs,
+  clear_jobs_except_latest,
+  clear_jobs_except_first,
+  JobTypes,
+} from "../../wasm/native_api.js";
 
 var _tsv_apply_tmp1 = new Vector2();
 var _tsv_apply_tmp2 = new Vector2();
 var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
-import {TransSplineVert} from "./transform_spline.js";
-import type {FullContext} from '../../core/context.js';
-import type {TransUndoData} from './transdata.js';
-import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
+import { TransSplineVert } from "./transform_spline.js";
+import type { FullContext } from "../../core/context.js";
+import type { TransUndoData } from "./transdata.js";
+import type { PropertySlots } from "../../path.ux/scripts/pathux.js";
 
 /* The per-invocation scratch a modal transform keeps between mouse events. */
 export type TransformModalTemp = {
-  start_mpos? : Vector2,
-  mpos? : Vector2,
-  last_mpos? : Vector2,
-  draw_minmax? : MinMax
+  start_mpos?: Vector2;
+  mpos?: Vector2;
+  last_mpos?: Vector2;
+  draw_minmax?: MinMax;
 };
-
 
 /* The inputs every transform shares, from TransformOp.tooldef() below.
    Subclasses add their own on top through the InputSlots parameter. */
 export type TransformInputs = {
-  data           : CollectionProperty<number>,
-  proportional   : BoolProperty,
-  propradius     : FloatProperty,
-  datamode       : IntProperty,
-  edit_all_layers: BoolProperty,
-  pivot          : Vec2Property,
-  use_pivot      : BoolProperty,
-  constraint_axis: Vec2Property,
-  constrain      : BoolProperty,
+  data: CollectionProperty<number>;
+  proportional: BoolProperty;
+  propradius: FloatProperty;
+  datamode: IntProperty;
+  edit_all_layers: BoolProperty;
+  pivot: Vec2Property;
+  use_pivot: BoolProperty;
+  constraint_axis: Vec2Property;
+  constrain: BoolProperty;
 };
 
 //let
@@ -58,21 +62,21 @@ export class TransformOp<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
 > extends ToolOp<InputSlots & TransformInputs, OutputSlots> {
-  types: (typeof TransDataType)[]
-  first_viewport_redraw: boolean
+  types: (typeof TransDataType)[];
+  first_viewport_redraw: boolean;
   /* Deleted by finish() at the end of a modal run, hence optional. */
   modalTemp?: TransformModalTemp;
 
   /* True until the first on_mousemove, which seeds modalTemp. */
-  first : boolean;
+  first: boolean;
   /* Screen-space mouse position handed in by the caller instead of being
      picked up from the first modal event. */
-  user_start_mpos : Vector2 | number[] | undefined;
+  user_start_mpos: Vector2 | number[] | undefined;
   /* Deleted by finish() and by the non-modal exec paths. */
-  transdata? : TransData;
-  declare _undo : TransUndoData;
+  transdata?: TransData;
+  declare _undo: TransUndoData;
 
-  constructor(start_mpos? : Vector2 | number[], datamode? : number) {
+  constructor(start_mpos?: Vector2 | number[], datamode?: number) {
     super();
 
     this.first = true;
@@ -85,13 +89,12 @@ export class TransformOp<
       this.user_start_mpos = start_mpos;
     }
 
-    if (datamode !== undefined)
-      this.inputs.datamode.setValue(datamode);
+    if (datamode !== undefined) this.inputs.datamode.setValue(datamode);
 
     this.modalTemp = {};
   }
 
-  static invoke(ctx: FullContext, args : {[k : string] : unknown}) {
+  static invoke(ctx: FullContext, args: { [k: string]: unknown }) {
     if (args.datamode === "selectmode") {
       args.datamode = ctx.selectmode;
     }
@@ -127,8 +130,7 @@ export class TransformOp<
       inputs: {
         /* some TransData backends may use this, e.g. to store arrays of
            integer ids for visible path spline vertices in dopesheet editor */
-        data: new CollectionProperty([], [], "data", "data", "data",
-          TPropFlags.COLL_LOOSE_TYPE),
+        data: new CollectionProperty([], [], "data", "data", "data", TPropFlags.COLL_LOOSE_TYPE),
 
         proportional   : new BoolProperty(false, "proportional", "proportional mode"),
         propradius     : new FloatProperty(80, "propradius", "prop radius"),
@@ -138,10 +140,20 @@ export class TransformOp<
         pivot    : new Vec2Property(undefined, "pivot", "pivot", "pivot"),
         use_pivot: new BoolProperty(false, "use_pivot", "use pivot", "use pivot"),
 
-        constraint_axis: new Vec2Property(undefined, "constraint_axis", "Constraint Axis", "Axis to constrain"),
-        constrain      : new BoolProperty(false, "constrain", "Enable Constraint", "Enable Constraint Axis")
-      }
-    }
+        constraint_axis: new Vec2Property(
+          undefined,
+          "constraint_axis",
+          "Constraint Axis",
+          "Axis to constrain"
+        ),
+        constrain: new BoolProperty(
+          false,
+          "constrain",
+          "Enable Constraint",
+          "Enable Constraint Axis"
+        ),
+      },
+    };
   }
 
   ensure_transdata(ctx: FullContext): TransData {
@@ -152,8 +164,7 @@ export class TransformOp<
     if (this.transdata === undefined) {
       this.types = [];
 
-      if (selmode & SelMask.TOPOLOGY)
-        this.types.push(TransSplineVert);
+      if (selmode & SelMask.TOPOLOGY) this.types.push(TransSplineVert);
 
       this.transdata = new TransData(ctx, this, this.inputs.datamode.data);
     }
@@ -187,7 +198,7 @@ export class TransformOp<
   undo_pre(ctx: FullContext) {
     let td = this.ensure_transdata(ctx);
 
-    let undo: TransUndoData = this._undo = {};
+    let undo: TransUndoData = (this._undo = {});
     undo.edit_all_layers = this.inputs.edit_all_layers.data;
 
     for (var i = 0; i < this.types.length; i++) {
@@ -209,7 +220,7 @@ export class TransformOp<
     window.redraw_viewport();
   }
 
-  modalEnd(was_cancelled? : boolean) {
+  modalEnd(was_cancelled?: boolean) {
     let ctx = this.modal_ctx;
 
     ctx.appstate.popModalState(ModalStates.TRANSFORMING);
@@ -277,11 +288,15 @@ export class TransformOp<
     //return;
     /* Only ever called from a modal handler, where modalStart() has already
        built both. */
-    let td = this.transdata!, view2d = this.modal_ctx.view2d;
-    let md = this.modalTemp!, do_last = true;
+    let td = this.transdata!,
+      view2d = this.modal_ctx.view2d;
+    let md = this.modalTemp!,
+      do_last = true;
 
-    let min1 = post_mousemove_cachering.next(), max1 = post_mousemove_cachering.next();
-    let min2 = post_mousemove_cachering.next(), max2 = post_mousemove_cachering.next();
+    let min1 = post_mousemove_cachering.next(),
+      max1 = post_mousemove_cachering.next();
+    let min2 = post_mousemove_cachering.next(),
+      max2 = post_mousemove_cachering.next();
 
     if (this.first_viewport_redraw) {
       md.draw_minmax = new MinMax(3);
@@ -303,8 +318,8 @@ export class TransformOp<
     }
 
     for (var i = 0; i < 2; i++) {
-      minmax.min[i] -= 20/view2d.zoom;
-      minmax.max[i] += 20/view2d.zoom;
+      minmax.min[i] -= 20 / view2d.zoom;
+      minmax.max[i] += 20 / view2d.zoom;
     }
 
     if (do_last) {
@@ -343,7 +358,7 @@ export class TransformOp<
     }
   }
 
-  draw_helper_lines(md : TransformModalTemp, ctx : FullContext) {
+  draw_helper_lines(md: TransformModalTemp, ctx: FullContext) {
     this.reset_drawlines();
 
     /*
@@ -362,21 +377,24 @@ export class TransformOp<
     if (this.inputs.proportional.data) {
       let rad = this.inputs.propradius.data;
 
-      let steps = 64, t = -Math.PI, dt = (Math.PI*2.0)/(steps - 1);
+      let steps = 64,
+        t = -Math.PI,
+        dt = (Math.PI * 2.0) / (steps - 1);
       let td = this.transdata!;
 
-      let v1 = new Vector2(), v2 = new Vector2();
+      let v1 = new Vector2(),
+        v2 = new Vector2();
       let r = this.inputs.propradius.data;
       let cent = new Vector2(td.center);
 
       ctx.view2d.project(cent);
 
       for (var i = 0; i < steps - 1; i++, t += dt) {
-        v1[0] = Math.sin(t)*r + cent[0];
-        v1[1] = Math.cos(t)*r + cent[1];
+        v1[0] = Math.sin(t) * r + cent[0];
+        v1[1] = Math.cos(t) * r + cent[1];
 
-        v2[0] = Math.sin(t + dt)*r + cent[0];
-        v2[1] = Math.cos(t + dt)*r + cent[1];
+        v2[0] = Math.sin(t + dt) * r + cent[0];
+        v2[1] = Math.cos(t + dt) * r + cent[1];
 
         let dl = this.new_drawline(v1, v2);
 
@@ -388,7 +406,7 @@ export class TransformOp<
     }
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     console.log(event.keyCode);
 
     let propdelta = 15;
@@ -453,8 +471,8 @@ export class TransformOp<
 
 //import {TPropFlags} from 'toolprops';
 
-export class TranslateOp extends TransformOp<{translation: Vec2Property}> {
-  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
+export class TranslateOp extends TransformOp<{ translation: Vec2Property }> {
+  constructor(user_start_mpos?: Vector2 | number[], datamode?: number) {
     super(user_start_mpos, datamode);
   }
 
@@ -466,12 +484,12 @@ export class TranslateOp extends TransformOp<{translation: Vec2Property}> {
       is_modal   : true,
 
       inputs: ToolOp.inherit({
-        translation: new Vec2Property(undefined, "translation", "translation", "translation")
-      })
-    }
+        translation: new Vec2Property(undefined, "translation", "translation", "translation"),
+      }),
+    };
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     let first = this.first;
 
     super.on_mousemove(event);
@@ -498,7 +516,8 @@ export class TranslateOp extends TransformOp<{translation: Vec2Property}> {
 
     let md = this.modalTemp;
 
-    let start = mousemove_cachering.next(), off = mousemove_cachering.next();
+    let start = mousemove_cachering.next(),
+      off = mousemove_cachering.next();
 
     //console.log("mpos:", md.mpos, "start", md.start_mpos);
 
@@ -517,7 +536,7 @@ export class TranslateOp extends TransformOp<{translation: Vec2Property}> {
     this.post_mousemove(event);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     /* While modal, modalStart() has already built it. */
     let td = this.modalRunning ? this.transdata! : this.ensure_transdata(ctx);
 
@@ -546,8 +565,8 @@ export class TranslateOp extends TransformOp<{translation: Vec2Property}> {
   }
 }
 
-export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
-  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
+export class NonUniformScaleOp extends TransformOp<{ scale: Vec2Property }> {
+  constructor(user_start_mpos?: Vector2 | number[], datamode?: number) {
     super(user_start_mpos, datamode);
   }
 
@@ -559,12 +578,12 @@ export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
       is_modal   : true,
 
       inputs: ToolOp.inherit({
-        scale: new Vec2Property(undefined, "scale", "scale", "scale")
-      })
-    }
+        scale: new Vec2Property(undefined, "scale", "scale", "scale"),
+      }),
+    };
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp!;
@@ -578,8 +597,8 @@ export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
     off1.load(md.mpos!).sub(td.scenter).vectorLength();
     off2.load(md.start_mpos!).sub(td.scenter).vectorLength();
 
-    scale[0] = off1[0] !== off2[0] && off2[0] !== 0.0 ? off1[0]/off2[0] : 1.0;
-    scale[1] = off1[1] !== off2[1] && off2[1] !== 0.0 ? off1[1]/off2[1] : 1.0;
+    scale[0] = off1[0] !== off2[0] && off2[0] !== 0.0 ? off1[0] / off2[0] : 1.0;
+    scale[1] = off1[1] !== off2[1] && off2[1] !== 0.0 ? off1[1] / off2[1] : 1.0;
 
     this.inputs.scale.setValue(scale);
 
@@ -589,7 +608,7 @@ export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
     this.draw_helper_lines(this.modalTemp!, this.modal_ctx);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     /* While modal, modalStart() has already built it. */
     let td = this.modalRunning ? this.transdata! : this.ensure_transdata(ctx);
 
@@ -606,7 +625,7 @@ export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
       /* NOTE: both vectors are 2d, so the third pass reads NaN and writes
          past the end of a typed array -- a silent no-op. */
       for (let i = 0; i < 3; i++) {
-        scale[i] = scale[i]! + (1.0 - scale[i]!)*(1.0 - caxis[i]!);
+        scale[i] = scale[i]! + (1.0 - scale[i]!) * (1.0 - caxis[i]!);
       }
     }
 
@@ -627,12 +646,12 @@ export class NonUniformScaleOp extends TransformOp<{scale: Vec2Property}> {
   }
 }
 
-export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: BoolProperty}> {
-  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
+export class ScaleOp extends TransformOp<{ scale: Vec2Property; scaleLineWidths: BoolProperty }> {
+  constructor(user_start_mpos?: Vector2 | number[], datamode?: number) {
     super(user_start_mpos, datamode);
   }
 
-  static invoke(ctx : FullContext, args : {[k : string] : unknown}) {
+  static invoke(ctx: FullContext, args: { [k: string]: unknown }) {
     if (args.datamode === "selectmode") {
       args.datamode = ctx.selectmode;
     }
@@ -641,7 +660,13 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
     let ret = super.invoke(ctx, args) as ScaleOp;
 
     if (!("scaleLineWidths" in args)) {
-      ret.inputs.scaleLineWidths.setValue(ctx.settings.getToolOpSetting(this, "scaleLineWidths", ret.inputs.scaleLineWidths.getValue()));
+      ret.inputs.scaleLineWidths.setValue(
+        ctx.settings.getToolOpSetting(
+          this,
+          "scaleLineWidths",
+          ret.inputs.scaleLineWidths.getValue()
+        )
+      );
     }
 
     return ret;
@@ -661,12 +686,12 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
 
       inputs: ToolOp.inherit({
         scale          : new Vec2Property(undefined, "scale", "scale", "scale"),
-        scaleLineWidths: new BoolProperty(false).setFlag(TPropFlags.SAVE_LAST_VALUE)
-      })
-    }
+        scaleLineWidths: new BoolProperty(false).setFlag(TPropFlags.SAVE_LAST_VALUE),
+      }),
+    };
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp!;
@@ -681,7 +706,7 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
 
     //console.log(event.x, event.y);
 
-    scale[0] = scale[1] = l1/l2;
+    scale[0] = scale[1] = l1 / l2;
 
     this.inputs.scale.setValue(scale);
 
@@ -689,7 +714,7 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
     this.post_mousemove(event);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     /* While modal, modalStart() has already built it. */
     let td = this.modalRunning ? this.transdata! : this.ensure_transdata(ctx);
 
@@ -706,7 +731,7 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
       /* NOTE: both vectors are 2d, so the third pass reads NaN and writes
          past the end of a typed array -- a silent no-op. */
       for (let i = 0; i < 3; i++) {
-        scale[i] = scale[i]! + (1.0 - scale[i]!)*(1.0 - caxis[i]!);
+        scale[i] = scale[i]! + (1.0 - scale[i]!) * (1.0 - caxis[i]!);
       }
     }
 
@@ -727,10 +752,10 @@ export class ScaleOp extends TransformOp<{scale: Vec2Property, scaleLineWidths: 
   }
 }
 
-export class RotateOp extends TransformOp<{angle: FloatProperty}> {
+export class RotateOp extends TransformOp<{ angle: FloatProperty }> {
   angle_sum: number;
 
-  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
+  constructor(user_start_mpos?: Vector2 | number[], datamode?: number) {
     super(user_start_mpos, datamode);
     this.angle_sum = 0.0;
   }
@@ -743,19 +768,20 @@ export class RotateOp extends TransformOp<{angle: FloatProperty}> {
       is_modal   : true,
 
       inputs: ToolOp.inherit({
-        angle: new FloatProperty(undefined, "angle", "angle", "angle")
-      })
-    }
+        angle: new FloatProperty(undefined, "angle", "angle", "angle"),
+      }),
+    };
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     super.on_mousemove(event);
 
     let md = this.modalTemp!;
     let ctx = this.modal_ctx;
     let td = this.transdata!;
 
-    let mpos = md.mpos!, start_mpos = md.start_mpos!;
+    let mpos = md.mpos!,
+      start_mpos = md.start_mpos!;
 
     let off = mousemove_cachering.next();
 
@@ -766,8 +792,9 @@ export class RotateOp extends TransformOp<{angle: FloatProperty}> {
 
     let dl = this.new_drawline(mpos, td.scenter);
 
-    let angle = Math.atan2(start_mpos[0] - td.scenter[0], start_mpos[1] - td.scenter[1])
-      - Math.atan2(mpos[0] - td.scenter[0], mpos[1] - td.scenter[1]);
+    let angle =
+      Math.atan2(start_mpos[0] - td.scenter[0], start_mpos[1] - td.scenter[1]) -
+      Math.atan2(mpos[0] - td.scenter[0], mpos[1] - td.scenter[1]);
 
     this.angle_sum += angle;
     start_mpos.load(mpos);
@@ -778,7 +805,7 @@ export class RotateOp extends TransformOp<{angle: FloatProperty}> {
     this.post_mousemove(event);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     /* While modal, modalStart() has already built it. */
     let td = this.modalRunning ? this.transdata! : this.ensure_transdata(ctx);
 

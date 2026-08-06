@@ -1,8 +1,16 @@
-import type {FullContext} from "../core/context.js";
-import {EnumKeyPair, Matrix4, Vector2, Vector3, Vector4, util, nstructjs} from '../path.ux/scripts/pathux.js';
-import type {Container, DataAPI, DataStruct} from '../path.ux/scripts/pathux.js';
-import {NodeSocketType, NodeFlags, SocketFlags} from './graph.js';
-import type {SocketDef} from './graph.js';
+import type { FullContext } from "../core/context.js";
+import {
+  EnumKeyPair,
+  Matrix4,
+  Vector2,
+  Vector3,
+  Vector4,
+  util,
+  nstructjs,
+} from "../path.ux/scripts/pathux.js";
+import type { Container, DataAPI, DataStruct } from "../path.ux/scripts/pathux.js";
+import { NodeSocketType, NodeFlags, SocketFlags } from "./graph.js";
+import type { SocketDef } from "./graph.js";
 
 export class Matrix4Socket extends NodeSocketType {
   static STRUCT: string;
@@ -31,11 +39,13 @@ export class Matrix4Socket extends NodeSocketType {
     //def.on('change', function() { this.dataref.graphUpdate(true)});
   }
 
-  static nodedef(): SocketDef {return {
-    name : "mat4",
-    uiname : "Matrix",
-    color : [1,0.5,0.25,1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "mat4",
+      uiname: "Matrix",
+      color : [1, 0.5, 0.25, 1],
+    };
+  }
 
   copy() {
     /* NOTE: was this.flag, which NodeSocketType spells graph_flag; the copy got
@@ -65,7 +75,8 @@ export class Matrix4Socket extends NodeSocketType {
     let m1 = this.value.getAsArray();
     let m2 = b.getAsArray();
 
-    let diff = 0.0, tot=0.0;
+    let diff = 0.0,
+      tot = 0.0;
 
     for (let i = 0; i < m1.length; i++) {
       diff += Math.abs(m1[i] - m2[i]);
@@ -82,8 +93,10 @@ export class Matrix4Socket extends NodeSocketType {
   setValue(val: Matrix4) {
     this.value.load(val);
   }
-};
-Matrix4Socket.STRUCT = nstructjs.inherit(Matrix4Socket, NodeSocketType, "graph.Matrix4Socket") + `
+}
+Matrix4Socket.STRUCT =
+  nstructjs.inherit(Matrix4Socket, NodeSocketType, "graph.Matrix4Socket") +
+  `
   value : mat4;
 }
 `;
@@ -106,14 +119,16 @@ export class DependSocket extends NodeSocketType {
     //digest.add(0);
   }
 
-  static nodedef(): SocketDef {return {
-    name : "dep",
-    uiname : "Dependency",
-    color : [0.0,0.75,0.25,1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "dep",
+      uiname: "Dependency",
+      color : [0.0, 0.75, 0.25, 1],
+    };
+  }
 
   diffValue(b: boolean) {
-    return (!!this.value != !!b) ? 0.001 : 0.0;
+    return !!this.value != !!b ? 0.001 : 0.0;
   }
 
   copyValue() {
@@ -138,14 +153,15 @@ export class DependSocket extends NodeSocketType {
 
     this.value = !!this.value;
   }
-};
-DependSocket.STRUCT = nstructjs.inherit(DependSocket, NodeSocketType, "graph.DependSocket") + `
+}
+DependSocket.STRUCT =
+  nstructjs.inherit(DependSocket, NodeSocketType, "graph.DependSocket") +
+  `
   value : int;
 }
 `;
 nstructjs.register(DependSocket);
 NodeSocketType.register(DependSocket);
-
 
 export class IntSocket extends NodeSocketType {
   static STRUCT: string;
@@ -161,7 +177,9 @@ export class IntSocket extends NodeSocketType {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.int("value", "value", "value").noUnits();
 
-    def.on<IntSocket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<IntSocket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
 
     /* NOTE: a `this.graph_flag & SocketFlags.NO_UNITS` guard around a second
        def.noUnits() sat here.  apiDefine is static and there is no static
@@ -169,14 +187,16 @@ export class IntSocket extends NodeSocketType {
        Vec3Socket.apiDefine below has the same block commented out by hand. */
   }
 
-  static nodedef(): SocketDef {return {
-    name : "int",
-    uiname : "Integer",
-    color : [0.0,0.75,0.25,1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "int",
+      uiname: "Integer",
+      color : [0.0, 0.75, 0.25, 1],
+    };
+  }
 
   diffValue(b: number) {
-    return (this.value - b);
+    return this.value - b;
   }
 
   copyValue() {
@@ -205,8 +225,10 @@ export class IntSocket extends NodeSocketType {
 
     this.value = ~~this.value;
   }
-};
-IntSocket.STRUCT = nstructjs.inherit(IntSocket, NodeSocketType, "graph.IntSocket") + `
+}
+IntSocket.STRUCT =
+  nstructjs.inherit(IntSocket, NodeSocketType, "graph.IntSocket") +
+  `
   value : int;
 }
 `;
@@ -225,18 +247,22 @@ export class Vec2Socket extends NodeSocketType {
   }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.vec2('value', 'value', 'value').noUnits();
+    let def = sockstruct.vec2("value", "value", "value").noUnits();
 
-    def.on<Vec2Socket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec2Socket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
 
     /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
   }
 
-  static nodedef(): SocketDef {return {
-    name : "Vec2",
-    uiname : "Vector",
-    color : [0.25, 0.45, 1.0, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "Vec2",
+      uiname: "Vector",
+      color : [0.25, 0.45, 1.0, 1],
+    };
+  }
 
   addToUpdateHash(digest: util.HashDigest) {
     digest.add(this.value[0]);
@@ -268,8 +294,10 @@ export class Vec2Socket extends NodeSocketType {
   cmpValue(b: Vector2) {
     return this.value.dot(b);
   }
-};
-Vec2Socket.STRUCT = nstructjs.inherit(Vec2Socket, NodeSocketType, "graph.Vec2Socket") + `
+}
+Vec2Socket.STRUCT =
+  nstructjs.inherit(Vec2Socket, NodeSocketType, "graph.Vec2Socket") +
+  `
   value : vec2;
 }
 `;
@@ -285,7 +313,6 @@ export class VecSocket extends NodeSocketType {
       container.label(this.uiname);
     }
   }
-
 }
 
 export class Vec3Socket extends VecSocket {
@@ -301,18 +328,22 @@ export class Vec3Socket extends VecSocket {
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let cb = NodeSocketType._api_uiname;
-    let def = sockstruct.vec3('value', 'value', 'value').uiNameGetter(cb).noUnits();
+    let def = sockstruct.vec3("value", "value", "value").uiNameGetter(cb).noUnits();
 
-    def.on<Vec3Socket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec3Socket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
 
     def.noUnits();
   }
 
-  static nodedef(): SocketDef {return {
-    name : "vec3",
-    uiname : "Vector",
-    color : [0.25, 0.45, 1.0, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "vec3",
+      uiname: "Vector",
+      color : [0.25, 0.45, 1.0, 1],
+    };
+  }
 
   addToUpdateHash(digest: util.HashDigest) {
     digest.add(this.value[0]);
@@ -346,8 +377,10 @@ export class Vec3Socket extends VecSocket {
   cmpValue(b: Vector3) {
     return this.value.dot(b);
   }
-};
-Vec3Socket.STRUCT = nstructjs.inherit(Vec3Socket, NodeSocketType, "graph.Vec3Socket") + `
+}
+Vec3Socket.STRUCT =
+  nstructjs.inherit(Vec3Socket, NodeSocketType, "graph.Vec3Socket") +
+  `
   value : vec3;
 }
 `;
@@ -365,16 +398,20 @@ export class Vec4Socket extends NodeSocketType {
     this.value = new Vector4(default_value);
   }
 
-  static nodedef(): SocketDef {return {
-    name : "vec4",
-    uiname : "Vector4",
-    color : [0.25, 0.45, 1.0, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "vec4",
+      uiname: "Vector4",
+      color : [0.25, 0.45, 1.0, 1],
+    };
+  }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.vec4('value', 'value', 'value').noUnits();
+    let def = sockstruct.vec4("value", "value", "value").noUnits();
 
-    def.on<Vec4Socket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec4Socket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
 
     /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
   }
@@ -385,7 +422,6 @@ export class Vec4Socket extends NodeSocketType {
     digest.add(this.value[2]);
     digest.add(this.value[3]);
   }
-
 
   diffValue(b: Vector4) {
     return this.value.vectorDistance(b);
@@ -417,14 +453,15 @@ export class Vec4Socket extends NodeSocketType {
   cmpValue(b: Vector4) {
     return this.value.dot(b);
   }
-};
-Vec4Socket.STRUCT = nstructjs.inherit(Vec4Socket, NodeSocketType, "graph.Vec4Socket") + `
+}
+Vec4Socket.STRUCT =
+  nstructjs.inherit(Vec4Socket, NodeSocketType, "graph.Vec4Socket") +
+  `
   value : vec4;
 }
 `;
 nstructjs.register(Vec4Socket);
 NodeSocketType.register(Vec4Socket);
-
 
 export class RGBSocket extends Vec3Socket {
   static STRUCT: string;
@@ -433,16 +470,23 @@ export class RGBSocket extends Vec3Socket {
     super(uiname, flag, default_value);
   }
 
-  static nodedef(): SocketDef {return {
-    name : "rgb",
-    uiname : "Color",
-    color : [1.0, 0.7, 0.7, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "rgb",
+      uiname: "Color",
+      color : [1.0, 0.7, 0.7, 1],
+    };
+  }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.color3('value', 'value', 'value').uiNameGetter(NodeSocketType._api_uiname).noUnits();
+    let def = sockstruct
+      .color3("value", "value", "value")
+      .uiNameGetter(NodeSocketType._api_uiname)
+      .noUnits();
 
-    def.on<RGBSocket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<RGBSocket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
   }
 
   buildUI(container: Container<FullContext>, onchange: () => void) {
@@ -462,7 +506,9 @@ export class RGBSocket extends Vec3Socket {
     }
   }
 }
-RGBSocket.STRUCT = nstructjs.inherit(RGBSocket, Vec3Socket, 'graph.RGBSocket') + `
+RGBSocket.STRUCT =
+  nstructjs.inherit(RGBSocket, Vec3Socket, "graph.RGBSocket") +
+  `
 }
 `;
 nstructjs.register(RGBSocket);
@@ -475,16 +521,23 @@ export class RGBASocket extends Vec4Socket {
     super(uiname, flag, default_value);
   }
 
-  static nodedef(): SocketDef {return {
-    name : "rgba",
-    uiname : "Color",
-    color : [1.0, 0.7, 0.4, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "rgba",
+      uiname: "Color",
+      color : [1.0, 0.7, 0.4, 1],
+    };
+  }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.color4('value', 'value', 'value').uiNameGetter(NodeSocketType._api_uiname).noUnits();
+    let def = sockstruct
+      .color4("value", "value", "value")
+      .uiNameGetter(NodeSocketType._api_uiname)
+      .noUnits();
 
-    def.on<RGBASocket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<RGBASocket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
   }
 
   buildUI(container: Container<FullContext>, onchange: () => void) {
@@ -504,7 +557,9 @@ export class RGBASocket extends Vec4Socket {
     }
   }
 }
-RGBASocket.STRUCT = nstructjs.inherit(RGBASocket, Vec4Socket, 'graph.RGBASocket') + `
+RGBASocket.STRUCT =
+  nstructjs.inherit(RGBASocket, Vec4Socket, "graph.RGBASocket") +
+  `
 }
 `;
 nstructjs.register(RGBASocket);
@@ -526,18 +581,22 @@ export class FloatSocket extends NodeSocketType {
   }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.float('value', 'value', 'value').noUnits();
+    let def = sockstruct.float("value", "value", "value").noUnits();
 
     /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
 
-    def.on<FloatSocket>('change', function() { this.dataref.graphUpdate(true)});
+    def.on<FloatSocket>("change", function () {
+      this.dataref.graphUpdate(true);
+    });
   }
 
-  static nodedef(): SocketDef {return {
-    name : "float",
-    uiname : "Value",
-    color : [1.25, 0.45, 1.0, 1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "float",
+      uiname: "Value",
+      color : [1.25, 0.45, 1.0, 1],
+    };
+  }
 
   buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
@@ -581,8 +640,10 @@ export class FloatSocket extends NodeSocketType {
   cmpValue(b: number) {
     return this.value - b;
   }
-};
-FloatSocket.STRUCT = nstructjs.inherit(FloatSocket, NodeSocketType, "graph.FloatSocket") + `
+}
+FloatSocket.STRUCT =
+  nstructjs.inherit(FloatSocket, NodeSocketType, "graph.FloatSocket") +
+  `
   value : float;
 }
 `;
@@ -590,8 +651,8 @@ nstructjs.register(FloatSocket);
 NodeSocketType.register(FloatSocket);
 
 /* Enum item name -> integer value, and item name -> display name. */
-export type EnumItems = {[name: string]: number};
-export type EnumUINames = {[name: string]: string};
+export type EnumItems = { [name: string]: number };
+export type EnumUINames = { [name: string]: string };
 
 export class EnumSocket extends IntSocket {
   static STRUCT: string;
@@ -631,7 +692,6 @@ export class EnumSocket extends IntSocket {
     }
   }
 
-
   addToUpdateHash(digest: util.HashDigest) {
     digest.add(this.value);
   }
@@ -639,8 +699,8 @@ export class EnumSocket extends IntSocket {
   apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def;
 
-    def = sockstruct.enum('value', 'value', this.items, this.uiname).uiNames(this.uimap);
-    def.on<EnumSocket>('change', function() {
+    def = sockstruct.enum("value", "value", this.items, this.uiname).uiNames(this.uimap);
+    def.on<EnumSocket>("change", function () {
       this.dataref.graphUpdate(true);
     });
   }
@@ -650,15 +710,17 @@ export class EnumSocket extends IntSocket {
       this.uimap[k] = items[k];
     }
   }
-  static nodedef(): SocketDef {return {
-    name : "enum",
-    uiname : "Enumeration",
-    graph_flag : SocketFlags.INSTANCE_API_DEFINE,
-    color : [0.0,0.75,0.25,1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name      : "enum",
+      uiname    : "Enumeration",
+      graph_flag: SocketFlags.INSTANCE_API_DEFINE,
+      color     : [0.0, 0.75, 0.25, 1],
+    };
+  }
 
   diffValue(b: number) {
-    return (this.value - b);
+    return this.value - b;
   }
 
   copyValue() {
@@ -713,7 +775,9 @@ export class EnumSocket extends IntSocket {
 
   /* Reverses _saveMap(); on a fresh file `obj` is already a map, in which case
      there is nothing to rebuild and an empty one is returned. */
-  _loadMap<VALUE extends string | number>(obj: EnumKeyPair[] | Record<string, VALUE>): Record<string, VALUE> {
+  _loadMap<VALUE extends string | number>(
+    obj: EnumKeyPair[] | Record<string, VALUE>
+  ): Record<string, VALUE> {
     if (!obj || !Array.isArray(obj)) {
       return {};
     }
@@ -746,15 +810,16 @@ export class EnumSocket extends IntSocket {
   cmpValue(b: number) {
     return ~~this.value !== ~~b;
   }
-};
-EnumSocket.STRUCT = nstructjs.inherit(EnumSocket, IntSocket, "graph.EnumSocket") + `
+}
+EnumSocket.STRUCT =
+  nstructjs.inherit(EnumSocket, IntSocket, "graph.EnumSocket") +
+  `
   items : array(EnumKeyPair) | this._saveMap(this.items);
   uimap : array(EnumKeyPair) | this._saveMap(this.uimap);
 }
 `;
 nstructjs.register(EnumSocket);
 NodeSocketType.register(EnumSocket);
-
 
 export class BoolSocket extends NodeSocketType {
   static STRUCT: string;
@@ -773,11 +838,13 @@ export class BoolSocket extends NodeSocketType {
     sockstruct.bool("value", "value", "value");
   }
 
-  static nodedef(): SocketDef {return {
-    name : "bool",
-    uiname : "Boolean",
-    color : [0.0,0.75,0.25,1]
-  }}
+  static nodedef(): SocketDef {
+    return {
+      name  : "bool",
+      uiname: "Boolean",
+      color : [0.0, 0.75, 0.25, 1],
+    };
+  }
 
   addToUpdateHash(digest: util.HashDigest) {
     digest.add(this.value);
@@ -811,8 +878,10 @@ export class BoolSocket extends NodeSocketType {
 
     this.value = !!this.value;
   }
-};
-BoolSocket.STRUCT = nstructjs.inherit(BoolSocket, NodeSocketType, "graph.BoolSocket") + `
+}
+BoolSocket.STRUCT =
+  nstructjs.inherit(BoolSocket, NodeSocketType, "graph.BoolSocket") +
+  `
   value : bool;
 }
 `;

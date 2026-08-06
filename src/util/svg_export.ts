@@ -1,12 +1,12 @@
 "use strict";
 
-import * as math from './mathlib.js';
-import {SplineFlags, MaterialFlags, SplineTypes} from '../curve/spline_base.js';
-import {SplineDrawer} from "../curve/spline_draw_new.js";
-import {draw_spline} from "../curve/spline_draw.js";
-import {SVGDraw2D} from "../vectordraw/vectordraw_svg.js";
-import {IndexRange} from "../path.ux/scripts/path-controller/util/indexRange.js";
-import type {Spline} from "../curve/spline.js";
+import * as math from "./mathlib.js";
+import { SplineFlags, MaterialFlags, SplineTypes } from "../curve/spline_base.js";
+import { SplineDrawer } from "../curve/spline_draw_new.js";
+import { draw_spline } from "../curve/spline_draw.js";
+import { SVGDraw2D } from "../vectordraw/vectordraw_svg.js";
+import { IndexRange } from "../path.ux/scripts/path-controller/util/indexRange.js";
+import type { Spline } from "../curve/spline.js";
 
 var cubic_rets = cachering.fromConstructor(Vector3, 64);
 /*
@@ -24,21 +24,28 @@ cubic;
 off fort;
 */
 /* Dead; kept for the derivation above. */
-function cubic(a : Vector3, b : Vector3, c : Vector3, d : Vector3, s : number) {
+function cubic(a: Vector3, b: Vector3, c: Vector3, d: Vector3, s: number) {
   var ret = cubic_rets.next();
-  
+
   /* IndexRange() yields 0|1|2, which is what indexing a Vector3 wants. */
   for (const i of IndexRange(3)) {
-    ret[i] = a[i]*s*s*s-3*a[i]*s*s+3*a[i]*s-a[i]-3*b[i]*s*s*s+6*b[i]*s*s-3*b[i]*s
-    ret[i] += 3*c[i]*s*s*s-3*c[i]*s*s-d[i]*s*s*s;
+    ret[i] =
+      a[i] * s * s * s -
+      3 * a[i] * s * s +
+      3 * a[i] * s -
+      a[i] -
+      3 * b[i] * s * s * s +
+      6 * b[i] * s * s -
+      3 * b[i] * s;
+    ret[i] += 3 * c[i] * s * s * s - 3 * c[i] * s * s - d[i] * s * s * s;
 
     ret[i] = -ret[i];
   }
-  
+
   return ret;
 }
 
-export function export_svg(spline : Spline, visible_only=false) {
+export function export_svg(spline: Spline, visible_only = false) {
   //XXX temporary auto-setter, for testing purposes
   if (spline === undefined) {
     spline = g_app_state.ctx.spline;
@@ -61,7 +68,7 @@ export function export_svg(spline : Spline, visible_only=false) {
 
   /* Dummy canvas, built the way Editor.getCanvas() does it: spline_draw reads
      g.canvas.dpi_scale, and SplineDrawer.update() reads g.height. */
-  let canvas = Object.assign(document.createElement("canvas"), {dpi_scale: 1.0});
+  let canvas = Object.assign(document.createElement("canvas"), { dpi_scale: 1.0 });
 
   canvas.width = width;
   canvas.height = height;
@@ -69,14 +76,25 @@ export function export_svg(spline : Spline, visible_only=false) {
   canvas.style["height"] = canvas.height + "px";
 
   let g = Object.assign(canvas.getContext("2d")!, {
-    dpi_scale: 1.0,
-    width    : canvas.width,
-    height   : canvas.height,
-    _irender_mat: new Matrix4()
+    dpi_scale   : 1.0,
+    width       : canvas.width,
+    height      : canvas.height,
+    _irender_mat: new Matrix4(),
   });
 
-  drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix,
-    [], true, 1, g, 1.0, view2d, true);
+  drawer.update(
+    spline,
+    spline.drawlist,
+    spline.draw_layerlist,
+    matrix,
+    [],
+    true,
+    1,
+    g,
+    1.0,
+    view2d,
+    true
+  );
   drawer.draw(g);
 
   /* draw() builds the svg element; it is undefined before that and again

@@ -1,19 +1,23 @@
 "use strict";
 
-import {SelMask} from '../selectmode.js';
-import {compose_id, decompose_id, has_multires, ensure_multires,
-        MultiResLayer, iterpoints, MResFlags, isSegment,
-        BoundPoint} from '../../../curve/spline_multires.js';
-
+import { SelMask } from "../selectmode.js";
 import {
-  MinMax
-} from '../../../util/mathlib.js';
+  compose_id,
+  decompose_id,
+  has_multires,
+  ensure_multires,
+  MultiResLayer,
+  iterpoints,
+  MResFlags,
+  isSegment,
+  BoundPoint,
+} from "../../../curve/spline_multires.js";
 
-import {
-  TransDataType, TransDataItem
-} from '../transdata.js';
-import type {TransData, TransUndoData} from '../transdata.js';
-import type {FullContext} from '../../../core/context.js';
+import { MinMax } from "../../../util/mathlib.js";
+
+import { TransDataType, TransDataItem } from "../transdata.js";
+import type { TransData, TransUndoData } from "../transdata.js";
+import type { FullContext } from "../../../core/context.js";
 
 /* Were `static` inside MResTransData's static methods; each method had its own,
    so they stay separate here. */
@@ -27,33 +31,29 @@ export type MResTransItem = TransDataItem<BoundPoint, Vector3>;
 
 /* td.data mixes items from every backend at once; the ones this backend made
    all carry a BoundPoint. */
-function tdPoint(item : TransDataItem) : BoundPoint {
+function tdPoint(item: TransDataItem): BoundPoint {
   return (item.data instanceof BoundPoint ? item.data : undefined)!;
 }
 
 export class MResTransData extends TransDataType {
-  static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
+  static gen_data(ctx: FullContext, td: TransData, data: TransDataItem[]) {
     var doprop = td.doprop;
     var proprad = td.propradius;
 
     var spline = ctx.spline;
     var actlayer = spline.layerset.active;
 
-    if (!has_multires(spline))
-      return;
+    if (!has_multires(spline)) return;
 
     var actlevel = spline.actlevel;
 
     for (var seg of spline.segments) {
-      if (!(actlayer.id in seg.layers))
-        continue;
-      if (seg.hidden)
-        continue;
+      if (!(actlayer.id in seg.layers)) continue;
+      if (seg.hidden) continue;
 
       var mr = seg.cdata.get_layer(MultiResLayer)!;
       for (var p of mr.points(actlevel)) {
-        if (!(p.flag & MResFlags.SELECT))
-          continue;
+        if (!(p.flag & MResFlags.SELECT)) continue;
 
         p = mr.get(p.id, true); //second argument allocates fixed BoundPoint
 
@@ -67,8 +67,7 @@ export class MResTransData extends TransDataType {
     }
   }
 
-  static apply(ctx : FullContext, td : TransData, item : MResTransItem,
-               mat : Matrix4, w : number) {
+  static apply(ctx: FullContext, td: TransData, item: MResTransItem, mat: Matrix4, w: number) {
     const co = _apply_co;
     var p = item.data;
 
@@ -92,14 +91,13 @@ export class MResTransData extends TransDataType {
     p.mr!.recalc_wordscos(seg);
   }
 
-  static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
-    var ud : number[] = [];
+  static undo_pre(ctx: FullContext, td: TransData, undo_obj: TransUndoData) {
+    var ud: number[] = [];
     var spline = ctx.spline;
     var actlayer = spline.layerset.active;
     var doprop = td.doprop;
 
-    if (!has_multires(spline))
-      return;
+    if (!has_multires(spline)) return;
 
     for (var seg of spline.segments) {
       if (seg.hidden) continue;
@@ -122,7 +120,7 @@ export class MResTransData extends TransDataType {
     undo_obj.mr_undo = ud;
   }
 
-  static undo(ctx : FullContext, undo_obj : TransUndoData) {
+  static undo(ctx: FullContext, undo_obj: TransUndoData) {
     var ud = undo_obj.mr_undo!;
     var spline = ctx.spline;
 
@@ -146,34 +144,31 @@ export class MResTransData extends TransDataType {
     }
   }
 
-  static update(ctx : FullContext, td : TransData) {
-  }
+  static update(ctx: FullContext, td: TransData) {}
 
-  static calc_prop_distances(ctx : FullContext, td : TransData,
-                             data : TransDataItem[]) {
-  }
+  static calc_prop_distances(ctx: FullContext, td: TransData, data: TransDataItem[]) {}
 
   //this one gets a modal context
-  static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
+  static calc_draw_aabb(ctx: FullContext, td: TransData, minmax: MinMax) {
     const co = _calc_draw_aabb_co;
     co.zero();
     var pad = 15;
 
     const co2 = _calc_draw_aabb_co2;
-    function do_minmax(co : Vector3) {
-      co2[0] = co[0]-pad;
-      co2[1] = co[1]-pad;
+    function do_minmax(co: Vector3) {
+      co2[0] = co[0] - pad;
+      co2[1] = co[1] - pad;
 
       minmax.minmax(co2);
-      co2[0] += pad*2.0;
-      co2[1] += pad*2.0;
+      co2[0] += pad * 2.0;
+      co2[1] += pad * 2.0;
 
       minmax.minmax(co2);
     }
 
     var spline = ctx.spline;
 
-    for (var i=0; i<td.data.length; i++) {
+    for (var i = 0; i < td.data.length; i++) {
       var t = td.data[i];
       if (t.type !== MResTransData) continue;
 
@@ -213,12 +208,17 @@ export class MResTransData extends TransDataType {
     }
   }
 
-  static aabb(ctx : FullContext, td : TransData, item : MResTransItem,
-              minmax : MinMax, selected_only : boolean) {
+  static aabb(
+    ctx: FullContext,
+    td: TransData,
+    item: MResTransItem,
+    minmax: MinMax,
+    selected_only: boolean
+  ) {
     const co = _aabb_co;
     co.zero();
 
-    for (var i=0; i<td.data.length; i++) {
+    for (var i = 0; i < td.data.length; i++) {
       var t = td.data[i];
       if (t.type !== MResTransData) continue;
 

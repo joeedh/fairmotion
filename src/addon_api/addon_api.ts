@@ -1,36 +1,45 @@
 "use strict";
 
-import {tokdef, token, lexer, parser} from '../util/parseutil.js';
-import type {TokFunc} from '../util/parseutil.js';
-import {app} from '../../platforms/platform.js';
+import { tokdef, token, lexer, parser } from "../util/parseutil.js";
+import type { TokFunc } from "../util/parseutil.js";
+import { app } from "../../platforms/platform.js";
 
-import * as vectormath from '../util/vectormath.js';
-import * as math from '../path.ux/scripts/util/math.js';
-import * as util from '../path.ux/scripts/util/util.js';
-import * as parseutil from '../util/parseutil.js';
-import * as pathux from '../path.ux/scripts/pathux.js';
-import {bindAddonAPI} from './addon_api_intern.js';
-import type {DataAPI} from '../path.ux/scripts/pathux.js';
-import type {DataBlockClass} from '../core/lib_api.js';
+import * as vectormath from "../util/vectormath.js";
+import * as math from "../path.ux/scripts/util/math.js";
+import * as util from "../path.ux/scripts/util/util.js";
+import * as parseutil from "../util/parseutil.js";
+import * as pathux from "../path.ux/scripts/pathux.js";
+import { bindAddonAPI } from "./addon_api_intern.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { DataBlockClass } from "../core/lib_api.js";
 
 let builtins = {
-  vectormath : vectormath,
+  vectormath: vectormath,
   parseutil : parseutil,
-  util : util,
-  math : math,
-  pathux : pathux
+  util      : util,
+  math      : math,
+  pathux    : pathux,
 };
 
-let tk = <T = string>(name : string, re? : RegExp, func? : TokFunc<T>) =>
+let tk = <T = string>(name: string, re?: RegExp, func?: TokFunc<T>) =>
   new tokdef<T>(name, re, func);
 
 let keywords = new Set([
-  "export", "import", "from", "as", "in", "default",
-  "let", "const", "var", "class", "function"
+  "export",
+  "import",
+  "from",
+  "as",
+  "in",
+  "default",
+  "let",
+  "const",
+  "var",
+  "class",
+  "function",
 ]);
 
 let tokens = [
-  tk("ID",/[a-zA-Z_$]+[a-zA-Z0-9_$]*/, (t) => {
+  tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_$]*/, (t) => {
     if (keywords.has(t.value)) {
       t.type = t.value.toUpperCase();
     }
@@ -47,14 +56,14 @@ let tokens = [
     t.type = "STRLIT";
 
     let chr = t.value;
-    let start = t.lexer.lexpos-1;
-    let li = t.lexer.lexpos+1;
+    let start = t.lexer.lexpos - 1;
+    let li = t.lexer.lexpos + 1;
     let buf = t.lexer.lexdata;
 
     while (li < buf.length && buf[li] !== chr) {
       let c = buf[li];
 
-      if (c === "\\" && buf[li+1] === chr) {
+      if (c === "\\" && buf[li + 1] === chr) {
         li++;
       } else if (c === "\n" && chr !== "`") {
         break;
@@ -63,13 +72,13 @@ let tokens = [
       li++;
     }
 
-    t.value = buf.slice(start, li+1);
-    t.lexer.lexpos = li+1;
+    t.value = buf.slice(start, li + 1);
+    t.lexer.lexpos = li + 1;
 
     return t;
   }),
-  tk( "STAR", /\*/),
-  tk( "WS", /[ \t\n\r]/, (t) => {
+  tk("STAR", /\*/),
+  tk("WS", /[ \t\n\r]/, (t) => {
     t.lexer.lineno += t.value === "\n" ? 1 : 0;
     //drop token
   }),
@@ -79,17 +88,16 @@ let tokens = [
   tk("BINOP", /\=\=/),
   tk("UNOP", /[!~]/),
   tk("COLON", /\:/),
-  tk("ASSIGN", /\=/)
+  tk("ASSIGN", /\=/),
 ];
 
-export function parseFile(buf : string, modname : string, path : string,
-                          modid : number) {
+export function parseFile(buf: string, modname: string, path: string, modid: number) {
   let lex = new lexer(tokens);
   let p = new parser(lex);
 
-  let linemap : number[] = new Array(buf.length);
+  let linemap: number[] = new Array(buf.length);
   let li = 0;
-  for (let i=0; i<buf.length; i++) {
+  for (let i = 0; i < buf.length; i++) {
     linemap[i] = li;
 
     if (buf[i] === "\n") {
@@ -99,9 +107,9 @@ export function parseFile(buf : string, modname : string, path : string,
 
   let newbuf = buf;
   /* [start, end, replacement] source spans, applied in one pass at the end. */
-  let spans : [number, number, string][] = [];
+  let spans: [number, number, string][] = [];
 
-  function p_Id() : string {
+  function p_Id(): string {
     let t = p.next()!;
     if (t.type === "ID" || t.value === "default") {
       return String(t.value);
@@ -115,10 +123,10 @@ export function parseFile(buf : string, modname : string, path : string,
     throw new Error("Expected an identifier");
   }
 
-  let deps : string[] = [];
+  let deps: string[] = [];
   let name_idgen = 1;
 
-  function p_Import(t : token<unknown>) {
+  function p_Import(t: token<unknown>) {
     let start = t.lexpos;
     let t2 = p.next()!;
 
@@ -126,7 +134,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
     if (t2.type === "LBRACE") {
       let t3 = t2;
-      let members : string[] = [];
+      let members: string[] = [];
 
       while (!p.at_end() && t3 && t3.type !== "RBRACE") {
         members.push(p_Id());
@@ -178,7 +186,7 @@ export function parseFile(buf : string, modname : string, path : string,
         p.error(t2, "Invalid import statement");
       }
     } else if (t2.type === "STRLIT") {
-      repl = `_addon_require(${t2.value});`
+      repl = `_addon_require(${t2.value});`;
       deps.push(String(t2.value));
     } else if (t2.type === "STAR") {
       p.expect("AS");
@@ -199,50 +207,51 @@ export function parseFile(buf : string, modname : string, path : string,
   }
 
   function p_VarExpr() {
-    let li = p.lexer.lexpos, start = li;
+    let li = p.lexer.lexpos,
+      start = li;
 
-    let bracketmap : {[c : string] : string} = {
-      "{" : "{",
-      "}" : "{",
+    let bracketmap: { [c: string]: string } = {
+      "{": "{",
+      "}": "{",
 
-      "[" : "[",
-      "]" : "[",
+      "[": "[",
+      "]": "[",
 
-      "(" : "(",
-      ")" : "("
+      "(": "(",
+      ")": "(",
     };
 
-    let bracketsigns : {[c : string] : number} = {
-      "{" : 1,
-      "}" : -1,
+    let bracketsigns: { [c: string]: number } = {
+      "{": 1,
+      "}": -1,
 
-      "[" : 1,
-      "]" : -1,
+      "[": 1,
+      "]": -1,
 
-      "(" : 1,
-      ")" : -1
+      "(": 1,
+      ")": -1,
     };
 
     /* The tiny state machine that walks to the end of a var initializer. */
     type VarExprStates = {
-      base(li : number) : number;
-      tmpl(li : number) : number;
-      str(li : number) : void;
-      comment(li : number) : number;
-      push(state : string, statedata? : unknown) : void;
-      pop() : void;
-      bracketsZero() : boolean;
-      end() : void;
-      done : boolean;
-      brackets : {[c : string] : number};
-      statedata : unknown;
-      state : string;
-      statestack : [unknown, string][];
+      base(li: number): number;
+      tmpl(li: number): number;
+      str(li: number): void;
+      comment(li: number): number;
+      push(state: string, statedata?: unknown): void;
+      pop(): void;
+      bracketsZero(): boolean;
+      end(): void;
+      done: boolean;
+      brackets: { [c: string]: number };
+      statedata: unknown;
+      state: string;
+      statestack: [unknown, string][];
     };
 
-    let states : VarExprStates = {
-      base(li : number) {
-        if (buf[li] === "/" && buf[li+1] === "*") {
+    let states: VarExprStates = {
+      base(li: number) {
+        if (buf[li] === "/" && buf[li + 1] === "*") {
           this.push("comment");
           return li + 2;
         } else if (buf[li] === "`") {
@@ -253,7 +262,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
           li++;
           while (li < buf.length && buf[li] !== chr) {
-            if (buf[li] === "\\" && buf[li+1] === chr) {
+            if (buf[li] === "\\" && buf[li + 1] === chr) {
               li++;
             }
             li++;
@@ -268,20 +277,18 @@ export function parseFile(buf : string, modname : string, path : string,
         return li + 1;
       },
 
-      tmpl(li : number) {
-        if (buf[li-1] !== "\\" && buf[li] === "`") {
+      tmpl(li: number) {
+        if (buf[li - 1] !== "\\" && buf[li] === "`") {
           this.pop();
         }
 
         return li + 1;
       },
 
-      str(li : number) {
+      str(li: number) {},
 
-      },
-
-      comment(li : number) {
-        if (buf[li] === "*" && buf[li+1] === "/") {
+      comment(li: number) {
+        if (buf[li] === "*" && buf[li + 1] === "/") {
           this.pop();
           return li + 2;
         }
@@ -289,7 +296,7 @@ export function parseFile(buf : string, modname : string, path : string,
         return li + 1;
       },
 
-      push(state : string, statedata : unknown = undefined) {
+      push(state: string, statedata: unknown = undefined) {
         this.statestack.push([this.statedata, this.state]);
         this.state = state;
         this.statedata = statedata;
@@ -312,17 +319,17 @@ export function parseFile(buf : string, modname : string, path : string,
       end() {
         this.done = true;
       },
-      done : false,
-      brackets : {
-        "{" : 0,
-        "[" : 0,
-        "(" : 0
+      done    : false,
+      brackets: {
+        "{": 0,
+        "[": 0,
+        "(": 0,
       },
 
       statedata : undefined,
-      state : "base",
-      statestack : []
-    }
+      state     : "base",
+      statestack: [],
+    };
 
     while (li < buf.length) {
       let start = li;
@@ -345,7 +352,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
   let varkeywords = new Set(["let", "const", "var"]);
 
-  function p_Export(t : token<unknown>) {
+  function p_Export(t: token<unknown>) {
     let start = t.lexpos;
     let t2 = p.next()!;
 
@@ -353,7 +360,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
     if (t2.type === "LBRACE") {
       let t3 = t2;
-      let members : string[] = [];
+      let members: string[] = [];
 
       while (!p.at_end() && t3 && t3.type !== "RBRACE") {
         members.push(p_Id());
@@ -405,7 +412,7 @@ export function parseFile(buf : string, modname : string, path : string,
         p.error(t2, "Invalid import statement");
       }
     } else if (t2.type === "STRLIT") {
-      repl = `_addon_require(${t2.value});\n`
+      repl = `_addon_require(${t2.value});\n`;
       deps.push(String(t2.value));
     } else if (t2.type === "STAR") {
       p.expect("FROM");
@@ -414,12 +421,12 @@ export function parseFile(buf : string, modname : string, path : string,
       repl = `_exportall(${modid}, exports, _addon_require(${modid}, ${path}));\n`;
       deps.push(path);
     } else if (varkeywords.has(String(t2.value))) {
-      let vars : {[id : string] : string | undefined} = {};
+      let vars: { [id: string]: string | undefined } = {};
 
       let keyword = t2.value;
-      repl = '';
+      repl = "";
 
-      for (let _i=0; _i<500000; _i++) {
+      for (let _i = 0; _i < 500000; _i++) {
         let lineno = p.lexer.lineno;
 
         let id = p.expect("ID");
@@ -429,7 +436,6 @@ export function parseFile(buf : string, modname : string, path : string,
         if (p.optional("ASSIGN")) {
           expr = p_VarExpr();
         }
-
 
         if (expr) {
           repl += `${keyword} ${id} = exports.${id} = ${expr};\n`;
@@ -514,10 +520,10 @@ export function parseFile(buf : string, modname : string, path : string,
   }
 
   buf = `"use strict";
-_addon_define(${modid}, "${path}", [${""+deps}], function($__module, exports, _addon_require) {
+_addon_define(${modid}, "${path}", [${"" + deps}], function($__module, exports, _addon_require) {
 ${buf}
 });
-  `
+  `;
 
   console.log("FINAL:", buf);
   console.log(spans);
@@ -543,42 +549,40 @@ export function c {
 export let a = 0, c=2, d=4, e=5, u={a : b, c : d, f : [1, 2, 3]}, c = 3, e="2";
 
 export const d;
-`
+`;
 
-window._testParseFile = function() {
+window._testParseFile = function () {
   /* NOTE: this passed only `test`, leaving modname/path/modid undefined in the
      generated wrapper; they are spelled out now. */
   console.log(parseFile(test, "test", "test.js", 0));
-}
-
+};
 
 /* An addon module's export namespace.  The contents are whatever the addon
    assigned; register/unregister are the two the loader looks for. */
 export interface AddonExports {
-  register? : () => void;
-  unregister? : () => void;
+  register?: () => void;
+  unregister?: () => void;
   /* whatever else the addon module assigned onto its exports. */
-  [k : string] : unknown;
+  [k: string]: unknown;
 }
 
 /* The module body parseFile() wraps, and the require it is handed. */
-export type AddonRequire = (modid : number, path : string) => AddonExports;
-export type ModuleCallback = (addon : Addon, exports : AddonExports,
-                              require : AddonRequire) => void;
+export type AddonRequire = (modid: number, path: string) => AddonExports;
+export type ModuleCallback = (addon: Addon, exports: AddonExports, require: AddonRequire) => void;
 
 /* The addon loader is its own tiny module registry, unrelated to how the app
    itself is bundled. It used to borrow ES6Module from the legacy loader in
    core/startup/module.js, which only ever supplied these fields. */
 class AddonModule {
-  name : string;
-  path : string;
-  callback : ModuleCallback | undefined;
-  exports : AddonExports;
-  deps : string[];
-  loaded : boolean;
-  addon : Addon | undefined;
+  name: string;
+  path: string;
+  callback: ModuleCallback | undefined;
+  exports: AddonExports;
+  deps: string[];
+  loaded: boolean;
+  addon: Addon | undefined;
 
-  constructor(name : string, path : string) {
+  constructor(name: string, path: string) {
     this.name = name;
     this.path = path;
 
@@ -590,7 +594,7 @@ class AddonModule {
   }
 }
 
-export const modules : {[path : string] : AddonModule} = {};
+export const modules: { [path: string]: AddonModule } = {};
 export const pathstack = ["."];
 
 for (let k in builtins) {
@@ -605,10 +609,10 @@ for (let k in builtins) {
    addon loader touches goes through one of them, so loading an addon throws
    a ReferenceError on the first call.  They are declared, not defined, so the
    call sites keep failing exactly as they do now. */
-declare function _normpath(path : string, root : string) : string;
-declare function _normpath1(path : string) : string;
-declare function _splitpath(path : string) : [string, string];
-export function resolvePath(path : string) {
+declare function _normpath(path: string, root: string): string;
+declare function _normpath1(path: string): string;
+declare function _splitpath(path: string): [string, string];
+export function resolvePath(path: string) {
   path = path.replace(/\\/g, "/");
   path = path.replace(/\/\//g, "/");
 
@@ -617,10 +621,10 @@ export function resolvePath(path : string) {
   }
 
   if (path.endsWith("/")) {
-    path = path.slice(0, path.length-1);
+    path = path.slice(0, path.length - 1);
   }
 
-  let root = pathstack[pathstack.length-1];
+  let root = pathstack[pathstack.length - 1];
 
   if (path.startsWith("./")) {
     path = root + "/" + path.slice(2, path.length);
@@ -637,12 +641,12 @@ let addon_idgen = 0;
 
 /* One entry per loadModule() call; _addon_define reads it back to find the
    addon the module it is defining belongs to. */
-type FileState = {id : number, path : string, addon : Addon};
+type FileState = { id: number; path: string; addon: Addon };
 
 let file_idgen = 0;
-let filestates : {[id : number] : FileState} = {};
+let filestates: { [id: number]: FileState } = {};
 
-export function loadModule(path : string, addon : Addon) {
+export function loadModule(path: string, addon: Addon) {
   /*
   let old = {
     _addon_define : window._addon_define,
@@ -659,9 +663,12 @@ export function loadModule(path : string, addon : Addon) {
     return true;
   }
 
-  window._addon_define = function _addon_define(fileid : number, path : string,
-                                                deps : string[],
-                                                func : ModuleCallback) {
+  window._addon_define = function _addon_define(
+    fileid: number,
+    path: string,
+    deps: string[],
+    func: ModuleCallback
+  ) {
     console.log("ADDON DEFINE CALLED!");
 
     let module = new AddonModule(_splitpath(path)[1], path);
@@ -684,9 +691,9 @@ export function loadModule(path : string, addon : Addon) {
       ok = ok && loadModule(dep, addon);
     }
 
-    let _addon_require : AddonRequire;
+    let _addon_require: AddonRequire;
 
-    function load(mod : AddonModule) {
+    function load(mod: AddonModule) {
       pathstack.push(_splitpath(mod.path)[0]);
 
       mod.loaded = true;
@@ -697,7 +704,7 @@ export function loadModule(path : string, addon : Addon) {
 
     let api = bindAddonAPI(addon);
 
-    _addon_require = function(__module : number, mod2 : string) {
+    _addon_require = function (__module: number, mod2: string) {
       if (mod2 === "api") {
         return api;
       } else if (!(mod2 in builtins)) {
@@ -710,8 +717,7 @@ export function loadModule(path : string, addon : Addon) {
       }
 
       return mod3.exports;
-    }
-
+    };
 
     if (ok) {
       console.log("loading modules for addon. . .");
@@ -726,23 +732,23 @@ export function loadModule(path : string, addon : Addon) {
 
       addon.onLoad();
     }
-  }
+  };
 
   let file = {
-    id : file_idgen++,
+    id   : file_idgen++,
     path : path,
-    addon : addon
+    addon: addon,
   };
 
   filestates[file.id] = file;
 
-  app.openFile(path).then((data : unknown) => {
-    let buf : string;
+  app.openFile(path).then((data: unknown) => {
+    let buf: string;
 
     if (data instanceof Uint8Array || Array.isArray(data)) {
       buf = "";
 
-      for (let i=0; i<data.length; i++) {
+      for (let i = 0; i < data.length; i++) {
         buf += String.fromCharCode(data[i]);
       }
     } else {
@@ -765,7 +771,6 @@ export function loadModule(path : string, addon : Addon) {
     //*/
 
     eval(buf);
-
 
     pathstack.pop();
   });
@@ -822,22 +827,24 @@ var modules = {
 */
 
 export class Addon {
-  static define() { return {
-    author             : "",
-    email              : "",
-    version            : "",
-    tooltip            : "",
-    description        : "",
-    apiVersion         : 0
-  }}
+  static define() {
+    return {
+      author     : "",
+      email      : "",
+      version    : "",
+      tooltip    : "",
+      description: "",
+      apiVersion : 0,
+    };
+  }
 
-  manager : AddonManager;
+  manager: AddonManager;
   /* Keyed on resolved module path, a subset of the global `modules` map. */
-  modules : {[path : string] : AddonModule};
-  id : number;
-  mainModule : string;
+  modules: { [path: string]: AddonModule };
+  id: number;
+  mainModule: string;
 
-  constructor(manager : AddonManager, mainModulePath : string) {
+  constructor(manager: AddonManager, mainModulePath: string) {
     this.manager = manager;
     this.modules = {};
     this.id = addon_idgen++;
@@ -848,9 +855,7 @@ export class Addon {
     addonmap.set(this, this.id);
   }
 
-  define_data_api(api : DataAPI) {
-
-  }
+  define_data_api(api: DataAPI) {}
 
   onLoad() {
     let main = this.modules[this.mainModule];
@@ -861,9 +866,7 @@ export class Addon {
   }
 
   //returns a promise
-  init_addon() {
-
-  }
+  init_addon() {}
 
   //should return a promise?
   destroyAddon() {
@@ -881,17 +884,15 @@ export class Addon {
     this.modules = {};
   }
 
-  handle_versioning(file : unknown, oldversion : number) {
-
-  }
+  handle_versioning(file: unknown, oldversion: number) {}
 }
 
 export class AddonManager {
-  addons : Addon[];
-  addon_pathmap : {[path : string] : Addon};
+  addons: Addon[];
+  addon_pathmap: { [path: string]: Addon };
   /* Filled in through the addon api's registerCustomBlockData(); nothing
      reads the list back yet. */
-  datablock_types : DataBlockClass[];
+  datablock_types: DataBlockClass[];
 
   constructor() {
     this.addons = [];
@@ -899,7 +900,7 @@ export class AddonManager {
     this.datablock_types = [];
   }
 
-  loadAddon(path : string) {
+  loadAddon(path: string) {
     path = _normpath1(path);
 
     if (path in this.addon_pathmap) {
@@ -918,20 +919,20 @@ export class AddonManager {
     loadModule(addon.mainModule, addon);
   }
 
-  destroyAddon(addon : Addon) {
+  destroyAddon(addon: Addon) {
     addon.destroyAddon();
     delete this.addon_pathmap[addon.mainModule];
   }
 
-  registerDataBlockType(cls : DataBlockClass) {
+  registerDataBlockType(cls: DataBlockClass) {
     this.datablock_types.push(cls);
   }
 
-  unregisterDataBlockType(cls : DataBlockClass) {
+  unregisterDataBlockType(cls: DataBlockClass) {
     this.datablock_types.remove(cls, false);
   }
 
-  getModule(name : string) {
+  getModule(name: string) {
     return modules[name];
   }
 
@@ -942,6 +943,6 @@ export class AddonManager {
 
 export const manager = new AddonManager();
 
-window._testAddons = function() {
+window._testAddons = function () {
   manager.loadAddon("./addons/test.js");
-}
+};

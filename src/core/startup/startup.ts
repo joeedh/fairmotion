@@ -1,20 +1,20 @@
 "use strict";
 
-import * as config from '../../config/config.js';
-import * as imagecanvas_webgl from '../../paint/imagecanvas_webgl.js';
-import {register_toolops} from '../data_api/data_api.js';
-import {theme} from '../../editors/theme.js';
-import {charmap} from '../../editors/events.js';
-import {AppState} from '../AppState.js';
+import * as config from "../../config/config.js";
+import * as imagecanvas_webgl from "../../paint/imagecanvas_webgl.js";
+import { register_toolops } from "../data_api/data_api.js";
+import { theme } from "../../editors/theme.js";
+import { charmap } from "../../editors/events.js";
+import { AppState } from "../AppState.js";
 
-import {iconmanager, setTheme, setIconMap} from '../../path.ux/scripts/core/ui_base.js';
-import cconst from '../../path.ux/scripts/config/const.js';
-import * as FrameManager from '../../path.ux/scripts/screen/FrameManager.js';
+import { iconmanager, setTheme, setIconMap } from "../../path.ux/scripts/core/ui_base.js";
+import cconst from "../../path.ux/scripts/config/const.js";
+import * as FrameManager from "../../path.ux/scripts/screen/FrameManager.js";
 
 Object.defineProperty(window, "CTX", {
   get: function () {
     return g_app_state.ctx;
-  }
+  },
 });
 
 document.body.style["margin"] = document.body.style["padding"] = "0px";
@@ -64,12 +64,12 @@ window.startup = function startup() {
   } else {
     window.startup_intern();
   }
-}
+};
 
 window._ensure_thedimens = function () {
   //window.theHeight = document.documentElement.clientHeight-9;
   //window.theWidth = document.documentElement.clientWidth-4;
-}
+};
 
 window.startup_intern = function startup() {
   //window.IsMobile = mobilecheck();
@@ -120,7 +120,8 @@ window.startup_intern = function startup() {
 
   /* NOTE: a third argument was passed here; AppState's constructor takes two. */
   window.g_app_state = new AppState(undefined, false);
-  let w = window.innerWidth, h = window.innerHeight;
+  let w = window.innerWidth,
+    h = window.innerHeight;
 
   g_app_state.size = new Vector2([w, h]);
 
@@ -133,7 +134,7 @@ window.startup_intern = function startup() {
   g_app_state.session.validate_session();
   init_event_system();
   window.init_redraw_globals_2();
-}
+};
 
 function init_pathux() {
   let cfg = Object.assign({}, config.PathUXConstants);
@@ -175,8 +176,7 @@ function init_event_system() {
     /* deal with timeouts */
 
     /* window.pop_solve(draw_id); */
-    if (window.redraw_start_times === undefined)
-      return;
+    if (window.redraw_start_times === undefined) return;
 
     for (let k in window.redraw_start_times) {
       let t = window.redraw_start_times[k];
@@ -188,7 +188,6 @@ function init_event_system() {
     }
   }, 32);
 
-
   //if (g_app_state !== undefined && g_app_state.screen !== undefined) {
   //  if (!g_app_state.screen.listening) {
   //    g_app_state.screen.listen();
@@ -197,54 +196,55 @@ function init_event_system() {
 
   //start primary on_tick timer
 
-  function gen_keystr(key: string | number, keystate: {shift: boolean; alt: boolean; ctrl: boolean}) {
+  function gen_keystr(
+    key: string | number,
+    keystate: { shift: boolean; alt: boolean; ctrl: boolean }
+  ) {
     let name = typeof key === "number" ? String.fromCharCode(key) : key;
 
-    let s = name.toUpperCase()
-    if (keystate.shift)
-      s = "SHIFT-" + s
-    if (keystate.alt)
-      s = "ALT-" + s
-    if (keystate.ctrl)
-      s = "CTRL-" + s
-    return s
+    let s = name.toUpperCase();
+    if (keystate.shift) s = "SHIFT-" + s;
+    if (keystate.alt) s = "ALT-" + s;
+    if (keystate.ctrl) s = "CTRL-" + s;
+    return s;
   }
 
   /* A set, keyed by the gen_keystr() form; the value is always 0. */
-  let key_exclude_list: {[keystr: string]: number} = {}, ke = key_exclude_list;
+  let key_exclude_list: { [keystr: string]: number } = {},
+    ke = key_exclude_list;
 
-  ke[gen_keystr("O", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("R", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("N", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("S", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("S", {shift: false, alt: true, ctrl: true})] = 0;
-  ke[gen_keystr("P", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("A", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("BACKSPACE", {shift: false, alt: false, ctrl: false})] = 0;
-  ke[gen_keystr("TAB", {shift: false, alt: false, ctrl: false})] = 0;
-  ke[gen_keystr("V", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("E", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("F", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("G", {shift: false, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("G", {shift: true, alt: false, ctrl: true})] = 0;
-  ke[gen_keystr("G", {shift: false, alt: true, ctrl: false})] = 0;
-  ke[gen_keystr("O", {shift: true, alt: false, ctrl: true})] = 0;
+  ke[gen_keystr("O", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("R", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("N", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("S", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("S", { shift: false, alt: true, ctrl: true })] = 0;
+  ke[gen_keystr("P", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("A", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("BACKSPACE", { shift: false, alt: false, ctrl: false })] = 0;
+  ke[gen_keystr("TAB", { shift: false, alt: false, ctrl: false })] = 0;
+  ke[gen_keystr("V", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("E", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("F", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("G", { shift: false, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("G", { shift: true, alt: false, ctrl: true })] = 0;
+  ke[gen_keystr("G", { shift: false, alt: true, ctrl: false })] = 0;
+  ke[gen_keystr("O", { shift: true, alt: false, ctrl: true })] = 0;
 
   window._handle_key_exclude = function handle_key_exclude(e: KeyboardEvent) {
     let kc = charmap[e.keyCode];
-    if (kc === undefined)
-      kc = "";
+    if (kc === undefined) kc = "";
 
     let keystr = gen_keystr(kc, {
       shift: e.shiftKey,
-      alt  : e.altKey, ctrl: e.ctrlKey
-    })
+      alt  : e.altKey,
+      ctrl : e.ctrlKey,
+    });
 
-    keystr = keystr.toString().toUpperCase()
+    keystr = keystr.toString().toUpperCase();
     if (keystr in key_exclude_list) {
       e.preventDefault();
     }
-  }
+  };
 
   //let ce = document.getElementById("canvas2d_work");
 
@@ -264,7 +264,7 @@ function init_event_system() {
   eman.addEventListener("DOMMouseScroll", handleMouseWheel, false);
   eman.addEventListener("mousewheel", handleMouseWheel, false);
   //*/
-//*
+  //*
 
   //eman.addEventListener("keydown", handleKeyDown, false);
   //eman.addEventListener("keyup", handleKeyUp, false);
@@ -272,6 +272,5 @@ function init_event_system() {
   //eman.addEventListener("keypress", handleKeyPress, false);
   //eman.addEventListener("textinput", handleTextInput);
   //eman.addEventListener("input", handleTextInput);
-//*/
+  //*/
 }
-

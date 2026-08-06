@@ -1,70 +1,78 @@
-import {nstructjs, util, Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/pathux.js';
-import {addFastParameterGet, ShaderProgram, Texture, VBO} from '../webgl/webgl.js';
-import type {WebGLContext} from '../webgl/webgl.js';
+import {
+  nstructjs,
+  util,
+  Vector2,
+  Vector3,
+  Vector4,
+  Matrix4,
+  Quat,
+} from "../path.ux/scripts/pathux.js";
+import { addFastParameterGet, ShaderProgram, Texture, VBO } from "../webgl/webgl.js";
+import type { WebGLContext } from "../webgl/webgl.js";
 
 /* This module keeps its own overlay context, separate from the viewport's. */
-export var gl : WebGLContext | undefined = undefined;
-export var canvas : HTMLCanvasElement | undefined = undefined;
+export var gl: WebGLContext | undefined = undefined;
+export var canvas: HTMLCanvasElement | undefined = undefined;
 
-import {FillColorImage, ImageDataType, TiledImage} from './imagecanvas.js';
-import {FBO} from '../webgl/fbo.js';
+import { FillColorImage, ImageDataType, TiledImage } from "./imagecanvas.js";
+import { FBO } from "../webgl/fbo.js";
 
 export const DataTypes = {
   HALF_FLOAT    : 36193,
   FLOAT         : 5126,
   UNSIGNED_BYTE : 5121,
   UNSIGNED_SHORT: 5123,
-  UNSIGNED_INT  : 5125
+  UNSIGNED_INT  : 5125,
 };
 
 /* The two call shapes below: an intersection rather than a union so both a
    length and a buffer resolve. */
 type TypedArray = Uint8Array | Uint16Array | Uint32Array | Float32Array;
-type TypedArrayCtor = (new (length : number) => TypedArray)
-                    & (new (buffer : ArrayBufferLike) => TypedArray);
+type TypedArrayCtor = (new (length: number) => TypedArray) &
+  (new (buffer: ArrayBufferLike) => TypedArray);
 
-export const TypeArrays : {[type : number] : TypedArrayCtor} = {
+export const TypeArrays: { [type: number]: TypedArrayCtor } = {
   [DataTypes.HALF_FLOAT]    : Uint16Array,
   [DataTypes.FLOAT]         : Float32Array,
   [DataTypes.UNSIGNED_BYTE] : Uint8Array,
   [DataTypes.UNSIGNED_SHORT]: Uint16Array,
-  [DataTypes.UNSIGNED_INT]  : Uint32Array
+  [DataTypes.UNSIGNED_INT]  : Uint32Array,
 };
 
 export const TypeMuls = {
-  [DataTypes.HALF_FLOAT] : 1,
-  [DataTypes.FLOAT] : 1,
+  [DataTypes.HALF_FLOAT]    : 1,
+  [DataTypes.FLOAT]         : 1,
   [DataTypes.UNSIGNED_BYTE] : 255,
-  [DataTypes.UNSIGNED_SHORT] : 65535,
-  [DataTypes.UNSIGNED_INT] : (1<<32)-1
+  [DataTypes.UNSIGNED_SHORT]: 65535,
+  [DataTypes.UNSIGNED_INT]  : (1 << 32) - 1,
 };
 
 export const GPURecalcFlags = {
-  PULL_FROM_GPU: 1
+  PULL_FROM_GPU: 1,
 };
 
 /* Maps a float range onto the integer range of a `bits`-wide texture. */
 export class ImageMapping {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  min : number;
-  max : number;
-  mul : number;
+  min: number;
+  max: number;
+  mul: number;
 
-  constructor(min : number, max : number, bits : number) {
-    let mul = (1<<bits) - 1;
+  constructor(min: number, max: number, bits: number) {
+    let mul = (1 << bits) - 1;
 
     this.min = min;
     this.max = max;
-    this.mul = (max - min)/mul;
+    this.mul = (max - min) / mul;
   }
 
-  map(f : number) {
+  map(f: number) {
     return ~~((f - this.min) * this.mul);
   }
 
-  unmap(f : number) {
-    return f/this.mul + this.min;
+  unmap(f: number) {
+    return f / this.mul + this.min;
   }
 }
 
@@ -79,7 +87,7 @@ ImageMapping {
 export class FBOCache {
   /* A cachering per width:height:type key; only next() and iteration are
      used, so the ring type is spelled structurally. */
-  cache : Map<string, {next() : FBO} & Iterable<FBO>>;
+  cache: Map<string, { next(): FBO } & Iterable<FBO>>;
 
   constructor() {
     this.cache = new Map();
@@ -87,7 +95,7 @@ export class FBOCache {
 
   /* NOTE: on a miss this builds the ring but neither stores it in the cache
      nor returns it, so every first call for a size hands back undefined. */
-  get(gl : WebGLContext, width : number, height : number, type : number) {
+  get(gl: WebGLContext, width: number, height: number, type: number) {
     let key = "" + width + ":" + height + ":" + type;
 
     let ring = this.cache.get(key);
@@ -100,7 +108,7 @@ export class FBOCache {
     }, 4);
   }
 
-  purge(gl : WebGLContext = window._gl) {
+  purge(gl: WebGLContext = window._gl) {
     for (let ring of this.cache.values()) {
       for (let fbo of ring) {
         fbo.destroy(gl);
@@ -115,33 +123,33 @@ export class FBOCache {
 
 export const fboCache = new FBOCache();
 
-import {TILESIZE} from './imagecanvas_base.js';
-import {SimpleMesh, LayerTypes, PrimitiveTypes} from '../webgl/simplemesh.js';
-import type {GeoLayer} from '../webgl/simplemesh.js';
+import { TILESIZE } from "./imagecanvas_base.js";
+import { SimpleMesh, LayerTypes, PrimitiveTypes } from "../webgl/simplemesh.js";
+import type { GeoLayer } from "../webgl/simplemesh.js";
 
 export class GPUImageTile extends ImageDataType {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* One of the DataTypes above; picks both the texture format and the typed
      array backing `data`. */
-  glType : number;
-  glTex : Texture | undefined;
+  glType: number;
+  glTex: Texture | undefined;
   /* The back buffer of the ping-pong pair; see swapBuffers(). */
-  glTex2 : Texture | undefined;
-  ready : boolean;
-  mapping : ImageMapping;
-  recalcFlag : number;
-  data : Uint8Array | Uint16Array | Uint32Array | Float32Array | undefined;
+  glTex2: Texture | undefined;
+  ready: boolean;
+  mapping: ImageMapping;
+  recalcFlag: number;
+  data: Uint8Array | Uint16Array | Uint32Array | Float32Array | undefined;
 
-  smesh : SimpleMesh | undefined;
-  sm_screenCo : GeoLayer | undefined;
-  sm_params : GeoLayer | undefined;
+  smesh: SimpleMesh | undefined;
+  sm_screenCo: GeoLayer | undefined;
+  sm_params: GeoLayer | undefined;
 
   /* NOTE: neither of these is ever assigned.  downloadFromGPU() builds an fbo
      cache key containing "undefined" from `type`, and masks `flag` with a
      clear that always stores 0 -- the flag it means to clear is recalcFlag. */
-  type! : number;
-  flag! : number;
+  type!: number;
+  flag!: number;
 
   constructor(width = TILESIZE, height = TILESIZE) {
     super(width, height);
@@ -170,24 +178,31 @@ export class GPUImageTile extends ImageDataType {
     let lf = LayerTypes;
     let layerflag = lf.LOC | lf.UV | lf.CUSTOM;
 
-    let sm = this.smesh = new SimpleMesh(layerflag);
+    let sm = (this.smesh = new SimpleMesh(layerflag));
 
-    let screenCo = this.sm_screenCo = sm.addDataLayer(PrimitiveTypes.TRIS, LayerTypes.CUSTOM, 2, "sm_screenCo");
+    let screenCo = (this.sm_screenCo = sm.addDataLayer(
+      PrimitiveTypes.TRIS,
+      LayerTypes.CUSTOM,
+      2,
+      "sm_screenCo"
+    ));
     this.sm_params = sm.addDataLayer(PrimitiveTypes.TRIS, LayerTypes.CUSTOM, 4, "sm_params");
 
-    let quad = sm.quad(
-      [-1, -1, 0],
-      [-1, 1, 0],
-      [1, 1, 0],
-      [1, -1, 0]);
+    let quad = sm.quad([-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]);
 
     quad.uvs([0, 0], [0, 1], [1, 1], [1, 0]);
     /* NOTE: custom() indexes the island's layer list, so it wants the layer's
        index; passing the layer itself indexed to undefined and threw. */
-    quad.custom(screenCo.index, [0, 0], [0, this.height], [this.width, this.height], [this.width, 0]);
+    quad.custom(
+      screenCo.index,
+      [0, 0],
+      [0, this.height],
+      [this.width, this.height],
+      [this.width, 0]
+    );
   }
 
-  _makeTex(gl : WebGLContext) {
+  _makeTex(gl: WebGLContext) {
     let tex = new Texture(undefined, gl.createTexture() ?? undefined);
 
     /* NOTE: bindTexture takes (target, texture); the one-argument calls here
@@ -228,7 +243,7 @@ export class GPUImageTile extends ImageDataType {
     return tex;
   }
 
-  destroy(gl : WebGLContext = window._gl) {
+  destroy(gl: WebGLContext = window._gl) {
     if (this.glTex) {
       this.glTex.destroy(gl);
       this.glTex = undefined;
@@ -242,7 +257,7 @@ export class GPUImageTile extends ImageDataType {
     this.ready = false;
   }
 
-  init(gl : WebGLContext) {
+  init(gl: WebGLContext) {
     if (this.ready) {
       return;
     }
@@ -259,7 +274,7 @@ export class GPUImageTile extends ImageDataType {
     }
 
     let cls = TypeArrays[this.glType];
-    this.data = new cls(this.width*this.height*4);
+    this.data = new cls(this.width * this.height * 4);
 
     return this.data;
   }
@@ -268,7 +283,7 @@ export class GPUImageTile extends ImageDataType {
     this.recalcFlag |= GPURecalcFlags.PULL_FROM_GPU;
   }
 
-  downloadFromGPU(gl : WebGLContext = window._gl) {
+  downloadFromGPU(gl: WebGLContext = window._gl) {
     if (this.data && !(this.recalcFlag & GPURecalcFlags.PULL_FROM_GPU)) {
       return;
     }
@@ -292,7 +307,7 @@ export class GPUImageTile extends ImageDataType {
     if (this.data === undefined) {
       let cls = TypeArrays[this.glType];
 
-      this.data = new cls(this.width*this.height*4);
+      this.data = new cls(this.width * this.height * 4);
     }
 
     gl.readPixels(0, 0, this.width, this.height, gl.RGBA, this.glType, this.data);
@@ -302,7 +317,7 @@ export class GPUImageTile extends ImageDataType {
     fbo.unbind(gl);
   }
 
-  uploadToGPU(gl : WebGLContext = window._gl) {
+  uploadToGPU(gl: WebGLContext = window._gl) {
     let data = this.data;
     if (!data) {
       throw new Error("missing image data");
@@ -327,7 +342,7 @@ export class GPUImageTile extends ImageDataType {
     return data;
   }
 
-  decompress(data? : Uint8Array) {
+  decompress(data?: Uint8Array) {
     return new Promise((accept, reject) => {
       if (!(this.compressedData instanceof Uint8Array)) {
         this.data = new Uint8Array(this.compressedData);
@@ -354,12 +369,14 @@ export class GPUImageTile extends ImageDataType {
 
   static imageDataDefine() {
     return {
-      typeName: "gpu"
-    }
+      typeName: "gpu",
+    };
   }
 }
 
-GPUImageTile.STRUCT = nstructjs.inherit(GPUImageTile, ImageDataType, 'imagecanvas.GPUImageTile') + `
+GPUImageTile.STRUCT =
+  nstructjs.inherit(GPUImageTile, ImageDataType, "imagecanvas.GPUImageTile") +
+  `
   mapping : ImageMapping;
   glType  : int;
 }
@@ -367,16 +384,15 @@ GPUImageTile.STRUCT = nstructjs.inherit(GPUImageTile, ImageDataType, 'imagecanva
 nstructjs.register(GPUImageTile);
 ImageDataType.register(GPUImageTile);
 
-
 export class GPUTiledImage extends TiledImage {
-  constructor(width? : number, height? : number) {
+  constructor(width?: number, height?: number) {
     super(width, height);
   }
 
   /* Swaps any non-GPU tile in `tiles` for a freshly uploaded GPUImageTile,
      in place, and returns the resulting list. */
-  checkTiles(tiles : ImageDataType[]) {
-    let newtiles : ImageDataType[] = [];
+  checkTiles(tiles: ImageDataType[]) {
+    let newtiles: ImageDataType[] = [];
 
     for (let t of tiles) {
       if (!(t instanceof GPUImageTile)) {
@@ -398,11 +414,11 @@ export class GPUTiledImage extends TiledImage {
         let b = t2.mapping.map(color[2]);
         let a = t2.mapping.map(color[3]);
 
-        for (let i=0; i<data.length; i += 4) {
+        for (let i = 0; i < data.length; i += 4) {
           data[i] = r;
-          data[i+1] = g;
-          data[i+2] = b;
-          data[i+3] = a;
+          data[i + 1] = g;
+          data[i + 2] = b;
+          data[i + 3] = a;
         }
 
         t2.flagUpdate();
@@ -420,23 +436,23 @@ export class GPUTiledImage extends TiledImage {
   /* NOTE: checkTiles() used to take a leading gl argument it never touched,
      and this passed the tile list in its place -- so every call iterated
      undefined.  The unused parameter is gone. */
-  gatherGPUTiles(x : number, y : number, r : number) {
+  gatherGPUTiles(x: number, y: number, r: number) {
     return this.checkTiles(this.gatherTiles(x, y, r));
   }
 
   /* Every tile whose nearest corner falls within `r` of x,y. */
-  gatherTiles(x : number, y : number, r : number) {
-    let rsqr = r*r;
-    let ret : ImageDataType[] = [];
+  gatherTiles(x: number, y: number, r: number) {
+    let rsqr = r * r;
+    let ret: ImageDataType[] = [];
 
     for (let t of this.tiles) {
       let dx = Math.abs(x - t.x);
-      dx = Math.min(dx, Math.abs(x - t.x - t.width*0.5));
+      dx = Math.min(dx, Math.abs(x - t.x - t.width * 0.5));
 
       let dy = Math.abs(y - t.y);
-      dy = Math.min(dy, Math.abs(y - t.y - t.height*0.5));
+      dy = Math.min(dy, Math.abs(y - t.y - t.height * 0.5));
 
-      let dis = dx*dx + dy*dy;
+      let dis = dx * dx + dy * dy;
 
       if (dis <= rsqr) {
         ret.push(t);
@@ -447,7 +463,7 @@ export class GPUTiledImage extends TiledImage {
   }
 }
 
-import {loadShaders} from '../webgl/shaders.js';
+import { loadShaders } from "../webgl/shaders.js";
 
 export function initWebGL() {
   canvas = document.createElement("canvas");
@@ -473,14 +489,14 @@ export function initWebGL() {
     powerPreference      : "high-performance",
     preserveDrawingBuffer: true,
     stencil              : true,
-    depth                : true
+    depth                : true,
   }) as WebGLContext;
 
   if (!gl) {
-    console.error('Failed to initialized webgl')
-    canvas.remove()
-    canvas = undefined
-    return
+    console.error("Failed to initialized webgl");
+    canvas.remove();
+    canvas = undefined;
+    return;
   }
 
   /* gl.canvas is a readonly accessor that already returns this canvas; the
@@ -507,7 +523,7 @@ export function initWebGL() {
   #extension GL_OES_standard_derivatives : enable
   */
 
-  gl.getExtension('EXT_shader_texture_lod');
+  gl.getExtension("EXT_shader_texture_lod");
   gl.getExtension("OES_texture_float");
   gl.getExtension("OES_texture_float_linear");
   gl.getExtension("EXT_frag_depth"); //gl_FragDepthEXT
@@ -537,7 +553,7 @@ export function initWebGL() {
 
     gl.drawBuffers = function (buffers) {
       return gl!._drawbuf!.drawBuffersWEBGL(buffers);
-    }
+    };
   }
 
   //ext = gl.getExtension("WEBGL_debug_renderer_info");
@@ -549,16 +565,16 @@ export function initWebGL() {
        the `...arguments` spreads they replace passed the same ones. */
     gl.createVertexArray = function () {
       return gl!._vbo!.createVertexArrayOES();
-    }
+    };
     gl.deleteVertexArray = function (vao) {
       return gl!._vbo!.deleteVertexArrayOES(vao);
-    }
+    };
     gl.isVertexArray = function (vao) {
       return gl!._vbo!.isVertexArrayOES(vao);
-    }
+    };
     gl.bindVertexArray = function (vao) {
       return gl!._vbo!.bindVertexArrayOES(vao);
-    }
+    };
   }
 
   gl.ctxloss = gl.getExtension("WEBGL_lose_context");
@@ -580,13 +596,13 @@ let size_update_key = "";
 
 export function updateSize() {
   if (!canvas) {
-    return
+    return;
   }
 
   let dpi = devicePixelRatio;
 
-  let w = ~~(window.innerWidth*dpi);
-  let h = ~~(window.innerHeight*dpi);
+  let w = ~~(window.innerWidth * dpi);
+  let h = ~~(window.innerHeight * dpi);
 
   let key = w + ":" + h + ":" + dpi;
   if (size_update_key === key) {
@@ -599,19 +615,19 @@ export function updateSize() {
   canvas.width = w;
   canvas.height = h;
 
-  canvas.style["width"] = (w/dpi) + "px";
-  canvas.style["height"] = (h/dpi) + "px";
+  canvas.style["width"] = w / dpi + "px";
+  canvas.style["height"] = h / dpi + "px";
 }
 
 /* view2d.ts is the only area that draws into this module's context; it opts
    in with `hasWebgl: true` in its define(). */
-function drawsWebgl(area : object) : area is {
-  drawWebgl(gl : WebGLContext, canvas : HTMLCanvasElement) : void
+function drawsWebgl(area: object): area is {
+  drawWebgl(gl: WebGLContext, canvas: HTMLCanvasElement): void;
 } {
   return typeof Reflect.get(area, "drawWebgl") === "function";
 }
 
-let animreq : number | undefined = undefined;
+let animreq: number | undefined = undefined;
 
 function draw() {
   animreq = undefined;
@@ -643,4 +659,4 @@ window.redraw_webgl = function () {
   }
 
   animreq = requestAnimationFrame(draw);
-}
+};

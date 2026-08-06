@@ -1,13 +1,26 @@
-import {util, nstructjs, ToolProperty, PropFlags, PropTypes, ToolMacro, UndoFlags} from '../path.ux/scripts/pathux.js';
-import * as pathux from '../path.ux/scripts/pathux.js';
-import type {FullContext} from './context.js';
-import type {SavedContext} from './AppState.js';
-import type {drawline} from '../editors/viewport/view2d.js';
+import {
+  util,
+  nstructjs,
+  ToolProperty,
+  PropFlags,
+  PropTypes,
+  ToolMacro,
+  UndoFlags,
+} from "../path.ux/scripts/pathux.js";
+import * as pathux from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "./context.js";
+import type { SavedContext } from "./AppState.js";
+import type { drawline } from "../editors/viewport/view2d.js";
 
 export {
-  ToolProperty, PropFlags, PropTypes, ToolMacro,
-  UndoFlags, color2css, css2color
-} from '../path.ux/scripts/pathux.js';
+  ToolProperty,
+  PropFlags,
+  PropTypes,
+  ToolMacro,
+  UndoFlags,
+  color2css,
+  css2color,
+} from "../path.ux/scripts/pathux.js";
 
 /*
  * What a ToolOp subclass's static tooldef() returns. `toolpath` is what the
@@ -24,7 +37,6 @@ export interface ToolDef extends pathux.ToolDef {
      and UserSettings keys tool settings off whichever one is present. */
   apiname?: string;
 }
-
 
 /*
  * What a tool stores in `_undo`. The default undoPre() below takes a whole-file
@@ -127,8 +139,7 @@ export class ToolOp<
     //do nothing
   }
 
-  new_drawline(v1: Vector2 | number[], v2: Vector2 | number[], color?: number[],
-               line_width = 2) {
+  new_drawline(v1: Vector2 | number[], v2: Vector2 | number[], color?: number[], line_width = 2) {
     var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
 
     this.drawlines.push(dl);
@@ -164,33 +175,33 @@ export class ToolOp<
    * sentinel strings mean "read this from the context at invoke time"; they
    * are resolved here, before the properties get to see them.
    */
-  static invoke(ctx: FullContext, args: {[k: string]: unknown}): ToolOp {
-    function geteid(v: {eid: number} | undefined): number {
+  static invoke(ctx: FullContext, args: { [k: string]: unknown }): ToolOp {
+    function geteid(v: { eid: number } | undefined): number {
       return !v ? -1 : v.eid;
     }
 
     for (let k in args) {
       let v = args[k];
 
-      if (v === 'selectmode') {
+      if (v === "selectmode") {
         args[k] = ctx.selectmode;
       }
 
-      if (v === 'active_vertex' && ctx.spline) {
+      if (v === "active_vertex" && ctx.spline) {
         args[k] = geteid(ctx.spline.verts.active);
       }
 
-      if (v === 'active_handle' && ctx.spline) {
+      if (v === "active_handle" && ctx.spline) {
         args[k] = geteid(ctx.spline.handles.active);
       }
 
       /* NOTE: this read ctx.spline.edges, which does not exist -- a TypeError
          on any toolpath spelling an argument 'active_edge'. */
-      if (v === 'active_edge' && ctx.spline) {
+      if (v === "active_edge" && ctx.spline) {
         args[k] = geteid(ctx.spline.segments.active);
       }
 
-      if (v === 'active_face' && ctx.spline) {
+      if (v === "active_face" && ctx.spline) {
         args[k] = geteid(ctx.spline.faces.active);
       }
     }
@@ -201,11 +212,11 @@ export class ToolOp<
     return super.invoke(ctx, args) as ToolOp;
   }
 
-  static inherit_inputs(arg: {[k: string]: ToolProperty}) {
+  static inherit_inputs(arg: { [k: string]: ToolProperty }) {
     return ToolOp.inherit(arg);
   }
 
-  static inherit_outputs(arg: {[k: string]: ToolProperty}) {
+  static inherit_outputs(arg: { [k: string]: ToolProperty }) {
     return ToolOp.inherit(arg);
   }
 
@@ -225,7 +236,7 @@ export const ToolOpAbstract = pathux.ToolOp;
 //this is a bitmask!!
 export const ModalStates = {
   TRANSFORMING: 1,
-  PLAYING     : 2
+  PLAYING     : 2,
 };
 
 export const ToolFlags = {
@@ -234,7 +245,7 @@ export const ToolFlags = {
   USE_PARTIAL_UNDO          : 2,
   USE_DEFAULT_INPUT         : 4,
   USE_REPEAT_FUNCTION       : 8,
-  USE_TOOL_CONTEXT          : 16 //will use context in tool.ctx instead of providing one
+  USE_TOOL_CONTEXT          : 16, //will use context in tool.ctx instead of providing one
 };
 
 //generates default toolop STRUCTs/fromSTRUCTS, as needed
@@ -260,13 +271,11 @@ window.init_toolop_structs = function (): void {
 
       parent = parent.prototype.__proto__;
 
-      if (!parent)
-        break;
+      if (!parent) break;
 
       parent = parent.constructor;
 
-      if (!parent || parent === Object)
-        break;
+      if (!parent || parent === Object) break;
     }
 
     //ignore base classes whose tooldefs() lack .toolpath
@@ -282,13 +291,15 @@ window.init_toolop_structs = function (): void {
        hasOwnProperty takes one argument and was asked of Object rather than of
        cls, so it was always false and the body always ran.  Kept. */
     {
-      cls.STRUCT = cls.name + " {" + `
+      cls.STRUCT =
+        cls.name +
+        " {" +
+        `
         flag    : int;
         inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
         outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-      `
-      if (is_toolop)
-        cls.STRUCT += "    saved_context  : SavedContext | obj.get_saved_context();\n";
+      `;
+      if (is_toolop) cls.STRUCT += "    saved_context  : SavedContext | obj.get_saved_context();\n";
 
       cls.STRUCT += "  }";
 
@@ -313,7 +324,7 @@ window.init_toolop_structs = function (): void {
    both point back at the event it was copied from. */
 export type PatchedEvent<T extends Event> = {
   -readonly [K in keyof T]: T[K];
-} & {prototype: T; original: T};
+} & { prototype: T; original: T };
 
 //makes e.x/e.y relative to dom,
 //and also flips to origin at bottom left instead of top left
@@ -322,7 +333,7 @@ export function patchMouseEvent<T extends MouseEvent>(e: T, dom: HTMLElement): P
 
   /* Every other member arrives through the copy loop below, which is dynamic
      by nature -- hence the one cast. */
-  let e2 = {prototype: e, original: e} as PatchedEvent<T>;
+  let e2 = { prototype: e, original: e } as PatchedEvent<T>;
 
   let keys: (string | symbol)[] = Object.getOwnPropertyNames(e);
   keys = keys.concat(Object.getOwnPropertySymbols(e));

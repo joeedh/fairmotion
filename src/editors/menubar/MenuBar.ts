@@ -1,17 +1,17 @@
-import type {FullContext} from "../../core/context.js";
-import {Area, AreaFlags} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {STRUCT} from '../../core/struct.js';
-import {UIBase, iconmanager} from '../../path.ux/scripts/core/ui_base.js';
-import {Editor} from '../editor_base.js';
-import * as ui_widgets from '../../path.ux/scripts/widgets/ui_widgets.js';
-import * as platform from '../../../platforms/platform.js';
-import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
-import type {MenuTemplate} from '../../path.ux/scripts/widgets/ui_menu.js';
-import type {CSSFont} from '../../path.ux/scripts/core/cssfont.js';
-import {startup_file} from '../../core/startup/startup_file.js';
+import type { FullContext } from "../../core/context.js";
+import { Area, AreaFlags } from "../../path.ux/scripts/screen/ScreenArea.js";
+import { STRUCT } from "../../core/struct.js";
+import { UIBase, iconmanager } from "../../path.ux/scripts/core/ui_base.js";
+import { Editor } from "../editor_base.js";
+import * as ui_widgets from "../../path.ux/scripts/widgets/ui_widgets.js";
+import * as platform from "../../../platforms/platform.js";
+import { Menu } from "../../path.ux/scripts/widgets/ui_menu.js";
+import type { MenuTemplate } from "../../path.ux/scripts/widgets/ui_menu.js";
+import type { CSSFont } from "../../path.ux/scripts/core/cssfont.js";
+import { startup_file } from "../../core/startup/startup_file.js";
 
-import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
-import type {Container, RowFrame} from '../../path.ux/scripts/core/ui.js';
+import * as electron_api from "../../path.ux/scripts/platforms/electron/electron_api.js";
+import type { Container, RowFrame } from "../../path.ux/scripts/core/ui.js";
 
 /*
   gen_file_menu(ctx, uimenulabel)
@@ -63,12 +63,12 @@ import type {Container, RowFrame} from '../../path.ux/scripts/core/ui.js';
   }
  */
 export class MenuBar extends Editor {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* Rebuilt from the active toolmode; handed to row.dynamicMenu(). */
-  editMenuDef : MenuTemplate;
+  editMenuDef: MenuTemplate;
   /* Scene.toolmode_i the edit menu was last built for. */
-  _last_toolmode : number | undefined;
+  _last_toolmode: number | undefined;
 
   constructor() {
     super();
@@ -116,10 +116,10 @@ export class MenuBar extends Editor {
     /* NOTE: this assigned onselect, the DOM select-event handler.  The menu's
        own callback is _onselect, so picking a recent file has never done
        anything. */
-    menu._onselect = (id : string | number) => {
+    menu._onselect = (id: string | number) => {
       console.warn("recent files callback!", id);
       g_app_state.load_path("" + id);
-    }
+    };
 
     return menu;
   }
@@ -134,7 +134,7 @@ export class MenuBar extends Editor {
 
     let SEP = Menu.SEP;
 
-    let menudef : MenuTemplate = [
+    let menudef: MenuTemplate = [
       "appstate.quit()",
       "view2d.export_image()",
       "appstate.export_svg()",
@@ -144,13 +144,18 @@ export class MenuBar extends Editor {
       this.buildRecentMenu.bind(this),
       "appstate.open()",
       SEP,
-      ["New File", function () {
-        platform.app.questionDialog("Create blank scene?\nAny unsaved changes\nwill be lost").then((val) => {
-          if (val) {
-            gen_default_file(g_app_state.screen.size);
-          }
-        });
-      }]
+      [
+        "New File",
+        function () {
+          platform.app
+            .questionDialog("Create blank scene?\nAny unsaved changes\nwill be lost")
+            .then((val) => {
+              if (val) {
+                gen_default_file(g_app_state.screen.size);
+              }
+            });
+        },
+      ],
     ];
 
     menudef.reverse();
@@ -169,16 +174,26 @@ export class MenuBar extends Editor {
     }
   }
 
-  buildEditMenu(flush = true) : void {
+  buildEditMenu(flush = true): void {
     this.editMenuDef.length = 0;
 
-    this.editMenuDef.push(["Undo", function () {
-      g_app_state.toolstack.undo();
-    }, "Ctrl + Z", Icons.UNDO]);
+    this.editMenuDef.push([
+      "Undo",
+      function () {
+        g_app_state.toolstack.undo();
+      },
+      "Ctrl + Z",
+      Icons.UNDO,
+    ]);
     /* NOTE: the Redo entry calls undo(), a copy-paste of the entry above. */
-    this.editMenuDef.push(["Redo", function () {
-      g_app_state.toolstack.undo();
-    }, "Ctrl + Shift + Z", Icons.REDO]);
+    this.editMenuDef.push([
+      "Redo",
+      function () {
+        g_app_state.toolstack.undo();
+      },
+      "Ctrl + Shift + Z",
+      Icons.REDO,
+    ]);
 
     if (!this.ctx || !this.ctx.toolmode) {
       return;
@@ -201,7 +216,7 @@ export class MenuBar extends Editor {
     }
   }
 
-  finishMenu(row : Container<FullContext>) {
+  finishMenu(row: Container<FullContext>) {
     /* NOTE: a `callback` function sat here, never referenced by anything.  It
        called confirm() with two arguments and read a bare `ctx` that this
        module never declares, so it would have thrown had anything used it. */
@@ -217,36 +232,45 @@ export class MenuBar extends Editor {
     }
 
     row.menu("&Session", [
-      ["Save Default File", function () {
-        platform.app.questionDialog("Erase default startup file?").then((val) => {
-          if (val) {
-            g_app_state.set_startup_file();
-            console.log("save default file", val);
-          }
-        });
-      }],
+      [
+        "Save Default File",
+        function () {
+          platform.app.questionDialog("Erase default startup file?").then((val) => {
+            if (val) {
+              g_app_state.set_startup_file();
+              console.log("save default file", val);
+            }
+          });
+        },
+      ],
 
-      ["Clear Default File", function () {
-        platform.app.questionDialog("Erase default startup file?").then((val) => {
-          if (val) {
-            myLocalStorage.set("startup_file", startup_file);
-            console.log("clear default file", val);
-          }
-        });
-      }, "ctrl-alt-u"
+      [
+        "Clear Default File",
+        function () {
+          platform.app.questionDialog("Erase default startup file?").then((val) => {
+            if (val) {
+              myLocalStorage.set("startup_file", startup_file);
+              console.log("clear default file", val);
+            }
+          });
+        },
+        "ctrl-alt-u",
       ],
       /* NOTE: this read a bare `ctx` -- a ReferenceError, so confirming this
          dialog has always thrown instead of resetting anything.  questionDialog
          also takes only the message; the second argument was ignored. */
-      ["Reset Settings", function () {
-        platform.app.questionDialog("Settings will be cleared").then((val) => {
-          if (val) {
-            console.log("clearing settings");
+      [
+        "Reset Settings",
+        function () {
+          platform.app.questionDialog("Settings will be cleared").then((val) => {
+            if (val) {
+              console.log("clearing settings");
 
-            g_app_state.settings.reload_defaults();
-          }
-        });
-      }]
+              g_app_state.settings.reload_defaults();
+            }
+          });
+        },
+      ],
     ]);
 
     if (window.haveElectron) {
@@ -286,8 +310,8 @@ export class MenuBar extends Editor {
       areaname: "menubar_editor",
       uiname  : "menu",
       icon    : Icons.MENU_EDITOR,
-      flag    : AreaFlags.HIDDEN | AreaFlags.NO_SWITCHER
-    }
+      flag    : AreaFlags.HIDDEN | AreaFlags.NO_SWITCHER,
+    };
   }
 
   copy() {
@@ -295,7 +319,9 @@ export class MenuBar extends Editor {
   }
 }
 
-MenuBar.STRUCT = STRUCT.inherit(MenuBar, Editor) + `
+MenuBar.STRUCT =
+  STRUCT.inherit(MenuBar, Editor) +
+  `
 }
 `;
 Editor.register(MenuBar);

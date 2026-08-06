@@ -1,67 +1,70 @@
-import {Editor} from "../editor_base.js";
-import {nstructjs, util} from '../../path.ux/scripts/pathux.js';
-import {VelPan, VelPanPanOp} from "../velpan.js";
-import {Vector2} from "../../path.ux/scripts/pathux.js";
-import {UIBase, color2css, css2color} from "../../path.ux/scripts/pathux.js";
-import {DataBlock} from "../../core/lib_api.js";
-import type {CSSFont} from "../../path.ux/scripts/core/cssfont.js";
-import type {Graph, GraphNodeType, NodeSocketType} from "../../graph/graph.js";
+import { Editor } from "../editor_base.js";
+import { nstructjs, util } from "../../path.ux/scripts/pathux.js";
+import { VelPan, VelPanPanOp } from "../velpan.js";
+import { Vector2 } from "../../path.ux/scripts/pathux.js";
+import { UIBase, color2css, css2color } from "../../path.ux/scripts/pathux.js";
+import { DataBlock } from "../../core/lib_api.js";
+import type { CSSFont } from "../../path.ux/scripts/core/cssfont.js";
+import type { Graph, GraphNodeType, NodeSocketType } from "../../graph/graph.js";
 
 /* A per-node offscreen canvas, with the 2d context cached on it. */
-export type NodeCanvas = HTMLCanvasElement & {g : CanvasRenderingContext2D};
+export type NodeCanvas = HTMLCanvasElement & { g: CanvasRenderingContext2D };
 
 /* A socket's offset inside its node box, plus the css color it draws in. */
-export type SockPos = Vector2 & {color : string};
+export type SockPos = Vector2 & { color: string };
 
 /* Cached draw geometry for one node, keyed by hashNode(). */
 export type NodeLayout = {
-  pos      : Vector2,
-  size     : Vector2,
-  inputs   : {[k : string] : SockPos},
-  outputs  : {[k : string] : SockPos},
-  header   : number,
-  canvas   : NodeCanvas,
-  graph_id : number,
+  pos: Vector2;
+  size: Vector2;
+  inputs: { [k: string]: SockPos };
+  outputs: { [k: string]: SockPos };
+  header: number;
+  canvas: NodeCanvas;
+  graph_id: number;
 };
 
 /* NOTE: neither of these exists anywhere in the codebase, so every path that
    reaches one threw a ReferenceError.  The stubs keep that a throw, with a
    message that says what is missing; draw() and rebuild() both open with a
    bare `return;`, so only the Arrange button in init() gets there. */
-function layoutNode(node : GraphNodeType,
-                    args : {socksize : number, extraWidth? : number}) : NodeLayout {
+function layoutNode(
+  node: GraphNodeType,
+  args: { socksize: number; extraWidth?: number }
+): NodeLayout {
   throw new Error("layoutNode() is not implemented");
 }
 
-function sortGraphSpatially(graph : Graph,
-                            args : {socksize : number, steps : number,
-                                    headerHeight : number, extraWidth : number}) : void {
+function sortGraphSpatially(
+  graph: Graph,
+  args: { socksize: number; steps: number; headerHeight: number; extraWidth: number }
+): void {
   throw new Error("sortGraphSpatially() is not implemented");
 }
 
 /* draw() and rebuild() each opened with a bare `return;` -- the viewer is
    disabled in-tree.  Declared boolean rather than a literal so the bodies
    below stay reachable for the typechecker. */
-const VIEWER_DISABLED : boolean = true;
+const VIEWER_DISABLED: boolean = true;
 
 export class NodeViewer extends Editor {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* NOTE: this was named `canvases`, shadowing Editor's own canvas cache with
      entries the base getCanvas() would have handed back missing dpi_scale. */
-  nodeCanvases     : {[hash : string] : NodeCanvas}
-  nodes            : {[hash : string] : NodeLayout}
-  node_idmap       : {[graph_id : number] : NodeLayout}
-  sockSize         : number
-  extraNodeWidth   : number
-  canvas           : HTMLCanvasElement
-  g                : CanvasRenderingContext2D
-  velpan           : VelPan
-  _last_scale      : Vector2
+  nodeCanvases: { [hash: string]: NodeCanvas };
+  nodes: { [hash: string]: NodeLayout };
+  node_idmap: { [graph_id: number]: NodeLayout };
+  sockSize: number;
+  extraNodeWidth: number;
+  canvas: HTMLCanvasElement;
+  g: CanvasRenderingContext2D;
+  velpan: VelPan;
+  _last_scale: Vector2;
   /* undefined until the first successful rebuild(). */
-  _last_graph_path : string | undefined
-  graphPath        : string
-  graphClass       : string;
+  _last_graph_path: string | undefined;
+  graphPath: string;
+  graphClass: string;
 
   constructor() {
     super();
@@ -98,7 +101,6 @@ export class NodeViewer extends Editor {
     this.addEventListener("mousedown", (e) => {
       this.push_ctx_active();
 
-
       console.log("node viewer mousedown");
 
       let toolop = new VelPanPanOp();
@@ -117,7 +119,12 @@ export class NodeViewer extends Editor {
 
       console.log("Arranging graph", graph);
       if (graph) {
-        sortGraphSpatially(graph, {socksize : this.sockSize, steps : 45, headerHeight : 75, extraWidth : this.extraNodeWidth});
+        sortGraphSpatially(graph, {
+          socksize: this.sockSize,
+          steps: 45,
+          headerHeight: 75,
+          extraWidth: this.extraNodeWidth,
+        });
 
         this.clear();
         this.rebuild();
@@ -126,55 +133,55 @@ export class NodeViewer extends Editor {
     });
 
     this.addEventListener("wheel", (e) => {
-      let df = Math.sign(e.deltaY)*0.15;
+      let df = Math.sign(e.deltaY) * 0.15;
 
       console.log("wheel in node viewer!");
 
       this.velpan.scale.mulScalar(1.0 - df);
       this.velpan.update();
       this.rebuild();
-    })
+    });
   }
 
-  getGraph() : Graph | undefined {
+  getGraph(): Graph | undefined {
     return this.ctx.api.getValue<Graph>(this.ctx, this.graphPath);
   }
 
-  getNodeCanvas(id : string) : NodeCanvas {
+  getNodeCanvas(id: string): NodeCanvas {
     if (!(id in this.nodeCanvases)) {
       const el = document.createElement("canvas");
 
-      this.nodeCanvases[id] = Object.assign(el, {g : el.getContext("2d")!});
+      this.nodeCanvases[id] = Object.assign(el, { g: el.getContext("2d")! });
     }
 
     return this.nodeCanvases[id];
   }
 
-  hashNode(node : GraphNodeType) : string {
-    let layout = layoutNode(node, {socksize: this.sockSize});
-    let mask = (1<<19)-1;
-    let mul = (1<<14)-1;
+  hashNode(node: GraphNodeType): string {
+    let layout = layoutNode(node, { socksize: this.sockSize });
+    let mask = (1 << 19) - 1;
+    let mul = (1 << 14) - 1;
     let hash = node.graph_id;
 
-    function dohash(n : number) {
+    function dohash(n: number) {
       let f = ((n + mask) * mul) & mask;
       hash = hash ^ f;
     }
 
     let scale = this.velpan.scale;
 
-    dohash(layout.size[0]*scale[0]);
-    dohash(layout.size[1]*scale[1]);
+    dohash(layout.size[0] * scale[0]);
+    dohash(layout.size[1] * scale[1]);
 
-    for (let i=0; i<2; i++) {
+    for (let i = 0; i < 2; i++) {
       let socks = i ? layout.outputs : layout.inputs;
       let j = 0;
 
       for (let k in socks) {
         let sock = socks[k];
 
-        dohash(sock[0]*scale[0]);
-        dohash(sock[1]*scale[1]);
+        dohash(sock[0] * scale[0]);
+        dohash(sock[1] * scale[1]);
         dohash(j++);
       }
     }
@@ -198,9 +205,9 @@ export class NodeViewer extends Editor {
     this.node_idmap = {};
   }
 
-  buildNode(node : GraphNodeType) : NodeLayout {
+  buildNode(node: GraphNodeType): NodeLayout {
     let scale = this.velpan.scale;
-    let layout = layoutNode(node, {socksize: this.sockSize, extraWidth : this.extraNodeWidth});
+    let layout = layoutNode(node, { socksize: this.sockSize, extraWidth: this.extraNodeWidth });
     let hash = this.hashNode(node);
 
     layout.size = new Vector2(layout.size);
@@ -208,7 +215,7 @@ export class NodeViewer extends Editor {
     layout.size.mulScalar(scale[0]);
     layout.size.floor();
 
-    for (let i=0; i<2; i++) {
+    for (let i = 0; i < 2; i++) {
       let lsocks = i ? layout.outputs : layout.inputs;
       let socks = i ? node.outputs : node.inputs;
 
@@ -218,7 +225,7 @@ export class NodeViewer extends Editor {
         let clr = sock.constructor.nodedef().color;
         let color = clr ? color2css(clr) : "orange";
 
-        lsocks[k] = Object.assign(new Vector2(lsocks[k]), {color});
+        lsocks[k] = Object.assign(new Vector2(lsocks[k]), { color });
       }
     }
 
@@ -227,16 +234,16 @@ export class NodeViewer extends Editor {
     let canvas = layout.canvas;
     let g = canvas.g;
 
-    let ts = this.getDefault<CSSFont>("DefaultText").size*1.45;
+    let ts = this.getDefault<CSSFont>("DefaultText").size * 1.45;
 
-    let header = layout.header =  ts*this.velpan.scale[0]*1.3*2.5;
+    let header = (layout.header = ts * this.velpan.scale[0] * 1.3 * 2.5);
 
     layout.size[1] += Math.ceil(header);
 
     canvas.width = layout.size[0];
     canvas.height = layout.size[1];
 
-    g.font = this.getDefault<CSSFont>("DefaultText").genCSS(ts*this.velpan.scale[0]);
+    g.font = this.getDefault<CSSFont>("DefaultText").genCSS(ts * this.velpan.scale[0]);
 
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.beginPath();
@@ -252,21 +259,25 @@ export class NodeViewer extends Editor {
 
     let name = node.graphDisplayName();
 
-    g.fillText(name, 1, ts*this.velpan.scale[0]*1.3);
-    g.fillText("("+node.constructor.name+")", 45*this.velpan.scale[0], ts*this.velpan.scale[0]*1.3*1.7);
+    g.fillText(name, 1, ts * this.velpan.scale[0] * 1.3);
+    g.fillText(
+      "(" + node.constructor.name + ")",
+      45 * this.velpan.scale[0],
+      ts * this.velpan.scale[0] * 1.3 * 1.7
+    );
 
     layout.graph_id = node.graph_id;
     this.nodes[hash] = layout;
     this.node_idmap[node.graph_id] = layout;
 
-    for (let i=0; i<2; i++) {
+    for (let i = 0; i < 2; i++) {
       let y = 0.0;
 
       let socks = i ? layout.outputs : layout.inputs;
       for (let k in socks) {
         let sock = socks[k];
 
-        sock[1] += header/this.velpan.scale[0];
+        sock[1] += header / this.velpan.scale[0];
 
         let w = g.measureText(k).width;
 
@@ -286,8 +297,8 @@ export class NodeViewer extends Editor {
     let size = this.size;
     let dpi = UIBase.getDPI();
 
-    let w = ~~(size[0]*dpi);
-    let h = ~~(size[1]*dpi);
+    let w = ~~(size[0] * dpi);
+    let h = ~~(size[1] * dpi);
 
     canvas.width = w;
     canvas.height = h;
@@ -309,15 +320,18 @@ export class NodeViewer extends Editor {
     g.font = this.getDefault<CSSFont>("DefaultText").genCSS();
     g.strokeStyle = "black";
 
-    let transform = (p : Vector2) => {
-      p[0] -= canvas.width*0.5;
-      p[1] -= canvas.height*0.5;
+    let transform = (p: Vector2) => {
+      p[0] -= canvas.width * 0.5;
+      p[1] -= canvas.height * 0.5;
       p.multVecMatrix(this.velpan.mat);
-      p[0] += canvas.width*0.5;
-      p[1] += canvas.height*0.5;
+      p[0] += canvas.width * 0.5;
+      p[1] += canvas.height * 0.5;
     };
 
-    let p = new Vector2(), p2 = new Vector2(), p3 = new Vector2(), p4 = new Vector2();
+    let p = new Vector2(),
+      p2 = new Vector2(),
+      p3 = new Vector2(),
+      p4 = new Vector2();
     let s = new Vector2();
 
     g.beginPath();
@@ -380,7 +394,7 @@ export class NodeViewer extends Editor {
 
       p.load(node.pos);
 
-      for (let i=0; i<2; i++) {
+      for (let i = 0; i < 2; i++) {
         let socks = i ? node.outputs : node.inputs;
 
         for (let k in socks) {
@@ -394,7 +408,7 @@ export class NodeViewer extends Editor {
           g.fillStyle = sock.color;
 
           g.moveTo(p2[0], p2[1]);
-          g.arc(p2[0], p2[1], sz*0.35, -Math.PI, Math.PI);
+          g.arc(p2[0], p2[1], sz * 0.35, -Math.PI, Math.PI);
 
           g.fill();
         }
@@ -402,7 +416,6 @@ export class NodeViewer extends Editor {
     }
 
     g.fill();
-
 
     g.fillStyle = "grey";
     g.beginPath();
@@ -486,14 +499,18 @@ export class NodeViewer extends Editor {
     this.velpan.update();
   }
 
-  static define() {return {
-    tagname : "nodegraph-viewer-x",
-    areaname : "nodegraph_viewer",
-    uiname  : "Graph Viewer"
-  }}
+  static define() {
+    return {
+      tagname : "nodegraph-viewer-x",
+      areaname: "nodegraph_viewer",
+      uiname  : "Graph Viewer",
+    };
+  }
 }
 
-NodeViewer.STRUCT = nstructjs.inherit(NodeViewer, Editor) + `
+NodeViewer.STRUCT =
+  nstructjs.inherit(NodeViewer, Editor) +
+  `
   graphPath  : string;
   graphClass : string;
   velpan     : VelPan;

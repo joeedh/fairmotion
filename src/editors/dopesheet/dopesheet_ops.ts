@@ -1,49 +1,63 @@
 "use strict";
 
 import {
-  CollectionProperty, IntProperty, FloatProperty, BoolProperty,
-  EnumProperty
-} from '../../core/toolprops.js';
+  CollectionProperty,
+  IntProperty,
+  FloatProperty,
+  BoolProperty,
+  EnumProperty,
+} from "../../core/toolprops.js";
 
-import {ToolOp, UndoFlags} from '../../core/toolops_api.js';
-
-import {TimeDataLayer, get_vtime, set_vtime,
-        AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-       } from '../../core/animdata.js';
+import { ToolOp, UndoFlags } from "../../core/toolops_api.js";
 
 import {
-  get_time, set_time, get_select, set_select, KeyTypes, FilterModes,
-  delete_key
-} from './dopesheet_phantom.js';
-import type {FullContext} from '../../core/context.js';
-import type {ToolDef} from '../../core/toolops_api.js';
-import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
-import type {Spline} from '../../curve/spline.js';
-import {SplineVertex} from '../../curve/spline_types.js';
+  TimeDataLayer,
+  get_vtime,
+  set_vtime,
+  AnimKey,
+  AnimChannel,
+  AnimKeyFlags,
+  AnimInterpModes,
+} from "../../core/animdata.js";
+
+import {
+  get_time,
+  set_time,
+  get_select,
+  set_select,
+  KeyTypes,
+  FilterModes,
+  delete_key,
+} from "./dopesheet_phantom.js";
+import type { FullContext } from "../../core/context.js";
+import type { ToolDef } from "../../core/toolops_api.js";
+import type { PropertySlots } from "../../path.ux/scripts/pathux.js";
+import type { Spline } from "../../curve/spline.js";
+import { SplineVertex } from "../../curve/spline_types.js";
 
 /* Phantom id -> the value it held before the op ran; get_select() hands back
    a flag bit rather than a boolean. */
-export type TimeUndo = {[id : string] : number};
-export type SelectUndo = {[id : string] : number};
+export type TimeUndo = { [id: string]: number };
+export type SelectUndo = { [id: string]: number };
 
 /* eidmap holds every element kind at once; every id these ops carry around is
    a path-spline vertex.  for-in keys arrive as strings, which index an object
    the same way the number does. */
-function refVert(spline : Spline, eid : number | string) : SplineVertex {
+function refVert(spline: Spline, eid: number | string): SplineVertex {
   let e = spline.eidmap[typeof eid === "number" ? eid : parseInt(eid)];
   return (e instanceof SplineVertex ? e : undefined)!;
 }
 
 export class ShiftTimeOp2 extends ToolOp<{
-  factor      : FloatProperty,
-  vertex_eids : CollectionProperty<number>,
+  factor: FloatProperty;
+  vertex_eids: CollectionProperty<number>;
 }> {
-  start_mpos : Vector3;
+  start_mpos: Vector3;
   /* True until the first modal mousemove seeds start_mpos. */
-  first! : boolean;
-  declare _undo : TimeUndo;
+  first!: boolean;
+  declare _undo: TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
-  start_time! : number;
+  start_time!: number;
 
   constructor() {
     super();
@@ -53,21 +67,23 @@ export class ShiftTimeOp2 extends ToolOp<{
     this.start_mpos = new Vector3();
   }
 
-  static tooldef() {return {
-    toolpath : "spline.shift_time2",
-    uiname : "Shift Time2",
+  static tooldef() {
+    return {
+      toolpath: "spline.shift_time2",
+      uiname  : "Shift Time2",
 
-    is_modal : true,
-    inputs : {
-      factor       : new FloatProperty(-1, "factor", "factor", "factor"),
-      vertex_eids  : new CollectionProperty([], undefined, "verts", "verts")
-    },
-    outputs : {},
-    icon     : -1,
-    description : "Move keyframes around"
-  }}
+      is_modal   : true,
+      inputs: {
+        factor     : new FloatProperty(-1, "factor", "factor", "factor"),
+        vertex_eids: new CollectionProperty([], undefined, "verts", "verts"),
+      },
+      outputs    : {},
+      icon       : -1,
+      description: "Move keyframes around",
+    };
+  }
 
-  get_curframe_animverts(ctx : FullContext) : set<SplineVertex> {
+  get_curframe_animverts(ctx: FullContext): set<SplineVertex> {
     var vset = new set<SplineVertex>();
 
     var spline = ctx.frameset.pathspline;
@@ -86,23 +102,22 @@ export class ShiftTimeOp2 extends ToolOp<{
     return vset;
   }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     this.first = true;
   }
 
   /* Overrides ToolOp.end_modal(cancelled); every caller here passes nothing. */
-  end_modal(cancelled? : boolean) {
+  end_modal(cancelled?: boolean) {
     ToolOp.prototype.end_modal.call(this);
   }
 
-  cancel(ctx : FullContext) {
-  }
+  cancel(ctx: FullContext) {}
 
-  finish(ctx : FullContext) {
+  finish(ctx: FullContext) {
     ctx.scene.change_time(ctx, this.start_time);
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     //console.log("mousemove!");
 
     if (this.first) {
@@ -111,7 +126,7 @@ export class ShiftTimeOp2 extends ToolOp<{
     }
 
     var mpos = new Vector3([event.x, event.y, 0]);
-    var dx = -Math.floor(1.5*(this.start_mpos[0] - mpos[0])/20+0.5);
+    var dx = -Math.floor((1.5 * (this.start_mpos[0] - mpos[0])) / 20 + 0.5);
 
     //console.log("time offset", dx);
 
@@ -121,7 +136,7 @@ export class ShiftTimeOp2 extends ToolOp<{
     this.exec(this.modal_ctx);
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Escape"]:
         this.cancel(this.modal_ctx);
@@ -132,27 +147,28 @@ export class ShiftTimeOp2 extends ToolOp<{
     }
   }
 
-  on_mouseup(event : MouseEvent) {
-   var ctx = this.modal_ctx;
+  on_mouseup(event: MouseEvent) {
+    var ctx = this.modal_ctx;
 
-   this.end_modal();
+    this.end_modal();
 
-   ctx.frameset.download();
-   window.redraw_viewport();
+    ctx.frameset.download();
+    window.redraw_viewport();
   }
 
-  undo_pre(ctx : FullContext) {
-    var ud : TimeUndo = this._undo = {};
+  undo_pre(ctx: FullContext) {
+    var ud: TimeUndo = (this._undo = {});
     for (var v of this.get_curframe_animverts(ctx)) {
       ud[v.eid] = get_vtime(v);
     }
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     var spline = ctx.frameset.pathspline;
 
     for (var k in this._undo) {
-      var v = refVert(spline, k), time = this._undo[k];
+      var v = refVert(spline, k),
+        time = this._undo[k];
 
       set_vtime(spline, v, time);
       v.dag_update("depend");
@@ -161,9 +177,9 @@ export class ShiftTimeOp2 extends ToolOp<{
     ctx.frameset.download();
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var spline = ctx.frameset.pathspline;
-    var starts : {[eid : number] : number} = {};
+    var starts: { [eid: number]: number } = {};
     var off = this.inputs.factor.data;
 
     var vset = this.get_curframe_animverts(ctx);
@@ -172,7 +188,7 @@ export class ShiftTimeOp2 extends ToolOp<{
     }
 
     var frameset = ctx.frameset;
-    var vdmap : {[eid : number] : number} = {};
+    var vdmap: { [eid: number]: number } = {};
 
     for (var k in frameset.vertex_animdata) {
       var vd = frameset.vertex_animdata[k];
@@ -189,43 +205,48 @@ export class ShiftTimeOp2 extends ToolOp<{
       var eid = vdmap[v.eid];
       var time1 = get_vtime(v);
 
-      for (var i=0; i<v.segments.length; i++) {
-        var s = v.segments[i], v2=s.other_vert(v),
-            time2 = get_vtime(v2);
-        var t1 = Math.min(time1, time2), t2 = Math.max(time1, time2);
+      for (var i = 0; i < v.segments.length; i++) {
+        var s = v.segments[i],
+          v2 = s.other_vert(v),
+          time2 = get_vtime(v2);
+        var t1 = Math.min(time1, time2),
+          t2 = Math.max(time1, time2);
 
-        for (var j=t1; j<=t2; j++) {
+        for (var j = t1; j <= t2; j++) {
           kcache.invalidate(eid, j);
         }
       }
 
-      set_vtime(spline, v, starts[v.eid]+off);
-      kcache.invalidate(eid, starts[v.eid]+off);
+      set_vtime(spline, v, starts[v.eid] + off);
+      kcache.invalidate(eid, starts[v.eid] + off);
 
       v.dag_update("depend");
     }
 
     for (var v of vset) {
-      var min=undefined, max=undefined;
+      var min = undefined,
+        max = undefined;
 
       if (v.segments.length == 1) {
         var s = v.segments[0];
         var v2 = s.other_vert(v);
-        var t1 =  get_vtime(v), t2 = get_vtime(v2);
+        var t1 = get_vtime(v),
+          t2 = get_vtime(v2);
 
         if (t1 < t2) {
-          min = 0, max = t2;
+          (min = 0), (max = t2);
         } else if (t1 == t2) {
           min = max = t1;
         } else {
-          min = t1, max = 100000;
+          (min = t1), (max = 100000);
         }
       } else if (v.segments.length == 2) {
         var v1 = v.segments[0].other_vert(v);
         var v2 = v.segments[1].other_vert(v);
 
-        var t1 = get_vtime(v1), t2 = get_vtime(v2);
-        min = Math.min(t1, t2), max = Math.max(t1, t2);
+        var t1 = get_vtime(v1),
+          t2 = get_vtime(v2);
+        (min = Math.min(t1, t2)), (max = Math.max(t1, t2));
       } else {
         min = 0;
         max = 100000;
@@ -246,14 +267,14 @@ export class ShiftTimeOp2 extends ToolOp<{
 }
 
 export class ShiftTimeOp3 extends ToolOp<{
-  factor      : FloatProperty,
-  phantom_ids : CollectionProperty<number>,
+  factor: FloatProperty;
+  phantom_ids: CollectionProperty<number>;
 }> {
-  start_mpos : Vector3;
-  first! : boolean;
-  declare _undo : TimeUndo;
+  start_mpos: Vector3;
+  first!: boolean;
+  declare _undo: TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
-  start_time! : number;
+  start_time!: number;
 
   constructor() {
     super();
@@ -263,37 +284,38 @@ export class ShiftTimeOp3 extends ToolOp<{
     this.start_mpos = new Vector3();
   }
 
-  static tooldef() {return {
-    toolpath : "spline.shift_time3",
-    uiname : "Shift Time",
+  static tooldef() {
+    return {
+      toolpath: "spline.shift_time3",
+      uiname  : "Shift Time",
 
-    is_modal : true,
-    inputs : {
-      factor: new FloatProperty(-1, "factor", "factor", "factor"),
-      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-    },
-    outputs : {},
-    icon     : -1,
-    description : "Move keyframes around"
-  }}
+      is_modal   : true,
+      inputs: {
+        factor     : new FloatProperty(-1, "factor", "factor", "factor"),
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+      },
+      outputs    : {},
+      icon       : -1,
+      description: "Move keyframes around",
+    };
+  }
 
-  start_modal(ctx : FullContext) {
+  start_modal(ctx: FullContext) {
     this.first = true;
   }
 
   /* Overrides ToolOp.end_modal(cancelled); every caller here passes nothing. */
-  end_modal(cancelled? : boolean) {
+  end_modal(cancelled?: boolean) {
     ToolOp.prototype.end_modal.call(this);
   }
 
-  cancel(ctx : FullContext) {
-  }
+  cancel(ctx: FullContext) {}
 
-  finish(ctx : FullContext) {
+  finish(ctx: FullContext) {
     ctx.scene.change_time(ctx, this.start_time);
   }
 
-  on_mousemove(event : MouseEvent) {
+  on_mousemove(event: MouseEvent) {
     //console.log("mousemove!");
 
     if (this.first) {
@@ -306,14 +328,14 @@ export class ShiftTimeOp3 extends ToolOp<{
     let ctx = this.modal_ctx;
 
     if (ctx.dopesheet) {
-      let ds = ctx.dopesheet
-      scale = 1.0 / (ds.timescale*ds.zoom*ds.boxSize);
+      let ds = ctx.dopesheet;
+      scale = 1.0 / (ds.timescale * ds.zoom * ds.boxSize);
     } else {
       scale = 0.01;
       console.warn("Warning, no dopesheet");
     }
 
-    var dx = -Math.floor((this.start_mpos[0] - mpos[0])*scale);
+    var dx = -Math.floor((this.start_mpos[0] - mpos[0]) * scale);
 
     //console.log("time offset", dx);
 
@@ -323,7 +345,7 @@ export class ShiftTimeOp3 extends ToolOp<{
     this.exec(this.modal_ctx);
   }
 
-  on_keydown(event : KeyboardEvent) {
+  on_keydown(event: KeyboardEvent) {
     switch (event.keyCode) {
       case charmap["Escape"]:
         this.cancel(this.modal_ctx);
@@ -334,39 +356,38 @@ export class ShiftTimeOp3 extends ToolOp<{
     }
   }
 
-  on_mouseup(event : MouseEvent) {
-   var ctx = this.modal_ctx;
+  on_mouseup(event: MouseEvent) {
+    var ctx = this.modal_ctx;
 
-   this.end_modal();
+    this.end_modal();
 
-   ctx.frameset.download();
-   window.redraw_viewport();
+    ctx.frameset.download();
+    window.redraw_viewport();
   }
 
-  undo_pre(ctx : FullContext) {
-    var ud : TimeUndo = this._undo = {};
+  undo_pre(ctx: FullContext) {
+    var ud: TimeUndo = (this._undo = {});
 
     for (var id of this.inputs.phantom_ids) {
       ud[id] = get_time(ctx, id);
     }
   }
 
-  do_undo(ctx : FullContext, no_download=false) {
+  do_undo(ctx: FullContext, no_download = false) {
     for (var k in this._undo) {
       set_time(ctx, parseInt(k), this._undo[k]);
     }
 
-    if (!no_download)
-      ctx.frameset.download();
+    if (!no_download) ctx.frameset.download();
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     this.do_undo(ctx);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var spline = ctx.frameset.pathspline;
-    var starts : {[id : number] : number} = {};
+    var starts: { [id: number]: number } = {};
     var off = this.inputs.factor.data;
 
     var ids = this.inputs.phantom_ids;
@@ -375,7 +396,7 @@ export class ShiftTimeOp3 extends ToolOp<{
     }
 
     var frameset = ctx.frameset;
-    var vdmap : {[eid : number] : number} = {};
+    var vdmap: { [eid: number]: number } = {};
 
     for (var k in frameset.vertex_animdata) {
       var vd = frameset.vertex_animdata[k];
@@ -389,11 +410,12 @@ export class ShiftTimeOp3 extends ToolOp<{
 
     var kcache = ctx.frameset.kcache;
     for (var id of ids) {
-      set_time(ctx, id, starts[id]+off);
+      set_time(ctx, id, starts[id] + off);
     }
 
     for (var id of ids) {
-      var min=undefined, max=undefined;
+      var min = undefined,
+        max = undefined;
 
       if (id & KeyTypes.PATHSPLINE) {
         var v = refVert(ctx.frameset.pathspline, id & KeyTypes.CLEARMASK);
@@ -401,29 +423,31 @@ export class ShiftTimeOp3 extends ToolOp<{
         if (v.segments.length == 1) {
           var s = v.segments[0];
           var v2 = s.other_vert(v);
-          var t1 =  get_vtime(v), t2 = get_vtime(v2);
+          var t1 = get_vtime(v),
+            t2 = get_vtime(v2);
 
           if (t1 < t2) {
-            min = 0, max = t2;
+            (min = 0), (max = t2);
           } else if (t1 == t2) {
             min = max = t1;
           } else {
-            min = t1, max = 100000;
+            (min = t1), (max = 100000);
           }
         } else if (v.segments.length == 2) {
           var v1 = v.segments[0].other_vert(v);
           var v2 = v.segments[1].other_vert(v);
 
-          var t1 = get_vtime(v1), t2 = get_vtime(v2);
-          min = Math.min(t1, t2), max = Math.max(t1, t2);
+          var t1 = get_vtime(v1),
+            t2 = get_vtime(v2);
+          (min = Math.min(t1, t2)), (max = Math.max(t1, t2));
         } else {
           min = 0;
           max = 100000;
         }
 
         var eid = vdmap[v.eid];
-        for (var j=min; j<max; j++) {
-      //    kcache.invalidate(eid, j);
+        for (var j = min; j < max; j++) {
+          //    kcache.invalidate(eid, j);
         }
 
         var newtime = get_vtime(v);
@@ -445,31 +469,36 @@ export class ShiftTimeOp3 extends ToolOp<{
 export class SelectOpBase<
   InputSlots extends PropertySlots = PropertySlots,
   OutputSlots extends PropertySlots = PropertySlots,
-> extends ToolOp<InputSlots & {
-  phantom_ids : CollectionProperty<number>,
-}, OutputSlots> {
-  declare _undo : SelectUndo;
+> extends ToolOp<
+  InputSlots & {
+    phantom_ids: CollectionProperty<number>;
+  },
+  OutputSlots
+> {
+  declare _undo: SelectUndo;
 
   constructor() {
     super();
   }
 
-  static tooldef() : ToolDef {return {
-    inputs  : {
-      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-    },
-    outputs : {}
-  }}
+  static tooldef(): ToolDef {
+    return {
+      inputs: {
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+      },
+      outputs: {},
+    };
+  }
 
-  undo_pre(ctx : FullContext) {
-    var undo : SelectUndo = this._undo = {};
+  undo_pre(ctx: FullContext) {
+    var undo: SelectUndo = (this._undo = {});
 
     for (var id of this.inputs.phantom_ids) {
       undo[id] = get_select(ctx, id);
     }
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     var undo = this._undo;
 
     for (var id in undo) {
@@ -479,11 +508,11 @@ export class SelectOpBase<
 }
 
 export class SelectOp extends SelectOpBase<{
-  select_ids : CollectionProperty<number>,
-  state      : BoolProperty,
-  unique     : BoolProperty,
+  select_ids: CollectionProperty<number>;
+  state: BoolProperty;
+  unique: BoolProperty;
 }> {
-  uiname : string;
+  uiname: string;
 
   constructor() {
     super();
@@ -491,24 +520,26 @@ export class SelectOp extends SelectOpBase<{
     this.uiname = "Select";
   }
 
-  static tooldef() {return {
-    toolpath : "spline.select_keyframe",
-    uiname : "Select Keyframe",
+  static tooldef() {
+    return {
+      toolpath: "spline.select_keyframe",
+      uiname  : "Select Keyframe",
 
-    is_modal : false,
-    inputs : ToolOp.inherit({
-      select_ids  : new CollectionProperty([], undefined, "select_ids", "select_ids"),
-      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
-      state       : new BoolProperty(true, "state"),
-      unique      : new BoolProperty(true, "unique")
-    }),
+      is_modal: false,
+      inputs: ToolOp.inherit({
+        select_ids : new CollectionProperty([], undefined, "select_ids", "select_ids"),
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+        state      : new BoolProperty(true, "state"),
+        unique     : new BoolProperty(true, "unique"),
+      }),
 
-    outputs : {},
-    icon     : -1,
-    description : "Select keyframes"
-  }}
+      outputs    : {},
+      icon       : -1,
+      description: "Select keyframes",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var state = this.inputs.state.data;
 
     if (this.inputs.unique.data) {
@@ -523,37 +554,37 @@ export class SelectOp extends SelectOpBase<{
   }
 }
 
-export class ColumnSelect extends SelectOpBase<{state : BoolProperty}> {
+export class ColumnSelect extends SelectOpBase<{ state: BoolProperty }> {
   constructor() {
     super();
   }
-  static tooldef() {return {
-    toolpath : "spline.select_keyframe_column",
-    uiname : "Column Select",
+  static tooldef() {
+    return {
+      toolpath: "spline.select_keyframe_column",
+      uiname  : "Column Select",
 
-    is_modal : false,
-    inputs : ToolOp.inherit({
-      state       : new BoolProperty(true, "state"),
-      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-    }),
+      is_modal: false,
+      inputs: ToolOp.inherit({
+        state      : new BoolProperty(true, "state"),
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+      }),
 
-    outputs : {},
-    icon     : -1,
-    description : "Select keyframes in a single column"
-  }}
+      outputs    : {},
+      icon       : -1,
+      description: "Select keyframes in a single column",
+    };
+  }
 
-  exec(ctx : FullContext) {
-    var cols : {[time : number] : number} = {};
+  exec(ctx: FullContext) {
+    var cols: { [time: number]: number } = {};
     var state = this.inputs.state.data;
 
-      for (var id of this.inputs.phantom_ids) {
-      if (get_select(ctx, id))
-        cols[get_time(ctx, id)] = 1;
+    for (var id of this.inputs.phantom_ids) {
+      if (get_select(ctx, id)) cols[get_time(ctx, id)] = 1;
     }
 
     for (var id of this.inputs.phantom_ids) {
-      if (!(get_time(ctx, id) in cols))
-        continue;
+      if (!(get_time(ctx, id) in cols)) continue;
 
       set_select(ctx, id, state);
     }
@@ -561,36 +592,38 @@ export class ColumnSelect extends SelectOpBase<{state : BoolProperty}> {
 }
 
 export class SelectKeysToSide extends SelectOpBase<{
-  state : BoolProperty,
-  side  : BoolProperty,
+  state: BoolProperty;
+  side: BoolProperty;
 }> {
   constructor() {
     super();
   }
 
-  static tooldef() {return {
-    toolpath : "spline.select_keys_to_side",
-    uiname : "Select Keys To Side",
+  static tooldef() {
+    return {
+      toolpath: "spline.select_keys_to_side",
+      uiname  : "Select Keys To Side",
 
-    is_modal : false,
-    inputs : ToolOp.inherit({
-      state       : new BoolProperty(true, "state"),
-      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
-      side        : new BoolProperty(true, "side")
-    }),
+      is_modal: false,
+      inputs: ToolOp.inherit({
+        state      : new BoolProperty(true, "state"),
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+        side       : new BoolProperty(true, "side"),
+      }),
 
-    outputs : {},
-    icon     : -1,
-    description : "Select keyframes before or after the cursor"
-  }}
+      outputs    : {},
+      icon       : -1,
+      description: "Select keyframes before or after the cursor",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var state = this.inputs.state.data;
-    var mintime = 1e17, maxtime = -1e17;
+    var mintime = 1e17,
+      maxtime = -1e17;
 
     for (var id of this.inputs.phantom_ids) {
-      if (!get_select(ctx, id))
-        continue;
+      if (!get_select(ctx, id)) continue;
 
       var time = get_time(ctx, id);
 
@@ -607,8 +640,7 @@ export class SelectKeysToSide extends SelectOpBase<{
     for (var id of this.inputs.phantom_ids) {
       var time = get_time(ctx, id);
 
-      if ((side && time < maxtime) || (!side && time > mintime))
-        continue;
+      if ((side && time < maxtime) || (!side && time > mintime)) continue;
 
       set_select(ctx, id, state);
     }
@@ -617,37 +649,38 @@ export class SelectKeysToSide extends SelectOpBase<{
 
 export var mode_vals = ["select", "deselect", "auto"];
 
-export class ToggleSelectOp extends SelectOpBase<{mode : EnumProperty}> {
-  constructor(mode="auto") {
+export class ToggleSelectOp extends SelectOpBase<{ mode: EnumProperty }> {
+  constructor(mode = "auto") {
     super();
 
     this.inputs.mode.set_data(mode);
   }
 
-  static tooldef() {return {
-    toolpath : "spline.toggle_select_keys",
-    uiname : "Select Keyframe Selection",
+  static tooldef() {
+    return {
+      toolpath: "spline.toggle_select_keys",
+      uiname  : "Select Keyframe Selection",
 
-    is_modal : false,
-    inputs : ToolOp.inherit({
-      phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids"),
-      mode        : new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")
-    }),
+      is_modal: false,
+      inputs: ToolOp.inherit({
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"),
+        mode       : new EnumProperty("auto", mode_vals, "mode", "Mode", "mode"),
+      }),
 
-    outputs : {},
-    icon     : -1,
-    description : "Select all keyframes, or deselect them if already selected"
-  }}
+      outputs    : {},
+      icon       : -1,
+      description: "Select all keyframes, or deselect them if already selected",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     var mode = this.inputs.mode.data;
 
     if (mode == "auto") {
       mode = "select";
 
       for (var id of this.inputs.phantom_ids) {
-        if (get_select(ctx, id))
-          mode = "deselect";
+        if (get_select(ctx, id)) mode = "deselect";
       }
     }
 
@@ -658,29 +691,30 @@ export class ToggleSelectOp extends SelectOpBase<{mode : EnumProperty}> {
   }
 }
 
-
 export class DeleteKeyOp extends ToolOp<{
-  phantom_ids : CollectionProperty<number>,
+  phantom_ids: CollectionProperty<number>;
 }> {
   constructor() {
     super();
   }
 
-  static tooldef() {return {
-    toolpath : "spline.delete_key",
-    uiname : "Delete Keyframe",
+  static tooldef() {
+    return {
+      toolpath: "spline.delete_key",
+      uiname  : "Delete Keyframe",
 
-    is_modal : false,
-    inputs : {
-      phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids")
-    },
+      is_modal: false,
+      inputs: {
+        phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"),
+      },
 
-    outputs : {},
-    icon     : -1,
-    description : "Delete a keyframe"
-  }}
+      outputs    : {},
+      icon       : -1,
+      description: "Delete a keyframe",
+    };
+  }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     for (var id of this.inputs.phantom_ids) {
       if (get_select(ctx, id)) {
         //console.log("deleting!", id & 65535);
@@ -688,4 +722,4 @@ export class DeleteKeyOp extends ToolOp<{
       }
     }
   }
-};
+}

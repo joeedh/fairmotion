@@ -10,24 +10,24 @@ if (Array.prototype.pop_i === undefined) {
         return;
       }
     }
-    
+
     var ret = this[idx];
-    
-    while (idx < this.length-1) {
-      this[idx] = this[idx+1];
+
+    while (idx < this.length - 1) {
+      this[idx] = this[idx + 1];
       idx++;
     }
-    
-    this[this.length-1] = undefined;
+
+    this[this.length - 1] = undefined;
     this.length--;
-    
+
     return ret;
-  }
+  };
 }
 
 function startup_report(message: string) {
   //args = new Array(arguments.length+2);
-  
+
   console.log("%c " + message + "", "color:green");
   /*
   for (var i=0; i<arguments.length; i++) {
@@ -45,9 +45,9 @@ function startup_report(message: string) {
    commented out below. */
 function startup_warning(message: string, ..._args: unknown[]) {
   //args = new Array(arguments.length+2);
-  
+
   console.trace("%c " + message + "\n\n", "color:red");
-  
+
   /*
   for (var i=0; i<arguments.length; i++) {
     args[i+2] = arguments[i];
@@ -62,23 +62,23 @@ function startup_warning(message: string, ..._args: unknown[]) {
 
 function warn(message: string, ...rest: unknown[]) {
   //args = new Array(arguments.length+2);
-  
-  var args : unknown[] = ["%c " + message + "\n", "color:orange"]
+
+  var args: unknown[] = ["%c " + message + "\n", "color:orange"];
   for (let arg of rest) {
     args.push(arg);
   }
-  
+
   console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
 }
 
 function warntrace(message: string, ...rest: unknown[]) {
   //args = new Array(arguments.length+2);
-  
-  var args : unknown[] = ["%c " + message + "\n", "color:orange"]
+
+  var args: unknown[] = ["%c " + message + "\n", "color:orange"];
   for (let arg of rest) {
     args.push(arg);
   }
-  
+
   console.trace.apply(console, args);
 }
 
@@ -91,167 +91,167 @@ if (Symbol.keystr === undefined) {
 /*check for various api calls that aren't implemented by all browsers*/
 
 if (Array.prototype.remove === undefined) {
-  Array.prototype.remove = function(this: unknown[], item: unknown, hide_error?: boolean) {
+  Array.prototype.remove = function (this: unknown[], item: unknown, hide_error?: boolean) {
     var i = this.indexOf(item);
-    
+
     if (i < 0) {
       if (hide_error) console.trace("Error: item", item, "not in array", this);
       else throw new Error("Item " + item + " not in array");
-      
+
       return;
     }
-    
+
     var len = this.length;
     while (i < len) {
-      this[i] = this[i+1];
+      this[i] = this[i + 1];
       i++;
     }
-    
+
     this.length--;
-  }
+  };
 }
 
 /* These three test a *static* String member that has never existed, so they
    always run and always shadow the native String.prototype methods. */
 if (Reflect.get(String, "startsWith") == undefined) {
-    String.prototype.startsWith = function (this: string, str: string) {
-        if (str.length > this.length)
-            return false;
+  String.prototype.startsWith = function (this: string, str: string) {
+    if (str.length > this.length) return false;
 
-        for (var i = 0; i < str.length; i++) {
-            if (this[i] != str[i])
-                return false;
-        }
-
-        return true;
+    for (var i = 0; i < str.length; i++) {
+      if (this[i] != str[i]) return false;
     }
+
+    return true;
+  };
 }
 
 if (Reflect.get(String, "endsWith") == undefined) {
-    String.prototype.endsWith = function (this: string, str: string) {
-        if (str.length > this.length)
-            return false;
+  String.prototype.endsWith = function (this: string, str: string) {
+    if (str.length > this.length) return false;
 
-        for (var i = 0; i < str.length; i++) {
-            if (this[this.length - str.length + i] != str[i])
-                return false;
-        }
-
-        return true;
+    for (var i = 0; i < str.length; i++) {
+      if (this[this.length - str.length + i] != str[i]) return false;
     }
+
+    return true;
+  };
 }
 
 //this needs to be converted to use regexpr's
 if (Reflect.get(String, "contains") == undefined) {
-    String.prototype.contains = function (this: string, str: string) {
-        if (str.length > this.length)
-            return false;
+  String.prototype.contains = function (this: string, str: string) {
+    if (str.length > this.length) return false;
 
-        for (var i = 0; i < this.length - str.length + 1; i++) {
-            var found = true;
-            for (var j = 0; j < str.length; j++) {
-                if (this[i + j] != str[j]) {
-                    found = false;
-                    break;
-                }
-            }
-
-            if (found)
-                return true;
+    for (var i = 0; i < this.length - str.length + 1; i++) {
+      var found = true;
+      for (var j = 0; j < str.length; j++) {
+        if (this[i + j] != str[j]) {
+          found = false;
+          break;
         }
+      }
 
-        return false;
+      if (found) return true;
     }
+
+    return false;
+  };
 }
 
-window._my_object_keys = function(obj: object) {
+window._my_object_keys = function (obj: object) {
   var arr: string[] = [];
   for (var k in obj) {
     arr.push(k);
   }
-  
+
   return arr;
-}
+};
 
 //more consistent is_str function
 /* NOTE: a `|| typeof str == "String"` sat here.  typeof never returns that. */
-function is_str(str: unknown) : str is string {
-    return typeof str == "string";
+function is_str(str: unknown): str is string {
+  return typeof str == "string";
 }
 
 //get type name, even for mangled objects
 function get_type_name(obj: object | null | undefined) {
-    if (obj == undefined) return "undefined"
-    if (obj.constructor != undefined && obj.constructor.name != undefined && obj.constructor.name != "")
-        return obj.constructor.name;
+  if (obj == undefined) return "undefined";
+  if (
+    obj.constructor != undefined &&
+    obj.constructor.name != undefined &&
+    obj.constructor.name != ""
+  )
+    return obj.constructor.name;
 
-    var c = "";
+  var c = "";
 
-    try {
-        /* toSource() is a long-dead Gecko extension, so this has always thrown
+  try {
+    /* toSource() is a long-dead Gecko extension, so this has always thrown
            and left c empty; the two contains() tests below never fire. */
-        var tosource = Reflect.get(obj, "toSource");
-        c = "" + tosource.call(obj);
-    } catch (Error) {
-        c = ""
+    var tosource = Reflect.get(obj, "toSource");
+    c = "" + tosource.call(obj);
+  } catch (Error) {
+    c = "";
+  }
+
+  if (obj.toString().startsWith("[object ")) {
+    var c2 = obj.toString().replace("[object ", "").replace("]", "");
+    if (c2 != "Object" && c2 != "Array") {
+      return c2;
     }
+  }
 
-    if (obj.toString().startsWith("[object ")) {
-        var c2 = obj.toString().replace("[object ", "").replace("]", "")
-        if (c2 != "Object" && c2 != "Array") {
-            return c2;
-        }
+  if (
+    c.contains(">") &&
+    c.contains("<") &&
+    !c.contains(" ") &&
+    !c.contains(",") &&
+    !c.contains(".")
+  ) {
+    c = c.replace(">", "").replace("<", "");
+
+    if (c != "Object" && c != "Array") {
+      return c;
     }
+  }
 
-    if (c.contains(">") && c.contains("<") && !c.contains(" ") && !c.contains(",") && !c.contains(".")) {
-        c = c.replace(">", "").replace("<", "")
+  if (obj.constructor == MouseEvent) return "MouseEvent";
 
-        if (c != "Object" && c != "Array") {
-            return c
-        }
-    }
-
-    if (obj.constructor == MouseEvent)
-        return "MouseEvent"
-
-    /* NOTE: KeyEvent was a Gecko global and is gone, so reaching this line
+  /* NOTE: KeyEvent was a Gecko global and is gone, so reaching this line
        throws a ReferenceError; read off window instead of bare. */
-    if (obj.constructor == Reflect.get(window, "KeyEvent"))
-        return "KeyEvent"
+  if (obj.constructor == Reflect.get(window, "KeyEvent")) return "KeyEvent";
 
-    if (obj.constructor == KeyboardEvent)
-        return "KeyboardEvent"
+  if (obj.constructor == KeyboardEvent) return "KeyboardEvent";
 
-    return "(unknown)";
+  return "(unknown)";
 }
 
 function obj_get_keys(obj: object) {
-    var ret: string[] = [];
+  var ret: string[] = [];
 
-    for (var k in obj) {
-        if (obj.hasOwnProperty(k))
-            ret.push(k);
-    }
+  for (var k in obj) {
+    if (obj.hasOwnProperty(k)) ret.push(k);
+  }
 
-    return ret;
+  return ret;
 }
 
 window._do_frame_debug = false;
 window._do_iter_err_stacktrace = true;
 
 //special values for compiled generator code
-window.FrameContinue = {"FC": 1}
-window.FrameBreak = {"FB": 1}
+window.FrameContinue = { "FC": 1 };
+window.FrameBreak = { "FB": 1 };
 
 /*not sure if I need these...*/
 function getattr(obj: object, attr: string) {
-    return Reflect.get(obj, attr);
+  return Reflect.get(obj, attr);
 }
 function setattr(obj: object, attr: string, val: unknown) {
-    Reflect.set(obj, attr, val);
+  Reflect.set(obj, attr, val);
 }
 function delattr(obj: object, attr: string) {
-    Reflect.deleteProperty(obj, attr);
+  Reflect.deleteProperty(obj, attr);
 }
 
 /*the grand __get_iter function.

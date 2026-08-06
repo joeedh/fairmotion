@@ -1,6 +1,6 @@
 "use strict";
 
-import {safe_eval} from './safe_eval.js';
+import { safe_eval } from "./safe_eval.js";
 
 /*
 --Unit system design--
@@ -57,8 +57,7 @@ export class UnitAttr {
     function required(key: keyof UnitAttrs): number {
       let val = attrs[key];
 
-      if (val === undefined)
-        throw new Error("Missing required unit parameter");
+      if (val === undefined) throw new Error("Missing required unit parameter");
 
       return val;
     }
@@ -73,41 +72,45 @@ export class UnitAttr {
 }
 
 export class Unit {
-  attrs : UnitAttr;
+  attrs: UnitAttr;
   /* Centimeters per one of this unit; the internal format is centimeters. */
-  cfactor : number;
+  cfactor: number;
   /* Every spelling that parses to this unit; [0] is the one gen_string emits. */
-  suffix_list : string[];
+  suffix_list: string[];
 
-  static units : Unit[];
-  static metric_units : string[];
-  static imperial_units : string[];
-  static internal_unit : string;
+  static units: Unit[];
+  static metric_units: string[];
+  static imperial_units: string[];
+  static internal_unit: string;
 
-  constructor(suffices: string[], cfactor: number,
-              grid_subd_1: number, grid_subd_2 = grid_subd_1, attrs: UnitAttrs = {})
-  {
+  constructor(
+    suffices: string[],
+    cfactor: number,
+    grid_subd_1: number,
+    grid_subd_2 = grid_subd_1,
+    attrs: UnitAttrs = {}
+  ) {
     this.cfactor = cfactor;
     this.suffix_list = suffices;
-    
+
     attrs.grid_steps = grid_subd_1;
     attrs.grid_substeps = grid_subd_2;
-    
+
     if (!("geounit" in attrs)) {
       attrs.geounit = cfactor;
     }
-    
+
     //validate
     this.attrs = new UnitAttr(attrs);
   }
-  
+
   //expects normalized (centimeters) values
   from_normalized(v: number) {
-    return v/this.cfactor;
+    return v / this.cfactor;
   }
 
   to_normalized(v: number) {
-    return v*this.cfactor;
+    return v * this.cfactor;
   }
 
   /* Strips the longest matching suffix off `string` and returns
@@ -116,52 +119,54 @@ export class Unit {
     var lower = string.toLowerCase();
     var units = Unit.units;
     var unit = undefined;
-    
+
     if (string == "default") {
       string = lower = g_app_state.session.settings.unit;
     }
-    
-    for (var i=0; i<units.length; i++) {
+
+    for (var i = 0; i < units.length; i++) {
       var u = units[i];
-      
-      for (var j=0; j<u.suffix_list.length; j++) {
+
+      for (var j = 0; j < u.suffix_list.length; j++) {
         if (lower.trim().endsWith(u.suffix_list[j])) {
           unit = u;
-          
-          string = string.slice(0, string.length-u.suffix_list[j].length);
+
+          string = string.slice(0, string.length - u.suffix_list[j].length);
           break;
         }
       }
-      
-      if (unit != undefined)
-        break;
+
+      if (unit != undefined) break;
     }
-    
+
     return [unit, string];
   }
 
-  static parse(string: string, oldval?: number, errfunc?: (funcparam?: Object) => void,
-               funcparam?: Object, defaultunit?: string) {
+  static parse(
+    string: string,
+    oldval?: number,
+    errfunc?: (funcparam?: Object) => void,
+    funcparam?: Object,
+    defaultunit?: string
+  ) {
     //oldval, errfunc, funcparam are optional
     var units = Unit.units;
     var lower = string.toLowerCase();
     var unit = undefined;
-    
-    if (defaultunit == undefined)
-      defaultunit = "cm";
-      
-    if (oldval == undefined)
-      oldval = 0.0;
-    
-    var ret = Unit.get_unit(string);    
+
+    if (defaultunit == undefined) defaultunit = "cm";
+
+    if (oldval == undefined) oldval = 0.0;
+
+    var ret = Unit.get_unit(string);
     unit = ret[0];
     string = ret[1];
-    
+
     //do no unit processing if there is no unit
     if (unit == undefined) {
       unit = Unit.get_unit(defaultunit)[0];
     }
-    
+
     var val = -1;
     try {
       val = safe_eval(string);
@@ -169,11 +174,11 @@ export class Unit {
       if (errfunc != undefined) {
         errfunc(funcparam);
       }
-      
+
       return oldval;
     }
-    
-    if (val == undefined || typeof(val) != "number" || isNaN(val)) {
+
+    if (val == undefined || typeof val != "number" || isNaN(val)) {
       console.log(["haha ", val, string]);
 
       /* NOTE: this call was unguarded, unlike the identical one in the catch
@@ -184,11 +189,11 @@ export class Unit {
 
       return oldval;
     }
-    
+
     if (unit != undefined) {
       val = unit.to_normalized(val);
     }
-    
+
     return val;
   }
 
@@ -196,38 +201,34 @@ export class Unit {
     //max_decimal is optional
     //if suffix is undefined, no processing is done
     //if suffix is "default", g_app_state.session.settings.unit will be used
-    
-    if (!(typeof val == "number") || val == undefined)
-      return "?";
-    
-    if (suffix == undefined)
-      return val.toFixed(max_decimal);
-      
-    if (suffix == "default")
-      suffix = g_app_state.session.settings.unit;
-    
+
+    if (!(typeof val == "number") || val == undefined) return "?";
+
+    if (suffix == undefined) return val.toFixed(max_decimal);
+
+    if (suffix == "default") suffix = g_app_state.session.settings.unit;
+
     suffix = suffix.toLowerCase().trim();
-    
+
     var unit = undefined;
     var units = Unit.units;
-    
-    for (var i=0; i<units.length; i++) {
+
+    for (var i = 0; i < units.length; i++) {
       var u = units[i];
       var sl = u.suffix_list;
-      
-      for (var j=0; j<sl.length; j++) {
+
+      for (var j = 0; j < sl.length; j++) {
         var s = sl[j];
-        
+
         if (s == suffix) {
           unit = u;
           break;
         }
       }
-      
-      if (unit != undefined)
-        break;
+
+      if (unit != undefined) break;
     }
-    
+
     var out;
     /* The original reassigned `val` from number to string here; split into a
        second local so the type stays honest. Behavior is unchanged. */
@@ -243,11 +244,11 @@ export class Unit {
       text = val.toFixed(max_decimal);
       out = text.toString() + Unit.internal_unit;
     }
-    
+
     return out;
   }
 }
-  
+
 Unit.units = [
   new Unit(["cm"], 1.0, 10),
   new Unit(["in", "''", "``", '"'], 2.54, 8),
@@ -255,11 +256,10 @@ Unit.units = [
   new Unit(["m"], 100, 10),
   new Unit(["mm"], 0.1, 10),
   new Unit(["km"], 100000, 10),
-  new Unit(["mile"], 160934.4, 10)
+  new Unit(["mile"], 160934.4, 10),
 ];
 
 Unit.metric_units = ["cm", "m", "mm", "km"];
 Unit.imperial_units = ["in", "ft", "mile"];
 
-Unit.internal_unit = "cm"
-
+Unit.internal_unit = "cm";

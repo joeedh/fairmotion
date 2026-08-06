@@ -1,37 +1,40 @@
-import {FullContext} from "../../core/context.js";
-import {Editor} from '../editor_base.js';
-import {SessionFlags} from "./view2d_editor.js";
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
-import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
-import {IconButton} from '../../path.ux/scripts/widgets/ui_widgets.js';
-import {createMenu, startMenu} from '../../path.ux/scripts/widgets/ui_menu.js';
+import { FullContext } from "../../core/context.js";
+import { Editor } from "../editor_base.js";
+import { SessionFlags } from "./view2d_editor.js";
+import { Area } from "../../path.ux/scripts/screen/ScreenArea.js";
+import { patchMouseEvent, ToolOp, UndoFlags } from "../../core/toolops_api.js";
+import { STRUCT } from "../../core/struct.js";
+import { UIBase } from "../../path.ux/scripts/core/ui_base.js";
+import { IconButton } from "../../path.ux/scripts/widgets/ui_widgets.js";
+import { createMenu, startMenu } from "../../path.ux/scripts/widgets/ui_menu.js";
 
 import * as util from "../../path.ux/scripts/util/util.js";
 
-import {PenToolMode} from './toolmodes/pentool.js';
-import {ImageUser} from '../../core/imageblock.js';
-import {Container} from '../../path.ux/scripts/core/ui.js';
-import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
-import {SelMask, ToolModes} from './selectmode.js';
+import { PenToolMode } from "./toolmodes/pentool.js";
+import { ImageUser } from "../../core/imageblock.js";
+import { Container } from "../../path.ux/scripts/core/ui.js";
+import { PackFlags } from "../../path.ux/scripts/core/ui_base.js";
+import { SelMask, ToolModes } from "./selectmode.js";
 import {
-  ManipulatorManager, Manipulator,
-  HandleShapes, ManipFlags, ManipHandle
-} from './manipulator.js';
-import {KeyMap, HotKey} from '../../core/keymap.js';
-import {CurveRootFinderTest} from './spline_editops.js';
-import * as video from '../../core/video.js';
-import type {Video} from '../../core/video.js';
-import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../../core/lib_api.js';
-import type {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
-import type {ToolMode} from './toolmodes/toolmode.js';
-import type {PatchedEvent} from '../../core/toolops_api.js';
+  ManipulatorManager,
+  Manipulator,
+  HandleShapes,
+  ManipFlags,
+  ManipHandle,
+} from "./manipulator.js";
+import { KeyMap, HotKey } from "../../core/keymap.js";
+import { CurveRootFinderTest } from "./spline_editops.js";
+import * as video from "../../core/video.js";
+import type { Video } from "../../core/video.js";
+import type { DataBlock, GetBlockFunc, GetBlockUserFunc } from "../../core/lib_api.js";
+import type { Menu } from "../../path.ux/scripts/widgets/ui_menu.js";
+import type { ToolMode } from "./toolmodes/toolmode.js";
+import type { PatchedEvent } from "../../core/toolops_api.js";
 
-import {EditModes} from './view2d_editor.js';
+import { EditModes } from "./view2d_editor.js";
 
-export {EditModes} from './view2d_editor.js';
-import './toolmodes/all.js';
+export { EditModes } from "./view2d_editor.js";
+import "./toolmodes/all.js";
 
 let projrets = cachering.fromConstructor(Vector2, 128);
 
@@ -41,20 +44,19 @@ let _v2d_unstatic_temps = cachering.fromConstructor(Vector2, 32);
 function delay_redraw(ms: number) {
   let start_time = time_ms();
   let timer = window.setInterval(function () {
-    if (time_ms() - start_time < ms)
-      return;
+    if (time_ms() - start_time < ms) return;
 
     window.clearInterval(timer);
     window.redraw_viewport();
   }, 20);
 }
 
-import {PanOp} from './view2d_ops.js';
-import {UIOnlyNode, globalDag} from '../../core/eventdag.js';
-import type {EventDag, EventNode, SocketMap} from '../../core/eventdag.js';
-import type {EditorCanvas} from '../editor_base.js';
-import type {View2DEditor} from './view2d_editor.js';
-import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
+import { PanOp } from "./view2d_ops.js";
+import { UIOnlyNode, globalDag } from "../../core/eventdag.js";
+import type { EventDag, EventNode, SocketMap } from "../../core/eventdag.js";
+import type { EditorCanvas } from "../editor_base.js";
+import type { View2DEditor } from "./view2d_editor.js";
+import type { TabContainer } from "../../path.ux/scripts/widgets/ui_tabs.js";
 
 /* project()/unproject() accept any 2d-or-longer coordinate. */
 export type ProjCoord = Vector2 | Vector3 | number[];
@@ -65,13 +67,18 @@ export class drawline {
   v1: Vector2;
   v2: Vector2;
   /* Which _get_dl_group() bucket this line lives in. */
-  group: string
-  width: number
+  group: string;
+  width: number;
   /* Set by make_drawline to the owning view2d's kill_drawline. */
   onremove: ((dl: drawline) => void) | null;
 
-  constructor(co1: Vector2 | number[], co2: Vector2 | number[], group: string,
-              color: number[] | undefined, width: number) {
+  constructor(
+    co1: Vector2 | number[],
+    co2: Vector2 | number[],
+    group: string,
+    color: number[] | undefined,
+    width: number
+  ) {
     this.v1 = new Vector2(co1);
     this.v2 = new Vector2(co2);
     this.group = group;
@@ -98,91 +105,91 @@ export class drawline {
 }
 
 export class View2DHandler extends Editor {
-  enable_blur: boolean
-  draw_small_verts: boolean
-  draw_bg_image!: boolean
-  _can_select: number | boolean
-  _only_render: number
-  _selectmode: number
-  _vel: Vector2
-  _draw_normals: number
-  _last_rendermat: Matrix4
-  _last_dv: Vector2
-  _last_rendermat_time: number
-  irendermat: Matrix4
-  cameramat: Matrix4
-  background_image: ImageUser
+  enable_blur: boolean;
+  draw_small_verts: boolean;
+  draw_bg_image!: boolean;
+  _can_select: number | boolean;
+  _only_render: number;
+  _selectmode: number;
+  _vel: Vector2;
+  _draw_normals: number;
+  _last_rendermat: Matrix4;
+  _last_dv: Vector2;
+  _last_rendermat_time: number;
+  irendermat: Matrix4;
+  cameramat: Matrix4;
+  background_image: ImageUser;
   zoom: number;
   propradius: number;
 
-  static STRUCT: string
-  rendermat: Matrix4
-  need_data_link: boolean
-  widgets: ManipulatorManager
-  dpi_scale: number
-  draw_faces: boolean
-  background_color: Vector3
-  half_pix_size: boolean
-  default_stroke: Vector4
-  default_fill: Vector4
-  default_linewidth: float
-  drawlines: GArray<drawline>
+  static STRUCT: string;
+  rendermat: Matrix4;
+  need_data_link: boolean;
+  widgets: ManipulatorManager;
+  dpi_scale: number;
+  draw_faces: boolean;
+  background_color: Vector3;
+  half_pix_size: boolean;
+  default_stroke: Vector4;
+  default_fill: Vector4;
+  default_linewidth: float;
+  drawlines: GArray<drawline>;
   /* Group name -> that group's lines; make_drawline files into these, and
      `drawlines` above is never actually drawn from. */
-  drawline_groups: {[group: string]: GArray<drawline>}
-  _last_mpos: Vector2
+  drawline_groups: { [group: string]: GArray<drawline> };
+  _last_mpos: Vector2;
   /* The scene's toolmode instance as of the last update(), used to notice a
      switch and rebuild the toolbars. */
-  _last_toolmode: object | undefined
-  glPos: Vector2
-  glSize: Vector2
-  draw_tiled : boolean
+  _last_toolmode: object | undefined;
+  glPos: Vector2;
+  glSize: Vector2;
+  draw_tiled: boolean;
 
   /* The dag node that fires this editor's onDrawPre output. */
-  _graphNode: EventNode
-  draw_stroke_debug: boolean
+  _graphNode: EventNode;
+  draw_stroke_debug: boolean;
   /* Double-buffer parity: which of the fg/fg2, bg/bg2 canvas pairs is live. */
-  _flip: number
+  _flip: number;
   /* A ToolModes value; the scene's toolmode is switched to match it. */
-  toolmode: number
-  _last_dpi: number
+  toolmode: number;
+  _last_dpi: number;
   /* Vestigial: only ever the empty array, but the STRUCT still serializes it
      and `editor` is stored as an index into it. */
-  editors: View2DEditor[]
+  editors: View2DEditor[];
   /* eids of the verts whose animation paths stay drawn regardless of
      selection, or undefined when nothing is pinned. */
-  pinned_paths: number[] | undefined
-  _i!: number
+  pinned_paths: number[] | undefined;
+  _i!: number;
   /* Whichever of fg/fg2 get_fg_canvas() last handed out. */
-  drawcanvas!: EditorCanvas
+  drawcanvas!: EditorCanvas;
   /* 2d context of the current foreground canvas. */
-  drawg!: Canvas2D
+  drawg!: Canvas2D;
   /* Set while a tiled draw is still resolving, to drop re-entrant redraws. */
-  _draw_promise: Promise<unknown> | undefined
+  _draw_promise: Promise<unknown> | undefined;
   /* The recorded video, once draw_video pulls it in. */
-  video!: Video | undefined
-  _makingToolBars!: boolean
-  sidebar!: TabContainer<FullContext>
+  video!: Video | undefined;
+  _makingToolBars!: boolean;
+  sidebar!: TabContainer<FullContext>;
   /* Mouse position in view space, as of the last on_mousemove. */
-  mpos!: Vector3
+  mpos!: Vector3;
   /* Where the current left-drag started, or null when no drag is live. */
-  _mstart!: Vector2 | null
+  _mstart!: Vector2 | null;
   /* Concatenation of the draw-affecting toggles, to notice a change. */
-  _last_key_1!: string
-  draw_video!: boolean
-  video_time!: number
+  _last_key_1!: string;
+  draw_video!: boolean;
+  video_time!: number;
   /* NOTE: nothing ever assigns this, so the middle-click pan test in
      on_mousedown always reads undefined. */
-  declare shift: boolean
-  startup_time!: number
+  declare shift: boolean;
+  startup_time!: number;
   /* SessionFlags bitmask. */
-  session_flag!: number
-  tweak_mode!: number
-  extrude_mode!: number
+  session_flag!: number;
+  tweak_mode!: number;
+  extrude_mode!: number;
   /* Set by the draw_normals/draw_anim_paths/only_render setters and never
      read; the redraw it is meant to request never happens. */
-  draw_viewport!: number
-  _draw_anim_paths!: boolean
+  draw_viewport!: number;
+  _draw_anim_paths!: boolean;
   /* Suppresses the set_cameramat side effects while loadSTRUCT runs. */
   _in_from_struct!: boolean;
 
@@ -278,9 +285,9 @@ export class View2DHandler extends Editor {
       inputs: {},
 
       outputs: {
-        onDrawPre: undefined
-      }
-    }
+        onDrawPre: undefined,
+      },
+    };
   }
 
   dag_exec(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
@@ -322,56 +329,87 @@ export class View2DHandler extends Editor {
 
     let this2 = this;
     //cycle through select modes
-    k.add(new HotKey("T", [], function (ctx: FullContext) {
-      let s = ctx.view2d.selectmode, s2 = 0;
+    k.add(
+      new HotKey(
+        "T",
+        [],
+        function (ctx: FullContext) {
+          let s = ctx.view2d.selectmode,
+            s2 = 0;
 
-      let hf = s & SelMask.HANDLE;
-      /* NOTE: s2 was undefined here originally, and the if/else below
+          let hf = s & SelMask.HANDLE;
+          /* NOTE: s2 was undefined here originally, and the if/else below
          overwrites it anyway, so this line does nothing either way. */
-      s2 &= ~SelMask.HANDLE;
+          s2 &= ~SelMask.HANDLE;
 
-      if (s === SelMask.VERTEX)
-        s2 = SelMask.SEGMENT;
-      else if (s === SelMask.SEGMENT)
-        s2 = SelMask.FACE;
-      else if (s === SelMask.FACE)
-        s2 = SelMask.OBJECT;
-      else
-        s2 = SelMask.VERTEX;
+          if (s === SelMask.VERTEX) s2 = SelMask.SEGMENT;
+          else if (s === SelMask.SEGMENT) s2 = SelMask.FACE;
+          else if (s === SelMask.FACE) s2 = SelMask.OBJECT;
+          else s2 = SelMask.VERTEX;
 
-      s2 |= hf;
+          s2 |= hf;
 
-      console.log("toggle select mode", s, s2, SelMask.SEGMENT, SelMask.FACE);
-      console.log(s === SelMask.VERTEX, s === (SelMask.VERTEX | SelMask.HANDLE), (s === SelMask.SEGMENT));
-      ctx.view2d.set_selectmode(s2);
-    }, "Cycle Select Mode"));
+          console.log("toggle select mode", s, s2, SelMask.SEGMENT, SelMask.FACE);
+          console.log(
+            s === SelMask.VERTEX,
+            s === (SelMask.VERTEX | SelMask.HANDLE),
+            s === SelMask.SEGMENT
+          );
+          ctx.view2d.set_selectmode(s2);
+        },
+        "Cycle Select Mode"
+      )
+    );
 
-    k.add(new HotKey("O", [], function (ctx: FullContext) {
-      console.log("toggling proportional transform");
-      ctx.view2d.session_flag ^= SessionFlags.PROP_TRANSFORM;
-    }, "Toggle Proportional Transform"));
+    k.add(
+      new HotKey(
+        "O",
+        [],
+        function (ctx: FullContext) {
+          console.log("toggling proportional transform");
+          ctx.view2d.session_flag ^= SessionFlags.PROP_TRANSFORM;
+        },
+        "Toggle Proportional Transform"
+      )
+    );
 
-    k.add(new HotKey("K", [], function (ctx: FullContext) {
-      /* NOTE: CurveRootFinderTest was not imported in this module, so this
+    k.add(
+      new HotKey("K", [], function (ctx: FullContext) {
+        /* NOTE: CurveRootFinderTest was not imported in this module, so this
          hotkey used to throw ReferenceError; the import is now present. */
-      g_app_state.toolstack.execTool(ctx, new CurveRootFinderTest());
-    }));
+        g_app_state.toolstack.execTool(ctx, new CurveRootFinderTest());
+      })
+    );
 
-    k.add(new HotKey("Right", [], function (ctx: FullContext) {
-      console.log("Frame Change!", ctx.scene.time + 1);
-      ctx.scene.change_time(ctx, ctx.scene.time + 1);
+    k.add(
+      new HotKey(
+        "Right",
+        [],
+        function (ctx: FullContext) {
+          console.log("Frame Change!", ctx.scene.time + 1);
+          ctx.scene.change_time(ctx, ctx.scene.time + 1);
 
-      window.redraw_viewport();
-      //let tool = new FrameChangeOp(ctx.scene.time+1);
-    }, "Next Frame"));
+          window.redraw_viewport();
+          //let tool = new FrameChangeOp(ctx.scene.time+1);
+        },
+        "Next Frame"
+      )
+    );
 
-    k.add(new HotKey("Left", [], function (ctx: FullContext) {
-      console.log("Frame Change!", ctx.scene.time - 1);
-      ctx.scene.change_time(ctx, ctx.scene.time - 1);
+    k.add(
+      new HotKey(
+        "Left",
+        [],
+        function (ctx: FullContext) {
+          console.log("Frame Change!", ctx.scene.time - 1);
+          ctx.scene.change_time(ctx, ctx.scene.time - 1);
 
-      window.redraw_viewport();
-      //let tool = new FrameChangeOp(ctx.scene.time-1);
-    }, "Previous Frame"));
+          window.redraw_viewport();
+          //let tool = new FrameChangeOp(ctx.scene.time-1);
+        },
+        "Previous Frame"
+      )
+    );
 
     /*k.add(new HotKey("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
       console.log("Toggling frame debug")
@@ -379,29 +417,43 @@ export class View2DHandler extends Editor {
       test_nested_with();
     }));*/
 
-    k.add(new HotKey("Up", [], function (ctx: FullContext) {
-      //flip_max++;
+    k.add(
+      new HotKey(
+        "Up",
+        [],
+        function (ctx: FullContext) {
+          //flip_max++;
 
-      window.debug_int_1++;
+          window.debug_int_1++;
 
-      ctx.scene.change_time(ctx, ctx.scene.time + 10);
+          ctx.scene.change_time(ctx, ctx.scene.time + 10);
 
-      window.force_viewport_redraw();
-      window.redraw_viewport();
-      console.log("debug_int_1: ", debug_int_1);
-    }, "Frame Ahead 10"));
-    k.add(new HotKey("Down", [], function (ctx: FullContext) {
-      //flip_max--;
+          window.force_viewport_redraw();
+          window.redraw_viewport();
+          console.log("debug_int_1: ", debug_int_1);
+        },
+        "Frame Ahead 10"
+      )
+    );
+    k.add(
+      new HotKey(
+        "Down",
+        [],
+        function (ctx: FullContext) {
+          //flip_max--;
 
-      window.debug_int_1--;
-      window.debug_int_1 = Math.max(0, debug_int_1);
+          window.debug_int_1--;
+          window.debug_int_1 = Math.max(0, debug_int_1);
 
-      ctx.scene.change_time(ctx, ctx.scene.time - 10);
+          ctx.scene.change_time(ctx, ctx.scene.time - 10);
 
-      window.force_viewport_redraw();
-      window.redraw_viewport();
-      console.log("debug_int_1: ", debug_int_1);
-    }, "Frame Back 10"));
+          window.force_viewport_redraw();
+          window.redraw_viewport();
+          console.log("debug_int_1: ", debug_int_1);
+        },
+        "Frame Back 10"
+      )
+    );
   }
 
   init() {
@@ -438,10 +490,10 @@ export class View2DHandler extends Editor {
     let dt = -e.deltaY;
 
     let eps = 0.05;
-    dt = Math.min(Math.max(dt*0.05, -eps), eps);
+    dt = Math.min(Math.max(dt * 0.05, -eps), eps);
 
     let scale = 1.0 + dt;
-    this.set_zoom(this.zoom*scale);
+    this.set_zoom(this.zoom * scale);
     window.redraw_viewport();
   }
 
@@ -455,8 +507,7 @@ export class View2DHandler extends Editor {
     return e2;
   }
 
-  data_link(block: DataBlock | Editor, getblock: GetBlockFunc,
-            getblock_us: GetBlockUserFunc) {
+  data_link(block: DataBlock | Editor, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     this.ctx = new Context();
     this.need_data_link = false;
 
@@ -464,14 +515,15 @@ export class View2DHandler extends Editor {
   }
 
   set_cameramat(mat?: Matrix4) {
-    let cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
+    let cam = this.cameramat,
+      render = this.rendermat,
+      zoom = new Matrix4();
 
-    if (mat !== undefined)
-      cam.load(mat);
+    if (mat !== undefined) cam.load(mat);
 
-    zoom.translate(this.size[0]/2, this.size[1]/2, 0);
+    zoom.translate(this.size[0] / 2, this.size[1] / 2, 0);
     zoom.scale(this.zoom, this.zoom, this.zoom);
-    zoom.translate(-this.size[0]/2, -this.size[1]/2, 0);
+    zoom.translate(-this.size[0] / 2, -this.size[1] / 2, 0);
 
     render.makeIdentity();
 
@@ -504,7 +556,7 @@ export class View2DHandler extends Editor {
     _co.multVecMatrix(this.rendermat);
     //_co.mulScalar(1.0/this.dpi_scale);
 
-    co[0] = _co[0]!, co[1] = _co[1]!;
+    (co[0] = _co[0]!), (co[1] = _co[1]!);
 
     return co;
   }
@@ -517,7 +569,7 @@ export class View2DHandler extends Editor {
     _co.multVecMatrix(this.irendermat);
     //_co.mulScalar(this.dpi_scale);
 
-    co[0] = _co[0]!, co[1] = _co[1]!;
+    (co[0] = _co[0]!), (co[1] = _co[1]!);
     return co;
   }
 
@@ -530,15 +582,15 @@ export class View2DHandler extends Editor {
 
     if (rect === undefined) {
       console.warn("error in getLocalMouse");
-      ret[0] = x*dpi;
-      ret[1] = y*dpi;
+      ret[0] = x * dpi;
+      ret[1] = y * dpi;
       return ret;
     }
 
     //console.log(x, rect.left);
 
-    ret[0] = (x - rect.left)*dpi;
-    ret[1] = (rect.height - (y - rect.top))*dpi;
+    ret[0] = (x - rect.left) * dpi;
+    ret[1] = (rect.height - (y - rect.top)) * dpi;
     //ret[2] = 0.0;
 
     return ret;
@@ -595,7 +647,7 @@ export class View2DHandler extends Editor {
 
   drawWebgl(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
     if (!gl) {
-      return
+      return;
     }
     let dpi = window.devicePixelRatio;
 
@@ -603,7 +655,7 @@ export class View2DHandler extends Editor {
     this.glSize.load(this.size).mulScalar(dpi).floor();
 
     let y = this.glPos[1];
-    this.glPos[1] = (canvas.height - (y + this.glSize[1]));
+    this.glPos[1] = canvas.height - (y + this.glSize[1]);
 
     gl.enable(gl.SCISSOR_TEST);
     gl.disable(gl.DEPTH_TEST);
@@ -643,8 +695,7 @@ export class View2DHandler extends Editor {
       bgcanvas = this.get_bg_canvas(this._flip ^ 1);
     }
 
-
-    let g = this.drawg = canvas.g;
+    let g = (this.drawg = canvas.g);
     let bg_g = bgcanvas.g;
 
     if (bgcanvas !== undefined) {
@@ -706,7 +757,6 @@ export class View2DHandler extends Editor {
       return;
     }
 
-
     if (this.draw_video && this.video !== undefined) {
       let frame = Math.floor(this.video_time);
       let image = this.video.get(frame);
@@ -732,12 +782,13 @@ export class View2DHandler extends Editor {
       scale[0] *= m.m11;
       scale[1] *= m.m22;
 
-      g.drawImage(img, off[0], off[1], img.width*scale[0], img.height*scale[1]);
+      g.drawImage(img, off[0], off[1], img.width * scale[0], img.height * scale[1]);
     }
 
     let promise: Promise<unknown>;
 
-    if (this.draw_tiled) { //bad tiling method!
+    if (this.draw_tiled) {
+      //bad tiling method!
       promise = new Promise<void>((accept, reject) => {
         let tot = 0;
 
@@ -750,12 +801,11 @@ export class View2DHandler extends Editor {
             let matrix2 = new Matrix4(matrix);
             tot++;
 
-            matrix2.translate(tileoff*ix, tileoff*iy, 0.0);
+            matrix2.translate(tileoff * ix, tileoff * iy, 0.0);
 
             queue.push(matrix2);
           }
         }
-
 
         let next = () => {
           this.flip_canvases();
@@ -771,7 +821,7 @@ export class View2DHandler extends Editor {
               this.ctx.frameset.draw(this.ctx, g, this, matrix2, redraw_rects, this.edit_all_layers)
             ).then(next);
           }
-        }
+        };
 
         next();
       });
@@ -818,7 +868,19 @@ export class View2DHandler extends Editor {
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha!, true, this.ctx.frameset.time, false);
+        pathspline.draw(
+          redraw_rects,
+          g,
+          this,
+          matrix,
+          this.selectmode,
+          this.only_render,
+          this.draw_normals,
+          alpha!,
+          true,
+          this.ctx.frameset.time,
+          false
+        );
       }
     } else {
       if (pathspline.resolve) {
@@ -836,10 +898,19 @@ export class View2DHandler extends Editor {
       for (let dl of this.drawline_groups[k]) {
         let a = dl.clr[3] !== undefined ? dl.clr[3] : 1.0;
 
-        g.strokeStyle = "rgba(" + fl(dl.clr[0]*255) + "," + fl(dl.clr[1]*255) + "," + fl(dl.clr[2]*255) + "," + a + ")";
+        g.strokeStyle =
+          "rgba(" +
+          fl(dl.clr[0] * 255) +
+          "," +
+          fl(dl.clr[1] * 255) +
+          "," +
+          fl(dl.clr[2] * 255) +
+          "," +
+          a +
+          ")";
         g.lineWidth = dl.width;
 
-        g.beginPath()
+        g.beginPath();
         g.moveTo(dl.v1[0], canvas.height - dl.v1[1]);
         g.lineTo(dl.v2[0], canvas.height - dl.v2[1]);
         g.stroke();
@@ -885,7 +956,8 @@ export class View2DHandler extends Editor {
     bg.hidden = false;
   }
 
-  get_fg_canvas(flip: number = this._flip) { //XXX todo: get rid of this.drawcanvas.
+  get_fg_canvas(flip: number = this._flip) {
+    //XXX todo: get rid of this.drawcanvas.
     if (flip) {
       this.drawcanvas = this.getCanvas("fg2", -2, undefined, this.dpi_scale);
     } else {
@@ -933,23 +1005,21 @@ export class View2DHandler extends Editor {
 
     this._makingToolBars = true; //prevent infinite recursion
 
-    let row = this.container;//.row();
+    let row = this.container; //.row();
 
     if (this.sidebar) {
       this.sidebar.remove();
     }
 
-    let tabs = this.sidebar = row.tabs("right");
+    let tabs = (this.sidebar = row.tabs("right"));
 
     //tabs.style["width"] = "300px";
     tabs.style["height"] = "400px";
-    tabs.float(1, 3*25*UIBase.getDPI(), 7);
+    tabs.float(1, 3 * 25 * UIBase.getDPI(), 7);
 
     let tools = tabs.tab("Tools", "Tools");
     //*
-    tools.prop("view2d.toolmode",
-      PackFlags.USE_ICONS | PackFlags.VERTICAL | PackFlags.LARGE_ICON
-    );
+    tools.prop("view2d.toolmode", PackFlags.USE_ICONS | PackFlags.VERTICAL | PackFlags.LARGE_ICON);
     //*/
 
     tools.iconbutton(Icons.UNDO, "  Hotkey : CTRL-Z", () => {
@@ -962,14 +1032,16 @@ export class View2DHandler extends Editor {
       delay_redraw(50); //stupid hack to deal with async spline solve
     });
 
-
     /* No selectmode arg: it was never an input, only something
        SelectOpBase.invoke() read out of args, and path.ux's parseArgs() now
        rejects names with no matching input. Omitting it takes the same
        invoke() branch, which reads ctx.selectmode. */
     /* Container.tool() returns undefined when the toolpath does not resolve,
        and only the icon-button flavor carries an `icon`. */
-    let tool = tools.tool("view2d.circle_select(mode='SELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
+    let tool = tools.tool(
+      "view2d.circle_select(mode='SELECT')",
+      PackFlags.LARGE_ICON | PackFlags.USE_ICONS
+    );
     if (tool instanceof IconButton) {
       tool.icon = Icons.CIRCLE_SEL_ADD;
     }
@@ -977,7 +1049,10 @@ export class View2DHandler extends Editor {
       tool.description = "Select control points in a circle";
     }
 
-    tool = tools.tool("view2d.circle_select(mode='DESELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
+    tool = tools.tool(
+      "view2d.circle_select(mode='DESELECT')",
+      PackFlags.LARGE_ICON | PackFlags.USE_ICONS
+    );
     if (tool instanceof IconButton) {
       tool.icon = Icons.CIRCLE_SEL_SUB;
     }
@@ -1047,8 +1122,16 @@ export class View2DHandler extends Editor {
     strip.useDataPathUndo = true;
 
     let mass_set_path = "spline.selected_verts[{$.flag & 1}]";
-    strip.prop("spline.verts.active.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
-    strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
+    strip.prop(
+      "spline.verts.active.flag[BREAK_TANGENTS]",
+      undefined,
+      mass_set_path + ".flag[BREAK_TANGENTS]"
+    );
+    strip.prop(
+      "spline.verts.active.flag[BREAK_CURVATURES]",
+      undefined,
+      mass_set_path + ".flag[BREAK_CURVATURES]"
+    );
     strip.prop("view2d.half_pix_size");
     strip.prop("view2d.draw_stroke_debug");
     strip.prop("view2d.draw_tiled");
@@ -1068,8 +1151,8 @@ export class View2DHandler extends Editor {
       areaname: "view2d_editor",
       uiname  : "Work Canvas",
       icon    : Icons.VIEW2D_EDITOR,
-      hasWebgl: true
-    }
+      hasWebgl: true,
+    };
   }
 
   static newSTRUCT() {
@@ -1205,8 +1288,7 @@ export class View2DHandler extends Editor {
   }
 
   _get_dl_group(group?: string) {
-    if (group === undefined)
-      group = "main";
+    if (group === undefined) group = "main";
 
     if (!(group in this.drawline_groups)) {
       this.drawline_groups[group] = new GArray();
@@ -1215,8 +1297,13 @@ export class View2DHandler extends Editor {
     return this.drawline_groups[group];
   }
 
-  make_drawline(v1: Vector2 | number[], v2: Vector2 | number[], group = "main",
-                color?: number[], width = 2) {
+  make_drawline(
+    v1: Vector2 | number[],
+    v2: Vector2 | number[],
+    group = "main",
+    color?: number[],
+    width = 2
+  ) {
     let drawlines = this._get_dl_group(group);
 
     let dl = new drawline(v1, v2, group, color, width);
@@ -1224,7 +1311,8 @@ export class View2DHandler extends Editor {
 
     dl.onremove = this.kill_drawline.bind(this);
 
-    let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
+    let min = _v2d_unstatic_temps.next(),
+      max = _v2d_unstatic_temps.next();
 
     let pad = 5;
 
@@ -1239,12 +1327,14 @@ export class View2DHandler extends Editor {
   }
 
   kill_drawline(dl: drawline) {
-    let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
+    let min = _v2d_unstatic_temps.next(),
+      max = _v2d_unstatic_temps.next();
 
     let drawlines = this._get_dl_group(dl.group);
     let pad = 5;
 
-    let v1 = dl.v1, v2 = dl.v2;
+    let v1 = dl.v1,
+      v2 = dl.v2;
 
     min[0] = Math.min(v1[0], v2[0]) - pad;
     min[1] = Math.min(v1[1], v2[1]) - pad;
@@ -1295,8 +1385,12 @@ export class View2DHandler extends Editor {
     this._can_select = !!val;
   }
 
-  do_select(event: MouseEvent, mpos: Vector3 | number[],
-            view2d: View2DHandler, do_multiple = false) {
+  do_select(
+    event: MouseEvent,
+    mpos: Vector3 | number[],
+    view2d: View2DHandler,
+    do_multiple = false
+  ) {
     return this.editor.do_select(event, mpos, view2d, do_multiple);
   }
 
@@ -1323,7 +1417,7 @@ export class View2DHandler extends Editor {
       shiftKey  : event.shiftKey,
       ctrlKey   : event.ctrlKey,
       altKey    : event.altKey,
-      commandKey: event.commandKey
+      commandKey: event.commandKey,
     };
 
     return event2;
@@ -1351,8 +1445,11 @@ export class View2DHandler extends Editor {
       ev.button = 2;
     }
 
-    if (ev.button !== 1 && ev.button !== 2 &&
-      this.widgets.on_click(this._widget_mouseevent(ev), this)) {
+    if (
+      ev.button !== 1 &&
+      ev.button !== 2 &&
+      this.widgets.on_click(this._widget_mouseevent(ev), this)
+    ) {
       return;
     }
 
@@ -1383,7 +1480,12 @@ export class View2DHandler extends Editor {
       }
     }
 
-    if (ev.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
+    if (
+      ev.button === 2 &&
+      !g_app_state.screen.shift &&
+      !g_app_state.screen.ctrl &&
+      !g_app_state.screen.alt
+    ) {
       let tool = new PanOp();
 
       this.ctx.api.execTool(this.ctx, tool);
@@ -1392,7 +1494,13 @@ export class View2DHandler extends Editor {
   }
 
   on_mouseup(event: PointerEvent) {
-    console.warn("View3d mouseup", event.x, event.y, this.ctx.screen.pickElement(event.x, event.y), event);
+    console.warn(
+      "View3d mouseup",
+      event.x,
+      event.y,
+      this.ctx.screen.pickElement(event.x, event.y),
+      event
+    );
 
     this._mstart = null;
 
@@ -1420,7 +1528,7 @@ export class View2DHandler extends Editor {
 
     //console.log(ev.x, ev.y);
 
-    let mpos = new Vector3([ev.x, ev.y, 0])
+    let mpos = new Vector3([ev.x, ev.y, 0]);
     this.mpos = mpos;
 
     /* NOTE: a local switch_on_multitouch() lived here.  It was dead and
@@ -1494,9 +1602,7 @@ export class View2DHandler extends Editor {
     window.redraw_viewport();
   }
 
-  change_zoom(delta: number) {
-
-  }
+  change_zoom(delta: number) {}
 
   updateDPI() {
     if (this._last_dpi !== UIBase.getDPI()) {
@@ -1514,8 +1620,7 @@ export class View2DHandler extends Editor {
   }
 
   set edit_all_layers(v: boolean) {
-    if (this.ctx && this.ctx.scene)
-      this.ctx.scene.edit_all_layers = v;
+    if (this.ctx && this.ctx.scene) this.ctx.scene.edit_all_layers = v;
   }
 
   updateVelPan() {
@@ -1535,7 +1640,6 @@ export class View2DHandler extends Editor {
 
     let dv = new Vector2(pos2).sub(pos1);
 
-
     /* NOTE: time_ms is not called, so `time` is NaN.  Nothing reads it. */
     let time = Number(util.time_ms) - this._last_rendermat_time;
 
@@ -1543,7 +1647,7 @@ export class View2DHandler extends Editor {
     this._last_rendermat_time = util.time_ms();
 
     //dv.divScalar(time);
-    let acc = new Vector2(dv).sub(this._last_dv);//.divScalar(time/1000.0);
+    let acc = new Vector2(dv).sub(this._last_dv); //.divScalar(time/1000.0);
 
     //this._vel.addFac(acc, 1.0/this.zoom);
     this._vel.interp(dv, 0.25);
@@ -1583,7 +1687,6 @@ export class View2DHandler extends Editor {
       this.regen_keymap();
     }
 
-
     if (this._last_toolmode !== scene.toolmode) {
       this.makeToolbars();
     }
@@ -1601,7 +1704,21 @@ export class View2DHandler extends Editor {
     this.updateToolMode();
     this.updateVelPan();
 
-    let key = "" + this.half_pix_size + ":" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;
+    let key =
+      "" +
+      this.half_pix_size +
+      ":" +
+      this.enable_blur +
+      ":" +
+      this.only_render +
+      ":" +
+      this.draw_faces +
+      ":" +
+      this.edit_all_layers +
+      ":" +
+      this.draw_normals +
+      ":" +
+      this.draw_small_verts;
 
     if (key !== this._last_key_1) {
       this._last_key_1 = key;
@@ -1616,7 +1733,6 @@ export class View2DHandler extends Editor {
     super.update();
     this.updateDPI();
 
-
     this.widgets.on_tick(this.ctx);
     this.editor.on_tick(this.ctx);
 
@@ -1625,7 +1741,7 @@ export class View2DHandler extends Editor {
     //wait 3 seconds before loading video
     /* NOTE: startup_time is never assigned, so the elapsed-time guard is
        NaN > 300 -- always false, and this block never runs. */
-    if (this.draw_video && (time_ms() - this.startup_time) > 300) {
+    if (this.draw_video && time_ms() - this.startup_time > 300) {
       this.video = video.manager.get("/video.mp4");
 
       if (this.video_time !== this.ctx.scene.time) {
@@ -1635,11 +1751,12 @@ export class View2DHandler extends Editor {
     }
   }
 
-  on_view_change() {
-  }
+  on_view_change() {}
 }
 
-View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
+View2DHandler.STRUCT =
+  STRUCT.inherit(View2DHandler, Area) +
+  `
   _id               : int;
   _selectmode       : int;
   propradius        : float;

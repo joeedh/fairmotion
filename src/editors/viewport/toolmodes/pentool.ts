@@ -3,50 +3,58 @@
 //import {FullContext} from "../../../core/context.js";
 
 import {
-  SplineTypes, SplineFlags, SplineVertex,
-  SplineSegment, SplineFace
-} from '../../../curve/spline_types.js';
+  SplineTypes,
+  SplineFlags,
+  SplineVertex,
+  SplineSegment,
+  SplineFace,
+} from "../../../curve/spline_types.js";
 
-import {ToolOp, ToolMacro} from '../../../core/toolops_api.js';
-import {KeyMap, HotKey} from '../../../core/keymap.js';
+import { ToolOp, ToolMacro } from "../../../core/toolops_api.js";
+import { KeyMap, HotKey } from "../../../core/keymap.js";
 
 import * as util from "../../../path.ux/scripts/util/util.js";
 
 //import {KeyMap} from "../../../path.ux/scripts/util/simple_events.js";
-import {ToolMode} from "./toolmode.js";
-import type {ToolModeHit} from "./toolmode.js";
-import {nstructjs} from "../../../path.ux/scripts/pathux.js";
+import { ToolMode } from "./toolmode.js";
+import type { ToolModeHit } from "./toolmode.js";
+import { nstructjs } from "../../../path.ux/scripts/pathux.js";
 
 import {
-  ListProperty, Vec3Property, Vec4Property, BoolProperty,
-  IntProperty, FloatProperty, StringProperty
+  ListProperty,
+  Vec3Property,
+  Vec4Property,
+  BoolProperty,
+  IntProperty,
+  FloatProperty,
+  StringProperty,
 } from "../../../path.ux/scripts/pathux.js";
-import type {FullContext} from "../../../core/context.js";
-import type {View2DHandler} from "../view2d.js";
-import type {Spline} from "../../../curve/spline.js";
-import type {Scene} from "../../../scene/scene.js";
-import type {GetBlockFunc, GetBlockUserFunc} from "../../../core/lib_api.js";
-import type {Container} from "../../../path.ux/scripts/core/ui.js";
-import type {DataAPI} from "../../../path.ux/scripts/path-controller/controller/controller.js";
+import type { FullContext } from "../../../core/context.js";
+import type { View2DHandler } from "../view2d.js";
+import type { Spline } from "../../../curve/spline.js";
+import type { Scene } from "../../../scene/scene.js";
+import type { GetBlockFunc, GetBlockUserFunc } from "../../../core/lib_api.js";
+import type { Container } from "../../../path.ux/scripts/core/ui.js";
+import type { DataAPI } from "../../../path.ux/scripts/path-controller/controller/controller.js";
 
-window.anim_to_playback = Object.assign([], {filesize: 0});
+window.anim_to_playback = Object.assign([], { filesize: 0 });
 
 export class StrokeOp extends ToolOp<{
-  points      : ListProperty<Vec3Property>,
-  lineWidth   : FloatProperty,
-  strokeColor : Vec4Property,
-  limit       : FloatProperty,
-  mouseX      : FloatProperty,
-  mouseY      : FloatProperty,
+  points: ListProperty<Vec3Property>;
+  lineWidth: FloatProperty;
+  strokeColor: Vec4Property;
+  limit: FloatProperty;
+  mouseX: FloatProperty;
+  mouseY: FloatProperty;
 }> {
   /* True until the first point of the stroke has been placed. */
-  _first : boolean;
-  startMpos : Vector2;
-  lastMpos : Vector2;
+  _first: boolean;
+  startMpos: Vector2;
+  lastMpos: Vector2;
   /* Index into inputs.points that exec() should resume from. */
-  _start : number;
-  _verts : SplineVertex[];
-  declare _undo : {start_eid : number};
+  _start: number;
+  _verts: SplineVertex[];
+  declare _undo: { start_eid: number };
 
   constructor() {
     super();
@@ -63,7 +71,7 @@ export class StrokeOp extends ToolOp<{
 
     let touches = new Map();
 
-    this.on_pointermove = (e : PointerEvent) => {
+    this.on_pointermove = (e: PointerEvent) => {
       console.log(e, e.pointerType, e.pointerId, touches.size);
 
       if (e.pointerType == "touch") {
@@ -81,14 +89,14 @@ export class StrokeOp extends ToolOp<{
       } else {
         on_pointermove.call(this, e);
       }
-    }
+    };
   }
 
   static tooldef() {
     return {
       uiname  : "Add Stroke",
       toolpath: "pen.stroke",
-      inputs  : {
+      inputs: {
         points     : new ListProperty(Vec3Property),
         lineWidth  : new FloatProperty(),
         strokeColor: new Vec4Property([0, 0, 0, 1]),
@@ -96,19 +104,18 @@ export class StrokeOp extends ToolOp<{
         mouseX     : new FloatProperty(-1).private(),
         mouseY     : new FloatProperty(-1).private(),
       },
-      is_modal: true
-    }
+      is_modal: true,
+    };
   }
 
-
-  on_pointerdown(e : PointerEvent) {
+  on_pointerdown(e: PointerEvent) {
     console.log("pointer down", e);
   }
 
-  on_pointermove(e : PointerEvent) {
+  on_pointermove(e: PointerEvent) {
     //console.warn("pointer move");
 
-    let {limit, lineWidth, strokeColor, mouseX, mouseY} = this.getInputs();
+    let { limit, lineWidth, strokeColor, mouseX, mouseY } = this.getInputs();
     if (mouseX >= 0) {
       this.startMpos[0] = mouseX;
       this.startMpos[1] = mouseY;
@@ -116,10 +123,10 @@ export class StrokeOp extends ToolOp<{
       this._first = false;
     }
 
-    let appendPoint = (v : SplineVertex) => {
+    let appendPoint = (v: SplineVertex) => {
       this.inputs.points.push(new Vector3([v[0], v[1], lineWidth]));
       spline.verts.active = v;
-    }
+    };
 
     let ctx = this.modal_ctx;
     let view2d = ctx.view2d;
@@ -158,9 +165,13 @@ export class StrokeOp extends ToolOp<{
     }
   }
 
-  onPointCreate(spline : Spline, newv : SplineVertex,
-                lastv : SplineVertex | undefined, lineWidth : number,
-                strokeColor : Vector4) {
+  onPointCreate(
+    spline: Spline,
+    newv: SplineVertex,
+    lastv: SplineVertex | undefined,
+    lineWidth: number,
+    strokeColor: Vector4
+  ) {
     if (lastv) {
       let s = spline.make_segment(lastv, newv);
 
@@ -197,7 +208,7 @@ export class StrokeOp extends ToolOp<{
       n1.normalize();
       n2.normalize();
 
-      bad = bad || Math.acos(n1.dot(n2)) < Math.PI*0.25;
+      bad = bad || Math.acos(n1.dot(n2)) < Math.PI * 0.25;
 
       if (bad) {
         //lastv.flag |= SplineFlags.BREAK_CURVATURES;
@@ -206,7 +217,7 @@ export class StrokeOp extends ToolOp<{
     }
   }
 
-  _splineUpdate(ctx : FullContext) {
+  _splineUpdate(ctx: FullContext) {
     let spline = ctx.frameset.spline;
     spline.regen_sort();
     spline.regen_solve();
@@ -215,24 +226,23 @@ export class StrokeOp extends ToolOp<{
     window.redraw_viewport();
   }
 
-  on_pointerup(e : PointerEvent) {
+  on_pointerup(e: PointerEvent) {
     this.finish(this.modal_ctx);
   }
 
-  finish(ctx : FullContext) {
+  finish(ctx: FullContext) {
     this.modalEnd(false);
   }
 
-  cancel(ctx : FullContext) {
+  cancel(ctx: FullContext) {
     this.modalEnd(true);
   }
-
 
   exec(ctx: FullContext) {
     let spline = ctx.frameset.spline;
     let lastv;
 
-    let {lineWidth, strokeColor} = this.getInputs();
+    let { lineWidth, strokeColor } = this.getInputs();
 
     for (let p of this.inputs.points) {
       let newv = spline.make_vertex(p);
@@ -267,7 +277,9 @@ export class StrokeOp extends ToolOp<{
     for (let i = this._start; i < arr.length; i++) {
       let v = arr[i].getValue();
 
-      let x = v[0], y = v[1], p = v[2];
+      let x = v[0],
+        y = v[1],
+        p = v[2];
 
       let v2 = spline.make_vertex(v);
       if (lastv) {
@@ -303,7 +315,7 @@ export class StrokeOp extends ToolOp<{
         n1.normalize();
         n2.normalize();
 
-        bad = bad || Math.acos(n1.dot(n2)) < Math.PI*0.25;
+        bad = bad || Math.acos(n1.dot(n2)) < Math.PI * 0.25;
 
         if (bad) {
           //lastv.flag |= SplineFlags.BREAK_CURVATURES;
@@ -323,22 +335,22 @@ export class StrokeOp extends ToolOp<{
     spline.checkSolve();
   }
 
-  undoPre(ctx : FullContext) {
+  undoPre(ctx: FullContext) {
     return this.undo_pre(ctx);
   }
 
-  undo_pre(ctx : FullContext) {
+  undo_pre(ctx: FullContext) {
     this._start = 0;
     this._verts = [];
 
     let spline = ctx.frameset.spline;
 
     this._undo = {
-      start_eid: spline.idgen.cur_id
-    }
+      start_eid: spline.idgen.cur_id,
+    };
   }
 
-  undo(ctx : FullContext) {
+  undo(ctx: FullContext) {
     this._start = 0;
     this._verts = [];
 
@@ -363,24 +375,24 @@ export class StrokeOp extends ToolOp<{
 }
 
 export class PenToolMode extends ToolMode {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  mpos: Vector2
-  last_mpos: Vector2
-  start_mpos: Vector2
+  mpos: Vector2;
+  last_mpos: Vector2;
+  start_mpos: Vector2;
   mdown: boolean;
 
   /* Minimum screen distance between stroke points, in px. */
-  limit : number;
+  limit: number;
   /* Points placed so far in the current stroke. */
-  stroke : Vector3[];
-  smoothness : number;
+  stroke: Vector3[];
+  smoothness: number;
   /* The StrokeOp currently on the toolstack head. */
-  tool! : StrokeOp;
+  tool!: StrokeOp;
   /* View2DHandler hands the mode its context before it goes active; every
      method below runs after that. */
-  declare ctx : FullContext;
-  highlight_spline : Spline | undefined;
+  declare ctx: FullContext;
+  highlight_spline: Spline | undefined;
 
   constructor() {
     super();
@@ -400,48 +412,37 @@ export class PenToolMode extends ToolMode {
     this.smoothness = 1.0;
   }
 
-  rightClickMenu(e : MouseEvent, localX : number, localY : number,
-                 view2d : View2DHandler) {
+  rightClickMenu(e: MouseEvent, localX: number, localY: number, view2d: View2DHandler) {}
 
-  }
-
-  draw(view2d : View2DHandler) {
+  draw(view2d: View2DHandler) {
     super.draw(view2d);
   }
-
 
   duplicate() {
     return new this.cls();
   }
 
-  static contextOverride() {
+  static contextOverride() {}
 
-  }
-
-  static buildSideBar(container : Container<FullContext>) {
+  static buildSideBar(container: Container<FullContext>) {
     container.prop("active_tool.limit");
     container.label("Yay");
   }
 
-  static buildHeader(container : Container<FullContext>) {
+  static buildHeader(container: Container<FullContext>) {}
 
-  }
-
-  static defineAPI(api : DataAPI) {
+  static defineAPI(api: DataAPI) {
     let st = super.defineAPI(api);
 
     let def = st.float("limit", "limit", "Limit", "Minimum distance between points");
-    def.range(0, 300).noUnits()
+    def.range(0, 300).noUnits();
 
     return st;
   }
 
-  static buildProperties(container : Container<FullContext>) {
+  static buildProperties(container: Container<FullContext>) {}
 
-  }
-
-  on_tick() {
-  }
+  on_tick() {}
 
   static toolDefine() {
     return {
@@ -451,29 +452,29 @@ export class PenToolMode extends ToolMode {
       icon       : Icons.PEN_TOOL,
       nodeInputs : {},
       nodeOutputs: {},
-      nodeFlag   : 0
-    }
+      nodeFlag   : 0,
+    };
   }
 
   defineKeyMap() {
-    let k = this.keymap = new KeyMap("view2d:pentool");
+    let k = (this.keymap = new KeyMap("view2d:pentool"));
     return k;
   }
 
-  tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
-    let ops : string[] = [];
+  tools_menu(ctx: FullContext, mpos: number[], view2d: View2DHandler) {
+    let ops: string[] = [];
 
     var menu = view2d.toolop_menu(ctx, "Tools", ops);
 
     view2d.call_menu(menu, view2d, mpos);
   }
 
-  getSpline() : Spline {
+  getSpline(): Spline {
     return this.ctx.frameset.spline;
   }
 
   /* Returns [x, y, pressure] in spline space. */
-  getMouse(event : PointerEvent) {
+  getMouse(event: PointerEvent) {
     let view2d = this.ctx.view2d;
 
     let p = new Vector3([event.x, event.y, 0.0]); //view2d.getLocalMouse(event.x, event.y);
@@ -485,7 +486,7 @@ export class PenToolMode extends ToolMode {
     /* NOTE: `touches` lives on TouchEvent, not PointerEvent, and a Touch has
        no `pressure` -- this branch has never run.  Reflect.get keeps it intact
        without claiming the properties exist. */
-    let touches : TouchList | undefined = Reflect.get(event, "touches");
+    let touches: TouchList | undefined = Reflect.get(event, "touches");
 
     if (touches && touches.length > 0) {
       let f = touches[0];
@@ -498,7 +499,7 @@ export class PenToolMode extends ToolMode {
     return p;
   }
 
-  addPoint(mpos : Vector3) {
+  addPoint(mpos: Vector3) {
     let spline = this.getSpline();
 
     let v3 = new Vec3Property();
@@ -527,8 +528,7 @@ export class PenToolMode extends ToolMode {
     window.redraw_viewport();
   }
 
-  on_mousedown(event: PointerEvent, localX : number,
-               localY : number) : boolean | undefined {
+  on_mousedown(event: PointerEvent, localX: number, localY: number): boolean | undefined {
     /* NOTE: `commandKey` is not a DOM event property; the Mac modifier is
        `metaKey`, so this branch never fires for Command. */
     if (event.altKey || event.shiftKey || event.ctrlKey || event.commandKey) {
@@ -564,12 +564,16 @@ export class PenToolMode extends ToolMode {
 
   //returns [spline, element, mindis]
   /* NOTE: `ret` is declared with `var` three times in this body. */
-  findnearest(mpos: number[], selectmask: number, limit: number,
-              ignore_layers : boolean) : ToolModeHit | undefined {
+  findnearest(
+    mpos: number[],
+    selectmask: number,
+    limit: number,
+    ignore_layers: boolean
+  ): ToolModeHit | undefined {
     var frameset = this.ctx.frameset;
     var editor = this.ctx.view2d;
 
-    var closest : ToolModeHit | undefined = undefined;
+    var closest: ToolModeHit | undefined = undefined;
     var mindis = 1e17;
 
     var found = false;
@@ -581,7 +585,13 @@ export class PenToolMode extends ToolMode {
       this.ensure_paths_off();
 
       //XXXXX FIXME: spline.q.findnearest modifies mpos!!
-      var ret = this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+      var ret = this.ctx.spline.q.findnearest(
+        editor,
+        [mpos[0], mpos[1]],
+        selectmask,
+        limit,
+        ignore_layers
+      );
       if (ret != undefined) {
         return [this.ctx.spline, ret[0], ret[1]];
       } else {
@@ -596,7 +606,13 @@ export class PenToolMode extends ToolMode {
     var pathspline = this.ctx.frameset.pathspline;
     var drawspline = this.ctx.frameset.spline;
 
-    var ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+    var ret = drawspline.q.findnearest(
+      editor,
+      [mpos[0], mpos[1]],
+      selectmask,
+      limit,
+      ignore_layers
+    );
     if (ret != undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
@@ -605,7 +621,13 @@ export class PenToolMode extends ToolMode {
     }
 
     //for (var spline in frameset._selected_splines) {
-    var ret = frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
+    var ret = frameset.pathspline.q.findnearest(
+      editor,
+      [mpos[0], mpos[1]],
+      selectmask,
+      limit,
+      false
+    );
     if (ret != undefined) {
       ret[1] -= pathspline === actspline ? 2 : 0;
 
@@ -617,36 +639,29 @@ export class PenToolMode extends ToolMode {
       }
     }
 
-    if (!found)
-      return undefined;
+    if (!found) return undefined;
 
     return closest;
   }
 
-  updateHighlight(x : number, y : number, was_touch : boolean) {
-  }
+  updateHighlight(x: number, y: number, was_touch: boolean) {}
 
+  do_alt_select(event: MouseEvent, mpos: Vector3, view2d: View2DHandler) {}
 
-  do_alt_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler) {
-  }
-
-  getKeyMaps() : KeyMap[] {
+  getKeyMaps(): KeyMap[] {
     if (this.keymap === undefined) {
       this.defineKeyMap();
     }
-    return [this.keymap]
+    return [this.keymap];
   }
 
   static buildEditMenu() {
     return [];
   }
 
-  delete_menu(event : MouseEvent) {
-  }
+  delete_menu(event: MouseEvent) {}
 
-
-  dataLink(scene: Scene, getblock: GetBlockFunc,
-           getblock_us: GetBlockUserFunc) {
+  dataLink(scene: Scene, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     this.ctx = g_app_state.ctx;
   }
 
@@ -655,7 +670,9 @@ export class PenToolMode extends ToolMode {
   }
 }
 
-PenToolMode.STRUCT = nstructjs.inherit(PenToolMode, ToolMode) + `
+PenToolMode.STRUCT =
+  nstructjs.inherit(PenToolMode, ToolMode) +
+  `
   limit : float;
 }`;
 

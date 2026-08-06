@@ -1,36 +1,36 @@
-import {Matrix4, Vector2} from "../util/vectormath.js";
-import {UndoFlags} from '../path.ux/scripts/toolsys/simple_toolsys.js';
-import {ToolOp} from '../core/toolops_api.js';
-import {keymap} from '../path.ux/scripts/util/simple_events.js';
-import {StringProperty, Vec2Property} from '../path.ux/scripts/toolsys/toolprop.js';
-import '../datafiles/icon_enum.js';
-import * as util from '../path.ux/scripts/util/util.js'
-import {nstructjs} from '../path.ux/scripts/pathux.js';
-import type {FullContext} from '../core/context.js';
+import { Matrix4, Vector2 } from "../util/vectormath.js";
+import { UndoFlags } from "../path.ux/scripts/toolsys/simple_toolsys.js";
+import { ToolOp } from "../core/toolops_api.js";
+import { keymap } from "../path.ux/scripts/util/simple_events.js";
+import { StringProperty, Vec2Property } from "../path.ux/scripts/toolsys/toolprop.js";
+import "../datafiles/icon_enum.js";
+import * as util from "../path.ux/scripts/util/util.js";
+import { nstructjs } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "../core/context.js";
 
 export let VelPanFlags = {
-  UNIFORM_SCALE : 1
+  UNIFORM_SCALE: 1,
 };
 
 export class VelPan {
   /* Fired after update() when the matrix actually changed. */
-  onchange : ((velpan? : VelPan) => void) | null;
-  static STRUCT : string;
+  onchange: ((velpan?: VelPan) => void) | null;
+  static STRUCT: string;
 
-  bounds : Vector2[]
-  decay  : number
-  pos    : Vector2
-  scale  : Vector2
-  vel    : Vector2
-  oldpos : Vector2
-  axes   : number
-  flag   : number
-  mat    : Matrix4
-  imat   : Matrix4
-  _last_mat        : Matrix4
-  last_update_time : number
+  bounds: Vector2[];
+  decay: number;
+  pos: Vector2;
+  scale: Vector2;
+  vel: Vector2;
+  oldpos: Vector2;
+  axes: number;
+  flag: number;
+  mat: Matrix4;
+  imat: Matrix4;
+  _last_mat: Matrix4;
+  last_update_time: number;
   /* setInterval handle while velocity decay is running. */
-  timer            : number | undefined;
+  timer: number | undefined;
 
   constructor() {
     /** boundary limits*/
@@ -73,7 +73,7 @@ export class VelPan {
    load settings from another velocity pan instance
    does NOT set this.onchange
    * */
-  load(velpan : VelPan) {
+  load(velpan: VelPan) {
     this.pos.load(velpan.pos);
     this.scale.load(velpan.scale);
     this.axes = velpan.axes;
@@ -109,7 +109,7 @@ export class VelPan {
     this.last_update_time = util.time_ms();
   }
 
-  update(fire_events=true, do_velocity=true) {
+  update(fire_events = true, do_velocity = true) {
     if (do_velocity && this.vel.dot(this.vel) > 0.001) {
       this.startVelocity();
     }
@@ -125,12 +125,11 @@ export class VelPan {
 
       this._last_mat.load(this.mat);
 
-      if (this.onchange)
-        this.onchange(this);
+      if (this.onchange) this.onchange(this);
     }
   }
 
-  loadSTRUCT(reader : StructReader<this>) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 }
@@ -148,19 +147,21 @@ VelPan {
 `;
 nstructjs.manager.add_class(VelPan);
 
-
-export class VelPanPanOp extends ToolOp<{
-  velpanPath : StringProperty,
-  pan        : Vec2Property
-}, {}> {
-  start_pan : Vector2;
+export class VelPanPanOp extends ToolOp<
+  {
+    velpanPath: StringProperty;
+    pan: Vec2Property;
+  },
+  {}
+> {
+  start_pan: Vector2;
   /* True until the first modal mousemove seeds start_mpos/start_pan. */
-  first : boolean;
-  last_mpos : Vector2;
-  start_mpos : Vector2;
-  start_time : number;
-  last_time : number;
-  _temps : util.cachering<Vector2>;
+  first: boolean;
+  last_mpos: Vector2;
+  start_mpos: Vector2;
+  start_time: number;
+  last_time: number;
+  _temps: util.cachering<Vector2>;
 
   constructor() {
     super();
@@ -173,21 +174,23 @@ export class VelPanPanOp extends ToolOp<{
     this._temps = util.cachering.fromConstructor(Vector2, 16);
   }
 
-  static tooldef() {return {
-    uiname      : "Pan (2d)",
-    description : "Pan 2d window",
-    toolpath    : "velpan.pan",
-    undoflag    : UndoFlags.NO_UNDO,
-    is_modal    : true,
-    icon        : -1,
+  static tooldef() {
+    return {
+      uiname     : "Pan (2d)",
+      description: "Pan 2d window",
+      toolpath   : "velpan.pan",
+      undoflag   : UndoFlags.NO_UNDO,
+      is_modal   : true,
+      icon       : -1,
 
-    inputs      : {
-      velpanPath : new StringProperty(),
-      pan        : new Vec2Property()
-    }
-  }}
+      inputs: {
+        velpanPath: new StringProperty(),
+        pan       : new Vec2Property(),
+      },
+    };
+  }
 
-  on_mousemove(e : MouseEvent) {
+  on_mousemove(e: MouseEvent) {
     let ctx = this.modal_ctx!;
     let path = this.inputs.velpanPath.getValue();
     let velpan = ctx.api.getValue<VelPan>(ctx, path);
@@ -230,7 +233,7 @@ export class VelPanPanOp extends ToolOp<{
     this.last_mpos.load(mpos);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let path = this.inputs.velpanPath.getValue();
 
     let velpan = ctx.api.getValue<VelPan>(ctx, path);
@@ -263,7 +266,7 @@ export class VelPanPanOp extends ToolOp<{
     }
   }
 
-  on_mouseup(e : MouseEvent) {
+  on_mouseup(e: MouseEvent) {
     this.modalEnd();
   }
 }

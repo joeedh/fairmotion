@@ -1,7 +1,7 @@
 "use strict";
 
 //make sure config is loaded first, so we don't override anything
-import '../config/config.js';
+import "../config/config.js";
 
 /* various constant (except for DEBUG) globals */
 
@@ -28,8 +28,8 @@ window.g_app_version = 0.053;
 
 window.UNIT_TESTER = false;
 window.FEATURES = {
-  save_toolstack: false //(RELEASE ? false : true)
-}
+  save_toolstack: false, //(RELEASE ? false : true)
+};
 
 //need a struct to contain constants I'm not compiling in with the preprocessor
 window.use_octree_select = true;
@@ -37,8 +37,7 @@ window.fuzzy_ui_press_hotspot = 25;
 
 window.new_api_parser = true;
 
-if (myLocalStorage.use_canvas2d == undefined)
-  myLocalStorage.use_canvas2d = true;
+if (myLocalStorage.use_canvas2d == undefined) myLocalStorage.use_canvas2d = true;
 
 //private macro helper global for utildefine.js
 var $_mh = undefined;
@@ -46,18 +45,21 @@ var $_mh = undefined;
 //debug globals
 if (!RELEASE && !("M" in window) && !("O" in window)) {
   Object.defineProperty(window, "G", {
-    get            : function () {
+    get: function () {
       return g_app_state;
-    }, configurable: true
+    },
+    configurable: true,
   });
   Object.defineProperty(window, "V2D", {
-    get            : function () {
+    get: function () {
       return g_app_state.active_view2d;
-    }, configurable: true
+    },
+    configurable: true,
   });
   Object.defineProperty(window, "API", {
-    get            : function () {
+    get: function () {
       return g_app_state.api;
-    }, configurable: true
+    },
+    configurable: true,
   });
 }

@@ -21,7 +21,7 @@ window.coverage = (function coverage_module() {
 
   /* Keyed by file name concatenated with line number. Was exports.lines, which
      was only ever mutated, never reassigned. */
-  const lines: {[hash: string]: Line} = {};
+  const lines: { [hash: string]: Line } = {};
 
   function getLine(file: string, line: number) {
     var hash = "" + file + line;
@@ -32,20 +32,20 @@ window.coverage = (function coverage_module() {
     return lines[hash];
   }
 
-  window.$cov_prof = function(file: string, line: number) {
+  window.$cov_prof = function (file: string, line: number) {
     getLine(file, line).count++;
-  }
+  };
 
-  window.$cov_reg = function(file: string, line: number) {
+  window.$cov_reg = function (file: string, line: number) {
     getLine(file, line);
-  }
+  };
 
   function report() {
-    var all: Line[] = []
+    var all: Line[] = [];
     /* Every recorded line grouped by file, and the fraction of each file's
        lines that were hit at least once. */
-    var files: {[file: string]: Line[]} = {}
-    var ftots: {[file: string]: number} = {}
+    var files: { [file: string]: Line[] } = {};
+    var ftots: { [file: string]: number } = {};
 
     for (var k in lines) {
       var l = lines[k];
@@ -55,10 +55,10 @@ window.coverage = (function coverage_module() {
       }
 
       all.push(l);
-      files[l.file].push(l)
+      files[l.file].push(l);
     }
 
-    for (var i=0; i<all.length; i++) {
+    for (var i = 0; i < all.length; i++) {
       var l = all[i];
       var tot = files[l.file].length;
 
@@ -72,17 +72,17 @@ window.coverage = (function coverage_module() {
       flat.push([k, ftots[k]]);
     }
 
-    flat.sort(function(a, b) {
+    flat.sort(function (a, b) {
       return a[1] - b[1];
     });
 
-    var out = ""
-    for (var i=0; i<flat.length; i++) {
-      out += ""+flat[i]+"\n";
+    var out = "";
+    for (var i = 0; i < flat.length; i++) {
+      out += "" + flat[i] + "\n";
     }
 
     return out;
   }
 
-  return {lines, Line, getLine, report};
+  return { lines, Line, getLine, report };
 })();

@@ -1,19 +1,19 @@
 "use strict";
 
-import {PropTypes} from './toolprops.js';
-import {STRUCT} from './struct.js';
+import { PropTypes } from "./toolprops.js";
+import { STRUCT } from "./struct.js";
 
-import {CustomDataLayer, SplineTypes, SplineFlags} from '../curve/spline_base.js';
-import {DataPathWrapperNode} from './eventdag.js';
-import type {BaseContext, FullContext} from './context.js';
-import type {Spline} from '../curve/spline.js';
-import type {SplineVertex} from '../curve/spline_types.js';
-import type {ToolProperty} from './toolprops.js';
-import type {DataBlock} from './lib_api.js';
+import { CustomDataLayer, SplineTypes, SplineFlags } from "../curve/spline_base.js";
+import { DataPathWrapperNode } from "./eventdag.js";
+import type { BaseContext, FullContext } from "./context.js";
+import type { Spline } from "../curve/spline.js";
+import type { SplineVertex } from "../curve/spline_types.js";
+import type { ToolProperty } from "./toolprops.js";
+import type { DataBlock } from "./lib_api.js";
 
 /*id is an integer id,
-* note that it may refer to both an AnimChannel and one
-* of that channel's keys*/
+ * note that it may refer to both an AnimChannel and one
+ * of that channel's keys*/
 export function getDataPathKey(ctx: BaseContext, id: number) {
   let datalib = ctx.datalib;
 
@@ -26,18 +26,18 @@ export function getDataPathKey(ctx: BaseContext, id: number) {
 
 export const AnimKeyTypes = {
   SPLINE  : 0,
-  DATAPATH: 1
+  DATAPATH: 1,
 };
 
 export const AnimKeyFlags = {
-  SELECT: 1
+  SELECT: 1,
 };
 
 export let AnimInterpModes = {
   STEP   : 1,
   CATMULL: 2,
-  LINEAR : 4
-}
+  LINEAR : 4,
+};
 
 export class TimeDataLayer extends CustomDataLayer {
   static STRUCT: string;
@@ -61,7 +61,7 @@ export class TimeDataLayer extends CustomDataLayer {
     }
 
     for (let i = 0; i < srcs.length; i++) {
-      this.time += srcs[i].time*ws[i];
+      this.time += srcs[i].time * ws[i];
     }
   }
 
@@ -72,23 +72,23 @@ export class TimeDataLayer extends CustomDataLayer {
 
   static define() {
     return {
-      typeName: "TimeDataLayer"
-    }
+      typeName: "TimeDataLayer",
+    };
   }
 }
 
-TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + `
+TimeDataLayer.STRUCT =
+  STRUCT.inherit(TimeDataLayer, CustomDataLayer) +
+  `
     time         : float;
     owning_veid  : int;
   }
 `;
 
-
 export function get_vtime(v: SplineVertex) {
   let ret = v.cdata.get_layer(TimeDataLayer);
 
-  if (ret !== undefined)
-    return ret.time;
+  if (ret !== undefined) return ret.time;
   return -1;
 }
 
@@ -102,8 +102,8 @@ export function set_vtime(spline: Spline, v: SplineVertex, time: number) {
   }
 }
 
-import {IntProperty, FloatProperty} from './toolprops.js';
-import {DataTypes, DataNames} from './lib_api.js';
+import { IntProperty, FloatProperty } from "./toolprops.js";
+import { DataTypes, DataNames } from "./lib_api.js";
 
 /* Generic animation curve system; used for interpolating non-spatial
    stuff where tying to the pathspline vertices (as we do with time)
@@ -112,8 +112,8 @@ import {DataTypes, DataNames} from './lib_api.js';
 export class AnimKey extends DataPathWrapperNode {
   static STRUCT: string;
 
-  flag: number
-  time: number
+  flag: number;
+  time: number;
   handles: Array<number>;
 
   /* Handed out by the owning datablock's lib_anim_idgen, so it is unique
@@ -131,7 +131,7 @@ export class AnimKey extends DataPathWrapperNode {
     super();
 
     this.id = -1;
-    this.flag = 0
+    this.flag = 0;
 
     this.time = 1.0;
     this.handles = [0, 0];
@@ -180,12 +180,11 @@ export class AnimKey extends DataPathWrapperNode {
       inputs : {},
       outputs: {
         "depend": undefined,
-        "id"    : 0.0
-      }
-    }
+        "id"    : 0.0,
+      },
+    };
   }
 }
-
 
 AnimKey.STRUCT = `
   AnimKey {
@@ -221,7 +220,7 @@ export class AnimChannel {
   //lib_anim_idgen and lib_anim_idmap members
   idgen?: EIDGen;
   /* The owning DataBlock's lib_anim_idmap, which also holds the channels. */
-  idmap?: {[id: number]: AnimChannel | AnimKey};
+  idmap?: { [id: number]: AnimChannel | AnimKey };
 
   /* fromSTRUCT() constructs one with nothing and lets the reader fill it in. */
   constructor(proptype?: number, name?: string, path?: string) {
@@ -332,22 +331,20 @@ export class AnimChannel {
 
     let t;
     if (prev.time !== key.time) {
-      t = (time - prev.time)/(key.time - prev.time);
+      t = (time - prev.time) / (key.time - prev.time);
     } else {
       t = 1.0;
     }
 
     //for now, just assume we're interpolating numbers
-    let a = prev.data!.data, b = key.data!.data;
+    let a = prev.data!.data,
+      b = key.data!.data;
 
     let ret;
-    if (key.mode === AnimInterpModes.STEP)
-      ret = a;
-    else
-      ret = a + (b - a)*t;
+    if (key.mode === AnimInterpModes.STEP) ret = a;
+    else ret = a + (b - a) * t;
 
-    if (this.proptype === PropTypes.INT)
-      ret = Math.floor(ret + 0.5);
+    if (this.proptype === PropTypes.INT) ret = Math.floor(ret + 0.5);
 
     return ret;
   }
@@ -372,4 +369,4 @@ AnimChannel.STRUCT = `
     path     : string;
     id       : int;
   }
-`
+`;

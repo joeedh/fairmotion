@@ -1,30 +1,46 @@
 "use strict";
 
-import {nstructjs} from '../path.ux/scripts/pathux.js';
-import {pack_int, pack_float, pack_static_string} from './ajax.js';
-import {setPropTypes, ToolProperty, FlagProperty, PropFlags} from '../path.ux/scripts/toolsys/toolprop.js';
-import * as toolprop from '../path.ux/scripts/toolsys/toolprop.js';
-import type {FullContext} from './context.js';
+import { nstructjs } from "../path.ux/scripts/pathux.js";
+import { pack_int, pack_float, pack_static_string } from "./ajax.js";
+import {
+  setPropTypes,
+  ToolProperty,
+  FlagProperty,
+  PropFlags,
+} from "../path.ux/scripts/toolsys/toolprop.js";
+import * as toolprop from "../path.ux/scripts/toolsys/toolprop.js";
+import type { FullContext } from "./context.js";
 
 export {
-  StringProperty, StringSetProperty, Vec2Property, Vec3Property, Vec4Property,
-  Mat4Property, IntProperty, FloatProperty, BoolProperty, FlagProperty, EnumProperty,
-  ListProperty, PropClasses, ToolProperty
-} from '../path.ux/scripts/path-controller/toolsys/toolprop.js';
+  StringProperty,
+  StringSetProperty,
+  Vec2Property,
+  Vec3Property,
+  Vec4Property,
+  Mat4Property,
+  IntProperty,
+  FloatProperty,
+  BoolProperty,
+  FlagProperty,
+  EnumProperty,
+  ListProperty,
+  PropClasses,
+  ToolProperty,
+} from "../path.ux/scripts/path-controller/toolsys/toolprop.js";
 
 /* DataRef is used as a value (instanceof, new) and previously resolved only
    because lib_api.ts publishes it on window. */
-import {DataBlock, DataRef} from './lib_api.js';
-import type {DataBlockClass} from './lib_api.js';
+import { DataBlock, DataRef } from "./lib_api.js";
+import type { DataBlockClass } from "./lib_api.js";
 /* Matrix4UI was used as a value below without ever being imported, and unlike
    DataRef it is not published on window. mathlib does not import this file back,
    so a real import is safe. */
-import {Matrix4UI} from '../util/mathlib.js';
+import { Matrix4UI } from "../util/mathlib.js";
 /* NOTE: DataRefList had the same missing-import bug as DataRef, but is not
    published on window either, so RefListProperty.set_data() threw a
    ReferenceError.  lib_utils pulls in the editor event stack, hence the cycle;
    it is only used inside a method body, which ESM handles. */
-import {DataRefList} from './lib_utils.js';
+import { DataRefList } from "./lib_utils.js";
 
 export let PropTypes = {
   INT        : 1,
@@ -39,17 +55,17 @@ export let PropTypes = {
   MATRIX4    : 512,
   QUAT       : 1024,
   PROPLIST   : 4096,
-  STRSET     : 1<<13,
-  CURVE      : 1<<14,
-  STRUCT     : 1<<19, //internal type to data api
-  DATAREF    : 1<<20,
-  DATAREFLIST: 1<<21,
-  TRANSFORM  : 1<<22, //ui-friendly matrix property
-  COLLECTION : 1<<23,
-  IMAGE      : 1<<24, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER: 1<<25,
-  ITER       : 1<<28,
-  INTARRAY   : 1<<29
+  STRSET     : 1 << 13,
+  CURVE      : 1 << 14,
+  STRUCT     : 1 << 19, //internal type to data api
+  DATAREF    : 1 << 20,
+  DATAREFLIST: 1 << 21,
+  TRANSFORM  : 1 << 22, //ui-friendly matrix property
+  COLLECTION : 1 << 23,
+  IMAGE      : 1 << 24, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER: 1 << 25,
+  ITER       : 1 << 28,
+  INTARRAY   : 1 << 29,
 };
 
 setPropTypes(PropTypes);
@@ -69,13 +85,16 @@ export let TPropFlags = {
 };*/
 
 let flagbase = 25;
-export const TPropFlags = Object.assign({
-  COLL_LOOSE_TYPE    : 1<<(flagbase++),
-  NEEDS_OWNING_OBJECT: 1<<(flagbase++),
-}, PropFlags);
+export const TPropFlags = Object.assign(
+  {
+    COLL_LOOSE_TYPE    : 1 << flagbase++,
+    NEEDS_OWNING_OBJECT: 1 << flagbase++,
+  },
+  PropFlags
+);
 
 export const PropSubTypes = {
-  COLOR: 1
+  COLOR: 1,
 };
 
 /*
@@ -84,7 +103,7 @@ export const PropSubTypes = {
  * augmentation below is what makes those names visible to the typechecker, both
  * at the patch sites and at the ~200 call sites across the app.
  */
-declare module '../path.ux/scripts/path-controller/toolsys/toolprop.js' {
+declare module "../path.ux/scripts/path-controller/toolsys/toolprop.js" {
   interface ToolProperty<T = unknown, TYPE extends number = number> {
     /* Deprecated aliases for setValue()/getValue(). */
     set_data(d: T): void;
@@ -102,7 +121,7 @@ declare module '../path.ux/scripts/path-controller/toolsys/toolprop.js' {
     add_listener(owner: object, callback: (...args: unknown[]) => void): void;
     remove_listener(owner: object, silent_fail?: boolean): void;
 
-    add_icons(iconmap: {[key: string]: number}): this;
+    add_icons(iconmap: { [key: string]: number }): this;
 
     /* Custom data-api get/set hooks; enabled by TPropFlags.USE_CUSTOM_GETSET. */
     userSetData(prop: ToolProperty<T, TYPE>, val: T): T;
@@ -112,7 +131,7 @@ declare module '../path.ux/scripts/path-controller/toolsys/toolprop.js' {
   /* Patched onto both enum property classes below.  Nothing calls it any
      more, but it is part of the old public property API. */
   interface EnumPropertyBase<TYPE extends number, VALUE extends string | number> {
-    setUINames(uinames: {[key: string]: string}): void;
+    setUINames(uinames: { [key: string]: string }): void;
   }
 }
 
@@ -143,12 +162,16 @@ ToolProperty.prototype.report = function (this: ToolProperty) {
   }
 
   g_app_state.notes.label(s);
-}
+};
 
 let propfire = ToolProperty.prototype._fire;
 
-ToolProperty.prototype._fire = function (this: ToolProperty, type: string,
-                                         arg1?: unknown, arg2?: unknown) {
+ToolProperty.prototype._fire = function (
+  this: ToolProperty,
+  type: string,
+  arg1?: unknown,
+  arg2?: unknown
+) {
   propfire.call(this, type, arg1, arg2);
 
   if (this.update) {
@@ -198,28 +221,32 @@ ToolProperty.prototype.add_listener = function add_listener(
     callback(...arguments);
   };
 
-  for (let old of this.callbacks['change'] ?? []) {
+  for (let old of this.callbacks["change"] ?? []) {
     if (Reflect.get(old, "owner") === owner) {
       console.warn("owner already added a callback");
       return;
     }
   }
 
-  this.on('change', cb);
+  this.on("change", cb);
   Reflect.set(cb, "owner", owner);
-}
+};
 
-ToolProperty.prototype.remove_listener = function (this: ToolProperty, owner: object, silent_fail = false) {
-  for (let cb of this.callbacks['change'] ?? []) {
+ToolProperty.prototype.remove_listener = function (
+  this: ToolProperty,
+  owner: object,
+  silent_fail = false
+) {
+  for (let cb of this.callbacks["change"] ?? []) {
     if (Reflect.get(cb, "owner") === owner && typeof cb === "function") {
-      this.off('change', cb);
+      this.off("change", cb);
     }
   }
-}
+};
 
 /* Icons are stored twice, under the flag's name and under its numeric value, so
    lookups work whichever form the caller has. */
-FlagProperty.prototype.addIcons = function (this: FlagProperty, iconmap: {[key: string]: int}) {
+FlagProperty.prototype.addIcons = function (this: FlagProperty, iconmap: { [key: string]: int }) {
   this.iconmap = {};
 
   for (let k in iconmap) {
@@ -231,12 +258,11 @@ FlagProperty.prototype.addIcons = function (this: FlagProperty, iconmap: {[key: 
   }
 
   return this;
-}
+};
 
-ToolProperty.prototype.add_icons = function (this: FlagProperty, iconmap: {[key: string]: int}) {
+ToolProperty.prototype.add_icons = function (this: FlagProperty, iconmap: { [key: string]: int }) {
   return this.addIcons(iconmap);
-}
-
+};
 
 /**
  custom data api setter.  set .flag to TPRopFlags.USE_CUSTOM_GETSET
@@ -249,7 +275,11 @@ ToolProperty.prototype.add_icons = function (this: FlagProperty, iconmap: {[key:
 
  returns final value that was set.
  */
-ToolProperty.prototype.userSetData = function <T>(this: ToolProperty<T>, prop: ToolProperty<T>, val: T): T {
+ToolProperty.prototype.userSetData = function <T>(
+  this: ToolProperty<T>,
+  prop: ToolProperty<T>,
+  val: T
+): T {
   return val;
 };
 
@@ -262,7 +292,11 @@ ToolProperty.prototype.userSetData = function <T>(this: ToolProperty<T>, prop: T
 
  prop is property definition.  val is current value fetched by the data api.
  */
-ToolProperty.prototype.userGetData = function <T>(this: ToolProperty<T>, prop: ToolProperty<T>, val: T): T {
+ToolProperty.prototype.userGetData = function <T>(
+  this: ToolProperty<T>,
+  prop: ToolProperty<T>,
+  val: T
+): T {
   return val;
 };
 
@@ -274,11 +308,9 @@ ToolProperty.prototype.copyTo = function (this: ToolProperty, b: ToolProperty) {
   b.userSetData = this.userSetData;
   b.userGetData = this.userGetData;
   return this;
-}
-ToolProperty.prototype.update = () => {
 };
-ToolProperty.prototype.api_update = () => {
-};
+ToolProperty.prototype.update = () => {};
+ToolProperty.prototype.api_update = () => {};
 
 /*
  * The slice of EnumProperty/FlagProperty the patches below touch. Written out
@@ -286,10 +318,10 @@ ToolProperty.prototype.api_update = () => {
  * added here and does not exist on the toolkit's own classes.
  */
 interface EnumOrFlagProperty {
-  keys: {[key: string]: int};
-  ui_value_names: {[uiName: string]: string};
-  ui_key_names: {[key: string]: string};
-  _ui_key_names?: {[key: string]: string};
+  keys: { [key: string]: int };
+  ui_value_names: { [uiName: string]: string };
+  ui_key_names: { [key: string]: string };
+  _ui_key_names?: { [key: string]: string };
 }
 
 for (let i = 0; i < 2; i++) {
@@ -297,7 +329,10 @@ for (let i = 0; i < 2; i++) {
 
   /* Note that `uinames` is ignored: the names are always derived from .keys.
      See docs/debugging.md. */
-  cls.prototype.setUINames = function (this: EnumOrFlagProperty, uinames: {[key: string]: string}) {
+  cls.prototype.setUINames = function (
+    this: EnumOrFlagProperty,
+    uinames: { [key: string]: string }
+  ) {
     this.ui_value_names = {};
     this.ui_key_names = {};
 
@@ -325,9 +360,9 @@ for (let i = 0; i < 2; i++) {
       return this._ui_key_names;
     },
 
-    set(this: EnumOrFlagProperty, val: {[key: string]: string}) {
+    set(this: EnumOrFlagProperty, val: { [key: string]: string }) {
       this._ui_key_names = val;
-    }
+    },
   });
 }
 
@@ -347,11 +382,17 @@ function isTypedArray(n: object): n is TypedArray {
     return false;
   }
 
-  return (n instanceof Int8Array || n instanceof Uint8Array ||
-    n instanceof Uint8ClampedArray || n instanceof Int16Array ||
-    n instanceof Uint16Array || n instanceof Int32Array || n instanceof Uint32Array ||
-    n instanceof Float32Array || n instanceof Float64Array);
-
+  return (
+    n instanceof Int8Array ||
+    n instanceof Uint8Array ||
+    n instanceof Uint8ClampedArray ||
+    n instanceof Int16Array ||
+    n instanceof Uint16Array ||
+    n instanceof Int32Array ||
+    n instanceof Uint32Array ||
+    n instanceof Float32Array ||
+    n instanceof Float64Array
+  );
 }
 
 /* Raw bytes. Anything array-shaped is accepted and normalized to a Uint8Array on
@@ -405,8 +446,7 @@ export class ArrayBufferProperty extends ToolProperty<ArrayBufferPropertyValue> 
   copyTo(dst: ArrayBufferProperty) {
     super.copyTo(dst);
 
-    if (this.data !== undefined)
-      dst.setValue(this.data);
+    if (this.data !== undefined) dst.setValue(this.data);
 
     return dst;
   }
@@ -427,7 +467,9 @@ export class ArrayBufferProperty extends ToolProperty<ArrayBufferPropertyValue> 
   }
 }
 
-ArrayBufferProperty.STRUCT = nstructjs.inherit(ArrayBufferProperty, ToolProperty) + `
+ArrayBufferProperty.STRUCT =
+  nstructjs.inherit(ArrayBufferProperty, ToolProperty) +
+  `
   data : array(byte) | this._getDataU8;
 }`;
 
@@ -514,7 +556,9 @@ export class IntArrayProperty extends ToolProperty<Iterable<int>> {
   }
 }
 
-IntArrayProperty.STRUCT = nstructjs.inherit(IntArrayProperty, ToolProperty) + `
+IntArrayProperty.STRUCT =
+  nstructjs.inherit(IntArrayProperty, ToolProperty) +
+  `
   data : array(int);
 }`;
 
@@ -545,14 +589,11 @@ export class DataRefProperty extends ToolProperty<DataBlock | DataRef | undefine
        subtype, description in uiname, and the caller's flag was dropped. */
     super(PropTypes.DATAREF, undefined, apiname, uiname, description, flag);
 
-    if (allowed_types === undefined)
-      allowed_types = new set();
+    if (allowed_types === undefined) allowed_types = new set();
 
     if (!(allowed_types instanceof set)) {
-      if (allowed_types instanceof Array)
-        allowed_types = new set(allowed_types);
-      else
-        allowed_types = new set([allowed_types]);
+      if (allowed_types instanceof Array) allowed_types = new set(allowed_types);
+      else allowed_types = new set([allowed_types]);
     }
 
     this.types = new set();
@@ -566,15 +607,12 @@ export class DataRefProperty extends ToolProperty<DataBlock | DataRef | undefine
       this.types.add(val);
     }
 
-    if (value !== undefined)
-      this.setValue(value);
+    if (value !== undefined) this.setValue(value);
   }
 
   get_block(ctx: FullContext): DataBlock | undefined {
-    if (this.data === undefined)
-      return undefined;
-    else
-      return ctx.datalib.get(this.data);
+    if (this.data === undefined) return undefined;
+    else return ctx.datalib.get(this.data);
   }
 
   copyTo(dst: DataRefProperty) {
@@ -582,13 +620,11 @@ export class DataRefProperty extends ToolProperty<DataBlock | DataRef | undefine
 
     let data = this.data;
 
-    if (data !== undefined)
-      data = data.copy();
+    if (data !== undefined) data = data.copy();
 
     dst.types = new set(this.types);
 
-    if (data !== undefined)
-      dst.setValue(data);
+    if (data !== undefined) dst.setValue(data);
 
     return dst;
   }
@@ -604,7 +640,9 @@ export class DataRefProperty extends ToolProperty<DataBlock | DataRef | undefine
       ToolProperty.prototype.setValue.call(this, undefined);
     } else if (!(value instanceof DataRef)) {
       if (!this.types.has(value.lib_type)) {
-        console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
+        console.trace(
+          "Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()"
+        );
         return;
       }
 
@@ -620,18 +658,17 @@ export class DataRefProperty extends ToolProperty<DataBlock | DataRef | undefine
 
     this.types = new set(this.types);
 
-    if (this.data !== undefined && this.data.id < 0)
-      this.data = undefined;
+    if (this.data !== undefined && this.data.id < 0) this.data = undefined;
     this.setValue(this.data);
   }
 }
 
-DataRefProperty.STRUCT = nstructjs.inherit(DataRefProperty, ToolProperty) + `
+DataRefProperty.STRUCT =
+  nstructjs.inherit(DataRefProperty, ToolProperty) +
+  `
   data  : DataRef | this.data === undefined ? new DataRef(-1) : this.data;
   types : iter(int);
 }`;
-;
-
 nstructjs.register(DataRefProperty);
 ToolProperty.register(DataRefProperty);
 
@@ -657,8 +694,7 @@ export class RefListProperty extends ToolProperty<DataRefList | DataBlock[] | un
        subtype, description in uiname, and the caller's flag was dropped. */
     super(PropTypes.DATAREFLIST, undefined, apiname, uiname, description, flag);
 
-    if (allowed_types === undefined)
-      allowed_types = [];
+    if (allowed_types === undefined) allowed_types = [];
 
     this.types = allowed_types instanceof set ? allowed_types : new set([allowed_types]);
 
@@ -671,8 +707,7 @@ export class RefListProperty extends ToolProperty<DataRefList | DataBlock[] | un
     ToolProperty.prototype.copyTo.call(this, dst);
 
     dst.types = new set(this.types);
-    if (this.data !== undefined)
-      dst.setValue(this.data);
+    if (this.data !== undefined) dst.setValue(this.data);
 
     return dst;
   }
@@ -683,9 +718,13 @@ export class RefListProperty extends ToolProperty<DataRefList | DataBlock[] | un
 
   /* owner/changed/set_data are accepted for the old call signature; the base
      setValue() has never looked at them. */
-  set_data(value?: DataBlock[] | GArray<DataBlock>, owner?: object, changed?: boolean, set_data?: boolean) {
-    if (value !== undefined && value.constructor.name === "Array")
-      value = new GArray(value);
+  set_data(
+    value?: DataBlock[] | GArray<DataBlock>,
+    owner?: object,
+    changed?: boolean,
+    set_data?: boolean
+  ) {
+    if (value !== undefined && value.constructor.name === "Array") value = new GArray(value);
 
     if (value === undefined) {
       ToolProperty.prototype.setValue.call(this, undefined);
@@ -699,7 +738,9 @@ export class RefListProperty extends ToolProperty<DataRefList | DataBlock[] | un
           if (block === undefined)
             console.log("Undefined datablock in list passed to RefListProperty.setValue");
           else
-            console.log("Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()");
+            console.log(
+              "Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()"
+            );
           continue;
         }
         lst.push(block);
@@ -720,8 +761,9 @@ export class RefListProperty extends ToolProperty<DataRefList | DataBlock[] | un
   }
 }
 
-
-RefListProperty.STRUCT = nstructjs.inherit(RefListProperty, ToolProperty) + `
+RefListProperty.STRUCT =
+  nstructjs.inherit(RefListProperty, ToolProperty) +
+  `
   data  : iter(dataref);
   types : iter(int);
 }
@@ -745,10 +787,9 @@ export class TransformProperty extends ToolProperty<Matrix4UI> {
   ) {
     /* NOTE: the `undefined` subtype was missing here; apiname landed in
        subtype, description in uiname, and the caller's flag was dropped. */
-    super(PropTypes.TRANSFORM, undefined, apiname, uiname, description, flag)
+    super(PropTypes.TRANSFORM, undefined, apiname, uiname, description, flag);
 
-    if (value !== undefined)
-      ToolProperty.prototype.setValue.call(this, new Matrix4UI(value));
+    if (value !== undefined) ToolProperty.prototype.setValue.call(this, new Matrix4UI(value));
   }
 
   /* owner/changed/set_data are accepted for the old call signature; the base
@@ -777,10 +818,11 @@ export class TransformProperty extends ToolProperty<Matrix4UI> {
 
     this.data = new Matrix4UI(this.data);
   }
-
 }
 
-TransformProperty.STRUCT = nstructjs.inherit(TransformProperty, ToolProperty) + `
+TransformProperty.STRUCT =
+  nstructjs.inherit(TransformProperty, ToolProperty) +
+  `
   data : mat4;
 }`;
 
@@ -800,10 +842,10 @@ ToolProperty.register(TransformProperty);
 
 /* TPropIterable is used as a value below and previously resolved only via
    window; it comes from the same module as ToolIter. */
-import {ToolIter, TPropIterable} from './toolprops_iter.js';
-import type {ToolIterLike} from './toolprops_iter.js';
+import { ToolIter, TPropIterable } from "./toolprops_iter.js";
+import type { ToolIterLike } from "./toolprops_iter.js";
 
-export type {ToolIterLike};
+export type { ToolIterLike };
 
 /* Adapts a plain JS iterator -- an array's, in practice -- to the reusable-ret
    protocol above.  reset() re-fetches the iterator from the source. */
@@ -863,8 +905,7 @@ export class type_filter_iter<T = object> extends ToolIter<T> {
   set ctx(ctx: FullContext | undefined) {
     this._ctx = ctx;
 
-    if (this.iter !== undefined)
-      this.iter.ctx = ctx;
+    if (this.iter !== undefined) this.iter.ctx = ctx;
   }
 
   get ctx(): FullContext | undefined {
@@ -926,8 +967,7 @@ export interface CollectionIterable<T = object> {
    just as valid a collection as a TPropIterable. */
 export type CollectionData<T = object> = CollectionIterable<T> | T[];
 
-export class CollectionProperty<T = object>
-  extends ToolProperty<CollectionData<T> | undefined> {
+export class CollectionProperty<T = object> extends ToolProperty<CollectionData<T> | undefined> {
   static STRUCT: string;
 
   /* Empty or undefined means "accept anything"; otherwise the iterator filters
@@ -987,8 +1027,7 @@ export class CollectionProperty<T = object>
     this._ctx = data;
 
     /* Arrays get a ctx stamped on them too; that is how the original ran. */
-    if (this._data !== undefined)
-      Reflect.set(this._data, "ctx", data);
+    if (this._data !== undefined) Reflect.set(this._data, "ctx", data);
   }
 
   getValue(): CollectionData<T> | undefined {
@@ -1008,7 +1047,7 @@ export class CollectionProperty<T = object>
     if (!Array.isArray(data) && typeof data.__tooliter__ === "function") {
       this.setValue(data.__tooliter__(), owner, changed);
       return;
-    } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
+    } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !TPropIterable.isTPropIterable(data)) {
       console.trace();
       console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.setValue!");
 
@@ -1024,13 +1063,13 @@ export class CollectionProperty<T = object>
     ToolProperty.prototype.setValue.call(this, undefined);
   }
 
-//tool props are not supposed to use setters
-//for .data, but since we need one for .get
-//(and since that meant renaming an inherited
-//member), we add a setter here for the sake of
-//robustness.
+  //tool props are not supposed to use setters
+  //for .data, but since we need one for .get
+  //(and since that meant renaming an inherited
+  //member), we add a setter here for the sake of
+  //robustness.
 
-//XXX: except. . .now you can't pass owner into it
+  //XXX: except. . .now you can't pass owner into it
 
   set data(data: CollectionData<T> | undefined) {
     this.setValue(data);
@@ -1041,27 +1080,27 @@ export class CollectionProperty<T = object>
   }
 
   [Symbol.iterator](): ToolIterLike<T> {
-    if (this._data === undefined) { //return empty iterator if no data
+    if (this._data === undefined) {
+      //return empty iterator if no data
       let done = new IterRet<T>();
       done.done = true;
 
       return {
         next: function () {
           return done;
-        }
+        },
       };
     }
 
     Reflect.set(this._data, "ctx", this._ctx);
 
     let iter = Array.isArray(this._data)
-               ? new array_tool_iter<T>(this._data)
-               : this._data[Symbol.iterator]();
+      ? new array_tool_iter<T>(this._data)
+      : this._data[Symbol.iterator]();
 
     if (this.types !== undefined && this.types.length > 0)
       return new type_filter_iter<T>(iter, this.types, this._ctx);
-    else
-      return iter;
+    else return iter;
   }
 
   static fromSTRUCT(reader: StructReader<CollectionProperty>) {
@@ -1078,7 +1117,9 @@ export class CollectionProperty<T = object>
   }
 }
 
-CollectionProperty.STRUCT = nstructjs.inherit(CollectionProperty, ToolProperty) + `
+CollectionProperty.STRUCT =
+  nstructjs.inherit(CollectionProperty, ToolProperty) +
+  `
   data : abstract(Object) | obj.data === undefined ? new BlankArray() : obj.data;
 }`;
 nstructjs.register(CollectionProperty);

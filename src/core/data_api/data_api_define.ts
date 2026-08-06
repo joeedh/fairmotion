@@ -1,52 +1,59 @@
 "use strict";
-import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
-import type {BoundConstructor, CallbackThis} from '../../path.ux/scripts/pathux.js';
-import {BlockClasses, DataTypes} from '../lib_api.js';
-import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
-import {ImageFlags, Image, ImageUser} from '../imageblock.js';
-import {AppSettings} from '../UserSettings.js';
-import {FullContext} from "../context.js";
-import {SplineToolMode} from '../../editors/viewport/toolmodes/splinetool.js';
-import {SessionFlags} from '../../editors/viewport/view2d_base.js';
+import { DataAPI, buildToolSysAPI } from "../../path.ux/scripts/pathux.js";
+import type { BoundConstructor, CallbackThis } from "../../path.ux/scripts/pathux.js";
+import { BlockClasses, DataTypes } from "../lib_api.js";
+import { EditModes, View2DHandler } from "../../editors/viewport/view2d.js";
+import { ImageFlags, Image, ImageUser } from "../imageblock.js";
+import { AppSettings } from "../UserSettings.js";
+import { FullContext } from "../context.js";
+import { SplineToolMode } from "../../editors/viewport/toolmodes/splinetool.js";
+import { SessionFlags } from "../../editors/viewport/view2d_base.js";
 
-import {VertexAnimData} from "../frameset.js";
-import {SplineLayer} from "../../curve/spline_element_array.js";
+import { VertexAnimData } from "../frameset.js";
+import { SplineLayer } from "../../curve/spline_element_array.js";
 
 import {
-  EnumProperty, FlagProperty,
-  FloatProperty, StringProperty,
-  BoolProperty, Vec2Property,
+  EnumProperty,
+  FlagProperty,
+  FloatProperty,
+  StringProperty,
+  BoolProperty,
+  Vec2Property,
   DataRefProperty,
-  Vec3Property, Vec4Property, IntProperty,
-  TPropFlags, PropTypes, PropSubTypes
-} from '../toolprops.js';
+  Vec3Property,
+  Vec4Property,
+  IntProperty,
+  TPropFlags,
+  PropTypes,
+  PropSubTypes,
+} from "../toolprops.js";
 
-import {ModalStates} from '../toolops_api.js';
+import { ModalStates } from "../toolops_api.js";
 
-import {SplineFlags, MaterialFlags, SplineTypes} from '../../curve/spline_base.js';
-import {SelMask, ToolModes} from '../../editors/viewport/selectmode.js';
-import {Unit} from '../units.js';
+import { SplineFlags, MaterialFlags, SplineTypes } from "../../curve/spline_base.js";
+import { SelMask, ToolModes } from "../../editors/viewport/selectmode.js";
+import { Unit } from "../units.js";
 
-import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
-import {OpStackEditor} from '../../editors/ops/ops_editor.js';
+import { ExtrudeModes } from "../../editors/viewport/spline_createops.js";
+import { OpStackEditor } from "../../editors/ops/ops_editor.js";
 
-import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
-import {VDAnimFlags, SplineFrameSet} from '../frameset.js';
+import { AnimKeyFlags, AnimInterpModes, AnimKey } from "../animdata.js";
+import { VDAnimFlags, SplineFrameSet } from "../frameset.js";
 
-import {SplineLayerFlags} from '../../curve/spline_element_array.js';
-import type {ElementArray, SplineLayerSet} from '../../curve/spline_element_array.js';
-import {Material, SplineFace, SplineSegment, SplineVertex} from "../../curve/spline_types.js";
-import {CurveEditor} from "../../editors/curve/CurveEditor.js";
-import {SceneObject} from "../../scene/sceneobject.js";
-import {DopeSheetEditor} from "../../editors/dopesheet/DopeSheetEditor.js";
-import {SettingsEditor} from "../../editors/settings/SettingsEditor.js";
-import {Scene} from "../../scene/scene.js";
-import type {ObjectList} from "../../scene/scene.js";
-import type {ToolOp} from '../toolops_api.js';
-import {Icons} from '../../datafiles/icon_enum.js';
-import {Spline} from "../../curve/spline.js";
-import {DataLib, DataBlock, DataList} from "../lib_api.js";
-import {initToolModeAPI} from '../../editors/viewport/toolmodes/toolmode.js';
+import { SplineLayerFlags } from "../../curve/spline_element_array.js";
+import type { ElementArray, SplineLayerSet } from "../../curve/spline_element_array.js";
+import { Material, SplineFace, SplineSegment, SplineVertex } from "../../curve/spline_types.js";
+import { CurveEditor } from "../../editors/curve/CurveEditor.js";
+import { SceneObject } from "../../scene/sceneobject.js";
+import { DopeSheetEditor } from "../../editors/dopesheet/DopeSheetEditor.js";
+import { SettingsEditor } from "../../editors/settings/SettingsEditor.js";
+import { Scene } from "../../scene/scene.js";
+import type { ObjectList } from "../../scene/scene.js";
+import type { ToolOp } from "../toolops_api.js";
+import { Icons } from "../../datafiles/icon_enum.js";
+import { Spline } from "../../curve/spline.js";
+import { DataLib, DataBlock, DataList } from "../lib_api.js";
+import { initToolModeAPI } from "../../editors/viewport/toolmodes/toolmode.js";
 
 export function makeAPI(api = new DataAPI<FullContext>()) {
   var FullContextStruct = api.mapStruct(FullContext, true);
@@ -54,11 +61,36 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
 
   function api_define_FullContext(api: DataAPI) {
     FullContextStruct.struct("view2d", "view2d", "undefined", api.mapStruct(View2DHandler, true));
-    FullContextStruct.struct("dopesheet", "dopesheet", "undefined", api.mapStruct(DopeSheetEditor, true));
-    FullContextStruct.struct("editcurve", "editcurve", "undefined", api.mapStruct(CurveEditor, true));
-    FullContextStruct.struct("frameset", "frameset", "undefined", api.mapStruct(SplineFrameSet, true));
-    FullContextStruct.struct("settings_editor", "settings_editor", "undefined", api.mapStruct(SettingsEditor, true));
-    FullContextStruct.struct("appstate.session.settings", "settings", "undefined", api.mapStruct(AppSettings, true));
+    FullContextStruct.struct(
+      "dopesheet",
+      "dopesheet",
+      "undefined",
+      api.mapStruct(DopeSheetEditor, true)
+    );
+    FullContextStruct.struct(
+      "editcurve",
+      "editcurve",
+      "undefined",
+      api.mapStruct(CurveEditor, true)
+    );
+    FullContextStruct.struct(
+      "frameset",
+      "frameset",
+      "undefined",
+      api.mapStruct(SplineFrameSet, true)
+    );
+    FullContextStruct.struct(
+      "settings_editor",
+      "settings_editor",
+      "undefined",
+      api.mapStruct(SettingsEditor, true)
+    );
+    FullContextStruct.struct(
+      "appstate.session.settings",
+      "settings",
+      "undefined",
+      api.mapStruct(AppSettings, true)
+    );
     FullContextStruct.struct("object", "object", "undefined", api.mapStruct(SceneObject, true));
     FullContextStruct.struct("scene", "scene", "undefined", api.mapStruct(Scene, true));
     FullContextStruct.struct("last_tool", "last_tool", "undefined", undefined);
@@ -102,68 +134,97 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
     ]);
     FullContextStruct.struct("spline", "spline", "undefined", api.mapStruct(Spline, true));
     FullContextStruct.struct("datalib", "datalib", "undefined", api.mapStruct(DataLib, true));
-    FullContextStruct.struct("opseditor", "opseditor", "undefined", api.mapStruct(OpStackEditor, true));
-    FullContextStruct.dynamicStruct("toolmode", "active_tool", "undefined", api.mapStruct(SplineToolMode, true));
+    FullContextStruct.struct(
+      "opseditor",
+      "opseditor",
+      "undefined",
+      api.mapStruct(OpStackEditor, true)
+    );
+    FullContextStruct.dynamicStruct(
+      "toolmode",
+      "active_tool",
+      "undefined",
+      api.mapStruct(SplineToolMode, true)
+    );
   }
 
   var View2DHandlerStruct = api.mapStruct(View2DHandler, true);
 
   function api_define_View2DHandler(api: DataAPI) {
-    View2DHandlerStruct.float("propradius", "propradius", "Magnet Radius").range(0.1, 1024).step(0.5).expRate(1.75).decimalPlaces(2);
-    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function () {
+    View2DHandlerStruct.float("propradius", "propradius", "Magnet Radius")
+      .range(0.1, 1024)
+      .step(0.5)
+      .expRate(1.75)
+      .decimalPlaces(2);
+    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on(
+      "change",
+      function () {
+        redraw_viewport();
+      }
+    );
+    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "Half Resolution").icon(
+      Icons.HALF_PIXEL_SIZE
+    );
+
+    View2DHandlerStruct.bool("draw_tiled", "draw_tiled", "Draw Tiles").on("change", function () {
       redraw_viewport();
     });
-    View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "Half Resolution")
-      .icon(Icons.HALF_PIXEL_SIZE);
 
-    View2DHandlerStruct.bool("draw_tiled", "draw_tiled", "Draw Tiles")
-      .on('change', function () {
-        redraw_viewport();
-      });
-
-    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function () {
-      window.redraw_viewport();
-    });
+    View2DHandlerStruct.color4("background_color", "background_color", "Background").on(
+      "change",
+      function () {
+        window.redraw_viewport();
+      }
+    );
     View2DHandlerStruct.color4("default_stroke", "default_stroke", "Stroke");
     View2DHandlerStruct.color4("default_fill", "default_fill", "Fill");
-    View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames({
-      SELECT: "Select",
-      APPEND: "Append",
-      RESIZE: "Resize",
-      ROTATE: "Rotate",
-      PEN   : "Pen"
-    }).descriptions({
-      SELECT: "Select",
-      APPEND: "Append",
-      RESIZE: "Resize",
-      ROTATE: "Rotate",
-      PEN   : "Pen"
-    }).icons({
-      SELECT: Icons.CURSOR_ARROW,
-      APPEND: Icons.APPEND_VERTEX,
-      RESIZE: Icons.RESIZE,
-      ROTATE: Icons.ROTATE,
-      PEN   : Icons.PEN_TOOL
-    });
-    View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points")
-      .icon(Icons.DRAW_SMALL_VERTS);
-    View2DHandlerStruct.enum("selectmode", "selectmode", {
-      VERTEX : SelMask.VERTEX,
-      SEGMENT: SelMask.SEGMENT,
-      FACE   : SelMask.FACE,
-      OBJECT : SelMask.OBJECT
-    }, "Selection Mode")
+    View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool")
+      .uiNames({
+        SELECT: "Select",
+        APPEND: "Append",
+        RESIZE: "Resize",
+        ROTATE: "Rotate",
+        PEN   : "Pen",
+      })
+      .descriptions({
+        SELECT: "Select",
+        APPEND: "Append",
+        RESIZE: "Resize",
+        ROTATE: "Rotate",
+        PEN   : "Pen",
+      })
+      .icons({
+        SELECT: Icons.CURSOR_ARROW,
+        APPEND: Icons.APPEND_VERTEX,
+        RESIZE: Icons.RESIZE,
+        ROTATE: Icons.ROTATE,
+        PEN   : Icons.PEN_TOOL,
+      });
+    View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points").icon(
+      Icons.DRAW_SMALL_VERTS
+    );
+    View2DHandlerStruct.enum(
+      "selectmode",
+      "selectmode",
+      {
+        VERTEX : SelMask.VERTEX,
+        SEGMENT: SelMask.SEGMENT,
+        FACE   : SelMask.FACE,
+        OBJECT : SelMask.OBJECT,
+      },
+      "Selection Mode"
+    )
       .uiNames({
         VERTEX : "Vertex",
         SEGMENT: "Segment",
         FACE   : "Face",
-        OBJECT : "Object"
+        OBJECT : "Object",
       })
       .descriptions({
         VERTEX : "Vertex",
         SEGMENT: "Segment",
         FACE   : "Face",
-        OBJECT : "Object"
+        OBJECT : "Object",
       })
       .icons({
         VERTEX : Icons.VERT_MODE,
@@ -172,139 +233,193 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
         OBJECT : Icons.OBJECT_MODE,
         HANDLE : Icons.SHOW_HANDLES,
       })
-      .customGetSet(function () {
-        return this.ctx.scene.selectmode;
-      }, function (val) {
-        let scene = this.ctx.scene;
+      .customGetSet(
+        function () {
+          return this.ctx.scene.selectmode;
+        },
+        function (val) {
+          let scene = this.ctx.scene;
 
-        console.log("selmask_enum.userSetData", scene, val);
-        scene.selectmode = val | (scene.selectmode & SelMask.HANDLE);
-      });
+          console.log("selmask_enum.userSetData", scene, val);
+          scene.selectmode = val | (scene.selectmode & SelMask.HANDLE);
+        }
+      );
 
-    View2DHandlerStruct.bool("draw_stroke_debug", "draw_stroke_debug", "Stroke Debug")
-      .on('change', function () {
+    View2DHandlerStruct.bool("draw_stroke_debug", "draw_stroke_debug", "Stroke Debug").on(
+      "change",
+      function () {
         this.ctx.spline.regen_sort();
         this.ctx.spline.regen_render();
 
         window.redraw_viewport();
-      });
+      }
+    );
 
-    View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames({
-      VERTEX  : "Vertex",
-      HANDLE  : "Handle",
-      SEGMENT : "Segment",
-      FACE    : "Face",
-      TOPOLOGY: "Topology",
-      OBJECT  : "Object"
-    }).descriptions({
-      VERTEX  : "Vertex",
-      HANDLE  : "Handle",
-      SEGMENT : "Segment",
-      FACE    : "Face",
-      TOPOLOGY: "Topology",
-      OBJECT  : "Object"
-    }).icons({
-      1      : Icons.VERT_MODE,
-      2      : Icons.SHOW_HANDLES,
-      4      : Icons.EDGE_MODE,
-      16     : Icons.FACE_MODE,
-      32     : Icons.OBJECT_MODE,
-      VERTEX : Icons.VERT_MODE,
-      HANDLE : Icons.SHOW_HANDLES,
-      SEGMENT: Icons.EDGE_MODE,
-      FACE   : Icons.FACE_MODE,
-      OBJECT : Icons.OBJECT_MODE
-    }).on("change", function () {
-      window.redraw_viewport();
-    });
-    View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls")
-      .icon(Icons.ONLY_RENDER);
-    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image")
+    View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]")
+      .uiNames({
+        VERTEX  : "Vertex",
+        HANDLE  : "Handle",
+        SEGMENT : "Segment",
+        FACE    : "Face",
+        TOPOLOGY: "Topology",
+        OBJECT  : "Object",
+      })
+      .descriptions({
+        VERTEX  : "Vertex",
+        HANDLE  : "Handle",
+        SEGMENT : "Segment",
+        FACE    : "Face",
+        TOPOLOGY: "Topology",
+        OBJECT  : "Object",
+      })
+      .icons({
+        1      : Icons.VERT_MODE,
+        2      : Icons.SHOW_HANDLES,
+        4      : Icons.EDGE_MODE,
+        16     : Icons.FACE_MODE,
+        32     : Icons.OBJECT_MODE,
+        VERTEX : Icons.VERT_MODE,
+        HANDLE : Icons.SHOW_HANDLES,
+        SEGMENT: Icons.EDGE_MODE,
+        FACE   : Icons.FACE_MODE,
+        OBJECT : Icons.OBJECT_MODE,
+      })
       .on("change", function () {
         window.redraw_viewport();
       });
-    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames({
-      PROP_TRANSFORM: "Prop Transform"
-    }).descriptions({
-      PROP_TRANSFORM: "Prop Transform"
-    }).icons({
-      1             : Icons.PROP_TRANSFORM,
-      PROP_TRANSFORM: Icons.PROP_TRANSFORM
-    });
-    View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode")
-      .icon(Icons.CURSOR_ARROW);
-    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function () {
-      this.dataref.ctx.spline.regen_sort();
-      redraw_viewport();
-    })
+    View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls").icon(Icons.ONLY_RENDER);
+    View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on(
+      "change",
+      function () {
+        window.redraw_viewport();
+      }
+    );
+    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags")
+      .uiNames({
+        PROP_TRANSFORM: "Prop Transform",
+      })
+      .descriptions({
+        PROP_TRANSFORM: "Prop Transform",
+      })
+      .icons({
+        1             : Icons.PROP_TRANSFORM,
+        PROP_TRANSFORM: Icons.PROP_TRANSFORM,
+      });
+    View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode").icon(Icons.CURSOR_ARROW);
+    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur")
+      .on("change", function () {
+        this.dataref.ctx.spline.regen_sort();
+        redraw_viewport();
+      })
       .icon(Icons.ENABLE_BLUR);
-    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function () {
-      this.dataref.ctx.spline.regen_sort();
-      redraw_viewport();
-    })
+    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces")
+      .on("change", function () {
+        this.dataref.ctx.spline.regen_sort();
+        redraw_viewport();
+      })
       .icon(Icons.MAKE_POLYGON);
     View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function () {
       window.redraw_viewport();
     });
-    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function () {
-      redraw_viewport();
-    })
+    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals")
+      .on("change", function () {
+        redraw_viewport();
+      })
       .icon(Icons.DRAW_NORMALS);
-    View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths")
-      .icon(Icons.SHOW_ANIMPATHS);
-    View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3)
-      .customGetSet(function () {
-        if (!this.dataref) {
-          return 0;
+    View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths").icon(
+      Icons.SHOW_ANIMPATHS
+    );
+    View2DHandlerStruct.float("zoom", "zoom", "Zoom")
+      .range(0.1, 100)
+      .uiRange(0.1, 100)
+      .step(0.1)
+      .expRate(1.2)
+      .decimalPlaces(3)
+      .customGetSet(
+        function () {
+          if (!this.dataref) {
+            return 0;
+          }
+          return this.dataref.zoom;
+        },
+        function (val) {
+          if (this.dataref) {
+            this.dataref.set_zoom(val);
+          }
         }
-        return this.dataref.zoom;
-      }, function (val) {
-        if (this.dataref) {
-          this.dataref.set_zoom(val);
-        }
-      });
+      );
 
-    View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
-    View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);
-    View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames({
-      SMOOTH     : "Smooth",
-      LESS_SMOOTH: "Less Smooth",
-      BROKEN     : "Broken"
-    }).descriptions({
-      SMOOTH     : "New Line Mode",
-      LESS_SMOOTH: "New Line Mode",
-      BROKEN     : "New Line Mode"
-    }).icons({
-      SMOOTH     : Icons.EXTRUDE_MODE_G2,
-      LESS_SMOOTH: Icons.EXTRUDE_MODE_G1,
-      BROKEN     : Icons.EXTRUDE_MODE_G0
-    });
+    View2DHandlerStruct.struct(
+      "active_material",
+      "active_material",
+      "undefined",
+      api.mapStruct(Material, true)
+    );
+    View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid")
+      .range(0.01, 100)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
+    View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode")
+      .uiNames({
+        SMOOTH     : "Smooth",
+        LESS_SMOOTH: "Less Smooth",
+        BROKEN     : "Broken",
+      })
+      .descriptions({
+        SMOOTH     : "New Line Mode",
+        LESS_SMOOTH: "New Line Mode",
+        BROKEN     : "New Line Mode",
+      })
+      .icons({
+        SMOOTH     : Icons.EXTRUDE_MODE_G2,
+        LESS_SMOOTH: Icons.EXTRUDE_MODE_G1,
+        BROKEN     : Icons.EXTRUDE_MODE_G0,
+      });
     View2DHandlerStruct.bool("pin_paths", "pin_paths", "Pin Paths");
-    View2DHandlerStruct.struct("background_image", "background_image", "undefined", api.mapStruct(ImageUser, true));
+    View2DHandlerStruct.struct(
+      "background_image",
+      "background_image",
+      "undefined",
+      api.mapStruct(ImageUser, true)
+    );
   }
 
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api: DataAPI) {
-    function prop_update(this : CallbackThis<Material, FullContext>) {
+    function prop_update(this: CallbackThis<Material, FullContext>) {
       this.dataref.update(this.ctx.spline);
 
       window.redraw_viewport();
     }
 
-    MaterialStruct.color4("fillcolor", "fillcolor", "fill")
+    MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", prop_update);
+    MaterialStruct.float("linewidth", "linewidth", "linewidth")
+      .noUnits()
+      .range(0.1, 2500)
+      .step(0.25)
+      .expRate(1.75)
+      .decimalPlaces(4)
+      .range(0, 10000)
       .on("change", prop_update);
-    MaterialStruct.float("linewidth", "linewidth", "linewidth").noUnits().range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).range(0, 10000)
+    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2")
+      .noUnits()
+      .step(0.25)
+      .expRate(1.75)
+      .decimalPlaces(4)
+      .range(0.0, 10000.0)
       .on("change", prop_update);
-    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").noUnits().step(0.25).expRate(1.75).decimalPlaces(4).range(0.0, 10000.0)
-      .on("change", prop_update);
-    MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
-      SELECT      : "Select",
-      MASK_TO_FACE: "Mask To Face"
-    }).descriptions({
-      SELECT      : "Select",
-      MASK_TO_FACE: "Mask To Face"
-    }).icons(DataTypes)
+    MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags")
+      .uiNames({
+        SELECT      : "Select",
+        MASK_TO_FACE: "Mask To Face",
+      })
+      .descriptions({
+        SELECT      : "Select",
+        MASK_TO_FACE: "Mask To Face",
+      })
+      .icons(DataTypes)
       .on("change", function (newval, oldval) {
         //console.log(newval, oldval, this, this.dataref);
 
@@ -313,10 +428,17 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
         window.redraw_viewport();
       });
     MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", prop_update);
-    MaterialStruct.float("blur", "blur", "Blur").noUnits().step(0.5).expRate(1.33).decimalPlaces(4).range(0, 10000)
+    MaterialStruct.float("blur", "blur", "Blur")
+      .noUnits()
+      .step(0.5)
+      .expRate(1.33)
+      .decimalPlaces(4)
+      .range(0, 10000)
       .on("change", prop_update);
-    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke")
-      .on("change", prop_update);
+    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on(
+      "change",
+      prop_update
+    );
   }
 
   var ImageStruct = api.mapStruct(Image, true);
@@ -335,12 +457,13 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
 
     ImageUserStruct.vec2("off", "off", "Offset")
       .range(-10000, 10000)
-      .baseUnit("pixel").displayUnit("pixel")
+      .baseUnit("pixel")
+      .displayUnit("pixel")
       .step(2)
       .slideSpeed(3.0)
       .expRate(1.75)
       .decimalPlaces(1)
-      .on('change', image_update);
+      .on("change", image_update);
 
     ImageUserStruct.vec2("scale", "scale", "Scale")
       .range(0.0001, 90)
@@ -349,7 +472,7 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
       .expRate(1.33)
       .slideSpeed(1.5)
       .decimalPlaces(3)
-      .on('change', image_update);
+      .on("change", image_update);
 
     ImageUserStruct.struct("image", "image", "image", ImageStruct);
   }
@@ -357,18 +480,26 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
   var DopeSheetEditorStruct = api.mapStruct(DopeSheetEditor, true);
 
   function api_define_DopeSheetEditor(api: DataAPI) {
-    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function () {
-      /* NOTE: this called (function (owner) {owner.rebuild()}).call(this.dataref, old),
+    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on(
+      "change",
+      function () {
+        /* NOTE: this called (function (owner) {owner.rebuild()}).call(this.dataref, old),
          which binds `owner` to the changed value rather than to the editor, so it
          threw every time the checkbox was toggled. */
-      this.dataref.rebuild();
-    });
+        this.dataref.rebuild();
+      }
+    );
     DopeSheetEditorStruct.bool("pinned", "pinned", "Pin");
-    DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function () {
-      /* NOTE: same defect as selected_only above -- `owner` was the new
+    DopeSheetEditorStruct.float("timescale", "timescale", "timescale")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
+      .on("change", function () {
+        /* NOTE: same defect as selected_only above -- `owner` was the new
          timescale, not the editor. */
-      this.dataref.updateKeyPositions();
-    });
+        this.dataref.updateKeyPositions();
+      });
   }
 
   var CurveEditorStruct = api.mapStruct(CurveEditor, true);
@@ -386,19 +517,19 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
 
   function api_define_SplineFrameSet(api: DataAPI) {
     SplineFrameSetStruct.list("lib_anim_idmap", "animkeys", [
-      function getIter(api: DataAPI, list: {[id: int]: object}) {
+      function getIter(api: DataAPI, list: { [id: int]: object }) {
         return new obj_value_iter(list);
       },
-      function get(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function get(api: DataAPI, list: { [id: int]: object }, key: int) {
         console.log("get key", key, list);
         return list[key];
       },
-      function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function getStruct(api: DataAPI, list: { [id: int]: object }, key: int) {
         /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
            so walking any of the three animkeys lists threw. */
         return AnimKeyStruct;
       },
-      function getLength(api: DataAPI, list: {[id: int]: object}) {
+      function getLength(api: DataAPI, list: { [id: int]: object }) {
         var tot = 0.0;
         for (var k in list) {
           tot++;
@@ -413,9 +544,14 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
           }*/
     ]);
     SplineFrameSetStruct.struct("spline", "drawspline", "undefined", api.mapStruct(Spline, true));
-    SplineFrameSetStruct.struct("pathspline", "pathspline", "undefined", api.mapStruct(Spline, true));
+    SplineFrameSetStruct.struct(
+      "pathspline",
+      "pathspline",
+      "undefined",
+      api.mapStruct(Spline, true)
+    );
     SplineFrameSetStruct.list("vertex_animdata", "keypaths", [
-      function getIter(api: DataAPI, list: {[eid: int]: VertexAnimData}) {
+      function getIter(api: DataAPI, list: { [eid: int]: VertexAnimData }) {
         let list2 = list;
         return (function* () {
           for (let k in list2) {
@@ -423,14 +559,14 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
           }
         })();
       },
-      function get(api: DataAPI, list: {[eid: int]: VertexAnimData}, key: int) {
+      function get(api: DataAPI, list: { [eid: int]: VertexAnimData }, key: int) {
         return list[key];
       },
-      function getStruct(api: DataAPI, list: {[eid: int]: VertexAnimData}, key: int) {
+      function getStruct(api: DataAPI, list: { [eid: int]: VertexAnimData }, key: int) {
         /* NOTE: was a free `animdata_struct`, never declared. */
         return VertexAnimDataStruct;
       },
-      function getLength(api: DataAPI, list: {[eid: int]: VertexAnimData}) {
+      function getLength(api: DataAPI, list: { [eid: int]: VertexAnimData }) {
         let i = 0;
         for (let k in list) {
           i++;
@@ -449,26 +585,31 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
               return "["+key+"]";
             }*/
     ]);
-    SplineFrameSetStruct.struct("active_animdata", "active_keypath", "undefined", api.mapStruct(VertexAnimData, true));
+    SplineFrameSetStruct.struct(
+      "active_animdata",
+      "active_keypath",
+      "undefined",
+      api.mapStruct(VertexAnimData, true)
+    );
   }
 
   var SplineStruct = api.mapStruct(Spline, true);
 
   function api_define_Spline(api: DataAPI) {
     SplineStruct.list("lib_anim_idmap", "animkeys", [
-      function getIter(api: DataAPI, list: {[id: int]: object}) {
+      function getIter(api: DataAPI, list: { [id: int]: object }) {
         return new obj_value_iter(list);
       },
-      function get(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function get(api: DataAPI, list: { [id: int]: object }, key: int) {
         console.log("get key", key, list);
         return list[key];
       },
-      function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function getStruct(api: DataAPI, list: { [id: int]: object }, key: int) {
         /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
            so walking any of the three animkeys lists threw. */
         return AnimKeyStruct;
       },
-      function getLength(api: DataAPI, list: {[id: int]: object}) {
+      function getLength(api: DataAPI, list: { [id: int]: object }) {
         var tot = 0.0;
         for (var k in list) {
           tot++;
@@ -482,9 +623,24 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
             return "["+key+"]";
           }*/
     ]);
-    SplineStruct.struct("faces.active", "active_face", "undefined", api.mapStruct(SplineFace, true));
-    SplineStruct.struct("segments.active", "active_segment", "undefined", api.mapStruct(SplineSegment, true));
-    SplineStruct.struct("verts.active", "active_vertex", "undefined", api.mapStruct(SplineVertex, true));
+    SplineStruct.struct(
+      "faces.active",
+      "active_face",
+      "undefined",
+      api.mapStruct(SplineFace, true)
+    );
+    SplineStruct.struct(
+      "segments.active",
+      "active_segment",
+      "undefined",
+      api.mapStruct(SplineSegment, true)
+    );
+    SplineStruct.struct(
+      "verts.active",
+      "active_vertex",
+      "undefined",
+      api.mapStruct(SplineVertex, true)
+    );
     SplineStruct.list("faces", "faces", [
       function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
         return list[Symbol.iterator]();
@@ -640,68 +796,76 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "editable_segments", [
-      function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
-        return list.editable(g_app_state.ctx)[Symbol.iterator]();
-      },
-      function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return list.local_idmap[key];
-      },
-      function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return SplineSegmentStruct;
-      },
-      function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
-        return obj.eid;
-      },
-      function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
-        let len = 0;
-        for (let e of list.editable(g_app_state.ctx)) {
-          len++;
-        }
-        return len;
-      },
-      /*function getkeyiter(ctx) {
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "editable_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return SplineSegmentStruct;
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
               var keys=new GArray();
               for (let e of this.editable(ctx)) {
                   keys.push(e.eid);
               }
               return keys;
             }*/
-      /*function itempath(key) {
+        /*function itempath(key) {
               return ".local_idmap["+key+"]";
             }*/
-    ]);
-    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "editable_selected_segments", [
-      function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
-        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
-      },
-      function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return list.local_idmap[key];
-      },
-      function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return SplineSegmentStruct;
-      },
-      function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
-        return obj.eid;
-      },
-      function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
-        let len = 0;
-        for (let e of list.selected.editable(g_app_state.ctx)) {
-          len++;
-        }
-        return len;
-      },
-      /*function getkeyiter(ctx) {
+      ]
+    );
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "editable_selected_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return SplineSegmentStruct;
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.selected.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
               var keys=new GArray();
               for (let e of this.editable(ctx)) {
                   keys.push(e.eid);
               }
               return keys;
             }*/
-      /*function itempath(key) {
+        /*function itempath(key) {
               return ".local_idmap["+key+"]";
             }*/
-    ]);
+      ]
+    );
     SplineStruct.list("verts", "editable_verts", [
       function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
         return list.editable(g_app_state.ctx)[Symbol.iterator]();
@@ -795,37 +959,41 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "selected_segments", [
-      function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
-        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
-      },
-      function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return list.local_idmap[key];
-      },
-      function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
-        return SplineSegmentStruct;
-      },
-      function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
-        return obj.eid;
-      },
-      function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
-        let len = 0;
-        for (let e of list.selected.editable(g_app_state.ctx)) {
-          len++;
-        }
-        return len;
-      },
-      /*function getkeyiter(ctx) {
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "selected_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return SplineSegmentStruct;
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.selected.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
               var keys=new GArray();
               for (let e of this.editable(ctx)) {
                   keys.push(e.eid);
               }
               return keys;
             }*/
-      /*function itempath(key) {
+        /*function itempath(key) {
               return ".local_idmap["+key+"]";
             }*/
-    ]);
+      ]
+    );
     SplineStruct.list("verts", "selected_verts", [
       function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
         return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
@@ -916,66 +1084,81 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
             return ".idmap["+key+"]";
           }*/
     ]);
-    SplineStruct.struct("layerset.active", "active_layer", "undefined", api.mapStruct(SplineLayer, true));
+    SplineStruct.struct(
+      "layerset.active",
+      "active_layer",
+      "undefined",
+      api.mapStruct(SplineLayer, true)
+    );
   }
 
   var SplineFaceStruct = api.mapStruct(SplineFace, true);
 
   function api_define_SplineFace(api: DataAPI) {
-    SplineFaceStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
+    SplineFaceStruct.int("eid", "eid", "eid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
     SplineFaceStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
-    SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Break Curvatures",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).descriptions({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).icons({
-      2               : Icons.EXTRUDE_MODE_G0,
-      32              : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
-    });
+    SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags")
+      .uiNames({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Break Curvatures",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .descriptions({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .icons({
+        2               : Icons.EXTRUDE_MODE_G0,
+        32              : Icons.EXTRUDE_MODE_G1,
+        BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+        BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1,
+      });
   }
 
   var SplineSegmentStruct = api.mapStruct(SplineSegment, true);
 
   function api_define_SplineSegment(api: DataAPI) {
-    SplineSegmentStruct.bool("editable", "editable", "Element is visible and can be edited").customGet(function () {
+    SplineSegmentStruct.bool(
+      "editable",
+      "editable",
+      "Element is visible and can be edited"
+    ).customGet(function () {
       let seg = this.dataref;
       //XXX mass set path code will sometimes set
       //this.ctx to seg.
@@ -999,7 +1182,7 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
       return ok;
     });
 
-    let segment_update = function (this : CallbackThis<SplineSegment, FullContext>) {
+    let segment_update = function (this: CallbackThis<SplineSegment, FullContext>) {
       let segment = this.dataref;
       segment.mat.update();
 
@@ -1009,141 +1192,193 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
 
       g_app_state.ctx.spline.regen_sort();
       window.redraw_viewport();
-    }
+    };
 
-    SplineSegmentStruct.float("w1", "w1", "w1").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+    SplineSegmentStruct.float("w1", "w1", "w1")
+      .range(0.001, 10000)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
       .on("change", segment_update);
-    SplineSegmentStruct.float("w2", "w2", "w2").range(0.001, 10000).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+    SplineSegmentStruct.float("w2", "w2", "w2")
+      .range(0.001, 10000)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
       .on("change", segment_update);
-    SplineSegmentStruct.float("shift1", "shift1", "shift1").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+    SplineSegmentStruct.float("shift1", "shift1", "shift1")
+      .range(-100, 100)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
       .on("change", segment_update);
-    SplineSegmentStruct.float("shift2", "shift2", "shift2").range(-100, 100).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+    SplineSegmentStruct.float("shift2", "shift2", "shift2")
+      .range(-100, 100)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
       .on("change", segment_update);
-    SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
-    SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Break Curvatures",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).descriptions({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).icons({
-      2               : Icons.EXTRUDE_MODE_G0,
-      32              : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
-    }).on("change", function (old) {
-      let segment = this.dataref;
+    SplineSegmentStruct.int("eid", "eid", "eid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags")
+      .uiNames({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Break Curvatures",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .descriptions({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .icons({
+        2               : Icons.EXTRUDE_MODE_G0,
+        32              : Icons.EXTRUDE_MODE_G1,
+        BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+        BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1,
+      })
+      .on("change", function (old) {
+        let segment = this.dataref;
 
-      segment.flag |= SplineFlags.REDRAW;
+        segment.flag |= SplineFlags.REDRAW;
 
-      this.ctx.spline.regen_sort();
-      window.redraw_viewport();
-    });
+        this.ctx.spline.regen_sort();
+        window.redraw_viewport();
+      });
     SplineSegmentStruct.bool("renderable", "renderable", "renderable");
     SplineSegmentStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
-    SplineSegmentStruct.float("z", "z", "z").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
+    SplineSegmentStruct.float("z", "z", "z")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
   }
 
   var SplineVertexStruct = api.mapStruct(SplineVertex, true);
 
   function api_define_SplineVertex(api: DataAPI) {
-    SplineVertexStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
-    SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Break Curvatures",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).descriptions({
-      SELECT            : "Select",
-      BREAK_TANGENTS    : "Break Tangents",
-      USE_HANDLES       : "Use Handles",
-      UPDATE            : "Update",
-      TEMP_TAG          : "Temp Tag",
-      BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
-      HIDE              : "Hide",
-      FRAME_DIRTY       : "Frame Dirty",
-      PINNED            : "Pinned",
-      NO_RENDER         : "No Render",
-      AUTO_PAIRED_HANDLE: "Auto Paired Handle",
-      UPDATE_AABB       : "Update Aabb",
-      DRAW_TEMP         : "Draw Temp",
-      GHOST             : "Ghost",
-      UI_SELECT         : "Ui Select",
-      FIXED_KS          : "Fixed Ks",
-      REDRAW_PRE        : "Redraw Pre",
-      REDRAW            : "Redraw",
-      COINCIDENT        : "Coincident"
-    }).icons({
-      2               : Icons.EXTRUDE_MODE_G0,
-      32              : Icons.EXTRUDE_MODE_G1,
-      BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
-      BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
-    }).on("change", function (old) {
-      this.ctx.spline.regen_sort();
+    SplineVertexStruct.int("eid", "eid", "eid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags")
+      .uiNames({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Break Curvatures",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .descriptions({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .icons({
+        2               : Icons.EXTRUDE_MODE_G0,
+        32              : Icons.EXTRUDE_MODE_G1,
+        BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+        BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1,
+      })
+      .on("change", function (old) {
+        this.ctx.spline.regen_sort();
 
-      if (this.dataref !== undefined) {
-        this.dataref.flag |= SplineFlags.UPDATE;
-      }
+        if (this.dataref !== undefined) {
+          this.dataref.flag |= SplineFlags.UPDATE;
+        }
 
-      //this.ctx.spline.propagate_update_flags();
-      this.ctx.spline.resolve = 1;
-      window.redraw_viewport();
-    });
-    SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.75).expRate(2.5).decimalPlaces(4).on("change", function (old) {
-      this.dataref.flag |= SplineFlags.REDRAW;
-      window.redraw_viewport();
-    });
-    SplineVertexStruct.float("shift", "shift", "shift").range(-5, 5).noUnits().step(0.1).expRate(1.33).decimalPlaces(4)
+        //this.ctx.spline.propagate_update_flags();
+        this.ctx.spline.resolve = 1;
+        window.redraw_viewport();
+      });
+    SplineVertexStruct.vec3("", "co", "Co")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
+    SplineVertexStruct.float("width", "width", "width")
+      .range(-50, 200)
+      .step(0.75)
+      .expRate(2.5)
+      .decimalPlaces(4)
+      .on("change", function (old) {
+        this.dataref.flag |= SplineFlags.REDRAW;
+        window.redraw_viewport();
+      });
+    SplineVertexStruct.float("shift", "shift", "shift")
+      .range(-5, 5)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
       .on("change", function (old) {
         this.dataref.flag |= SplineFlags.REDRAW;
         window.redraw_viewport();
@@ -1153,106 +1388,137 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
   var SplineLayerStruct = api.mapStruct(SplineLayer, true);
 
   function api_define_SplineLayer(api: DataAPI) {
-    SplineLayerStruct.int("id", "id", "id").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
-    ;
-    SplineLayerStruct.flags("flag", "flag", SplineLayerFlags, "flag").uiNames({
-      8         : "Mask To Prev",
-      HIDE      : "Hide",
-      CAN_SELECT: "Can Select",
-      MASK      : "Mask"
-    }).descriptions({
-      MASK: "Use previous layer as a mask"
-    }).icons(DataTypes).on("change", function () {
-      window.redraw_viewport();
-    });
+    SplineLayerStruct.int("id", "id", "id")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    SplineLayerStruct.flags("flag", "flag", SplineLayerFlags, "flag")
+      .uiNames({
+        8         : "Mask To Prev",
+        HIDE      : "Hide",
+        CAN_SELECT: "Can Select",
+        MASK      : "Mask",
+      })
+      .descriptions({
+        MASK: "Use previous layer as a mask",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        window.redraw_viewport();
+      });
   }
 
   var VertexAnimDataStruct = api.mapStruct(VertexAnimData, true);
 
   function api_define_VertexAnimData(api: DataAPI) {
-    VertexAnimDataStruct.flags("animflag", "animflag", VDAnimFlags, "animflag").uiNames({
-      SELECT           : "Select",
-      STEP_FUNC        : "Step Func",
-      HIDE             : "Hide",
-      OWNER_IS_EDITABLE: "Owner Is Editable"
-    }).descriptions({
-      SELECT           : "Select",
-      STEP_FUNC        : "Step Func",
-      HIDE             : "Hide",
-      OWNER_IS_EDITABLE: "Owner Is Editable"
-    }).icons(DataTypes);
-    VertexAnimDataStruct.int("eid", "owning_vertex", "Owning Vertex").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
+    VertexAnimDataStruct.flags("animflag", "animflag", VDAnimFlags, "animflag")
+      .uiNames({
+        SELECT           : "Select",
+        STEP_FUNC        : "Step Func",
+        HIDE             : "Hide",
+        OWNER_IS_EDITABLE: "Owner Is Editable",
+      })
+      .descriptions({
+        SELECT           : "Select",
+        STEP_FUNC        : "Step Func",
+        HIDE             : "Hide",
+        OWNER_IS_EDITABLE: "Owner Is Editable",
+      })
+      .icons(DataTypes);
+    VertexAnimDataStruct.int("eid", "owning_vertex", "Owning Vertex")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
   }
 
   var SettingsEditorStruct = api.mapStruct(SettingsEditor, true);
 
-  function api_define_SettingsEditor(api: DataAPI) {
-  }
+  function api_define_SettingsEditor(api: DataAPI) {}
 
   var AppSettingsStruct = api.mapStruct(AppSettings, true);
 
   function api_define_AppSettings(api: DataAPI) {
-    AppSettingsStruct.enum("unit_scheme", "unit_system", {
-      imperial: "imperial",
-      metric  : "metric"
-    }, "System").uiNames({
-      imperial: "Imperial",
-      metric  : "Metric"
-    }).descriptions({
-      imperial: "Imperial",
-      metric  : "Metric"
-    }).icons(DataTypes).on("change", function () {
-      g_app_state.session.settings.save();
-    });
-    AppSettingsStruct.enum("unit", "default_unit", {
-      cm  : "cm",
-      "in": "in",
-      ft  : "ft",
-      m   : "m",
-      mm  : "mm",
-      km  : "km",
-      mile: "mile"
-    }, "Default Unit").descriptions({
-      cm  : "Cm",
-      "in": "In",
-      ft  : "Ft",
-      m   : "M",
-      mm  : "Mm",
-      km  : "Km",
-      mile: "Mile"
-    }).icons(DataTypes).on("change", function () {
-      g_app_state.session.settings.save();
-    });
+    AppSettingsStruct.enum(
+      "unit_scheme",
+      "unit_system",
+      {
+        imperial: "imperial",
+        metric  : "metric",
+      },
+      "System"
+    )
+      .uiNames({
+        imperial: "Imperial",
+        metric  : "Metric",
+      })
+      .descriptions({
+        imperial: "Imperial",
+        metric  : "Metric",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        g_app_state.session.settings.save();
+      });
+    AppSettingsStruct.enum(
+      "unit",
+      "default_unit",
+      {
+        cm  : "cm",
+        "in": "in",
+        ft  : "ft",
+        m   : "m",
+        mm  : "mm",
+        km  : "km",
+        mile: "mile",
+      },
+      "Default Unit"
+    )
+      .descriptions({
+        cm  : "Cm",
+        "in": "In",
+        ft  : "Ft",
+        m   : "M",
+        mm  : "Mm",
+        km  : "Km",
+        mile: "Mile",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        g_app_state.session.settings.save();
+      });
   }
 
   var SceneObjectStruct = api.mapStruct(SceneObject, true);
 
   function api_define_SceneObject(api: DataAPI) {
-    ;
     /* NOTE: SceneObject has no `ctx_bb`, so this path never resolves and the
        change callback that used to hang off it could never have fired.  It read
        ctx.mesh and ctx.object, neither of which exists on fairmotion's context,
        and has been dropped. */
-    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
+    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
   }
 
   var SceneStruct = api.mapStruct(Scene, true);
 
   function api_define_Scene(api: DataAPI) {
     SceneStruct.list("lib_anim_idmap", "animkeys", [
-      function getIter(api: DataAPI, list: {[id: int]: object}) {
+      function getIter(api: DataAPI, list: { [id: int]: object }) {
         return new obj_value_iter(list);
       },
-      function get(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function get(api: DataAPI, list: { [id: int]: object }, key: int) {
         console.log("get key", key, list);
         return list[key];
       },
-      function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
+      function getStruct(api: DataAPI, list: { [id: int]: object }, key: int) {
         /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
            so walking any of the three animkeys lists threw. */
         return AnimKeyStruct;
       },
-      function getLength(api: DataAPI, list: {[id: int]: object}) {
+      function getLength(api: DataAPI, list: { [id: int]: object }) {
         var tot = 0.0;
         for (var k in list) {
           tot++;
@@ -1266,8 +1532,10 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
             return "["+key+"]";
           }*/
     ]);
-    ;
-    SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5)
+    SceneStruct.int("time", "frame", "Frame")
+      .range(1, 10000)
+      .step(1)
+      .expRate(1.5)
       .on("change", function (old) {
         /* the "change" callback is fired with the value that was just set. */
         let time = this.dataref.time;
@@ -1299,7 +1567,12 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
             return ".object_idmap["+key+"]";
           }*/
     ]);
-    SceneStruct.struct("objects.active", "active_object", "undefined", api.mapStruct(SceneObject, true));
+    SceneStruct.struct(
+      "objects.active",
+      "active_object",
+      "undefined",
+      api.mapStruct(SceneObject, true)
+    );
   }
 
   var AppStateStruct = api.mapStruct(AppState, true);
@@ -1313,12 +1586,16 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
 
   function api_define_DataLib(api: DataAPI) {
     for (let cls of BlockClasses) {
-      DataLibStruct.struct(DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), api.mapStruct(DataList, true));
+      DataLibStruct.struct(
+        DataLib.getAccessorKey(cls),
+        DataLib.getAccessorKey(cls),
+        DataLib.getAccessorKey(cls),
+        api.mapStruct(DataList, true)
+      );
     }
 
     DataLibStruct.list<DataLib, string, DataBlock>("", "items", [
       function getIter(api: DataAPI, datalib: DataLib) {
-
         return (function* () {
           for (let list of datalib.datalists.values()) {
             for (let dblock of list) {
@@ -1344,33 +1621,35 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
         }
 
         return tot;
-      }
+      },
     ]);
   }
 
   var DataListStruct = api.mapStruct(DataList, true);
 
   function api_define_DataList(api: DataAPI) {
-    ;
-    DataListStruct.int("typeid", "typeid", "typeid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
+    DataListStruct.int("typeid", "typeid", "typeid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
     DataListStruct.list("idmap", "items", [
-      function getIter(api: DataAPI, list: {[lib_id: int]: DataBlock}) {
+      function getIter(api: DataAPI, list: { [lib_id: int]: DataBlock }) {
         let ret = [];
         for (var k in list) {
           ret.push(list[k]);
         }
         return ret[Symbol.iterator]();
       },
-      function get(api: DataAPI, list: {[lib_id: int]: DataBlock}, key: int) {
+      function get(api: DataAPI, list: { [lib_id: int]: DataBlock }, key: int) {
         return list[key];
       },
-      function getStruct(api: DataAPI, list: {[lib_id: int]: DataBlock}, key: int) {
+      function getStruct(api: DataAPI, list: { [lib_id: int]: DataBlock }, key: int) {
         /* NOTE: this read `datablock_structs[item.lib_type]`, neither of which
            was ever declared -- a ReferenceError.  DataLib's own items list
            (above) resolves the same thing by mapping the block's class. */
         return api.mapStruct(list[key].constructor as BoundConstructor, false);
       },
-      function getLength(api: DataAPI, list: {[lib_id: int]: DataBlock}) {
+      function getLength(api: DataAPI, list: { [lib_id: int]: DataBlock }) {
         let count = 0;
         for (let k in list) {
           count++;
@@ -1393,15 +1672,12 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
   var OpStackEditorStruct = api.mapStruct(OpStackEditor, true);
 
   function api_define_OpStackEditor(api: DataAPI) {
-    OpStackEditorStruct.bool("filter_sel", "filter_sel", "Filter Sel")
-      .icon(Icons.FILTER_SEL_OPS);
+    OpStackEditorStruct.bool("filter_sel", "filter_sel", "Filter Sel").icon(Icons.FILTER_SEL_OPS);
   }
 
   var SplineToolModeStruct = api.mapStruct(SplineToolMode, true);
 
-  function api_define_SplineToolMode(api: DataAPI) {
-    ;
-  }
+  function api_define_SplineToolMode(api: DataAPI) {}
 
   api_define_FullContext(api);
   api_define_View2DHandler(api);
@@ -1426,7 +1702,6 @@ export function makeAPI(api = new DataAPI<FullContext>()) {
   api_define_DataList(api);
   api_define_OpStackEditor(api);
   api_define_SplineToolMode(api);
-
 
   initToolModeAPI(api);
 

@@ -1,14 +1,14 @@
 "use strict";
 
-import {MESSAGES} from './vectordraw_jobs_base.js';
+import { MESSAGES } from "./vectordraw_jobs_base.js";
 
 let MS = MESSAGES;
 
 let Debug = false;
 let FREEZE_WHILE_DRAWING = false;
 
-import * as platform from '../../platforms/platform.js';
-import * as config from '../config/config.js';
+import * as platform from "../../platforms/platform.js";
+import * as config from "../config/config.js";
 
 let MAX_THREADS = platform.app.numberOfCPUs() + 1;
 
@@ -24,39 +24,39 @@ window.MAX_THREADS = MAX_THREADS;
 /* What goes over the wire to a render worker.  `data` doubles as the
    transfer list. */
 export type ThreadMessage = {
-  type : number,
-  msgid : number,
-  data : Transferable[] | undefined
+  type: number;
+  msgid: number;
+  data: Transferable[] | undefined;
 };
 
 /* A finished render job hands back the worker's transferToImageBitmap(). */
-export type RenderJobCallback = (image : ImageBitmap) => void;
+export type RenderJobCallback = (image: ImageBitmap) => void;
 
 //uses web workers
 export class Thread {
-  dead: boolean
-  ready: boolean
-  lock: number
+  dead: boolean;
+  ready: boolean;
+  lock: number;
   /* msgid -> the promise resolver waiting on that job. */
-  callbacks: {[msgid : number] : RenderJobCallback}
-  ownerid_msgid_map: {[ownerid : number] : number}
-  msgid_ownerid_map: {[msgid : number] : number}
-  cancelset: Set<number>
+  callbacks: { [msgid: number]: RenderJobCallback };
+  ownerid_msgid_map: { [ownerid: number]: number };
+  msgid_ownerid_map: { [msgid: number]: number };
+  cancelset: Set<number>;
   freezelvl: number;
   /* NOTE: written only by clearOutstandingJobs(), which meant `callbacks`;
      nothing reads it. */
   callback!: object;
 
-  id : number;
-  manager : ThreadManager;
-  worker : Worker | undefined;
-  ondone : (() => void) | null;
+  id: number;
+  manager: ThreadManager;
+  worker: Worker | undefined;
+  ondone: (() => void) | null;
 
   /* Dead scaffolding: nothing ever pushes to the queue, and the lock/owner
      pair has no caller. */
-  queue : ThreadMessage[];
-  owner : object | undefined;
-  msgstate : undefined;
+  queue: ThreadMessage[];
+  owner: object | undefined;
+  msgstate: undefined;
 
   constructor(worker: Worker, id: number, manager: ThreadManager) {
     this.id = id;
@@ -83,13 +83,23 @@ export class Thread {
     this.freezelvl = 0;
   }
 
-  cancelRenderJob(ownerid : number) {
+  cancelRenderJob(ownerid: number) {
     if (this.cancelset.has(ownerid)) {
       return;
     }
 
     if (ownerid in this.ownerid_msgid_map) {
-      if (Debug) console.log("cancelling job ", ownerid, "in thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
+      if (Debug)
+        console.log(
+          "cancelling job ",
+          ownerid,
+          "in thread",
+          this.manager.threads.indexOf(this),
+          "freezelvl:",
+          this.freezelvl,
+          "_block_drawing:",
+          window._block_drawing
+        );
       this.freezelvl--;
 
       let oldid = this.msgid_ownerid_map[ownerid];
@@ -104,10 +114,10 @@ export class Thread {
   }
 
   //cancels any previous thread from ownerid
-  postRenderJob(ownerid : number, commands : Float64Array,
-                datablocks? : Transferable[]) {
+  postRenderJob(ownerid: number, commands: Float64Array, datablocks?: Transferable[]) {
     let id = this.manager._rthread_idgen++;
-    if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
+    if (Debug)
+      console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
     this.freezelvl++;
 
     this.ownerid_msgid_map[ownerid] = id;
@@ -123,9 +133,9 @@ export class Thread {
     }
 
     return new Promise<ImageBitmap>((accept, reject) => {
-      let callback = (data : ImageBitmap) => {
+      let callback = (data: ImageBitmap) => {
         accept(data);
-      }
+      };
 
       this.callbacks[id] = callback;
       this.postMessage(MS.RUN, id);
@@ -142,7 +152,7 @@ export class Thread {
     this.ownerid_msgid_map = {};
   }
 
-  onmessage(e : MessageEvent) {
+  onmessage(e: MessageEvent) {
     switch (e.data.type) {
       case MS.WORKER_READY:
         console.log("%c Vectordraw worker ready", "color: blue");
@@ -158,7 +168,8 @@ export class Thread {
         }
 
         let ownerid = this.msgid_ownerid_map[id];
-        if (ownerid === undefined) { //message was cancelled!
+        if (ownerid === undefined) {
+          //message was cancelled!
           if (Debug) console.log("failed to find owner for", id, this);
           return;
         }
@@ -170,7 +181,15 @@ export class Thread {
         delete this.callbacks[id];
         this.freezelvl--;
 
-        if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl, "_block_drawing:", window._block_drawing);
+        if (Debug)
+          console.log(
+            "thread",
+            this.manager.threads.indexOf(this),
+            "freezelvl:",
+            this.freezelvl,
+            "_block_drawing:",
+            window._block_drawing
+          );
 
         //if (Debug) console.log(cb, e.data.data[0]);
         cb(e.data.data[0]);
@@ -186,7 +205,7 @@ export class Thread {
     //if (Debug) console.log("event message in main thread", e);
   }
 
-  tryLock(owner : object) {
+  tryLock(owner: object) {
     if (this.lock === 0 || this.owner === owner) {
       return true;
     }
@@ -194,7 +213,7 @@ export class Thread {
     return false;
   }
 
-  tryUnlock(owner : object) {
+  tryUnlock(owner: object) {
     if (this.lock === 0 || this.owner !== owner) {
       return false;
     }
@@ -205,12 +224,15 @@ export class Thread {
     return true;
   }
 
-  postMessage(type : number, msgid : number, transfers? : Transferable[]) {
-    this.worker!.postMessage({
-      type : type,
-      msgid: msgid,
-      data : transfers
-    }, transfers ?? []);
+  postMessage(type: number, msgid: number, transfers?: Transferable[]) {
+    this.worker!.postMessage(
+      {
+        type : type,
+        msgid: msgid,
+        data : transfers,
+      },
+      transfers ?? []
+    );
   }
 
   close() {
@@ -224,18 +246,18 @@ export class Thread {
 }
 
 export class ThreadManager {
-  drawing: boolean
-  thread_idmap: {[id : number] : Thread}
-  _idgen: number
+  drawing: boolean;
+  thread_idmap: { [id: number]: Thread };
+  _idgen: number;
   _rthread_idgen: number;
   locked_drawing: boolean = false;
 
-  threads : Thread[];
-  max_threads : number;
+  threads: Thread[];
+  max_threads: number;
   /* time_ms() at the last startDrawing(); drives the timeout watchdog. */
-  start_time : number | undefined;
+  start_time: number | undefined;
   /* Set once any worker has reported in. */
-  has_ready_thread! : boolean;
+  has_ready_thread!: boolean;
 
   constructor() {
     this.threads = [];
@@ -254,10 +276,10 @@ export class ThreadManager {
       }
 
       return;
-    }, 750)
+    }, 750);
   }
 
-  setMaxThreads(n : number) {
+  setMaxThreads(n: number) {
     if (n === undefined || typeof n != "number" || n < 0) {
       throw new Error("n must be a number");
     }
@@ -298,7 +320,7 @@ export class ThreadManager {
     }
   }
 
-  spawnThread(source : string) {
+  spawnThread(source: string) {
     let worker = new Worker(source);
     let thread = new Thread(worker, this._idgen++, this);
 
@@ -308,7 +330,7 @@ export class ThreadManager {
     return thread;
   }
 
-  endThread(thread : Thread) {
+  endThread(thread: Thread) {
     if (thread.worker === undefined) {
       console.warn("Double call to ThreadManager.endThread()");
       return;
@@ -324,15 +346,18 @@ export class ThreadManager {
     /* `while (1)` reads as possibly-terminating, which made every caller see a
        `Thread | undefined`. */
     while (true) {
-      let ri = ~~(Math.random()*this.threads.length*0.99999);
+      let ri = ~~(Math.random() * this.threads.length * 0.99999);
 
-      if (this.threads[ri].ready)
-        return this.threads[ri];
+      if (this.threads[ri].ready) return this.threads[ri];
     }
   }
 
-  postRenderJob(ownerid : number, commands : Float64Array,
-                datablocks? : Transferable[], nonBlocking = false) {
+  postRenderJob(
+    ownerid: number,
+    commands: Float64Array,
+    datablocks?: Transferable[],
+    nonBlocking = false
+  ) {
     if (!this.drawing) {
       this.startDrawing(nonBlocking);
     }
@@ -374,7 +399,7 @@ export class ThreadManager {
     return false;
   }
 
-  on_thread_done(thread : Thread) {
+  on_thread_done(thread: Thread) {
     let ok = true;
 
     for (let thread2 of this.threads) {
@@ -397,15 +422,13 @@ export class ThreadManager {
     }
   }
 
-
   checkMemory() {
     let promise = platform.app.getProcessMemoryPromise();
-    if (!promise)
-      return;
+    if (!promise) return;
 
-    promise.then((memory : number) => {
+    promise.then((memory: number) => {
       //console.log("Memory in use:", (memory/1024/1024).toFixed(1));
-    })
+    });
   }
 
   cancelAllJobs() {
@@ -420,7 +443,7 @@ export class ThreadManager {
     //this.thread_idmap = {};
   }
 
-  cancelRenderJob(ownerid : number) {
+  cancelRenderJob(ownerid: number) {
     for (let thread of this.threads) {
       if (ownerid in thread.ownerid_msgid_map) {
         thread.cancelRenderJob(ownerid);

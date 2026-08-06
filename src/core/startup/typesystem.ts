@@ -5,7 +5,6 @@ var defined_classes: ESClassRegistryEntry[] = [];
 /* Filled by register_test(); utils.ts's do_unit_tests() runs them. */
 var defined_tests: (() => boolean)[] = new Array();
 
-
 if (Array.prototype.remove === undefined) {
   Array.prototype.remove = function (this: unknown[], item: unknown, throw_error = true) {
     let idx = this.indexOf(item);
@@ -30,7 +29,7 @@ if (Array.prototype.remove === undefined) {
     this.length--;
 
     return this;
-  }
+  };
 }
 
 function register_test(obj: () => boolean) {
@@ -43,7 +42,7 @@ function register_test(obj: () => boolean) {
    transpiler's generated `Class([...])` calls ever reached it; the esbuild
    classRegistryPlugin that replaced it emits `_ESClass.register(Foo)` and
    nothing else. */
-window._ESClass = (function() {
+window._ESClass = (function () {
   let prototype_idgen = 1;
 
   return {
@@ -53,7 +52,7 @@ window._ESClass = (function() {
       cls.prototype.prototype = cls.prototype.__proto__;
 
       defined_classes.push(cls);
-    }
+    },
   };
 })();
 
@@ -64,7 +63,7 @@ function mixin(child: Function, parent: Function) {
 
   while (ok) {
     let keys = Object.getOwnPropertyNames(parent.prototype);
-    for (var i=0; i<keys.length; i++) {
+    for (var i = 0; i < keys.length; i++) {
       let k = keys[i];
 
       if (child.prototype[k] == undefined) {
@@ -73,7 +72,7 @@ function mixin(child: Function, parent: Function) {
     }
 
     var symbols = Object.getOwnPropertySymbols(parent.prototype);
-    for (var i=0; i<symbols.length; i++) {
+    for (var i = 0; i < symbols.length; i++) {
       var k = symbols[i];
 
       if (!(k in child.prototype)) {
@@ -109,20 +108,16 @@ function define_static(obj: Function, name: string, val: unknown) {
 function __instance_of(child: unknown, parent: Function | undefined) {
   /* NOTE: the parent == undefined test used to sit below the instanceof, which
      throws TypeError for an undefined right-hand side, so it never ran. */
-  if (parent == undefined)
-    return child == undefined;
+  if (parent == undefined) return child == undefined;
 
-  if (child instanceof parent)
-    return true;
+  if (child instanceof parent) return true;
 
-  if (typeof child != "object" && typeof child != "function")
-    return typeof child == typeof(parent); //return btypeof(child) == btypeof(parent);
+  if (typeof child != "object" && typeof child != "function") return typeof child == typeof parent; //return btypeof(child) == btypeof(parent);
 
   let map = Reflect.get(parent, "__subclass_map__");
 
   /* `in` stringifies its left operand anyway, so String() changes nothing. */
-  if (child !== null && "__prototypeid__" in child
-      && typeof map === "object" && map !== null) {
+  if (child !== null && "__prototypeid__" in child && typeof map === "object" && map !== null) {
     return String(Reflect.get(child, "__prototypeid__")) in map;
   } else {
     //console.log("falling back on normal instanceof");
@@ -136,12 +131,12 @@ var instance_of = __instance_of;
 //a basic array iterator utility function
 class arr_iter {
   /* One reused result object, as before. */
-  ret: {done: boolean; value: unknown};
+  ret: { done: boolean; value: unknown };
   keys: unknown[];
   cur: number;
 
   constructor(keys: unknown[]) {
-    this.ret = {done : false, value : undefined};
+    this.ret = { done: false, value: undefined };
     this.keys = keys;
     this.cur = 0;
   }
@@ -166,49 +161,49 @@ class arr_iter {
 var _forin_data = {};
 
 function save_forin_conv() {
-    var s = ""
-    var lst = Object.keys(_forin_data)
-    
-    lst.sort();
-    
-    var buf = lst.join("\n")
-    var blob = new Blob([buf], {type: "text/plain"});
-    var obj_url = window.URL.createObjectURL(blob);
-    
-    window.open(obj_url);
+  var s = "";
+  var lst = Object.keys(_forin_data);
+
+  lst.sort();
+
+  var buf = lst.join("\n");
+  var blob = new Blob([buf], { type: "text/plain" });
+  var obj_url = window.URL.createObjectURL(blob);
+
+  window.open(obj_url);
 }
 
 var __sp_ws = {
-  "\n" : 0,
-  "\r" : 0,
-  "\t" : 0,
-  "\v" : 0,
+  "\n": 0,
+  "\r": 0,
+  "\t": 0,
+  "\v": 0,
   " " : 0,
-  "\0" : 0
-}
+  "\0": 0,
+};
 
 if (String.prototype.trimRight == undefined) {
-  String.prototype.trimRight = function(this: string) {
-    var i = this.length-1;
-    
+  String.prototype.trimRight = function (this: string) {
+    var i = this.length - 1;
+
     while (i >= 0 && this[i] in __sp_ws) {
       i--;
     }
-    
-    return this.slice(0, i+1);
-  }
+
+    return this.slice(0, i + 1);
+  };
 }
 
 if (String.prototype.trimLeft == undefined) {
-  String.prototype.trimLeft = function(this: string) {
+  String.prototype.trimLeft = function (this: string) {
     var i = 0;
-    
+
     while (i < this.length && this[i] in __sp_ws) {
       i++;
     }
-    
+
     return this.slice(i, this.length);
-  }
+  };
 }
 
 //for in loops were always a pain
@@ -218,9 +213,9 @@ function __get_in_iter(obj: object) {
   if (obj == undefined) {
     console.trace();
     print_stack();
-    throw new Error("Invalid iteration over undefined value")
+    throw new Error("Invalid iteration over undefined value");
   }
-  
+
   var keys = _my_object_keys(obj);
   return new arr_iter(keys);
 }
@@ -232,14 +227,14 @@ function __get_in_iter(obj: object) {
   
   keyword is either "in" or "of"
 */
-function __get_iter(obj: object) //, file, line, keyword)
-{
+function __get_iter(obj: object) {
+  //, file, line, keyword)
   if (obj == undefined) {
     console.trace();
     print_stack();
-    throw new Error("Invalid iteration over undefined value")
+    throw new Error("Invalid iteration over undefined value");
   }
-  
+
   let iter = Reflect.get(obj, Symbol.iterator);
 
   if (iter != undefined) {
@@ -252,38 +247,38 @@ function __get_iter(obj: object) //, file, line, keyword)
       }
     }
     //*/
-    
+
     return iter.call(obj);
   }
 }
 
 class _KeyValIterator {
   /* One reused result object; `value` is the same [key, val] pair each time. */
-  ret : {done: boolean; value: [string, unknown] | undefined}
-  i : number;
-  obj : {[key: string]: unknown};
-  keys : string[];
+  ret: { done: boolean; value: [string, unknown] | undefined };
+  i: number;
+  obj: { [key: string]: unknown };
+  keys: string[];
 
-  constructor(obj: {[key: string]: unknown}) {
-    this.ret = {done : false, value : ["", undefined]};
+  constructor(obj: { [key: string]: unknown }) {
+    this.ret = { done: false, value: ["", undefined] };
     this.i = 0;
     this.obj = obj;
-    
+
     this.keys = Object.keys(obj);
   }
-  
+
   [Symbol.iterator]() {
     return this;
   }
-  
+
   next() {
     if (this.i >= this.keys.length) {
       this.ret.done = true;
       this.ret.value = undefined;
-      
+
       return this.ret;
     }
-    
+
     var k = this.keys[this.i];
     var v = this.obj[k];
 
@@ -301,7 +296,7 @@ class _KeyValIterator {
   }
 }
 
-var Iterator = function(obj: {[key: string]: unknown}) {
+var Iterator = function (obj: { [key: string]: unknown }) {
   let iter = Reflect.get(obj, Symbol.iterator);
 
   if (iter != undefined) {
@@ -309,28 +304,27 @@ var Iterator = function(obj: {[key: string]: unknown}) {
   } else {
     return new _KeyValIterator(obj);
   }
-}
+};
 
 function define_docstring(func: Function, docstr: string) {
   Reflect.set(func, "__doc__", docstr);
-  
+
   return func;
 }
 
 //XXX do I ever use this?
 function __bind_super_prop(obj: object, cls: Function, parent: Function, prop: string) {
   var descr = Object.getOwnPropertyDescriptor(parent.prototype, prop);
-  
-  if (descr == undefined) 
-    return parent.prototype[prop];
-  
+
+  if (descr == undefined) return parent.prototype[prop];
+
   if (descr.get != undefined) {
     return descr.get.call(obj);
   } else if (descr.value != undefined) {
     return descr.value;
   } else {
     var p = parent.prototype[prop];
-    
+
     if (typeof p == "function") {
       console.trace("Warning: inefficient branch detected in __bind_super_prop");
       return p.bind(obj);

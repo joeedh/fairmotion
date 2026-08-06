@@ -1,14 +1,29 @@
 "use strict";
 
-import {util, nstructjs, cconst, Vector3, Vector4, Vector2, Matrix4, Quat} from "../path.ux/scripts/pathux.js";
 import {
-  SplineSegment, SplineVertex, SplineTypes, SplineFlags,
-  SplineFace, SplineElement, MaterialFlags, refSeg
+  util,
+  nstructjs,
+  cconst,
+  Vector3,
+  Vector4,
+  Vector2,
+  Matrix4,
+  Quat,
+} from "../path.ux/scripts/pathux.js";
+import {
+  SplineSegment,
+  SplineVertex,
+  SplineTypes,
+  SplineFlags,
+  SplineFace,
+  SplineElement,
+  MaterialFlags,
+  refSeg,
 } from "./spline_types.js";
 
-import {SplineLayerFlags} from './spline_element_array.js';
+import { SplineLayerFlags } from "./spline_element_array.js";
 
-import type {Spline} from './spline.js';
+import type { Spline } from "./spline.js";
 
 let hashcache = util.cachering.fromConstructor(util.HashDigest, 8);
 
@@ -22,17 +37,17 @@ export type DrawListItem = SplineVertex | SplineSegment | SplineFace | SplineStr
    `hash` is derived from the member eids, and is what lets a rebuild reuse the
    previous group object when the run has not changed. */
 export class SplineStrokeGroup {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  hash : number;
+  hash: number;
   /* Stamped by redo_draw_sort(); not serialized. */
-  finalz! : number;
-  segments : Array<SplineSegment>;
+  finalz!: number;
+  segments: Array<SplineSegment>;
   /* The segments' eids; the serialized form of `segments`. */
-  eids : number[];
-  id : number;
+  eids: number[];
+  id: number;
 
-  constructor(segs? : Iterable<SplineSegment>) {
+  constructor(segs?: Iterable<SplineSegment>) {
     this.hash = -1;
     this.segments = [];
     this.eids = [];
@@ -56,7 +71,7 @@ export class SplineStrokeGroup {
     this.hash = SplineStrokeGroup.calcHash(this.segments);
   }
 
-  static calcHash(segments : Iterable<SplineSegment>) {
+  static calcHash(segments: Iterable<SplineSegment>) {
     let hash = hashcache.next().reset();
 
     for (let s of segments) {
@@ -76,11 +91,11 @@ export class SplineStrokeGroup {
     return hash.get();
   }
 
-  loadSTRUCT(reader : StructReader<this>) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 
-  afterSTRUCT(spline : Spline) {
+  afterSTRUCT(spline: Spline) {
     let eids = this.eids;
 
     this.segments.length = 0;
@@ -109,7 +124,7 @@ SplineStrokeGroup {
   hash     : uint;
   eids     : array(int);
 }
-`
+`;
 
 let _color1 = new Vector4();
 let _color2 = new Vector4();
@@ -119,14 +134,16 @@ let _color2 = new Vector4();
    group -- 1 visibility, 2 stroke color, 3 mask-to-face, 4 blur, 5
    fill-over-stroke, 6 second line width, 7 second stroke color, 8 opacity, 9 no
    layer in common -- and false when they can. */
-export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
-                              segments : SplineSegment[] = v!.segments) {
-  function visible(seg : SplineSegment) {
+export function vertexIsSplit(
+  spline: Spline,
+  v: SplineVertex | undefined,
+  segments: SplineSegment[] = v!.segments
+) {
+  function visible(seg: SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
-    hide = hide || (seg.flag & SplineFlags.NO_RENDER);
+    hide = hide || seg.flag & SplineFlags.NO_RENDER;
 
-    if (hide)
-      return false;
+    if (hide) return false;
 
     /* for-in hands back the id as a string, and a missing layer throws here
        exactly as it always did. */
@@ -144,16 +161,16 @@ export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
   }
 
   /* The previous segment's material state; undefined until the first pass. */
-  let hide : boolean | undefined;
-  let stroke : Vector4 | undefined;
-  let mask_to_face : number | undefined;
-  let blur : number | undefined;
-  let doublewid : number | undefined;
-  let doublecol : Vector4 | undefined;
-  let fill_over_stroke : boolean | undefined;
-  let opacity : number | undefined;
+  let hide: boolean | undefined;
+  let stroke: Vector4 | undefined;
+  let mask_to_face: number | undefined;
+  let blur: number | undefined;
+  let doublewid: number | undefined;
+  let doublecol: Vector4 | undefined;
+  let fill_over_stroke: boolean | undefined;
+  let opacity: number | undefined;
 
-  function fcmp(a : number, b : number, l = 0.01) {
+  function fcmp(a: number, b: number, l = 0.01) {
     return Math.abs(a - b) > l;
   }
 
@@ -201,7 +218,11 @@ export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
     }
 
     let doublecol2 = seg.mat.strokecolor2;
-    if (doublewid2 !== 0 && doublecol !== undefined && doublecol.vectorDistanceSqr(doublecol2) > 0.001) {
+    if (
+      doublewid2 !== 0 &&
+      doublecol !== undefined &&
+      doublecol.vectorDistanceSqr(doublecol2) > 0.001
+    ) {
       return 7;
     } else {
       doublecol = _color2.load(doublecol2);
@@ -215,7 +236,7 @@ export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
     }
   }
 
-  let layerbad : number | boolean = 9;
+  let layerbad: number | boolean = 9;
 
   outer: for (let s1 of segments) {
     for (let s2 of segments) {
@@ -250,14 +271,13 @@ export function splitSegmentGroups(spline: Spline) {
   /* Scratch pair handed to vertexIsSplit(); both slots are overwritten before
      it is ever read. */
   /* Both slots are written immediately before the one read below. */
-  let tempsegs : SplineSegment[] = [];
+  let tempsegs: SplineSegment[] = [];
 
-  function visible(seg : SplineSegment) {
+  function visible(seg: SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
-    hide = hide || (seg.flag & SplineFlags.NO_RENDER);
+    hide = hide || seg.flag & SplineFlags.NO_RENDER;
 
-    if (hide)
-      return false;
+    if (hide) return false;
 
     /* for-in hands back the id as a string, and a missing layer throws here
        exactly as it always did. */
@@ -272,7 +292,7 @@ export function splitSegmentGroups(spline: Spline) {
 
   const drawStrokeVertSplits = spline._drawStrokeVertSplits;
 
-  function finishSegs(segs : SplineSegment[]) {
+  function finishSegs(segs: SplineSegment[]) {
     if (segs.length === 0) {
       return;
     }
@@ -301,7 +321,7 @@ export function splitSegmentGroups(spline: Spline) {
     }
 
     let hash = SplineStrokeGroup.calcHash(segs);
-    let group : SplineStrokeGroup;
+    let group: SplineStrokeGroup;
 
     /* Reuse old groups if hash compatible. */
     if (oldstrokes.has(hash)) {
@@ -340,11 +360,11 @@ export function splitSegmentGroups(spline: Spline) {
 
     seg = group.segments[i];
 
-    let segs : SplineSegment[] = [];
+    let segs: SplineSegment[] = [];
 
     while (i < group.segments.length) {
       let s = group.segments[i];
-      let bad : number | boolean = false;
+      let bad: number | boolean = false;
 
       if (0) {
         let mat1 = seg.mat;
@@ -406,7 +426,6 @@ export function splitSegmentGroups(spline: Spline) {
           spline.drawStrokeGroups.push(group2);
         }
      */
-
   }
 
   //spline.strokeGroups = spline.strokeGroups.filter(g => g.segments.length > 0);
@@ -415,7 +434,7 @@ export function splitSegmentGroups(spline: Spline) {
 /* Rebuilds spline.strokeGroups from the topology alone: every run of segments
    between two non-two-valence vertices becomes a group, then any closed loop
    nothing reached becomes one too. */
-export function buildSegmentGroups(spline : Spline) {
+export function buildSegmentGroups(spline: Spline) {
   /* Vertices that start a run: valence 1, or 3 and up. */
   let roots = new Set<SplineVertex>();
   let visit = new Set<SplineSegment>();
@@ -501,7 +520,7 @@ export function buildSegmentGroups(spline : Spline) {
         groups.push(group);
       }
     }
-  }
+  };
 
   for (let v of roots) {
     doseg(v);
@@ -509,11 +528,10 @@ export function buildSegmentGroups(spline : Spline) {
 
   //now handle closed loops
   for (let v of spline.verts) {
-    if (!(vvisit.has(v))) {
+    if (!vvisit.has(v)) {
       doseg(v);
     }
   }
-
 
   //remove empty groups
   for (let i = 0; i < groups.length; i++) {
@@ -534,6 +552,5 @@ export function buildSegmentGroups(spline : Spline) {
   }
   //console.warn("GROUPS", groups);
 }
-
 
 //import {Spline} from './spline.js';

@@ -1,15 +1,15 @@
-import {DataBlock, DataRef, NodeDataBlock} from '../core/lib_api.js';
-import type {GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
-import {SceneObject} from './sceneobject.js';
-import {nstructjs, util} from '../path.ux/scripts/pathux.js';
+import { DataBlock, DataRef, NodeDataBlock } from "../core/lib_api.js";
+import type { GetBlockFunc, GetBlockUserFunc } from "../core/lib_api.js";
+import { SceneObject } from "./sceneobject.js";
+import { nstructjs, util } from "../path.ux/scripts/pathux.js";
 
-const COLLECTION = 1<<28;
-const OBJECT = 1<<27;
+const COLLECTION = 1 << 28;
+const OBJECT = 1 << 27;
 
 /* Between loadSTRUCT() and data_link() both fields hold what nstructjs read --
    an array of DataRef -- rather than the Set of blocks their types describe. */
-function loadedRefs(loaded : Iterable<unknown>) : DataRef[] {
-  let ret : DataRef[] = [];
+function loadedRefs(loaded: Iterable<unknown>): DataRef[] {
+  let ret: DataRef[] = [];
 
   for (let item of loaded) {
     if (item instanceof DataRef) {
@@ -21,15 +21,15 @@ function loadedRefs(loaded : Iterable<unknown>) : DataRef[] {
 }
 
 export class Collection extends DataBlock {
-  static STRUCT : string;
+  static STRUCT: string;
 
   /* Both sets hold DataRefs between load and data_link(); data_link rebuilds
      them with the resolved blocks. */
-  objects : Set<SceneObject>;
-  collections : Set<Collection>;
+  objects: Set<SceneObject>;
+  collections: Set<Collection>;
   /* lib_id -> OBJECT or COLLECTION, so has() can answer without knowing
      which set to look in. */
-  idMap : Map<number, number>;
+  idMap: Map<number, number>;
 
   constructor() {
     super();
@@ -41,7 +41,7 @@ export class Collection extends DataBlock {
   }
 
   /* Also takes a bare lib_id. */
-  has(ob_or_coll : SceneObject | Collection | number | undefined) {
+  has(ob_or_coll: SceneObject | Collection | number | undefined) {
     if (ob_or_coll === undefined || ob_or_coll === null) {
       return false;
     }
@@ -55,7 +55,7 @@ export class Collection extends DataBlock {
     return this.idMap.has(id);
   }
 
-  add(ob_or_coll : SceneObject | Collection) {
+  add(ob_or_coll: SceneObject | Collection) {
     if (this.has(ob_or_coll)) {
       return;
     }
@@ -83,7 +83,7 @@ export class Collection extends DataBlock {
     this.idMap.set(ob_or_coll.lib_id, i);
   }
 
-  remove(ob_or_coll : SceneObject | Collection) {
+  remove(ob_or_coll: SceneObject | Collection) {
     let type = this.idMap.get(ob_or_coll.lib_id);
 
     if (type === undefined) {
@@ -106,9 +106,9 @@ export class Collection extends DataBlock {
   /* NOTE: getblock_adduser was called with only the dataref; it also wants the
      owning block and the field name, without which it built its rem_func out
      of a pair of undefineds. */
-  data_link(block : DataBlock, getblock : GetBlockFunc,
-            getblock_adduser : GetBlockUserFunc) {
-    let obs = loadedRefs(this.objects), colls = loadedRefs(this.collections);
+  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_adduser: GetBlockUserFunc) {
+    let obs = loadedRefs(this.objects),
+      colls = loadedRefs(this.collections);
 
     this.objects = new Set();
     this.collections = new Set();
@@ -142,15 +142,16 @@ export class Collection extends DataBlock {
       defaultName : "collection",
       typeIndex   : 13,
       accessorName: "collections",
-    }
+    };
   }
 }
 
-Collection.STRUCT = nstructjs.inherit(Collection, DataBlock) + `
+Collection.STRUCT =
+  nstructjs.inherit(Collection, DataBlock) +
+  `
   objects     : iter(e, DataRef) | DataRef.fromBlock(e);
   collections : iter(e, DataRef) | DataRef.fromBlock(e);
-}`
-;
+}`;
 
 nstructjs.register(Collection);
 DataBlock.register(Collection);

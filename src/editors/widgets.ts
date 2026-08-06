@@ -1,21 +1,21 @@
-import type {FullContext} from "../core/context.js";
-import {UIBase, Icons, PackFlags} from '../path.ux/scripts/core/ui_base.js';
-import * as nstructjs from '../path.ux/scripts/util/struct.js';
-import * as util from '../path.ux/scripts/util/util.js';
-import {Container} from '../path.ux/scripts/core/ui.js';
-import {LoadImageOp} from "../image/image_ops.js";
-import type {DropBox} from '../path.ux/scripts/widgets/ui_menu.js';
-import type {DataBlock} from '../core/lib_api.js';
-import {DataRefProperty, RefListProperty} from '../core/toolprops.js';
+import type { FullContext } from "../core/context.js";
+import { UIBase, Icons, PackFlags } from "../path.ux/scripts/core/ui_base.js";
+import * as nstructjs from "../path.ux/scripts/util/struct.js";
+import * as util from "../path.ux/scripts/util/util.js";
+import { Container } from "../path.ux/scripts/core/ui.js";
+import { LoadImageOp } from "../image/image_ops.js";
+import type { DropBox } from "../path.ux/scripts/widgets/ui_menu.js";
+import type { DataBlock } from "../core/lib_api.js";
+import { DataRefProperty, RefListProperty } from "../core/toolprops.js";
 
 /* Datablock name -> lib_id, the enum definition the listbox is built from. */
-export type IDList = {[name : string] : number};
+export type IDList = { [name: string]: number };
 
 export class IDBrowser extends Container<FullContext> {
-  idlist : IDList;
+  idlist: IDList;
   /* NOTE: this was named `listbox`, which is also a Container method, so the
      field shadowed it on every instance.  listenum() returns a DropBox. */
-  dropbox! : DropBox<FullContext>;
+  dropbox!: DropBox<FullContext>;
 
   constructor() {
     super();
@@ -26,7 +26,7 @@ export class IDBrowser extends Container<FullContext> {
   init() {
     super.init();
 
-    let name : string | undefined = undefined;
+    let name: string | undefined = undefined;
     try {
       let path = this.getAttribute("datapath");
       let block = path ? this.getPathValue<DataBlock>(this.ctx, path) : undefined;
@@ -40,13 +40,13 @@ export class IDBrowser extends Container<FullContext> {
 
     this.buildEnum();
     this.dropbox = this.listenum(undefined, {
-      enumDef : this.idlist,
-      callback : this._on_select.bind(this),
-      defaultval : name
+      enumDef   : this.idlist,
+      callback  : this._on_select.bind(this),
+      defaultval: name,
     });
   }
 
-  _on_select(lib_id : number) {
+  _on_select(lib_id: number) {
     let block = this.ctx.datalib.idmap[lib_id];
     if (block) {
       console.log("block:", block);
@@ -92,7 +92,7 @@ export class IDBrowser extends Container<FullContext> {
       return a.name.toLowerCase() < b.name.toLowerCase() ? 1 : -1;
     });
 
-    let def : IDList = {};
+    let def: IDList = {};
     this.idlist = def;
 
     for (let block of lst) {
@@ -110,7 +110,7 @@ export class IDBrowser extends Container<FullContext> {
     let name = "";
 
     if (value === undefined) {
-      name = ""
+      name = "";
     } else {
       name = value.name;
     }
@@ -129,9 +129,11 @@ export class IDBrowser extends Container<FullContext> {
     super.setCSS();
   }
 
-  static define() {return {
-    tagname : "id-browser-x"
-  }}
+  static define() {
+    return {
+      tagname: "id-browser-x",
+    };
+  }
 }
 
 UIBase.register(IDBrowser);
@@ -176,8 +178,10 @@ export class ImageUserPanel extends Container<FullContext> {
     this.style["width"] = w + "px";
   }
 
-  static define() {return {
-    tagname : "image-user-panel-x"
-  }}
+  static define() {
+    return {
+      tagname: "image-user-panel-x",
+    };
+  }
 }
 UIBase.register(ImageUserPanel);

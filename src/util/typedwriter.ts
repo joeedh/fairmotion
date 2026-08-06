@@ -2,19 +2,19 @@
 
 /* Dead -- TypedWriter allocates its own buffer and the free() path never ran. */
 export class TypedCache {
-  freelist : Record<number, ArrayBuffer[]>;
+  freelist: Record<number, ArrayBuffer[]>;
 
   constructor() {
     this.freelist = {};
   }
-  
-  get(size : number) {
+
+  get(size: number) {
     var lst = this.freelist[size];
-    
+
     if (lst == undefined) {
       lst = this.freelist[size] = [];
     }
-    
+
     if (lst.length > 0) {
       return lst.pop();
     } else {
@@ -22,16 +22,16 @@ export class TypedCache {
       return lst.pop();
     }
   }
-  
+
   /* NOTE: `size` was not a parameter here, so any call would have thrown a
      ReferenceError. Never called. */
-  free(arraybuffer : ArrayBuffer, size : number) {
+  free(arraybuffer: ArrayBuffer, size: number) {
     var lst = this.freelist[size];
-    
+
     if (lst == undefined) {
       lst = this.freelist[size] = [];
     }
-    
+
     lst.insert(0, arraybuffer);
   }
 }
@@ -50,62 +50,63 @@ var f32 = new Float32Array(u8.buffer);
 var f64 = new Float64Array(u8.buffer);
 
 export class TypedWriter {
-  i : number
-  buf : Uint8Array<ArrayBuffer>;
-  maxsize : number;
+  i: number;
+  buf: Uint8Array<ArrayBuffer>;
+  maxsize: number;
 
-  constructor(maxsize : number) {
+  constructor(maxsize: number) {
     this.i = 0;
     this.maxsize = maxsize;
     this.buf = new Uint8Array(maxsize); //typedcache.get(maxsize));
   }
-  
+
   destroy() {
     //typedcache.free(this.buf.buffer);
   }
-  
-  int8(f : number) {
+
+  int8(f: number) {
     this.buf[this.i++] = f;
     return this;
   }
-    
-  int16(f : number) {
-    var buf = this.buf, i = this.i;
+
+  int16(f: number) {
+    var buf = this.buf,
+      i = this.i;
     i16[0] = f;
-    
+
     buf[i++] = u8[0];
     buf[i++] = u8[1];
 
     this.i = i;
     return this;
   }
-  
-  vec2(v : number[]) {
+
+  vec2(v: number[]) {
     this.float32(v[0]);
     this.float32(v[1]);
-    
+
     return this;
   }
-  
+
   /* Callers pass path.ux vectors as well as plain arrays, and a 2d vector
      really does write NaN for z here. */
-  vec3(v : {[k : number] : number | undefined}) {
+  vec3(v: { [k: number]: number | undefined }) {
     this.float32(v[0]!);
     this.float32(v[1]!);
     this.float32(v[2]!);
-    
+
     return this;
   }
-  
-  vec4(v : number[]) {
+
+  vec4(v: number[]) {
     this.float32(v[0]);
     this.float32(v[1]);
     this.float32(v[2]);
     this.float32(v[3]);
-    
+
     return this;
   }
-  
+
   final() {
     if (this.i > this.buf.length) {
       throw new Error("Exceeded maximum size of TypedWriter: " + this.i + " > " + this.buf.length);
@@ -115,29 +116,31 @@ export class TypedWriter {
     //return new Uint8Array(this.buf.buffer, 0, this.i);
     //return this.buf.buffer.slice(0, this.i);
   }
-  
+
   /* `len` is accepted and ignored; the whole of `f` is always written. */
-  bytes(f : string | ArrayLike<number>, len=f.length) {
-    var buf = this.buf, i = this.i;
-    
+  bytes(f: string | ArrayLike<number>, len = f.length) {
+    var buf = this.buf,
+      i = this.i;
+
     if (typeof f == "string") {
-      for (var j=0; j<f.length; j++) {
+      for (var j = 0; j < f.length; j++) {
         buf[i++] = f.charCodeAt(j);
       }
     } else {
-      for (var j=0; j<f.length; j++) {
+      for (var j = 0; j < f.length; j++) {
         buf[i++] = f[j];
       }
     }
-    
+
     this.i = i;
     return this;
   }
-  
-  int32(f : number) {
-    var buf = this.buf, i = this.i;
+
+  int32(f: number) {
+    var buf = this.buf,
+      i = this.i;
     i32[0] = f;
-    
+
     buf[i++] = u8[0];
     buf[i++] = u8[1];
     buf[i++] = u8[2];
@@ -147,8 +150,9 @@ export class TypedWriter {
     return this;
   }
 
-  uint32(f : number) {
-    var buf = this.buf, i = this.i;
+  uint32(f: number) {
+    var buf = this.buf,
+      i = this.i;
     u32[0] = f;
 
     buf[i++] = u8[0];
@@ -159,11 +163,12 @@ export class TypedWriter {
     this.i = i;
     return this;
   }
-  
-  float32(f : number) {
-    var buf = this.buf, i = this.i;
+
+  float32(f: number) {
+    var buf = this.buf,
+      i = this.i;
     f32[0] = f;
-    
+
     buf[i++] = u8[0];
     buf[i++] = u8[1];
     buf[i++] = u8[2];
@@ -172,16 +177,17 @@ export class TypedWriter {
     this.i = i;
     return this;
   }
-  
-  float64(f : number) {
-    var buf = this.buf, i = this.i;
+
+  float64(f: number) {
+    var buf = this.buf,
+      i = this.i;
     f64[0] = f;
-    
+
     buf[i++] = u8[0];
     buf[i++] = u8[1];
     buf[i++] = u8[2];
     buf[i++] = u8[3];
-    
+
     buf[i++] = u8[4];
     buf[i++] = u8[5];
     buf[i++] = u8[6];

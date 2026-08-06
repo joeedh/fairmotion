@@ -4,11 +4,11 @@
    Playwright reaches it with page.evaluate; buildtools/cdp.mjs reaches the
    same object in an electron build over CDP. One API, both modes. */
 
-import {areaclasses, getAreaConstructor} from '../path.ux/scripts/screen/area_base.js';
-import {DataList, DataStruct} from '../path.ux/scripts/pathux.js';
-import {ToolClasses} from '../path.ux/scripts/path-controller/toolsys/toolsys.js';
-import {unpack_ctx} from './ajax.js';
-import type {DataAPI, DataPath} from '../path.ux/scripts/pathux.js';
+import { areaclasses, getAreaConstructor } from "../path.ux/scripts/screen/area_base.js";
+import { DataList, DataStruct } from "../path.ux/scripts/pathux.js";
+import { ToolClasses } from "../path.ux/scripts/path-controller/toolsys/toolsys.js";
+import { unpack_ctx } from "./ajax.js";
+import type { DataAPI, DataPath } from "../path.ux/scripts/pathux.js";
 
 /* Mirror of path.ux's DataTypes. Duplicated on purpose: the walker below is
    duck-typed so it keeps working across path.ux API churn. */
@@ -16,7 +16,7 @@ const DataTypes = {
   STRUCT        : 0,
   DYNAMIC_STRUCT: 1,
   PROP          : 2,
-  ARRAY         : 3
+  ARRAY         : 3,
 };
 
 function getApp() {
@@ -67,8 +67,15 @@ function structName(st: DataStruct | undefined) {
   return st && st.name && st.name !== "unnamed" ? st.name : undefined;
 }
 
-function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: number,
-                    maxDepth: number, out: PathEntry[], visited: Set<object>) {
+function walkStruct(
+  api: DataAPI,
+  struct: DataStruct,
+  prefix: string,
+  depth: number,
+  maxDepth: number,
+  out: PathEntry[],
+  visited: Set<object>
+) {
   if (!struct || !Array.isArray(struct.members)) {
     return;
   }
@@ -85,7 +92,7 @@ function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: num
       out.push({
         path,
         kind    : "prop",
-        propType: dpath.data && dpath.data.constructor ? dpath.data.constructor.name : "unknown"
+        propType: dpath.data && dpath.data.constructor ? dpath.data.constructor.name : "unknown",
       });
     } else if (dpath.type === DataTypes.STRUCT || dpath.type === DataTypes.DYNAMIC_STRUCT) {
       let dynamic = dpath.type === DataTypes.DYNAMIC_STRUCT;
@@ -95,7 +102,7 @@ function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: num
       out.push({
         path,
         kind      : dynamic ? "dynamicStruct" : "struct",
-        structName: structName(child)
+        structName: structName(child),
       });
 
       if (child && !visited.has(child) && depth + 1 <= maxDepth) {
@@ -107,7 +114,7 @@ function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: num
       out.push({
         path,
         kind      : "list",
-        structName: structName(elem)
+        structName: structName(elem),
       });
 
       if (elem && !visited.has(elem) && depth + 1 <= maxDepth) {
@@ -138,10 +145,12 @@ function walkPaths(maxDepth = 6) {
    Many legitimately fail — no active object, empty list. What matters is that
    the pass/fail split stays stable across a path.ux bump. */
 function sweepPaths(maxDepth = 6) {
-  let api = getApi(), ctx = getCtx();
+  let api = getApi(),
+    ctx = getCtx();
   let entries = walkPaths(maxDepth);
 
-  let ok: string[] = [], failed: {path: string; error: string}[] = [];
+  let ok: string[] = [],
+    failed: { path: string; error: string }[] = [];
 
   for (let entry of entries) {
     if (entry.path.includes("[n]")) {
@@ -154,7 +163,7 @@ function sweepPaths(maxDepth = 6) {
       let res = api!.resolvePath(ctx!, entry.path, true);
 
       if (res === undefined) {
-        failed.push({path: entry.path, error: "unresolved"});
+        failed.push({ path: entry.path, error: "unresolved" });
         continue;
       }
 
@@ -164,19 +173,19 @@ function sweepPaths(maxDepth = 6) {
 
       ok.push(entry.path);
     } catch (error) {
-      failed.push({path: entry.path, error: errorText(error)});
+      failed.push({ path: entry.path, error: errorText(error) });
     }
   }
 
-  return {total: entries.length, ok, failed};
+  return { total: entries.length, ok, failed };
 }
 
 function frame() {
-  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 }
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function appStarted() {
@@ -217,7 +226,9 @@ function waitIdle(timeout = 15000) {
     let pending = times ? Object.keys(times).length : 0;
 
     if (pending === 0 || performance.now() - start >= timeout) {
-      frame().then(frame).then(() => resolve(true));
+      frame()
+        .then(frame)
+        .then(() => resolve(true));
       return;
     }
 
@@ -248,7 +259,7 @@ function setPath(path: string, value: unknown) {
   return true;
 }
 
-function execTool(toolpath: string, args: {[k: string]: unknown} = {}) {
+function execTool(toolpath: string, args: { [k: string]: unknown } = {}) {
   return getApi()!.execTool(getCtx()!, toolpath, args);
 }
 
@@ -289,7 +300,7 @@ function switchEditor(name: string) {
   let best: number | undefined, bestArea: (typeof screen.sareas)[number] | undefined;
 
   for (let sarea of screen.sareas) {
-    let area = sarea.size[0]*sarea.size[1];
+    let area = sarea.size[0] * sarea.size[1];
 
     if (best === undefined || area > best) {
       best = area;
@@ -310,12 +321,12 @@ function snapshot() {
   let out: {
     editors: string[];
     /* Element counts, or a single `error` string if the spline was unreachable. */
-    counts: {[name: string]: number | string};
+    counts: { [name: string]: number | string };
     toolpath: string | undefined;
   } = {
     editors : [],
     counts  : {},
-    toolpath: undefined
+    toolpath: undefined,
   };
 
   let screen = getApp().screen;
@@ -336,10 +347,10 @@ function snapshot() {
       handles : spline.handles.length,
       segments: spline.segments.length,
       faces   : spline.faces.length,
-      layers  : spline.layerset.length
+      layers  : spline.layerset.length,
     };
   } catch (error) {
-    out.counts = {error: errorText(error)};
+    out.counts = { error: errorText(error) };
   }
 
   try {
@@ -383,7 +394,7 @@ function distinctColors(canvas: HTMLCanvasElement) {
 
   /* Stride is a prime multiple of the pixel size so the samples do not land
      on a repeating pattern in the source. */
-  for (let i = 0; i + 3 < data.length; i += 4*97) {
+  for (let i = 0; i + 3 < data.length; i += 4 * 97) {
     seen.add((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]);
 
     if (seen.size > 16) {
@@ -399,7 +410,7 @@ function distinctColors(canvas: HTMLCanvasElement) {
    GPU backends. WebGL surfaces report size only — their drawing buffer is
    gone by the time a test can read it. */
 function canvasReport() {
-  let out: {id?: string; width: number; height: number; distinct?: number}[] = [];
+  let out: { id?: string; width: number; height: number; distinct?: number }[] = [];
 
   for (let canvas of deepQuery("canvas")) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -410,7 +421,7 @@ function canvasReport() {
       id      : canvas.id || undefined,
       width   : canvas.width,
       height  : canvas.height,
-      distinct: distinctColors(canvas)
+      distinct: distinctColors(canvas),
     });
   }
 
@@ -428,7 +439,7 @@ function loadFile(bytes: number[]) {
 }
 
 function saveFile() {
-  let buf = getApp().create_user_file_new({save_toolstack: false});
+  let buf = getApp().create_user_file_new({ save_toolstack: false });
   /* create_user_file_new() hands back a DataView unless asked otherwise. */
   let bytes = new Uint8Array(buf.buffer);
 
@@ -449,7 +460,7 @@ export const debug_api = {
   snapshot,
   canvasReport,
   loadFile,
-  saveFile
+  saveFile,
 };
 
 window.__fm = debug_api;

@@ -1,31 +1,21 @@
 "use strict";
 
 /* advanced batch based system with caching */
-import {
-  CanvasDraw2D, CanvasPath
-} from './vectordraw_canvas2d.js';
+import { CanvasDraw2D, CanvasPath } from "./vectordraw_canvas2d.js";
 
-import {
-  StubCanvasDraw2D,
-  StubCanvasPath
-} from "./vectordraw_stub.js";
+import { StubCanvasDraw2D, StubCanvasPath } from "./vectordraw_stub.js";
 
-import {
-  SVGDraw2D, SVGPath
-} from './vectordraw_svg.js';
+import { SVGDraw2D, SVGPath } from "./vectordraw_svg.js";
 
+export { VectorFlags } from "./vectordraw_base.js";
 
-export {VectorFlags} from  './vectordraw_base.js';
+import { SimpleCanvasPath, SimpleCanvasDraw2D } from "./vectordraw_canvas2d_simple.js";
 
-import {
-  SimpleCanvasPath, SimpleCanvasDraw2D
-} from './vectordraw_canvas2d_simple.js';
+import { Path2DPath, CanvasPath2D } from "./vectordraw_canvas2d_path2d.js";
 
-import {Path2DPath, CanvasPath2D} from './vectordraw_canvas2d_path2d.js';
+import { SimpleSkiaDraw2D, SimpleSkiaPath, loadCanvasKit } from "./vectordraw_skia_simple.js";
 
-import {SimpleSkiaDraw2D, SimpleSkiaPath, loadCanvasKit} from "./vectordraw_skia_simple.js";
-
-export * from './vectordraw_canvas2d_simple.js';
+export * from "./vectordraw_canvas2d_simple.js";
 
 /*
 export let Canvas = SimpleSkiaDraw2D;

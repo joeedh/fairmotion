@@ -1,7 +1,6 @@
 "not_a_module";
 
 window.init_redraw_globals_2 = function init_redraw_globals() {
-
   /*
   eman.addEventListener("draw", (e) => {
     requestAnimationFrame(e.callback[0]);
@@ -10,7 +9,6 @@ window.init_redraw_globals_2 = function init_redraw_globals() {
 };
 
 window.init_redraw_globals = function init_redraw_globals() {
-
   /* NOTE: an old_myrequestAnimationFrame() sat here.  It had no callers and
      referenced _req_idgen (declared only in the commented-out line above it)
      and an `eman` that exists nowhere in the tree. */
@@ -20,7 +18,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   window._killscreen_handlers = [];
 
   window._send_killscreen = function () {
-    var evt: KillscreenEvent = {type: 'killscreen'};
+    var evt: KillscreenEvent = { type: "killscreen" };
 
     for (var h of this._killscreen_handlers) {
       try {
@@ -30,21 +28,27 @@ window.init_redraw_globals = function init_redraw_globals() {
         console.log("Error while executing a killscreen callback");
       }
     }
-  }
+  };
 
   /* NOTE: this had a killscreen branch guarded by `e._is_killscreen`, but the
      DOM passes the event *name* as the first argument, so the flag was always
      undefined and the branch never ran -- killscreen handlers have never been
      removable.  Only the forwarding path is left. */
-  window.removeEventListener = function (this: Window, name: string,
-                                         cb: EventListenerOrEventListenerObject,
-                                         options?: boolean | EventListenerOptions) {
+  window.removeEventListener = function (
+    this: Window,
+    name: string,
+    cb: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions
+  ) {
     return window._removeEventListener(name, cb, options);
-  }
+  };
 
-  window.addEventListener = function (this: Window, name: string,
-                                      cb: EventListenerOrEventListenerObject,
-                                      options?: boolean | AddEventListenerOptions) {
+  window.addEventListener = function (
+    this: Window,
+    name: string,
+    cb: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions
+  ) {
     Reflect.set(cb, "_is_killscreen", 1);
 
     if (name != "killscreen") {
@@ -54,7 +58,7 @@ window.init_redraw_globals = function init_redraw_globals() {
          is a plain function taking a KillscreenEvent. */
       this._killscreen_handlers.push(cb as KillscreenCallback);
     }
-  }
+  };
 
   var animreq: number | undefined = undefined;
 
@@ -64,11 +68,11 @@ window.init_redraw_globals = function init_redraw_globals() {
   //this appears to do nothing now?
   window.force_viewport_redraw = function () {
     window.redraw_viewport();
-  }
+  };
 
   window._solve_idgen = 1;
   /* A set of live solve ids; the value is always 1. */
-  let outstanding_solves: {[id: number]: number} = {};
+  let outstanding_solves: { [id: number]: number } = {};
 
   window.push_solve = function (spline) {
     var id = window._solve_idgen++;
@@ -79,7 +83,7 @@ window.init_redraw_globals = function init_redraw_globals() {
 
     outstanding_solves[id] = 1;
     return id;
-  }
+  };
 
   window.pop_solve = function (id) {
     if (DEBUG.solve_order) {
@@ -87,14 +91,16 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
 
     if (!(id in outstanding_solves)) {
-      console.warn("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
+      console.warn(
+        "Warning: either pop_solve call was switched, or the system automatically called due to timeout"
+      );
       return;
     }
 
     delete outstanding_solves[id];
 
     //redraw_viewport();
-  }
+  };
 
   let redraw_viewport_promise: Promise<void> | undefined = undefined;
 
@@ -102,7 +108,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   window._all_draw_jobs_done = function () {
     //console.log("all rendering jobs done");
     animreq2 = undefined;
-  }
+  };
 
   if (0) {
     let block: number | undefined;
@@ -117,7 +123,7 @@ window.init_redraw_globals = function init_redraw_globals() {
           console.warn("redraw block set", v);
         }
         block = v;
-      }
+      },
     });
   }
 
@@ -159,7 +165,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     spline.drawer = new _SplineDrawer(spline);
 
     window.redraw_viewport();
-  }
+  };
 
   window.redraw_viewport_lock = 0;
 
@@ -201,21 +207,19 @@ window.init_redraw_globals = function init_redraw_globals() {
         }
 
         accept();
-      })
+      });
     });
 
     return redraw_viewport_promise;
-  }
+  };
 
   var requestId: number | undefined;
   window._fps = 1;
 
   window.reshape = function reshape(gl: WebGLRenderingContext) {
     var g = window.g_app_state;
-    if (g === undefined)
-      return;
+    if (g === undefined) return;
 
     window._ensure_thedimens();
-
-  }
-}
+  };
+};

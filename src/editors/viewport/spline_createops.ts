@@ -1,38 +1,44 @@
-import {util} from "../../path.ux/scripts/pathux.js";
-import {ToolOp} from '../../core/toolops_api.js';
-import {SplineFlags} from '../../curve/spline_types.js';
+import { util } from "../../path.ux/scripts/pathux.js";
+import { ToolOp } from "../../core/toolops_api.js";
+import { SplineFlags } from "../../curve/spline_types.js";
 import {
-  EnumProperty, IntProperty, Vec3Property,
-  Vec4Property, StringProperty, FloatProperty
-} from '../../core/toolprops.js';
-import {RestrictFlags} from '../../curve/spline.js';
-import {SplineLocalToolOp} from './spline_editops.js';
-import {SplineDrawData} from "../../curve/spline_draw_new.js";
-import type {FullContext} from '../../core/context.js';
-import type {Spline} from '../../curve/spline.js';
-import type {SplineVertex, SplineSegment} from '../../curve/spline_types.js';
+  EnumProperty,
+  IntProperty,
+  Vec3Property,
+  Vec4Property,
+  StringProperty,
+  FloatProperty,
+} from "../../core/toolprops.js";
+import { RestrictFlags } from "../../curve/spline.js";
+import { SplineLocalToolOp } from "./spline_editops.js";
+import { SplineDrawData } from "../../curve/spline_draw_new.js";
+import type { FullContext } from "../../core/context.js";
+import type { Spline } from "../../curve/spline.js";
+import type { SplineVertex, SplineSegment } from "../../curve/spline_types.js";
 
 /* NOTE: `Icons` is read by three of the tooldef()s below but never imported
    in this module, so registering those ops throws ReferenceError. */
 export let ExtrudeModes = {
   SMOOTH     : 0,
   LESS_SMOOTH: 1,
-  BROKEN     : 2
+  BROKEN     : 2,
 };
 
-export class ExtrudeVertOp extends SplineLocalToolOp<{
-  location  : Vec3Property,
-  linewidth : FloatProperty,
-  mode      : EnumProperty<number>,
-  stroke    : Vec4Property
-}, {
-  vertex : IntProperty
-}> {
-  constructor(co? : Vector3 | number[], /*ExtrudeModes*/ mode? : number) {
+export class ExtrudeVertOp extends SplineLocalToolOp<
+  {
+    location: Vec3Property;
+    linewidth: FloatProperty;
+    mode: EnumProperty<number>;
+    stroke: Vec4Property;
+  },
+  {
+    vertex: IntProperty;
+  }
+> {
+  constructor(co?: Vector3 | number[], /*ExtrudeModes*/ mode?: number) {
     super();
 
-    if (co !== undefined)
-      this.inputs.location.setValue(co);
+    if (co !== undefined) this.inputs.location.setValue(co);
     if (mode !== undefined) {
       this.inputs.mode.setValue(mode);
     }
@@ -43,26 +49,26 @@ export class ExtrudeVertOp extends SplineLocalToolOp<{
       uiname  : "Extrude Path",
       toolpath: "spline.extrude_verts",
 
-      inputs : {
+      inputs: {
         location : new Vec3Property(undefined, "location", "location"),
         /* NOTE: the fifth argument is `flag`, not a range -- an array there
            coerces to NaN and then to 0, so the [0.01, 500] this and the two
            other line-width properties below passed never took effect. */
         linewidth: new FloatProperty(2.0, "line width", "line width", "line width"),
-        mode     : new EnumProperty(ExtrudeModes.SMOOTH, ExtrudeModes, "extrude_mode", "Smooth Mode"),
-        stroke   : new Vec4Property([0, 0, 0, 1])
+        mode: new EnumProperty(ExtrudeModes.SMOOTH, ExtrudeModes, "extrude_mode", "Smooth Mode"),
+        stroke   : new Vec4Property([0, 0, 0, 1]),
       },
       outputs: {
-        vertex: new IntProperty(-1, "vertex", "vertex", "new vertex")
+        vertex: new IntProperty(-1, "vertex", "vertex", "new vertex"),
       },
 
       icon       : -1,
       is_modal   : false,
-      description: "Add points to path"
-    }
+      description: "Add points to path",
+    };
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_EXTRUDE);
   }
 
@@ -111,7 +117,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp<{
     window.redraw_viewport();
   }*/
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("Extrude vertex op");
 
     let spline = ctx.spline;
@@ -149,23 +155,26 @@ export class ExtrudeVertOp extends SplineLocalToolOp<{
 
     let smode = this.inputs.mode.get_value();
 
-    if (smode === ExtrudeModes.LESS_SMOOTH)
-      v.flag |= SplineFlags.BREAK_CURVATURES;
-    else if (smode === ExtrudeModes.BROKEN)
-      v.flag |= SplineFlags.BREAK_TANGENTS;
+    if (smode === ExtrudeModes.LESS_SMOOTH) v.flag |= SplineFlags.BREAK_CURVATURES;
+    else if (smode === ExtrudeModes.BROKEN) v.flag |= SplineFlags.BREAK_TANGENTS;
 
     this.outputs.vertex.setValue(v.eid);
 
     spline.verts.setselect(v, true);
 
-    if (actvert !== v && actvert !== undefined && !actvert.hidden &&
-      !((spline.restrict & RestrictFlags.VALENCE2) && actvert.segments.length >= 2)) {
+    if (
+      actvert !== v &&
+      actvert !== undefined &&
+      !actvert.hidden &&
+      !(spline.restrict & RestrictFlags.VALENCE2 && actvert.segments.length >= 2)
+    ) {
       if (actvert.segments.length === 2) {
         let v2 = actvert;
 
         //auto-pair handles on original line
         /* v2 is an endpoint of both segments, so handle() finds it. */
-        let h1 = v2.segments[0].handle(v2)!, h2 = v2.segments[1].handle(v2)!;
+        let h1 = v2.segments[0].handle(v2)!,
+          h2 = v2.segments[1].handle(v2)!;
         spline.connect_handles(h1, h2);
 
         h1.flag |= SplineFlags.AUTO_PAIRED_HANDLE;
@@ -207,13 +216,12 @@ export class ExtrudeVertOp extends SplineLocalToolOp<{
 }
 
 export class CreateEdgeOp extends SplineLocalToolOp<{
-  linewidth : FloatProperty
+  linewidth: FloatProperty;
 }> {
-  constructor(linewidth? : number) {
+  constructor(linewidth?: number) {
     super();
 
-    if (linewidth !== undefined)
-      this.inputs.linewidth.setValue(linewidth);
+    if (linewidth !== undefined) this.inputs.linewidth.setValue(linewidth);
   }
 
   static tooldef() {
@@ -221,22 +229,22 @@ export class CreateEdgeOp extends SplineLocalToolOp<{
       uiname  : "Make Segment",
       toolpath: "spline.make_edge",
 
-      inputs : {
+      inputs: {
         linewidth: new FloatProperty(2.0, "line width", "line width", "line width"),
       },
       outputs: {},
 
       icon       : Icons.MAKE_SEGMENT,
       is_modal   : false,
-      description: "Create segment between two selected points"
-    }
+      description: "Create segment between two selected points",
+    };
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("create edge op!");
 
     let spline = ctx.spline;
@@ -276,13 +284,12 @@ export class CreateEdgeOp extends SplineLocalToolOp<{
 }
 
 export class CreateEdgeFaceOp extends SplineLocalToolOp<{
-  linewidth : FloatProperty
+  linewidth: FloatProperty;
 }> {
-  constructor(linewidth? : number) {
+  constructor(linewidth?: number) {
     super();
 
-    if (linewidth !== undefined)
-      this.inputs.linewidth.setValue(linewidth);
+    if (linewidth !== undefined) this.inputs.linewidth.setValue(linewidth);
   }
 
   static tooldef() {
@@ -290,22 +297,22 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp<{
       uiname  : "Make Polygon",
       toolpath: "spline.make_edge_face",
 
-      inputs : {
+      inputs: {
         linewidth: new FloatProperty(2.0, "line width", "line width", "line width"),
       },
       outputs: {},
 
       icon       : Icons.MAKE_POLYGON,
       is_modal   : false,
-      description: "Create polygon from selected points"
-    }
+      description: "Create polygon from selected points",
+    };
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("create edge op!");
 
     let spline = ctx.spline;
@@ -328,14 +335,14 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp<{
       max_z_seg = Math.max(max_z_seg, s.z);
     }
 
-    let vs : SplineVertex[] = [];
-    let valmap : {[eid : number] : number} = {};
+    let vs: SplineVertex[] = [];
+    let valmap: { [eid: number]: number } = {};
     let vset = new set<SplineVertex>();
     let doneset = new set<SplineVertex>();
 
-    function walk(v : SplineVertex) {
+    function walk(v: SplineVertex) {
       let stack = [v];
-      let path : SplineVertex[] = [];
+      let path: SplineVertex[] = [];
 
       if (doneset.has(v)) return path;
       if (!vset.has(v)) return path;
@@ -378,8 +385,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp<{
 
         console.log(v.eid, v2.segments[0].v1.eid, v2.segments[0].v2.eid);
 
-        if (vset.has(v2))
-          valence++;
+        if (vset.has(v2)) valence++;
       }
 
       valmap[v.eid] = valence;
@@ -447,9 +453,9 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp<{
 }
 
 export class ImportJSONOp extends ToolOp<{
-  strdata : StringProperty
+  strdata: StringProperty;
 }> {
-  constructor(str? : string) {
+  constructor(str?: string) {
     super();
 
     if (str !== undefined) {
@@ -462,22 +468,22 @@ export class ImportJSONOp extends ToolOp<{
       uiname  : "Import Old JSON",
       toolpath: "editor.import_old_json",
 
-      inputs : {
-        strdata: new StringProperty("", "JSON", "JSON", "JSON string data")
+      inputs: {
+        strdata: new StringProperty("", "JSON", "JSON", "JSON string data"),
       },
       outputs: {},
 
       icon       : -1,
       is_modal   : false,
-      description: "Import old json files"
-    }
+      description: "Import old json files",
+    };
   }
 
-  static canRun(ctx : FullContext) {
+  static canRun(ctx: FullContext) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     console.log("import json spline op!");
 
     let spline = ctx.spline;
@@ -491,8 +497,12 @@ export class ImportJSONOp extends ToolOp<{
 
 /* Replaces each of `segments` with a closed outline of the stroke it draws,
    walking both sides of every segment and stitching the ends together. */
-export function strokeSegments(spline : Spline, segments : Iterable<SplineSegment>,
-                               width = 2.0, color : Vector4 | number[] = [0, 0, 0, 1]) {
+export function strokeSegments(
+  spline: Spline,
+  segments: Iterable<SplineSegment>,
+  width = 2.0,
+  color: Vector4 | number[] = [0, 0, 0, 1]
+) {
   /* de-duplicated into its own binding rather than over the parameter, so the
      membership test in the walk below still sees a set. */
   let segset = new util.set<SplineSegment>(segments);
@@ -506,7 +516,7 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
 
   let doneset = new util.set<string>();
 
-  function angle(v : SplineVertex, seg : SplineSegment) {
+  function angle(v: SplineVertex, seg: SplineSegment) {
     let v2 = seg.other_vert(v);
     let dx = v2[0] - v[0];
     let dy = v2[1] - v[1];
@@ -520,9 +530,9 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
     });
   }
 
-  let ekey = function (e : SplineVertex | SplineSegment, side : number) {
+  let ekey = function (e: SplineVertex | SplineSegment, side: number) {
     return "" + e.eid + ":" + side;
-  }
+  };
 
   let doneset2 = new util.set<string>();
 
@@ -535,7 +545,7 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
     }
 
     let startv = v;
-    let seg : SplineSegment | undefined;
+    let seg: SplineSegment | undefined;
     let found = 0;
     for (seg of v.segments) {
       let realside = side ^ (seg.v1 === v ? 0 : 1);
@@ -550,12 +560,12 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
       continue;
     }
 
-    let vcurs : {[eid : number] : number} = {};
-    let vstarts : {[eid : number] : number} = {};
+    let vcurs: { [eid: number]: number } = {};
+    let vstarts: { [eid: number]: number } = {};
 
-    let lastco : Vector2 | undefined = undefined;
-    let firstp : SplineVertex | undefined = undefined;
-    let lastp : SplineVertex | undefined = undefined;
+    let lastco: Vector2 | undefined = undefined;
+    let firstp: SplineVertex | undefined = undefined;
+    let lastp: SplineVertex | undefined = undefined;
     let lastv = v;
     let lastseg = undefined;
 
@@ -581,7 +591,7 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
       let s = data.gets(seg, v, 0);
       let p = spline.make_vertex(seg.evaluateSide(s, realside));
 
-      if ((v.flag & SplineFlags.BREAK_TANGENTS) || v.segments.length !== 2) {
+      if (v.flag & SplineFlags.BREAK_TANGENTS || v.segments.length !== 2) {
         p.flag |= SplineFlags.BREAK_TANGENTS;
 
         if (v.segments.length === 2) {
@@ -594,7 +604,6 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
         p.flag |= SplineFlags.BREAK_CURVATURES;
       }
 
-
       if (lastco === undefined) {
         lastco = new Vector2(p);
         lastp = p;
@@ -602,7 +611,6 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
       } else {
         /* lastco and lastp are written together in the branch above. */
         let seg2 = spline.make_segment(lastp!, p);
-
 
         lastp!.width = widthscale;
         widthscale += 0.025;
@@ -612,7 +620,7 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
         seg2.mat.update();
 
         lastco.load(p);
-//*
+        //*
         let nev = spline.split_edge(seg2, 0.5);
         let pn = seg.evaluateSide(0.5, realside);
         pn[2] = 0.0;
@@ -626,7 +634,6 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
       if (v.segments.length === 2) {
         seg = v.other_segment(seg);
         v = seg.other_vert(v);
-
       } else if (v.segments.length > 2) {
         if (!vcurs[v.eid]) {
           /* NOTE: this read `v.segments.indexOf(v.seg)`, but vertices have no
@@ -641,7 +648,7 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
 
         let dir = realside ? -1 : 1;
 
-        vcurs[v.eid] = (vcurs[v.eid] + dir + v.segments.length)%v.segments.length;
+        vcurs[v.eid] = (vcurs[v.eid] + dir + v.segments.length) % v.segments.length;
         if (vcurs[v.eid] === vstarts[v.eid]) {
           break;
         }
@@ -665,7 +672,6 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
         lastp!.flag |= SplineFlags.BREAK_TANGENTS;
 
         lastp = v2;
-
 
         //side ^= 1;
 
@@ -705,14 +711,14 @@ export function strokeSegments(spline : Spline, segments : Iterable<SplineSegmen
 }
 
 export class StrokePathOp extends SplineLocalToolOp<{
-  color : Vec4Property,
-  width : FloatProperty
+  color: Vec4Property;
+  width: FloatProperty;
 }> {
   constructor() {
     super();
   }
 
-  static invoke(ctx : FullContext, args : {color? : number[], width? : number}) {
+  static invoke(ctx: FullContext, args: { color?: number[]; width?: number }) {
     let tool = new StrokePathOp();
 
     if ("color" in args) {
@@ -735,16 +741,16 @@ export class StrokePathOp extends SplineLocalToolOp<{
       name       : "Stroke Path",
       description: "Stroke Path",
       toolpath   : "spline.stroke",
-      inputs     : {
+      inputs: {
         color: new Vec4Property([0, 0, 0, 1]),
-        width: new FloatProperty(1.0)
+        width: new FloatProperty(1.0),
       },
       outputs    : {},
-      icon       : Icons.STROKE_TOOL
-    }
+      icon       : Icons.STROKE_TOOL,
+    };
   }
 
-  exec(ctx : FullContext) {
+  exec(ctx: FullContext) {
     let spline = ctx.frameset.spline;
 
     let width = this.inputs.width.getValue();

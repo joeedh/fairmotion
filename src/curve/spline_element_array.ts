@@ -1,33 +1,40 @@
-import {STRUCT, readSerialized} from '../core/struct.js';
-import {SplineFlags, SplineTypes, CustomDataLayer,
-        CustomData, CustomDataSet, SplineElement, SplineVertex} from './spline_types.js';
-import type {AnySplineElement} from './spline_types.js';
-import type {LayerTypeClass} from './spline_base.js';
+import { STRUCT, readSerialized } from "../core/struct.js";
+import {
+  SplineFlags,
+  SplineTypes,
+  CustomDataLayer,
+  CustomData,
+  CustomDataSet,
+  SplineElement,
+  SplineVertex,
+} from "./spline_types.js";
+import type { AnySplineElement } from "./spline_types.js";
+import type { LayerTypeClass } from "./spline_base.js";
 
-import {DataPathNode} from '../core/eventdag.js';
+import { DataPathNode } from "../core/eventdag.js";
 
-import type {Spline} from './spline.js';
-import type {BaseContext, LayerFilterContext} from '../core/context.js';
+import type { Spline } from "./spline.js";
+import type { BaseContext, LayerFilterContext } from "../core/context.js";
 
 export let SplineLayerFlags = {
   //SELECT     : 1,
-  HIDE       : 2,
-  CAN_SELECT : 4,
-  MASK       : 8
+  HIDE      : 2,
+  CAN_SELECT: 4,
+  MASK      : 8,
 };
 
 export class SplineLayer extends set<SplineElement> {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  id : number;
-  order : number
-  flag : number
-  name : string;
+  id: number;
+  order: number;
+  flag: number;
+  name: string;
   /* Only present between loadSTRUCT()'s reader() call and afterSTRUCT(), which
      resolves the eids back to elements and deletes this. */
-  eids? : number[];
+  eids?: number[];
 
-  constructor(elements? : Iterable<SplineElement>) {
+  constructor(elements?: Iterable<SplineElement>) {
     super(elements);
 
     this.id = -1;
@@ -48,7 +55,7 @@ export class SplineLayer extends set<SplineElement> {
     return ret;
   }
 
-  add(e : SplineElement) {
+  add(e: SplineElement) {
     if (e == undefined) {
       console.trace("WARNING: e was undefined in SplineLayer.add");
       return;
@@ -58,7 +65,7 @@ export class SplineLayer extends set<SplineElement> {
     e.layers[this.id] = 1;
   }
 
-  remove(e : SplineElement) {
+  remove(e: SplineElement) {
     let ret = super.remove(e);
     delete e.layers[this.id];
 
@@ -66,7 +73,7 @@ export class SplineLayer extends set<SplineElement> {
   }
 
   _to_EIDs() {
-    let ret : number[] = [];
+    let ret: number[] = [];
 
     for (let e of this) {
       ret.push(e.eid);
@@ -75,13 +82,12 @@ export class SplineLayer extends set<SplineElement> {
     return ret;
   }
 
-  loadSTRUCT(reader : StructReader<this>) {
+  loadSTRUCT(reader: StructReader<this>) {
     reader(this);
   }
 
-  afterSTRUCT(spline : Spline) {
-    if (this.eids === undefined)
-      return;
+  afterSTRUCT(spline: Spline) {
+    if (this.eids === undefined) return;
 
     let corrupted = false;
 
@@ -114,16 +120,16 @@ SplineLayer {
 `;
 
 export class SplineLayerSet extends Array<SplineLayer> {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  namemap : {[name : string] : SplineLayer}
-  idmap : {[id : number] : SplineLayer}
-  idgen : SDIDGen
-  flag : number;
-  _active : SplineLayer | undefined;
+  namemap: { [name: string]: SplineLayer };
+  idmap: { [id: number]: SplineLayer };
+  idgen: SDIDGen;
+  flag: number;
+  _active: SplineLayer | undefined;
   /* Only present between fromSTRUCT()'s reader() call and the delete at the
      bottom of it. */
-  _layers? : SplineLayer[];
+  _layers?: SplineLayer[];
 
   constructor() {
     super();
@@ -163,7 +169,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
   /* NOTE: the mismatch check below read `old_name`, which is not bound
      anywhere -- rename() threw a ReferenceError before it renamed anything.
      Corrected to the parameter name, `oldname`. */
-  rename(id : number, oldname : string, newname : string, validate = false) {
+  rename(id: number, oldname: string, newname: string, validate = false) {
     let layer = this.idmap[id];
 
     if (layer === undefined) {
@@ -186,7 +192,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
     return true;
   }
 
-  get(id : number) {
+  get(id: number) {
     if (id == undefined) {
       throw new Error("id cannot be undefined");
     }
@@ -199,7 +205,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
     return this.idmap[id];
   }
 
-  get active() : SplineLayer {
+  get active(): SplineLayer {
     if (this._active == undefined) {
       this._active = this[0];
     }
@@ -208,7 +214,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
   }
 
   /* The setter accepts undefined -- the getter falls back to layer 0. */
-  set active(val : SplineLayer | undefined) {
+  set active(val: SplineLayer | undefined) {
     this._active = val;
   }
 
@@ -224,29 +230,29 @@ export class SplineLayerSet extends Array<SplineLayer> {
   }
 
   new_name() {
-    let name = "Layer", i = 1;
+    let name = "Layer",
+      i = 1;
 
-    while ((name + " " + i) in this.namemap) {
+    while (name + " " + i in this.namemap) {
       i++;
     }
 
     return name + " " + i;
   }
 
-  validate_name(name : string) {
-    if (!(name in this.namemap))
-      return name;
+  validate_name(name: string) {
+    if (!(name in this.namemap)) return name;
 
     let i = 1;
 
-    while ((name + " " + i) in this.namemap) {
+    while (name + " " + i in this.namemap) {
       i++;
     }
 
     return name + " " + i;
   }
 
-  push(...layers : SplineLayer[]) : number {
+  push(...layers: SplineLayer[]): number {
     for (let layer of layers) {
       layer.name = this.validate_name(layer.name);
 
@@ -257,14 +263,13 @@ export class SplineLayerSet extends Array<SplineLayer> {
 
       this.update_orders();
 
-      if (this._active === undefined)
-        this.active = layer;
+      if (this._active === undefined) this.active = layer;
     }
 
     return this.length;
   }
 
-  insert(i : number, layer : SplineLayer) : this {
+  insert(i: number, layer: SplineLayer): this {
     layer.name = this.validate_name(layer.name);
 
     this.namemap[layer.name] = layer;
@@ -277,7 +282,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
     return this;
   }
 
-  change_layer_order(layer : SplineLayer, new_i : number) {
+  change_layer_order(layer: SplineLayer, new_i: number) {
     let start = this.indexOf(layer);
 
     if (start == undefined) {
@@ -287,28 +292,28 @@ export class SplineLayerSet extends Array<SplineLayer> {
 
     if (new_i == start) return;
 
-    let min = Math.min(new_i, start), max = Math.max(new_i, start);
-    let diff = max-min;
+    let min = Math.min(new_i, start),
+      max = Math.max(new_i, start);
+    let diff = max - min;
 
     let idx = start;
 
     if (start > new_i) {
-      for (let i=0; i<diff; i++) {
+      for (let i = 0; i < diff; i++) {
         if (idx < 1) break;
 
         let t = this[idx];
-        this[idx] = this[idx-1];
-        this[idx-1] = t;
+        this[idx] = this[idx - 1];
+        this[idx - 1] = t;
         idx--;
       }
     } else {
-      for (let i=0; i<diff; i++) {
-        if (idx >= this.length-1)
-          break;
+      for (let i = 0; i < diff; i++) {
+        if (idx >= this.length - 1) break;
 
         let t = this[idx];
-        this[idx] = this[idx+1];
-        this[idx+1] = t;
+        this[idx] = this[idx + 1];
+        this[idx + 1] = t;
         idx++;
       }
     }
@@ -317,23 +322,23 @@ export class SplineLayerSet extends Array<SplineLayer> {
   }
 
   update_orders() {
-    for (let i=0; i<this.length; i++) {
+    for (let i = 0; i < this.length; i++) {
       this[i].order = i;
     }
   }
 
-  _new_active(i : number) {
+  _new_active(i: number) {
     if (this.length == 0) {
       console.log("WARNING: no layers left, adding a layer!");
       this.new_layer();
       return;
     }
 
-    i = Math.min(Math.max(0, i), this.length-1);
+    i = Math.min(Math.max(0, i), this.length - 1);
     this.active = this[i];
   }
 
-  remove(layer : SplineLayer) {
+  remove(layer: SplineLayer) {
     let i = this.indexOf(layer);
 
     super.remove(layer);
@@ -341,13 +346,12 @@ export class SplineLayerSet extends Array<SplineLayer> {
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
 
-    if (layer == this.active)
-      this._new_active(i);
+    if (layer == this.active) this._new_active(i);
 
     this.update_orders();
   }
 
-  pop_i(i : number) {
+  pop_i(i: number) {
     let layer = this[i];
 
     super.pop_i(i);
@@ -355,13 +359,12 @@ export class SplineLayerSet extends Array<SplineLayer> {
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
 
-    if (layer == this.active)
-      this._new_active(i);
+    if (layer == this.active) this._new_active(i);
 
     this.update_orders();
   }
 
-  pop() : SplineLayer | undefined {
+  pop(): SplineLayer | undefined {
     let layer = super.pop();
 
     if (layer === undefined) {
@@ -371,22 +374,21 @@ export class SplineLayerSet extends Array<SplineLayer> {
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
 
-    if (layer == this.active)
-      this._new_active(this.length-1);
+    if (layer == this.active) this._new_active(this.length - 1);
 
     return layer;
   }
 
-  static fromSTRUCT(reader : StructReader<SplineLayerSet>) {
+  static fromSTRUCT(reader: StructReader<SplineLayerSet>) {
     let ret = new SplineLayerSet();
     reader(ret);
 
     let layers = ret._layers !== undefined ? ret._layers : [];
 
-    for (let i=0; i<layers.length; i++) {
+    for (let i = 0; i < layers.length; i++) {
       if (!layers[i].name) {
         console.log("Layer name corruption detected");
-        layers[i].name = "Layer " + (i+1);
+        layers[i].name = "Layer " + (i + 1);
       }
 
       layers[i].order = i;
@@ -402,7 +404,7 @@ export class SplineLayerSet extends Array<SplineLayer> {
     return ret;
   }
 
-  afterSTRUCT(spline : Spline) {
+  afterSTRUCT(spline: Spline) {
     for (let layer of this) {
       layer.afterSTRUCT(spline);
     }
@@ -415,31 +417,31 @@ SplineLayerSet.STRUCT = `
     flag   : int;
     _layers : array(SplineLayer) | obj;
   }
-`
+`;
 
 /* What IterCache needs of the iterators it pools: a way to tell whether one
    has run to completion and can be recycled. */
 export interface CachedIter {
-  is_done() : boolean;
+  is_done(): boolean;
 }
 
 export class IterCache<T extends CachedIter> {
   /* Handed out and not yet recycled. */
-  stack : T[];
-  free : T[];
+  stack: T[];
+  free: T[];
   /* Every iterator this cache owns, in creation order. */
-  cache : T[];
-  callback : () => T;
+  cache: T[];
+  callback: () => T;
 
-  constructor(callback : () => T, count = 8) {
+  constructor(callback: () => T, count = 8) {
     this.stack = [];
     this.free = [];
     this.cache = [];
     this.callback = callback;
 
-    for (let i=0; i<count; i++) {
+    for (let i = 0; i < count; i++) {
       this.cache.push(callback());
-      this.free.push(this.cache[this.cache.length-1]);
+      this.free.push(this.cache[this.cache.length - 1]);
     }
   }
 
@@ -450,7 +452,7 @@ export class IterCache<T extends CachedIter> {
     }
 
     //detect done iterators
-    for (let i=0; i<this.stack.length; i++) {
+    for (let i = 0; i < this.stack.length; i++) {
       let iter = this.stack[i];
       if (iter.is_done()) {
         this.stack.remove(iter);
@@ -478,27 +480,29 @@ export class IterCache<T extends CachedIter> {
     }
   }
 
-  static fromConstructor<T extends CachedIter>(cls : new () => T, count : number) {
-    return new IterCache<T>(function() { return new cls(); }, count);
+  static fromConstructor<T extends CachedIter>(cls: new () => T, count: number) {
+    return new IterCache<T>(function () {
+      return new cls();
+    }, count);
   }
 }
 
 export class EditableIter<T extends SplineElement> {
-  list! : ElementArray<T>;
-  all_layers! : boolean;
-  layerset! : SplineLayerSet;
+  list!: ElementArray<T>;
+  all_layers!: boolean;
+  layerset!: SplineLayerSet;
   /* Index of the next candidate in `list`. */
-  i! : number;
+  i!: number;
   /* Reused across next() calls, so callers must not hold onto it. IterRet
      declares `value : T` so `for..of` over this iterator yields T; the value is
      only ever undefined on the step that also sets done. */
-  ret! : IterRet<T>;
+  ret!: IterRet<T>;
 
-  constructor(list : ElementArray<T>, layerset : SplineLayerSet, all_layers : boolean) {
+  constructor(list: ElementArray<T>, layerset: SplineLayerSet, all_layers: boolean) {
     this.init(list, layerset, all_layers);
   }
 
-  init(list : ElementArray<T>, layerset : SplineLayerSet, all_layers : boolean) {
+  init(list: ElementArray<T>, layerset: SplineLayerSet, all_layers: boolean) {
     this.list = list;
     this.layerset = layerset;
     this.all_layers = all_layers;
@@ -529,8 +533,7 @@ export class EditableIter<T extends SplineElement> {
       let ok = !e.hidden;
       ok = ok && (this.all_layers || actlayer in e.layers);
 
-      if (ok)
-          break;
+      if (ok) break;
 
       this.i++;
     }
@@ -554,15 +557,15 @@ export class EditableIter<T extends SplineElement> {
 export class SelectedEditableIter<T extends SplineElement = SplineElement> {
   /* Reused across next() calls, so callers must not hold onto it. IterRet
      declares `value : T` so `for..of` over this iterator yields T. */
-  ret : IterRet<T>
+  ret: IterRet<T>;
   /* Runaway guard; next() bails once this passes 100000. */
-  _c : number;
-  set! : ElementArraySet<T>;
-  layerset! : SplineLayerSet;
+  _c: number;
+  set!: ElementArraySet<T>;
+  layerset!: SplineLayerSet;
   /* undefined until the first next(), and again once the walk is done. */
-  iter : Iterator<T> | undefined;
+  iter: Iterator<T> | undefined;
 
-  constructor(selset? : ElementArraySet<T>, layerset? : SplineLayerSet) {
+  constructor(selset?: ElementArraySet<T>, layerset?: SplineLayerSet) {
     this.ret = new IterRet<T>();
     this._c = 0;
 
@@ -579,7 +582,7 @@ export class SelectedEditableIter<T extends SplineElement = SplineElement> {
     return this.init(this.set, this.layerset);
   }
 
-  init(selset : ElementArraySet<T>, layerset : SplineLayerSet) {
+  init(selset: ElementArraySet<T>, layerset: SplineLayerSet) {
     this.set = selset;
     this.iter = undefined;
     this.ret.done = false;
@@ -608,7 +611,7 @@ export class SelectedEditableIter<T extends SplineElement = SplineElement> {
 
     let actlayer = this.layerset.active.id;
 
-    function visible(e : SplineElement) {
+    function visible(e: SplineElement) {
       return !e.hidden && actlayer in e.layers;
     }
 
@@ -652,15 +655,15 @@ export class SelectedEditableIter<T extends SplineElement = SplineElement> {
 export class SelectedEditableAllLayersIter<T extends SplineElement = SplineElement> {
   /* Reused across next() calls, so callers must not hold onto it. IterRet
      declares `value : T` so `for..of` over this iterator yields T. */
-  ret : IterRet<T>
+  ret: IterRet<T>;
   /* Runaway guard; next() bails once this passes 100000. */
-  _c : number;
-  set! : ElementArraySet<T>;
-  layerset! : SplineLayerSet;
+  _c: number;
+  set!: ElementArraySet<T>;
+  layerset!: SplineLayerSet;
   /* undefined until the first next(), and again once the walk is done. */
-  iter : Iterator<T> | undefined;
+  iter: Iterator<T> | undefined;
 
-  constructor(selset? : ElementArraySet<T>, layerset? : SplineLayerSet) {
+  constructor(selset?: ElementArraySet<T>, layerset?: SplineLayerSet) {
     this.ret = new IterRet<T>();
     this._c = 0;
 
@@ -677,7 +680,7 @@ export class SelectedEditableAllLayersIter<T extends SplineElement = SplineEleme
     return this.init(this.set, this.layerset);
   }
 
-  init(selset : ElementArraySet<T>, layerset : SplineLayerSet) {
+  init(selset: ElementArraySet<T>, layerset: SplineLayerSet) {
     this.set = selset;
     this.iter = undefined;
     this.ret.done = false;
@@ -707,7 +710,7 @@ export class SelectedEditableAllLayersIter<T extends SplineElement = SplineEleme
     /* Read to keep the two iterators in step; this one ignores layers. */
     let actlayer = this.layerset.active.id;
 
-    function visible(e : SplineElement) {
+    function visible(e: SplineElement) {
       return !e.hidden;
     }
 
@@ -751,15 +754,15 @@ export class SelectedEditableAllLayersIter<T extends SplineElement = SplineEleme
 //note: the global sline.selected list uses this too
 export class ElementArraySet<T extends SplineElement> extends set<T> {
   /* Left undefined by the constructor; ElementArray fills it in right after. */
-  layerset : SplineLayerSet | undefined;
+  layerset: SplineLayerSet | undefined;
 
-  constructor(arg? : Iterable<T> | ArrayLike<T>) {
+  constructor(arg?: Iterable<T> | ArrayLike<T>) {
     super(arg);
 
     this.layerset = undefined;
   }
 
-  editable(ctx : LayerFilterContext) {
+  editable(ctx: LayerFilterContext) {
     if (ctx === undefined) {
       console.warn("Missing ctx in editable() iterator!");
     }
@@ -770,7 +773,9 @@ export class ElementArraySet<T extends SplineElement> extends set<T> {
     }
 
     let ignore_layers = ctx !== undefined ? ctx.edit_all_layers : false;
-    return ignore_layers ? new SelectedEditableAllLayersIter<T>(this, layerset) : new SelectedEditableIter<T>(this, layerset);
+    return ignore_layers
+      ? new SelectedEditableAllLayersIter<T>(this, layerset)
+      : new SelectedEditableIter<T>(this, layerset);
   }
 
   //get editable(ctx) {
@@ -781,41 +786,44 @@ export class ElementArraySet<T extends SplineElement> extends set<T> {
 }
 
 export class ElementArray<T extends SplineElement> extends Array<T> {
-  static STRUCT : string;
+  static STRUCT: string;
 
-  cdata : CustomData
+  cdata: CustomData;
   /* eid -> element, for this array only; `idmap` is the spline-wide one every
      ElementArray shares. */
-  local_idmap : {[eid : number] : T}
-  select_listeners : EventDispatcher
-  selected : ElementArraySet<T>
+  local_idmap: { [eid: number]: T };
+  select_listeners: EventDispatcher;
+  selected: ElementArraySet<T>;
   /* Definite-assigned: fromSTRUCT() builds an unwired instance and
      afterSTRUCT() supplies this along with the other constructor arguments. */
-  spline! : Spline
-  active : T | undefined
-  highlight : T | undefined
-  layerset : SplineLayerSet;
+  spline!: Spline;
+  active: T | undefined;
+  highlight: T | undefined;
+  layerset: SplineLayerSet;
   /* One of SplineTypes; every element in here carries the same value. */
-  type : number;
-  idgen : SDIDGen;
-  idmap : {[eid : number] : SplineElement};
+  type: number;
+  idgen: SDIDGen;
+  idmap: { [eid: number]: SplineElement };
   /* The spline-wide selection, shared with the other ElementArrays. */
-  global_sel : set<SplineElement>;
-  on_select : ((e : T, state : boolean) => void) | undefined;
+  global_sel: set<SplineElement>;
+  on_select: ((e: T, state: boolean) => void) | undefined;
   /* Only present between fromSTRUCT()'s reader() call and the delete at the
      bottom of it. */
-  arr? : T[];
+  arr?: T[];
 
   /* Patched in by the mixin() call at the bottom of this file. */
-  declare dag_update : (name : string, data? : number) => void;
+  declare dag_update: (name: string, data?: number) => void;
 
   /* Every argument is optional for fromSTRUCT()'s benefit; afterSTRUCT()
      overwrites all six on that path. */
-  constructor(type : number = -1, idgen : SDIDGen = new SDIDGen(),
-              idmap : {[eid : number] : SplineElement} = {},
-              global_sel : set<SplineElement> = new set<SplineElement>(),
-              layerset : SplineLayerSet = new SplineLayerSet(),
-              spline? : Spline) {
+  constructor(
+    type: number = -1,
+    idgen: SDIDGen = new SDIDGen(),
+    idmap: { [eid: number]: SplineElement } = {},
+    global_sel: set<SplineElement> = new set<SplineElement>(),
+    layerset: SplineLayerSet = new SplineLayerSet(),
+    spline?: Spline
+  ) {
     super();
 
     if (spline !== undefined) {
@@ -854,7 +862,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
   }
   //*/
 
-  editable(ctx : LayerFilterContext) : EditableIter<T> {
+  editable(ctx: LayerFilterContext): EditableIter<T> {
     if (ctx === undefined) {
       throw new Error("Missing ctx argument");
     }
@@ -865,7 +873,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
   get visible() {
     let this2 = this;
 
-    return (function*() {
+    return (function* () {
       let layerset = this2.layerset;
 
       for (let e of this2) {
@@ -889,9 +897,8 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     })();
   }
 
-
   dag_get_datapath() {
-    let tname : string | undefined;
+    let tname: string | undefined;
     switch (this.type) {
       case SplineTypes.VERTEX:
         tname = "verts";
@@ -908,7 +915,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     }
 
     //wells, it should end in. . .
-    let suffix = "."+tname;
+    let suffix = "." + tname;
 
     //hrm, prefix should be either spline.ctx.frameset.drawspline,
     //or spline.ctx.frameset.pathspline
@@ -917,9 +924,8 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
 
     let name = "drawspline";
 
-    for (let i=0; i<this.cdata.layers.length; i++) {
-      if (this.cdata.layers[i].name === "TimeDataLayer")
-        name = "pathspline";
+    for (let i = 0; i < this.cdata.layers.length; i++) {
+      if (this.cdata.layers[i].name === "TimeDataLayer") name = "pathspline";
     }
 
     return "frameset." + name + suffix;
@@ -929,7 +935,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
      pop_i() wants an index, so the element was never dropped and the `i--`
      spun forever. Corrected to the index. */
   remove_undefineds() {
-    for (let i=0; i<this.length; i++) {
+    for (let i = 0; i < this.length; i++) {
       if (this[i] == undefined) {
         this.pop_i(i);
         i--;
@@ -943,16 +949,17 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     a simple array, and swapping elements by index
     will become a bit more complicated
   */
-  swap(a : T, b : T) {
+  swap(a: T, b: T) {
     if (a == undefined || b == undefined) {
       console.trace("Warning, undefined in ElementArray.swap(): a, b:", a, b);
       return;
     }
 
-    let i1 = this.indexOf(a), i2 = this.indexOf(b);
+    let i1 = this.indexOf(a),
+      i2 = this.indexOf(b);
     if (i1 < 0 || i2 < 0) {
       console.log(i1, i2, a, b);
-      throw new Error("Elements not in list")
+      throw new Error("Elements not in list");
     }
 
     this[i2] = a;
@@ -964,14 +971,14 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
      call that would pass them is commented out), so neither ever ran; corrected
      to the parameter name. */
   //this is a customdata layer callbacks, not layer layer callbacks
-  on_layer_add(layer : LayerTypeClass, i : number, shared : object) {
+  on_layer_add(layer: LayerTypeClass, i: number, shared: object) {
     for (let e of this) {
       e.cdata.on_add(layer, i, shared);
     }
   }
 
   //this is a customdata layer callbacks, not layer layer callbacks
-  on_layer_del(layer : LayerTypeClass, i : number) {
+  on_layer_del(layer: LayerTypeClass, i: number) {
     for (let e of this) {
       e.cdata.on_del(layer, i);
     }
@@ -979,7 +986,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
 
   /* push() has to keep Array's signature, so the two extra arguments live on
      pushElement(); plain push(e) still routes through it. */
-  push(...items : T[]) : number {
+  push(...items: T[]): number {
     for (let e of items) {
       this.pushElement(e);
     }
@@ -987,7 +994,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     return this.length;
   }
 
-  pushElement(e : T, custom_eid? : number, add_to_layerset : boolean = true) {
+  pushElement(e: T, custom_eid?: number, add_to_layerset: boolean = true) {
     if (e.cdata === undefined || e.cdata.length !== this.cdata.layers.length) {
       e.cdata = this.cdata.gen_edata();
     }
@@ -1020,7 +1027,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     }
   }
 
-  remove(e : T, soft_error=false) {
+  remove(e: T, soft_error = false) {
     e.onDestroy();
 
     let idx = this.indexOf(e);
@@ -1033,8 +1040,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
       this.active = undefined;
     }
 
-    if (this.selected.has(e))
-      this.setselect(e, false);
+    if (this.selected.has(e)) this.setselect(e, false);
 
     /*
     console.log(this.idmap);
@@ -1048,7 +1054,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     //this.idgen.free_id(e.eid);
 
     //use swap removal method
-    this[idx] = this[this.length-1];
+    this[idx] = this[this.length - 1];
     this.length--;
 
     //Array.prototype.remove.call(this, e, soft_error);
@@ -1065,9 +1071,14 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     }
   }
 
-  setselect(e : T, state : boolean) {
+  setselect(e: T, state: boolean) {
     if (e.type !== this.type) {
-      console.trace("Warning: bad element fed to ElementArray! Got ", e.type, " but expected", this.type);
+      console.trace(
+        "Warning: bad element fed to ElementArray! Got ",
+        e.type,
+        " but expected",
+        this.type
+      );
       return;
     }
 
@@ -1076,8 +1087,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     if (state && !(e.flag & SplineFlags.SELECT)) {
       this.dag_update("on_select_add", this.type);
       selchange = 1;
-
-    } else if (!state && (e.flag & SplineFlags.SELECT)) {
+    } else if (!state && e.flag & SplineFlags.SELECT) {
       this.dag_update("on_select_sub", this.type);
       selchange = 1;
     }
@@ -1089,8 +1099,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     let changed = !!(e.flag & SplineFlags.SELECT) != !!state;
 
     if (state) {
-      if (this.active === undefined)
-        this.active = e;
+      if (this.active === undefined) this.active = e;
 
       this.global_sel.add(e);
       this.selected.add(e);
@@ -1115,18 +1124,18 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
   }
 
   clear_selection() {
-    for (let i=0; i<this.length; i++) {
+    for (let i = 0; i < this.length; i++) {
       this.setselect(this[i], false);
     }
   }
 
   select_all() {
-    for (let i=0; i<this.length; i++) {
+    for (let i = 0; i < this.length; i++) {
       this.setselect(this[i], true);
     }
   }
 
-  static fromSTRUCT(reader : StructReader<ElementArray<SplineElement>>) {
+  static fromSTRUCT(reader: StructReader<ElementArray<SplineElement>>) {
     let ret = new ElementArray();
 
     reader(ret);
@@ -1140,7 +1149,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
 
     const arr = ret.arr !== undefined ? ret.arr : [];
 
-    for (let i=0; i<arr.length; i++) {
+    for (let i = 0; i < arr.length; i++) {
       GArray.prototype.push.call(ret, arr[i]);
 
       if (arr[i].eid == active) {
@@ -1152,10 +1161,14 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     return ret;
   }
 
-  afterSTRUCT(type : number, idgen : SDIDGen,
-              idmap : {[eid : number] : SplineElement},
-              global_sel : set<SplineElement>, layerset : SplineLayerSet,
-              spline : Spline) {
+  afterSTRUCT(
+    type: number,
+    idgen: SDIDGen,
+    idmap: { [eid: number]: SplineElement },
+    global_sel: set<SplineElement>,
+    layerset: SplineLayerSet,
+    spline: Spline
+  ) {
     this.type = type;
     this.idgen = idgen;
     this.idmap = idmap;
@@ -1171,7 +1184,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
        elements here. */
     const sel_eids = readSerialized<number[]>(this, "selected");
 
-    for (let i=0; i<sel_eids.length; i++) {
+    for (let i = 0; i < sel_eids.length; i++) {
       let eid = sel_eids[i];
 
       if (!(eid in idmap)) {
@@ -1198,14 +1211,16 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
     this.cdata.afterSTRUCT(this, this.cdata);
   }
 
-  static nodedef() { return {
-    inputs : {},
-    outputs : {
-      on_select_add : 0,  // passes type of elements this array stores
-      on_select_sub : 0,  // passes type of elements this array stores
-      on_select_change : 0
-    }
-  }}
+  static nodedef() {
+    return {
+      inputs : {},
+      outputs: {
+        on_select_add   : 0, // passes type of elements this array stores
+        on_select_sub   : 0, // passes type of elements this array stores
+        on_select_change: 0,
+      },
+    };
+  }
 }
 
 mixin(ElementArray, DataPathNode);
@@ -1217,4 +1232,4 @@ ElementArray.STRUCT = `
     active   : int | obj.active != undefined ? obj.active.eid : -1;
     cdata    : CustomData;
   }
-`
+`;

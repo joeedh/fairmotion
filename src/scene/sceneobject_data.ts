@@ -1,10 +1,25 @@
-import {DataBlock} from '../core/lib_api.js';
-import {nstructjs, util, EulerOrders, Vector2, Vector3, Matrix4, Vector4, Quat} from '../path.ux/scripts/pathux.js';
-import {mixinGraphNode, SocketFlags} from '../graph/graph.js';
-import {FloatSocket, Vec2Socket, Matrix4Socket, Vec3Socket, DependSocket} from '../graph/graphsockets.js';
-import type {Scene} from './scene.js';
+import { DataBlock } from "../core/lib_api.js";
+import {
+  nstructjs,
+  util,
+  EulerOrders,
+  Vector2,
+  Vector3,
+  Matrix4,
+  Vector4,
+  Quat,
+} from "../path.ux/scripts/pathux.js";
+import { mixinGraphNode, SocketFlags } from "../graph/graph.js";
+import {
+  FloatSocket,
+  Vec2Socket,
+  Matrix4Socket,
+  Vec3Socket,
+  DependSocket,
+} from "../graph/graphsockets.js";
+import type { Scene } from "./scene.js";
 
-import {NodeDataBlock} from '../core/lib_api.js';
+import { NodeDataBlock } from "../core/lib_api.js";
 
 export class SceneObjectData extends NodeDataBlock {
   static nodedef() {
@@ -15,11 +30,11 @@ export class SceneObjectData extends NodeDataBlock {
 
       outputs: {
         depend: new DependSocket(),
-      }
-    }
+      },
+    };
   }
 
-  findNearest(x : number, y : number, limit = 75, selmask = 255) {
+  findNearest(x: number, y: number, limit = 75, selmask = 255) {
     throw new Error("findNearest: implement me!");
   }
 
@@ -29,11 +44,11 @@ export class SceneObjectData extends NodeDataBlock {
 
      uniforms are webgl-style uniforms even if we're not necassarily drawn
      with webgl. */
-  draw(scene : Scene, drawer : unknown, uniforms : unknown) {
-
-  }
+  draw(scene: Scene, drawer: unknown, uniforms: unknown) {}
 }
-SceneObjectData.STRUCT = nstructjs.inherit(SceneObjectData, NodeDataBlock) + `
+SceneObjectData.STRUCT =
+  nstructjs.inherit(SceneObjectData, NodeDataBlock) +
+  `
 }
 `;
 nstructjs.register(SceneObjectData);

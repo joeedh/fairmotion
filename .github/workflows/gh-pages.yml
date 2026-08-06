@@ -55,3 +55,8 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Default is 10min. A deployment that sits queued past the timeout is
+          # cancelled by the action, and Pages keys deployments by commit SHA --
+          # so every retry of that commit fails instantly on the dead one.
+          timeout: 1800000

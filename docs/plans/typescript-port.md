@@ -312,10 +312,13 @@ Outstanding:
 - **The manual walkthrough in (2).** Playwright mounts and draws all eight editors, but no
   human has stepped through every mode and feature against the phase-0 baseline. That check
   is the one the rest of the phase cannot substitute for.
-- **(4), the comment-length pass.** 147 prose comment blocks over 4 lines remain outside the
-  math-heavy files (plus 182 blocks of commented-out code, which are a separate question).
-  Many are file-header docblocks and port-era `NOTE:` explanations that are worth more than
-  the rule costs; this wants a judgment call per comment, not a bulk truncation.
+- **(4), the comment-length pass — deferred, not abandoned.** CLAUDE.md's 4-line rule now
+  exempts file headers, but that only accounts for 6 of the 147 over-long blocks outside the
+  math-heavy files: **141 inline ones remain in scope**, plus 182 blocks of commented-out code
+  that are a separate question. Most are port-era `NOTE:` explanations of why something looks
+  wrong but isn't — several were load-bearing while debugging phase 8 — so this wants a
+  judgment call per comment rather than a bulk truncation. Deliberately left for a later pass;
+  phase 8 is otherwise complete.
 
 ---
 

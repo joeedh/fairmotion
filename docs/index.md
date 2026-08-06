@@ -29,7 +29,7 @@ Reading order for a new subsystem: [rendering.md](rendering.md) then [stroking.m
 
 | Doc | Status | What it covers |
 |---|---|---|
-| [plans/typescript-port.md](plans/typescript-port.md) | Phases 0–7 done; phase 8 all but the manual app walkthrough and the comment-length pass | The 88k-line JS → TS port and the replacement of the Python build system with esbuild. Its **Known gotchas** section is still worth reading — auto-accessors under vitest, barrel-vs-`dist` imports, module-scoped singletons, stale serialized state. |
+| [plans/typescript-port.md](plans/typescript-port.md) | Phases 0–7 done; phase 8 done but for the manual app walkthrough and a deferred comment-length pass | The 88k-line JS → TS port and the replacement of the Python build system with esbuild. Its **Known gotchas** section is still worth reading — auto-accessors under vitest, barrel-vs-`dist` imports, module-scoped singletons, stale serialized state. |
 | [plans/remove-webgl.md](plans/remove-webgl.md) | Not started | Deleting the dormant `src/webgl/` stack and the stub `src/paint/` module it serves (~6,600 lines), including the `image_canvas` file-format entanglement and the doc edits that follow. |
 
 ## Research

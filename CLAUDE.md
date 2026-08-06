@@ -60,6 +60,9 @@ section still applies), `docs/plans/remove-webgl.md` (not started).
 ## Source comments
 
 - **4 lines maximum** per comment.
+- **Exception — file headers:** no limit. The leading comment block at the top of a file,
+  before the first import or statement, is where a module explains what it is and how it fits
+  together. That is worth the space; the 4-line limit is aimed at inline noise.
 - **Exception — math-heavy files:** no limit. Derivations, coordinate conventions, and
   references are worth the space.
 - **Exception everywhere — embedded symbolic algebra** (REDUCE scripts and similar): no limit,

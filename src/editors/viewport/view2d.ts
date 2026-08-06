@@ -1166,6 +1166,12 @@ export class View2DHandler extends Editor {
 
     this._last_rendermat.load(this.cameramat);
 
+    /* Pre-port files hold a SplineEditor here. That class is gone, so nstructjs
+       loads an unnamed placeholder whose structName no longer matches the
+       declared View2DEditor -- saving one threw "Bad struct SplineEditor".
+       The field is vestigial, so drop whatever the file carried. */
+    this.editors = [];
+
     this._in_from_struct = true;
     this.need_data_link = true;
 

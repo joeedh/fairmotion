@@ -296,6 +296,27 @@ shared-type definitions before the typechecker amplifies each one into a cascade
 3. Grep for stray `CLAUDENOTE:` comments and remove every one.
 4. Final pass on comment length: 4 lines max outside math-heavy files.
 
+### Status
+
+Done: (1) the formatting pass, plus a `.prettierignore` — the `src/**/*.ts` glob had been
+reaching into the path.ux submodule and reformatting 29 files in a separate repo. (3) zero
+`CLAUDENOTE:` hits.
+
+Done in (2): tsgo 0 errors; both builds; dev server serves 200; vitest 6/6; Playwright 17/17;
+`.fmo` round-trip — which was **broken** and is fixed (see `docs/debugging.md`, phase 8). The
+three datapath baselines were re-recorded after confirming every delta traces to a phase 2/5
+deletion or a rename that fixed an unaddressable path.
+
+Outstanding:
+
+- **The manual walkthrough in (2).** Playwright mounts and draws all eight editors, but no
+  human has stepped through every mode and feature against the phase-0 baseline. That check
+  is the one the rest of the phase cannot substitute for.
+- **(4), the comment-length pass.** 147 prose comment blocks over 4 lines remain outside the
+  math-heavy files (plus 182 blocks of commented-out code, which are a separate question).
+  Many are file-header docblocks and port-era `NOTE:` explanations that are worth more than
+  the rule costs; this wants a judgment call per comment, not a bulk truncation.
+
 ---
 
 ## Debugging guide

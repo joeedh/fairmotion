@@ -719,3 +719,47 @@ files, resolved only by `window.Context = FullContext` in `core/context.ts:300`,
 needs a real import or a `globals.d.ts`; and the startup warning `mapStruct: duplicate
 struct name "PanOp"` -- two classes registering under one nstructjs name, of which only
 the first survives.
+
+# Phase 8
+
+## Symptom: saving a pre-port .fmo throws `Bad struct SplineEditor passed to write_struct`
+`examples/Panda.fmo` round-tripped fine; `love and thunder.fmo` loaded fine but threw on
+save, from a deeply recursive `StructTStructField.pack` -> `StructArrayField.pack` stack.
+Confusingly, the string `SplineEditor` appears nowhere in the built bundle.
+
+Cause: `SplineEditor` was deleted in phase 2 as dead code, but old files still contain one
+inside `View2DHandler.editors` (`array(abstract(View2DEditor))`). nstructjs reads the
+unknown struct into an anonymous placeholder class that keeps `structName = "SplineEditor"`.
+On write, `pack()` compares that name against the declared `View2DEditor` and, finding
+neither a name match nor `val instanceof cls`, throws. The name comes from the *file*, which
+is why grepping the bundle for it finds nothing.
+
+Found by: temporarily patching the `throw` in
+`node_modules/nstructjs/build/nstructjs_es6.js` (the package's `main`) to also print
+`type.data`, `valCtor.name` and `Object.keys(val)`. That immediately gave
+`declaredType=View2DEditor ctorName=cls objCtor=View2DHandler keys=selectmode`. Walking the
+live object graph from `_appstate` had not found it -- the placeholder sits deeper than a
+depth-8 walk reaches. Restore the file afterwards; it is not in git.
+
+Fix: `View2DHandler.loadSTRUCT()` now resets `this.editors = []` after `reader(this)`. The
+field is vestigial -- it is only ever `[]` in new files, and the `editor`-as-index code that
+used it is commented out -- so discarding whatever a legacy file carried is lossless.
+
+## Symptom: three datapath baseline tests fail with no code change
+Cause: baseline drift, not regression. All 13 lost paths trace to phase 2/5 deletions --
+`appstate.export_al3_b64`, `view2d.orbit`, `view2d.pan` (the registered `ViewPanOp`, not the
+live `PanOp` that shares the toolpath and is invoked directly via `new PanOp()`) -- plus two
+renames that *fixed* previously unaddressable paths: `phantom ids` -> `phantom_ids` (a space
+in a datapath) and `circle_select.Elements` -> `elements`.
+
+`toolDefaults.velpan.pan.mvector1/2` disappearing is also correct: `VelPanPanOp`'s inputs
+were always `velpanPath` + `pan`. The mvectors bled in from the deleted `ViewPanOp`, which
+shared the trailing `pan` name -- the same collision behind phase 6's
+`duplicate struct name "PanOp"` warning.
+
+Found by: diffing the `ok` sets of the old and new `datapath-sweep.json` rather than reading
+the raw `toEqual` diff, and checking each vanished toolpath for string references in keymaps.
+
+Fix: re-record with `FM_UPDATE_BASELINE=1 npx playwright test`. Only the three datapath/tool
+baselines changed; the per-file count and console-error baselines stayed byte-identical,
+which is the evidence that nothing live regressed.

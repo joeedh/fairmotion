@@ -10,7 +10,6 @@
   "app.open",
   "app.prop_set",
   "app.save",
-  "appstate.export_al3_b64",
   "appstate.export_svg",
   "appstate.open",
   "appstate.open_recent",
@@ -90,10 +89,7 @@
   "velpan.pan",
   "view2d.circle_select",
   "view2d.export_image",
-  "view2d.orbit",
-  "view2d.pan",
   "view2d.pan",
   "view2d.play_anim",
-  "view2d.render_anim",
-  "view2d.viewrotatezoom"
+  "view2d.render_anim"
 ]

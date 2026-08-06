@@ -305,6 +305,23 @@ async function buildApp() {
   });
 }
 
+/*
+ * src/config/config_local.js is a per-developer override file, gitignored, and
+ * imported unconditionally by config.ts and entry_point.ts. A fresh clone (or a
+ * CI runner) has no copy, so write an empty one rather than fail to resolve.
+ * An existing file is never touched.
+ */
+function ensureConfigLocal() {
+  const p = abs("src/config/config_local.js");
+  if (fs.existsSync(p)) {
+    return;
+  }
+  console.log("no src/config/config_local.js; writing an empty one");
+  fs.writeFileSync(p, '"use strict";\n\nexport const DEBUG = {};\n');
+}
+
+ensureConfigLocal();
+
 /* Full clean: the tree is entirely generated, and leftovers from the old
    Python build (app0.js .. app11.js) would otherwise linger forever. */
 fs.rmSync(target.outDir, {recursive: true, force: true});

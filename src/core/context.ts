@@ -237,27 +237,27 @@ export class BaseContext extends Context {
      there. */
   declare state: AppState;
 
-  datalib!: DataLib;
-  frameset!: SplineFrameSet
-  spline!: Spline
-  scene!: Scene
-  toolstack!: ToolStack;
+  declare datalib: DataLib;
+  declare frameset: SplineFrameSet
+  declare spline: Spline
+  declare scene: Scene
+  declare toolstack: ToolStack;
   /* path.ux's ContextLike requires `api : DataAPI<this>`; the app only ever
      builds one API and it is defined over FullContext. */
-  api!: DataAPI<FullContext>
-  selectmode!: int;
+  declare api: DataAPI<FullContext>
+  declare selectmode: int;
 
   /* The rest of what BaseContextOverlay supplies. Without these, every lookup
      falls through Context's `[key : string] : unknown` index signature. */
-  appstate!: AppState;
-  settings!: AppSettings;
-  toolmode!: ToolMode | undefined;
-  active_area!: Editor | undefined;
-  splinepath!: string;
-  filepath!: string;
-  edit_all_layers!: boolean;
-  toolDefaults!: typeof SavedToolDefaults;
-  view2d!: View2DHandler | undefined;
+  declare appstate: AppState;
+  declare settings: AppSettings;
+  declare toolmode: ToolMode | undefined;
+  declare active_area: Editor | undefined;
+  declare splinepath: string;
+  declare filepath: string;
+  declare edit_all_layers: boolean;
+  declare toolDefaults: typeof SavedToolDefaults;
+  declare view2d: View2DHandler | undefined;
   declare switch_active_spline: (newpath: string) => void;
 
   /* LockedContext copies every context property onto itself, so it stands in
@@ -348,16 +348,16 @@ export class BaseContext extends Context {
 }
 
 export class FullContext extends BaseContext {
-  view2d!: View2DHandler
-  screen!: FairmotionScreen;
+  declare view2d: View2DHandler
+  declare screen: FairmotionScreen;
 
   /* The rest of what ViewContextOverlay supplies; see BaseContext. */
-  keymap_mpos!: number[];
-  dopesheet!: DopeSheetEditor | undefined;
-  editcurve!: CurveEditor | undefined;
-  settings_editor!: SettingsEditor | undefined;
-  opseditor!: OpStackEditor | undefined;
-  console!: ConsoleEditor | undefined;
+  declare keymap_mpos: number[];
+  declare dopesheet: DopeSheetEditor | undefined;
+  declare editcurve: CurveEditor | undefined;
+  declare settings_editor: SettingsEditor | undefined;
+  declare opseditor: OpStackEditor | undefined;
+  declare console: ConsoleEditor | undefined;
 
   constructor(state = g_app_state) {
     super(state);

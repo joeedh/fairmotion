@@ -57,8 +57,8 @@ export class SplineToolMode extends ToolMode {
   _cancel_on_touch!: boolean
   mdown: boolean;
 
-  view2d! : View2DHandler;
-  selectmode! : number;
+  declare view2d : View2DHandler;
+  declare selectmode : number;
   /* The spline the highlighted element belongs to; may be the path spline
      rather than the draw spline. */
   highlight_spline : Spline | undefined;

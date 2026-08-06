@@ -550,7 +550,7 @@ export class CanvasPath extends PathBase {
   /* The batch currently carrying this path. */
   _batch : Batch | undefined;
   _batch_id! : number;
-  hidden! : boolean;
+  declare hidden : boolean;
 
   constructor() {
     super();

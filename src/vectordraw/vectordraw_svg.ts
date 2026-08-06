@@ -66,7 +66,7 @@ export class SVGPath extends PathBase {
   filternode : SVGElement | undefined;
   clipnode : SVGElement | undefined;
   usenode : SVGElement | undefined;
-  hidden! : boolean;
+  declare hidden : boolean;
 
   /* Anything clipping an SVG path is another SVG path. */
   declare clip_paths : set<SVGPath>;

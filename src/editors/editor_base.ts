@@ -26,7 +26,7 @@ export class FairmotionScreen extends Screen<FullContext> {
 
   /* Settings generation the keymap deltas were last loaded at. */
   _last_keymap_gen : number;
-  keymap! : KeyMap;
+  declare keymap : KeyMap;
   /* scene.time playback started from, restored when it stops. */
   startFrame : number;
   _lastFrameTime : number;
@@ -303,7 +303,7 @@ export class Editor extends Area<FullContext> {
   canvases : {[id : string] : EditorCanvas};
 
   _last_keymap_delta_gen : number;
-  keymap! : KeyMap;
+  declare keymap : KeyMap;
   container! : Container<FullContext>;
 
   constructor() {

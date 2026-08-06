@@ -24,7 +24,7 @@ class SelectOpBase<
   OutputSlots extends PropertySlots = PropertySlots,
 > extends ToolOp<InputSlots & {level : IntProperty}, OutputSlots> {
   /* Composed point ids (see compose_id) that were selected before the op ran. */
-  _undo! : number[];
+  declare _undo : number[];
   /* Multires level _undo was taken at; the op's `level` input may change. */
   _undo_level! : number;
 

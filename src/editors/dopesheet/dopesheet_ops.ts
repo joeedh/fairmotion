@@ -41,7 +41,7 @@ export class ShiftTimeOp2 extends ToolOp<{
   start_mpos : Vector3;
   /* True until the first modal mousemove seeds start_mpos. */
   first! : boolean;
-  _undo! : TimeUndo;
+  declare _undo : TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
   start_time! : number;
 
@@ -251,7 +251,7 @@ export class ShiftTimeOp3 extends ToolOp<{
 }> {
   start_mpos : Vector3;
   first! : boolean;
-  _undo! : TimeUndo;
+  declare _undo : TimeUndo;
   /* NOTE: read by finish(), but nothing in this class ever assigns it. */
   start_time! : number;
 
@@ -448,7 +448,7 @@ export class SelectOpBase<
 > extends ToolOp<InputSlots & {
   phantom_ids : CollectionProperty<number>,
 }, OutputSlots> {
-  _undo! : SelectUndo;
+  declare _undo : SelectUndo;
 
   constructor() {
     super();

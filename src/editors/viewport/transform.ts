@@ -70,7 +70,7 @@ export class TransformOp<
   user_start_mpos : Vector2 | number[] | undefined;
   /* Deleted by finish() and by the non-modal exec paths. */
   transdata? : TransData;
-  _undo! : TransUndoData;
+  declare _undo : TransUndoData;
 
   constructor(start_mpos? : Vector2 | number[], datamode? : number) {
     super();

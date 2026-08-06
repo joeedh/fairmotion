@@ -16,7 +16,7 @@
      * define semantics those declarations become real [[Define]] slots that
      * overwrite whatever the constructor -- or a super() call -- already set.
      */
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "strict": true,
     "strictNullChecks": true
   },

@@ -46,7 +46,7 @@ export class StrokeOp extends ToolOp<{
   /* Index into inputs.points that exec() should resume from. */
   _start : number;
   _verts : SplineVertex[];
-  _undo! : {start_eid : number};
+  declare _undo : {start_eid : number};
 
   constructor() {
     super();

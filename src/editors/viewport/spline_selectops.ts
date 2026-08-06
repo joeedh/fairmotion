@@ -44,7 +44,7 @@ export class SelectOpBase<
   datamode : IntProperty,
   flush    : BoolProperty,
 }, OutputSlots> {
-  _undo! : SelectUndo;
+  declare _undo : SelectUndo;
 
   /* NOTE: ToolOp's constructor takes no arguments; uiname is ignored
      (UnhideOp does the same). */

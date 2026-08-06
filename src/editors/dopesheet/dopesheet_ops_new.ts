@@ -154,7 +154,7 @@ export class AnimKeyTool<
   /* Flat [eid, time, flag, x, y] records, UTOT wide -- see the U* indices.
      DeleteKeysOp opts out and stores the base class's whole-file snapshot
      here instead. */
-  _undo! : {spline : number[]} | ArrayBuffer | ArrayBufferView | number[];
+  declare _undo : {spline : number[]} | ArrayBuffer | ArrayBufferView | number[];
 
   constructor() {
     super();

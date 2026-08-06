@@ -73,7 +73,7 @@ function startPan(edit : CurveEdit, x : number, y : number) {
 
 export class CurveEdit extends UIBase<FullContext> {
   /* Set while a pan is running; the token popModalLight() needs. */
-  _modaldata : ModalState | undefined;
+  declare _modaldata : ModalState | undefined;
   curvePaths : Path2D[];
   /* True between redraw() and the queued draw(). */
   _drawreq : boolean;

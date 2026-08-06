@@ -82,8 +82,6 @@ export type GetBlockUserFunc = (
 export class DataRef extends Array<int> {
   static STRUCT: string;
 
-  length: number;
-
   constructor(block_or_id?: DataBlock | DataRef | int[] | int, lib: DataLib | int | undefined = undefined) {
     super(2);
     this.length = 2;

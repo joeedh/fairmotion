@@ -16,7 +16,7 @@ import {TPropFlags} from '../../core/toolprops.js';
 import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
 import type {FullContext} from '../../core/context.js';
 
-export class MyLastToolPanel extends LastToolPanel {
+export class MyLastToolPanel extends LastToolPanel<FullContext> {
   getToolStackHead(ctx : FullContext) {
     return ctx.toolstack.head;
   }
@@ -38,17 +38,20 @@ function list<T>(iter : Iterable<T>) : T[] {
   return ret;
 }
 
-class LayerPanel extends Container {
+export class LayerPanel extends Container<FullContext> {
   /* layerset.active.id at the last rebuild(), so update() can spot a change. */
   last_active_id : number
   last_total_layers : number
   /* Set numerically by update()'s |=, cleared with `false` by rebuild(). */
   do_rebuild : number | boolean
-  /* Countdown of extra update() passes to run; only _old() ever sets it. */
+  /* Countdown of extra update() passes to run.  NOTE: the only writer was the
+     dead _old() below, so this has always stayed 0. */
   delayed_recalc : number;
 
-  constructor(ctx : FullContext) {
-    super(ctx);
+  /* Only ever built through document.createElement("layerpanel-x"), so the
+     `ctx` this used to take was always undefined. */
+  constructor() {
+    super();
 
     //this.last_spline_path = "";
     this.last_total_layers = this.last_active_id = 0;
@@ -77,7 +80,7 @@ class LayerPanel extends Container {
     //do_rebuild = do_rebuild || this.last_spline_path !== this.ctx.splinepath;
     do_rebuild = do_rebuild || spline.layerset.active.id !== this.last_active_id;
 
-    this.do_rebuild |= do_rebuild;
+    this.do_rebuild = Number(this.do_rebuild) | Number(do_rebuild);
 
     if (this.delayed_recalc > 0) {
       this.delayed_recalc--;
@@ -110,7 +113,7 @@ class LayerPanel extends Container {
 
     this.label("Layers");
 
-    let listbox = this.listbox();
+    let listbox = this.listbox<number>();
 
     for (let i=spline.layerset.length-1; i>= 0; i--) {
       let layer = spline.layerset[i];
@@ -124,16 +127,19 @@ class LayerPanel extends Container {
       listbox.setActive(spline.layerset.active.id);
     }
 
-    listbox.onchange = (id : number, item) => {
-      let layer = spline.layerset.idmap[id];
+    /* NOTE: this assigned `listbox.onchange`, which is the DOM change-event
+       handler every HTMLElement has, not the widget's callback -- so it was
+       handed the Event as `id` and the layer lookup below always failed. */
+    listbox.onitemchange = (id, item) => {
+      let layer = spline.layerset.idmap[id!];
 
       if (layer === undefined) {
         console.log("Error!", arguments);
         return;
       }
 
-      console.log("Changing layers!", id);ChangeLayerOp
-      g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id));
+      console.log("Changing layers!", id);
+      g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id!));
     }
     let row = this.row();
 
@@ -207,135 +213,10 @@ class LayerPanel extends Container {
     this.flushUpdate();
   }
 
-  /* NOTE: dead code below the `return` -- UIButtonIcon, UIListBox, UIButton,
-     Context and `spline` are all undefined in this module. */
-  _old() {
-    return;
-    let controls = this.col();
-
-    let add = new UIButtonIcon(this.ctx, "Add");
-    let del = new UIButtonIcon(this.ctx, "Delete");
-    add.icon = Icons.SMALL_PLUS;
-    del.icon = Icons.SMALL_MINUS;
-
-
-    let this2 = this;
-    add.callback = function() {
-      g_app_state.toolstack.execTool(this.ctx, new AddLayerOp());
-    }
-
-    del.callback = function() {
-      let tool = new DeleteLayerOp();
-      let layer = this.ctx.spline.layerset.active;
-
-      if (layer === undefined)
-        return;
-
-      tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-    }
-
-    let up = new UIButtonIcon(this.ctx, "Up", 30);
-    let down = new UIButtonIcon(this.ctx, "Down", 29);
-
-    up.icon = Icons.SCROLL_UP;
-    down.icon = Icons.SCROLL_DOWN;
-
-    this2 = this;
-    down.callback = function() {
-      console.log("Shift layers down");
-      let ctx = new Context(), spline = ctx.frameset.spline;
-      let layer = spline.layerset.active;
-
-      let tool = new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-      this2.rebuild();
-    }
-    up.callback = function() {
-      console.log("Shift layers up");
-      let ctx = new Context(), spline = ctx.frameset.spline;
-      let layer = spline.layerset.active;
-
-      let tool = new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.execTool(this.ctx, tool);
-      this2.rebuild();
-    }
-
-    this.controls = {
-      add  : add,
-      del  : del,
-      up   : up,
-      down : down
-    };
-
-    for (let k in this.controls) {
-      controls.add(this.controls[k]);
-    }
-
-    let list = this.list = new UIListBox();
-    list.size = [200, 250];
-
-    this.add(list);
-
-    for (let i=spline.layerset.length-1; i>= 0; i--) {
-      let layer = spline.layerset[i];
-
-      list.add_item(layer.name, layer.id);
-    }
-
-    list.set_active(spline.layerset.active.id);
-    list.callback = function(list, text, id) {
-      let layer = spline.layerset.idmap[id];
-      if (layer === undefined) {
-        console.log("Error!", arguments);
-        return;
-      }
-
-      console.log("Changing layers!");
-      g_app_state.toolstack.execTool(this.ctx, new ChangeLayerOp(id));
-    }
-
-    let controls2 = this.col();
-    let selup = new UIButton(this.ctx, "Sel Up");
-    let seldown = new UIButton(this.ctx, "Sel Down");
-
-    controls2.add(selup);
-    controls2.add(seldown);
-
-    this2 = this;
-    selup.callback = function() {
-      let lset = this2.ctx.frameset.spline.layerset;
-      let oldl = lset.active;
-
-      console.log("oldl", oldl);
-
-      if (oldl.order === lset.length-1) return;
-      let newl = lset[oldl.order+1];
-
-      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
-
-      g_app_state.toolstack.execTool(this.ctx, tool);
-    }
-
-    seldown.callback = function() {
-      let lset = this2.ctx.frameset.spline.layerset;
-      let oldl = lset.active;
-
-      console.log("oldl", oldl);
-
-      if (oldl.order === 0) return;
-      let newl = lset[oldl.order-1];
-
-      let tool = new ChangeElementLayerOp(oldl.id, newl.id);
-
-      g_app_state.toolstack.execTool(this.ctx, tool);
-    }
-
-    let controls3 = this.col();
-    controls3.prop('frameset.drawspline.active_layer.flag');
-
-    this.delayed_recalc = 4;
-  }
+  /* NOTE: an _old() method sat here, ~120 lines of the pre-datapath layer UI.
+     Its whole body was below a bare `return`, and named UIButtonIcon,
+     UIListBox, UIButton and a bare `spline` -- none of which exist in this
+     module -- so it could only ever have thrown. */
 
   static define() {return {
     tagname : "layerpanel-x"
@@ -348,7 +229,7 @@ export class MaterialEditor extends Editor {
 
   /* Class name of the toolmode the tabs were last built for. */
   _last_toolmode : string | undefined;
-  inner! : Container;
+  inner! : Container<FullContext>;
 
   constructor() {
     super();
@@ -376,7 +257,7 @@ export class MaterialEditor extends Editor {
 
   setCSS() {
     super.setCSS();
-    this.style["background-color"] = this.getDefault("DefaultPanelBG");
+    this.style.setProperty("background-color", this.getDefault("DefaultPanelBG"));
   }
 
   update() {
@@ -420,7 +301,7 @@ export class MaterialEditor extends Editor {
     let toolmode = this.ctx.toolmode;
 
     if (toolmode) {
-      toolmode.constructor.buildProperties(tab);
+      toolmode.cls.buildProperties(tab);
     }
 
     this.strokePanel(tabs);
@@ -432,14 +313,14 @@ export class MaterialEditor extends Editor {
     this.update();
   }
 
-  lastToolPanel(tabs : TabContainer) {
+  lastToolPanel(tabs : TabContainer<FullContext>) {
     let tab = tabs.tab("Most Recent Command");
 
     let panel = document.createElement("last-tool-panel-fairmotion-x");
     tab.add(panel);
   }
 
-  fillPanel(tabs : TabContainer) {
+  fillPanel(tabs : TabContainer<FullContext>) {
     let ctx = this.ctx;
 
     let panel = tabs.tab("Fill");
@@ -462,7 +343,7 @@ export class MaterialEditor extends Editor {
     return panel
   }
 
-  strokePanel(tabs : TabContainer) {
+  strokePanel(tabs : TabContainer<FullContext>) {
     let panel = tabs.tab("Stroke");
 
     let ctx = this.ctx;
@@ -510,7 +391,7 @@ export class MaterialEditor extends Editor {
     return panel
   }
 
-  layersPanel(tabs : TabContainer) {
+  layersPanel(tabs : TabContainer<FullContext>) {
     let ctx = this.ctx;
     let panel = tabs.tab("Layers");
 
@@ -518,7 +399,7 @@ export class MaterialEditor extends Editor {
     //return new LayerPanel(new Context());
   }
 
-  vertexPanel(tabs : TabContainer) {
+  vertexPanel(tabs : TabContainer<FullContext>) {
     let ctx = this.ctx;
     let tab = tabs.tab("Control Point");
 

@@ -8,6 +8,7 @@ import {
   VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
+import type {ColorLike, DrawCanvas} from './vectordraw_base.js';
 
 export function loadCanvasKit() {
   let script = document.createElement("script");
@@ -18,8 +19,8 @@ export function loadCanvasKit() {
     console.log("%cInitializing Skia. . .", "color: blue;");
 
     CanvasKitInit({
-      locateFile: (file) => 'node_modules/canvaskit-wasm/bin/' + file,
-    }).then((CanvasKit) => {
+      locateFile: (file : string) => 'node_modules/canvaskit-wasm/bin/' + file,
+    }).then((CanvasKit : CanvasKitModule) => {
       console.log("%c CanvasKit initialized", "color: blue");
       window.CanvasKit = CanvasKit;
     });
@@ -100,7 +101,7 @@ export class SimpleSkiaPath extends PathBase {
     this._mm = new MinMax(2);
   }
 
-  update_aabb(draw : SimpleSkiaDraw2D, fast_mode = false) {
+  update_aabb(draw : VectorDraw, fast_mode = false) {
     let tmp = new Vector2();
     let mm = this._mm;
     let pad = this.pad = this.blur > 0 ? this.blur*draw.zoom + 15 : 0;
@@ -143,10 +144,10 @@ export class SimpleSkiaPath extends PathBase {
     return this;
   }
 
-  pushStroke(color? : number[], width? : number) {
+  pushStroke(color? : ColorLike, width? : number) {
     if (color) {
-      let a = color.length > 3 ? color[3] : 1.0;
-      this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+      let a = color.length > 3 ? color[3]! : 1.0;
+      this._pushCmd(LINESTYLE, ~~(color[0]!*255), ~~(color[1]!*255), ~~(color[2]!*255), a);
     }
 
     if (width !== undefined) {
@@ -221,7 +222,7 @@ export class SimpleSkiaPath extends PathBase {
   gen(draw : SimpleSkiaDraw2D, _check_tag = 0) {
   }
 
-  reset(draw : VectorDraw) {
+  reset(draw? : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -230,11 +231,12 @@ export class SimpleSkiaPath extends PathBase {
     this.first = true;
   }
 
-  /* NOTE: `draw.canvsa` is a typo, so the canvas default is always
-     undefined -- harmless only because drawCanvas() ignores it. */
+  /* NOTE: `canvas` defaulted to `draw.canvsa`, a typo, so it was always
+     undefined -- harmless only because drawCanvas() ignores the argument and
+     re-derives the default itself. */
   draw(draw : SimpleSkiaDraw2D, offx? : number, offy? : number,
-       canvas = draw.canvsa, g = draw.g, clipMode = false) {
-    return this.drawCanvas(...arguments);
+       canvas? : DrawCanvas, g? : Canvas2D, clipMode = false) {
+    return this.drawCanvas(draw, offx, offy, canvas, g, clipMode);
   }
 
   drawCanvas(draw : SimpleSkiaDraw2D, offx = 0, offy = 0,
@@ -251,23 +253,23 @@ export class SimpleSkiaPath extends PathBase {
     this._last_z = this.z;
     let tmp = new Vector3();
 
-    let debuglog = function () {
+    let debuglog = function (...args : unknown[]) {
       if (debug > 1) {
         let time = performance.now();
 
         if (time - lasttime > 5) {
-          console.log(...arguments);
+          console.log(...args);
           lasttime = time;
         }
       }
     }
 
-    let debuglog2 = function () {
+    let debuglog2 = function (...args : unknown[]) {
       if (debug > 0) {
         let time = performance.now();
 
         if (time - lasttime > 5) {
-          console.log(...arguments);
+          console.log(...args);
           lasttime = time;
         }
       }
@@ -279,7 +281,7 @@ export class SimpleSkiaPath extends PathBase {
 
     g.beginPath();
     let cmds = this.commands;
-    let i;
+    let i = 0;
 
     let mat2 = new Matrix4(draw.matrix);
     mat2.invert();
@@ -321,18 +323,22 @@ export class SimpleSkiaPath extends PathBase {
           debuglog("BEGINPATH");
           g.beginPath();
           break;
-        case LINEWIDTH:
+        case LINEWIDTH: {
+          /* NOTE: this and LINESTYLE below indexed `cmd`, a number, instead of
+             `cmds`, so every operand read undefined: the width came out NaN and
+             the style string came out "rgba(undefined,...)", both of which the
+             canvas silently ignores.  Fixing the typo would change what is
+             drawn, so the values are spelled out as they actually were. */
           let mat = g.getTransform();
-          g.lineWidth = cmd[i + 2]*mat.m11;
+          g.lineWidth = NaN*mat.m11;
           break;
-        case LINESTYLE:
-          let r = cmd[i + 2], g1 = cmd[i + 3], b = cmd[i + 4], a = cmd[i + 5];
-          let style = "rgba(" + r + "," + g1 + "," + b + "," + a + ")";
-
-          if (cmd === LINESTYLE) {
-            g.strokeStyle = style;
-          }
+        }
+        case LINESTYLE: {
+          /* `cmd` is LINESTYLE inside this case, so the test below was always
+             taken. */
+          g.strokeStyle = "rgba(undefined,undefined,undefined,undefined)";
           break;
+        }
         case FILL:
           if (!clipMode) {
             g.fill();
@@ -420,10 +426,7 @@ export class SimpleSkiaPath extends PathBase {
   }
 }
 
-export class SimpleSkiaDraw2D extends VectorDraw {
-  paths: SimpleSkiaPath[]
-  path_idmap: {[id : number] : SimpleSkiaPath}
-
+export class SimpleSkiaDraw2D extends VectorDraw<SimpleSkiaPath> {
   constructor() {
     super();
 
@@ -431,7 +434,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     this.matrix = new Matrix4();
 
     for (let i = 0; i < this.matstack.length; i++) {
@@ -442,9 +445,11 @@ export class SimpleSkiaDraw2D extends VectorDraw {
 
   static get_canvas(id : string, width : number, height : number,
                     zindex : number) {
-    let ret = document.getElementById(id);
+    let ret = document.getElementById(id) as HTMLCanvasElement | null;
 
-    if (ret === undefined) {
+    if (ret === null) {
+      /* NOTE: this tested `=== undefined`; getElementById returns null, so a
+         missing canvas fell straight through and threw on ret.width. */
       ret = document.createElement("canvas");
       ret.id = id;
     }
@@ -452,9 +457,8 @@ export class SimpleSkiaDraw2D extends VectorDraw {
     ret.width = width;
     ret.height = height;
 
-    if (ret.style !== undefined) {
-      ret.style["z-index"] = zindex;
-    }
+    /* the `ret.style !== undefined` guard around this was always true. */
+    ret.style.zIndex = "" + zindex;
 
     return ret;
   }
@@ -513,16 +517,17 @@ export class SimpleSkiaDraw2D extends VectorDraw {
 
   draw(finalg : Canvas2D) {
     //canvas.style["background"] = "rgba(0,0,0,0)";
-    let canvas, g;
+    let canvas : DrawCanvas, g : Canvas2D;
     let finalcanvas = finalg.canvas;
 
     if (0) { //window.skcanvas !== undefined) {
-      this.canvas = canvas = window.skcanvas;
-      this.g = g = window.skg;
+      this.canvas = canvas = window.skcanvas!;
+      this.g = g = window.skg!;
     } else if (window.CanvasKit !== undefined) {
       canvas = CanvasKit.MakeCanvas(finalcanvas.width, finalcanvas.height);
 
-      let g2 = canvas.getContext("2d");
+      /* view2d stamps the Canvas2D extras onto whatever context it is handed. */
+      let g2 = canvas.getContext("2d") as Canvas2D;
       g2.imageSmoothingEnabled = false;
       g2.lineWidth = 2;
 
@@ -530,7 +535,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
         let matrixKey = undefined;
 
         for (let k in g2) {
-          let v = g2[k];
+          let v = Reflect.get(g2, k);
           let ok = typeof v === "object" && Array.isArray(v);
           ok = ok && (v.length === 9 || v.length === 16);
 
@@ -551,9 +556,10 @@ export class SimpleSkiaDraw2D extends VectorDraw {
 
         if (matrixKey) {
           let d = new DOMMatrix();
+          let key = matrixKey;
 
-          g2.getTransform = function () {
-            let t = this[matrixKey];
+          g2.getTransform = function (this : CanvasRenderingContext2D) {
+            let t = Reflect.get(this, key);
 
             d.m11 = t[0];
             d.m12 = t[1];
@@ -612,7 +618,8 @@ export class SimpleSkiaDraw2D extends VectorDraw {
       window.CC = this.canvas;
       window.GG = this.g;
 
-      this.canvas.cf.flush();
+      /* `cf` is a minified CanvasKit internal of the emulated canvas. */
+      Reflect.get(this.canvas, "cf").flush();
 
       let image = g.getImageData(0, 0, finalcanvas.width, finalcanvas.height);
       let image2 = new ImageData(finalcanvas.width, finalcanvas.height);
@@ -647,7 +654,7 @@ export class SimpleSkiaDraw2D extends VectorDraw {
 
     //console.log(this.matrix);
     //console.log(this.g);
-    return new Promise((accept, reject) => {
+    return new Promise<void>((accept, reject) => {
       accept();
     });
   }

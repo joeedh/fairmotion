@@ -3,12 +3,12 @@
 var debug_parser = 0;
 var debug_exec = 0;
 
-function parsedebug(...args) {
+function parsedebug(...args: unknown[]) {
   if (debug_parser)
     console.log.apply(console, args);
 }
 
-function execdebug(...args) {
+function execdebug(...args: unknown[]) {
   if (debug_exec)
     console.log.apply(console, args);
 }
@@ -42,358 +42,30 @@ class set {
   }
 }*/
 
-//var parseutil = require('./parseutil');
-import * as parseutil from '../util/parseutil.js';
+/* NOTE: a second, hand-written Pratt parser used to live here -- a `Node`
+   class, a token table, p_prefix/p_expr/p_root, and the compile2()/exec2()
+   pair that drove them. Nothing had called any of it in years (the live path
+   is compile() + exec(), on esprima), and a debug-only test() helper beside it
+   referenced a `ContextStruct` global that no longer exists. All removed.
 
-var token = parseutil.token;
-var tokdef = parseutil.tokdef;
-var PUTLParseError = parseutil.PUTLParseError;
-var lexer = parseutil.lexer;
-var parser = parseutil.parser;
+   The evaluator hands around whatever the caller put in scope -- arbitrary
+   runtime values -- and walks esprima's AST, whose node fields vary by node
+   type. Neither is knowable statically, so this single alias carries both. */
+type EvalValue = any;
 
-/* What the parser passes around: a Node for anything compound, a bare string for
-   an identifier, a number for a numeric literal, or a boxed string literal. */
-type ExprNode = Node | string | number | {type: string; value: string};
-
-/*export*/class Node extends Array {
-  type: string;
-  prec: number;
-  /* Set by the parent Node's constructor, and by parentify() on esprima ASTs. */
-  parent?: Node;
-
-  constructor(type: string, prec: number, a?: ExprNode, b?: ExprNode) {
-    super();
-
-    this.type = type;
-    this.prec = prec;
-    this.length = b !== undefined ? 2 : (a !== undefined ? 1 : 0);
-    
-    if (a !== undefined) {
-      this[0] = a;
-      
-      if (a instanceof Node)
-        a.parent = this;
-    }
-    
-    if (b !== undefined) {
-      this[1] = b;
-      
-      if (b instanceof Node)
-        b.parent = this;
-    }
-  }
-  
-  toJSON() {
-    var ret: {type: string; length: number; [i: number]: ExprNode} = {
-      type   : this.type,
-      length : this.length
-    };
-
-    for (var i=0; i<this.length; i++) {
-      ret[i] = this[i];
-    }
-    
-    return ret;
-  }
+interface EvalScope {
+  thisvar: EvalValue;
+  scope: {[k: string]: EvalValue};
+  parent?: EvalScope;
 }
 
-export function test(path?: string) {
-  if (path === undefined)
-    //path = "(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden";
-    path = "ContextStruct.pathmap.theme.pathmap.ui.pathmap.colors.getter(g_theme.ui.flat_colors[0]).pathmap.type";
-  
-  console.log(path);
-  
-  var scope = {
-    ctx : new Context(),
-    ContextStruct : ContextStruct,
-    g_theme : g_theme,
-    $ : {
-      layers : {}
-    }
-  };
-  
-  //scope.$.layers[scope.ctx.spline.layerset.active.id] = 1;
-  
-  var ast = compile(path);
-  
-  console.log("AST:", ast);
-  console.log("SCOPE:", scope);
-  
-  return exec(ast, scope);
-}
 
-var reserved_words = new set([
-  "in", "function"
-]);
-
-var tokens = [
-  new tokdef("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/, function(t) {
-    if (reserved_words.has(t.value)) {
-      t.type = t.value.toUpperCase();
-    }
-    
-    return t;
-  }),
-  new tokdef("NUMLIT", /([0-9]+[\.][0-9]*)|([0-9]+)/, function(t) {
-    t.value = parseFloat(t.value);
-    return t;
-  }),
-  
-  new tokdef("PLUS", /\+/),
-  new tokdef("MINUS", /\-/),
-  new tokdef("MUL", /\*/),
-  new tokdef("DIV", /\//),
-  new tokdef("LSHIFT", /\<\</),
-  new tokdef("RSHIFT", /\>\>/),
-  new tokdef("COMMA", /,/),
-  
-  new tokdef("COND", /\?/),
-  new tokdef("COLON", /\:/),
-  new tokdef("DOT", /\./),
-  new tokdef("LSBRACKET", /\[/),
-  new tokdef("RSBRACKET", /\]/),
-  new tokdef("LPAREN", /\(/),
-  new tokdef("RPAREN", /\)/),
-  new tokdef("EQUALS", /\=/),
-  new tokdef("MOD", /\%/),
-  new tokdef("BITAND", /\&/),
-  new tokdef("SEMI", /\;/),
-  new tokdef("LNOT", /\!/),
-  new tokdef("BNOT", /\~/),
-  new tokdef("LEQUALS", /\=\=/),
-  new tokdef("LNEQUALS", /\!\=/),
-  new tokdef("LOR", /\|\|/),
-  new tokdef("LAND", /\&\&/),
-  new tokdef("BXOR", /\^/),
-  new tokdef("STRLIT", /(".*")|('.*')/, function(t) {
-    t.value = t.value.slice(1, t.value.length-1);
-    return t;
-  }),
-  new tokdef("WS", /[ \t\r\n]/, function(t) {
-    //drop token
-  })
-]
-
-var prec_map: {[op: string]: number} = {
-  ">>" : 4,
-  ">>>": 4,
-  "<<" : 4,
-  "+"  : 4,
-  "-"  : 4,
-  
-  "%"  : 5,
-  "/"  : 5,
-  "*"  : 5,
-
-  "typeof" : 6,
-  
-  ">=" : 5,
-  "<=" : 5,
-  "in" : 5,
-  
-  "==" : 6,
-  "!=" : 6,
-  "&&" : 7,
-  "||" : 7,
-  
-  "&"  : 8,
-  "|"  : 8,
-  "^"  : 8,
-  
-  "="  : 11,
-  "!"  : 99,
-  
-  "."  : 101,
-  
-  ","  : 2,
-  "["  : 3,
-  "]"  : 0,
-  ")"  : 0,
-  "("  : 200,
-  
-  ":"  : 0,
-  "?"  : 1
-};
-
-var bin_ops = new set([
-  "DOT",
-  "EQUALS",
-  "BITAND",
-  "LAND",
-  "LOR",
-  "BXOR",
-  "LEQUALS",
-  "LNEQUALS",
-  "MOD",
-  "PLUS",
-  "MINUS",
-  "MUL",
-  "DIV",
-  "RSHIFT",
-  "LSHIFT",
-  "IN"
-]);
-
-function get_prec(p: parseutil.parser) {
-  var t = p.peeknext();
-  
-  if (t === undefined)
-    return 0;
-  
-  if (t.value in prec_map) {
-    return prec_map[t.value];
-  }
-  
-  if (t.type === "ID" || t.type === "NUMLIT" || t.type === "STRLIT") {
-    return 0;
-  }
-  
-  return 0;
-}
-
-function p_prefix(p: parseutil.parser, token: parseutil.token<string | number>): ExprNode {
-  if (token.type === "ID") {
-    return token.value;
-  } else if (token.type === "NUMLIT") {
-    return token.value;
-  } else if (token.type === "STRLIT") {
-    return {type : "STRLIT", value : token.value};
-  } else if (token.type === "LNOT") {
-    return new Node("!", prec_map["!"], p_expr(p, prec_map["!"]));
-    //return {type : "LNOT", value : token.value};
-  } else if (token.type === "MINUS") {
-    return new Node("negate", prec_map["-"], p_expr(p, prec_map["-"]));
-  } else if (token.type === "LPAREN") {
-    var ret = p_expr(p, prec_map[")"]);
-    p.expect("RPAREN");
-    
-    return ret
-  } else {
-    p.error(token, "unexpected " + token.value);
-  }
-}
-
-function p_expr(p: parseutil.parser, prec: number): ExprNode {
-  var t = p.next();
-  
-  if (t === undefined) {
-    return "ERROR_ERROR_ERROR";
-  }
-  
-  if (debug_parser)
-    console.log("T", t.type);
-  
-  var a = p_prefix(p, t);
-  
-  while(prec < get_prec(p)) {
-    if (debug_parser && p.peeknext() !== undefined) {
-      console.log("PREC", prec, get_prec(p), p.peeknext().type);
-    }
-    
-    t = p.next();
-    if (debug_parser)
-      console.log("  T:", t.type);
-    
-    if (bin_ops.has(t.type)) {
-      var b = p_expr(p, prec_map[t.value]);
-      a = new Node(t.value, prec_map[t.value], a, b);
-    } else if (t.type === "LPAREN") {
-      if (debug_parser)
-        console.log("LPAREN infix!", ast, "\n-----\n");
-      var list;
-      
-      if (p.peeknext().type !== "RPAREN") {
-        list = p_expr(p, prec_map[")"]);
-        
-        if (list.type !== "list") {
-          list = new Node("list", prec["("], list);
-        }
-      } else {
-        list = new Node("list", prec["("]);
-      }
-      
-      a = new Node("call", 500, a, list);
-      p.expect("RPAREN");
-    } else if (t.type === "LSBRACKET") {
-      var b = p_expr(p, prec_map["]"]);
-      p.expect("RSBRACKET");
-      
-      if (debug_parser)
-        console.log("LSBRACKET");
-      
-      a = new Node("array", prec_map["["], a, b);
-    } else if (t.type === "COMMA") {
-      if (debug_parser)
-        console.log("COMMA", a);
-      
-      if (a.type === "list") {
-        a.push(p_expr(p, 0));
-      } else {
-        var b = p_expr(p, 0);
-        
-        if (b.type === "list") {
-          b.insert(0, a);
-          a = b;
-        } else {
-          a = new Node("list", prec_map[","], a);
-          a.push(b);
-        }
-      }
-    } else if (t.type === "COND") { //trinary logic operator
-      var b = p_expr(p, 0)
-      p.expect("COLON");
-      var c = p_expr(p, 0);
-      
-      a = new Node("?", undefined, a, b);
-      a.push(c);
-    } else {
-      p.error(t, "unexpected " + t.value);
-    }
-  }
-  
-  //if (prec >= get_prec(p))
-  //  p.next();
-  
-  if (p.peeknext() !== undefined) {
-    if (p.peeknext() !== undefined) {
-      if (debug_parser)
-        console.log("PREC", prec, get_prec(p), p.peeknext().type);
-    }
-  }
-  
-  return a;
-}
-
-function p_root(p: parseutil.parser) {
-  var ret = p_expr(p, 0);
-  
-  if (p.peeknext() !== undefined && p.peeknext().type === "SEMI") {
-    p.next();
-  }
-  /*
-  while (p.peeknext() != undefined) {
-    p.next();
-  }//*/
-  
-  return ret;
-}
-
-/*export*/var jslexer = new lexer(tokens);
-/*export*/var jsparser = new parser(jslexer);
-jsparser.start = p_root;
-
-export function compile2(code: string) {
-  return jsparser.parse(code);
-}
-
-/* Walks an esprima AST and back-links every node to its parent. Nodes are plain
-   objects of many shapes, so `node` stays unannotated. */
-export function parentify(node) {
+/* Walks an esprima AST and back-links every node to its parent. */
+export function parentify(node: EvalValue): EvalValue {
   var idgen = 0;
   var set: {[inst_id: number]: number} = {};
 
-  function visit(node) {
+  function visit(node: EvalValue) {
     if (node == null) {
       return;
     }
@@ -436,12 +108,12 @@ export function compile(code: string) {
 
 /* `ast` is whatever compile() handed back — an array of esprima statement nodes.
    `scope1` is the caller's variable bag; its values are arbitrary. */
-export function exec(ast, scope1) {
+export function exec(ast: EvalValue, scope1: {[k: string]: EvalValue}): EvalValue {
   let scope = scopes.next();
   scope.scope = scope1;
   scope.parent = undefined;
   
-  function visit(node, scope) {
+  function visit(node: EvalValue, scope: EvalScope): EvalValue {
     if (!node) {
       throw new Error("node was undefined!");
     }
@@ -634,14 +306,14 @@ export function exec(ast, scope1) {
       execdebug("new call!", node, node.callee);
       
       let func = visit(node.callee, scope);
-      let thislet = undefined;
-      
+      let thisvar = undefined;
+
       if (node.callee.type === "MemberExpression") {
-        thislet = visit(node.callee.object, scope);
+        thisvar = visit(node.callee.object, scope);
       }
-      
+
       let args = node.arguments;
-      
+
       switch (args.length) {
         case 0:
           return new func();
@@ -660,14 +332,16 @@ export function exec(ast, scope1) {
       execdebug("function call!", node, node.callee);
       
       let func = visit(node.callee, scope);
-      let thislet = undefined;
-      
+      /* NOTE: this was `thislet` -- a var->let rename that missed the five uses
+         below, so every call expression threw a ReferenceError. */
+      let thisvar = undefined;
+
       if (node.callee.type === "MemberExpression") {
-        thislet = visit(node.callee.object, scope);
+        thisvar = visit(node.callee.object, scope);
       }
-      
+
       let args = node.arguments;
-      
+
       switch (args.length) {
         case 0:
           return func.call(thisvar);
@@ -755,231 +429,14 @@ export function exec(ast, scope1) {
   }
 }
 
-var scopes = new cachering(function() {
+var scopes = new cachering<EvalScope>(function(): EvalScope {
   return {
     thisvar : undefined,
     scope   : {}
   };
 }, 512);
 
-//var NODE_LOGNOT = 0, NODE_NEGATE=1, NODE_CONDITIONAL=2,
-//    NODE_CALL   = 2, NODE_BINOP =3;
-
-/* Dead: nothing calls exec2/compile2 any more; the live path is compile()+exec().
-   Kept as-is, it walks the Node trees p_root() builds rather than esprima's. */
-export function exec2(ast, scope1) {
-  var scope = scopes.next();
-  scope.scope = scope1;
-  scope.parent = undefined;
-  
-  function visit(node, scope, pscope) { //parent scope
-    if (typeof node === "string")
-      return scope.scope[node];
-    if (typeof node === "number")
-      return node;
-    
-    if (node.type === "!") {
-      return !visit(node[0], scope);
-    } else if (node.type === "negate") {
-      return -visit(node[0], scope);
-    } else if (node.type === "?") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      let c = visit(node[2], scope, pscope);
-      
-      return a ? b : c;
-    } else if (node.type === "call") {
-      let func;
-      
-      if (typeof node[0] === "string" && node.parent.type === ".") {
-        func = scope.thisvar[node[0]];
-      } else {
-        func = visit(node[0], scope, pscope);
-      }
-      let thisvar;
-      
-      if (node.parent.type !== ".") {
-        thisvar = self;
-      } else {
-        thisvar = scope.thisvar; //visit(node.parent[0], pscope, pscope);
-      }
-      
-      execdebug("func call!", func, thisvar, "...", pscope);
-      
-      //theoretically, I think this should
-      //compile better in v8
-      switch (node[1].length) {
-        case 0:
-          return func.call(thisvar);
-        case 1:
-          return func.call(thisvar, visit(node[1][0], scope, pscope));
-        case 2:
-          return func.call(thisvar, visit(node[1][0], scope, pscope),
-                           visit(node[1][1], scope, pscope));
-        case 3:
-          return func.call(thisvar, visit(node[1][0], scope, pscope),
-                           visit(node[1][1], scope, pscope),
-                           visit(node[1][2], scope, pscope));
-        case 4:
-          return func.call(thisvar, visit(node[1][0], scope, pscope),
-                           visit(node[1][1], scope, pscope),
-                           visit(node[1][2], scope, pscope),
-                           visit(node[1][3], scope, pscope));
-      }
-    } else if (node.type === "ID") {
-      if (node.parent !== undefined && node.parent.type === ".") {
-        return scope.thisvar[node.value];
-      } else {
-        return scope.scope[node.value];
-      }
-    } else if (node.type === "NUMLIT") {
-      return node.value;
-    } else if (node.type === "STRLIT") {
-      return node.value;
-    } else if (node.type === ".") {
-      let scope2 = scopes.next();
-      
-      scope2.parent = scope;
-      scope2.scope = scope.scope;
-      scope2.thisvar = visit(node[0], scope, pscope);
-      pscope = scope; scope = scope2;
-      
-      if (debug_exec)
-        console.log("scope", scope, node[0], scope.scope[node[0]], "...");
-      
-      if (typeof node[1] == "string") {
-        return scope.thisvar[node[1]];
-      } else {
-        return visit(node[1], scope, pscope);
-      }
-    } else if (node.type === "array") {
-      let array = visit(node[0], scope, pscope);
-      let idx = visit(node[1], scope, pscope);
-      
-      return array[idx];
-    } else if (node.type === "==") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a == b;
-    } else if (node.type === "&&") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a && b;
-    } else if (node.type === "||") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a || b;
-    } else if (node.type === "^") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a ^ b;
-    } else if (node.type === ">=") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a >= b;
-    } else if (node.type === ">") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a > b;
-    } else if (node.type === "!=") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a !== b;
-    } else if (node.type === "in") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      if (debug_exec)
-        console.log("in keyword", a, b, a in b);
-      
-      return a in b;
-    } else if (node.type === "<=") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a <= b;
-    } else if (node.type === "<") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a < b;
-    } else if (node.type === "|") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a | b;
-    } else if (node.type === "+") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a + b;
-    } else if (node.type === "-") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a - b;
-    } else if (node.type === "*") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a * b;
-    } else if (node.type === "/") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a / b;
-    } else if (node.type === ">>") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a >> b;
-    } else if (node.type === "<<") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a << b;
-    } else if (node.type === "&") {
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-      
-      return a & b;
-    } else if (node.type === "=") {
-      //are we not assigning to an object property?
-      if (typeof node[0] == "string" || node[0].type == "ID") {
-        let key = typeof node[0] == "string" ? node[0] : node[0].value;
-        scope.scope[key] = visit(node[1], scope, pscope);
-        
-        return scope.scope[key];
-      }
-      
-      let a = visit(node[0], scope, pscope);
-      let b = visit(node[1], scope, pscope);
-
-      let container = visit(node[0][0], scope, pscope);
-
-      let key = node[0][1];
-      if (typeof key != "string") {
-        throw new Error("safe_eval error with: " + code);
-      }
-      
-      container[key] = b;
-      return b;
-    } else {
-      console.log("Error, unknown node. " + node.type + ", ast:\n", ast);
-    }
-  }
-  
-  return visit(ast, scope, undefined);
-}
-
-export function safe_eval(code: string, scope?: object) {
+export function safe_eval(code: string, scope?: {[k: string]: EvalValue}) {
   scope = scope === undefined ? {} : scope;
   
   var ast = compile(code);

@@ -1,12 +1,13 @@
 import {STRUCT, readSerialized} from '../core/struct.js';
 import {SplineFlags, SplineTypes, CustomDataLayer,
         CustomData, CustomDataSet, SplineElement, SplineVertex} from './spline_types.js';
+import type {AnySplineElement} from './spline_types.js';
 import type {LayerTypeClass} from './spline_base.js';
 
 import {DataPathNode} from '../core/eventdag.js';
 
 import type {Spline} from './spline.js';
-import type {BaseContext} from '../core/context.js';
+import type {BaseContext, LayerFilterContext} from '../core/context.js';
 
 export let SplineLayerFlags = {
   //SELECT     : 1,
@@ -758,7 +759,7 @@ export class ElementArraySet<T extends SplineElement> extends set<T> {
     this.layerset = undefined;
   }
 
-  editable(ctx : BaseContext) {
+  editable(ctx : LayerFilterContext) {
     if (ctx === undefined) {
       console.warn("Missing ctx in editable() iterator!");
     }
@@ -853,7 +854,7 @@ export class ElementArray<T extends SplineElement> extends Array<T> {
   }
   //*/
 
-  editable(ctx : BaseContext) : EditableIter<T> {
+  editable(ctx : LayerFilterContext) : EditableIter<T> {
     if (ctx === undefined) {
       throw new Error("Missing ctx argument");
     }

@@ -43,8 +43,12 @@ export function do_solve(sflags : {[name : string] : number}, spline : Spline,
 }
 
 /* A segment's spiral coefficients.  A plain Array until
-   native_api.checkSegment() swaps in a wasm-backed Float64Array. */
-export type KsArray = number[] | Float64Array;
+   native_api.checkSegment() swaps in a wasm-backed Float64Array; `ptr` is that
+   array's address inside the wasm heap and `_has_wasm` marks the swap. */
+export type KsArray = (number[] | Float64Array) & {
+  _has_wasm? : boolean;
+  ptr? : number;
+};
 
 export const KSCALE  = ORDER+1;
 export const KANGLE  = ORDER+2;

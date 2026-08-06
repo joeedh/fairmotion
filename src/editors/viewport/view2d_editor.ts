@@ -3,11 +3,14 @@
 import {STRUCT} from '../../core/struct.js';
 import {KeyMap, HotKey} from '../../core/keymap.js';
 
-//import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";
+/* NOTE: this import was commented out, so on_tick() below threw a
+   ReferenceError every time it ran. */
+import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops.js";
 import {ToolModes} from "./selectmode.js";
 import type {View2DHandler} from './view2d.js';
+import type {ToolModeHit} from './toolmodes/toolmode.js';
 import type {FullContext} from '../../core/context.js';
-import type {DataBlock} from '../../core/lib_api.js';
+import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../../core/lib_api.js';
 
 //bitmask
 //VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
@@ -51,7 +54,7 @@ export class View2DEditor {
     presence of fromSTRUCT.  Need to review
     that.
    */
-  static fromSTRUCT(reader : (obj) => void) {
+  static fromSTRUCT(reader : (obj : object) => void) {
     var obj = {};
 
     reader(obj);
@@ -70,15 +73,13 @@ export class View2DEditor {
     throw new Error("implement me!");
   }
 
-  data_link(block : DataBlock, getblock : (ref) => DataBlock,
-            getblock_us : (ref) => DataBlock) {
+  data_link(block : DataBlock, getblock : GetBlockFunc,
+            getblock_us : GetBlockUserFunc) {
   }
 
   add_menu(view2d : View2DHandler, mpos : number[], add_title = true) {
   }
 
-  /* NOTE: WidgetResizeOp/WidgetRotateOp are only in the commented-out import
-     at the top of this file, so on_tick() throws a ReferenceError. */
   on_tick(ctx : FullContext) {
     let widgets = [WidgetResizeOp, WidgetRotateOp];
 
@@ -127,7 +128,8 @@ export class View2DEditor {
   }
   //returns [spline, element, mindis]
   findnearest(mpos : number[], selectmask : number, limit : number,
-              ignore_layers : boolean) {
+              ignore_layers : boolean) : ToolModeHit | undefined {
+    return undefined;
   }
 
   on_mousemove(event : MouseEvent) {

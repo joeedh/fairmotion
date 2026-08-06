@@ -20,23 +20,35 @@ class NoInheritFlag {
   }
 }
 
+/* What a brush class's static brushDefine() hands back. */
+export interface BrushDefine {
+  typeName : string;
+  uiName? : string;
+  defaultName? : string;
+  inputs? : BrushSlots | NoInheritFlag;
+  flag? : number;
+}
+
 /* Walks the class chain merging brushDefine().inputs, nearest class winning.
 
-   NOTE: noInherit() wraps the slots in a NoInheritFlag, so on the class that
-   used it `ins2` is the flag object and the copy loop above the check picks
-   up its "def" key rather than the real slots. */
+   NOTE: two defects here.  The walk stopped at Object, but a class chain runs
+   out into Function.prototype, so the pass after BrushTool called a
+   brushDefine() that does not exist.  And noInherit() wraps the slots in a
+   NoInheritFlag, which the copy loop treated as the slot map itself, picking up
+   its "def" key as though it were a tool property. */
 export function buildSlots(cls : BrushToolClass) {
   let ins : BrushSlots = {};
 
-  let p = cls;
-  while (p && p !== Object) {
+  let p : BrushToolClass | null = cls;
+  while (p !== null && typeof p.brushDefine === "function") {
     let def = p.brushDefine();
 
-    let ins2 = def.inputs || {};
+    let ins2 = def.inputs ?? {};
+    let slots = ins2 instanceof NoInheritFlag ? ins2.def : ins2;
 
-    for (let k in ins2) {
+    for (let k in slots) {
       if (!(k in ins)) {
-        ins[k] = ins2[k];
+        ins[k] = slots[k];
       }
     }
 
@@ -44,7 +56,7 @@ export function buildSlots(cls : BrushToolClass) {
       return ins;
     }
 
-    p = p.__proto__;
+    p = Object.getPrototypeOf(p);
   }
 
   return ins;
@@ -75,10 +87,12 @@ export class DynamicsCurve {
     return new DynamicsCurve().load(this);
   }
 
+  /* NOTE: the curve line was `this.curve.copyTo(b.curve)`; Curve1D has no
+     copyTo, so copying a dynamics curve threw. */
   copyTo(b : DynamicsCurve) {
     b.enabled = this.enabled;
     b.inputType = this.inputType;
-    this.curve.copyTo(b.curve);
+    b.curve.load(this.curve);
   }
 }
 DynamicsCurve.STRUCT = `
@@ -140,11 +154,11 @@ export class DynamicsChannel {
     b.max = this.max;
     b.flag = this.flag;
 
-    /* NOTE: DynamicsCurve has no `name` -- b.get() is keyed on the numeric
-       input type, so this looks up undefined and mints a fresh curve every
-       pass, discarding whatever b already had. */
+    /* NOTE: this passed ch.name, which DynamicsCurve does not have; b.get() is
+       keyed on the numeric input type, so every lookup missed and minted a
+       fresh curve under the key `undefined`. */
     for (let ch of this.inputs.values()) {
-      ch.copyTo(b.get(ch.name));
+      ch.copyTo(b.get(ch.inputType));
     }
   }
 
@@ -162,7 +176,7 @@ export class DynamicsChannel {
 
     this.inputs = new Map();
 
-    for (let ch of this._inputs) {
+    for (let ch of this._inputs ?? []) {
       this.inputs.set(ch.inputType, ch);
     }
 
@@ -191,8 +205,8 @@ export class BrushDynamics {
     this._channels = undefined;
   }
 
-  /* NOTE: on a miss this builds the channel but neither stores nor returns
-     it, so every caller downstream gets undefined. */
+  /* NOTE: on a miss this built the channel but neither stored nor returned it,
+     so every caller downstream got undefined. */
   get(name : string) {
     let ch = this.channels.get(name);
 
@@ -201,7 +215,9 @@ export class BrushDynamics {
     }
 
     ch = new DynamicsChannel(name);
+    this.channels.set(name, ch);
 
+    return ch;
   }
 
   _saveChannels() {
@@ -233,7 +249,7 @@ export class BrushDynamics {
 
     this.channels = new Map();
 
-    for (let ch of this._channels) {
+    for (let ch of this._channels ?? []) {
       this.channels.set(ch.name, ch);
     }
 
@@ -249,6 +265,8 @@ brush.BrushDynamics {
 nstructjs.register(BrushDynamics);
 
 export class BrushTool {
+  declare ["constructor"] : BrushToolClass;
+
   static STRUCT : string;
 
   /* Instances, cloned from the class's brushDefine().inputs. */
@@ -313,7 +331,7 @@ export class BrushTool {
     }
   }
 
-  static brushDefine() {
+  static brushDefine() : BrushDefine {
     return {
       typeName : "brush",
       uiName : "Brush",
@@ -335,9 +353,9 @@ export class BrushTool {
     b.flag = this.flag;
     b.name = this.name;
 
-    /* NOTE: BrushDynamics.copyTo wants the other BrushDynamics, not the
-       BrushTool wrapping it. */
-    this.dynamics.copyTo(b);
+    /* NOTE: this passed `b`, the BrushTool, where copyTo wants the other
+       BrushDynamics. */
+    this.dynamics.copyTo(b.dynamics);
 
     for (let k in this.inputs) {
       let prop1 = this.inputs[k];
@@ -366,17 +384,21 @@ export class BrushTool {
     this.dynamics.dataLink(block, getblock, getblock_adduser);
   }
 
-  /* NOTE: reader() is called with no argument, and BrushTool has no base
-     class to carry super.loadSTRUCT -- both throw the moment a brush is
-     read back from a file. */
+  /* NOTE: reader() was called with no argument, and there was a
+     super.loadSTRUCT(reader) below it even though BrushTool has no base class;
+     both threw the moment a brush was read back from a file. */
   loadSTRUCT(reader : StructReader<this>) {
-    reader();
-    super.loadSTRUCT(reader);
+    reader(this);
 
-    let ins = this._inputs;
+    let ins = this._inputs ?? [];
 
     for (let prop of ins) {
-      let prop2 = this.inputs[prop.apiname];
+      let apiname = prop.apiname;
+      if (apiname === undefined) {
+        continue;
+      }
+
+      let prop2 = this.inputs[apiname];
 
       if (prop2) {
         try {
@@ -385,16 +407,21 @@ export class BrushTool {
           util.print_stack(error);
 
           console.error("Error loading tool property; copying instance instead. . .");
-          ins[prop.apiname] = prop;
+          /* NOTE: the fallback stamps the property onto the _inputs array under
+             a string key rather than onto this.inputs, and _inputs is dropped
+             two lines down -- so it has never actually copied anything. */
+          Reflect.set(ins, apiname, prop);
         }
       } else {
-        this.inputs[prop.apiname] = prop;
+        this.inputs[apiname] = prop;
       }
     }
 
     this._inputs = undefined;
   }
 }
+/* NOTE: _inputs names this._save_inputs, which does not exist (and is missing
+   its call parens), so serializing a brush would throw. */
 BrushTool.STRUCT = `
 brush.BrushTool {
   flag       : int;

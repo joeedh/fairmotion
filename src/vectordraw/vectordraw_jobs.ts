@@ -206,11 +206,11 @@ export class Thread {
   }
 
   postMessage(type : number, msgid : number, transfers? : Transferable[]) {
-    this.worker.postMessage({
+    this.worker!.postMessage({
       type : type,
       msgid: msgid,
       data : transfers
-    }, transfers);
+    }, transfers ?? []);
   }
 
   close() {
@@ -248,7 +248,7 @@ export class ThreadManager {
 
     //make thread timeout checker
     window.setInterval(() => {
-      if (this.drawing && time_ms() - this.start_time > 750) {
+      if (this.drawing && time_ms() - this.start_time! > 750) {
         console.log("Draw timed out; aborting draw freeze");
         this.endDrawing();
       }
@@ -264,8 +264,8 @@ export class ThreadManager {
 
     this.max_threads = n;
     while (this.threads.length > n) {
-      let thread = this.threads.pop();
-      thread.worker.terminate();
+      let thread = this.threads.pop()!;
+      thread.worker!.terminate();
     }
 
     while (this.threads.length < n) {
@@ -321,7 +321,9 @@ export class ThreadManager {
   }
 
   getRandomThread() {
-    while (1) {
+    /* `while (1)` reads as possibly-terminating, which made every caller see a
+       `Thread | undefined`. */
+    while (true) {
       let ri = ~~(Math.random()*this.threads.length*0.99999);
 
       if (this.threads[ri].ready)
@@ -429,12 +431,6 @@ export class ThreadManager {
 
 export var manager = new ThreadManager();
 
-/* NOTE: postMessage() takes (type, msgid, transfers) -- this passes a string
-   opcode as the type and the transfer list where the msgid belongs. */
-export function test() {
-  let thread = manager.spawnThread("vectordraw_canvas2d_worker.js");
-
-  thread.postMessage("yay", [new ArrayBuffer(512)]);
-
-  return thread;
-}
+/* NOTE: a test() helper spawning a canvas2d worker sat here.  It had no
+   callers, and its one postMessage() passed a string where the numeric opcode
+   goes and the transfer list where the msgid goes. */

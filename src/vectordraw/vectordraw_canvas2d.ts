@@ -14,10 +14,10 @@ import {
   VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
-import type {DrawCanvas} from './vectordraw_base.js';
+import type {ColorLike, DrawCanvas} from './vectordraw_base.js';
 
 /* An axis-aligned box in canvas pixels. */
-export type Viewport = {pos : number[], size : number[]};
+export type Viewport = {pos : Vector2, size : Vector2};
 
 /* Batches hand themselves back once their render job lands. */
 export type BatchDoneCallback = (batch? : Batch) => void;
@@ -129,13 +129,13 @@ export class Batch {
     this.#last_pan = new Vector2();
 
     this.viewport = {
-      pos : [0, 0],
-      size: [1, 1]
+      pos : new Vector2(),
+      size: new Vector2([1, 1])
     };
 
     this.realViewport = {
-      pos : [0, 0],
-      size: [1, 1]
+      pos : new Vector2(),
+      size: new Vector2([1, 1])
     }
 
     this.patharea = 0;
@@ -209,7 +209,8 @@ export class Batch {
     this.patharea = 0;
 
     if (window._DEBUG.drawbatches) {
-      console.warn("destroying batch", this.length);
+      /* NOTE: this logged `this.length`, which a Batch does not have. */
+      console.warn("destroying batch", this.paths.length);
     }
 
     for (let p of this.paths) {
@@ -304,7 +305,8 @@ export class Batch {
     if (this.isBlurBatch) {
       let matrix = new Matrix4(draw.matrix);
 
-      matrix.scale(this.dpi_scale, this.dpi_scale);
+      /* Matrix4.scale() copies x into an omitted z; spelled out. */
+      matrix.scale(this.dpi_scale, this.dpi_scale, this.dpi_scale);
       draw.push_transform(matrix, false);
     }
 
@@ -397,7 +399,8 @@ export class Batch {
 
       p.genSmart(draw);
 
-      let c2 = p._commands;
+      /* genSmart() above always leaves _commands set. */
+      let c2 = p._commands!;
 
       draw.pop_transform();
 
@@ -417,7 +420,7 @@ export class Batch {
       return;
     }
 
-    commands = this._commands.finish();
+    let f64commands = this._commands.finish();
 
     min = new Vector2(min);
 
@@ -427,7 +430,7 @@ export class Batch {
     this.pending = true;
 
     //blocking = false;
-    vectordraw_jobs.manager.postRenderJob(renderid, commands, undefined, !blocking).then((data : ImageBitmap) => {
+    vectordraw_jobs.manager.postRenderJob(renderid, f64commands, undefined, !blocking).then((data : ImageBitmap) => {
       this.pending = false;
 
       if (this.onRenderDone) {
@@ -529,8 +532,9 @@ export class CanvasPath extends PathBase {
   nofill: boolean;
   _mm: MinMax;
 
-  /* Raw opcode stream this path appends to; nulled out by destroy(). */
-  commands : number[] | undefined;
+  /* Raw opcode stream this path appends to.  destroy() nulls it out, but
+     nothing touches a path afterwards, so it is not declared optional. */
+  commands : number[];
   /* The finished command list handed to a render job; the recalc setter
      invalidates it. */
   _commands : number[] | undefined;
@@ -583,10 +587,10 @@ export class CanvasPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color? : number[], width? : number) {
+  pushStroke(color? : ColorLike, width? : number) {
     if (color) {
-      let a = color.length > 3 ? color[3] : 1.0;
-      this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+      let a = color.length > 3 ? color[3]! : 1.0;
+      this._pushCmd(LINESTYLE, ~~(color[0]!*255), ~~(color[1]!*255), ~~(color[2]!*255), a);
     }
 
     if (width !== undefined) {
@@ -601,7 +605,9 @@ export class CanvasPath extends PathBase {
     this.nofill = true;
   }
 
-  update_aabb(draw : VectorDraw, fast_mode = false) {
+  /* Only the transform is read, and Batch.add() passes a bare identity
+     matrix rather than a whole VectorDraw. */
+  update_aabb(draw : {matrix : Matrix4}, fast_mode = false) {
     let tmp = canvaspath_temp_vs.next().zero();
     let mm = this._mm;
     let pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
@@ -691,8 +697,10 @@ export class CanvasPath extends PathBase {
     this.lasty = y;
   }
 
+  /* `subdiv` is here for PathBase's signature and ignored -- the batch
+     renderer emits the curve whole. */
   cubicTo(x2 : number, y2 : number, x3 : number, y3 : number, x4 : number,
-          y4 : number) {
+          y4 : number, subdiv? : number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
@@ -721,7 +729,7 @@ export class CanvasPath extends PathBase {
     }
 
     this.canvas = this.g = undefined;
-    this._image = this.commands = undefined;
+    this._image = this.commands = undefined!;
   }
 
   //renders into another path's canvas
@@ -928,14 +936,17 @@ export class CanvasPath extends PathBase {
     for (let path of this.clip_paths) {
       //console.log("CLIPPING!", path);
 
-      if (path.recalc) {
+      /* Every path in a canvas2d draw is a CanvasPath. */
+      let cpath = (path instanceof CanvasPath ? path : undefined)!;
+
+      if (cpath.recalc) {
         if (debug) console.log("   clipping subgen!");
-        path.gen(draw, 1);
+        cpath.gen(draw, 1);
       }
 
-      let oldc = path.canvas, oldg = path.g, oldaabb = path.aabb, oldsize = path.size;
-
-      path.genInto(draw, this, commands2, true);
+      /* NOTE: four locals saving path.canvas/g/aabb/size sat here and were
+         never restored -- genInto() saves and restores them itself. */
+      cpath.genInto(draw, this, commands2, true);
     }
 
     this.gen_commands(draw, commands2, _check_tag, clip_mode);
@@ -944,7 +955,7 @@ export class CanvasPath extends PathBase {
     this._commands = commands2;
   }
 
-  reset(draw : VectorDraw) {
+  reset(draw? : VectorDraw) {
     this.stroke_extra = 0;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -978,7 +989,7 @@ export class CanvasPath extends PathBase {
     g.fill();
   }
 
-  update() {
+  update(draw? : VectorDraw) {
     this.recalc = 1;
   }
 }
@@ -1057,7 +1068,7 @@ export class Batches extends Array<Batch> {
   }
 }
 
-export class CanvasDraw2D extends VectorDraw {
+export class CanvasDraw2D extends VectorDraw<CanvasPath> {
   paths: CanvasPath[]
   path_idmap: {[id : number] : CanvasPath}
   #last_pan: Vector2 = new Vector2();
@@ -1080,7 +1091,7 @@ export class CanvasDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     this.matrix = new Matrix4();
     this.#last_pan = new Vector2();
 
@@ -1089,8 +1100,8 @@ export class CanvasDraw2D extends VectorDraw {
     }
     this.matstack.cur = 0;
 
-    this.canvas = undefined;
-    this.g = undefined;
+    this.canvas = undefined!;
+    this.g = undefined!;
     this.batches = new Batches();
     this.onBatchDone = this.onBatchDone.bind(this);
   }
@@ -1106,7 +1117,7 @@ export class CanvasDraw2D extends VectorDraw {
     if (ok && this.promise) {
       this.promise = undefined;
       //console.log("Draw finished!");
-      this.on_batches_finish();
+      this.on_batches_finish!();
     }
   }
 
@@ -1229,10 +1240,13 @@ export class CanvasDraw2D extends VectorDraw {
       }
 
       for (let path2 of path.clip_users) {
+        /* Every path in a canvas2d draw is a CanvasPath. */
+        let cpath2 = (path2 instanceof CanvasPath ? path2 : undefined)!;
+
         if (path.recalc) {
-          path2.recalc = 1;
+          cpath2.recalc = 1;
         } else {
-          path2.redraw = 1;
+          cpath2.redraw = 1;
         }
       }
     }

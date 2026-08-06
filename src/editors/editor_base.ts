@@ -8,8 +8,10 @@ import {ModalStates} from '../core/toolops_api.js';
 import {HotKey, KeyMap} from '../core/keymap.js';
 import {haveModal} from '../path.ux/scripts/pathux.js';
 import type {FullContext} from '../core/context.js';
-import type {DataBlock} from '../core/lib_api.js';
+import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
 import type {Container} from '../path.ux/scripts/core/ui.js';
+import type {View2DHandler} from './viewport/view2d.js';
+import type {IAreaConstructor} from '../path.ux/scripts/screen/area_base.js';
 
 export function resetAreaStacks() {
   contextWrangler.reset();
@@ -18,8 +20,9 @@ export function resetAreaStacks() {
 /*
 primary app screen subclass
 */
-export class FairmotionScreen extends Screen {
-  ctx!: FullContext;
+export class FairmotionScreen extends Screen<FullContext> {
+  /* NOTE: written by AppState on file load and read by nothing. */
+  view2d?: View2DHandler;
 
   /* Settings generation the keymap deltas were last loaded at. */
   _last_keymap_gen : number;
@@ -35,6 +38,12 @@ export class FairmotionScreen extends Screen {
    */
   tottouch! : number;
   touchstate! : {[id : string] : number[]};
+
+  /* NOTE: the modifier state that same event layer used to mirror here. Also
+     unwritten now, so view2d's middle-click pan tests always read undefined. */
+  declare ctrl : boolean;
+  declare shift : boolean;
+  declare alt : boolean;
 
   constructor() {
     super();
@@ -138,54 +147,47 @@ export class FairmotionScreen extends Screen {
       }
 
       let area = new cls(); //document.createElement(cls.define().tagname);
+
+      /* NOTE: areaclasses also holds path.ux's own editors, whose keymaps are
+         plain path.ux KeyMaps.  The settings UI below calls ensureWrite() and
+         reads typeName on everything it is handed, neither of which those
+         have, so they are skipped rather than crashing it. */
+      if (!(area instanceof Editor)) {
+        continue;
+      }
+
       area.ctx = this.ctx;
-      area.size = [512, 512];
-      area.pos = [0, 0];
-      area.updateSize = function() {};
+      area.size = new Vector2([512, 512]);
+      area.pos = new Vector2([0, 0]);
+      /* Stubbed out so a throwaway area harvested for its keymap does not try
+         to lay itself out; Area has no such method to override. */
+      Reflect.set(area, "updateSize", () => {});
 
       try {
         area._init();
       } catch (error) {
-        console.error(error.stack);
-        console.error(error.message);
+        if (error instanceof Error) {
+          console.error(error.stack);
+          console.error(error.message);
+        }
       }
 
-      let uiname = area.constructor.define().uiname || area.constructor.name;
-      let path = area.constructor.name;
+      let uiname = cls.define().uiname || cls.name;
+      let path = cls.name;
 
       let km = area.getKeyMaps();
+      let kmset = km instanceof KeymapSet ? km : new KeymapSet(uiname, path, km);
 
-      if (!(km instanceof KeymapSet)) {
-        km = new KeymapSet(uiname, path, km);
-      }
-
-      for (let keymap of km) {
+      for (let keymap of kmset) {
         //keymap.loadDeltaSet();
       }
 
-      yield km;
+      yield kmset;
     }
 
-    return;
-    for (let sarea of this2.sareas) {
-      if (!sarea.area) continue;
-
-      let area = sarea.area;
-      let uiname = area.constructor.define().uiname || area.constructor.name;
-      let path = area.constructor.name;
-
-      let km = sarea.area.getKeyMaps();
-
-      if (!(km instanceof KeymapSet)) {
-        km = new KeymapSet(uiname, path, km);
-      }
-
-      for (let keymap of km) {
-        keymap.loadDeltaSet();
-      }
-
-      yield km;
-    }
+    /* NOTE: a second loop over this.sareas, building the same KeymapSets from
+       the areas actually on screen, sat here behind an unconditional return.
+       It was unreachable, and the loop above supersedes it. */
   }
 
   stopPlayback() {
@@ -281,18 +283,28 @@ export class KeymapSet extends Array<KeyMap> {
    was sized at. */
 export type EditorCanvas = HTMLCanvasElement & {dpi_scale : number, g : Canvas2D};
 
-export class Editor extends Area {
-  /* UIBase's ctx accessor is generic over the app context; every editor in
-     this tree only ever sees the app's own. path.ux types it non-optional
-     even though it is unset until the screen wires the widget up, which is
-     why so much of this file still tests it against undefined. */
-  declare ctx : FullContext;
+/* Every editor in this tree only ever sees the app's own context, so the base
+   is parameterized rather than re-declaring `ctx` (UIBase declares it as an
+   accessor, which a class-level property may not override).  path.ux types it
+   non-optional even though it is unset until the screen wires the widget up,
+   which is why so much of this file still tests it against undefined. */
+export class Editor extends Area<FullContext> {
+  /* path.ux types this as IUIBaseConstructor, whose define() returns the plain
+     UIBaseDefinition; every editor here is an area, so its define() is an
+     IAreaDef and carries uiname/areaname. */
+  declare ["constructor"] : IAreaConstructor<FullContext, this>;
+
+  /* Assigned by the owning ScreenArea before anything can draw or handle an
+     event, so path.ux's `Vector2 | undefined` is narrowed here rather than
+     guarded at each of the hundred-odd uses. */
+  declare pos : Vector2;
+  declare size : Vector2;
 
   canvases : {[id : string] : EditorCanvas};
 
   _last_keymap_delta_gen : number;
   keymap! : KeyMap;
-  container! : Container;
+  container! : Container<FullContext>;
 
   constructor() {
     super();
@@ -301,8 +313,8 @@ export class Editor extends Area {
     this.canvases = {};
   }
 
-  makeHeader(container: Container) {
-    return super.makeHeader(container);
+  makeHeader(container: Container<FullContext>, addNoteArea = true) {
+    return super.makeHeader(container, addNoteArea);
   }
 
   getKeyMaps() {
@@ -320,8 +332,11 @@ export class Editor extends Area {
       return;
     }
 
-    if (this._last_keymap_delta_gen !== this.ctx.state.keyDeltaGen) {
-      this._last_keymap_delta_gen = this.ctx.state.keyDeltaGen;
+    /* NOTE: this read keyDeltaGen off AppState rather than off its settings
+       (see update() above), so the test always passed and every editor reloaded
+       every keymap delta on every update. */
+    if (this._last_keymap_delta_gen !== this.ctx.state.settings.keyDeltaGen) {
+      this._last_keymap_delta_gen = this.ctx.state.settings.keyDeltaGen;
 
       for (let k of this.getKeyMaps()) {
         k.loadDeltaSet();
@@ -361,14 +376,19 @@ export class Editor extends Area {
   }
 
   getCanvas(id: string, zindex: number, patch_canvas2d_matrix = true, dpi_scale = 1.0) {
-    let canvas;
+    let canvas: EditorCanvas;
     let dpi = ui_base.UIBase.getDPI();
 
     if (id in this.canvases) {
       canvas = this.canvases[id];
     } else {
-      canvas = this.canvases[id] = document.createElement("canvas");
-      canvas.g = this.canvases[id].getContext("2d");
+      const el = document.createElement("canvas");
+
+      /* The two extra fields are what make it an EditorCanvas; attaching them
+         here rather than after the fact keeps the type honest. */
+      canvas = this.canvases[id] = Object.assign(el, {
+        dpi_scale, g : el.getContext("2d")! as Canvas2D
+      });
 
       this.shadow.prepend(canvas);
 
@@ -377,8 +397,10 @@ export class Editor extends Area {
 
     canvas.dpi_scale = dpi_scale;
 
-    if (canvas.style["z-index"] !== zindex) {
-      canvas.style["z-index"] = zindex;
+    /* NOTE: this compared the style string against a number, so it never
+       matched and rewrote z-index on every call. */
+    if (canvas.style.zIndex !== "" + zindex) {
+      canvas.style.zIndex = "" + zindex;
     }
 
     if (this.size !== undefined) {
@@ -414,17 +436,25 @@ export class Editor extends Area {
   /**
    * mostly called by AppState.load_undo_file,
    * called when a file is loaded into an existing screen UI
+   *
+   * NOTE: this shadows path.ux's Area.on_fileload(isActiveEditor), which resets
+   * the context wrangler.  Fairmotion passes a context instead and nothing
+   * overrides this, so that reset never happens.  The parameter is widened only
+   * so the override stays compatible with the base signature.
    * */
-  on_fileload(ctx : FullContext) {
+  on_fileload(ctx : FullContext | boolean) {
 
   }
 
-  data_link(block : DataBlock, getblock : (ref) => DataBlock,
-            getblock_us : (ref) => DataBlock) {
+  /* `block` is the editor itself for editors -- AppState.dataLinkScreen passes
+     the area in where datablocks pass themselves. */
+  data_link(block : DataBlock | Editor, getblock : GetBlockFunc,
+            getblock_us : GetBlockUserFunc) {
 
   }
 
-  static register(cls) {
+  /* `never[]` for the same reason as context_area() below. */
+  static register(cls : new (...args : never[]) => Editor) {
     return Area.register(cls);
   }
 
@@ -443,8 +473,8 @@ export class Editor extends Area {
   }
 
   //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active
-  static wrapContextEvent(f : (e : Event) => void) {
-    return function (this : Editor, e : Event) {
+  static wrapContextEvent<T extends Event>(f : (e : T) => void) {
+    return function (this : Editor, e : T) {
       if (haveModal()) {
         return;
       }

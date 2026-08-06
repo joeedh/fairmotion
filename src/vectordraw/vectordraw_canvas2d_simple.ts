@@ -10,11 +10,12 @@ import {
   VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
+import type {ColorLike} from './vectordraw_base.js';
 
 var debug = 0;
 window._setDebug = (d) => {debug = d;};
 
-var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
+var canvaspath_draw_mat_tmps = new cachering(() => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(8);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
@@ -181,10 +182,10 @@ export class SimpleCanvasPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color? : number[], width? : number) {
+  pushStroke(color? : ColorLike, width? : number) {
     if (color) {
       let a = color[3] || 1.0;
-      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
+      this._pushCmd(STROKECOLOR, color[0]!, color[1]!, color[2]!, a, 0.5);
     }
 
     if (width) {
@@ -204,7 +205,7 @@ export class SimpleCanvasPath extends PathBase {
   gen(draw : SimpleCanvasDraw2D, _check_tag = 0) {
   }
 
-  reset(draw : VectorDraw) {
+  reset(draw? : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -227,23 +228,23 @@ export class SimpleCanvasPath extends PathBase {
     var g = draw.g;
     var tmp = new Vector3();
 
-    let debuglog = function() {
+    let debuglog = function(...args : unknown[]) {
       if (debug > 1) {
         let time = performance.now();
 
         if (time - lasttime > 5) {
-          console.log(...arguments);
+          console.log(...args);
           lasttime = time;
         }
       }
     }
 
-    let debuglog2 = function() {
+    let debuglog2 = function(...args : unknown[]) {
       if (debug > 0) {
         let time = performance.now();
 
         if (time - lasttime > 5) {
-          console.log(...arguments);
+          console.log(...args);
           lasttime = time;
         }
       }
@@ -258,7 +259,7 @@ export class SimpleCanvasPath extends PathBase {
     g.miterLimit = 2.5;
 
     let cmds = this.commands;
-    let i;
+    let i = 0;
 
     let mat2 = new Matrix4(draw.matrix);
     mat2.invert();
@@ -343,15 +344,16 @@ export class SimpleCanvasPath extends PathBase {
           g.moveTo(tmp[0], tmp[1]);
           break;
         case STROKECOLOR:
-          let r = cmds[i+2], g1 = cmds[i+3], b = cmds[i+4], a = cmd[i+5];
+          let r = cmds[i+2], g1 = cmds[i+3], b = cmds[i+4];
 
           r = ~~(r*255);
           g1 = ~~(g1*255);
           b = ~~(b*255);
 
-          //console.log(a);
-
-          a = a || 1.0;
+          /* NOTE: alpha read `cmd[i+5]`, indexing the opcode number rather than
+             cmds, so it was always undefined and the `a || 1.0` that followed
+             always produced 1.0. */
+          let a = 1.0;
 
           g.strokeStyle = `rgba(${r},${g1},${b},${a})`;
           break;
@@ -417,7 +419,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     this.matrix = new Matrix4();
 
     for (var i=0; i<this.matstack.length; i++) {
@@ -428,9 +430,11 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
   static get_canvas(id : string, width : number, height : number,
                     zindex : number) {
-    var ret = document.getElementById(id);
+    let ret = document.getElementById(id) as HTMLCanvasElement | null;
 
-    if (ret === undefined) {
+    if (ret === null) {
+      /* NOTE: this tested `=== undefined`; getElementById returns null, so a
+         missing canvas fell straight through and threw on ret.width. */
       ret = document.createElement("canvas");
       ret.id = id;
     }
@@ -438,9 +442,8 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     ret.width = width;
     ret.height = height;
 
-    if (ret.style !== undefined) {
-      ret.style["z-index"] = zindex;
-    }
+    /* the `ret.style !== undefined` guard around this was always true. */
+    ret.style.zIndex = "" + zindex;
 
     return ret;
   }

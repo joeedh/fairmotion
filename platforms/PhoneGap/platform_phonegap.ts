@@ -5,8 +5,10 @@ export class PlatformAPI extends PlatformAPIBase {
     super();
   }
   
+  /* NOTE: this was `new Promise()`, with no executor -- a TypeError, not a
+     promise that never fulfills. */
   getProcessMemoryPromise() {
-    return new Promise(); //never fulfills
+    return new Promise<number>(() => {}); //never fulfills
   }
 
   saveDialog() {

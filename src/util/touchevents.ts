@@ -16,9 +16,13 @@ class TouchManager {
   event : TouchLikeEvent;
 
   constructor(event : TouchLikeEvent) {
-    this.pattern = new set(Object.keys(event.touches));
+    let keys = Object.keys(event.touches);
+
+    this.pattern = new set(keys);
     this.idxmap = {};
-    this.tot = event.touches.length;
+    /* NOTE: this read `.length` off the touch map itself, which the
+       identifier-keyed object described above does not have. */
+    this.tot = keys.length;
     this.event = event;
     this.deltas = {};
     
@@ -54,13 +58,14 @@ class TouchManager {
     return this.event.touches[this.idxmap[i]];
   }
   
-  /* Broken: `pattern` should be `this.pattern`. */
+  /* NOTE: the has() below read a bare `pattern`, i.e. a ReferenceError on
+     every call.  It means this.pattern. */
   valid(event=this.event) : boolean {
     var keys = Object.keys(event.touches);
     if (keys.length != this.pattern.length) return false;
     
     for (var i=0; i<keys.length; i++) {
-      if (!pattern.has(keys[i])) return false;
+      if (!this.pattern.has(keys[i])) return false;
     }
     
     return true;

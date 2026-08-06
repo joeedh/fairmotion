@@ -16,9 +16,9 @@ if (!haveElectron) {
     }
 
     //make require stub
-    G.require = () => {
+    Reflect.set(G, "require", () => {
       return {}
-    }
+    });
   }
 }
 
@@ -44,16 +44,17 @@ if (!mod.remote) {
   }
 }
 
-export class ElectronPlatformAPI {
+export class ElectronPlatformAPI extends PlatformAPIBase {
   constructor() {
+    super();
   }
-  
+
   init() {
   }
 
   getProcessMemoryPromise() {
-    return  new Promise((accept, reject) => {
-      require("process").getProcessMemoryInfo().then((data) => {
+    return  new Promise<number>((accept, reject) => {
+      require("process").getProcessMemoryInfo().then((data : {private : number}) => {
         let blink = require("process").getBlinkMemoryInfo();
 
         accept(data.private*1024 + blink.total*1024);
@@ -61,17 +62,17 @@ export class ElectronPlatformAPI {
     });
   }
 
-  errorDialog(title, msg) {
-    alert(title + ": " + msg);
+  errorDialog(title : unknown, msg? : unknown) {
+    alert(String(title) + ": " + String(msg));
   }
 
   //returns a promise
-  saveFile(path_handle, name, databuf, type) {
+  saveFile(path_handle : string, name : string, databuf : ArrayBufferView, type : string) {
     let fs = require("fs");
 
     console.warn("TESTME");
 
-    return new Promise((accept, reject) => {
+    return new Promise<void>((accept, reject) => {
       fs.writeFile(path_handle, databuf, () => {
         accept();
       });
@@ -79,15 +80,15 @@ export class ElectronPlatformAPI {
   }
 
   //returns a promise
-  openFile(path_handle) {
+  openFile(path_handle : string) {
     let fs = require("fs");
-    return new Promise((accept, reject) => {
+    return new Promise<Uint8Array>((accept, reject) => {
       let buf;
 
       try {
         buf = fs.readFileSync(path_handle);
       } catch (error) {
-        return reject(error.toString());
+        return reject(String(error));
       }
 
       accept(buf);
@@ -116,11 +117,11 @@ export class ElectronPlatformAPI {
   }
   
   //returns a promise
-  saveDialog(name, databuf, type) {
+  saveDialog(name : string, databuf : ArrayBufferView, type : string) {
   }
-  
+
   //returns a promise
-  openDialog(type) {
+  openDialog(type : string) {
   }
   
   //returns a promise
@@ -128,22 +129,22 @@ export class ElectronPlatformAPI {
   }
   
   //handler is a function, returns true if exit should be allowed
-  exitCatcher(handler) {
+  exitCatcher(handler : () => boolean) {
   }
   
   quitApp() {
     close();
   }
 
-  alertDialog(msg) {
-    return new Promise((accept, reject) => {
+  alertDialog(msg : string) {
+    return new Promise<void>((accept, reject) => {
       alert(msg);
       accept();
     })
   }
 
-  questionDialog(msg) {
-    return new Promise((accept, reject) => {
+  questionDialog(msg : string) {
+    return new Promise<boolean>((accept, reject) => {
       let ret = confirm(msg);
       accept(ret);
     });

@@ -47,7 +47,7 @@ export class Video {
 
   constructor(url: string) {
     this.canvas = document.createElement("canvas");
-    this.g = this.canvas.getContext("2d");
+    this.g = this.canvas.getContext("2d")!;
     this.video = document.createElement("video")
     this.url = url;
     
@@ -155,7 +155,7 @@ export class Video {
     canvas.width = size[0];
     canvas.height = size[1];
     
-    var g2 = canvas.getContext("2d");
+    var g2 = canvas.getContext("2d")!;
     g2.drawImage(video, 0, 0);
     //*/
     
@@ -252,7 +252,8 @@ export class Video {
 function current_frame(v: HTMLVideoElement) {
   return Math.floor(v.currentTime*15.0);
   
-  if (v.webkitDecodedFrameCount != undefined)
+  /* A webkit-only counter that was never in any lib.dom; unreachable anyway. */
+  if (Reflect.get(v, "webkitDecodedFrameCount") != undefined)
     return v.currentTime;
 }
 

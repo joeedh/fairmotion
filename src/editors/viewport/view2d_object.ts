@@ -7,6 +7,8 @@ SCRAPPED
 import {STRUCT} from '../../core/struct.js';
 import {SelMask} from './selectmode.js';
 import {SplineTypes} from '../../curve/spline_base.js';
+import {SplineVertex, SplineSegment, SplineFace} from '../../curve/spline_types.js';
+import type {SplineElement} from '../../curve/spline_base.js';
 import type {FullContext} from '../../core/context.js';
 
 /*
@@ -123,7 +125,7 @@ export class WorkSpline extends WorkObjectType {
     let selmode = this.selmode;
     let spline = ctx.spline;
 
-    let iter = undefined;
+    let iter : Iterable<SplineElement> | undefined = undefined;
     if (selmode & SelMask.VERTEX) {
       iter = concat_iterator(iter, spline.verts.editable(ctx));
     }
@@ -137,8 +139,12 @@ export class WorkSpline extends WorkObjectType {
       iter = concat_iterator(iter, spline.faces.editable(ctx));
     }
 
+    /* A selmode with none of the four bits set left `iter` undefined, which
+       the loop below then threw on. */
+    const items = iter ?? [];
+
     return (function*() {
-      for (let item of iter) {
+      for (let item of items) {
         yield item.eid;
       }
     })();
@@ -149,7 +155,7 @@ export class WorkSpline extends WorkObjectType {
     let selmode = this.selmode;
     let spline = ctx.spline;
 
-    let iter = undefined;
+    let iter : Iterable<SplineElement> | undefined = undefined;
     if (selmode & SelMask.VERTEX) {
       iter = concat_iterator(iter, spline.verts.selected.editable(ctx));
     }
@@ -163,8 +169,10 @@ export class WorkSpline extends WorkObjectType {
       iter = concat_iterator(iter, spline.faces.selected.editable(ctx));
     }
 
+    const items = iter ?? [];
+
     return (function*() {
-      for (let item of iter) {
+      for (let item of items) {
         yield item.eid;
       }
     })();
@@ -188,16 +196,21 @@ export class WorkSpline extends WorkObjectType {
       return undefined; //bad ei
     }
 
-    if (e.type == SplineTypes.VERTEX || e.type == SplineTypes.HANDLE) {
+    /* eidmap is typed as the base element, so the tag tests these branches
+       used cannot narrow it; handles are SplineVertexes too. */
+    if (e instanceof SplineVertex) {
       //return straight reference, verts/handles have Vector mixin
       return e;
-    } else if (e.type == SplineTypes.SEGMENT) {
+    } else if (e instanceof SplineSegment) {
       let p = pos_tmps.next().zero();
+      let mid = e.evaluate(0.5);
 
-      p.load(e.evaluate(0.5));
+      /* evaluate() hands back a 2d point; p was zeroed, so z stays 0. */
+      p[0] = mid[0];
+      p[1] = mid[1];
 
       return p;
-    } else if (e.type == SplineTypes.FACE) {
+    } else if (e instanceof SplineFace) {
       let p = pos_tmps.next().zero();
 
       return p.load(e.aabb[0]).interp(e.aabb[1], 0.5);
@@ -218,26 +231,37 @@ export class WorkSpline extends WorkObjectType {
       return false;
     }
 
-    if (e.type == SplineTypes.VERTEX || e.type == SplineTypes.HANDLE) {
+    if (e instanceof SplineVertex) {
       e.load(pos);
 
       return true;
-    } else if (e.type == SplineTypes.SEGMENT) {
-      let p = this.getPos(ei);
+    } else if (e instanceof SplineSegment) {
+      /* Same midpoint getPos() computes, inlined so the type stays a vector. */
+      let p = pos_tmps.next().zero();
+      let mid = e.evaluate(0.5);
+
+      p[0] = mid[0];
+      p[1] = mid[1];
+
       p.sub(pos).negate();
 
       e.v1.add(p);
       e.v2.add(p);
 
       return true;
-    } else if (e.type == SplineTypes.FACE) {
-      /* NOTE: `p` is undeclared here (the SEGMENT branch above declares its
-         own with `let`), so this writes a global. */
-      p = this.getPos(ei);
-      p.sub(pos).negate();
+    } else if (e instanceof SplineFace) {
+      /* NOTE: two bugs here.  `p` was undeclared -- the SEGMENT branch above
+         declares its own with `let` -- so the assignment threw a ReferenceError
+         in this strict-mode module; and SplineFace has no `verts`, its vertices
+         hang off the loops of its boundary paths. */
+      let p = pos_tmps.next().zero();
 
-      for (let v of e.verts) {
-        v.add(p);
+      p.load(e.aabb[0]).interp(e.aabb[1], 0.5).sub(pos).negate();
+
+      for (let path of e.paths) {
+        for (let l of path) {
+          l.v.add(p);
+        }
       }
 
       return true;

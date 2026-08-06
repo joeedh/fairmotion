@@ -1,11 +1,20 @@
 import * as config from '../src/config/config.js';
+import type {PlatformAPIBase} from './common/platform_api.js';
 
 import * as html5 from './html5/platform_html5.js';
 import * as electron from './Electron/theplatform.js';
 import * as phonegap from './PhoneGap/platform_phonegap.js';
 import * as chromeapp from './chromeapp/platform_chromeapp.js';
 
-let mod;
+/* Only these three names are read off the selected platform module, and no
+   platform exports all three. */
+interface PlatformModule {
+  app? : PlatformAPIBase;
+  PlatformAPI? : new () => PlatformAPIBase;
+  PlatCapab? : {[k : string] : boolean};
+}
+
+let mod : PlatformModule | undefined;
 
 if (config.ELECTRON_APP_MODE) {
   mod = electron;
@@ -34,8 +43,24 @@ if (config.ELECTRON_APP_MODE) {
    module dynamically, and wrote the lazily-built `app` back onto it. ESM
    namespaces are sealed, so `app` is built here and the three names consumers
    actually use are forwarded explicitly. */
-export const app = mod.app !== undefined ? mod.app : new mod.PlatformAPI();
-export const PlatformAPI = mod.PlatformAPI;
-export const PlatCapab = mod.PlatCapab;
+function selectApp(m : PlatformModule | undefined) : PlatformAPIBase {
+  if (m === undefined) {
+    throw new Error("no platform selected; check config's *_APP_MODE flags");
+  }
+
+  if (m.app !== undefined) {
+    return m.app;
+  }
+
+  if (m.PlatformAPI === undefined) {
+    throw new Error("platform module exports neither app nor PlatformAPI");
+  }
+
+  return new m.PlatformAPI();
+}
+
+export const app = selectApp(mod);
+export const PlatformAPI = mod?.PlatformAPI;
+export const PlatCapab = mod?.PlatCapab;
 
 window.error_dialog = app.errorDialog;

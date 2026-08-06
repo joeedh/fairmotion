@@ -5,13 +5,13 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
+import {IconButton} from '../../path.ux/scripts/widgets/ui_widgets.js';
 import {createMenu, startMenu} from '../../path.ux/scripts/widgets/ui_menu.js';
 
 import * as util from "../../path.ux/scripts/util/util.js";
 
 import {PenToolMode} from './toolmodes/pentool.js';
 import {ImageUser} from '../../core/imageblock.js';
-import {SplineEditor} from './view2d_spline_ops.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
 import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
 import {SelMask, ToolModes} from './selectmode.js';
@@ -20,6 +20,13 @@ import {
   HandleShapes, ManipFlags, ManipHandle
 } from './manipulator.js';
 import {KeyMap, HotKey} from '../../core/keymap.js';
+import {CurveRootFinderTest} from './spline_editops.js';
+import * as video from '../../core/video.js';
+import type {Video} from '../../core/video.js';
+import type {DataBlock, GetBlockFunc, GetBlockUserFunc} from '../../core/lib_api.js';
+import type {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
+import type {ToolMode} from './toolmodes/toolmode.js';
+import type {PatchedEvent} from '../../core/toolops_api.js';
 
 import {EditModes} from './view2d_editor.js';
 
@@ -43,11 +50,14 @@ function delay_redraw(ms: number) {
 }
 
 import {PanOp} from './view2d_ops.js';
-import {UIOnlyNode} from '../../core/eventdag.js';
-import type {EventDag, NodeBase} from '../../core/eventdag.js';
+import {UIOnlyNode, globalDag} from '../../core/eventdag.js';
+import type {EventDag, EventNode, SocketMap} from '../../core/eventdag.js';
 import type {EditorCanvas} from '../editor_base.js';
 import type {View2DEditor} from './view2d_editor.js';
 import type {TabContainer} from '../../path.ux/scripts/widgets/ui_tabs.js';
+
+/* project()/unproject() accept any 2d-or-longer coordinate. */
+export type ProjCoord = Vector2 | Vector3 | number[];
 
 export class drawline {
   clr: number[];
@@ -61,7 +71,7 @@ export class drawline {
   onremove: ((dl: drawline) => void) | null;
 
   constructor(co1: Vector2 | number[], co2: Vector2 | number[], group: string,
-              color: number[], width: number) {
+              color: number[] | undefined, width: number) {
     this.v1 = new Vector2(co1);
     this.v2 = new Vector2(co2);
     this.group = group;
@@ -91,7 +101,7 @@ export class View2DHandler extends Editor {
   enable_blur: boolean
   draw_small_verts: boolean
   draw_bg_image!: boolean
-  _can_select: number
+  _can_select: number | boolean
   _only_render: number
   _selectmode: number
   _vel: Vector2
@@ -127,10 +137,9 @@ export class View2DHandler extends Editor {
   glPos: Vector2
   glSize: Vector2
   draw_tiled : boolean
-  ctx!: FullContext;
 
   /* The dag node that fires this editor's onDrawPre output. */
-  _graphNode: NodeBase
+  _graphNode: EventNode
   draw_stroke_debug: boolean
   /* Double-buffer parity: which of the fg/fg2, bg/bg2 canvas pairs is live. */
   _flip: number
@@ -149,9 +158,11 @@ export class View2DHandler extends Editor {
   /* 2d context of the current foreground canvas. */
   drawg!: Canvas2D
   /* Set while a tiled draw is still resolving, to drop re-entrant redraws. */
-  _draw_promise: Promise<void> | undefined
+  _draw_promise: Promise<unknown> | undefined
+  /* The recorded video, once draw_video pulls it in. */
+  video!: Video | undefined
   _makingToolBars!: boolean
-  sidebar!: TabContainer
+  sidebar!: TabContainer<FullContext>
   /* Mouse position in view space, as of the last on_mousemove. */
   mpos!: Vector3
   /* Where the current left-drag started, or null when no drag is live. */
@@ -160,6 +171,9 @@ export class View2DHandler extends Editor {
   _last_key_1!: string
   draw_video!: boolean
   video_time!: number
+  /* NOTE: nothing ever assigns this, so the middle-click pan test in
+     on_mousedown always reads undefined. */
+  declare shift: boolean
   startup_time!: number
   /* SessionFlags bitmask. */
   session_flag!: number
@@ -180,7 +194,7 @@ export class View2DHandler extends Editor {
     this.glPos = new Vector2();
     this.glSize = new Vector2([512, 512]);
 
-    this._graphNode = undefined;
+    this._graphNode = undefined!;
 
     this.propradius = 35;
 
@@ -201,9 +215,9 @@ export class View2DHandler extends Editor {
     this.half_pix_size = false;
 
     this.toolmode = ToolModes.SELECT;
-    this._last_dpi = undefined;
+    this._last_dpi = undefined!;
 
-    this.widgets = undefined;
+    this.widgets = undefined!;
 
     this.draw_faces = true;
     this.need_data_link = false;
@@ -269,9 +283,9 @@ export class View2DHandler extends Editor {
     }
   }
 
-  dag_exec(ctx: FullContext, inputs, outputs, graph: EventDag) {
+  dag_exec(ctx: FullContext, inputs: SocketMap, outputs: SocketMap, graph: EventDag) {
     if (!this.isConnected) {
-      window.the_global_dag.remove(this);
+      globalDag().remove(this);
       return;
     }
   }
@@ -297,7 +311,7 @@ export class View2DHandler extends Editor {
     return createMenu(ctx, name, ops);
   }
 
-  call_menu(menu: UIBase, view2d: View2DHandler, mpos: number[]) {
+  call_menu(menu: Menu<FullContext>, view2d: View2DHandler, mpos: number[]) {
     let screen = this.ctx.screen;
 
     startMenu(menu, screen.mpos[0], screen.mpos[1]);
@@ -309,11 +323,11 @@ export class View2DHandler extends Editor {
     let this2 = this;
     //cycle through select modes
     k.add(new HotKey("T", [], function (ctx: FullContext) {
-      let s = ctx.view2d.selectmode, s2;
+      let s = ctx.view2d.selectmode, s2 = 0;
 
       let hf = s & SelMask.HANDLE;
-      /* NOTE: s2 is still undefined here, and the if/else below overwrites
-         it anyway, so this line does nothing. */
+      /* NOTE: s2 was undefined here originally, and the if/else below
+         overwrites it anyway, so this line does nothing either way. */
       s2 &= ~SelMask.HANDLE;
 
       if (s === SelMask.VERTEX)
@@ -338,8 +352,8 @@ export class View2DHandler extends Editor {
     }, "Toggle Proportional Transform"));
 
     k.add(new HotKey("K", [], function (ctx: FullContext) {
-      /* NOTE: CurveRootFinderTest is not imported in this module, so this
-         hotkey throws ReferenceError. */
+      /* NOTE: CurveRootFinderTest was not imported in this module, so this
+         hotkey used to throw ReferenceError; the import is now present. */
       g_app_state.toolstack.execTool(ctx, new CurveRootFinderTest());
     }));
 
@@ -414,7 +428,13 @@ export class View2DHandler extends Editor {
     this.regen_keymap();
   }
 
-  on_mousewheel(e: WheelEvent) {
+  /* Registered on the legacy "mousewheel" event name, which is not in
+     HTMLElementEventMap, so the listener signature is the bare Event. */
+  on_mousewheel(e: Event) {
+    if (!(e instanceof WheelEvent)) {
+      return;
+    }
+
     let dt = -e.deltaY;
 
     let eps = 0.05;
@@ -425,7 +445,7 @@ export class View2DHandler extends Editor {
     window.redraw_viewport();
   }
 
-  _mouse(e: MouseEvent) {
+  _mouse<T extends MouseEvent>(e: T): PatchedEvent<T> {
     let e2 = patchMouseEvent(e, this); //this.get_bg_canvas());
     let mpos = this.getLocalMouse(e.x, e.y);
 
@@ -435,18 +455,15 @@ export class View2DHandler extends Editor {
     return e2;
   }
 
-  data_link(block: DataBlock, getblock: (ref) => DataBlock,
-            getblock_us: (ref) => DataBlock) {
-    /* NOTE: `Context` is not imported here -- only `FullContext` is -- so
-       this line, and the identical one in do_draw_viewport, both throw
-       ReferenceError. */
+  data_link(block: DataBlock | Editor, getblock: GetBlockFunc,
+            getblock_us: GetBlockUserFunc) {
     this.ctx = new Context();
     this.need_data_link = false;
 
     this.background_image.data_link(block, getblock, getblock_us);
   }
 
-  set_cameramat(mat: Matrix4 = undefined) {
+  set_cameramat(mat?: Matrix4) {
     let cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
 
     if (mat !== undefined)
@@ -476,29 +493,31 @@ export class View2DHandler extends Editor {
     return off;
   }
 
-  project(co: Vector2) {
+  /* Both only ever read and write [0] and [1]; the zero() + two stores below
+     are exactly what load() followed by `_co[2] = 0.0` used to do, minus the
+     brief NaN when a 2d vector was loaded into a 3d temp. */
+  project<T extends ProjCoord>(co: T): T {
     let _co = _v3d_unstatic_temps.next().zero();
 
-    _co.load(co);
-    _co[2] = 0.0;
+    _co[0] = co[0]!;
+    _co[1] = co[1]!;
     _co.multVecMatrix(this.rendermat);
     //_co.mulScalar(1.0/this.dpi_scale);
 
-    co[0] = _co[0], co[1] = _co[1];
+    co[0] = _co[0]!, co[1] = _co[1]!;
 
     return co;
   }
 
-  unproject(co: Vector3) {
+  unproject<T extends ProjCoord>(co: T): T {
     let _co = _v3d_unstatic_temps.next().zero();
 
-    _co.load(co);
-
-    _co[2] = 0.0;
+    _co[0] = co[0]!;
+    _co[1] = co[1]!;
     _co.multVecMatrix(this.irendermat);
     //_co.mulScalar(this.dpi_scale);
 
-    co[0] = _co[0], co[1] = _co[1];
+    co[0] = _co[0]!, co[1] = _co[1]!;
     return co;
   }
 
@@ -608,7 +627,7 @@ export class View2DHandler extends Editor {
 
     this.checkInit();
 
-    this._graphNode = the_global_dag.get_node(this, true);
+    this._graphNode = the_global_dag.get_node(this, true)!;
     this._graphNode.dag_update("onDrawPre");
 
     window.updateEventDag(true);
@@ -716,14 +735,14 @@ export class View2DHandler extends Editor {
       g.drawImage(img, off[0], off[1], img.width*scale[0], img.height*scale[1]);
     }
 
-    let promise;
+    let promise: Promise<unknown>;
 
     if (this.draw_tiled) { //bad tiling method!
-      promise = new Promise((accept, reject) => {
+      promise = new Promise<void>((accept, reject) => {
         let tot = 0;
 
         let tileoff = 500.0;
-        let queue = [];
+        let queue: Matrix4[] = [];
 
         let n = 1;
         for (let ix = -n; ix <= n; ix++) {
@@ -744,17 +763,22 @@ export class View2DHandler extends Editor {
           if (queue.length === 0) {
             accept();
           } else {
-            let matrix2 = queue.pop();
+            let matrix2 = queue.pop()!;
 
-            this.ctx.frameset.draw(this.ctx, g, this, matrix2, redraw_rects, this.edit_all_layers)
-              .then(next);
+            /* the two live backends both return a promise, but the base
+               declares void as well, and .then() on it would throw. */
+            Promise.resolve(
+              this.ctx.frameset.draw(this.ctx, g, this, matrix2, redraw_rects, this.edit_all_layers)
+            ).then(next);
           }
         }
 
         next();
       });
     } else {
-      promise = this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
+      promise = Promise.resolve(
+        this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers)
+      );
     }
 
     if (buffer) {
@@ -776,19 +800,25 @@ export class View2DHandler extends Editor {
       if (this.only_render && pathspline.resolve) {
         pathspline.solve();
       } else if (!this.only_render) {
+        /* NOTE: hoisted.  This was `var alpha` inside the loop, so the
+           pathspline.draw() below read the last iteration's value -- or
+           undefined when the loop never ran.  A var->let cleanup (1ff87d5)
+           turned that into a ReferenceError; this restores the original. */
+        let alpha: number | undefined;
+
         for (let v of spline.verts.selected) {
           if (!(v.eid in frameset.vertex_animdata)) continue;
 
           let vdata = frameset.vertex_animdata[v.eid];
-          let alpha = vdata.spline === actspline ? 1.0 : 0.2;
+          alpha = vdata.spline === actspline ? 1.0 : 0.2;
 
-          vdata.draw(g, matrix, alpha, this.ctx.frameset.time, redraw_rects);
+          /* NOTE: VertexAnimData.draw() takes four arguments; the
+             redraw_rects this used to pass as a fifth was ignored. */
+          vdata.draw(g, matrix, alpha, this.ctx.frameset.time);
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        /* NOTE: `alpha` is scoped to the loop above, so it is not defined
-           here -- this line throws ReferenceError. */
-        pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
+        pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha!, true, this.ctx.frameset.time, false);
       }
     } else {
       if (pathspline.resolve) {
@@ -833,7 +863,7 @@ export class View2DHandler extends Editor {
 
     /* NOTE: ManipulatorManager.render takes (canvas, g); the matrix is
        ignored. */
-    this.widgets.render(canvas, g, matrix);
+    this.widgets.render(canvas, g);
 
     bg_g.restore();
     g.restore();
@@ -937,13 +967,23 @@ export class View2DHandler extends Editor {
        SelectOpBase.invoke() read out of args, and path.ux's parseArgs() now
        rejects names with no matching input. Omitting it takes the same
        invoke() branch, which reads ctx.selectmode. */
+    /* Container.tool() returns undefined when the toolpath does not resolve,
+       and only the icon-button flavor carries an `icon`. */
     let tool = tools.tool("view2d.circle_select(mode='SELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
-    tool.icon = Icons.CIRCLE_SEL_ADD;
-    tool.description = "Select control points in a circle";
+    if (tool instanceof IconButton) {
+      tool.icon = Icons.CIRCLE_SEL_ADD;
+    }
+    if (tool) {
+      tool.description = "Select control points in a circle";
+    }
 
     tool = tools.tool("view2d.circle_select(mode='DESELECT')", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
-    tool.icon = Icons.CIRCLE_SEL_SUB;
-    tool.description = "Deselect control points in a circle";
+    if (tool instanceof IconButton) {
+      tool.icon = Icons.CIRCLE_SEL_SUB;
+    }
+    if (tool) {
+      tool.description = "Deselect control points in a circle";
+    }
 
     tools.tool("spline.toggle_select_all()", PackFlags.LARGE_ICON | PackFlags.USE_ICONS);
 
@@ -953,7 +993,7 @@ export class View2DHandler extends Editor {
       let tooltab = tabs.tab("Tool Settings");
 
       this.doOnce(() => {
-        this.ctx.toolmode.constructor.buildSideBar(tooltab);
+        this.editor.cls.buildSideBar(tooltab);
       });
     }
 
@@ -974,7 +1014,7 @@ export class View2DHandler extends Editor {
     this._makingToolBars = false;
   }
 
-  makeHeader(container: Container) {
+  makeHeader(container: Container<FullContext>) {
     let row = super.makeHeader(container);
 
     row.noMargins();
@@ -1016,6 +1056,10 @@ export class View2DHandler extends Editor {
     strip = row.strip();
     strip.tool("spline.split_pick_edge()");
     strip.tool("spline.stroke()");
+
+    /* Area.makeHeader() returns the header row; nothing here consumes it,
+       but the override has to match. */
+    return row;
   }
 
   static define() {
@@ -1218,18 +1262,22 @@ export class View2DHandler extends Editor {
     drawlines.reset();
   }
 
-  get editor() {
-    return this.ctx.toolmode;
+  /* Every use is inside a draw or event handler, where the context always
+     has a toolmode; the `!` is erased at runtime. */
+  get editor(): ToolMode {
+    return this.ctx.toolmode!;
   }
 
-  set editor(v) {
+  set editor(v: ToolMode) {
     console.warn("Attempt to set view2d.editor");
   }
 
+  /* NOTE: nothing calls this -- getKeyMaps() above is the live one -- and it
+     called this.editor.get_keymaps(), which no ToolMode defines. */
   get_keymaps() {
     let ret = [this.keymap];
 
-    let maps = this.editor.get_keymaps();
+    let maps = this.editor.getKeyMaps();
     for (let i = 0; i < maps.length; i++) {
       ret.push(maps[i]);
     }
@@ -1243,16 +1291,16 @@ export class View2DHandler extends Editor {
   }
 
   /* NOTE: _can_select is a number everywhere else; this stores a boolean. */
-  set can_select(val: number) {
+  set can_select(val: number | boolean) {
     this._can_select = !!val;
   }
 
-  do_select(event: MouseEvent, mpos: number[],
+  do_select(event: MouseEvent, mpos: Vector3 | number[],
             view2d: View2DHandler, do_multiple = false) {
     return this.editor.do_select(event, mpos, view2d, do_multiple);
   }
 
-  do_alt_select(event: MouseEvent, mpos: number[], view2d: View2DHandler) {
+  do_alt_select(event: MouseEvent, mpos: Vector3 | number[], view2d: View2DHandler) {
     return this.editor.do_alt_select(event, mpos, view2d);
   }
 
@@ -1282,7 +1330,7 @@ export class View2DHandler extends Editor {
   }
 
   //is wrapped with editor.wrapContextEvent in constructor
-  on_mousedown(event: MouseEvent) {
+  on_mousedown(event: PointerEvent) {
     this.checkInit();
 
     this.editor.view2d = this;
@@ -1292,34 +1340,37 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    event = this._mouse(event);
+    let ev = this._mouse(event);
 
     //console.trace();
 
-    //if (this.bad_event(event))
+    //if (this.bad_event(ev))
     //  return;
 
-    if (event.altKey && !event.shiftKey && !event.ctrlKey && event.button === 0) {
-      event.button = 2;
+    if (ev.altKey && !ev.shiftKey && !ev.ctrlKey && ev.button === 0) {
+      ev.button = 2;
     }
 
-    if (event.button !== 1 && event.button !== 2 &&
-      this.widgets.on_click(this._widget_mouseevent(event), this)) {
+    if (ev.button !== 1 && ev.button !== 2 &&
+      this.widgets.on_click(this._widget_mouseevent(ev), this)) {
       return;
     }
 
-    console.log(event.touches);
+    console.log(ev.touches);
 
-    if (event.button === 0) {
+    if (ev.button === 0) {
       this.editor.selectmode = this.selectmode;
       this.editor.view2d = this;
 
-      if (this.editor.on_mousedown(event)) return;
+      if (this.editor.on_mousedown(ev)) return;
 
       let selfound = false;
-      let is_middle = event.button === 1 || (event.button === 2 && g_app_state.screen.ctrl);
+      /* Widened so the dead middle/right tests below stay legal: inside this
+         branch TS has already narrowed ev.button to 0. */
+      let button: number = ev.button;
+      let is_middle = button === 1 || (button === 2 && g_app_state.screen.ctrl);
 
-      let tottouch = event.touches ? event.touches.length : 0;
+      let tottouch = ev.touches ? ev.touches.length : 0;
 
       if (tottouch >= 2) {
         let tool = new PanOp();
@@ -1327,12 +1378,12 @@ export class View2DHandler extends Editor {
         this.ctx.api.execTool(this.ctx, tool);
       } else if (is_middle && this.shift) {
         console.log("Panning");
-      } else if (event.button === 0) {
+      } else if (button === 0) {
         this._mstart = new Vector2(this.mpos);
       }
     }
 
-    if (event.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
+    if (ev.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
       let tool = new PanOp();
 
       this.ctx.api.execTool(this.ctx, tool);
@@ -1340,13 +1391,12 @@ export class View2DHandler extends Editor {
     }
   }
 
-  on_mouseup(event: MouseEvent) {
+  on_mouseup(event: PointerEvent) {
     console.warn("View3d mouseup", event.x, event.y, this.ctx.screen.pickElement(event.x, event.y), event);
 
     this._mstart = null;
 
-    event = this._mouse(event);
-    if (this.editor.on_mouseup(event)) {
+    if (this.editor.on_mouseup(this._mouse(event))) {
       return;
     }
   }
@@ -1366,53 +1416,22 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    event = this._mouse(event);
+    let ev = this._mouse(event);
 
-    //console.log(event.x, event.y);
+    //console.log(ev.x, ev.y);
 
-    let mpos = new Vector3([event.x, event.y, 0])
+    let mpos = new Vector3([ev.x, ev.y, 0])
     this.mpos = mpos;
 
-    let this2 = this;
+    /* NOTE: a local switch_on_multitouch() lived here.  It was dead and
+       broken -- never called, TranslateOp was not imported, `this` was not
+       the editor inside a plain function, and an unconditional `return` made
+       the rest of its body unreachable.  Deleted. */
 
-    /* NOTE: dead and broken -- TranslateOp is not imported, `this` is not
-       the editor inside a plain function, and the `return` above the `let
-       top` makes everything after it unreachable. */
-    function switch_on_multitouch(op, event: MouseEvent, cancel_func: () => void) {
-      if (g_app_state.screen.tottouch > 1) {
-        this2._mstart = null;
-        cancel_func();
-        //XXX g_app_state.toolstack.execTool(this2.ctx, new ViewRotateZoomPanOp());
-      }
-
-      if (this._mstart !== null) {
-        let vec = new Vector2(this.mpos);
-        vec.sub(this._mstart);
-
-        /*handle drag translate*/
-        if (vec.vectorLength() > 10) {
-          this._mstart = null;
-          return; //XXX
-
-          let top = new TranslateOp(EditModes.GEOMETRY);
-
-          /*callback to cancel drag translate if
-            multiple touch hotspots show up.
-           */
-        }
-
-        top.cancel_callback = switch_on_multitouch;
-        g_app_state.toolstack.execTool(g_app_state.ctx, top);
-        this._mstart = null;
-
-        return;
-      }
-    }
-
-    if (this.widgets.on_mousemove(this._widget_mouseevent(event), this)) {
+    if (this.widgets.on_mousemove(this._widget_mouseevent(ev), this)) {
       return;
     }
-    this.editor.on_mousemove(event);
+    this.editor.on_mousemove(ev);
   }
 
   //assumes event has had this._offset_mpos called on it
@@ -1488,9 +1507,10 @@ export class View2DHandler extends Editor {
     this._last_dpi = UIBase.getDPI();
   }
 
-  get edit_all_layers() {
-    if (this.ctx && this.ctx.scene)
-      return this.ctx.scene.edit_all_layers;
+  /* Every consumer only tests this for truth, so the false the guard now
+     falls through to is equivalent to the undefined it used to return. */
+  get edit_all_layers(): boolean {
+    return !!(this.ctx && this.ctx.scene && this.ctx.scene.edit_all_layers);
   }
 
   set edit_all_layers(v: boolean) {
@@ -1517,7 +1537,7 @@ export class View2DHandler extends Editor {
 
 
     /* NOTE: time_ms is not called, so `time` is NaN.  Nothing reads it. */
-    let time = util.time_ms - this._last_rendermat_time;
+    let time = Number(util.time_ms) - this._last_rendermat_time;
 
     this._last_rendermat.load(this.cameramat);
     this._last_rendermat_time = util.time_ms();
@@ -1535,7 +1555,7 @@ export class View2DHandler extends Editor {
       if (Math.random() > 0.95) {
         console.log(this._vel);
       }
-      this.cameramat.translate(this._vel[0], this._vel[1]);
+      this.cameramat.translate(this._vel[0], this._vel[1], 0.0);
       this.set_cameramat(this.cameramat);
       //this.irendermat.load(this.rendermat).invert();
       window.redraw_viewport();
@@ -1576,7 +1596,7 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    this._graphNode = the_global_dag.get_node(this, true);
+    this._graphNode = the_global_dag.get_node(this, true)!;
 
     this.updateToolMode();
     this.updateVelPan();
@@ -1603,9 +1623,8 @@ export class View2DHandler extends Editor {
     this.pop_ctx_active();
 
     //wait 3 seconds before loading video
-    /* NOTE: `video` is not imported in this module, so enabling draw_video
-       throws ReferenceError.  startup_time is never assigned either, so the
-       elapsed-time guard is NaN > 300 -- always false. */
+    /* NOTE: startup_time is never assigned, so the elapsed-time guard is
+       NaN > 300 -- always false, and this block never runs. */
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {
       this.video = video.manager.get("/video.mp4");
 

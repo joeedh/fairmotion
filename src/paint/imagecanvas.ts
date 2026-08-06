@@ -16,15 +16,23 @@ import {nstructjs, Curve1D, Vector4, util, FloatProperty} from '../path.ux/scrip
 import {DataBlock} from '../core/lib_api.js';
 import {NodeBase} from '../core/eventdag.js';
 import {Graph, GraphNode, NodeSocketType} from '../graph/graph.js';
+import {IndexRange} from '../path.ux/scripts/path-controller/util/indexRange.js';
 import type {Texture} from '../webgl/webgl.js';
 import {TILESIZE} from './imagecanvas_base.js';
 
 export type ImageDataClass = typeof ImageDataType;
 
+/* Every implementation hands back the bytes of an ImageData, so the buffer is
+   always a plain ArrayBuffer -- which is what the ImageData constructor
+   requires in turn. */
+export type RGBABytes = Uint8ClampedArray<ArrayBuffer>;
+
 export const ImageDataClasses : ImageDataClass[] = [];
 
 export class ImageDataType {
   static STRUCT : string;
+
+  declare ["constructor"] : ImageDataClass;
 
   width : number;
   height : number;
@@ -69,17 +77,15 @@ export class ImageDataType {
 
   }
 
-  toUint8() {
+  toUint8() : Promise<RGBABytes> {
     throw new Error("implement me");
   }
 
-  /* NOTE: TiledImage.fromUint8() hands its tiles an ImageData rather than the
-     raw bytes, which neither leaf implementation can consume. */
-  fromUint8(data : Uint8Array | Uint8ClampedArray) {
+  fromUint8(data : Uint8Array | Uint8ClampedArray) : Promise<unknown> {
     throw new Error("implement me");
   }
 
-  toFloat32() { //returns a promise
+  toFloat32() : Promise<Float32Array> { //returns a promise
     throw new Error("implement me");
   }
 
@@ -88,12 +94,14 @@ export class ImageDataType {
     b.height = this.height;
   }
 
-  fromFloat32(data : Float32Array) { //returns promise
+  fromFloat32(data : Float32Array) : Promise<unknown> { //returns promise
     throw new Error("implement me");
   }
 
+  /* NOTE: the executor never calls accept, so this promise never settles and
+     the then() below has never run.  Nothing in-tree calls copy(). */
   copy() { //returns promise
-    return new Promise((accept, reject) => {
+    return new Promise<Float32Array>((accept, reject) => {
       return this.toFloat32()
     }).then((f32) => {
       let ret = new this.constructor();
@@ -107,7 +115,7 @@ export class ImageDataType {
 
   }
 
-  decompress(data? : Uint8Array) {
+  decompress(data? : Uint8Array) : Promise<unknown> {
     //returns a Promise
     return new Promise((accept, reject) => {
 
@@ -168,7 +176,7 @@ export class SimpleImageData extends ImageDataType {
   }
 
   toUint8() {
-    return new Promise((accept, reject) => {
+    return new Promise<RGBABytes>((accept, reject) => {
       if (this.data) {
         accept(this.data.data);
       }
@@ -185,7 +193,7 @@ export class SimpleImageData extends ImageDataType {
   }
 
   toFloat32() {
-    return new Promise((accept, reject) => {
+    return new Promise<Float32Array>((accept, reject) => {
       if (!this.data) {
         return;
       }
@@ -225,11 +233,11 @@ export class SimpleImageData extends ImageDataType {
     }
 
     let canvas = document.createElement("canvas");
-    let g = canvas.getContext("2d");
+    let g = canvas.getContext("2d")!;
     canvas.width = this.width;
     canvas.height = this.height;
-    /* NOTE: putImageData wants a destination x,y as well. */
-    g.putImageData(this.getData());
+    /* NOTE: the destination x,y were missing, so this threw. */
+    g.putImageData(this.getData(), 0, 0);
 
     let data = canvas.toDataURL("image/png");
     let i = data.search("base64,");
@@ -274,14 +282,12 @@ export class SimpleImageData extends ImageDataType {
       s += String.fromCharCode(data[bi++]);
     }
 
-    data = s;
-    data = btoa(data);
-    data = header + data;
+    let url = header + btoa(s);
 
     return new Promise((accept, reject) => {
       let img = document.createElement("img");
 
-      img.src = data;
+      img.src = url;
       img.onload = () => {
         if (this.ready) {
           return;
@@ -290,7 +296,7 @@ export class SimpleImageData extends ImageDataType {
         let canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
-        let g = canvas.getContext("2d");
+        let g = canvas.getContext("2d")!;
 
         g.drawImage(img, 0, 0);
         let data = g.getImageData(0, 0, canvas.width, canvas.height);
@@ -316,7 +322,7 @@ nstructjs.register(SimpleImageData);
 
 ImageDataType.register(SimpleImageData);
 
-let fillcache = new Map<string, Uint8ClampedArray>();
+let fillcache = new Map<string, RGBABytes>();
 
 export class FillColorImage extends ImageDataType {
   static STRUCT : string;
@@ -328,15 +334,15 @@ export class FillColorImage extends ImageDataType {
     this.color = new Vector4([1.0, 1.0, 1.0, 1.0]);
   }
 
-  /* NOTE: three bugs in the cache path below -- the key loop stringifies the
-     whole color four times instead of one channel each, a cache hit accepts
-     and then keeps going to build a second buffer, and the alpha channel is
-     filled from `b`. */
+  /* NOTE: the key loop called toFixed() on the whole Vector4, which threw a
+     TypeError, so this method has never returned anything.  Two further bugs
+     are left as they stand: a cache hit accepts and then keeps going to build
+     a second buffer, and the alpha channel is filled from `b`. */
   toUint8() {
-    return new Promise((accept, reject) => {
+    return new Promise<RGBABytes>((accept, reject) => {
       let key = this.width + ":" + this.height + ":";
-      for (let i=0; i<4; i++) {
-        let f = this.color.toFixed(4);
+      for (const i of IndexRange(4)) {
+        let f = this.color[i].toFixed(4);
         key += f + ":";
       }
 
@@ -398,14 +404,14 @@ export class TiledImage extends ImageDataType {
   /* Fill color every tile starts out at. */
   bgcolor : Vector4;
 
-  constructor(width? : number, height? : number, tilesize = TILESIZE) {
-    super();
+  /* NOTE: super() was called bare and width/height assigned after it, so a
+     no-argument TiledImage -- which is how ImageDataSocket builds one -- got
+     undefined for both and NaN tile counts out of initTiles(). */
+  constructor(width = 1, height = 1, tilesize = TILESIZE) {
+    super(width, height);
 
     this.tiles = [];
     this.tilesize = tilesize;
-
-    this.width = width;
-    this.height = height;
 
     this.bgcolor = new Vector4([1, 1, 1, 0]);
   }
@@ -440,15 +446,15 @@ export class TiledImage extends ImageDataType {
 
   toUint8() {
     let canvas = document.createElement("canvas");
-    let g = canvas.getContext("2d");
+    let g = canvas.getContext("2d")!;
     canvas.width = this.width;
     canvas.height = this.height;
 
     let count = 0;
     let tot = this.tiles.length;
 
-    return new Promise((accept, reject) => {
-      let doTile = (tile) => {
+    return new Promise<RGBABytes>((accept, reject) => {
+      let doTile = (tile : ImageDataType) => {
         tile.toUint8().then(u8 => {
           let im = new ImageData(u8, tile.width, tile.height);
 
@@ -468,11 +474,11 @@ export class TiledImage extends ImageDataType {
 
   fromUint8(u8 : Uint8Array | Uint8ClampedArray) {
     let canvas = document.createElement("canvas");
-    let g = canvas.getContext("2d");
+    let g = canvas.getContext("2d")!;
     canvas.width = this.width;
     canvas.height = this.height;
 
-    let im = new ImageData(u8, this.width, this.height);
+    let im = new ImageData(new Uint8ClampedArray(u8), this.width, this.height);
     g.putImageData(im, 0, 0);
 
     if (this.tiles.length === 0) {
@@ -485,7 +491,10 @@ export class TiledImage extends ImageDataType {
     return new Promise((accept, reject) => {
       for (let tile of this.tiles) {
         let data = g.getImageData(tile.x, tile.y, tile.width, tile.height);
-        tile.fromUint8(data).then(() => {
+
+        /* NOTE: this handed the tile the whole ImageData rather than its
+           bytes, which neither leaf implementation can consume. */
+        tile.fromUint8(data.data).then(() => {
           tot++;
 
           //done loading?
@@ -565,7 +574,9 @@ export class ImageDataSocket extends NodeSocketType {
   }
 }
 
-NodeSocketType.register(ImageDataType);
+/* NOTE: this registered ImageDataType, which is not a socket class, so
+   ImageDataSocket has never been registered. */
+NodeSocketType.register(ImageDataSocket);
 
 export class ImageNode extends GraphNode {
   static nodedef() {

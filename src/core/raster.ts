@@ -20,30 +20,29 @@ class CacheStack<T extends unknown[] = number[]> extends Array<T> {
     this.ilen = itemlen;
   }
   
-  pop() {
-    var ret = Array.prototype.pop.apply(this, arguments);
-    
-    if (this.dellist.length < 64) {
+  pop() : T | undefined {
+    var ret = super.pop();
+
+    if (ret !== undefined && this.dellist.length < 64) {
       this.dellist.push(ret);
     }
-    
+
     return ret;
   }
-  
+
   clear() {
     var len = this.length;
-    
+
+    /* NOTE: this passed `len` to pop(), which never took an argument. */
     for (var i=0; i<len; i++) {
-      this.pop(len);
+      this.pop();
     }
   }
-  
-  gen() {
-    if (this.dellist.length != 0) {
-      return this.dellist.pop();
-    } else {
-      return new Array(this.ilen);
-    }
+
+  gen() : T {
+    var ret = this.dellist.pop();
+
+    return ret === undefined ? new Array(this.ilen) as T : ret;
   }
 }
 
@@ -61,13 +60,17 @@ export class RasterState {
      [x, y, w, h] rect. */
   viewport_stack! : CacheStack<number[][]>
   scissor_stack! : CacheStack<number[]>;
-  size! : Array<number>;
+  /* AppState hands this the screen's Vector2 straight through. */
+  size! : Array<number> | Vector2;
   gl! : WebGLRenderingContext;
   /* [x, y, w, h] of the innermost scissor, or undefined outside one. */
   cur_scissor : Array<number> | undefined;
 
-  constructor(gl: WebGLRenderingContext, size: Array<number>) {
+  /* The body is unreachable, so `gl` is never touched; AppState builds one of
+     these before it has a context. */
+  constructor(gl: WebGLRenderingContext | undefined, size: Array<number> | Vector2) {
     return;
+
     this.size = size;
     
     this.pos = [0, 0];
@@ -123,8 +126,14 @@ export class RasterState {
   }
 
   pop_viewport() {
-    var ret = this.viewport_stack.pop(this.viewport_stack.length-1);
-    
+    /* NOTE: this passed an index to pop(), which never took one. */
+    var ret = this.viewport_stack.pop();
+
+    if (ret === undefined) {
+      /* Popping an empty stack used to throw on the next line. */
+      return undefined;
+    }
+
     this.pos = ret[0];
     this.size = ret[1];
     
@@ -159,7 +168,12 @@ export class RasterState {
 
   pop_scissor() {
     var rect = this.scissor_stack.pop();
-    
+
+    if (rect === undefined) {
+      /* Popping an empty stack used to throw below. */
+      return;
+    }
+
     var cur = this.cur_scissor;
     
     if (cur == undefined) {

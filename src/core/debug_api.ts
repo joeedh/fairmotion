@@ -4,10 +4,11 @@
    Playwright reaches it with page.evaluate; buildtools/cdp.mjs reaches the
    same object in an electron build over CDP. One API, both modes. */
 
-import {areaclasses} from '../path.ux/scripts/screen/area_base.js';
+import {areaclasses, getAreaConstructor} from '../path.ux/scripts/screen/area_base.js';
+import {DataList, DataStruct} from '../path.ux/scripts/pathux.js';
 import {ToolClasses} from '../path.ux/scripts/path-controller/toolsys/toolsys.js';
 import {unpack_ctx} from './ajax.js';
-import type {DataAPI, DataPath, DataStruct} from '../path.ux/scripts/pathux.js';
+import type {DataAPI, DataPath} from '../path.ux/scripts/pathux.js';
 
 /* Mirror of path.ux's DataTypes. Duplicated on purpose: the walker below is
    duck-typed so it keeps working across path.ux API churn. */
@@ -32,6 +33,12 @@ function getApi() {
   return app ? app.api : undefined;
 }
 
+/* `.message || the value itself`, the way the catch blocks below want it. */
+function errorText(error: unknown) {
+  let msg = error instanceof Error ? error.message : undefined;
+  return "" + (msg || error);
+}
+
 /* One row of walkPaths(): a registered datapath and what it points at. */
 interface PathEntry {
   path: string;
@@ -40,15 +47,16 @@ interface PathEntry {
   structName?: string;
 }
 
-function getListElementStruct(api: DataAPI, dpath: DataPath) {
-  let cb = dpath && dpath.data ? dpath.data.cb : undefined;
+function getListElementStruct(api: DataAPI, dpath: DataPath): DataStruct | undefined {
+  let data = dpath ? dpath.data : undefined;
+  let cb = data instanceof DataList ? data.cb : undefined;
 
   if (!cb || typeof cb.getStruct !== "function") {
     return undefined;
   }
 
   try {
-    let st = cb.getStruct(api, undefined, 0);
+    let st: DataStruct | undefined = cb.getStruct(api, undefined, 0);
     return st && Array.isArray(st.members) ? st : undefined;
   } catch (error) {
     return undefined;
@@ -81,7 +89,8 @@ function walkStruct(api: DataAPI, struct: DataStruct, prefix: string, depth: num
       });
     } else if (dpath.type === DataTypes.STRUCT || dpath.type === DataTypes.DYNAMIC_STRUCT) {
       let dynamic = dpath.type === DataTypes.DYNAMIC_STRUCT;
-      let child = dpath.data;
+      let data = dpath.data;
+      let child = data instanceof DataStruct ? data : undefined;
 
       out.push({
         path,
@@ -115,7 +124,7 @@ function walkPaths(maxDepth = 6) {
   let root = api ? api.rootContextStruct : undefined;
   let out: PathEntry[] = [];
 
-  if (!root) {
+  if (!api || !root) {
     return out;
   }
 
@@ -140,7 +149,9 @@ function sweepPaths(maxDepth = 6) {
     }
 
     try {
-      let res = api.resolvePath(ctx, entry.path, true);
+      /* walkPaths() returns nothing at all unless the api exists, so entries is
+         empty in the only case where these could be undefined. */
+      let res = api!.resolvePath(ctx!, entry.path, true);
 
       if (res === undefined) {
         failed.push({path: entry.path, error: "unresolved"});
@@ -148,12 +159,12 @@ function sweepPaths(maxDepth = 6) {
       }
 
       if (entry.kind === "prop") {
-        api.getValue(ctx, entry.path);
+        api!.getValue(ctx!, entry.path);
       }
 
       ok.push(entry.path);
     } catch (error) {
-      failed.push({path: entry.path, error: "" + (error.message || error)});
+      failed.push({path: entry.path, error: errorText(error)});
     }
   }
 
@@ -226,17 +237,19 @@ function waitIdle(timeout = 15000) {
   });
 }
 
+/* These three are the bridge's front door; the app is up by the time a test
+   calls them. */
 function getPath(path: string) {
-  return getApi().getValue(getCtx(), path);
+  return getApi()!.getValue(getCtx()!, path);
 }
 
 function setPath(path: string, value: unknown) {
-  getApi().setValue(getCtx(), path, value);
+  getApi()!.setValue(getCtx()!, path, value);
   return true;
 }
 
 function execTool(toolpath: string, args: {[k: string]: unknown} = {}) {
-  return getApi().execTool(getCtx(), toolpath, args);
+  return getApi()!.execTool(getCtx()!, toolpath, args);
 }
 
 function listTools() {
@@ -284,7 +297,8 @@ function switchEditor(name: string) {
     }
   }
 
-  bestArea.switch_editor(cls);
+  /* The screen always has at least one area. */
+  bestArea!.switch_editor(cls);
   screen.setCSS();
 
   return waitIdle().then(() => true);
@@ -308,14 +322,14 @@ function snapshot() {
 
   for (let sarea of screen.sareas) {
     if (sarea.area) {
-      let def = sarea.area.constructor.define();
+      let def = getAreaConstructor(sarea.area).define();
       out.editors.push(def.areaname || sarea.area.constructor.name);
     }
   }
   out.editors.sort();
 
   try {
-    let spline = ctx.frameset.spline;
+    let spline = ctx!.frameset.spline;
 
     out.counts = {
       verts   : spline.verts.length,
@@ -325,11 +339,11 @@ function snapshot() {
       layers  : spline.layerset.length
     };
   } catch (error) {
-    out.counts = {error: "" + (error.message || error)};
+    out.counts = {error: errorText(error)};
   }
 
   try {
-    out.toolpath = ctx.toolmode ? ctx.toolmode.constructor.name : undefined;
+    out.toolpath = ctx!.toolmode ? ctx!.toolmode.constructor.name : undefined;
   } catch (error) {
     /* no toolmode */
   }
@@ -355,7 +369,7 @@ function distinctColors(canvas: HTMLCanvasElement) {
   let ctx2d;
 
   try {
-    ctx2d = canvas.getContext("2d");
+    ctx2d = canvas.getContext("2d")!;
   } catch (error) {
     return undefined;
   }
@@ -388,6 +402,10 @@ function canvasReport() {
   let out: {id?: string; width: number; height: number; distinct?: number}[] = [];
 
   for (let canvas of deepQuery("canvas")) {
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      continue;
+    }
+
     out.push({
       id      : canvas.id || undefined,
       width   : canvas.width,
@@ -411,7 +429,8 @@ function loadFile(bytes: number[]) {
 
 function saveFile() {
   let buf = getApp().create_user_file_new({save_toolstack: false});
-  let bytes = buf.buffer ? new Uint8Array(buf.buffer) : new Uint8Array(buf);
+  /* create_user_file_new() hands back a DataView unless asked otherwise. */
+  let bytes = new Uint8Array(buf.buffer);
 
   return Array.from(bytes);
 }

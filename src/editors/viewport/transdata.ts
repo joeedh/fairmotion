@@ -8,26 +8,50 @@ import type {FullContext} from '../../core/context.js';
 import type {TransformOp} from './transform.js';
 import type {SplineLayer} from '../../curve/spline_element_array.js';
 
-/* Scratch object a TransformOp hands to every TransDataType's undo_pre(),
-   then back to its undo().  Each type namespaces its own entries by key. */
-export type TransUndoData = {[key : string] : unknown};
+/* What TransSceneObject remembers about one object. */
+export interface ObjectTransUndo {
+  matrix : Matrix4;
+  loc    : Vector2;
+  scale  : Vector2;
+  rot    : number;
+}
 
-export class TransDataItem {
+/* Scratch object a TransformOp hands to every TransDataType's undo_pre(),
+   then back to its undo().  Each type namespaces its own entries by key, and
+   only the type that wrote a key ever reads it -- hence all optional. */
+export type TransUndoData = {
+  /* Written by TransformOp.undo_pre() itself, before any backend runs. */
+  edit_all_layers? : boolean;
+  /* TransSplineVert: flat [eid, w1, w2] and [eid, x, y] records. */
+  sseg?    : number[];
+  svert?   : number[];
+  /* TransSceneObject, keyed by object id. */
+  object?  : {[id : number] : ObjectTransUndo};
+  /* TransMultiRes: flat [composed point id, x, y] records. */
+  mr_undo? : number[];
+};
+
+export class TransDataItem<Data = unknown, StartData = unknown> {
   w : number;
   /* The element being transformed -- a SplineVertex, a SceneObject, a
-     dopesheet key -- and whatever snapshot its type took of it. */
-  data;
-  start_data;
+     dopesheet key -- and whatever snapshot its type took of it.  Each
+     TransDataType names its own payload; the shared bag leaves them unknown
+     and recovers the kind with instanceof. */
+  data : Data;
+  start_data : StartData;
   type : typeof TransDataType;
   /* Distance to the nearest selected element, for proportional edit; -1
      means "not a proportional-falloff participant". */
   dis : number;
 
-  constructor(data?, type? : typeof TransDataType, start_data?) {
-    this.data = data;
-    this.start_data = start_data;
+  constructor(data? : Data, type? : typeof TransDataType,
+              start_data? : StartData) {
+    /* `!` erases at runtime, so a bare new TransDataItem() still leaves these
+       undefined exactly as it did before -- transform_object relies on it. */
+    this.data = data!;
+    this.start_data = start_data!;
 
-    this.type = type;
+    this.type = type!;
 
     //for proportional transform (magnet tool)
     this.w = 1;
@@ -63,8 +87,8 @@ export class TransDataType {
   static gen_data(ctx : FullContext, td : TransData, data : TransDataItem[]) {
   }
 
-  static iter_data(ctx : FullContext, td : TransData) {
-    let data = [];
+  static iter_data(ctx : FullContext, td : TransData) : Iterable<TransDataItem> {
+    let data : TransDataItem[] = [];
     this.gen_data(ctx, td, data);
 
     return data;
@@ -139,14 +163,16 @@ export class TransData {
     if (top.inputs.use_pivot.data) {
       this.center.load(top.inputs.pivot.data);
     } else {
-      this.center.load(this.minmax.max).add(this.minmax.min).mulScalar(0.5);
+      this.center.load(this.minmax.max).add(new Vector2(this.minmax.min)).mulScalar(0.5);
     }
 
     this.start_center.load(this.center);
 
     if (top.modalRunning) {
-      this.scenter = new Vector3(this.center);
-      this.start_scenter = new Vector3(this.start_center);
+      /* These were Vector3s; view2d.project() and every scenter consumer only
+         ever touch indices 0 and 1, so the z slot was always a dead zero. */
+      this.scenter = new Vector2(this.center);
+      this.start_scenter = new Vector2(this.start_center);
 
       ctx.view2d.project(this.scenter);
       ctx.view2d.project(this.start_scenter);

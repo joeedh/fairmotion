@@ -59,11 +59,29 @@ let _TypeSizes = {
 /* Components per element, keyed both by LayerTypes value and by its name. */
 export const TypeSizes : {[key : string] : number} = {};
 
+/* for..in yields plain strings; LayerTypes and _TypeSizes share a key set. */
+function tableGet(table : {[key : string] : number}, k : string) : number {
+  return table[k];
+}
+
 for (var k in LayerTypes) {
-  TypeSizes[LayerTypes[k]] = TypeSizes[k] = _TypeSizes[k];
+  TypeSizes[tableGet(LayerTypes, k)] = TypeSizes[k] = tableGet(_TypeSizes, k);
 }
 
 let line2_temp4s = util.cachering.fromConstructor(Vector4, 64);
+
+/* d = a - b over four components.  Vector4's own load()/sub() are typed for
+   4-component input, while smoothline() is called with 2- and 3-component
+   data, whose missing components come out undefined here exactly as they did
+   through load()/sub(). */
+function sub4(dst : Vector4, a : VecData, b : VecData) : Vector4 {
+  dst[0] = a[0]! - b[0]!;
+  dst[1] = a[1]! - b[1]!;
+  dst[2] = a[2]! - b[2]!;
+  dst[3] = a[3]! - b[3]!;
+
+  return dst;
+}
 let line2_stripuvs = [
   [1, 0],
   [-1, 0],
@@ -106,7 +124,7 @@ export class TriEditor {
   i : number;
 
   constructor() {
-    this.mesh = undefined;
+    this.mesh = undefined!;
     this.i = 0
   }
 
@@ -241,7 +259,7 @@ export class LineEditor {
   i : number;
 
   constructor() {
-    this.mesh = undefined;
+    this.mesh = undefined!;
     this.i = 0;
   }
 
@@ -335,7 +353,7 @@ export class LineEditor2 {
   i : number;
 
   constructor() {
-    this.mesh = undefined;
+    this.mesh = undefined!;
     this.i = 0;
   }
 
@@ -433,7 +451,7 @@ export class PointEditor {
   i : number;
 
   constructor() {
-    this.mesh = undefined;
+    this.mesh = undefined!;
     this.i = 0;
   }
 
@@ -541,7 +559,7 @@ window.glRanges = glRanges;
 
 /* The debug wrapper below caches its Proxy on the array it wraps, so a second
    call for the same data reuses it. */
-type DebugArray = (number[] | LayerTypedData) & {
+export type DebugArray = (number[] | LayerTypedData) & {
   debug? : {min : number, max : number, isint? : boolean, proxy? : DebugArray};
   isint? : boolean;
 };
@@ -550,12 +568,17 @@ let dmap = new WeakSet();
 
 /* Wraps a layer's data in a Proxy that range-checks every index and every
    value written. Only reachable with DEBUG.simplemesh on. */
-function debugproxy(data : DebugArray, min = -1e17, max = 1e17, isint? : boolean) {
+export function debugproxy(data : DebugArray, min = -1e17, max = 1e17,
+                           isint? : boolean) : DebugArray {
   if (dmap.has(data)) {
-    data.debug.min = min;
+    /* dmap only holds arrays the block at the end of this function has
+       already stamped a debug record and a proxy onto. */
+    let debug = data.debug!;
+
+    debug.min = min;
     data.isint = isint;
-    data.debug.max = max;
-    return data.debug.proxy;
+    debug.max = max;
+    return debug.proxy!;
   }
 
   dmap.add(data);
@@ -615,6 +638,16 @@ function debugproxy(data : DebugArray, min = -1e17, max = 1e17, isint? : boolean
 
 window.debugproxy = debugproxy;
 
+/* By the time a layer uploads, gen_buffers() has packed it into a typed
+   array; gl.bufferData would throw on a plain one anyway. */
+function uploadArray(data : number[] | LayerTypedData) : LayerTypedData {
+  if (Array.isArray(data)) {
+    throw new TypeError("layer data was never packed into a typed array");
+  }
+
+  return data;
+}
+
 const GL_ARRAY_BUFFER = 34962;
 const GL_ELEMENT_ARRAY_BUFFER = 34963;
 const GL_STATIC_DRAW = 35044;
@@ -658,7 +691,7 @@ export class GeoLayer extends Array<number> {
   constructor(size : number, name : string, primflag : number, type : number, idx : number) { //idx is for different layers of same type, e.g. multiple uv layers
     super();
 
-    this.index = undefined;
+    this.index = undefined!;
 
     this.glSize = 5126; //gl.FLOAT
     this.glSizeMul = 1.0;
@@ -681,9 +714,9 @@ export class GeoLayer extends Array<number> {
     this.name = name;
 
     this.primflag = primflag;
-    this.bufferKey = undefined;
+    this.bufferKey = undefined!;
     this.idx = idx;
-    this.id = undefined;
+    this.id = undefined!;
   }
 
   /*
@@ -825,14 +858,14 @@ export class GeoLayer extends Array<number> {
   _copy2Typed(data1 : number[] | LayerTypedData, data2 : VecData,
               n : number, mul : number, start : number) {
     for (let i = 0; i < n; i++) {
-      data1[start++] = ~~(data2[i]*mul);
+      data1[start++] = ~~(data2[i]!*mul);
     }
   }
 
   _copy2(data1 : number[] | LayerTypedData, data2 : VecData,
          n : number, mul : number, start : number) {
     for (let i = 0; i < n; i++) {
-      data1[start++] = ~~(data2[i]*mul);
+      data1[start++] = ~~(data2[i]!*mul);
     }
   }
 
@@ -910,7 +943,7 @@ export class GeoLayer extends Array<number> {
     let end = i + tot;
 
     while (i < end) {
-      thisdata[i] = data[di];
+      thisdata[i] = data[di]!;
       di++;
       i++;
     }
@@ -1003,7 +1036,7 @@ export class GeoLayerManager {
     ret.has_multilayers = this.has_multilayers;
 
     for (let key of this.layer_meta.keys()) {
-      let meta = this.layer_meta.get(key);
+      let meta = this.layer_meta.get(key)!;
       let meta2 = ret.get_meta(meta.primflag, meta.type);
 
       for (let layer of meta.layers) {
@@ -1039,17 +1072,19 @@ export class GeoLayerManager {
     return ret;
   }
 
-  get_meta(primflag : number, type : number) {
+  get_meta(primflag : number, type : number) : GeoLayerMeta {
     let mask = get_meta_mask(primflag, type);
+    let meta = this.layer_meta.get(mask);
 
-    if (!this.layer_meta.has(mask)) {
+    if (meta === undefined) {
       let attrsizes = {};
       this.attrsizes.set(primflag, attrsizes);
 
-      this.layer_meta.set(mask, new GeoLayerMeta(primflag, type, attrsizes));
+      meta = new GeoLayerMeta(primflag, type, attrsizes);
+      this.layer_meta.set(mask, meta);
     }
 
-    return this.layer_meta.get(mask);
+    return meta;
   }
 
   [Symbol.iterator]() {
@@ -1098,7 +1133,7 @@ export class GeoLayerManager {
       size = TypeSizes[type];
     }
 
-    if (idx > 0) {
+    if (idx !== undefined && idx > 0) {
       this.has_multilayers = true;
     }
 
@@ -1118,7 +1153,9 @@ export class GeoLayerManager {
       }
     }
 
-    return this.pushLayer(name, primflag, type, size, idx);
+    /* pushLayer() takes four arguments and derives the index itself; the
+       fifth was ignored. */
+    return this.pushLayer(name, primflag, type, size);
   }
 }
 
@@ -1207,7 +1244,7 @@ export class SimpleIsland {
 
     this.primflag = undefined;  //if undefined, will get from this.mesh.primflag
 
-    this.mesh = mesh;
+    this.mesh = mesh!;
 
     this.makeBufferAliases();
 
@@ -1230,7 +1267,7 @@ export class SimpleIsland {
     this.tristrip_line_editors = util.cachering.fromConstructor(LineEditor2, 32, true);
 
     this.buffer = new RenderBuffer();
-    this.program = undefined;
+    this.program = undefined!;
 
     this.textures = [];
     this.uniforms = {};
@@ -1309,7 +1346,7 @@ export class SimpleIsland {
     this.point_colors = lay.get("point_colors", pflag, LayerTypes.COLOR).setGLSize(glSizes.UNSIGNED_BYTE).setNormalized(true); //array
     this.point_ids = lay.get("point_ids", pflag, LayerTypes.ID); //array
 
-    if (this.primflag & PrimitiveTypes.ADVANCED_LINES) {
+    if (this.primflag !== undefined && (this.primflag & PrimitiveTypes.ADVANCED_LINES)) {
       pflag = PrimitiveTypes.ADVANCED_LINES;
 
       this.line_cos2 = lay.get("line_cos2", pflag, LayerTypes.LOC); //array
@@ -1369,12 +1406,12 @@ export class SimpleIsland {
   smoothline(v1 : VecData, v2 : VecData, w1 = 2, w2 = 2) {
     let dv = 0.0;
     for (let i = 0; i < 3; i++) {
-      dv += (v1[i] - v2[i])*(v1[i] - v2[i]);
+      dv += (v1[i]! - v2[i]!)*(v1[i]! - v2[i]!);
     }
 
     if (!this.line_cos2) {
       this.regen = true;
-      this.primflag |= PrimitiveTypes.ADVANCED_LINES;
+      this.primflag = (this.primflag ?? 0) | PrimitiveTypes.ADVANCED_LINES;
 
       if (this.layerflag !== undefined) {
         this.layerflag |= LayerTypes.CUSTOM;
@@ -1414,7 +1451,7 @@ export class SimpleIsland {
     this.line_stripuvs.copy(i + 4, line2_stripuvs[4]);
     this.line_stripuvs.copy(i + 5, line2_stripuvs[5]);
 
-    let d = line2_temp4s.next().load(v2).sub(v1);
+    let d = sub4(line2_temp4s.next(), v2, v1);
     d[3] = 0.0;
     d.normalize();
 
@@ -1571,7 +1608,7 @@ export class SimpleIsland {
       //console.log(layer.bufferKey, layer.dataUsed, layer.data_f32.length, layer.bufferType, layer.data_f32);
 
       let vbo = this.buffer.get(gl, layer.bufferKey, layer.bufferType);
-      vbo.uploadData(gl, layer.data_f32, layer.bufferType, layer.bufferHint);
+      vbo.uploadData(gl, uploadArray(layer.data_f32), layer.bufferType, layer.bufferHint);
       layer.glReady = true;
     }
   }
@@ -1905,9 +1942,11 @@ export class SimpleIsland {
       program.bind(gl, uniforms, attrs);
     }
 
+    /* A nonzero primitive count means get_meta() has run for that primflag,
+       and get_meta() is what fills in attrsizes. */
     if (this.tottri && (primflag & PrimitiveTypes.TRIS)) {
       if (this.layers.has_multilayers) {
-        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.TRIS), attrs);
+        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.TRIS)!, attrs);
       }
 
       this._draw_tris(gl, uniforms, params, program);
@@ -1915,21 +1954,21 @@ export class SimpleIsland {
 
     if (this.totline && (primflag & PrimitiveTypes.LINES)) {
       if (this.layers.has_multilayers) {
-        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.LINES), attrs);
+        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.LINES)!, attrs);
       }
       this._draw_lines(gl, uniforms, params, program);
     }
 
     if (this.totpoint && (primflag & PrimitiveTypes.POINTS)) {
       if (this.layers.has_multilayers) {
-        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.POINTS), attrs);
+        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.POINTS)!, attrs);
       }
       this._draw_points(gl, uniforms, params, program);
     }
 
     if (this.totline_tristrip && (primflag & PrimitiveTypes.ADVANCED_LINES)) {
       if (this.layers.has_multilayers) {
-        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.ADVANCED_LINES), attrs);
+        program.bindMultiLayer(gl, uniforms, this.layers.attrsizes.get(PrimitiveTypes.ADVANCED_LINES)!, attrs);
       }
       this._draw_line_tristrips(gl, uniforms, params, program);
     }
@@ -1961,7 +2000,7 @@ export class SimpleMesh {
     this.primflag = PrimitiveTypes.ALL;
     this.indexedMode = false;
 
-    this.gl = undefined;
+    this.gl = undefined!;
 
     this.islands = [];
     this.uniforms = {};
@@ -1982,9 +2021,12 @@ export class SimpleMesh {
     }
   }
 
+  /* this.island is always one of this.islands, so the loop always fills `ret`
+     in -- except on a ChunkedSimpleMesh, which starts with no islands at all
+     and hands back undefined here. */
   getDataLayer(primflag : number, type : number,
-               size = TypeSizes[type], name = LayerTypeNames[type]) {
-    let ret;
+               size = TypeSizes[type], name = LayerTypeNames[type]) : GeoLayer {
+    let ret : GeoLayer | undefined;
 
     for (let island of this.islands) {
       let ret2 = island.getDataLayer(primflag, type, size, name);
@@ -1994,12 +2036,12 @@ export class SimpleMesh {
       }
     }
 
-    return ret;
+    return ret!;
   }
 
   addDataLayer(primflag : number, type : number,
-               size = TypeSizes[type], name = LayerTypeNames[type]) {
-    let ret;
+               size = TypeSizes[type], name = LayerTypeNames[type]) : GeoLayer {
+    let ret : GeoLayer | undefined;
 
     for (let island of this.islands) {
       let ret2 = island.addDataLayer(primflag, type, size, name);
@@ -2009,7 +2051,7 @@ export class SimpleMesh {
       }
     }
 
-    return ret;
+    return ret!;
   }
 
   copy() {
@@ -2134,7 +2176,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
 
     this.primflag = PrimitiveTypes.TRIS;
 
-    this.island = undefined;
+    this.island = undefined!;
 
     this.quad_editors = util.cachering.fromConstructor(QuadEditor, 32, true);
 
@@ -2173,7 +2215,8 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     this.freeset.add(id);
 
     let island = this.islands[chunk];
-    let i = this.idmap.get(id);
+    /* chunkmap and idmap are written together, so an id in one is in both. */
+    let i = this.idmap.get(id)!;
     //console.log("free", id, chunk);
 
     //if (this.primflag & PrimitiveTypes.POINTS) {
@@ -2193,7 +2236,7 @@ export class ChunkedSimpleMesh extends SimpleMesh {
   }
 
   /* The island holding `id`, allocating a new chunk of slots if it has none. */
-  get_chunk(id : number) {
+  get_chunk(id : number) : SimpleIsland {
     if (id > 1<<18 && this.idmap instanceof IDMap) {
       let idmap = new Map();
 
@@ -2225,12 +2268,13 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     */
 
     if (this.chunkmap.has(id)) {
-      return this.islands[this.chunkmap.get(id)];
+      return this.islands[this.chunkmap.get(id)!];
     }
 
+    /* The freelist is filled and drained in (chunk, slot) pairs. */
     if (this.freelist.length > 0) {
-      let id2 = this.freelist.pop();
-      let chunk = this.freelist.pop();
+      let id2 = this.freelist.pop()!;
+      let chunk = this.freelist.pop()!;
 
       this.chunkmap.set(id, chunk);
       this.idmap.set(id, id2);
@@ -2272,7 +2316,18 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     this.add_island();
   }
 
-  tri(id : number, v1 : VecData, v2 : VecData, v3 : VecData) {
+  /* NOTE: a chunked mesh addresses its primitives by id, so tri(), quad(),
+     line(), point() and smoothline() all take an extra leading argument and
+     are not substitutable for SimpleMesh's.  Each declares the base-shaped
+     overload so the class still satisfies SimpleMesh; calling one that way
+     has always been an error, and now throws where it used to misbehave. */
+  tri(v1 : VecData, v2 : VecData, v3 : VecData) : TriEditor;
+  tri(id : number, v1 : VecData, v2 : VecData, v3 : VecData) : TriEditor;
+  tri(id : number | VecData, v1 : VecData, v2 : VecData, v3? : VecData) : TriEditor {
+    if (typeof id !== "number" || v3 === undefined) {
+      throw new TypeError("a chunked mesh addresses its triangles by id");
+    }
+
     if (0) {
       function isvec(v : VecData) {
         if (!v) {
@@ -2300,7 +2355,8 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     }
 
     let chunk = this.get_chunk(id);
-    let itri = this.idmap.get(id);
+    /* get_chunk() has just mapped the id. */
+    let itri = this.idmap.get(id)!;
 
     chunk.flagRecalc();
     chunk.glFlagUploadAll(PrimitiveTypes.TRIS);
@@ -2315,22 +2371,22 @@ export class ChunkedSimpleMesh extends SimpleMesh {
       return chunk.tri(v1, v2, v3);
     } else {
       tri_cos.glReady = false;
-      tri_cos = tri_cos._getWriteData();
+      let data = tri_cos._getWriteData();
 
-      tri_cos[i++] = v1[0];
-      tri_cos[i++] = v1[1];
-      tri_cos[i++] = v1[2];
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
 
-      tri_cos[i++] = v2[0];
-      tri_cos[i++] = v2[1];
-      tri_cos[i++] = v2[2];
+      data[i++] = v2[0]!;
+      data[i++] = v2[1]!;
+      data[i++] = v2[2]!;
 
-      tri_cos[i++] = v3[0];
-      tri_cos[i++] = v3[1];
-      tri_cos[i++] = v3[2];
+      data[i++] = v3[0]!;
+      data[i++] = v3[1]!;
+      data[i++] = v3[2]!;
 
-      if (i > tri_cos.length) {
-        console.log(i, tri_cos.length, tri_cos);
+      if (i > data.length) {
+        console.log(i, data.length, data);
         throw new Error("range error");
       }
     }
@@ -2339,19 +2395,28 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.tri_editors.next().bind(chunk, itri);
   }
 
-  quad(id : number, v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) {
+  quad(v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) : QuadEditor;
+  quad(id : number, v1 : VecData, v2 : VecData, v3 : VecData, v4 : VecData) : QuadEditor;
+  quad(id : number | VecData, v1 : VecData, v2 : VecData, v3 : VecData,
+       v4? : VecData) : QuadEditor {
     throw new Error("unsupported for chunked meshes");
   }
 
-  smoothline(id : number, v1 : VecData, v2 : VecData) {
+  smoothline(v1 : VecData, v2 : VecData) : LineEditor2;
+  smoothline(id : number, v1 : VecData, v2 : VecData) : LineEditor2;
+  smoothline(id : number | VecData, v1 : VecData, v2? : VecData) : LineEditor2 {
+    if (typeof id !== "number" || v2 === undefined) {
+      throw new TypeError("a chunked mesh addresses its lines by id");
+    }
+
     let chunk = this.get_chunk(id);
-    let iline = this.idmap.get(id);
+    let iline = this.idmap.get(id)!;
 
     chunk.flagRecalc();
     chunk.glFlagUploadAll(PrimitiveTypes.ADVANCED_LINES);
 
     if (!chunk.line_cos2) {
-      chunk.primflag |= PrimitiveTypes.ADVANCED_LINES;
+      chunk.primflag = (chunk.primflag ?? 0) | PrimitiveTypes.ADVANCED_LINES;
       this.layerflag |= LayerTypes.CUSTOM;
       chunk.makeBufferAliases()
     }
@@ -2367,34 +2432,34 @@ export class ChunkedSimpleMesh extends SimpleMesh {
 
       return ret;
     } else {
-      line_cos = line_cos._getWriteData();
+      let data = line_cos._getWriteData();
 
-      line_cos[i++] = v1[0];
-      line_cos[i++] = v1[1];
-      line_cos[i++] = v1[2];
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
 
-      line_cos[i++] = v1[0];
-      line_cos[i++] = v1[1];
-      line_cos[i++] = v1[2];
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
 
-      line_cos[i++] = v2[0];
-      line_cos[i++] = v2[1];
-      line_cos[i++] = v2[2];
+      data[i++] = v2[0]!;
+      data[i++] = v2[1]!;
+      data[i++] = v2[2]!;
 
-      line_cos[i++] = v1[0];
-      line_cos[i++] = v1[1];
-      line_cos[i++] = v1[2];
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
 
-      line_cos[i++] = v2[0];
-      line_cos[i++] = v2[1];
-      line_cos[i++] = v2[2];
+      data[i++] = v2[0]!;
+      data[i++] = v2[1]!;
+      data[i++] = v2[2]!;
 
-      line_cos[i++] = v2[0];
-      line_cos[i++] = v2[1];
-      line_cos[i++] = v2[2];
+      data[i++] = v2[0]!;
+      data[i++] = v2[1]!;
+      data[i++] = v2[2]!;
 
-      if (i > line_cos.length) {
-        console.log(i, line_cos.length, line_cos);
+      if (i > data.length) {
+        console.log(i, data.length, data);
         throw new Error("range error");
       }
     }
@@ -2403,11 +2468,17 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.tristrip_line_editors.next().bind(chunk, iline);
   }
 
-  line(id : number, v1 : VecData, v2 : VecData) {
+  line(v1 : VecData, v2 : VecData) : LineEditor;
+  line(id : number, v1 : VecData, v2 : VecData) : LineEditor;
+  line(id : number | VecData, v1 : VecData, v2? : VecData) : LineEditor {
     //return this.smoothline(id, v1, v2);
 
+    if (typeof id !== "number" || v2 === undefined) {
+      throw new TypeError("a chunked mesh addresses its lines by id");
+    }
+
     let chunk = this.get_chunk(id);
-    let iline = this.idmap.get(id);
+    let iline = this.idmap.get(id)!;
 
     chunk.flagRecalc();
     chunk.glFlagUploadAll(PrimitiveTypes.LINES);
@@ -2418,16 +2489,16 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     if (line_cos.dataUsed < i + 6) {
       chunk.line(v1, v2);
     } else {
-      line_cos = line_cos._getWriteData();
-      line_cos[i++] = v1[0];
-      line_cos[i++] = v1[1];
-      line_cos[i++] = v1[2];
-      line_cos[i++] = v2[0];
-      line_cos[i++] = v2[1];
-      line_cos[i++] = v2[2];
+      let data = line_cos._getWriteData();
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
+      data[i++] = v2[0]!;
+      data[i++] = v2[1]!;
+      data[i++] = v2[2]!;
 
-      if (i > line_cos.length) {
-        console.log(i, line_cos.length, line_cos);
+      if (i > data.length) {
+        console.log(i, data.length, data);
         throw new Error("range error");
       }
     }
@@ -2436,9 +2507,15 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     return chunk.line_editors.next().bind(chunk, iline);
   }
 
-  point(id : number, v1 : VecData) {
+  point(v1 : VecData) : PointEditor;
+  point(id : number, v1 : VecData) : PointEditor;
+  point(id : number | VecData, v1? : VecData) : PointEditor {
+    if (typeof id !== "number" || v1 === undefined) {
+      throw new TypeError("a chunked mesh addresses its points by id");
+    }
+
     let chunk = this.get_chunk(id);
-    let ipoint = this.idmap.get(id);
+    let ipoint = this.idmap.get(id)!;
 
     chunk.flagRecalc();
     chunk.glFlagUploadAll(PrimitiveTypes.POINTS);
@@ -2449,13 +2526,13 @@ export class ChunkedSimpleMesh extends SimpleMesh {
     if (point_cos.dataUsed < i + 3) {
       chunk.point(v1);
     } else {
-      point_cos = point_cos._getWriteData();
-      point_cos[i++] = v1[0];
-      point_cos[i++] = v1[1];
-      point_cos[i++] = v1[2];
+      let data = point_cos._getWriteData();
+      data[i++] = v1[0]!;
+      data[i++] = v1[1]!;
+      data[i++] = v1[2]!;
 
-      if (i > point_cos.length) {
-        console.log(i, point_cos.length, point_cos);
+      if (i > data.length) {
+        console.log(i, data.length, data);
         throw new Error("range error");
       }
     }

@@ -19,6 +19,13 @@ export interface SavedContextProperty {
   value: unknown;
 }
 
+/* The editable() iterators read exactly one flag off the context they are
+   handed, and ToggleSelectAllOp passes a bare object literal rather than a
+   real context. */
+export interface LayerFilterContext {
+  edit_all_layers: boolean;
+}
+
 export class BaseContextOverlay extends ContextOverlay {
   /* The context this overlay was pushed onto, filled in by pushOverlay(). */
   declare ctx: FullContext | undefined;
@@ -235,7 +242,9 @@ export class BaseContext extends Context {
   spline!: Spline
   scene!: Scene
   toolstack!: ToolStack;
-  api!: DataAPI
+  /* path.ux's ContextLike requires `api : DataAPI<this>`; the app only ever
+     builds one API and it is defined over FullContext. */
+  api!: DataAPI<FullContext>
   selectmode!: int;
 
   /* The rest of what BaseContextOverlay supplies. Without these, every lookup

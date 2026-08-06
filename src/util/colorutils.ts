@@ -43,7 +43,7 @@ export function rgba_to_hsva(clr : number[], ret : number[], last_hue=0)
     //h *= 60;				// degrees
     //h = h*60 + 360*(h < 0)
     
-    h = h/6.0 + 1*(h < 0);
+    h = h/6.0 + (h < 0 ? 1 : 0);
   } else {
     h = last_hue;
   }

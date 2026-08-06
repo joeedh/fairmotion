@@ -11,29 +11,9 @@ window.init_redraw_globals_2 = function init_redraw_globals() {
 
 window.init_redraw_globals = function init_redraw_globals() {
 
-  //let _req_idgen = 1;
-
-  function myrequestAnimationFrame(func1: FrameRequestCallback) {
-    return requestAnimationFrame(func1);
-  }
-
-  function old_myrequestAnimationFrame(func1: FrameRequestCallback) {
-    let id = _req_idgen++;
-
-    if (!eman.ready) {
-      requestAnimationFrame(func1);
-    } else {
-      window.setTimeout(() => {
-        eman.fireEvent("draw", {
-          type    : "draw",
-          callback: [func1]
-        });
-      }, 1);
-    }
-
-
-    return id;
-  }
+  /* NOTE: an old_myrequestAnimationFrame() sat here.  It had no callers and
+     referenced _req_idgen (declared only in the commented-out line above it)
+     and an `eman` that exists nowhere in the tree. */
 
   window._addEventListener = window.addEventListener;
   window._removeEventListener = window.removeEventListener;
@@ -52,21 +32,27 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
   }
 
-  window.removeEventListener = function (e: KillscreenCallback) {
-    if (e._is_killscreen) {
-      this._killscreen_handlers.remove(e, false);
-    } else {
-      return window._removeEventListener.apply(this, arguments);
-    }
+  /* NOTE: this had a killscreen branch guarded by `e._is_killscreen`, but the
+     DOM passes the event *name* as the first argument, so the flag was always
+     undefined and the branch never ran -- killscreen handlers have never been
+     removable.  Only the forwarding path is left. */
+  window.removeEventListener = function (this: Window, name: string,
+                                         cb: EventListenerOrEventListenerObject,
+                                         options?: boolean | EventListenerOptions) {
+    return window._removeEventListener(name, cb, options);
   }
 
-  window.addEventListener = function (name: string, cb: KillscreenCallback) {
-    cb._is_killscreen = 1;
+  window.addEventListener = function (this: Window, name: string,
+                                      cb: EventListenerOrEventListenerObject,
+                                      options?: boolean | AddEventListenerOptions) {
+    Reflect.set(cb, "_is_killscreen", 1);
 
     if (name != "killscreen") {
-      return this._addEventListener.apply(this, arguments);
+      return this._addEventListener(name, cb, options);
     } else {
-      this._killscreen_handlers.push(cb);
+      /* The killscreen channel is ours, not the DOM's, and every listener on it
+         is a plain function taking a KillscreenEvent. */
+      this._killscreen_handlers.push(cb as KillscreenCallback);
     }
   }
 
@@ -84,8 +70,8 @@ window.init_redraw_globals = function init_redraw_globals() {
   /* A set of live solve ids; the value is always 1. */
   let outstanding_solves: {[id: number]: number} = {};
 
-  window.push_solve = function (spline: Spline) {
-    var id = _solve_idgen++;
+  window.push_solve = function (spline) {
+    var id = window._solve_idgen++;
 
     if (DEBUG.solve_order) {
       console.log("push solve", id);
@@ -144,14 +130,20 @@ window.init_redraw_globals = function init_redraw_globals() {
   /** primary a debugging function, destroys all caches and draws*/
   window.complete_viewport_draw = function (tries = 100) {
     if (animreq !== undefined || !window.g_app_state || !g_app_state.ctx) {
-      if (tris <= 0) {
+      /* NOTE: both tests named `tris`, so this guard threw a ReferenceError
+         every time it ran; the retry passed `tries--`, which decrements a local
+         the next call never sees; and the fall-through had no `return`, so a
+         retry went straight on to dereference the ctx it had just found missing. */
+      if (tries <= 0) {
         console.log("Failed to execute complete_viewport_draw()!");
         return;
       }
 
       window.setTimeout(() => {
-        window.complete_viewport_draw(tris--);
+        window.complete_viewport_draw(tries - 1);
       }, 1);
+
+      return;
     }
 
     let ctx = g_app_state.ctx;
@@ -188,45 +180,19 @@ window.init_redraw_globals = function init_redraw_globals() {
           return;
         }
 
-        if (0) {
-          let ctx = g_app_state.ctx;
-          let frameset = ctx.frameset;
-          let spline = ctx.spline
-
-          if (spline.solving) {
-            window.redraw_viewport();
-            return;
-          }
-
-          for (let sarea of ctx.screen.sareas) {
-            if (sarea.area.constructor.define().areaname !== "view2d_editor") {
-              continue;
-            }
-            let view2d = sarea.area;
-
-            //console.log("got viewport", Boolean(spline.drawer));
-
-            /* Start updating spline batches */
-            if (spline.drawer) {
-              let g = view2d.get_fg_canvas().g;
-              spline.check_sort();
-              spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(), [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
-              spline.drawer.drawer.updateBatches(g);
-            }
-          }
-
-          /* Batch update may have blocked draw. */
-          if (window._block_drawing > 0) {
-            window.redraw_viewport();
-            return;
-          }
-        }
+        /* NOTE: an `if (0)` block sat here that pre-updated the spline draw
+           batches for every view2d_editor area before the real draw pass, then
+           re-checked window._block_drawing.  It has always been switched off. */
 
         let screen = g_app_state.screen;
 
         for (let sarea of screen.sareas) {
-          if (sarea.area.do_draw_viewport) {
-            sarea.area.do_draw_viewport();
+          /* Only fairmotion's viewport editors define this; path.ux's Area
+             base class knows nothing about it. */
+          let draw = sarea.area && Reflect.get(sarea.area, "do_draw_viewport");
+
+          if (typeof draw === "function") {
+            draw.call(sarea.area);
           }
         }
 

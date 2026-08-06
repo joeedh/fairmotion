@@ -4,7 +4,7 @@ import {KSCALE, KANGLE} from './spline_math.js';
 import {SplineTypes, SplineFlags} from './spline_base.js'
 
 import type {Spline} from './spline.js';
-import type {SplineSegment} from './spline_types.js';
+import type {SplineSegment, SplineVertex} from './spline_types.js';
 
 let acos                                                                = Math.acos, asin                                              = Math.asin, cos = Math.cos, sin = Math.sin,
     PI = Math.PI, pow = Math.pow, sqrt = Math.sqrt, log = Math.log, abs = Math.abs;
@@ -31,25 +31,39 @@ const HARD_TAN_C = (seg1 : SplineSegment, s1 : number, goal : Vector3,
   return acos(_d);
 };
 
+/* One tangent-continuity record: the vertex, the segment(s) meeting there,
+   the parameter along each, whether the second runs the other way, and how
+   lopsided the two segments' lengths are. */
+interface TanPair {
+  v : SplineVertex;
+  seg1 : SplineSegment;
+  seg2 : SplineSegment | undefined;
+  s1 : number;
+  s2 : number;
+  doflip : number;
+  ratio : number;
+}
+
 let _solver_static_tan = new Vector3();
 /* Dead: spline.ts imports this and never calls it. The wasm solver, and
    spline_math_hermite's JS fallback, are the live paths.
 
-   NOTE: the body indexes `edge_segs` and reads `.length`, which only works for
-   an array -- a `set` has a length but no numeric keys, so both reset loops are
-   silent no-ops as declared. */
+   NOTE: both reset loops indexed `edge_segs` numerically.  A set has a length
+   but no numeric keys, so the first iteration read undefined and threw; they
+   iterate the set directly now. */
 export function solve(spline: Spline, order: number, steps: number, gk: number,
                       do_inc: boolean, edge_segs: set<SplineSegment>) {
-  /* Flat records of PSLEN entries: vertex, seg1, seg2 (or undefined), s1, s2,
-     flip, ratio. Left to inference so the union stays honest. */
-  let pairs = [];
+  let pairs : TanPair[] = [];
 
   let CBREAK = SplineFlags.BREAK_CURVATURES;
   let TBREAK = SplineFlags.BREAK_TANGENTS;
 
   function reset_edge_segs() {
-    for (let j = 0; do_inc && j < edge_segs.length; j++) {
-      let seg = edge_segs[j];
+    if (!do_inc) {
+      return;
+    }
+
+    for (let seg of edge_segs) {
       let ks = seg.ks;
       for (let k = 0; k < ks.length; k++) {
         ks[k] = seg._last_ks[k];
@@ -59,7 +73,7 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
 
   let eps = 0.0001;
   for (let i = 0; i < spline.handles.length; i++) {
-    let h = spline.handles[i], seg1 = h.owning_segment, v = h.owning_vertex;
+    let h = spline.handles[i], seg1 = h.owning_segment, v = h.owning_vertex!;
 
     if (do_inc && !((v.flag) & SplineFlags.UPDATE))
       continue;
@@ -83,31 +97,25 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
       //console.log("ratio", ratio.toFixed(4));
       if (isNaN(ratio)) ratio = 0.0;
 
-      pairs.push(v);
-      pairs.push(seg1);
-      pairs.push(seg2);
-
-      pairs.push(s1);
-      pairs.push(s2);
-      pairs.push((s1 < 0.5) === (s2 < 0.5) ? -1 : 1); //flip second derivative
-
-      pairs.push(ratio);
+      pairs.push({
+        v, seg1, seg2, s1, s2,
+        doflip : (s1 < 0.5) === (s2 < 0.5) ? -1 : 1, //flip second derivative
+        ratio
+      });
     } else if (!(h.flag & SplineFlags.AUTO_PAIRED_HANDLE)) {
       let s1 = v === seg1.v1 ? 0 : 1;
 
-      pairs.push(v);
-      pairs.push(seg1);
-      pairs.push(undefined);
-
-      pairs.push(s1);
-      pairs.push(0.0);
-      pairs.push(1); //flip second derivative
-
-      pairs.push(1);
+      pairs.push({
+        v, seg1,
+        seg2   : undefined,
+        s1,
+        s2     : 0.0,
+        doflip : 1, //flip second derivative
+        ratio  : 1
+      });
     }
   }
 
-  let PSLEN = 7
   for (let i = 0; i < spline.verts.length; i++) {
     let v = spline.verts[i];
 
@@ -135,29 +143,25 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
     //console.log("ratio", ratio.toFixed(4));
     if (isNaN(ratio)) ratio = 0.0;
 
-    pairs.push(v);
-    pairs.push(seg1);
-    pairs.push(seg2);
-
-    pairs.push(s1);
-    pairs.push(s2);
-    pairs.push((s1 === 0.0) === (s2 === 0.0) ? -1 : 1); //flip second derivative
-
-    pairs.push(ratio);
+    pairs.push({
+      v, seg1, seg2, s1, s2,
+      doflip : (s1 === 0.0) === (s2 === 0.0) ? -1 : 1, //flip second derivative
+      ratio
+    });
   }
 
   /* One gradient row per record, two segments' worth of ks each. */
   let glist : number[][] = [];
-  for (let i = 0; i < pairs.length/PSLEN; i++) {
+  for (let i = 0; i < pairs.length; i++) {
     glist.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
 
   let klist1 : number[][] = [];
-  for (let i = 0; i < pairs.length/PSLEN; i++) {
+  for (let i = 0; i < pairs.length; i++) {
     klist1.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
   let klist2 : number[][] = [];
-  for (let i = 0; i < pairs.length/PSLEN; i++) {
+  for (let i = 0; i < pairs.length; i++) {
     klist2.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   }
 
@@ -183,19 +187,17 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
     //walk backwards every other frame
     let di = 0;
     if (si%2) {
-      di = -PSLEN*2;
-      i = plen - PSLEN;
+      di = -2;
+      i = plen - 1;
     }
 
     reset_edge_segs();
 
     err = 0.0;
     while (i < plen && i >= 0) {
-      let cnum = Math.floor(i/PSLEN);
+      let cnum = i;
 
-      let v = pairs[i++], seg1 = pairs[i++], seg2 = pairs[i++];
-      let s1 = pairs[i++], s2 = pairs[i++], doflip = pairs[i++];
-      let ratio = pairs[i++];
+      let {v, seg1, seg2, s1, s2, doflip, ratio} = pairs[i++];
       i += di;
 
       for (let ci = 0; ci < 2; ci++) {
@@ -216,7 +218,14 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
         } else {
           let h = seg1.handle(v);
 
-          tan.load(h).sub(v).normalize();
+          /* NOTE: h and v are both 2d, so load()/sub() left z undefined and
+             then NaN -- normalize() no-ops and HARD_TAN_C returns NaN.  Spelled
+             out rather than fixed; nothing calls this function. */
+          tan[0] = h![0] - v[0];
+          tan[1] = h![1] - v[1];
+          tan[2] = NaN;
+          tan.normalize();
+
           if (v === seg1.v2)
             tan.negate();
 
@@ -231,7 +240,8 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
         let seglen = (seg2 === undefined) ? 1 : 2;
 
         for (let sj = 0; sj < seglen; sj++) {
-          let seg = sj ? seg2 : seg1;
+          /* seglen is 1 unless seg2 is there. */
+          let seg = sj ? seg2! : seg1;
 
           for (let j = 0; j < order; j++) {
             let orig = seg.ks[j];
@@ -259,7 +269,8 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
         let unstable = ratio < 0.1;
 
         for (let sj = 0; sj < seglen; sj++) {
-          let seg = sj ? seg2 : seg1;
+          /* seglen is 1 unless seg2 is there. */
+          let seg = sj ? seg2! : seg1;
 
           for (let j = 0; j < order; j++) {
             let g = gs[sj*order + j];
@@ -290,8 +301,7 @@ export function solve(spline: Spline, order: number, steps: number, gk: number,
       }
     }
 
-    for (let j = 0; j < edge_segs.length; j++) {
-      let seg = edge_segs[j];
+    for (let seg of edge_segs) {
       let ks = seg.ks;
 
       for (let k = 0; k < ks.length; k++) {

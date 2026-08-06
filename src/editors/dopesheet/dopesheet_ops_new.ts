@@ -1,4 +1,6 @@
 import {ToolOp} from '../../core/toolops_api.js';
+import type {ToolDef} from '../../core/toolops_api.js';
+import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
 import {AnimKeyFlags, AnimKeyTypes, get_vtime, set_vtime} from "../../core/animdata.js";
 import {ListProperty, EnumProperty, FloatProperty, Vec2Property,
         IntProperty, BoolProperty, IntArrayProperty} from "../../core/toolprops.js";
@@ -8,7 +10,7 @@ import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 import {Icons} from '../../datafiles/icon_enum.js';
 import type {FullContext} from '../../core/context.js';
 import type {Spline} from '../../curve/spline.js';
-import type {SplineVertex} from '../../curve/spline_types.js';
+import {SplineVertex} from '../../curve/spline_types.js';
 import type {SplineFrameSet} from '../../core/frameset.js';
 
 /* One editable key in the dopesheet, behind a uniform get/set surface so
@@ -17,15 +19,17 @@ export class KeyIterItem {
   /* An AnimKeyTypes value. */
   type! : number;
 
+  /* Abstract in spirit: every concrete item overrides these three. */
   getFlag() : number {
-
+    throw new Error("implement me");
   }
 
   setFlag(flag : number) : this {
+    throw new Error("implement me");
   }
 
   getTime() : number {
-
+    throw new Error("implement me");
   }
 
   setTime(time : number) {
@@ -57,20 +61,18 @@ export class KeyIterItem {
 }
 
 export class VertKeyIterItem extends KeyIterItem {
-  v : SplineVertex;
-  spline : Spline;
+  /* All four are filled by init(), which the cachering owner always calls
+     before handing the item out. */
+  v! : SplineVertex;
+  spline! : Spline;
   /* Key into frameset.vertex_animdata -- the eid of the draw-spline vertex
      this path vertex animates. */
-  channel : number;
-  frameset : SplineFrameSet;
+  channel! : number; //vertex_animdata key
+  frameset! : SplineFrameSet;
 
   constructor() {
     super();
-    this.v = undefined;
-    this.spline = undefined;
     this.type = AnimKeyTypes.SPLINE;
-    this.channel = undefined; //vertex_animdata key
-    this.frameset = undefined;
   }
 
   getId() {
@@ -122,10 +124,8 @@ export class VertKeyIterItem extends KeyIterItem {
     return this;
   }
 
-  destroy() {
-    this.spline = undefined;
-    this.v = undefined;
-  }
+  /* NOTE: a destroy() that cleared spline/v used to sit here; nothing ever
+     called it -- the cachering recycles items through init() instead. */
 }
 
 export class DataPathKeyItem extends VertKeyIterItem {
@@ -144,28 +144,37 @@ let vkey_cache = util.cachering.fromConstructor(VertKeyIterItem, 32);
 
 let UEID=0, UTIME=1, UFLAG=2, UX=3, UY=4, UTOT=5;
 
-export class AnimKeyTool extends ToolOp {
-  /* Flat [eid, time, flag, x, y] records, UTOT wide -- see the U* indices. */
-  _undo! : {spline : number[]};
+export class AnimKeyTool<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends ToolOp<InputSlots & {
+  useKeyList : BoolProperty,
+  keyList    : IntArrayProperty,
+}, OutputSlots> {
+  /* Flat [eid, time, flag, x, y] records, UTOT wide -- see the U* indices.
+     DeleteKeysOp opts out and stores the base class's whole-file snapshot
+     here instead. */
+  _undo! : {spline : number[]} | ArrayBuffer | ArrayBufferView | number[];
 
   constructor() {
     super();
   }
 
-  static tooldef() {return {
+  static tooldef() : ToolDef {return {
     inputs : {
       useKeyList : new BoolProperty(),
       keyList : new IntArrayProperty() //should be (AnimKeyType, keyId) pairs
     }
   }}
 
+  /* Only spline keys exist so far; the other branch below throws. */
   * iterKeys(ctx : FullContext,
-             useKeyList = this.inputs.useKeyList.getValue()) : Generator<KeyIterItem> {
+             useKeyList = this.inputs.useKeyList.getValue()) : Generator<VertKeyIterItem> {
     if (useKeyList) {
       let list = this.inputs.keyList.getValue();
       let pathspline = ctx.frameset.pathspline;
 
-      let channelmap = {};
+      let channelmap : {[eid : number] : number} = {};
       let frameset = ctx.frameset;
 
       for (let k in frameset.vertex_animdata) {
@@ -179,7 +188,9 @@ export class AnimKeyTool extends ToolOp {
       for (let i=0; i<list.length; i += 2) {
         let type = list[i], id = list[i+1];
         if (type === AnimKeyTypes.SPLINE) {
-          let v = pathspline.eidmap[id];
+          /* eidmap holds every element kind; a SPLINE key is always a vertex. */
+          let elem = pathspline.eidmap[id];
+          let v = elem instanceof SplineVertex ? elem : undefined;
 
           if (!v) {
             console.warn("Error iterating spline animation keys; key could not be found", id, pathspline);
@@ -232,16 +243,16 @@ export class AnimKeyTool extends ToolOp {
   }
 
   undo_pre(ctx : FullContext) {
-    let spline = [];
+    let spline : number[] = [];
 
     let _undo = this._undo = {
       spline : spline
     };
 
-    let vset = new Set();
+    let vset = new Set<number>();
 
     for (let i=0; i<2; i++) {
-      for (let key of this.iterKeys(ctx, i)) {
+      for (let key of this.iterKeys(ctx, !!i)) {
         if (key.type === AnimKeyTypes.SPLINE) {
           if (vset.has(key.v.eid)) {
             continue;
@@ -264,6 +275,11 @@ export class AnimKeyTool extends ToolOp {
 
 
   undo(ctx : FullContext) {
+    if (!("spline" in this._undo)) {
+      /* DeleteKeysOp's snapshot; it overrides undo() and never lands here. */
+      return;
+    }
+
     let list = this._undo.spline;
     let spline = ctx.frameset.pathspline;
 
@@ -271,7 +287,9 @@ export class AnimKeyTool extends ToolOp {
       let eid = list[i], time = list[i+1], flag = list[i+2];
       let x = list[i+3], y = list[i+4];
 
-      let v = spline.eidmap[eid];
+      let elem = spline.eidmap[eid];
+      let v = elem instanceof SplineVertex ? elem : undefined;
+
       if (!v) {
         console.warn("EEK! Misssing vertex/handle in AnimKeyTool.undo!");
         continue;
@@ -304,7 +322,7 @@ export const SelModes = {
   SUB  : 2,
 }
 
-export class ToggleSelectAll extends AnimKeyTool {
+export class ToggleSelectAll extends AnimKeyTool<{mode : EnumProperty}> {
   constructor() {
     super();
   }
@@ -362,7 +380,8 @@ export class ToggleSelectAll extends AnimKeyTool {
   }
 }
 
-export class NextPrevKeyFrameOp extends AnimKeyTool {
+export class NextPrevKeyFrameOp extends AnimKeyTool<{dir : IntProperty},
+                                                    {frame : IntProperty}> {
   /* scene.time before the jump; this op only moves the playhead. */
   _undo_time! : number;
 
@@ -387,7 +406,7 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
     let scene = ctx.scene;
     let time = scene.time;
 
-    let mint, minf;
+    let mint : number | undefined, minf : number | undefined;
 
     console.log("Next Keyframe", time);
 
@@ -417,8 +436,8 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
     this.undo_pre(ctx);
   }
 
-  static canRun(ctx : FullContext) {
-    return ctx.scene;
+  static canRun(ctx : FullContext) : boolean {
+    return !!ctx.scene;
   }
 
   /*we don't need to use parent classes's undo implementation
@@ -435,14 +454,17 @@ export class NextPrevKeyFrameOp extends AnimKeyTool {
       return;
     }
 
-    /* NOTE: change_time takes (ctx, time) everywhere else, so this passes
-       the time as the ctx and leaves time undefined. */
-    ctx.scene.change_time(this._undo_time);
+    /* NOTE: this called change_time(this._undo_time) -- change_time takes
+       (ctx, time), so the time arrived as the context and `time` came through
+       undefined, which change_time's isNaN(time) guard returns on.  Undoing
+       this op has therefore never restored the time; the call is spelled out
+       here so it keeps doing nothing. */
+    ctx.scene.change_time(ctx, NaN);
     window.redraw_viewport();
   }
 }
 
-export class MoveKeyFramesOp extends AnimKeyTool {
+export class MoveKeyFramesOp extends AnimKeyTool<{delta : FloatProperty}> {
   /* True until the first modal mousemove seeds start_mpos/transdata. */
   first : boolean;
   last_mpos : Vector2;
@@ -589,7 +611,7 @@ export const SelModes2 = {
   SUB    : 2
 }
 
-export class SelectKeysOp extends AnimKeyTool {
+export class SelectKeysOp extends AnimKeyTool<{mode : EnumProperty}> {
   constructor() {
     super();
 
@@ -663,12 +685,16 @@ export class DeleteKeysOp extends AnimKeyTool {
     ctx.frameset.pathspline.flagUpdateVertTime();
   }
 
+  /* NOTE: both of these called ToolOp.prototype.undo_pre, which is only an
+     optional declaration on the base -- no such function exists, so every run
+     of this tool threw a TypeError before exec().  They do what the base
+     class's undoPre() does, per the comment in undo() below. */
   undo_pre(ctx : FullContext) {
-    ToolOp.prototype.undo_pre.call(this, ctx);
+    this._undo = ctx.state.create_undo_file();
   }
 
   undoPre(ctx : FullContext) {
-    ToolOp.prototype.undo_pre.call(this, ctx);
+    this.undo_pre(ctx);
   }
 
   undo(ctx : FullContext) {

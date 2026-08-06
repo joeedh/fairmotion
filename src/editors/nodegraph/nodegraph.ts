@@ -4,6 +4,7 @@ import {VelPan, VelPanPanOp} from "../velpan.js";
 import {Vector2} from "../../path.ux/scripts/pathux.js";
 import {UIBase, color2css, css2color} from "../../path.ux/scripts/pathux.js";
 import {DataBlock} from "../../core/lib_api.js";
+import type {CSSFont} from "../../path.ux/scripts/core/cssfont.js";
 import type {Graph, GraphNodeType, NodeSocketType} from "../../graph/graph.js";
 
 /* A per-node offscreen canvas, with the 2d context cached on it. */
@@ -23,12 +24,32 @@ export type NodeLayout = {
   graph_id : number,
 };
 
-/* NOTE: layoutNode() and sortGraphSpatially(), used below, are not imported
-   anywhere in this module. */
+/* NOTE: neither of these exists anywhere in the codebase, so every path that
+   reaches one threw a ReferenceError.  The stubs keep that a throw, with a
+   message that says what is missing; draw() and rebuild() both open with a
+   bare `return;`, so only the Arrange button in init() gets there. */
+function layoutNode(node : GraphNodeType,
+                    args : {socksize : number, extraWidth? : number}) : NodeLayout {
+  throw new Error("layoutNode() is not implemented");
+}
+
+function sortGraphSpatially(graph : Graph,
+                            args : {socksize : number, steps : number,
+                                    headerHeight : number, extraWidth : number}) : void {
+  throw new Error("sortGraphSpatially() is not implemented");
+}
+
+/* draw() and rebuild() each opened with a bare `return;` -- the viewer is
+   disabled in-tree.  Declared boolean rather than a literal so the bodies
+   below stay reachable for the typechecker. */
+const VIEWER_DISABLED : boolean = true;
+
 export class NodeViewer extends Editor {
   static STRUCT : string;
 
-  canvases         : {[hash : string] : NodeCanvas}
+  /* NOTE: this was named `canvases`, shadowing Editor's own canvas cache with
+     entries the base getCanvas() would have handed back missing dpi_scale. */
+  nodeCanvases     : {[hash : string] : NodeCanvas}
   nodes            : {[hash : string] : NodeLayout}
   node_idmap       : {[graph_id : number] : NodeLayout}
   sockSize         : number
@@ -57,14 +78,14 @@ export class NodeViewer extends Editor {
 
     this._last_scale = new Vector2();
 
-    this.canvases = {};
+    this.nodeCanvases = {};
     this.nodes = {};
     this.node_idmap = {};
     this.sockSize = 20;
     this.extraNodeWidth = 155;
 
     this.canvas = document.createElement("canvas");
-    this.g = this.canvas.getContext("2d");
+    this.g = this.canvas.getContext("2d")!;
 
     this.shadow.appendChild(this.canvas);
   }
@@ -86,6 +107,10 @@ export class NodeViewer extends Editor {
 
       this.pop_ctx_active();
     });
+
+    if (this.header === undefined) {
+      throw new Error("node viewer has no header");
+    }
 
     this.header.button("Arrange", () => {
       let graph = this.getGraph();
@@ -111,17 +136,18 @@ export class NodeViewer extends Editor {
     })
   }
 
-  getGraph() : Graph {
-    return this.ctx.api.getValue(this.ctx, this.graphPath);
+  getGraph() : Graph | undefined {
+    return this.ctx.api.getValue<Graph>(this.ctx, this.graphPath);
   }
 
-  getCanvas(id : string) : NodeCanvas {
-    if (!(id in this.canvases)) {
-      this.canvases[id] = document.createElement("canvas");
-      this.canvases[id].g = this.canvases[id].getContext("2d");
+  getNodeCanvas(id : string) : NodeCanvas {
+    if (!(id in this.nodeCanvases)) {
+      const el = document.createElement("canvas");
+
+      this.nodeCanvases[id] = Object.assign(el, {g : el.getContext("2d")!});
     }
 
-    return this.canvases[id];
+    return this.nodeCanvases[id];
   }
 
   hashNode(node : GraphNodeType) : string {
@@ -167,7 +193,7 @@ export class NodeViewer extends Editor {
   }
 
   clear() {
-    this.canvases = {};
+    this.nodeCanvases = {};
     this.nodes = {};
     this.node_idmap = {};
   }
@@ -188,28 +214,20 @@ export class NodeViewer extends Editor {
 
       for (let k in lsocks) {
         let sock = socks[k];
-        let lsock = lsocks[k];
 
-        lsock = new Vector2(lsock);
+        let clr = sock.constructor.nodedef().color;
+        let color = clr ? color2css(clr) : "orange";
 
-        let color = sock.constructor.nodedef().color;
-        if (color) {
-          color = color2css(color);
-        } else {
-          color = "orange";
-        }
-
-        lsock.color = color;
-        lsocks[k] = lsock;
+        lsocks[k] = Object.assign(new Vector2(lsocks[k]), {color});
       }
     }
 
-    layout.canvas = this.getCanvas(hash);
+    layout.canvas = this.getNodeCanvas(hash);
 
     let canvas = layout.canvas;
     let g = canvas.g;
 
-    let ts = this.getDefault("DefaultText").size*1.45;
+    let ts = this.getDefault<CSSFont>("DefaultText").size*1.45;
 
     let header = layout.header =  ts*this.velpan.scale[0]*1.3*2.5;
 
@@ -218,7 +236,7 @@ export class NodeViewer extends Editor {
     canvas.width = layout.size[0];
     canvas.height = layout.size[1];
 
-    g.font = this.getDefault("DefaultText").genCSS(ts*this.velpan.scale[0]);
+    g.font = this.getDefault<CSSFont>("DefaultText").genCSS(ts*this.velpan.scale[0]);
 
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.beginPath();
@@ -278,7 +296,9 @@ export class NodeViewer extends Editor {
   }
 
   draw() {
-    return;
+    if (VIEWER_DISABLED) {
+      return;
+    }
 
     let canvas = this.canvas;
     let g = this.g;
@@ -286,7 +306,7 @@ export class NodeViewer extends Editor {
     this.updateCanvaSize();
 
     g.clearRect(0, 0, canvas.width, canvas.height);
-    g.font = this.getDefault("DefaultText").genCSS();
+    g.font = this.getDefault<CSSFont>("DefaultText").genCSS();
     g.strokeStyle = "black";
 
     let transform = (p : Vector2) => {
@@ -300,21 +320,15 @@ export class NodeViewer extends Editor {
     let p = new Vector2(), p2 = new Vector2(), p3 = new Vector2(), p4 = new Vector2();
     let s = new Vector2();
 
-    /* NOTE: called below with a single argument, so `sock` is undefined and
-       the loop never matches. */
-    function find_sock_key(node : GraphNodeType, sock : NodeSocketType) {
-      for (let k in node.inputs) {
-        if (node.inputs[k] === sock) {
-          return k;
-        }
-      }
-    }
-
     g.beginPath();
     let sz = this.sockSize;
 
     let graph = this.getGraph();
     let rebuild = false;
+
+    if (graph === undefined) {
+      return;
+    }
 
     for (let k1 in this.nodes) {
       let node = this.nodes[k1];
@@ -331,9 +345,11 @@ export class NodeViewer extends Editor {
         let sock = node2.inputs[k];
 
         for (let sock2 of sock.edges) {
+          /* NOTE: a `sock2 = find_sock_key(sock2)` sat here, overwriting the
+             socket with a key string from a one-argument call to a
+             two-argument function -- so it was always undefined -- followed by
+             a re-lookup of node3 by its own graph_id, a no-op. */
           let node3 = this.node_idmap[sock2.node.graph_id];
-          sock2 = find_sock_key(sock2);
-          node3 = this.node_idmap[node3.graph_id];
 
           let lsock1 = node.inputs[k];
           let lsock2 = node3.outputs[k];
@@ -406,7 +422,9 @@ export class NodeViewer extends Editor {
   }
 
   rebuild() {
-    return;
+    if (VIEWER_DISABLED) {
+      return;
+    }
 
     if (!this.ctx) {
       return;
@@ -422,7 +440,7 @@ export class NodeViewer extends Editor {
     let size = this.size;
     let dpi = UIBase.getDPI();
 
-    let graph = this.ctx.api.getValue(this.ctx, this.graphPath);
+    let graph = this.getGraph();
     if (this.graphPath === "" || graph === undefined) {
       console.warn("Failed to load graph!");
       this._last_graph_path = undefined;
@@ -441,14 +459,14 @@ export class NodeViewer extends Editor {
     }
 
     let del = [];
-    for (let k in this.canvases) {
+    for (let k in this.nodeCanvases) {
       if (!visit.has(k)) {
         del.push(k);
       }
     }
 
     for (let k of del) {
-      delete this.canvases[k];
+      delete this.nodeCanvases[k];
       delete this.nodes[k];
     }
 

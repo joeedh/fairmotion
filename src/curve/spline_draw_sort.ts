@@ -33,7 +33,9 @@ import type {Spline} from './spline.js';
 export function calc_string_ids(spline: Spline, startid = 0) {
   for (let group of spline.drawStrokeGroups) {
     for (let seg of group.segments) {
-      seg.stringid = startid + seg.id;
+      /* NOTE: `id` belongs to SplineStrokeGroup, not to SplineSegment, so this
+         has always produced NaN. */
+      seg.stringid = startid + Reflect.get(seg, "id");
     }
   }
 }
@@ -95,7 +97,7 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
   } else*/
   if (1) {
     for (let seg of layer) {
-      if (seg.type !== SplineTypes.SEGMENT)
+      if (!(seg instanceof SplineSegment))
         continue;
       if (!(layerid in seg.layers))
         continue;
@@ -112,7 +114,7 @@ export function sort_layer_segments(layer : SplineLayer, spline : Spline) {
 
     //we should be  finished, but just in case. . .
     for (let seg of layer) {
-      if (seg.type !== SplineTypes.SEGMENT)
+      if (!(seg instanceof SplineSegment))
         continue;
       if (!(layerid in seg.layers))
         continue;
@@ -144,7 +146,7 @@ export function redo_draw_sort(spline: Spline) {
   let gmap = new Map<SplineSegment | SplineStrokeGroup, number>();
   let gsmap = new Map<SplineSegment, SplineStrokeGroup>();
   let gi = 0;
-  let gmaxz = new Map<SplineSegment, number>();
+  let gmaxz = new Map<SplineElement, number>();
 
   for (let g of spline.drawStrokeGroups) {
     let maxz = -1e17;
@@ -209,12 +211,9 @@ export function redo_draw_sort(spline: Spline) {
   }
 
   /* Sort key: the element's layer order, then its own z within the layer.
-     Segments owned by a face are pushed above every face they touch.
-
-     NOTE: `layer` below starts as a number, is overwritten with a string key
-     from the for..in, and finally with the SplineLayer itself. */
+     Segments owned by a face are pushed above every face they touch. */
   //check_face is optional, defaults to true
-  function calc_z(e : SplineElement, check_face = true) {
+  function calc_z(e : SplineFace | SplineSegment, check_face = true) : number {
     if (isNaN(e.z)) {
       e.z = 0;
     }
@@ -232,8 +231,9 @@ export function redo_draw_sort(spline: Spline) {
           break;
         }
 
-        let fz = calc_z(l.f);
-        f_max_z = f_max_z === undefined ? fz : Math.max(f_max_z, fz)
+        /* NOTE: this tested f_max_z against undefined first, but calc_z()
+           always returns a number. */
+        f_max_z = Math.max(f_max_z, calc_z(l.f))
 
         l = l.radial_next;
       } while (l !== e.l);
@@ -243,20 +243,20 @@ export function redo_draw_sort(spline: Spline) {
       return f_max_z + 1;
     }
 
-    let layer = 0;
+    let layerid = 0;
     for (let k in e.layers) {
-      layer = k;
+      layerid = Number(k);
       break;
     }
 
-    if (!(layer in layerset.idmap)) {
-      console.log("Bad layer!", layer);
+    if (!(layerid in layerset.idmap)) {
+      console.log("Bad layer!", layerid);
       return -1;
     }
 
     let z = gmaxz.get(e) || e.z;
 
-    layer = layerset.idmap[layer];
+    let layer = layerset.idmap[layerid];
     return layer.order*(max_z - min_z) + (z - min_z);
   }
 
@@ -271,8 +271,13 @@ export function redo_draw_sort(spline: Spline) {
     return undefined;
   }
 
-  let dl = spline.drawlist = [];
-  let ll = spline.draw_layerlist = []; //layer id of which layer each draw element lives in
+  /* Only faces and segments go in during this pass; the stroke-group pass at
+     the bottom is what widens it back to DrawListItem. */
+  let dl : (SplineFace | SplineSegment)[] = [];
+  let ll : (string | undefined)[] = []; //layer id of which layer each draw element lives in
+
+  spline.drawlist = dl;
+  spline.draw_layerlist = ll;
   spline._layer_maxz = max_z;
 
   for (let f of spline.faces) {
@@ -344,7 +349,7 @@ export function redo_draw_sort(spline: Spline) {
      spline elements.  Left to inference so the union stays honest. */
   let list2 = [];
 
-  for (let item of spline.drawlist) {
+  for (let item of dl) {
     if (item.type === SplineTypes.SEGMENT) {
       let g = gsmap.get(item);
 

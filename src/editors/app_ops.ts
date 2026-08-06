@@ -267,120 +267,20 @@ export class FileSaveSVGOp extends ToolOp {
   }
 }
 
-export class FileSaveB64Op extends ToolOp {
-  /* Server-side upload path, set by save_callback and read back in finish. */
-  _path! : string;
-
-  constructor() {
-    super();
-  }
-
-  static tooldef() {
-    return {
-      toolpath   : "appstate.export_al3_b64",
-      uiname     : "Export Base64",
-      description: "Export a base64-encoded .fmo file",
-      inputs     : {
-        path: new StringProperty("", "path", "File Path", "File Path")
-      },
-      outputs    : {},
-
-      icon    : -1,
-      is_modal: false,
-      undoflag: UndoFlags.NO_UNDO,
-      flag    : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-    }
-  }
-
-  /* NOTE: this whole method depends on names the module never imports --
-     Context, ProgressDialog, error_dialog, ajax, call_api, upload_file and
-     file_dialog are all undefined here. */
-  exec(ctx : FullContext) {
-    console.log("Export AL3-B64");
-
-    //compression is off, for now
-    var buf = g_app_state.create_user_file_new({
-      compress: true
-    });
-    buf = b64encode(new Uint8Array(buf.buffer));
-
-    //line wrap
-    var buf2 = ""
-    for (var i = 0; i < buf.length; i++) {
-      buf2 += buf[i];
-      if (((i + 1)%79) == 0) {
-        buf2 += "\n";
-      }
-    }
-    buf = buf2;
-
-    var byte_data = [];
-    ajax.pack_static_string(byte_data, buf, buf.length);
-    byte_data = new Uint8Array(byte_data).buffer;
-
-    /*I should really make these file operations modal, since
-        they create ui elements
-     */
-    ctx = new Context();
-    var pd = new ProgressDialog(ctx, "Uploading");
-
-    function error(job, owner, msg) {
-      pd.end()
-      error_dialog(ctx, "Network Error", undefined, true);
-    }
-
-    function status(job, owner, status) {
-      pd.value = status.progress;
-      pd.bar.do_recalc();
-      if (DEBUG.netio)
-        console.log("status: ", status.progress);
-    }
-
-    var this2 = this;
-
-    function finish(job, owner) {
-      if (DEBUG.netio)
-        console.log("finished uploading");
-      var url = "/api/files/get?path=/" + this2._path + "&";
-      url += "accessToken=" + g_app_state.session.tokens.access;
-
-      if (DEBUG.netio)
-        console.log(url)
-      window.open(url);
-
-      pd.end();
-    }
-
-    function save_callback(dialog, path : string) {
-      pd.call(ctx.screen.mpos);
-
-      if (DEBUG.netio)
-        console.log("saving...", path);
-
-      if (!path.endsWith(".al3.b64")) {
-        path = path + ".al3.b64";
-      }
-      this2._path = path;
-
-      var token = g_app_state.session.tokens.access;
-      var url = "/api/files/upload/start?accessToken=" + token + "&path=" + path
-      var url2 = "/api/files/upload?accessToken=" + token;
-
-      call_api(upload_file, {data: byte_data, url: url, chunk_url: url2}, finish, error, status);
-    }
-
-    file_dialog("SAVE", new Context(), save_callback, true);
-  }
-}
+/* NOTE: a FileSaveB64Op ToolOp ("appstate.export_al3_b64", "Export Base64")
+   sat here.  Nothing imported or registered it, and its exec() called
+   ProgressDialog, file_dialog and a bare `ajax` -- none of which exist anywhere
+   in the tree -- so running it would have thrown a ReferenceError. */
 
 import {ImportJSONOp} from './viewport/spline_createops.js';
 
-var _dom_input_node = undefined;
+var _dom_input_node : HTMLInputElement = undefined!;
 export var import_json = window.import_json = function import_json() {
   console.log("import json!");
 
   if (_dom_input_node == undefined) {
-    window._dom_input_node = _dom_input_node = document.getElementById("fileinput");
+    let elem = document.getElementById("fileinput");
+    window._dom_input_node = _dom_input_node = (elem instanceof HTMLInputElement ? elem : undefined)!;
   }
 
   _dom_input_node.style.visibility = "visible";
@@ -389,17 +289,19 @@ export var import_json = window.import_json = function import_json() {
 
   node.onchange = function () {
     console.log("file select!", node.files);
-    if (node.files.length == 0) return;
+    if (node.files!.length == 0) return;
 
-    var f = node.files[0];
+    var f = node.files![0];
 
     console.log("file", f);
 
     var reader = new FileReader();
     reader.onload = function (data : ProgressEvent) {
-      var obj = JSON.parse(reader.result);
+      /* readAsText below, so result is always a string. */
+      let text = typeof reader.result === "string" ? reader.result : undefined!;
+      var obj = JSON.parse(text);
 
-      var tool = new ImportJSONOp(reader.result);
+      var tool = new ImportJSONOp(text);
       g_app_state.toolstack.execTool(g_app_state.ctx, tool);
     }
 

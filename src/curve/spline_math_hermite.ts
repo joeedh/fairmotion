@@ -271,20 +271,50 @@ const con_cache : {list : AnyConstraint[], used : number} = {
 
 /* Payloads for the constraint evaluators below.  A constraint hands its payload
    straight back to its own evaluator, so each one has its own shape. */
-type HardTanParams = [SplineSegment, Vector3, number];
-type TanParams = [SplineSegment, SplineSegment];
+export type HardTanParams = [SplineSegment, Vector3, number];
+export type TanParams = [SplineSegment, SplineSegment];
 /* The two handles are only supplied by the paired-handle constraints; the
    curvature evaluators never read them. */
-type CurvParams = [SplineSegment, SplineSegment, SplineVertex?, SplineVertex?];
-type HandleCurvParams = [SplineSegment, SplineSegment, SplineVertex, SplineVertex];
-type CopyParams = [SplineSegment, SplineVertex];
+export type CurvParams = [SplineSegment, SplineSegment, SplineVertex?, SplineVertex?];
+export type HandleCurvParams = [SplineSegment, SplineSegment, SplineVertex, SplineVertex];
+export type CopyParams = [SplineSegment, SplineVertex];
 
 /* Builds the constraint set for one solve: tangent continuity at every shared
    vertex, curvature continuity where it is not broken, and hard tangent goals
    wherever a manual handle is in use.  `update_verts`, if given, collects every
    vertex a constraint touched. */
-export function build_solver(spline : Spline, order : number, goal_order : number,
-                             gk : number, do_basic : boolean,
+/* The normalized tangent from handle `h` toward its vertex `v`, both of which
+   are 2d.
+
+   NOTE: the original spelling, new Vector3(h).sub(v), coalesced h's missing z to
+   0 but not v's, so z came out 0 - undefined = NaN.  A NaN length makes
+   normalize() a no-op, and every caller then trips its own isNaN() guard and
+   skips the constraint -- no manual-tangent constraint has ever reached the
+   solver.  Reproduced exactly here; giving z a real value would switch them all
+   on for the first time. */
+function handle_tangent(h : SplineVertex | undefined,
+                        v : SplineVertex | undefined) : Vector3 {
+  /* `new Vector3(undefined)` is the zero vector, and sub() on a missing `v`
+     threw, so the `!`s below are the old behavior too. */
+  let ret = new Vector3();
+
+  if (h !== undefined) {
+    ret[0] = h[0];
+    ret[1] = h[1];
+  }
+
+  ret[0] -= v![0];
+  ret[1] -= v![1];
+  ret[2] = NaN;
+
+  return ret.normalize();
+}
+
+/* `goal_order` is vestigial -- nothing below reads it.  `do_basic` only picks
+   between the two curvature evaluators, so undefined means the spower one. */
+export function build_solver(spline : Spline, order : number,
+                             goal_order : number | undefined, gk : number,
+                             do_basic : boolean | undefined,
                              update_verts? : set<SplineVertex>) {
   let slv = new solver();
   con_cache.used = 0;
@@ -297,7 +327,7 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
   let UPDATE = SplineFlags.UPDATE;
 
   for (let seg of spline.segments) {
-    let ok = (seg.v1.flag & SplineFlags.UPDATE) && (seg.v2.flag & SplineFlags.UPDATE);
+    let ok = !!((seg.v1.flag & SplineFlags.UPDATE) && (seg.v2.flag & SplineFlags.UPDATE));
 
     for (let i = 0; !ok && i < 2; i++) {
       let v = i ? seg.v2 : seg.v1;
@@ -388,8 +418,8 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
     let seg1 = params[0], seg2 = params[1];
     let h1 = params[2], h2 = params[3];
 
-    let len1 = seg1.ks[KSCALE] - h1.vectorDistance(seg1.handle_vertex(h1));
-    let len2 = seg2.ks[KSCALE] - h2.vectorDistance(seg2.handle_vertex(h2));
+    let len1 = seg1.ks[KSCALE] - h1.vectorDistance(seg1.handle_vertex(h1)!);
+    let len2 = seg2.ks[KSCALE] - h2.vectorDistance(seg2.handle_vertex(h2)!);
 
     let k1i = h1 === seg1.h1 ? 1 : order - 2;
     let k2i = h2 === seg2.h1 ? 1 : order - 2;
@@ -557,14 +587,14 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
 
     let bad = !h.use;
     bad = bad || seg.v1.vectorDistance(seg.v2) < 2;
-    bad = bad || !((v.flag) & SplineFlags.UPDATE);
+    bad = bad || !((v!.flag) & SplineFlags.UPDATE);
     bad = bad || !h.owning_vertex;
 
     if (bad) {
       continue;
     }
 
-    let tan1 = new Vector3(h).sub(seg.handle_vertex(h)).normalize();
+    let tan1 = handle_tangent(h, seg.handle_vertex(h));
 
     if (h === seg.h2)
       tan1.negate();
@@ -594,7 +624,7 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
     let ss1 = seg, h2 = h.hpair, ss2 = h2.owning_segment;
 
     if ((h.flag & SplineFlags.AUTO_PAIRED_HANDLE) &&
-      !((seg.handle_vertex(h).flag & SplineFlags.BREAK_TANGENTS))) {
+      !((seg.handle_vertex(h)!.flag & SplineFlags.BREAK_TANGENTS))) {
       let tc = new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
       tc.k2 = 0.8
 
@@ -612,9 +642,9 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
     slv.add(cc);
     */
 
-    let cc = new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
+    let cc = new constraint<CurvParams>("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
-    cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
+    cc = new constraint<CurvParams>("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
 
     if (update_verts)
@@ -641,7 +671,7 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
 
     let ss1 = v.segments[0];
     let h = ss1.handle(v);
-    let tan = new Vector3(h).sub(v).normalize();
+    let tan = handle_tangent(h, v);
 
     let s = v === ss1.v1 ? 0.0 : 1.0;
     if (v === ss1.v2) {
@@ -696,7 +726,7 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
         update_verts.add(v);
     } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) { //manual handles
       let h = ss1.handle(v);
-      let tan = new Vector3(h).sub(v).normalize();
+      let tan = handle_tangent(h, v);
 
       let s = v === ss1.v1 ? 0.0 : 1.0;
       if (v === ss1.v2) {
@@ -709,7 +739,7 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
       slv.add(tc);
 
       h = ss2.handle(v);
-      tan = new Vector3(h).sub(v).normalize();
+      tan = handle_tangent(h, v);
 
       s = v === ss2.v1 ? 0.0 : 1.0;
       if (v === ss2.v2) {
@@ -744,10 +774,10 @@ export function build_solver(spline : Spline, order : number, goal_order : numbe
     //if (mindis < limits.v_curve_limit)
     //  continue;
 
-    let cc = new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2]);
+    let cc = new constraint<CurvParams>("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2]);
     slv.add(cc);
 
-    cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss2, ss1]);
+    cc = new constraint<CurvParams>("curv_c", 1, [ss2.ks], order, curv_c, [ss2, ss1]);
     slv.add(cc);
 
     if (update_verts)

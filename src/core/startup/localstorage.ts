@@ -50,7 +50,7 @@ window.MyLocalStorage_ChromeApp = class MyLocalStorage_ChromeApp {
     this.cache[key] = val;
   }
 
-  getCached(key: string): string {
+  getCached(key: string): string | null {
     return this.cache[key];
   }
 
@@ -63,21 +63,24 @@ window.MyLocalStorage_ChromeApp = class MyLocalStorage_ChromeApp {
           this2.cache[key] = null;
           reject(chrome.runtime.lastError.string);
         } else {
-          if (value !== {} && value !== undefined && key in value) {
-            value = value[key];
+          /* NOTE: a `value !== {}` disjunct led this test; it compares object
+             references, so it was always true. */
+          let item : string | {[k : string] : string} = value;
+
+          if (value !== undefined && key in value) {
+            item = value[key];
           }
 
-          if (typeof value === "object")
-            value = JSON.stringify(value);
+          let str = typeof item === "object" ? JSON.stringify(item) : item;
 
-          this2.cache[key] = value;
-          accept(value);
+          this2.cache[key] = str;
+          accept(str);
         }
       });
     });
   }
 
-  hasCached(key) {
+  hasCached(key: string): boolean {
     return key in this.cache;
   }
 };

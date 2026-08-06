@@ -1,3 +1,4 @@
+import type {FullContext} from "../../core/context.js";
 import {Editor} from '../editor_base.js';
 import * as util from '../../path.ux/scripts/util/util.js';
 import {ModalStates} from '../../core/toolops_api.js';
@@ -9,7 +10,7 @@ import type {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 export class ManualEditor extends Editor {
   static STRUCT : string;
 
-  browser! : UIBase;
+  browser! : UIBase<FullContext>;
 
   constructor() {
     super();
@@ -22,10 +23,10 @@ export class ManualEditor extends Editor {
   }
 
   initBrowser() {
-    /* NOTE: doOnce() wants a function, but this hands it the *result* of
-       calling initBrowser again -- an infinite recursion if it ever fires. */
+    /* NOTE: this passed doOnce() the *result* of calling initBrowser again,
+       so the guard below recursed until the stack blew. */
     if (!docbrowser) {
-      this.doOnce(this.initBrowser());
+      this.doOnce(this.initBrowser);
       return;
     }
 

@@ -15,11 +15,12 @@ import {KeyMap, HotKey} from '../../core/keymap.js';
 import {STRUCT} from '../../core/struct.js';
 
 import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from '../../path.ux/scripts/core/ui_base.js';
+import type {CSSFont} from '../../path.ux/scripts/core/ui_base.js';
 
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../core/toolops_api.js';
 
 import {Spline, RestrictFlags} from '../../curve/spline.js';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment, SplineVertex} from '../../curve/spline_types.js';
 
 import {
   TimeDataLayer, get_vtime, set_vtime,
@@ -41,7 +42,8 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/core/ui.js';
 import {SelectKeysToSide, ShiftTimeOp3} from "./dopesheet_ops.js";
 import type {FullContext} from '../../core/context.js';
-import type {IconButton} from '../../path.ux/scripts/widgets/ui_widgets.js';
+import type {DagCallback} from '../../core/eventdag.js';
+import {IconButton} from '../../path.ux/scripts/widgets/ui_widgets.js';
 import type {EditorCanvas} from '../editor_base.js';
 
 /* NOTE: STRUCT is imported twice (lines 1 and 16), and UIBase/color2css
@@ -52,15 +54,24 @@ import type {EditorCanvas} from '../editor_base.js';
    one hung off the array itself. */
 export type ActiveBoxes = number[] & {highlight : number | undefined};
 
+function newActiveBoxes() : ActiveBoxes {
+  return Object.assign(new Array<number>(), {highlight : undefined});
+}
+
 /* A coarse screen-space bucket grid over the key boxes, one keybox index per
    cell (-1 for empty), with its dimensions hung off the typed array. */
 export type KeyGrid = Float64Array & {
   width : number, height : number,
   /* Screen px per cell. */
   ratio : number,
-  /* gridGen this grid was built at. */
-  gen : number
+  /* gridGen this grid was built at; unset until recalcGrid() runs, which is
+     what makes getGrid() rebuild a grid build() just made. */
+  gen? : number
 };
+
+function newKeyGrid(width : number, height : number, ratio : number) : KeyGrid {
+  return Object.assign(new Float64Array(width*height), {width, height, ratio});
+}
 
 let tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -68,7 +79,7 @@ let tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
 
 let CHGT = 25;
 
-export class TreeItem extends ColumnFrame {
+export class TreeItem extends ColumnFrame<FullContext> {
   /* Child key -> child item; the key is this item's own path component. */
   namemap: {[key : string] : TreeItem}
   name: string;
@@ -81,7 +92,7 @@ export class TreeItem extends ColumnFrame {
   /* The owning TreeItem, or the TreePanel at the root. */
   parent: TreeItem | undefined
   /* The row holding the expand icon and the label. */
-  widget: RowFrame
+  widget: RowFrame<FullContext>
   icon: IconButton;
 
   constructor() {
@@ -110,7 +121,7 @@ export class TreeItem extends ColumnFrame {
       return false;
     }
 
-    let p = this;
+    let p : TreeItem | undefined = this;
     while (p) {
       if (p.collapsed)
         return false;
@@ -132,7 +143,9 @@ export class TreeItem extends ColumnFrame {
       this.setCollapsed(!this.collapsed);
       if (treeDebug) console.log("click!");
 
-      let e = new CustomEvent("change", {target: this});
+      /* NOTE: this passed {target: this}, which CustomEvent ignores -- the
+         target of a dispatched event is always the node it is dispatched on. */
+      let e = new CustomEvent("change");
       this.dispatchEvent(e);
 
       if (this.onchange) {
@@ -151,8 +164,8 @@ export class TreeItem extends ColumnFrame {
   setCSS() {
     super.setCSS();
 
-    this.style["margin-left"] = "2px";
-    this.style["padding-left"] = "2px";
+    this.style.setProperty("margin-left", "2px");
+    this.style.setProperty("padding-left", "2px");
 
     if (this.widget !== undefined) {
       this.widget.remove();
@@ -169,13 +182,16 @@ export class TreeItem extends ColumnFrame {
     }
   }
 
+  /* NOTE: nothing calls this, which is just as well -- .parent is only ever
+     another TreeItem, so the TreePanel test never stops the walk and the root's
+     undefined parent makes p.path throw. */
   build_path() {
     let path = this.path;
-    let p = this;
+    let p : TreeItem | undefined = this;
 
     while (p !== undefined && !(p.parent instanceof TreePanel)) {
       p = p.parent;
-      path = p.path + "." + path;
+      path = p!.path + "." + path;
     }
 
     return path;
@@ -254,7 +270,7 @@ export class TreeItem extends ColumnFrame {
 
 UIBase.register(TreeItem);
 
-export class TreePanel extends ColumnFrame {
+export class TreePanel extends ColumnFrame<FullContext> {
   totpath: number
   /* Full dotted path -> the item that renders it. */
   pathmap: {[path : string] : TreeItem}
@@ -283,10 +299,10 @@ export class TreePanel extends ColumnFrame {
     this.tree.addEventListener("change", this._onchange);
   }
 
+  /* NOTE: this also set a _queueDagLink flag, which is DopeSheetEditor's
+     property; nothing on this class or in path.ux ever read it. */
   init() {
     super.init();
-
-    this._queueDagLink = true;
 
     this.setCSS();
     this._redraw();
@@ -313,7 +329,7 @@ export class TreePanel extends ColumnFrame {
   /* Serializes to a flat [version, pathid, collapsed, pathid, collapsed...]
      int array, which is what the STRUCT stores. */
   saveTreeData(existing_merge : number[] = []) {
-    let map = {};
+    let map : {[pathid : string] : boolean} = {};
 
     let version = existing_merge[0];
     for (let i = 1; i < existing_merge.length; i += 2) {
@@ -327,11 +343,11 @@ export class TreePanel extends ColumnFrame {
       let path = this.pathmap[k];
 
       if (treeDebug) console.log("  ", path._id, path._collapsed);
-      map[parseInt(path.pathid)] = path._collapsed;
+      map[path.pathid] = path._collapsed;
     }
 
     if (this.tree && !(this.tree.pathid in map)) {
-      map[parseInt(this.tree.pathid)] = this.tree.collapsed;
+      map[this.tree.pathid] = this.tree.collapsed;
     }
 
     let ret = [];
@@ -352,7 +368,7 @@ export class TreePanel extends ColumnFrame {
     //version
     let version = obj[0];
 
-    let map = {};
+    let map : {[pathid : number] : TreeItem} = {};
     for (let k in this.pathmap) {
       let path = this.pathmap[k];
 
@@ -369,10 +385,10 @@ export class TreePanel extends ColumnFrame {
       if (treeDebug) console.log("  pathid", pathid, "state", state);
 
       if (map[pathid] !== undefined) {
-        map[pathid].setCollapsed(state);
+        map[pathid].setCollapsed(!!state);
       }
 
-      this.treeData[pathid] = state;
+      this.treeData[pathid] = !!state;
     }
 
     if (treeDebug) console.log("loadTreeData", obj);
@@ -383,10 +399,11 @@ export class TreePanel extends ColumnFrame {
     return path in this.pathmap ? this.pathmap[path].collapsed : false;
   }
 
-  /* NOTE: rebuild_intern is *called* and its undefined return passed to
-     doOnce, rather than passed as the callback. */
+  /* NOTE: rebuild_intern was *called* here and its undefined return passed to
+     doOnce, which throws when it stamps _doOnce_reqs onto its argument.  Fixed;
+     rebuild_intern() is empty, so a call that used to throw now does nothing. */
   rebuild() {
-    this.doOnce(this.rebuild_intern());
+    this.doOnce(this.rebuild_intern);
   }
 
   reset() {
@@ -427,9 +444,9 @@ export class TreePanel extends ColumnFrame {
     this.setCSS();
   }
 
-  /* NOTE: _redraw takes no arguments. */
+  /* NOTE: the argument this passed was ignored; _redraw takes none. */
   _rebuild_redraw_all() {
-    this._redraw(true);
+    this._redraw();
   }
 
   recalc() {
@@ -593,10 +610,10 @@ export class PanOp extends ToolOp {
   first: boolean
   cameramat: Matrix4;
   ds: DopeSheetEditor
-  _last_dpi: number
+  _last_dpi: number | undefined
   /* view2d.cameramat as of modalStart; vestigial, the pan below works on the
      dopesheet's own pan instead. */
-  start_cameramat: Matrix4;
+  start_cameramat: Matrix4 | undefined;
 
   constructor(dopesheet : DopeSheetEditor) {
     super();
@@ -628,8 +645,13 @@ export class PanOp extends ToolOp {
     }
   }
 
-  modalStart(ctx : FullContext) {
+  /* NOTE: this never chains to super.modalStart(), which is what pushes the
+     modal handler -- so on_mousemove/on_mouseup below have never run and
+     dragging in the dopesheet does not pan it.  Reproduced as-is; the promise
+     is what the base returns. */
+  modalStart(ctx : FullContext) : Promise<unknown> {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
+    return Promise.resolve();
   }
 
   on_mousemove(event : MouseEvent) {
@@ -697,9 +719,8 @@ export class DopeSheetEditor extends Editor {
   posRegen: number
   gridGen: number
   activeBoxes: ActiveBoxes
-  /* NOTE: linkEventDag pushes plain callbacks in here, but dag_unlink_all
-     calls node.dag_unlink() on each -- which functions do not have. */
-  nodes: ((ctx, inputs, outputs, graph) => void)[];
+  /* Plain callbacks; link() stamps NodeBase's methods onto each. */
+  nodes: DagCallback[];
   mdown: boolean;
 
   _treeData!: number[]
@@ -747,13 +768,13 @@ export class DopeSheetEditor extends Editor {
     this.nodes = [];
     this.treeData = [];
     this.activeChannels = [];
-    this.activeBoxes = [];
+    this.activeBoxes = newActiveBoxes();
 
     this.pan = new Vector2();
     this.zoom = 1.0;
     this.timescale = 1.0;
 
-    this.canvas = this.getCanvas("bg");
+    this.canvas = this.getCanvas("bg", -1);
     this._animreq = undefined;
     this.pinned_ids = [];
 
@@ -870,14 +891,21 @@ export class DopeSheetEditor extends Editor {
     //row.add(this.channels);
     this.shadow.appendChild(this.channels);
 
-    this.startbutton = this.header.iconbutton(Icons.ANIM_START, "Animation Playback", () => {
+    /* Editors get their header before init() runs. */
+    let header = this.header!;
+
+    this.startbutton = header.iconbutton(Icons.ANIM_START, "Animation Playback", () => {
       console.log("playback");
     });
     this.startbutton.iconsheet = 0;
 
-    let prev = this.header.tool("anim.nextprev(dir=-1)", PackFlags.USE_ICONS);
-    prev.icon = Icons.ANIM_PREV;
-    prev.iconsheet = 0;
+    /* USE_ICONS makes tool() hand back an IconButton, unless the toolpath does
+       not resolve, in which case it hands back nothing at all. */
+    let prev = header.tool("anim.nextprev(dir=-1)", PackFlags.USE_ICONS);
+    if (prev instanceof IconButton) {
+      prev.icon = Icons.ANIM_PREV;
+      prev.iconsheet = 0;
+    }
 
     /*
     this.prevbutton = this.header.iconbutton(Icons.ANIM_PREV, "Previous Keyframe", () => {
@@ -885,24 +913,26 @@ export class DopeSheetEditor extends Editor {
     });
     this.prevbutton.iconsheet = 0;*/
 
-    this.playbutton = this.header.iconbutton(Icons.ANIM_PLAY, "Animation Playback", () => {
+    this.playbutton = header.iconbutton(Icons.ANIM_PLAY, "Animation Playback", () => {
       console.log("playback");
       this.ctx.screen.togglePlayback();
     });
     this.playbutton.iconsheet = 0;
 
-    let next = this.header.tool("anim.nextprev(dir=1)", PackFlags.USE_ICONS);
-    next.icon = Icons.ANIM_NEXT;
-    next.iconsheet = 0;
+    let next = header.tool("anim.nextprev(dir=1)", PackFlags.USE_ICONS);
+    if (next instanceof IconButton) {
+      next.icon = Icons.ANIM_NEXT;
+      next.iconsheet = 0;
+    }
 
-    this.endbutton = this.header.iconbutton(Icons.ANIM_END, "Animation Playback", () => {
+    this.endbutton = header.iconbutton(Icons.ANIM_END, "Animation Playback", () => {
       console.log("playback");
     });
     this.endbutton.iconsheet = 0;
 
 
-    this.header.prop("scene.frame");
-    this.header.prop("dopesheet.timescale");
+    header.prop("scene.frame");
+    header.prop("dopesheet.timescale");
 
     this._queueDagLink = true;
 
@@ -914,7 +944,8 @@ export class DopeSheetEditor extends Editor {
 
   dag_unlink_all() {
     for (let node of this.nodes) {
-      node.dag_unlink();
+      /* link() copied NodeBase's prototype onto every callback in here. */
+      node.dag_unlink!();
     }
 
     this.nodes = [];
@@ -924,7 +955,7 @@ export class DopeSheetEditor extends Editor {
     let hash = 0;
     let add = 0;
 
-    function dohash(h) {
+    function dohash(h : number) {
       h = ((h + add)*((1<<19) - 1)) & ((1<<19) - 1);
       add = (add + (1<<25)) & ((1<<19) - 1);
 
@@ -992,8 +1023,8 @@ export class DopeSheetEditor extends Editor {
       this.linkEventDag();
     }
 
-    if (this.boxSize !== this.getDefault("boxSize")) {
-      this.boxSize = this.getDefault("boxSize");
+    if (this.boxSize !== this.getDefault<number>("boxSize")) {
+      this.boxSize = this.getDefault<number>("boxSize");
       this.rebuild();
       return;
     }
@@ -1018,9 +1049,9 @@ export class DopeSheetEditor extends Editor {
     stylekey += this.getDefault("keyBorderWidth");
     stylekey += this.getDefault("textShadowColor");
     stylekey += this.getDefault("textShadowSize");
-    stylekey += this.getDefault("DefaultText").color;
-    stylekey += this.getDefault("DefaultText").size;
-    stylekey += this.getDefault("DefaultText").font;
+    stylekey += this.getDefault<CSSFont>("DefaultText").color;
+    stylekey += this.getDefault<CSSFont>("DefaultText").size;
+    stylekey += this.getDefault<CSSFont>("DefaultText").font;
 
 
     if (stylekey !== this._last_style_key_1) {
@@ -1256,10 +1287,7 @@ export class DopeSheetEditor extends Editor {
 
     let gw = canvas.width>>2;
     let gh = canvas.height>>2;
-    let grid = this.grid = new Float64Array(gw*gh);
-    grid.width = gw;
-    grid.height = gh;
-    grid.ratio = 4.0;
+    let grid = this.grid = newKeyGrid(gw, gh, 4.0);
 
     for (let i = 0; i < grid.length; i++) {
       grid[i] = -1;
@@ -1269,9 +1297,8 @@ export class DopeSheetEditor extends Editor {
 
     this.channels.reset();
     this.activeChannels = [];
-    this.activeBoxes = [];
-    this.activeBoxes.highlight = undefined;
-    let paths = {};
+    this.activeBoxes = newActiveBoxes();
+    let paths : {[eid : number] : TreeItem} = {};
 
     //this.channels.loadTreeData(this.treeData);
 
@@ -1303,12 +1330,12 @@ export class DopeSheetEditor extends Editor {
       let spline = frameset.spline;
       let keys = this.keyboxes;
 
-      let ts = this.getDefault("DefaultText").size*UIBase.getDPI();
+      let ts = this.getDefault<CSSFont>("DefaultText").size*UIBase.getDPI();
       let lineh = ts*1.5; //Math.max(ts*1.5, this.boxSize);
       let y = lineh*0.5;
 
       for (let k in paths) {
-        let v = spline.eidmap[k];
+        let v = spline.eidmap[parseInt(k)];
 
         if (!v) {
           console.warn("missing vertex", k);
@@ -1319,15 +1346,14 @@ export class DopeSheetEditor extends Editor {
         let path = paths[v.eid];
         if (!path) continue;
         if (path.isVisible) {
-          y = this.channels.get_y(path)/this.zoom;
+          /* NOTE: an unmeasured row makes get_y() return undefined, and
+             undefined/zoom is NaN rather than undefined -- so the `y ===
+             undefined` test that used to follow never fired and the 155ms
+             retry it guarded never ran.  The dead branch is dropped; guarding
+             on the raw result instead would switch it on for the first time. */
+          y = this.channels.get_y(path)!/this.zoom;
           //y += lineh;
           //this.channels.set_y(path, y / this.zoom);
-
-          if (y === undefined) {
-            this.regen = 2;
-            window.setTimeout(stage2, 155);
-            return;
-          }
         }
 
         let vd = frameset.vertex_animdata[v.eid];
@@ -1397,7 +1423,8 @@ export class DopeSheetEditor extends Editor {
       if (type === AnimKeyTypes.SPLINE) {
         let v = pathspline.eidmap[eid2];
 
-        if (!v) {
+        /* eidmap holds every element kind; only a vertex carries a keytime. */
+        if (!(v instanceof SplineVertex)) {
           console.warn("Missing vertex animkey in dopesheet; rebuilding. . .");
           this.rebuild();
           return;
@@ -1445,12 +1472,8 @@ export class DopeSheetEditor extends Editor {
     console.log("rebuilding grid");
 
     if (!this.grid) {
-      let ratio = 4;
       let gw = this.canvas.width>>2, gh = this.canvas.height>>2;
-      this.grid = new Float64Array(gw*gh);
-      this.grid.width = gw;
-      this.grid.height = gh;
-      this.grid.ratio = ratio;
+      this.grid = newKeyGrid(gw, gh, 4);
     }
 
     let grid = this.grid;
@@ -1461,7 +1484,7 @@ export class DopeSheetEditor extends Editor {
       grid[i] = -1;
     }
 
-    this.activeBoxes = [];
+    this.activeBoxes = newActiveBoxes();
     let p = new Vector2();
 
     let ks = this.keyboxes;
@@ -1531,7 +1554,7 @@ export class DopeSheetEditor extends Editor {
     let boxsize = this.boxSize, timescale = this.timescale;
     let zoom = this.zoom, pan = this.pan;
 
-    let canvas = this.canvas = this.getCanvas("bg", "-1");
+    let canvas = this.canvas = this.getCanvas("bg", -1);
     let g = this.canvas.g;
 
     if (_DEBUG.timeChange)
@@ -1604,7 +1627,7 @@ export class DopeSheetEditor extends Editor {
     };
 
     let highColor = this.getDefault("keyHighlight");
-    let border = this.getDefault("keyBorder");
+    let border : string | undefined = this.getDefault("keyBorder");
     g.strokeStyle = border;
     let lw2 = g.lineWidth;
     g.lineWidth = this.getDefault("keyBorderWidth");
@@ -1652,9 +1675,9 @@ export class DopeSheetEditor extends Editor {
     if (_DEBUG.timeChange)
       console.log("D", off, tot, bwid);
 
-    let ts = this.getDefault("DefaultText").size*UIBase.getDPI();
-    g.fillStyle = this.getDefault("DefaultText").color;
-    g.font = this.getDefault("DefaultText").genCSS(ts);
+    let ts = this.getDefault<CSSFont>("DefaultText").size*UIBase.getDPI();
+    g.fillStyle = this.getDefault<CSSFont>("DefaultText").color;
+    g.font = this.getDefault<CSSFont>("DefaultText").genCSS(ts);
 
     g.strokeStyle = "rgba(0,0,0, 0.5)";
 
@@ -1732,22 +1755,22 @@ export class DopeSheetEditor extends Editor {
 
     this._queueDagLink = false;
 
-    /* NOTE: an arrow function has no `arguments` of its own, so this
-       forwards linkEventDag's arguments -- always none. */
-    let on_sel = () => {
+    /* NOTE: this spread `arguments`, which an arrow function does not have of
+       its own -- so it forwarded linkEventDag's, which is always empty. */
+    let on_sel : DagCallback = () => {
       console.log("------------------on sel!----------------");
-      return this.on_vert_select(...arguments);
+      return this.on_vert_select();
     }
 
-    let on_vert_change = (ctx : FullContext, inputs, outputs, graph) => {
+    let on_vert_change : DagCallback = (ctx, inputs, outputs, graph) => {
       this.rebuild();
     };
 
-    let on_vert_time_change = (ctx : FullContext, inputs, outputs, graph) => {
+    let on_vert_time_change : DagCallback = (ctx, inputs, outputs, graph) => {
       this.updateKeyPositions();
     };
 
-    let on_time_change = (ctx : FullContext, inputs, outputs, graph) => {
+    let on_time_change : DagCallback = (ctx, inputs, outputs, graph) => {
       if (_DEBUG.timeChange)
         console.log("dopesheet time change callback");
       this.redraw();

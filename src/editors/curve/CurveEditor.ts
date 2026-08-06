@@ -1,3 +1,4 @@
+import type {FullContext} from "../../core/context.js";
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
@@ -5,9 +6,12 @@ import {Editor} from '../editor_base.js';
 import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 import { DropBox } from '../../path.ux/scripts/pathux.js';
 import {pushModalLight, popModalLight} from '../../path.ux/scripts/util/simple_events.js';
+import type {ModalState} from '../../path.ux/scripts/path-controller/util/simple_events.js';
+import {IndexRange} from '../../path.ux/scripts/path-controller/util/indexRange.js';
 
-/* NOTE: CurveEdit.on_mousedown calls this with only `edit`, so x and y come
-   through undefined and the initial mouse position is NaN. */
+/* NOTE: CurveEdit.on_mousedown called this with only `edit`, so x and y came
+   through undefined and startmpos/lastmpos were NaN.  Nothing read either
+   before the first mousemove overwrote them, so this only ever looked wrong. */
 function startPan(edit : CurveEdit, x : number, y : number) {
   if (edit._modaldata) {
     popModalLight(edit._modaldata);
@@ -21,7 +25,10 @@ function startPan(edit : CurveEdit, x : number, y : number) {
   let dv = new Vector2();
   let first = true;
 
-  edit._modaldata = pushModalLight({
+  /* Hoisted out of the pushModalLight() call so the handlers can reach stop();
+     path.ux types the argument as a bare property bag, which leaves `this`
+     unknown inside it. */
+  let handlers = {
     on_mousedown(e : MouseEvent) {
     },
 
@@ -44,7 +51,7 @@ function startPan(edit : CurveEdit, x : number, y : number) {
     },
 
     on_mouseup(e : MouseEvent) {
-      this.stop();
+      handlers.stop();
     },
 
     stop() {
@@ -56,21 +63,24 @@ function startPan(edit : CurveEdit, x : number, y : number) {
 
     on_keydown(e : KeyboardEvent) {
       if (e.keyCode === 27) {
-        this.stop();
+        handlers.stop();
       }
     }
-  });
+  };
+
+  edit._modaldata = pushModalLight(handlers);
 }
 
-export class CurveEdit extends UIBase {
+export class CurveEdit extends UIBase<FullContext> {
   /* Set while a pan is running; the token popModalLight() needs. */
-  _modaldata;
+  _modaldata : ModalState | undefined;
   curvePaths : Path2D[];
   /* True between redraw() and the queued draw(). */
   _drawreq : boolean;
   size : Vector2;
   canvas : HTMLCanvasElement;
-  g : Canvas2D;
+  /* A plain 2d context; draw() uses nothing the app's Canvas2D adds. */
+  g : CanvasRenderingContext2D;
   pan : Vector2;
   zoom : Vector2;
   mdown! : boolean;
@@ -82,7 +92,7 @@ export class CurveEdit extends UIBase {
 
     this.size = new Vector2([512, 512]);
     this.canvas = document.createElement("canvas");
-    this.g = this.canvas.getContext("2d");
+    this.g = this.canvas.getContext("2d")!;
     this.shadow.appendChild(this.canvas);
 
     this.pan = new Vector2();
@@ -96,7 +106,7 @@ export class CurveEdit extends UIBase {
   on_mousedown(e : MouseEvent) {
     this.mdown = true;
 
-    startPan(this);
+    startPan(this, e.x, e.y);
     console.log("mdown");
   }
 
@@ -147,7 +157,10 @@ export class CurveEdit extends UIBase {
 
     g.fillStyle = "orange";
 
-    for (let step=0; step<2; step++) {
+    /* IndexRange() yields 0|1, which is what indexing a Vector2 wants. */
+    for (const step of IndexRange(2)) {
+      const step2 = step === 0 ? 1 : 0;
+
       let steps = Math.floor(this.size[step]  / csize + 1.0);
 
       let off = this.pan[step] % csize;
@@ -155,7 +168,7 @@ export class CurveEdit extends UIBase {
 
       for (let i=0; i<steps; i++) {
         let val = i - Math.floor(this.pan[step] / csize);
-        val = val.toFixed(1);
+        let valstr = val.toFixed(1);
 
         if (x >= this.size[step] - pad) {
           break;
@@ -165,8 +178,8 @@ export class CurveEdit extends UIBase {
         let v2 = [0, 0];
 
         v1[step] = v2[step] = x;
-        v1[step^1] = pad;
-        v2[step^1] = this.size[step^1]-pad;
+        v1[step2] = pad;
+        v2[step2] = this.size[step2]-pad;
 
         if (x >= pad) {
           let a = 1.0;
@@ -189,14 +202,14 @@ export class CurveEdit extends UIBase {
           g.stroke();
 
           v1[step] = v2[step] = x;
-          v1[step^1] = 0;
-          v2[step^1] = this.size[step^1];
+          v1[step2] = 0;
+          v2[step2] = this.size[step2];
 
           if (!step) {
             v1[1] += fsize*1.45;
           }
 
-          g.fillText(""+val, 10+v1[0], v1[1]);
+          g.fillText(valstr, 10+v1[0], v1[1]);
         }
         x += csize;
       }

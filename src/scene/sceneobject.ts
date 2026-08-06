@@ -1,8 +1,8 @@
 import {STRUCT} from '../core/struct.js';
 import {structInherit} from '../core/struct_facade.js';
-import {DataTypes, DataBlock} from "../core/lib_api.js";
+import {DataTypes, DataBlock, DataRef} from "../core/lib_api.js";
 import type {GetBlockFunc, GetBlockUserFunc} from "../core/lib_api.js";
-import type {SplineFrameSet} from "../core/frameset.js";
+import {SplineFrameSet} from "../core/frameset.js";
 import type {Scene} from './scene.js';
 
 export let UpdateFlags = {
@@ -70,14 +70,19 @@ export class SceneObject extends DataBlock {
   /* NOTE: dead -- the viewport draws framesets directly, never through the
      SceneObject.  uniforms are webgl-style uniforms even if we're not
      necassarily drawn with webgl. */
-  draw(scene : Scene, drawer, uniforms) {
+  draw(scene : Scene, drawer : unknown, uniforms : unknown) {
 
   }
 
-  /* NOTE: getblock_us really wants (dataref, block, fieldname); dropping the
-     last two leaves it building its rem_func from a pair of undefineds. */
+  /* NOTE: getblock_us was called with only the dataref; it also wants the
+     owning block and the field name, without which it built its rem_func from
+     a pair of undefineds. */
   data_link(block : DataBlock, getblock : GetBlockFunc, getblock_us : GetBlockUserFunc) {
-    this.data = getblock_us(this.data);
+    let data = getblock_us(new DataRef(this.data), this, "data");
+
+    if (data instanceof SplineFrameSet) {
+      this.data = data;
+    }
   }
 
   update(flag = UpdateFlags.REDRAW) {

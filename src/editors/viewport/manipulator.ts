@@ -9,16 +9,38 @@ import {dist_to_line_v2} from '../../util/mathlib.js';
 import * as config from '../../config/config.js';
 import type {FullContext} from '../../core/context.js';
 import type {View2DHandler} from './view2d.js';
-import type {NodeBase} from '../../core/eventdag.js';
+import type {DirectNode, SocketMap, EventDag} from '../../core/eventdag.js';
+import {globalDag} from '../../core/eventdag.js';
 
 /* A ToolOp subclass that knows how to build its own manipulator; the manager
    only ever touches this one static. */
 export type WidgetToolOpClass = {
-  create_widgets(manager : ManipulatorManager, ctx : FullContext) : Manipulator;
+  /* Returns nothing when there is too little selected to hang a widget on. */
+  create_widgets(manager : ManipulatorManager,
+                 ctx : FullContext) : Manipulator | undefined;
 };
 
 /* One rect the compositor has to repaint: [x, y, width, height]. */
 export type RenderRect = number[];
+
+/* What View2DHandler._widget_mouseevent() hands the widgets: view-space
+   coordinates, the screen-space ones they came from, and the modifiers. It is
+   a plain object built per event, not a DOM event. */
+export interface WidgetEvent {
+  type : string;
+  x : number;
+  y : number;
+  origX : number;
+  origY : number;
+  shiftKey : boolean;
+  ctrlKey : boolean;
+  altKey : boolean;
+  /* NOTE: `commandKey` is not a DOM property, so it copies as undefined.
+     `button` is never copied at all, which is why the middle/right-button
+     guard in ManipulatorManager.on_click below never fires. */
+  commandKey? : boolean;
+  button? : number;
+}
 
 export let ManipFlags = {};
 
@@ -47,9 +69,12 @@ export class HandleBase {
   parent! : Manipulator;
   /* Extra px added around the handle's aabb when asking for a redraw. */
   _redraw_pad! : number;
+  /* Set by both handle types; a transparent handle is skipped by findnearest. */
+  transparent! : boolean;
 
-  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
-
+  on_click(e : WidgetEvent, view2d : View2DHandler,
+           id : string | number) : boolean | undefined {
+    return undefined;
   }
 
   on_active() {
@@ -62,7 +87,7 @@ export class HandleBase {
     this.update();
   }
 
-  distanceTo(p : number[]) {
+  distanceTo(p : number[]) : number {
     throw new Error("unimplemented distanceTo");
   }
 
@@ -114,7 +139,6 @@ export class ManipHandle extends HandleBase {
     this.v2 = v2;
     this.transparent = false; //are we transparent to events?
     this.color = clr === undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
-    this.parent = undefined;
     this.linewidth = 1.5;
 
     if (this.color.length === 3)
@@ -125,8 +149,9 @@ export class ManipHandle extends HandleBase {
     this._redraw_pad = this.linewidth;
   }
 
-  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
-
+  on_click(e : WidgetEvent, view2d : View2DHandler,
+           id : string | number) : boolean | undefined {
+    return undefined;
   }
 
   on_active() {
@@ -283,7 +308,6 @@ export class ManipCircle extends HandleBase {
     this.r = r;
     this.transparent = false; //are we transparent to events?
     this.color = clr === undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
-    this.parent = undefined;
     this.linewidth = 1.5;
 
     if (this.color.length === 3)
@@ -294,8 +318,9 @@ export class ManipCircle extends HandleBase {
     this._redraw_pad = this.linewidth;
   }
 
-  on_click(e : MouseEvent, view2d : View2DHandler, id : string | number) {
-
+  on_click(e : WidgetEvent, view2d : View2DHandler,
+           id : string | number) : boolean | undefined {
+    return undefined;
   }
 
   on_active() {
@@ -393,19 +418,24 @@ var _mp_first = true;
 export class Manipulator {
   recalc: number
   handle_size: number
-  co: Vector3
+  /* View-space origin the handles are drawn relative to.  Both create_widgets()
+     implementations hand this a Vector2. */
+  co: Vector2
   hidden: boolean;
   dead: boolean;
 
   _hid: number
   handles: HandleBase[]
-  parent: ManipulatorManager
+  /* Assigned by ManipulatorManager.push(); a free-standing Manipulator has
+     none until then. */
+  parent!: ManipulatorManager
   /* Free slot for the toolop that built this widget; nothing in this file
      reads it. */
   user_data: object | undefined
   ctx: FullContext
-  /* The event-dag node that ticks this manipulator once per redraw. */
-  _node!: NodeBase
+  /* The event-dag node that ticks this manipulator once per redraw.  Written
+     by checkDagLink() and never read back. */
+  _node!: DirectNode
   /* The toolop class this widget drives, used by the manager to tell whether
      the right widget is already up. */
   toolop_class!: WidgetToolOpClass
@@ -416,7 +446,6 @@ export class Manipulator {
     this._hid = _mh_idgen_2++;
     this.handles = handles.slice(0, handles.length); //copy handles
     this.recalc = 1;
-    this.parent = undefined;
     this.user_data = undefined;
     this.dead = false;
 
@@ -430,7 +459,7 @@ export class Manipulator {
       manipulator is passed to callback.
      */
     this.handle_size = 65;
-    this.co = new Vector3();
+    this.co = new Vector2();
     this.hidden = false;
   }
 
@@ -447,7 +476,8 @@ export class Manipulator {
     }
   }
 
-  dag_exec(ctx : FullContext, inputs, outputs, graph) {
+  dag_exec(ctx : FullContext, inputs : SocketMap, outputs : SocketMap,
+           graph : EventDag) {
     if (this.dead || this.hidden) {
       the_global_dag.remove(this);
       window.redraw_viewport();
@@ -458,11 +488,17 @@ export class Manipulator {
   }
 
   checkDagLink(ctx : FullContext) {
-    if (!window.the_global_dag.has(this)) {
+    if (!globalDag().has(this)) {
       console.warn("MAKING DAG CONNECTION", this);
 
-      this._node = window.the_global_dag.direct_node(ctx, this, true);
-      window.the_global_dag.link(ctx.view2d, "onDrawPre", this, "depend");
+      let node = globalDag().direct_node(ctx, this, true);
+
+      if (node === undefined) {
+        throw new Error("failed to make a dag node for " + this);
+      }
+
+      this._node = node;
+      globalDag().link(ctx.view2d, "onDrawPre", this, "depend");
 
       window.redraw_viewport();
     }
@@ -521,7 +557,7 @@ export class Manipulator {
   }
 
   get_render_rects(ctx : FullContext, canvas : HTMLCanvasElement, g : Canvas2D) : RenderRect[] {
-    let rects = [];
+    let rects : RenderRect[] = [];
 
     if (this.hidden) {
       return rects;
@@ -593,7 +629,7 @@ export class Manipulator {
     return h;
   }
 
-  findnearest(e : MouseEvent) {
+  findnearest(e : WidgetEvent) {
     let limit = config.MANIPULATOR_MOUSEOVER_LIMIT;
 
     let h = this.handles[0];
@@ -615,7 +651,7 @@ export class Manipulator {
     return minh;
   }
 
-  on_mousemove(e: MouseEvent, view2d: View2DHandler): boolean {
+  on_mousemove(e: WidgetEvent, view2d: View2DHandler): boolean {
     //console.log("handle", e.x.toFixed(3), e.y.toFixed(3), ":", (this.co[0]+h.v1[0]).toFixed(3), (this.co[1]+h.v1[1]).toFixed(3));
     let h = this.findnearest(e);
 
@@ -637,7 +673,7 @@ export class Manipulator {
   }
 
   /*returns true if handle hit*/
-  on_click(event: MouseEvent, view2d: View2DHandler) {
+  on_click(event: WidgetEvent, view2d: View2DHandler) {
     return this.active !== undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
   }
 }
@@ -719,17 +755,18 @@ export class ManipulatorManager {
   }
 
   /* NOTE: `ret` is never returned, so this pops without handing the caller
-     back what it popped. */
+     back what it popped.  The pop() also took an index; `stack` is a plain
+     array, whose pop() takes none and ignored it. */
   pop() {
     let ret = this.active;
-    this.active = this.stack.pop(-1);
+    this.active = this.stack.pop();
   }
 
-  on_mousemove(event: MouseEvent, view2d: View2DHandler) {
+  on_mousemove(event: WidgetEvent, view2d: View2DHandler) {
     return this.active !== undefined ? this.active.on_mousemove(event, view2d) : undefined;
   }
 
-  on_click(event: MouseEvent, view2d: View2DHandler) {
+  on_click(event: WidgetEvent, view2d: View2DHandler) {
     if (event.button === 1 || event.button === 2) {
       return;
     }

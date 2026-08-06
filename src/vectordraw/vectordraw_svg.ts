@@ -10,8 +10,9 @@ import {
   VectorFlags, VectorVertex, PathBase,
   VectorDraw
 } from './vectordraw_base.js';
+import type {ColorLike} from './vectordraw_base.js';
 
-var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
+var canvaspath_draw_mat_tmps = new cachering(() => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(32);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
@@ -26,17 +27,26 @@ var CCMD=0, CARGLEN=1;
 var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6,
     STROKEWIDTH=7, NOAUTOFILL=8, FILL=9;
 
-var NS = "http://www.w3.org/2000/svg";
-var XLS = "http://www.w3.org/1999/xlink"
+/* const, so createElementNS() below resolves to its SVG overload. */
+const NS = "http://www.w3.org/2000/svg";
+const XLS = "http://www.w3.org/1999/xlink"
 
 export function makeElement(type : string,
                             attrs : {[k : string] : string | number} = {}) {
   var ret = document.createElementNS(NS, type);
   for (var k in attrs) {
-    ret.setAttributeNS(null, k, attrs[k]);
+    ret.setAttributeNS(null, k, "" + attrs[k]);
   }
 
   return ret;
+}
+
+/* getElementById() is typed for HTML documents, and every id looked up in this
+   module names a node makeElement() built; a miss reads as undefined rather
+   than null. */
+function findElement(id : string) : SVGElement | undefined {
+  let ret = document.getElementById(id);
+  return ret instanceof SVGElement ? ret : undefined;
 }
 
 export class SVGPath extends PathBase {
@@ -52,11 +62,14 @@ export class SVGPath extends PathBase {
   _last_z : number | undefined;
   /* The <path>, its blur <filter>, the <clipPath>, and the <use> node that
      places it inside the main group. */
-  domnode : Element | undefined;
-  filternode : Element | undefined;
-  clipnode : Element | undefined;
-  usenode : Element | undefined;
+  domnode : SVGElement | undefined;
+  filternode : SVGElement | undefined;
+  clipnode : SVGElement | undefined;
+  usenode : SVGElement | undefined;
   hidden! : boolean;
+
+  /* Anything clipping an SVG path is another SVG path. */
+  declare clip_paths : set<SVGPath>;
 
   constructor() {
     super();
@@ -136,10 +149,10 @@ export class SVGPath extends PathBase {
     this._pushCmd(FILL);
   }
 
-  pushStroke(color? : number[], width? : number) {
+  pushStroke(color? : ColorLike, width? : number) {
     if (color) {
       let a = color[3] || 1.0;
-      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
+      this._pushCmd(STROKECOLOR, color[0]!, color[1]!, color[2]!, a, 0.5);
     }
 
     if (width) {
@@ -215,7 +228,8 @@ export class SVGPath extends PathBase {
   }
 
   get_dom_id(draw : SVGDraw2D, id2 = 0) {
-    return draw.svg.id + "_path_" + this.id + "_" + id2;
+    /* draw() builds the svg before any path becomes reachable. */
+    return draw.svg!.id + "_path_" + this.id + "_" + id2;
   }
 
   gen(draw : SVGDraw2D, _check_tag = 0) {
@@ -227,6 +241,9 @@ export class SVGPath extends PathBase {
     }
 
     this.recalc = 0;
+
+    /* Same as get_dom_id(): all three exist before a path can be drawn. */
+    let svg = draw.svg!, defs = draw.defs!, group = draw.group!;
 
     var do_clip = this.clip_paths.length > 0;
     var do_blur = this.blur > 0.0;
@@ -257,20 +274,20 @@ export class SVGPath extends PathBase {
     var node = this.domnode;
 
     if (!node) {
-      node = this.domnode = document.getElementById(domid);
+      node = this.domnode = findElement(domid);
 
       if (!node) {
         node = this.domnode = makeElement("path");
         node.id = domid;
         node.setAttributeNS(null, "id", domid);
 
-        draw.defs.appendChild(node);
+        defs.appendChild(node);
         //draw.group.appendChild(node);
 
         var useid = domid + "_use";
 
         //remove any existing usenodes
-        var usenode = document.getElementById(useid);
+        var usenode = findElement(useid);
         if (usenode) {
           usenode.remove();
         }
@@ -280,31 +297,31 @@ export class SVGPath extends PathBase {
         });
 
         usenode.setAttributeNS(XLS, "xlink:href", "#"+domid);
-        draw.group.appendChild(usenode);
+        group.appendChild(usenode);
 
         this.usenode = usenode;
       }
     }
 
     if (!this.usenode) {
-      this.usenode = document.getElementById(domid + "_use");
+      this.usenode = findElement(domid + "_use");
     }
 
     //force update of z position if necassary
-    for (var i=0; i<draw.group.childNodes.length; i++) {
-      if (draw.group.childNodes[i] === this.usenode) {
+    for (var i=0; i<group.childNodes.length; i++) {
+      if (group.childNodes[i] === this.usenode) {
         this._last_z = i; //account for defs node
         //console.log("Found last z!", this.z, this._last_z);
         break;
       }
     }
 
-    var fid = draw.svg.id + "_" + this.id + "_blur";
-    var blur, filter;
+    var fid = svg.id + "_" + this.id + "_blur";
+    var blur : Element | null = null, filter : SVGElement | undefined;
 
     if (this.blur*draw.zoom > 1) {
       if (!this.filternode) {
-        filter = this.filternode = document.getElementById(fid);
+        filter = this.filternode = findElement(fid);
       } else {
         filter = this.filternode;
       }
@@ -318,8 +335,7 @@ export class SVGPath extends PathBase {
       if (!filter) {
         //console.log("wratio, hratio:", wratio.toFixed(4), hratio.toFixed(4));
 
-        var defs = draw.defs;
-        var filter = this.filternode = makeElement("filter", {
+        filter = this.filternode = makeElement("filter", {
           id : fid,
           x : fx,
           y : fy,
@@ -327,7 +343,7 @@ export class SVGPath extends PathBase {
           height : fheight
         });
 
-        var blur = makeElement("feGaussianBlur", {
+        blur = makeElement("feGaussianBlur", {
           stdDeviation : ~~(Math.abs(this.blur*draw.zoom*0.25)),
           "in" : "SourceGraphic"
         });
@@ -346,12 +362,14 @@ export class SVGPath extends PathBase {
         if (filter.getAttributeNS(null, "height") !== fheight)
           filter.setAttributeNS(null, "hratio", fheight);
 
-        blur = filter.childNodes[0];
+        /* firstElementChild, not childNodes[0]: only an element has the
+           attribute calls below, and the filter has no other children. */
+        blur = filter.firstElementChild;
 
-        if (!blur.hasAttributeNS(null, "stdDeviation") ||
-            parseFloat(blur.getAttributeNS(null, "stdDeviation")) !== ~~(this.blur*draw.zoom*0.5))
+        if (!blur!.hasAttributeNS(null, "stdDeviation") ||
+            parseFloat(blur!.getAttributeNS(null, "stdDeviation")!) !== ~~(this.blur*draw.zoom*0.5))
         {
-          blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom*0.5));
+          blur!.setAttributeNS(null, "stdDeviation", "" + ~~(this.blur*draw.zoom*0.5));
         }
       }
     } else if (this.filternode) {
@@ -361,20 +379,20 @@ export class SVGPath extends PathBase {
       this.filternode = undefined;
     }
 
-    var clipid = draw.svg.id + "_" + this.id + "_clip";
+    var clipid = svg.id + "_" + this.id + "_clip";
 
     if (this.clip_paths.length > 0) {
       var clip = this.clipnode;
 
       if (!clip) {
-        clip = this.clipnode = document.getElementById(clipid);
+        clip = this.clipnode = findElement(clipid);
       }
 
       if (!clip) {
         clip = this.clipnode = makeElement("clipPath", {
           id : clipid
         });
-        draw.defs.appendChild(clip);
+        defs.appendChild(clip);
 
         for (var path of this.clip_paths) {
           if (path.recalc) {
@@ -382,17 +400,17 @@ export class SVGPath extends PathBase {
             path.gen(draw, 1);
           }
 
-          var usenode = makeElement("use");
-          //console.log(usenode.constructor);
+          var clipuse = makeElement("use");
+          //console.log(clipuse.constructor);
 
-          usenode.setAttributeNS(XLS, "xlink:href", "#"+path.domnode.getAttributeNS(null, "id"));
+          clipuse.setAttributeNS(XLS, "xlink:href", "#"+path.domnode!.getAttributeNS(null, "id"));
           //usenode.setAttributeNS(null, "x", path.off[0]);
           //usenode.setAttributeNS(null, "y", path.off[1]);
 
           //var transform = "translate(" + (path.off[0]) + "," + (path.off[1]) + ")";
           //usenode.setAttributeNS(null, "transform", transform);
 
-          clip.appendChild(usenode);
+          clip.appendChild(clipuse);
         }
       }
 
@@ -421,7 +439,7 @@ export class SVGPath extends PathBase {
     var co = canvaspath_draw_vs.next().zero();
 
     if (!node) {
-      node = document.getElementById(domid);
+      node = findElement(domid);
       console.log("undefined node!", this.domnode, document.getElementById(domid), domid);
       return;
     }
@@ -453,7 +471,7 @@ export class SVGPath extends PathBase {
       //console.log(cmd, arglen);
 
       var tmp = canvaspath_draw_args_tmps[arglen];
-      var h = parseFloat(draw.svg.getAttributeNS(null, "height"));
+      var h = parseFloat(svg.getAttributeNS(null, "height")!);
 
       //*
       switch (cmd) {
@@ -521,7 +539,7 @@ export class SVGPath extends PathBase {
     node.setAttributeNS(null, "d", d);
   }
 
-  reset(draw : VectorDraw) {
+  reset(draw? : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -547,7 +565,9 @@ export class SVGPath extends PathBase {
       this._last_off[1] = offy;
 
       var transform = "translate(" + offx + "," + offy + ")";
-      this.usenode.setAttributeNS(null, "transform", transform);
+      /* gen() above just built it, unless the path is hidden -- and hidden
+         paths are never drawn. */
+      this.usenode!.setAttributeNS(null, "transform", transform);
     }
   }
 
@@ -556,14 +576,11 @@ export class SVGPath extends PathBase {
   }
 }
 
-export class SVGDraw2D extends VectorDraw {
-  paths : SVGPath[]
-  path_idmap : {[id : number] : SVGPath}
-
+export class SVGDraw2D extends VectorDraw<SVGPath> {
   /* The <svg> this draw owns, plus the two children every path hangs off. */
-  svg : Element | undefined;
-  defs : Element | undefined;
-  group : Element | undefined;
+  svg : SVGElement | undefined;
+  defs : SVGElement | undefined;
+  group : SVGElement | undefined;
   /* Zoom/pan digest; a change forces every path to regenerate. */
   _last_update_key : string | undefined;
 
@@ -574,7 +591,7 @@ export class SVGDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     this.matrix = new Matrix4();
 
     for (var i=0; i<this.matstack.length; i++) {
@@ -585,7 +602,7 @@ export class SVGDraw2D extends VectorDraw {
 
   static get_canvas(id : string, width : number, height : number,
                     zindex : number) {
-    var ret = document.getElementById(id);
+    var ret = findElement(id);
 
     if (!ret) {
       ret = makeElement("svg", {
@@ -595,19 +612,23 @@ export class SVGDraw2D extends VectorDraw {
 
       ret.id = id;
       ret.setAttributeNS(null, "id", id);
-      ret.style["position"] = "absolute";
-      ret.style["z-index"] = zindex;
+      ret.style.position = "absolute";
+      ret.style.setProperty("z-index", "" + zindex);
 
       console.trace("\tZINDEX: ", zindex)
 
       document.body.appendChild(ret);
     }
 
-    if (ret.width !== width) {
-      ret.setAttributeNS(null, "width", width);
+    /* NOTE: this compared ret.width/ret.height, which on an <svg> element are
+       SVGAnimatedLength objects and so never equal to a number -- both
+       attributes were rewritten on every draw.  Comparing the attributes
+       themselves reaches the same state. */
+    if (ret.getAttributeNS(null, "width") !== "" + width) {
+      ret.setAttributeNS(null, "width", "" + width);
     }
-    if (ret.height !== height) {
-      ret.setAttributeNS(null, "height", height);
+    if (ret.getAttributeNS(null, "height") !== "" + height) {
+      ret.setAttributeNS(null, "height", "" + height);
     }
 
     return ret;
@@ -698,11 +719,14 @@ export class SVGDraw2D extends VectorDraw {
     this.svg = SVGDraw2D.get_canvas(canvas.id + "_svg", canvas.width, canvas.height, 1);
     this.svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     this.svg.setAttribute(`xmlns:xlink`, "http://www.w3.org/1999/xlink");
-    this.svg.style["pointer-events"] = "none";
+    this.svg.style.setProperty("pointer-events", "none");
 
     var this2 = this;
     function onkillscreen() {
-      window.removeEventListener(onkillscreen);
+      /* NOTE: removeEventListener() was called with only the handler, which
+         throws a TypeError -- so the svg outlived the screen and every
+         listener draw() added stayed registered. */
+      window.removeEventListener("killscreen", onkillscreen);
 
       SVGDraw2D.kill_canvas(this2.svg);
       this2.svg = undefined;
@@ -712,7 +736,7 @@ export class SVGDraw2D extends VectorDraw {
     window.addEventListener("killscreen", onkillscreen);
 
     var defsid = this.svg.id + "_defs";
-    var defs = document.getElementById(defsid);
+    var defs = findElement(defsid);
 
     if (!defs) {
       defs = makeElement("defs", {
@@ -724,7 +748,7 @@ export class SVGDraw2D extends VectorDraw {
     this.defs = defs;
 
     var groupid = this.svg.id + "_maingroup";
-    var group = document.getElementById(groupid);
+    var group = findElement(groupid);
 
     if (!group) {
       group = makeElement("g", {
@@ -773,11 +797,13 @@ export class SVGDraw2D extends VectorDraw {
 
       this.dosort = 0;
       this.paths.sort(function(a, b) {
-        return a.z - b.z;
+        /* get_path() gives every path a z. */
+        return a.z! - b.z!;
       });
 
       //clear all use nodes;
-      var cs = this.group.childNodes;
+      /* children, not childNodes: only elements have a tagName. */
+      var cs = this.group.children;
       for (var i=0; i<cs.length; i++) {
         var n = cs[i];
 

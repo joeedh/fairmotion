@@ -1,6 +1,7 @@
 import {PlatformAPIBase} from '../common/platform_api.js';
+import type {ClipboardEntry} from '../../src/path.ux/scripts/config/const.js';
 
-let clipdata = {
+let clipdata : ClipboardEntry = {
   name : "nothing",
   mime : "nothing",
   data : undefined
@@ -12,7 +13,7 @@ export class PlatformAPI extends PlatformAPIBase {
   }
   
   getProcessMemoryPromise() {
-    return new Promise(() => {}); //never fulfills
+    return new Promise<number>(() => {}); //never fulfills
   }
 
   saveDialog() {
@@ -21,7 +22,7 @@ export class PlatformAPI extends PlatformAPIBase {
   openDialog() {
   }
 
-  pushClipboardData(name, mime, data) {
+  pushClipboardData(name : string, mime : string, data : string) {
     clipdata = {
       name : name,
       mime : mime,
@@ -48,12 +49,12 @@ export class PlatformAPI extends PlatformAPIBase {
     return navigator.hardwareConcurrency;
   }
 
-  alertDialog(msg) {
+  alertDialog(msg : string) {
     alert(msg);
   }
 
-  questionDialog(msg) {
-    return new Promise((accept, reject) => {
+  questionDialog(msg : string) {
+    return new Promise<boolean>((accept, reject) => {
       accept(confirm(msg));
 
     });

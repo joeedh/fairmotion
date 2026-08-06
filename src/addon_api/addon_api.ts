@@ -102,13 +102,17 @@ export function parseFile(buf : string, modname : string, path : string,
   let spans : [number, number, string][] = [];
 
   function p_Id() : string {
-    let t = p.next();
+    let t = p.next()!;
     if (t.type === "ID" || t.value === "default") {
-      return t.value;
+      return String(t.value);
     }
 
     console.log(t);
     p.error(t, "Expected an identifier");
+
+    /* p.error() only returns when a custom errfunc suppresses the throw, and
+       this parser never installs one. */
+    throw new Error("Expected an identifier");
   }
 
   let deps : string[] = [];
@@ -116,7 +120,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
   function p_Import(t : token<unknown>) {
     let start = t.lexpos;
-    let t2 = p.next();
+    let t2 = p.next()!;
 
     let repl = "";
 
@@ -129,11 +133,11 @@ export function parseFile(buf : string, modname : string, path : string,
 
         p.optional("COMMA");
 
-        t3 = p.peeknext();
+        t3 = p.peeknext()!;
 
         if (t3.type === "COMMA") {
           p.next();
-          t3 = p.peeknext();
+          t3 = p.peeknext()!;
         }
       }
 
@@ -165,7 +169,7 @@ export function parseFile(buf : string, modname : string, path : string,
     } else if (t2.type === "ID") {
       let mod = t2.value;
 
-      t2 = p.next();
+      t2 = p.next()!;
       if (t2.type === "FROM") {
         let path = p.expect("STRLIT");
         repl = `var ${mod} = _addon_require(${modid}, ${path}).default;`;
@@ -175,7 +179,7 @@ export function parseFile(buf : string, modname : string, path : string,
       }
     } else if (t2.type === "STRLIT") {
       repl = `_addon_require(${t2.value});`
-      deps.push(t2.value);
+      deps.push(String(t2.value));
     } else if (t2.type === "STAR") {
       p.expect("AS");
       let mod = p_Id();
@@ -219,7 +223,24 @@ export function parseFile(buf : string, modname : string, path : string,
       ")" : -1
     };
 
-    let states = {
+    /* The tiny state machine that walks to the end of a var initializer. */
+    type VarExprStates = {
+      base(li : number) : number;
+      tmpl(li : number) : number;
+      str(li : number) : void;
+      comment(li : number) : number;
+      push(state : string, statedata? : unknown) : void;
+      pop() : void;
+      bracketsZero() : boolean;
+      end() : void;
+      done : boolean;
+      brackets : {[c : string] : number};
+      statedata : unknown;
+      state : string;
+      statestack : [unknown, string][];
+    };
+
+    let states : VarExprStates = {
       base(li : number) {
         if (buf[li] === "/" && buf[li+1] === "*") {
           this.push("comment");
@@ -268,14 +289,14 @@ export function parseFile(buf : string, modname : string, path : string,
         return li + 1;
       },
 
-      push(state : string, statedata = undefined) {
+      push(state : string, statedata : unknown = undefined) {
         this.statestack.push([this.statedata, this.state]);
         this.state = state;
         this.statedata = statedata;
       },
 
       pop() {
-        [this.statedata, this.state] = this.statestack.pop();
+        [this.statedata, this.state] = this.statestack.pop()!;
       },
 
       bracketsZero() {
@@ -306,7 +327,7 @@ export function parseFile(buf : string, modname : string, path : string,
     while (li < buf.length) {
       let start = li;
 
-      li = states[states.state](li);
+      li = Reflect.get(states, states.state).call(states, li);
 
       if (states.done) {
         break;
@@ -326,7 +347,7 @@ export function parseFile(buf : string, modname : string, path : string,
 
   function p_Export(t : token<unknown>) {
     let start = t.lexpos;
-    let t2 = p.next();
+    let t2 = p.next()!;
 
     let repl = "";
 
@@ -339,11 +360,11 @@ export function parseFile(buf : string, modname : string, path : string,
 
         p.optional("COMMA");
 
-        t3 = p.peeknext();
+        t3 = p.peeknext()!;
 
         if (t3.type === "COMMA") {
           p.next();
-          t3 = p.peeknext();
+          t3 = p.peeknext()!;
         }
       }
 
@@ -375,7 +396,7 @@ export function parseFile(buf : string, modname : string, path : string,
     } else if (t2.type === "ID") {
       let mod = t2.value;
 
-      t2 = p.next();
+      t2 = p.next()!;
       if (t2.type === "FROM") {
         let path = p.expect("STRLIT");
         repl = `exports.${mod} = _addon_require(${modid}, ${path}).default;\n`;
@@ -385,14 +406,14 @@ export function parseFile(buf : string, modname : string, path : string,
       }
     } else if (t2.type === "STRLIT") {
       repl = `_addon_require(${t2.value});\n`
-      deps.push(t2.value);
+      deps.push(String(t2.value));
     } else if (t2.type === "STAR") {
       p.expect("FROM");
       let path = p.expect("STRLIT");
 
       repl = `_exportall(${modid}, exports, _addon_require(${modid}, ${path}));\n`;
       deps.push(path);
-    } else if (varkeywords.has(t2.value)) {
+    } else if (varkeywords.has(String(t2.value))) {
       let vars : {[id : string] : string | undefined} = {};
 
       let keyword = t2.value;
@@ -465,12 +486,12 @@ export function parseFile(buf : string, modname : string, path : string,
       p.lexer.peeked_tokens.length = 0;
       p.lexer.lexpos = i1;
       p.lexer.lineno = linemap[i1];
-      p_Export(p.next());
+      p_Export(p.next()!);
     } else {
       p.lexer.peeked_tokens.length = 0;
       p.lexer.lexpos = i2;
       p.lexer.lineno = linemap[i2];
-      p_Import(p.next());
+      p_Import(p.next()!);
     }
 
     li = p.lexer.lexpos + 1;
@@ -525,7 +546,9 @@ export const d;
 `
 
 window._testParseFile = function() {
-  console.log(parseFile(test));
+  /* NOTE: this passed only `test`, leaving modname/path/modid undefined in the
+     generated wrapper; they are spelled out now. */
+  console.log(parseFile(test, "test", "test.js", 0));
 }
 
 
@@ -534,6 +557,8 @@ window._testParseFile = function() {
 export interface AddonExports {
   register? : () => void;
   unregister? : () => void;
+  /* whatever else the addon module assigned onto its exports. */
+  [k : string] : unknown;
 }
 
 /* The module body parseFile() wraps, and the require it is handed. */
@@ -571,14 +596,18 @@ export const pathstack = ["."];
 for (let k in builtins) {
   let mod = new AddonModule(k, k);
   mod.loaded = true;
-  mod.exports = builtins[k];
+  mod.exports = Reflect.get(builtins, k);
   modules[k] = mod;
 }
 
 /* NOTE: _normpath, _normpath1 and _splitpath are declared nowhere in the
    tree -- they came in with the old python build's prelude.  Every path the
    addon loader touches goes through one of them, so loading an addon throws
-   a ReferenceError on the first call. */
+   a ReferenceError on the first call.  They are declared, not defined, so the
+   call sites keep failing exactly as they do now. */
+declare function _normpath(path : string, root : string) : string;
+declare function _normpath1(path : string) : string;
+declare function _splitpath(path : string) : [string, string];
 export function resolvePath(path : string) {
   path = path.replace(/\\/g, "/");
   path = path.replace(/\/\//g, "/");
@@ -661,7 +690,7 @@ export function loadModule(path : string, addon : Addon) {
       pathstack.push(_splitpath(mod.path)[0]);
 
       mod.loaded = true;
-      mod.callback(addon, mod.exports, _addon_require);
+      mod.callback!(addon, mod.exports, _addon_require);
 
       pathstack.pop();
     }
@@ -707,8 +736,8 @@ export function loadModule(path : string, addon : Addon) {
 
   filestates[file.id] = file;
 
-  app.openFile(path).then((data) => {
-    let buf = data;
+  app.openFile(path).then((data : unknown) => {
+    let buf : string;
 
     if (data instanceof Uint8Array || Array.isArray(data)) {
       buf = "";
@@ -716,6 +745,8 @@ export function loadModule(path : string, addon : Addon) {
       for (let i=0; i<data.length; i++) {
         buf += String.fromCharCode(data[i]);
       }
+    } else {
+      buf = String(data);
     }
 
     pathstack.push(_splitpath(path)[0]);
@@ -837,9 +868,9 @@ export class Addon {
   //should return a promise?
   destroyAddon() {
     try {
-      this.modules[this.mainModule].exports.unregister();
+      this.modules[this.mainModule].exports.unregister!();
     } catch (error) {
-      util.print_stack(error);
+      util.print_stack(error instanceof Error ? error : undefined);
       console.log("error while unloading addon");
     }
 
@@ -850,7 +881,7 @@ export class Addon {
     this.modules = {};
   }
 
-  handle_versioning(file, oldversion : number) {
+  handle_versioning(file : unknown, oldversion : number) {
 
   }
 }

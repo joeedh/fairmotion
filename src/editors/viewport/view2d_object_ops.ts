@@ -9,6 +9,8 @@ import {SelMask, ToolModes} from './selectmode.js';
 
 import {View2DEditor, SessionFlags} from './view2d_editor.js';
 import {DataBlock} from '../../core/lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from '../../core/lib_api.js';
+import type {ToolModeHit} from './toolmodes/toolmode.js';
 import {EditorTypes} from './view2d_base.js';
 import type {View2DHandler} from './view2d.js';
 import type {FullContext} from '../../core/context.js';
@@ -21,16 +23,18 @@ export class SceneObjectEditor extends View2DEditor {
   mpos : Vector3
   start_mpos : Vector3;
 
-  view2d : View2DHandler;
+  /* fromSTRUCT() builds one of these with no view2d at all. */
+  view2d : View2DHandler | undefined;
   /* Spline under the cursor, or undefined when nothing is. */
   highlight_spline : Spline | undefined;
   /* Only ever set by data_link(); the base class has no ctx. */
   ctx! : FullContext;
 
-  /* NOTE: the super() call below passes a fifth argument, `keymap`, which is
-     neither a parameter of View2DEditor nor imported here. */
-  constructor(view2d : View2DHandler) {
-    super("Object", EditorTypes.OBJECT, EditModes.OBJECT, DataTypes.FRAMESET, keymap);
+  /* NOTE: the super() call passed a fifth argument, `keymap`, which is a bare
+     undeclared name here -- constructing this threw a ReferenceError.  The
+     parameter it fed is ignored by View2DEditor anyway. */
+  constructor(view2d? : View2DHandler) {
+    super("Object", EditorTypes.OBJECT, EditModes.OBJECT, DataTypes.FRAMESET);
 
     this.mpos = new Vector3();
     this.start_mpos = new Vector3();
@@ -53,15 +57,15 @@ export class SceneObjectEditor extends View2DEditor {
     return m;
   }
 
-  static fromSTRUCT(reader : (obj) => void) {
-    var m = new SceneObjectEditor(undefined);
+  static fromSTRUCT(reader : (obj : SceneObjectEditor) => void) {
+    var m = new SceneObjectEditor();
     reader(m);
 
     return m;
   }
 
-  data_link(block : DataBlock, getblock : (ref) => DataBlock,
-            getblock_us : (ref) => DataBlock) {
+  data_link(block : DataBlock, getblock : GetBlockFunc,
+            getblock_us : GetBlockUserFunc) {
     this.ctx = new Context();
   }
 
@@ -82,10 +86,10 @@ export class SceneObjectEditor extends View2DEditor {
     }
   }
 
-  build_sidebar1(view2d : View2DHandler, col : RowFrame) {
+  build_sidebar1(view2d : View2DHandler, col : RowFrame<FullContext>) {
   }
 
-  build_bottombar(view2d : View2DHandler, col : RowFrame) {
+  build_bottombar(view2d : View2DHandler, col : RowFrame<FullContext>) {
   }
 
   define_keymap() {
@@ -105,7 +109,7 @@ export class SceneObjectEditor extends View2DEditor {
   }
 
   tools_menu(ctx : FullContext, mpos : number[], view2d : View2DHandler) {
-    let ops = [];
+    let ops : string[] = [];
 
     var menu = view2d.toolop_menu(ctx, "Tools", ops);
 
@@ -143,7 +147,8 @@ export class SceneObjectEditor extends View2DEditor {
 
   //returns [spline, element, mindis]
   findnearest(mpos : number[], selectmask : number, limit : number,
-              ignore_layers : boolean) {
+              ignore_layers : boolean) : ToolModeHit | undefined {
+    return undefined;
   }
 
   on_mousemove(event : MouseEvent) {

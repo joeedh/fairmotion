@@ -13,18 +13,6 @@ if (config.IS_NODEJS) {
   fs = require("fs");
 }
 
-/* What electron's show-open-dialog resolves to. Note that electron itself
-   spells the cancel flag `canceled`, with one L -- see docs/debugging.md. */
-interface OpenDialogResult {
-  cancelled?: boolean;
-  filePaths: string[];
-}
-
-interface SaveDialogResult {
-  canceled: boolean;
-  filePath: string;
-}
-
 export function reset() {
   //do nothing
 }
@@ -56,11 +44,11 @@ export function get_base_dir(path: string) {
   return path == "" ? undefined : path;
 }
 
-export function open_file(callback: OpenFileCallback, thisvar: Object,
+export function open_file(callback: OpenFileCallback, thisvar: Object | undefined,
                           set_current_file: boolean, extslabel: string, exts: string[],
                           error_cb: FileErrorCallback) {
-  if (thisvar == undefined)
-    thisvar = this; //should point to global object
+  /* NOTE: a `thisvar = this` fallback stood here, commented "should point to
+     global object".  The module is strict-mode ESM, so `this` is undefined. */
 
   let default_path = get_base_dir(g_app_state.filepath);
   //if (default_path === undefined) {
@@ -75,22 +63,29 @@ export function open_file(callback: OpenFileCallback, thisvar: Object,
   //  dialog = require('electron').remote.dialog;
   //}
 
-  let onthen = (e: OpenDialogResult) => {
-    if (e.cancelled) {
+  /* The dialog result arrives over electron's IPC untyped.  NOTE: electron
+     spells the cancel flag `canceled`, with one L, so the test below has never
+     matched; a cancel falls out at the `typeof path` check instead. */
+  let onthen = (result: unknown) => {
+    if (typeof result !== "object" || result === null) {
       return;
     }
 
-    let path: string | string[] | undefined = e.filePaths;
+    if ("cancelled" in result && result.cancelled) {
+      return;
+    }
+
+    let path: unknown = "filePaths" in result ? result.filePaths : undefined;
 
     if (path instanceof Array) {
       path = path[0];
     }
 
-    let fname = path;
-
-    if (path === undefined) {
+    if (typeof path !== "string") {
       return;
     }
+
+    let fname = path;
 
     let idx1 = path.lastIndexOf("/");
     let idx2 = path.lastIndexOf("\\");
@@ -113,6 +108,10 @@ export function open_file(callback: OpenFileCallback, thisvar: Object,
 
       if (error_cb !== undefined)
         error_cb();
+
+      /* NOTE: there was no return here, so a failed read reported the error and
+         then threw a TypeError on buf.byteLength immediately below. */
+      return;
     }
 
     //ensure we have a "clean" ArrayBuffer
@@ -127,15 +126,15 @@ export function open_file(callback: OpenFileCallback, thisvar: Object,
     }
 
     //now get an ArrayBuffer
-    buf = buf2.buffer;
+    let data = buf2.buffer;
 
     if (thisvar !== undefined)
-      callback.call(thisvar, buf, fname, path);
+      callback.call(thisvar, data, fname, path);
     else
-      callback(buf, fname, path);
+      callback(data, fname, path);
   };
 
-  let oncatch = (error: Error) => {
+  let oncatch = (error: unknown) => {
     if (error_cb) {
       error_cb(error);
     }
@@ -164,18 +163,18 @@ export function can_access_path(path: string) {
 
 export function save_file(data: FileData, path: string,
                           error_cb: FileErrorCallback, success_cb: FileSuccessCallback) {
-  if (data instanceof DataView) {
-    data = data.buffer;
-  } else if (!(data instanceof ArrayBuffer) && data.buffer) {
-    data = data.buffer;
+  /* NOTE: a Blob reached `new Uint8Array(data)` below and threw; nothing
+     in-tree hands this backend one. */
+  if (data instanceof Blob) {
+    throw new Error("save_file: a Blob cannot be written synchronously");
   }
 
   console.log("Data", data, path);
 
-  data = new Uint8Array(data);
+  let bytes = new Uint8Array(data instanceof ArrayBuffer ? data : data.buffer);
 
   try {
-    fs.writeFileSync(path, data);
+    fs.writeFileSync(path, bytes);
   } catch (error) {
     console.warn("Failed to write to path " + path);
 
@@ -201,19 +200,27 @@ export function save_with_dialog(data: FileData, default_path: string | undefine
 
   let {ipcRenderer} = require('electron');
 
-  let onthen = (dialog_data: SaveDialogResult) => {
-    let canceled = dialog_data.canceled;
-    let path = dialog_data.filePath;
-
-    if (canceled)
+  let onthen = (result: unknown) => {
+    if (typeof result !== "object" || result === null) {
       return;
+    }
+
+    if ("canceled" in result && result.canceled) {
+      return;
+    }
+
+    let path = "filePath" in result ? result.filePath : undefined;
+
+    if (typeof path !== "string") {
+      return;
+    }
 
     console.log("SAVING:", path);
 
     save_file(data, path, error_cb, success_cb);
   };
 
-  let oncatch = (error: Error) => {
+  let oncatch = (error: unknown) => {
     if (error_cb) {
       error_cb(error);
     }
@@ -234,9 +241,8 @@ export function save_with_dialog(data: FileData, default_path: string | undefine
 //XXX refactor me!
 export function save_file_old(data: FileData, save_as_mode: boolean, set_current_file: boolean,
                               extslabel: string, exts: string[], error_cb: FileErrorCallback) {
-  if (config.CHROME_APP_MODE) {
-    return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
-  }
+  /* NOTE: a chrome_app_save() call guarded by config.CHROME_APP_MODE stood
+     here.  No such function exists anywhere in the tree. */
 
   if (!(data instanceof Blob))
     data = new Blob([data], {type: "application/octet-binary"});
@@ -251,7 +257,7 @@ export function save_file_old(data: FileData, save_as_mode: boolean, set_current
   name = name == "" ? "untitled.fmo" : name;
 
   link.download = name;
-  console.log(link, link.__proto__);
+  console.log(link, Object.getPrototypeOf(link));
   window._link = link;
 
   link.click();

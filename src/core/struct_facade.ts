@@ -43,3 +43,13 @@ export function structAddClass(manager : nstructjs.STRUCT, cls : StructRegistera
 export function structIsRegistered(manager : nstructjs.STRUCT, cls : StructRegisterable) : boolean {
   return manager.isRegistered(asStructable(cls));
 }
+
+/* read_object() is declared to take a DataView and to return unknown; at
+   runtime it unpacks a plain byte array just as happily, and it hands back an
+   instance of the class it was given.  Callers name that class, so they know
+   the type -- pass it as T. */
+export function structReadObject<T>(manager : nstructjs.STRUCT,
+                                    data : DataView | Uint8Array | number[],
+                                    cls : StructRegisterable) : T {
+  return manager.readObject(data, asStructable(cls)) as T;
+}

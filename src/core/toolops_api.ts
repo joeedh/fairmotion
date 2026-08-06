@@ -14,26 +14,21 @@ export {
  * hotkey and menu strings are parsed against; without one the tool is
  * unreachable and init_toolop_structs() skips it.
  */
-export interface ToolDef {
-  name: string;
-  uiname: string;
-  toolpath: string;
+export interface ToolDef extends pathux.ToolDef {
+  /* Fairmotion's ToolDef carries a `name` that path.ux's does not.  Like
+     everything path.ux declares, it is optional: abstract base tools define
+     only inputs, and init_toolop_structs() skips any class whose tooldef()
+     lacks a toolpath. */
+  name?: string;
   /* Legacy spelling of toolpath. _getFinalToolDef() folds it into toolpath,
      and UserSettings keys tool settings off whichever one is present. */
   apiname?: string;
-  inputs?: {[k: string]: ToolProperty};
-  outputs?: {[k: string]: ToolProperty};
-  flag?: number;
-  icon?: number;
-  is_modal?: boolean;
-  undoflag?: number;
-  description?: string;
 }
 
 
 /*
  * What a tool stores in `_undo`. The default undoPre() below takes a whole-file
- * snapshot (an ArrayBuffer); a tool that supplies its own undo_pre() stores
+ * snapshot (a DataView); a tool that supplies its own undo_pre() stores
  * whatever it needs instead -- an eid->value map, a saved time, a list of ids.
  * Subclasses re-declare `_undo` with their own precise type; this union is only
  * what the base class is willing to hold.
@@ -55,6 +50,12 @@ export class ToolOp<
   static STRUCT: string;
 
   drawlines: drawline[];
+
+  /* Like uiname/toolpath/icon on path.ux's ToolOp, this is stamped onto the
+     instance from tooldef() by the base constructor; fairmotion's ToolDef
+     carries a `name` where path.ux's does not. */
+  name?: string;
+
   /* The whole-file undo snapshot, taken by the default undoPre(). Absent for
      tools that supply their own undo_pre(), which store their own payload
      here and override undo() to read it back. */
@@ -86,7 +87,7 @@ export class ToolOp<
   modal_tctx?: FullContext;
 
   /* Cached data API struct built by ToolStack.gen_tool_datastruct(). */
-  apistruct?: object;
+  apistruct?: pathux.DataStruct;
 
   /* Set on macro members so reexec_tool() can walk up to the outermost tool. */
   parent?: ToolOp;
@@ -106,19 +107,19 @@ export class ToolOp<
   }
 
   undo(ctx: FullContext): void {
-    if (this._undo) {
-      /* Only tools using the default undoPre() above reach this, and that
-         stores an ArrayBuffer; the rest override undo(). */
-      ctx.state.load_undo_file(this._undo as ArrayBuffer);
+    /* Only tools using the default undoPre() above reach this, and that
+       stores the whole-file DataView; the rest override undo(). */
+    if (this._undo instanceof DataView) {
+      ctx.state.load_undo_file(this._undo);
       window.redraw_viewport();
     }
   }
 
-  start_modal(ctx: FullContext) {
+  start_modal(ctx: FullContext): void | Promise<unknown> {
     return this.modalStart(ctx);
   }
 
-  end_modal(cancelled: boolean) {
+  end_modal(cancelled = false) {
     return this.modalEnd(cancelled);
   }
 
@@ -126,7 +127,8 @@ export class ToolOp<
     //do nothing
   }
 
-  new_drawline(v1: Vector2, v2: Vector2, color: number[], line_width: number) {
+  new_drawline(v1: Vector2 | number[], v2: Vector2 | number[], color?: number[],
+               line_width = 2) {
     var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
 
     this.drawlines.push(dl);
@@ -162,7 +164,7 @@ export class ToolOp<
    * sentinel strings mean "read this from the context at invoke time"; they
    * are resolved here, before the properties get to see them.
    */
-  static invoke(ctx: FullContext, args: {[k: string]: unknown}) {
+  static invoke(ctx: FullContext, args: {[k: string]: unknown}): ToolOp {
     function geteid(v: {eid: number} | undefined): number {
       return !v ? -1 : v.eid;
     }
@@ -182,8 +184,10 @@ export class ToolOp<
         args[k] = geteid(ctx.spline.handles.active);
       }
 
+      /* NOTE: this read ctx.spline.edges, which does not exist -- a TypeError
+         on any toolpath spelling an argument 'active_edge'. */
       if (v === 'active_edge' && ctx.spline) {
-        args[k] = geteid(ctx.spline.edges.active);
+        args[k] = geteid(ctx.spline.segments.active);
       }
 
       if (v === 'active_face' && ctx.spline) {
@@ -193,7 +197,8 @@ export class ToolOp<
 
     console.error("INVOKE", args);
 
-    return super.invoke(ctx, args);
+    /* path.ux types its invoke() as returning the abstract ToolOpAny. */
+    return super.invoke(ctx, args) as ToolOp;
   }
 
   static inherit_inputs(arg: {[k: string]: ToolProperty}) {
@@ -204,10 +209,12 @@ export class ToolOp<
     return ToolOp.inherit(arg);
   }
 
-  static _getFinalToolDef(): ToolDef {
+  static _getFinalToolDef() {
     let tdef = super._getFinalToolDef();
 
-    tdef.toolpath = tdef.toolpath || tdef.apiname;
+    /* path.ux's resolved def types every extra key as unknown; `apiname` is
+       always the string a fairmotion tooldef() put there. */
+    tdef.toolpath = tdef.toolpath || (tdef.apiname as string | undefined);
 
     return tdef;
   }
@@ -264,14 +271,17 @@ window.init_toolop_structs = function (): void {
 
     //ignore base classes whose tooldefs() lack .toolpath
     ok = ok && cls.tooldef !== ToolOp.tooldef;
-    ok = ok && cls.tooldef && cls.tooldef().toolpath;
+    ok = !!(ok && cls.tooldef && cls.tooldef().toolpath);
     ok = ok || cls === ToolOp;
 
     if (!ok) continue;
 
     //console.log("-->", cls.name);
 
-    if (!Object.hasOwnProperty(cls, "STRUCT")) {
+    /* NOTE: an `if (!Object.hasOwnProperty(cls, "STRUCT"))` wrapped this block.
+       hasOwnProperty takes one argument and was asked of Object rather than of
+       cls, so it was always false and the body always ran.  Kept. */
+    {
       cls.STRUCT = cls.name + " {" + `
         flag    : int;
         inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
@@ -298,34 +308,43 @@ window.init_toolop_structs = function (): void {
 
 //old compatibility function
 
+/* A shallow, writable copy of a DOM event: the same members, minus their
+   readonly-ness, so callers can rewrite x/y/button. `prototype` and `original`
+   both point back at the event it was copied from. */
+export type PatchedEvent<T extends Event> = {
+  -readonly [K in keyof T]: T[K];
+} & {prototype: T; original: T};
+
 //makes e.x/e.y relative to dom,
 //and also flips to origin at bottom left instead of top left
-export function patchMouseEvent(e: MouseEvent, dom: HTMLElement) {
+export function patchMouseEvent<T extends MouseEvent>(e: T, dom: HTMLElement): PatchedEvent<T> {
   dom = g_app_state.screen; //dom === undefined ? g_app_state.screen : dom;
 
-  let e2 = {
-    prototype: e
-  };
+  /* Every other member arrives through the copy loop below, which is dynamic
+     by nature -- hence the one cast. */
+  let e2 = {prototype: e, original: e} as PatchedEvent<T>;
 
-  let keys = Object.getOwnPropertyNames(e).concat(Object.getOwnPropertySymbols(e));
+  let keys: (string | symbol)[] = Object.getOwnPropertyNames(e);
+  keys = keys.concat(Object.getOwnPropertySymbols(e));
+
   for (let k in e) {
     keys.push(k);
   }
 
   for (let k of keys) {
     try {
-      e2[k] = e[k];
+      let v = Reflect.get(e, k);
+
+      if (typeof v === "function") {
+        v = v.bind(e);
+      }
+
+      Reflect.set(e2, k, v);
     } catch (error) {
       console.log("failed to set property", k);
       continue;
     }
-
-    if (typeof e2[k] == "function") {
-      e2[k] = e2[k].bind(e);
-    }
   }
-
-  e2.original = e;
 
   return e2;
 }
@@ -333,6 +352,8 @@ export function patchMouseEvent(e: MouseEvent, dom: HTMLElement) {
 /* One entry of a ToolOp's inputs/outputs as it appears on disk. The STRUCT
    script below writes the key alongside an abstract(ToolProperty). */
 export class PropPair {
+  static STRUCT: string;
+
   key: string;
   value: ToolProperty;
 

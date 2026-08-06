@@ -26,11 +26,13 @@ import * as fileapi_html5 from './fileapi_html5.js';
 /* Handed the file's contents, its display name, and an id the backend can
    re-open it by later -- a path on electron, a retained entry key on chrome. */
 export type OpenFileCallback = (data: ArrayBuffer, fname: string, id: string) => void;
-export type FileErrorCallback = (error?: Error) => void;
+/* Every backend hands this whatever it caught -- a DOM ProgressEvent on
+   chrome, an Error on electron -- and every caller in-tree ignores it. */
+export type FileErrorCallback = (error?: unknown) => void;
 export type FileSuccessCallback = (path: string) => void;
 
 /* Anything the backends know how to turn into bytes before writing. */
-export type FileData = ArrayBuffer | ArrayBufferView | Blob;
+export type FileData = ArrayBuffer | ArrayBufferView<ArrayBuffer> | Blob;
 
 /* The old transpiler allowed `export * from` inside an if/else, which real ESM
    does not. All three backends were concatenated into the bundle regardless,
@@ -69,14 +71,14 @@ export function id_to_path() {
    save_file -- see docs/debugging.md -- so this dispatcher has no one honest
    signature. Its arguments stay unannotated until they are reconciled. */
 function forward(name: string) {
-  return function (...args) {
-    let mod = backend();
+  return function (...args: unknown[]) {
+    let fn = Reflect.get(backend(), name);
 
-    if (typeof mod[name] !== "function") {
+    if (typeof fn !== "function") {
       throw new Error("fileapi: " + name + " is not implemented on this platform");
     }
 
-    return mod[name](...args);
+    return fn(...args);
   };
 }
 

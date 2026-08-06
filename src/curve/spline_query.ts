@@ -30,7 +30,7 @@ export class SplineQuery {
     this.spline = spline;
   }
 
-  findnearest(editor: View2DHandler, mpos: Vector2, selectmask: number,
+  findnearest(editor: View2DHandler, mpos: Vector2 | number[], selectmask: number,
               limit?: number, ignore_layers?: boolean) {
     if (limit === undefined) limit = 15;
     let dis = 1e18;
@@ -74,7 +74,7 @@ export class SplineQuery {
     return data;
   }
 
-  findnearest_segment(editor: View2DHandler, mpos: Vector2, limit: number,
+  findnearest_segment(editor: View2DHandler, mpos: Vector2 | number[], limit: number,
                       ignore_layers?: boolean): NearestHit | undefined {
     let spline = this.spline;
     let actlayer = spline.layerset.active;
@@ -89,12 +89,12 @@ export class SplineQuery {
       if (ret === undefined) continue;
 
       let s = ret.s;
-      ret = ret.co;
+      let co = ret.co;
 
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
       if (!ignore_layers && !seg.in_layer(actlayer)) continue;
 
-      let dis = sqrt((ret[0] - mpos[0])*(ret[0] - mpos[0]) + (ret[1] - mpos[1])*(ret[1] - mpos[1]));
+      let dis = sqrt((co[0] - mpos[0])*(co[0] - mpos[0]) + (co[1] - mpos[1])*(co[1] - mpos[1]));
       let width = seg.width(s)*0.5;
 
       dis = Math.max(dis - width, 0.0);
@@ -109,7 +109,7 @@ export class SplineQuery {
       return [sret, mindis, SelMask.SEGMENT];
   }
 
-  findnearest_face(editor: View2DHandler, mpos: Vector2, limit: number,
+  findnearest_face(editor: View2DHandler, mpos: Vector2 | number[], limit: number,
                    ignore_layers?: boolean): NearestHit | undefined {
     let spline = this.spline, actlayer = spline.layerset.active;
     let mindis = 0, closest: SplineFace | undefined = undefined;
@@ -206,7 +206,7 @@ export class SplineQuery {
      */
   }
 
-  findnearest_vert(editor: View2DHandler, mpos: Vector2, limit?: number,
+  findnearest_vert(editor: View2DHandler, mpos: Vector2 | number[], limit?: number,
                    do_handles?: boolean,
                    ignore_layers?: boolean): NearestHit | undefined {
     let spline = this.spline;

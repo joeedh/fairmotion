@@ -40,7 +40,7 @@ if (Array.prototype.remove === undefined) {
       idx++;
     }
 
-    this[idx] = undefined;
+    this[idx] = undefined!;
     this.length--;
 
     return this;
@@ -49,14 +49,10 @@ if (Array.prototype.remove === undefined) {
 
 //XXX figure out how to make extjcc code work well with WebWorkers
 
-var CompositeModes = {
-  "source-over": 0,
-  "source-atop": 1
-};
-
-for (let k in CompositeModes) {
-  CompositeModes[CompositeModes[k]] = k;
-}
+/* NOTE: this built the reverse map in place on the forward object.  Only the
+   reverse direction is read in this file, and the forward map is exported
+   separately from vectordraw_jobs_base.ts. */
+const CompositeModes : GlobalCompositeOperation[] = ["source-over", "source-atop"];
 
 const {
   LINESTYLE, LINEWIDTH, FILLSTYLE, BEGINPATH, CLOSEPATH, MOVETO, LINETO, RECT,
@@ -142,7 +138,7 @@ function doDrawList(commands : Float64Array, datablocks : Transferable[],
   let canvas = new OffscreenCanvas(width, height);
   //let g = canvas.getContext("2d");
   let canvas2 = CanvasKit.MakeCanvas(width, height);
-  let g = canvas2.getContext("2d");
+  let g = canvas2.getContext("2d")!;
 
   let transform = [1, 0, 0, 0, 1, 0];
 
@@ -264,12 +260,29 @@ function doDrawList(commands : Float64Array, datablocks : Transferable[],
       case SCALE     :
         g.scale(read(), read());
         break;
-      case DRAWIMAGE :
-        g.drawImage(datablocks[~~read()], read(), read());
+      case DRAWIMAGE : {
+        /* Nothing posts datablocks today, so neither image opcode is reached;
+           the reads still have to happen to keep the cursor aligned. */
+        let block = datablocks[~~read()];
+        let x = read(), y = read();
+
+        if (block instanceof ImageBitmap) {
+          g.drawImage(block, x, y);
+        }
         break;
-      case PUTIMAGE  :
-        g.putImageData(datablocks[~~read()], read(), read());
+      }
+      case PUTIMAGE  : {
+        let block = datablocks[~~read()];
+        let x = read(), y = read();
+
+        /* NOTE: ImageData is not transferable, and postRenderJob() posts every
+           datablock in its transfer list, so a PUTIMAGE payload has never
+           survived the trip into this worker. */
+        if (block instanceof ImageData) {
+          g.putImageData(block, x, y);
+        }
         break;
+      }
       case SETCOMPOSITE:
         g.globalCompositeOperation = CompositeModes[~~read()];
         break;
@@ -334,7 +347,7 @@ function doDrawList(commands : Float64Array, datablocks : Transferable[],
   /*
   canvas.width = 55;
   canvas.height = 55;
-  canvas.getContext("2d");
+  canvas.getContext("2d")!;
   //*/
 
   state.running = false;
@@ -386,7 +399,9 @@ function olddoDrawList(commands : Float64Array, datablocks : Transferable[],
   }
 
   let canvas = new OffscreenCanvas(width, height);
-  canvas.tagName = "CANVAS";
+  /* CanvasKit's surface factory duck-types on tagName, so the OffscreenCanvas
+     has to answer to it. */
+  Reflect.set(canvas, "tagName", "CANVAS");
 
   let sksurface = CanvasKit.MakeSWCanvasSurface(canvas);
   let skcanvas = sksurface.getCanvas();
@@ -633,8 +648,8 @@ function handleQueue() {
     return;
 
   if (state.queue.length > 0) {
-    let job = state.queue.shift();
-    doDrawList(job.commands, job.datablocks, job.id);
+    let job = state.queue.shift()!;
+    doDrawList(job.commands!, job.datablocks, job.id);
   }
 }
 
@@ -683,13 +698,14 @@ onmessage = function (e : MessageEvent) {
       state.msg_data = new Job(e.data.msgid);
       break;
     case MSG_SET_COMMANDS:
-      state.msg_data.commands = new Float64Array(e.data.data[0]);
+      /* MSG_NEW_JOB always precedes these three. */
+      state.msg_data!.commands = new Float64Array(e.data.data[0]);
       break;
     case MSG_ADD_DATABLOCK:
-      state.msg_data.datablocks = state.msg_data.datablocks.concat(e.data.data);
+      state.msg_data!.datablocks = state.msg_data!.datablocks.concat(e.data.data);
       break;
     case MSG_RUN:
-      state.queue.push(state.msg_data);
+      state.queue.push(state.msg_data!);
       state.msg_data = undefined;
       handleQueue();
       break;

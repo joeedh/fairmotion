@@ -6,7 +6,7 @@ import type {WebGLContext} from '../webgl/webgl.js';
 export var gl : WebGLContext | undefined = undefined;
 export var canvas : HTMLCanvasElement | undefined = undefined;
 
-import {ImageDataType, TiledImage} from './imagecanvas.js';
+import {FillColorImage, ImageDataType, TiledImage} from './imagecanvas.js';
 import {FBO} from '../webgl/fbo.js';
 
 export const DataTypes = {
@@ -17,7 +17,13 @@ export const DataTypes = {
   UNSIGNED_INT  : 5125
 };
 
-export const TypeArrays = {
+/* The two call shapes below: an intersection rather than a union so both a
+   length and a buffer resolve. */
+type TypedArray = Uint8Array | Uint16Array | Uint32Array | Float32Array;
+type TypedArrayCtor = (new (length : number) => TypedArray)
+                    & (new (buffer : ArrayBufferLike) => TypedArray);
+
+export const TypeArrays : {[type : number] : TypedArrayCtor} = {
   [DataTypes.HALF_FLOAT]    : Uint16Array,
   [DataTypes.FLOAT]         : Float32Array,
   [DataTypes.UNSIGNED_BYTE] : Uint8Array,
@@ -131,6 +137,12 @@ export class GPUImageTile extends ImageDataType {
   sm_screenCo : GeoLayer | undefined;
   sm_params : GeoLayer | undefined;
 
+  /* NOTE: neither of these is ever assigned.  downloadFromGPU() builds an fbo
+     cache key containing "undefined" from `type`, and masks `flag` with a
+     clear that always stores 0 -- the flag it means to clear is recalcFlag. */
+  type! : number;
+  flag! : number;
+
   constructor(width = TILESIZE, height = TILESIZE) {
     super(width, height);
 
@@ -160,7 +172,7 @@ export class GPUImageTile extends ImageDataType {
 
     let sm = this.smesh = new SimpleMesh(layerflag);
 
-    this.sm_screenCo = sm.addDataLayer(PrimitiveTypes.TRIS, LayerTypes.CUSTOM, 2, "sm_screenCo");
+    let screenCo = this.sm_screenCo = sm.addDataLayer(PrimitiveTypes.TRIS, LayerTypes.CUSTOM, 2, "sm_screenCo");
     this.sm_params = sm.addDataLayer(PrimitiveTypes.TRIS, LayerTypes.CUSTOM, 4, "sm_params");
 
     let quad = sm.quad(
@@ -170,14 +182,18 @@ export class GPUImageTile extends ImageDataType {
       [1, -1, 0]);
 
     quad.uvs([0, 0], [0, 1], [1, 1], [1, 0]);
-    quad.custom(this.sm_screenCo, [0, 0], [0, this.height], [this.width, this.height], [this.width, 0]);
+    /* NOTE: custom() indexes the island's layer list, so it wants the layer's
+       index; passing the layer itself indexed to undefined and threw. */
+    quad.custom(screenCo.index, [0, 0], [0, this.height], [this.width, this.height], [this.width, 0]);
   }
 
   _makeTex(gl : WebGLContext) {
-    let tex = gl.createTexture();
-    tex = new Texture(undefined, tex);
+    let tex = new Texture(undefined, gl.createTexture() ?? undefined);
 
-    gl.bindTexture(tex.texture);
+    /* NOTE: bindTexture takes (target, texture); the one-argument calls here
+       and at the end of this method threw.  Nothing constructs a GPUImageTile,
+       so this whole class has never run. */
+    gl.bindTexture(tex.target, tex.texture ?? null);
     let format;
 
     switch (this.glType) {
@@ -196,6 +212,8 @@ export class GPUImageTile extends ImageDataType {
       case DataTypes.UNSIGNED_INT:
         format = gl.RGBA32I;
         break;
+      default:
+        throw new Error("unknown glType " + this.glType);
     }
 
     gl.texStorage2D(tex.target, 0, format, this.width, this.height);
@@ -205,7 +223,7 @@ export class GPUImageTile extends ImageDataType {
     tex.texParameteri(gl, tex.target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     tex.texParameteri(gl, tex.target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    gl.bindTexture(null);
+    gl.bindTexture(tex.target, null);
 
     return tex;
   }
@@ -255,7 +273,9 @@ export class GPUImageTile extends ImageDataType {
       return;
     }
 
-    let fbo = fboCache.get(gl, this.width, this.height, this.type);
+    /* FBOCache.get() returns undefined on every first call for a key (see the
+       NOTE on it), so this throws on the next line. */
+    let fbo = fboCache.get(gl, this.width, this.height, this.type)!;
     fbo.bind(gl);
     gl.clearColor(0, 0, 0, 0);
     gl.clearDepth(1.0);
@@ -288,15 +308,19 @@ export class GPUImageTile extends ImageDataType {
       throw new Error("missing image data");
     }
 
-    gl.bindTexture(this.glTex.texture);
-    gl.texImage2D(this.glTex.texture, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, this.glType, this.data);
-    gl.bindTexture(null);
+    let tex = this.glTex!;
+
+    /* NOTE: as with _makeTex(), bindTexture wants (target, texture) and
+       texImage2D a target enum rather than a texture. */
+    gl.bindTexture(tex.target, tex.texture ?? null);
+    gl.texImage2D(tex.target, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, this.glType, data);
+    gl.bindTexture(tex.target, null);
   }
 
   compress() {
     this.downloadFromGPU();
 
-    let data = new Uint8Array(this.data.buffer);
+    let data = new Uint8Array(this.data!.buffer);
     data = data.slice(0, data.length); //make copy;
     this.compressedData = data;
 
@@ -351,14 +375,22 @@ export class GPUTiledImage extends TiledImage {
 
   /* Swaps any non-GPU tile in `tiles` for a freshly uploaded GPUImageTile,
      in place, and returns the resulting list. */
-  checkTiles(gl : WebGLContext, tiles : ImageDataType[]) {
+  checkTiles(tiles : ImageDataType[]) {
     let newtiles : ImageDataType[] = [];
 
     for (let t of tiles) {
       if (!(t instanceof GPUImageTile)) {
         let t2 = new GPUImageTile(t.width, t.height);
 
-        let data = t2.data;
+        /* Every tile TiledImage builds is a FillColorImage; anything else
+           threw on the color read below. */
+        if (!(t instanceof FillColorImage)) {
+          throw new TypeError("expected a fill-color tile");
+        }
+
+        /* NOTE: a fresh GPUImageTile has no data buffer, so the loop below
+           throws; getData() is what allocates one. */
+        let data = t2.data!;
         let color = t.color;
 
         let r = t2.mapping.map(color[0]);
@@ -385,8 +417,9 @@ export class GPUTiledImage extends TiledImage {
     return newtiles;
   }
 
-  /* NOTE: drops the gl argument, so checkTiles() reads its tile list out of
-     `gl` and iterates a WebGL context. */
+  /* NOTE: checkTiles() used to take a leading gl argument it never touched,
+     and this passed the tile list in its place -- so every call iterated
+     undefined.  The unused parameter is gone. */
   gatherGPUTiles(x : number, y : number, r : number) {
     return this.checkTiles(this.gatherTiles(x, y, r));
   }
@@ -421,10 +454,13 @@ export function initWebGL() {
   document.body.appendChild(canvas);
 
   canvas.style["position"] = "fixed";
-  canvas.style["z-index"] = "100";
+  canvas.style.zIndex = "100";
 
-  canvas.style["pointer-events"] = "none";
+  canvas.style.pointerEvents = "none";
 
+  /* getContext() hands back the WebGL1 interface; the extension patching below
+     back-fills the WebGL2 names the rest of the app calls, exactly as
+     init_webgl() does for its own context. */
   gl = window._gl = canvas.getContext("webgl", {
     alpha                : true,
     desynchronized       : true,
@@ -434,7 +470,7 @@ export function initWebGL() {
     preserveDrawingBuffer: true,
     stencil              : true,
     depth                : true
-  });
+  }) as WebGLContext;
 
   if (!gl) {
     console.error('Failed to initialized webgl')
@@ -446,16 +482,19 @@ export function initWebGL() {
   /* gl.canvas is a readonly accessor that already returns this canvas; the
      assignment was a silent no-op in sloppy mode and throws in strict. */
 
-  let ext = gl.getExtension("OES_texture_half_float");
+  /* HALF_FLOAT, MIN, MAX and UNSIGNED_INT_24_8 are readonly constants on a
+     WebGL2 context but simply absent on this WebGL1 one, which is why they can
+     be written at all; Reflect.set is how webgl.ts back-fills the same way. */
+  let halfFloat = gl.getExtension("OES_texture_half_float");
   gl.getExtension("OES_texture_half_float_linear");
-  if (ext) {
-    gl.HALF_FLOAT = ext.HALF_FLOAT_OES;
+  if (halfFloat) {
+    Reflect.set(gl, "HALF_FLOAT", halfFloat.HALF_FLOAT_OES);
   }
 
-  ext = gl.getExtension("EXT_blend_minmax");
-  if (ext) {
-    gl.MIN = ext.MIN_EXT;
-    gl.MAX = ext.MAX_EXT;
+  let blendMinmax = gl.getExtension("EXT_blend_minmax");
+  if (blendMinmax) {
+    Reflect.set(gl, "MIN", blendMinmax.MIN_EXT);
+    Reflect.set(gl, "MAX", blendMinmax.MAX_EXT);
   }
 
   gl.getExtension("OES_standard_derivatives");
@@ -469,15 +508,15 @@ export function initWebGL() {
   gl.getExtension("OES_texture_float_linear");
   gl.getExtension("EXT_frag_depth"); //gl_FragDepthEXT
 
-  ext = gl.getExtension("WEBGL_depth_texture");
-  if (ext) {
-    gl.UNSIGNED_INT_24_8 = ext.UNSIGNED_INT_24_8_WEBGL
+  let depthTexture = gl.getExtension("WEBGL_depth_texture");
+  if (depthTexture) {
+    Reflect.set(gl, "UNSIGNED_INT_24_8", depthTexture.UNSIGNED_INT_24_8_WEBGL);
   }
 
-  ext = gl.getExtension("WEBGL_draw_buffers");
-  if (ext) {
-    for (let k in ext) {
-      let v = ext[k];
+  let drawBuffers = gl.getExtension("WEBGL_draw_buffers");
+  if (drawBuffers) {
+    for (let k in drawBuffers) {
+      let v = Reflect.get(drawBuffers, k);
 
       if (k.endsWith("_WEBGL")) {
         k = k.slice(0, k.length - 6);
@@ -485,44 +524,46 @@ export function initWebGL() {
            the same value; assigning it was a no-op in sloppy mode and throws
            in strict. */
         if (!(k in gl)) {
-          gl[k] = v;
+          Reflect.set(gl, k, v);
         }
       }
     }
 
-    gl._drawbuf = ext;
+    gl._drawbuf = drawBuffers;
 
     gl.drawBuffers = function (buffers) {
-      return gl._drawbuf.drawBuffersWEBGL(buffers);
+      return gl!._drawbuf!.drawBuffersWEBGL(buffers);
     }
   }
 
   //ext = gl.getExtension("WEBGL_debug_renderer_info");
-  ext = gl.getExtension("OES_vertex_array_object");
-  if (ext) {
-    gl._vbo = ext;
+  let vertexArrays = gl.getExtension("OES_vertex_array_object");
+  if (vertexArrays) {
+    gl._vbo = vertexArrays;
 
+    /* Each of these forwards the arguments its WebGL2 counterpart declares;
+       the `...arguments` spreads they replace passed the same ones. */
     gl.createVertexArray = function () {
-      return gl._vbo.createVertexArrayOES(...arguments);
+      return gl!._vbo!.createVertexArrayOES();
     }
-    gl.deleteVertexArray = function () {
-      return gl._vbo.deleteVertexArrayOES(...arguments);
+    gl.deleteVertexArray = function (vao) {
+      return gl!._vbo!.deleteVertexArrayOES(vao);
     }
-    gl.isVertexArray = function () {
-      return gl._vbo.isVertexArrayOES(...arguments);
+    gl.isVertexArray = function (vao) {
+      return gl!._vbo!.isVertexArrayOES(vao);
     }
-    gl.bindVertexArray = function () {
-      return gl._vbo.bindVertexArrayOES(...arguments);
+    gl.bindVertexArray = function (vao) {
+      return gl!._vbo!.bindVertexArrayOES(vao);
     }
   }
 
   gl.ctxloss = gl.getExtension("WEBGL_lose_context");
   //gl.getExtension("OES_element_index_uint");
 
-  ext = gl.getExtension("EXT_texture_filter_anisotropic");
-  if (ext) {
-    gl.MAX_TEXTURE_MAX_ANISOTROPY = ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT;
-    gl.TEXTURE_MAX_ANISOTROPY = ext.TEXTURE_MAX_ANISOTROPY_EXT;
+  let anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
+  if (anisotropic) {
+    gl.MAX_TEXTURE_MAX_ANISOTROPY = anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT;
+    gl.TEXTURE_MAX_ANISOTROPY = anisotropic.TEXTURE_MAX_ANISOTROPY_EXT;
   }
 
   gl.srgb = gl.getExtension("EXT_sRGB"); //gl.srgb.SRGB_EXT
@@ -558,6 +599,14 @@ export function updateSize() {
   canvas.style["height"] = (h/dpi) + "px";
 }
 
+/* view2d.ts is the only area that draws into this module's context; it opts
+   in with `hasWebgl: true` in its define(). */
+function drawsWebgl(area : object) : area is {
+  drawWebgl(gl : WebGLContext, canvas : HTMLCanvasElement) : void
+} {
+  return typeof Reflect.get(area, "drawWebgl") === "function";
+}
+
 let animreq : number | undefined = undefined;
 
 function draw() {
@@ -572,10 +621,14 @@ function draw() {
 
   let screen = g_app_state.screen;
   for (let sarea of screen.sareas) {
-    let area = sarea.area;
+    let area = sarea.area!;
 
-    if (area.constructor.define().hasWebgl) {
-      area.drawWebgl(gl, canvas);
+    if (Reflect.get(area.constructor.define(), "hasWebgl")) {
+      if (!drawsWebgl(area)) {
+        throw new TypeError("area declares hasWebgl but has no drawWebgl()");
+      }
+
+      area.drawWebgl(gl!, canvas!);
     }
   }
 }

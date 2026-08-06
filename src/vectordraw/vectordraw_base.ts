@@ -25,7 +25,7 @@ export class VectorVertex extends Vector2 {
   loadSTRUCT(reader : StructReader<this>) {
     reader(this);
 
-    this.load(this._vec);
+    this.load(this._vec!);
     delete this._vec;
   }
 }
@@ -60,6 +60,23 @@ f2 := y1 + dy1*t1 - y4 - dy2*t2;
 f := solve({f1, f2}, {t1, t2});
 
 */
+/* A colour, as either a path.ux Vector4 or a plain rgba array.  path.ux
+   vectors deliberately have no plain index signature -- theirs yields
+   `number | undefined` -- so a Vector4 is not an ArrayLike<number>. */
+export type ColorLike = {
+  [i : number] : number | undefined;
+
+  length : number;
+};
+
+/* `recalc` lives on the merged interface rather than in the class body: the
+   canvas2d backend replaces it with an accessor pair, which TypeScript will
+   not allow over a class-declared property. */
+export interface PathBase {
+  /* Non-zero when the path's cached geometry has to be rebuilt. */
+  recalc : number;
+}
+
 export class PathBase {
   off : Vector2
   blur : number
@@ -73,26 +90,31 @@ export class PathBase {
   id : number;
   /* Draw order within the VectorDraw; get_path() assigns it. */
   z : number | undefined;
-  /* [width, height] of the path's own backing canvas, -1 until it has one. */
-  size : number[];
+  /* [width, height] of the path's own backing canvas, -1 until it has one.
+     A vector because genInto() swaps in a Vector2 and load()s through it. */
+  size : Vector2;
   /* Position in VectorDraw.paths. */
   index : number;
   aabb : [Vector2, Vector2];
   /* Blur/stroke slack baked into the aabb by update_aabb(). */
   pad! : number;
-  /* Non-zero when the path's cached geometry has to be rebuilt.  NOTE: the
-     canvas2d backend replaces this with an accessor pair. */
-  recalc! : number;
   /* Current pen position, tracked by the moveTo/lineTo/bezierTo family. */
   lastx! : number;
   lasty! : number;
+
+  /* Both are set by spline_draw_new and read by nothing. */
+  frame_first? : boolean;
+  was_updated? : boolean;
+
+  /* Set by spline_draw_new; only the canvas2d backend honours it. */
+  hidden? : boolean;
 
   constructor() {
     this.off = new Vector2();
     this.id = -1;
     this.z = undefined;
     this.blur = 0;
-    this.size = [-1, -1];
+    this.size = new Vector2([-1, -1]);
     this.index = -1;
 
     this.matrix = new Matrix4();
@@ -196,7 +218,6 @@ export class PathBase {
 
     var tdiv = (dx1*dy2 - dx2*dy1);
     var t = (-(x1-x4)*dy2+(y1-y4)*dx2);
-    var midx, midy;
 
     if (tdiv !== 0.0) {
       t /= tdiv;
@@ -223,19 +244,20 @@ export class PathBase {
   destroy(draw : VectorDraw) {
   }
 
-  /* NOTE: PathBase has no `pan` -- that lives on VectorDraw -- so this throws
-     for every backend that does not override reset(). */
-  reset(draw : VectorDraw) {
-    this.pan.zero();
+  /* NOTE: this zeroed this.pan, which lives on VectorDraw rather than here,
+     so it threw for any backend that did not override reset() -- every backend
+     does.  No backend reads `draw`, and every call site passes nothing. */
+  reset(draw? : VectorDraw) {
+    throw new Error("implement me");
   }
 
   //called only by VectorDraw implementing class
   //args can be whatever you want
-  draw() {
+  draw(...args : unknown[]) {
     throw new Error("implement me!");
   }
 
-  pushStroke(color? : number[], linewidth? : number) {
+  pushStroke(color? : ColorLike, linewidth? : number) {
     throw new Error("implement me!");
   }
 
@@ -247,7 +269,9 @@ export class PathBase {
     throw new Error("implement me!");
   }
 
-  update() {
+  /* `draw` is accepted only because CanvasDraw2D.update() passes it; no
+     backend has ever read it. */
+  update(draw? : VectorDraw) {
     throw new Error("implement me!");
   }
 
@@ -260,29 +284,37 @@ var pop_transform_rets = new cachering(function() {
   return new Matrix4();
 }, 32);
 
-export class VectorDraw {
+/* `PathType` is the concrete path class a backend hands out; the base only
+   ever needs to know it is some PathBase. */
+/* `regen` is on the merged interface for the same reason PathBase.recalc is. */
+export interface VectorDraw<PathType extends PathBase = PathBase> {
+  /* Non-zero when every path has to be re-rendered. */
+  regen : number | boolean;
+}
+
+export class VectorDraw<PathType extends PathBase = PathBase> {
   pan : Vector2
   do_blur : boolean
   /* A preallocated matrix stack; `cur` is the write head. */
   matstack : Matrix4[] & {cur : number}
   matrix : Matrix4;
 
-  paths! : PathBase[];
-  path_idmap! : {[id : number] : PathBase};
+  paths! : PathType[];
+  path_idmap! : {[id : number] : PathType};
   /* Set when the path list is out of z order. */
   dosort! : boolean | number;
-  /* Non-zero when every path has to be re-rendered. */
-  regen! : number | boolean;
-  /* Whatever the last draw() call targeted. */
-  canvas : DrawCanvas | undefined;
-  g : Canvas2D | undefined;
+  /* Whatever the last draw() call targeted. Set for the whole of a draw and
+     read unconditionally by every path renderer; only the constructors below
+     leave it unset. */
+  canvas! : DrawCanvas;
+  g! : Canvas2D;
   zoom! : number;
 
   constructor() {
     this.pan = new Vector2();
     this.do_blur = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     for (var i=0; i<this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
@@ -300,7 +332,7 @@ export class VectorDraw {
   }
 
   //creates new path if necessary.  z is required
-  get_path(id : number, z : number, check_z = true) : PathBase {
+  get_path(id : number, z : number, check_z = true) : PathType {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -317,7 +349,7 @@ export class VectorDraw {
     throw new Error("implement me");
   }
 
-  remove(path : PathBase) {
+  remove(path : PathType) {
     for (var path2 of path.clip_users) {
       path2.clip_paths.remove(path);
       path2.update();
@@ -337,7 +369,7 @@ export class VectorDraw {
     throw new Error("implement me");
   }
 
-  draw(g : Canvas2D) : Promise<void> {
+  draw(g : Canvas2D) : Promise<void> | void {
     //should return a promise
     throw new Error("implement me");
   }
@@ -362,7 +394,7 @@ export class VectorDraw {
   }
 
   translate(x : number, y : number) {
-    this.matrix.translate(x, y);
+    this.matrix.translate(x, y, 0);
   }
 
   scale(x : number, y : number) {

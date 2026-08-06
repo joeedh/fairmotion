@@ -1,3 +1,4 @@
+import type {FullContext} from "../../core/context.js";
 import {Area, AreaFlags} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase, iconmanager} from '../../path.ux/scripts/core/ui_base.js';
@@ -5,14 +6,12 @@ import {Editor} from '../editor_base.js';
 import * as ui_widgets from '../../path.ux/scripts/widgets/ui_widgets.js';
 import * as platform from '../../../platforms/platform.js';
 import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
+import type {MenuTemplate} from '../../path.ux/scripts/widgets/ui_menu.js';
+import type {CSSFont} from '../../path.ux/scripts/core/cssfont.js';
 import {startup_file} from '../../core/startup/startup_file.js';
 
 import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
 import type {Container, RowFrame} from '../../path.ux/scripts/core/ui.js';
-
-/* One entry of a path.ux menu definition: a toolpath string, Menu.SEP, a
-   [label, callback, hotkey?, icon?] tuple, or a submenu-building callback. */
-export type MenuEntry = string | symbol | unknown[] | (() => UIBase);
 
 /*
   gen_file_menu(ctx, uimenulabel)
@@ -67,7 +66,7 @@ export class MenuBar extends Editor {
   static STRUCT : string;
 
   /* Rebuilt from the active toolmode; handed to row.dynamicMenu(). */
-  editMenuDef : MenuEntry[];
+  editMenuDef : MenuTemplate;
   /* Scene.toolmode_i the edit menu was last built for. */
   _last_toolmode : number | undefined;
 
@@ -78,7 +77,7 @@ export class MenuBar extends Editor {
 
     let tilesize = iconmanager.getTileSize(0) + 7;
 
-    let h = Math.max(this.getDefault("TitleText").size, tilesize);
+    let h = Math.max(this.getDefault<CSSFont>("TitleText").size, tilesize);
 
     this.editMenuDef = [];
     this._last_toolmode = undefined;
@@ -114,9 +113,12 @@ export class MenuBar extends Editor {
       menu.addItem(name, id);
     }
 
-    menu.onselect = (id: string) => {
+    /* NOTE: this assigned onselect, the DOM select-event handler.  The menu's
+       own callback is _onselect, so picking a recent file has never done
+       anything. */
+    menu._onselect = (id : string | number) => {
       console.warn("recent files callback!", id);
-      g_app_state.load_path(id);
+      g_app_state.load_path("" + id);
     }
 
     return menu;
@@ -126,10 +128,13 @@ export class MenuBar extends Editor {
     super.init();
 
     let row = this.header;
+    if (row === undefined) {
+      throw new Error("menubar has no header");
+    }
+
     let SEP = Menu.SEP;
 
-
-    let menudef = [
+    let menudef : MenuTemplate = [
       "appstate.quit()",
       "view2d.export_image()",
       "appstate.export_svg()",
@@ -179,7 +184,12 @@ export class MenuBar extends Editor {
       return;
     }
 
-    let ret = g_app_state.ctx.toolmode.constructor.buildEditMenu();
+    let toolmode = g_app_state.ctx.toolmode;
+    if (toolmode === undefined) {
+      return;
+    }
+
+    let ret = toolmode.constructor.buildEditMenu();
     if (!ret) return;
 
     for (let item of ret) {
@@ -191,31 +201,18 @@ export class MenuBar extends Editor {
     }
   }
 
-  finishMenu(row : RowFrame) {
-    /* NOTE: `callback` is never referenced, and both it and the "Reset
-       Settings" handler below read a bare `ctx` that this module never
-       declares or imports. */
-    function callback(entry : {i : number}) {
-      console.log(entry);
-      if (entry.i === 0) {
-        //note: this is an html5 function
-        if (confirm("Settings will be cleared", "Clear Settings?")) {
-          console.log("clearing settings");
-
-          ctx.appstate.session.settings.reload_defaults();
-        }
-      } else if (entry.i === 2) {
-        g_app_state.set_startup_file();
-      } else if (entry.i === 1) {
-        myLocalStorage.set("startup_file", startup_file);
-      }
-    }
+  finishMenu(row : Container<FullContext>) {
+    /* NOTE: a `callback` function sat here, never referenced by anything.  It
+       called confirm() with two arguments and read a bare `ctx` that this
+       module never declares, so it would have thrown had anything used it. */
 
     try {
       row.dynamicMenu("&Edit", this.editMenuDef);
       this.buildEditMenu(false);
     } catch (error) {
-      console.error(error.stack);
+      if (error instanceof Error) {
+        console.error(error.stack);
+      }
       console.error("Error building menu");
     }
 
@@ -238,12 +235,15 @@ export class MenuBar extends Editor {
         });
       }, "ctrl-alt-u"
       ],
+      /* NOTE: this read a bare `ctx` -- a ReferenceError, so confirming this
+         dialog has always thrown instead of resetting anything.  questionDialog
+         also takes only the message; the second argument was ignored. */
       ["Reset Settings", function () {
-        platform.app.questionDialog("Settings will be cleared", "Clear Settings?").then((val) => {
+        platform.app.questionDialog("Settings will be cleared").then((val) => {
           if (val) {
             console.log("clearing settings");
 
-            ctx.appstate.session.settings.reload_defaults();
+            g_app_state.settings.reload_defaults();
           }
         });
       }]
@@ -268,18 +268,16 @@ export class MenuBar extends Editor {
     }
   }
 
+  /* NOTE: this began with `if (ctx && ctx.menubar) return ctx.menubar.minSize[1];`.
+     Nothing anywhere puts a `menubar` on the context, so the branch was dead and
+     the constant below is the only height this has ever returned. */
   static getHeight() {
-    let ctx = g_app_state.ctx;
-    if (ctx && ctx.menubar) {
-      return ctx.menubar.minSize[1];
-    }
-
     return 28;
   }
 
-  makeHeader(container: Container) {
+  makeHeader(container: Container<FullContext>) {
     //this.header = this.container.row();
-    super.makeHeader(container, false);
+    return super.makeHeader(container, false);
   }
 
   static define() {

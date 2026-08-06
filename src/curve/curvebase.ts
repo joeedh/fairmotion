@@ -54,13 +54,15 @@ const _normal_rets = cachering.fromConstructor(Vector2, 16);
    parameter `s` and the shared CurveData.
 
    Subclasses supply evaluate(); everything else is a finite difference off it.
-   The base evaluate() and update() are unimplemented stubs that fall off the
-   end and return undefined. */
+   The base evaluate(), closest_point() and update() are unimplemented stubs;
+   they used to fall off the end and return undefined, and now throw the same
+   way ClothoidInterface's do. */
 class CurveInterface {
   static evaluate(p1 : Vector2, p2 : Vector2,
                   t1 : Vector2, t2 : Vector2,
                   k1 : number, k2 : number, s : number, cdata : CurveData) : Vector2
   {
+    throw new Error("evaluate: implement me");
   }
 
   static derivative(p1 : Vector2, p2 : Vector2,
@@ -134,11 +136,13 @@ class CurveInterface {
                   k1 : number, k2 : number, p : Vector2, cdata : CurveData) : number
   {
     //need to implement this
+    throw new Error("closest_point: implement me");
   }
 
   static update(p1 : Vector2, p2 : Vector2,
                   t1 : Vector2, t2 : Vector2,
                   k1 : number, k2 : number, s : number, cdata : CurveData) : number
   {
+    throw new Error("update: implement me");
   }
 }

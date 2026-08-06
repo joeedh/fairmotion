@@ -1,5 +1,5 @@
 import {PathBase, VectorDraw} from './vectordraw_base.js';
-import type {DrawCanvas} from './vectordraw_base.js';
+import type {ColorLike, DrawCanvas} from './vectordraw_base.js';
 
 let MOVETO = 0, LINETO = 1, CUBICTO = 2, QUADTO = 3, RECT = 4, SETLINEWIDTH = 5, STROKE = 6, FILL = 7, CLIP = 8;
 const goodCommands = new Set([MOVETO, LINETO, CUBICTO, QUADTO]);
@@ -40,20 +40,22 @@ export class Path2DPath extends PathBase {
   /* opcode, argument count, then that many arguments, repeated. */
   commands: Array<number>;
 
-  g : Canvas2D;
+  g : CanvasRenderingContext2D;
   /* Cleared by _pushPath(); update_aabb() rebuilds the box. */
   need_aabb : boolean;
-  /* The Path2D currently being appended to, and the full command list. */
-  actpath : Path2D | undefined;
+  /* The Path2D currently being appended to; _pushPath() sets it below, before
+     anything can read it. */
+  actpath! : Path2D;
+  /* The full command list. */
   paths : PathCommand[];
 
-  /* NOTE: get_path() passes the CanvasPath2D as the first argument, so
-     `this.matrix` ends up holding the draw object rather than a Matrix4
-     until the first update_aabb() overwrites it. */
-  constructor(matrix : CanvasPath2D, g : Canvas2D, id : number, z : number) {
+  /* NOTE: this stored the CanvasPath2D itself in `this.matrix`, which is
+     declared a Matrix4.  Nothing read it before draw()/update_aabb() replaced
+     it, so taking the draw object's matrix here is equivalent. */
+  constructor(draw : CanvasPath2D, g : CanvasRenderingContext2D, id : number, z : number) {
     super();
 
-    this.matrix = matrix;
+    this.matrix = draw.matrix;
 
     this.g = g;
     this.z = z;
@@ -62,7 +64,6 @@ export class Path2DPath extends PathBase {
     this.need_aabb = true;
 
     //actual command list that's basically just a list of Path2D's
-    this.actpath = undefined;
     this.paths = [];
 
     //store all commands with points to keep aabb up to date
@@ -100,12 +101,12 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  /* NOTE: BEGINPATH is not defined in this file, and Path2D has no
-     beginPath() -- both throw the moment a path is begun. */
+  /* NOTE: this pushed a BEGINPATH opcode that this file never defines and then
+     called beginPath() on the Path2D, which has no such method, so beginning a
+     path always threw.  _pushPath() already starts a fresh Path2D, which is the
+     whole of what this needs to do. */
   beginPath() {
-    this.pushCmd(BEGINPATH);
     this._pushPath();
-    this.actpath.beginPath();
 
     return this;
   }
@@ -138,24 +139,24 @@ export class Path2DPath extends PathBase {
 
   /* NOTE: unlike pushFill/pushClip, the PathCommand built here is never
      pushed onto this.paths -- only the numeric command list gets the stroke. */
-  pushStroke(color? : number[], width? : number) {
+  pushStroke(color? : ColorLike, width? : number) {
     let cmd = new PathCommand(STROKE);
 
     if (color && width !== undefined) {
-      cmd.r = color[0];
-      cmd.g = color[1];
-      cmd.b = color[2];
-      cmd.a = color[3];
+      cmd.r = color[0]!;
+      cmd.g = color[1]!;
+      cmd.b = color[2]!;
+      cmd.a = color[3]!;
       cmd.lineWidth = width;
 
-      this.pushCmd(STROKE, color[0], color[1], color[2], color[3], width);
+      this.pushCmd(STROKE, color[0]!, color[1]!, color[2]!, color[3]!, width);
     } else if (color) {
-      cmd.r = color[0];
-      cmd.g = color[1];
-      cmd.b = color[2];
-      cmd.a = color[3];
+      cmd.r = color[0]!;
+      cmd.g = color[1]!;
+      cmd.b = color[2]!;
+      cmd.a = color[3]!;
 
-      this.pushCmd(STROKE, color[0], color[1], color[2], color[3]);
+      this.pushCmd(STROKE, color[0]!, color[1]!, color[2]!, color[3]!);
     } else if (width !== undefined) {
       cmd.lineWidth = width;
 
@@ -181,7 +182,7 @@ export class Path2DPath extends PathBase {
     return this;
   }
 
-  update_aabb(draw : CanvasPath2D, fast_mode = false) {
+  update_aabb(draw? : {matrix : Matrix4}, fast_mode = false) {
     let cs = this.commands;
     let i = 0;
 
@@ -284,9 +285,15 @@ export class Path2DPath extends PathBase {
           }
 
           let path = new Path2D();
-          path.addPath(path1, matrix);
+          /* NOTE: this passed `matrix` as the transform, but a Matrix4 carries
+             none of the DOMMatrix2DInit members, so it always read as the
+             identity -- and setTransform() above already applied it. */
+          path.addPath(path1);
 
-          switch (cmd) {
+          /* NOTE: this switched on the PathCommand object rather than its
+             opcode, so no case ever matched: this backend has never drawn a
+             fill, clip or stroke command. */
+          switch (cmd.cmd) {
             case FILL:
               console.log("FILL!", path);
 
@@ -306,15 +313,17 @@ export class Path2DPath extends PathBase {
 
               if (cmd.r !== undefined) {
                 let cr = ~~(cmd.r*255);
-                let cg = ~~(cmd.g*255);
-                let cb = ~~(cmd.b*255);
+                let cg = ~~(cmd.g!*255);
+                let cb = ~~(cmd.b!*255);
                 let ca = cmd.a;
 
                 g.strokeStyle = `rgba(${cr},${cg},${cb},${ca})`;
               }
 
               if (cmd.lineWidth !== undefined) {
-                g.lineWidth = cmd.lineWidth * matrix.m11;
+                /* NOTE: this read m11 off the Matrix4, which keeps its cells on
+                   .$matrix, so the stroke width has always come out NaN. */
+                g.lineWidth = cmd.lineWidth * mat.m11;
               }
 
               g.stroke(path);
@@ -337,13 +346,18 @@ export class Path2DPath extends PathBase {
 
       for (; curi < paths.length; curi++) {
         let path1 = paths[curi].path;
-        let path = new Path2D();
 
-        path.addPath(path1, matrix);
-
-        if (path) {
-          g.fill(path);
+        /* NOTE: the fill/clip marker commands carry no path and addPath()
+           throws on undefined; the old guard tested the Path2D built just
+           above, which is always truthy. */
+        if (!path1) {
+          continue;
         }
+
+        let path = new Path2D();
+        path.addPath(path1);
+
+        g.fill(path);
       }
     }
 
@@ -357,7 +371,6 @@ export class Path2DPath extends PathBase {
     this.need_aabb = true;
     this.commands.length = 0;
     this.paths.length = 0;
-    this.actpath = undefined;
 
     this._pushPath();
 
@@ -369,11 +382,14 @@ export class Path2DPath extends PathBase {
   }
 }
 
-export class CanvasPath2D extends VectorDraw {
+export class CanvasPath2D extends VectorDraw<Path2DPath> {
   paths : Path2DPath[];
   path_idmap : {[id : number] : Path2DPath};
-  canvas : DrawCanvas;
-  g : Canvas2D;
+  /* This backend composites into its own buffer and blits it onto whatever
+     draw() is handed, so these are plain DOM objects rather than the
+     dpi_scale-stamped Canvas2D the base class declares. */
+  offscreen : HTMLCanvasElement;
+  offscreenG : CanvasRenderingContext2D;
   /* Set when a path's z changed and the draw order is stale. */
   resort : boolean;
 
@@ -385,8 +401,8 @@ export class CanvasPath2D extends VectorDraw {
     this.paths = [];
     this.path_idmap = {};
 
-    this.canvas = document.createElement("canvas");
-    this.g = this.canvas.getContext("2d");
+    this.offscreen = document.createElement("canvas");
+    this.offscreenG = this.offscreen.getContext("2d")!;
 
     this.resort = true;
     this.zoom = 1.0;
@@ -410,8 +426,8 @@ export class CanvasPath2D extends VectorDraw {
       this.paths.sort((a, b) => a.z - b.z);
     }
 
-    let canvas = this.canvas;
-    let g = this.g;
+    let canvas = this.offscreen;
+    let g = this.offscreenG;
     let finalcanvas = finalg.canvas;
 
     canvas.width = finalcanvas.width;
@@ -449,7 +465,7 @@ export class CanvasPath2D extends VectorDraw {
         this.resort = true;
       }
     } else {
-      path = new Path2DPath(this, this.g, id, z);
+      path = new Path2DPath(this, this.offscreenG, id, z);
       this.paths.push(path);
       this.path_idmap[id] = path;
 

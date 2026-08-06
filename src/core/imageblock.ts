@@ -1,4 +1,4 @@
-import {DataBlock, DataTypes, BlockFlags} from './lib_api.js';
+import {DataBlock, DataRef, DataTypes, BlockFlags} from './lib_api.js';
 import type {GetBlockFunc, GetBlockUserFunc} from './lib_api.js';
 import {STRUCT} from './struct.js';
 import {ModalStates} from './toolops_api.js';
@@ -89,7 +89,7 @@ export class Image extends DataBlock {
     reader(this);
     super.loadSTRUCT(reader);
 
-    if (this.data.length === 0) {
+    if (this.data !== undefined && this.data.length === 0) {
       this.data = undefined;
     }
 
@@ -122,8 +122,12 @@ export class ImageUser {
     this.flag = 0;
   }
 
-  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
-    this.image = getblock(this.image); //XXX should use getblock_us?
+  /* `block` is the owner being linked -- a datablock for most callers, the
+     editor itself for view2d. Ignored either way; only the image ref moves. */
+  data_link(block: unknown, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
+    let image = getblock(DataRef.fromBlock(this.image)); //XXX should use getblock_us?
+
+    this.image = image instanceof Image ? image : undefined;
   }
 
   static fromSTRUCT(reader: StructReader<ImageUser>) {

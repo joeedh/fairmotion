@@ -1,9 +1,9 @@
 import * as wasm_mod from './built_wasm.js';
 import type {WasmModule} from './load_wasm.js';
 
-/* built_wasm.js is generated emscripten output; its only export is the default,
-   which is the live Module object emscripten mutates in place. */
-let wasm : WasmModule = wasm_mod.default;
+/* built_wasm.js is generated, @ts-nocheck'd emscripten output; its only export
+   is the live Module object emscripten mutates in place, which infers as {}. */
+let wasm = wasm_mod.default as WasmModule;
 
 export let wasmModule = wasm;
 
@@ -18,12 +18,16 @@ export let solve_endtimes : {[solveId : number] : number} = {};
 /* job id -> spline._solve_id; the reverse of active_solves. */
 export let active_jobs : {[jobId : number] : number} = {}
 
-import {constraint, solver} from "../curve/solver.js";
+import type {AnyConstraint} from "../curve/solver.js";
 import type {Spline} from '../curve/spline.js';
 import type {SplineVertex, SplineSegment} from '../curve/spline_types.js';
 import {ModalStates} from '../core/toolops_api.js';
 import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
 import {build_solver, solve_pre} from '../curve/spline_math_hermite.js';
+import type {
+  CopyParams, CurvParams, HardTanParams, TanParams
+} from '../curve/spline_math_hermite.js';
+import type {KsArray} from '../curve/spline_math.js';
 
 import {TypedWriter} from '../util/typedwriter.js';
 import * as util from '../path.ux/scripts/util/util.js';
@@ -120,8 +124,10 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
     console.log("job:", job);
   
   job.status.data = message.slice(8, message.byteLength);
+  /* NOTE: this also logged `iter.data`, which was never a member of the job
+     object wasm_solve() returns. */
   if (DEBUG)
-    console.log("iter:", iter, iter.data);
+    console.log("iter:", iter);
   
   let ret = iter.next();
   
@@ -192,7 +198,8 @@ function init_eval_mem() {
 
 export function onSegmentDestroy(seg : SplineSegment) {
   if (seg.ks._has_wasm) {
-    wasm._free(seg.ks.ptr);
+    /* checkSegment() sets both together. */
+    wasm._free(seg.ks.ptr!);
     seg.ks = new Float64Array(16);
   }
 }
@@ -202,7 +209,7 @@ export function checkSegment(seg : SplineSegment) {
   if (!seg.ks._has_wasm) {
     let ks = seg.ks;
     let ptr2 = wasm._malloc(8*16);
-    let ks2 = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+    let ks2 : KsArray = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
 
     for (let i=0; i<ks.length; i++) {
       ks2[i] = ks[i];
@@ -228,8 +235,8 @@ export function evalCurve(seg : SplineSegment, s : number,
   }
 
   for (let i=0; i<2; i++) {
-    wv1[i] = v1[i];
-    wv2[i] = v2[i];
+    wv1[i] = v1[i]!;
+    wv2[i] = v2[i]!;
   }
 
   /*for (let i=0; i<ks.length; i++) {
@@ -238,7 +245,8 @@ export function evalCurve(seg : SplineSegment, s : number,
 
   checkSegment(seg);
 
-  wasm._evalCurve(pco, s, seg.ks.ptr, pv1, pv2, no_update ? 1 : 0);
+  /* checkSegment() just moved ks into wasm memory. */
+  wasm._evalCurve(pco, s, seg.ks.ptr!, pv1, pv2, no_update ? 1 : 0);
 
   /*
   if (!no_update) {
@@ -305,7 +313,7 @@ export function clear_jobs_except_latest(typeid : number) {
   for (let k in callbacks) {
     let job = callbacks[k];
     
-    if (job.typeid & typeid) {
+    if ((job.typeid ?? 0) & typeid) {
       job._skip = 1;
       delete callbacks[k];
       last = job;
@@ -314,7 +322,8 @@ export function clear_jobs_except_latest(typeid : number) {
   }
   
   if (last !== undefined) {
-    callbacks[lastk] = last;
+    /* Set in the same iteration that set `last`. */
+    callbacks[lastk!] = last;
     delete last._skip;
   }
 }
@@ -326,7 +335,7 @@ export function clear_jobs_except_first(typeid : number) {
   for (let k in callbacks) {
     let job = callbacks[k];
     
-    if (job.typeid & typeid) {
+    if ((job.typeid ?? 0) & typeid) {
       if (last != undefined) {
         job._skip = 1;
         delete callbacks[k];
@@ -342,7 +351,7 @@ export function clear_jobs(typeid : number) {
   for (let k in callbacks) {
 
     let job = callbacks[k];
-    if (job.typeid & typeid) {
+    if ((job.typeid ?? 0) & typeid) {
       job._skip = 1;
       delete callbacks[k];
     }
@@ -350,12 +359,11 @@ export function clear_jobs(typeid : number) {
 }
 
 /* wasm_solve is the only job there is, so the arguments after `params` are
-   spelled out as its trailing parameters; the body forwards them by reading
-   `arguments`. */
-export function call_api(job : typeof wasm_solve, params? : ApiCallParams,
-                         spline? : Spline, cons? : constraint[],
-                         update_verts? : set<SplineVertex>, gk? : number,
-                         edge_segs? : set<SplineSegment>) {
+   spelled out as its trailing parameters and handed straight to it. */
+export function call_api(job : typeof wasm_solve, params : ApiCallParams | undefined,
+                         spline : Spline, cons : AnyConstraint[],
+                         update_verts : set<SplineVertex>, gk : number,
+                         edge_segs : set<SplineSegment>) {
   let callback : ((value : (() => void) | undefined) => void) | undefined;
   let error : ((error : Error) => void) | undefined;
   let thisvar : object | undefined;
@@ -380,20 +388,16 @@ export function call_api(job : typeof wasm_solve, params? : ApiCallParams,
     msgid : id,
     data  : undefined
   }
-  let args = [postMessage, status];
-  
-  for (let i=2; i<arguments.length; i++) {
-    args.push(arguments[i]);
-  }
-  
   //block any messages until after the "callbacks[id] = ..." line below.
   queueUpMessages(true);
 
-  let iter = job.apply(job, args);
+  let iter = job(postMessage, status, spline, cons, update_verts, gk, edge_segs);
 
   let ret = iter.next();
   if (ret.done) {
-    callback.call(thisvar, iter.value);
+    /* Unreachable: wasm_solve's first next() always reports done:false.  The
+       `iter.value` this used to pass was never a member of the job object. */
+    callback!.call(thisvar, undefined);
     return;
   }
   
@@ -418,7 +422,7 @@ export function call_api(job : typeof wasm_solve, params? : ApiCallParams,
 
 
 export function start_message(type : number, msgid : number, endian : boolean) {
-  let data = [];
+  let data : number[] = [];
   
   ajax.pack_int(data, type, endian);
   ajax.pack_int(data, msgid, endian);
@@ -434,28 +438,9 @@ export function start_message_new(writer : TypedWriter, type : number, msgid : n
   writer.int32(msgid);
 }
 
-/* Dead, and broken: `endian` below is not in scope, so calling any of the
-   returned readers would throw. */
-function _unpacker(dview : DataView) {
-  let b = 0;
-  
-  return {
-    getint : function getint() {
-      b += 4;
-      return dview.getInt32(b-4, endian);
-    },
-    
-    getfloat : function getfloat() {
-      b += 4;
-      return dview.getFloat32(b-4, endian);
-    },
-    getdouble : function getdouble() {
-      b += 8;
-      return dview.getFloat64(b-8, endian);
-    }
-  };
-}
-
+/* NOTE: a dead _unpacker(dview) lived here, returning getint/getfloat/getdouble
+   readers.  Nothing called it, and `endian` was not in scope inside any of the
+   three, so calling one would have thrown.  Deleted. */
 
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
@@ -593,11 +578,12 @@ export function do_solve(sflags : {[name : string] : number}, spline : Spline,
 
   spline.resolve = 0;
   
-  let update_verts = new set();
+  let update_verts = new set<SplineVertex>();
   let slv = build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
-  let cs = slv.cs, edge_segs = slv.edge_segs;
-  
-  edge_segs = new set(edge_segs);
+  let cs = slv.cs;
+
+  /* build_solver() hands these back as an array; the job wants membership. */
+  let edge_segs = new set<SplineSegment>(slv.edge_segs);
 
   //on_finish();
   //return promise;
@@ -605,7 +591,8 @@ export function do_solve(sflags : {[name : string] : number}, spline : Spline,
   call_api(wasm_solve, {
     callback : function(value : (() => void) | undefined) {
       //console.log("value", value);
-      finish(value);
+      /* stage1() sets status.value before the job reports done. */
+      finish(value!);
     }, error : function(error : Error) {
       console.log("wasm solve error!");
       window.pop_solve(draw_id);
@@ -621,7 +608,7 @@ window.wasm_do_solve = do_solve;
 
 /* NOTE: `gk` is accepted but never applied -- write_wasm_solve() below, the
    version this replaced, scaled every constraint k by it. */
-function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : constraint[],
+function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : AnyConstraint[],
                               update_verts : set<SplineVertex>,
                               update_segs : set<SplineSegment>, gk : number,
                               edge_segs : set<SplineSegment>) {
@@ -629,7 +616,6 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
   let idxmap : {[eid : number] : number} = {}
 
   let i = 0;
-  /* Called with a second argument at the one call site; it is ignored. */
   function add_vert(v : SplineVertex) {
     writer.int32(v.eid);
     writer.int32(v.flag);
@@ -642,7 +628,7 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
   }
   
   for (let v of update_verts) {
-    add_vert(v, true);
+    add_vert(v);
   }
   
   writer.int32(update_segs.length);
@@ -668,7 +654,8 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
     
     //let zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
     checkSegment(s);
-    writer.uint32(s.ks.ptr);
+    /* checkSegment() just moved ks into wasm memory. */
+    writer.uint32(s.ks.ptr!);
 
     writer.vec3(s.h1);
     writer.vec3(s.h2);
@@ -690,21 +677,23 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
 
     let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
+    /* `type` is the discriminant build_solver() stamped on the constraint; the
+       class types `params` as a bare unknown[], so each branch has to name the
+       layout its own evaluator was built with. */
     if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
-      seg1 = c.params[0];
-      seg2 = c.params[1];
+      let [cseg1, cseg2] = c.params as TanParams;
 
-      let v = seg1.shared_vert(seg2);
-      
-      param1 = idxmap[seg1.eid];
-      param2 = idxmap[seg2.eid];
-      
-      fparam1 = seg1.v2 === v;
-      fparam2 = seg2.v2 === v;
-      
+      let v = cseg1.shared_vert(cseg2);
+
+      param1 = idxmap[cseg1.eid];
+      param2 = idxmap[cseg2.eid];
+
+      fparam1 = cseg1.v2 === v ? 1 : 0;
+      fparam2 = cseg2.v2 === v ? 1 : 0;
+
       if (c.klst.length === 1) {
-        seg1 = c.klst[0] !== seg1.ks ? param2 : param1;
+        seg1 = c.klst[0] !== cseg1.ks ? param2 : param1;
         seg2 = -1;
       } else {
         seg1 = param1;
@@ -713,41 +702,44 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
     } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
 
-      let seg = c.params[0], tan = c.params[1], s = c.params[2];
-      
+      let [seg, tan, s] = c.params as HardTanParams;
+
       seg1 = idxmap[seg.eid];
       seg2 = -1;
-      
+
       fparam1 = Math.atan2(tan[0], tan[1]);
       fparam2 = s;
     } else if (c.type === "curv_c") {
       type = ConstraintTypes.CURVATURE_CONSTRAINT;
       //console.log("curvature constraint!")
-      seg1 = c.params[0];
-      seg2 = c.params[1];
-      
-      //console.log("c.klst[0]:", c.klst[0], c.klst[0]===seg1.ks, c.klst[0]===seg2.ks);
-      if (seg1.ks !== c.klst[0]) {
-        //let tmp = seg1; seg1 = seg2; seg2 = tmp;
+      let [cseg1, cseg2] = c.params as CurvParams;
+
+      //console.log("c.klst[0]:", c.klst[0], c.klst[0]===cseg1.ks, c.klst[0]===cseg2.ks);
+      if (cseg1.ks !== c.klst[0]) {
+        //let tmp = cseg1; cseg1 = cseg2; cseg2 = tmp;
       }
 
-      let v = seg1.shared_vert(seg2);
-      
-      //is v at seg1/seg2's endpoint or startpoint?
-      fparam1 = seg1.v2 === v;
-      fparam2 = seg2.v2 === v;
-      
-      param1 = idxmap[seg1.eid];
-      param2 = idxmap[seg2.eid];
-      
+      let v = cseg1.shared_vert(cseg2);
+
+      //is v at cseg1/cseg2's endpoint or startpoint?
+      fparam1 = cseg1.v2 === v ? 1 : 0;
+      fparam2 = cseg2.v2 === v ? 1 : 0;
+
+      param1 = idxmap[cseg1.eid];
+      param2 = idxmap[cseg2.eid];
+
       seg1 = param1;
       seg2 = -1; //param2
     } else if (c.type === "copy_c") {
       type = ConstraintTypes.COPY_C_CONSTRAINT;
       //console.log("curvature constraint!")
-      
-      seg1 = c.params[0];
-      param1 = seg1.v1.segments.length === 1; //c.params[1] === seg1.v1;
+
+      /* NOTE: this assigned the SplineSegment itself to seg1, which packs as
+         NaN -- so 0.  Nothing builds a copy_c constraint, so the branch has
+         never run; the 0 is spelled out rather than changed. */
+      let [cseg1] = c.params as CopyParams;
+      seg1 = 0;
+      param1 = cseg1.v1.segments.length === 1 ? 1 : 0; //c.params[1] === cseg1.v1;
     } else {
       console.trace(c, seg1, seg2);
       throw new Error("unknown constraint type " + c.type);
@@ -781,7 +773,7 @@ function write_wasm_solve_new(writer : TypedWriter, spline : Spline, cons : cons
 /* Dead: superseded by write_wasm_solve_new(). Kept because it is the only
    record of the pre-TypedWriter packing layout, which the C side still
    half-shares. */
-function write_wasm_solve(data : number[], spline : Spline, cons : constraint[],
+function write_wasm_solve(data : number[], spline : Spline, cons : AnyConstraint[],
                           update_verts : set<SplineVertex>,
                           update_segs : set<SplineSegment>, gk : number,
                           edge_segs : set<SplineSegment>) {
@@ -799,7 +791,7 @@ function write_wasm_solve(data : number[], spline : Spline, cons : constraint[],
   }
   
   for (let v of update_verts) {
-    add_vert(v, true);
+    add_vert(v);
   }
   
   ajax.pack_int(data, update_segs.length, endian);
@@ -850,21 +842,23 @@ function write_wasm_solve(data : number[], spline : Spline, cons : constraint[],
 
     let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
+    /* `type` is the discriminant build_solver() stamped on the constraint; the
+       class types `params` as a bare unknown[], so each branch has to name the
+       layout its own evaluator was built with. */
     if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
-      seg1 = c.params[0];
-      seg2 = c.params[1];
+      let [cseg1, cseg2] = c.params as TanParams;
 
-      let v = seg1.shared_vert(seg2);
-      
-      param1 = idxmap[seg1.eid];
-      param2 = idxmap[seg2.eid];
-      
-      fparam1 = seg1.v2 === v;
-      fparam2 = seg2.v2 === v;
-      
+      let v = cseg1.shared_vert(cseg2);
+
+      param1 = idxmap[cseg1.eid];
+      param2 = idxmap[cseg2.eid];
+
+      fparam1 = cseg1.v2 === v ? 1 : 0;
+      fparam2 = cseg2.v2 === v ? 1 : 0;
+
       if (c.klst.length === 1) {
-        seg1 = c.klst[0] !== seg1.ks ? param2 : param1;
+        seg1 = c.klst[0] !== cseg1.ks ? param2 : param1;
         seg2 = -1;
       } else {
         seg1 = param1;
@@ -873,41 +867,44 @@ function write_wasm_solve(data : number[], spline : Spline, cons : constraint[],
     } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
 
-      let seg = c.params[0], tan = c.params[1], s = c.params[2];
-      
+      let [seg, tan, s] = c.params as HardTanParams;
+
       seg1 = idxmap[seg.eid];
       seg2 = -1;
-      
+
       fparam1 = Math.atan2(tan[0], tan[1]);
       fparam2 = s;
     } else if (c.type === "curv_c") {
       type = ConstraintTypes.CURVATURE_CONSTRAINT;
       //console.log("curvature constraint!")
-      seg1 = c.params[0];
-      seg2 = c.params[1];
-      
-      //console.log("c.klst[0]:", c.klst[0], c.klst[0]===seg1.ks, c.klst[0]===seg2.ks);
-      if (seg1.ks !== c.klst[0]) {
-        //let tmp = seg1; seg1 = seg2; seg2 = tmp;
+      let [cseg1, cseg2] = c.params as CurvParams;
+
+      //console.log("c.klst[0]:", c.klst[0], c.klst[0]===cseg1.ks, c.klst[0]===cseg2.ks);
+      if (cseg1.ks !== c.klst[0]) {
+        //let tmp = cseg1; cseg1 = cseg2; cseg2 = tmp;
       }
 
-      let v = seg1.shared_vert(seg2);
-      
-      //is v at seg1/seg2's endpoint or startpoint?
-      fparam1 = seg1.v2 === v;
-      fparam2 = seg2.v2 === v;
-      
-      param1 = idxmap[seg1.eid];
-      param2 = idxmap[seg2.eid];
-      
+      let v = cseg1.shared_vert(cseg2);
+
+      //is v at cseg1/cseg2's endpoint or startpoint?
+      fparam1 = cseg1.v2 === v ? 1 : 0;
+      fparam2 = cseg2.v2 === v ? 1 : 0;
+
+      param1 = idxmap[cseg1.eid];
+      param2 = idxmap[cseg2.eid];
+
       seg1 = param1;
       seg2 = -1; //param2
     } else if (c.type === "copy_c") {
       type = ConstraintTypes.COPY_C_CONSTRAINT;
       //console.log("curvature constraint!")
-      
-      seg1 = c.params[0];
-      param1 = seg1.v1.segments.length === 1; //c.params[1] === seg1.v1;
+
+      /* NOTE: this assigned the SplineSegment itself to seg1, which packs as
+         NaN -- so 0.  Nothing builds a copy_c constraint, so the branch has
+         never run; the 0 is spelled out rather than changed. */
+      let [cseg1] = c.params as CopyParams;
+      seg1 = 0;
+      param1 = cseg1.v1.segments.length === 1 ? 1 : 0; //c.params[1] === cseg1.v1;
     }
     
     //console.log("c.type, c.k, gk:", c.type, c.k, gk);
@@ -978,118 +975,120 @@ function wrap_unload(spline : Spline, data : DataView) {
 //XXX rewrite this
 export function wasm_solve(postMessage : (type : number, msg : ArrayBuffer) => void,
                            status : JobStatus, spline : Spline,
-                           cons : constraint[], update_verts : set<SplineVertex>,
+                           cons : AnyConstraint[], update_verts : set<SplineVertex>,
                            gk : number, edge_segs : set<SplineSegment>) : ApiJob
 {
-  let ret = {};
-  
-  ret.ret = {done : false, value : undefined};
-  ret.stage = 0;
-  ret[Symbol.iterator] = function() {
-    return this;
-  }
-  
-  ret.next = function() {
-    if (ret.stage === 0) {
-      this.stage++;
-      this.stage0();
-      
-      return this.ret;
-    } else if (ret.stage === 1) {
-      this.stage++;
-      this.stage1();
-      
-      this.ret.done = true;
-      return this.ret;
-    } else {
-      this.ret.done = true;
-      this.ret.value = undefined;
-      
-      return this.ret;
-    }
-  }
+  let data : DataView | undefined;
 
-  let data;
-  
-  ret.stage0 = function() {
-    //measured test had average bytes per constraint at 355.
-    //but to be safe. . .
+  let ret : ApiJob = {
+    ret : {done : false, value : undefined},
+    stage : 0,
 
-    let maxsize = (cons.length+1)*650 + 128;
-    let writer = new TypedWriter(maxsize);
+    [Symbol.iterator]() {
+      return this;
+    },
 
-    let msgid = status.msgid;
-    let endian = ajax.little_endian;
+    next() {
+      if (ret.stage === 0) {
+        this.stage++;
+        this.stage0();
 
-    let prof = false;
-    
-    //write vertices and their associated segments first
-    start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
-    
-    //build list of update segments
-    let timestart = time_ms();
+        return this.ret;
+      } else if (ret.stage === 1) {
+        this.stage++;
+        this.stage1();
 
-    let update_segs = new set<SplineSegment>();
-    for (let v of update_verts) {
-      for (let i=0; i<v.segments.length; i++) {
-        let s = v.segments[i];
-        
-        update_segs.add(s);
+        this.ret.done = true;
+        return this.ret;
+      } else {
+        this.ret.done = true;
+        this.ret.value = undefined;
+
+        return this.ret;
       }
+    },
+
+    stage0() {
+      //measured test had average bytes per constraint at 355.
+      //but to be safe. . .
+
+      let maxsize = (cons.length+1)*650 + 128;
+      let writer = new TypedWriter(maxsize);
+
+      let msgid = status.msgid;
+      let endian = ajax.little_endian;
+
+      let prof = false;
+
+      //write vertices and their associated segments first
+      start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
+
+      //build list of update segments
+      let timestart = time_ms();
+
+      let update_segs = new set<SplineSegment>();
+      for (let v of update_verts) {
+        for (let i=0; i<v.segments.length; i++) {
+          let s = v.segments[i];
+
+          update_segs.add(s);
+        }
+      }
+
+      //add any stray vertices brought in by update segments
+      for (let s of update_segs) {
+        update_verts.add(s.v1);
+        update_verts.add(s.v2);
+      }
+
+      if (prof)
+        console.log("time a:", time_ms() - timestart);
+
+      writer.int32(update_verts.length);
+      writer.int32(0); //pad to 8 byte boundary
+
+      if (prof)
+        console.log("time b:", time_ms() - timestart);
+
+      let idxmap = write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
+      let data = writer.final();
+
+      //console.log("DATA FINAL", writer.i/1024 + "kb");
+
+      /*
+      console.log("datalen", data.byteLength, update_verts.length, update_segs.length, edge_segs.length, cons.length);
+      console.log((data.byteLength/cons.length).toFixed(3));
+      console.log(writer.buf);
+      //*/
+
+      if (prof)
+        console.log("time c:", time_ms() - timestart);
+
+      if (prof)
+        console.log("time d:", time_ms() - timestart, data.byteLength);
+
+      postMessage(MessageTypes.SOLVE, data);
+
+      if (prof)
+        console.log("DATA " + (data.byteLength/1024).toFixed(3) + "kb");
+
+      if (prof)
+        console.log("time e:", time_ms() - timestart, "\n\n\n");
+    },
+
+    stage1() {
+      //console.log("Got reply!", status.data.byteLength, data.byteLength);
+      //console.log(status, "<----");
+
+      //okay, now read back data (from status.data)
+      /* onMessage() lands the reply on status.data before advancing us. */
+      let buf1 = status.data!;
+
+      data = new DataView(buf1);
+      status.value = wrap_unload(spline, data);
     }
-    
-    //add any stray vertices brought in by update segments
-    for (let s of update_segs) {
-      update_verts.add(s.v1);
-      update_verts.add(s.v2);
-    }
-    
-    if (prof)
-      console.log("time a:", time_ms() - timestart);
-    
-    writer.int32(update_verts.length);
-    writer.int32(0); //pad to 8 byte boundary
-    
-    if (prof)
-      console.log("time b:", time_ms() - timestart);
+  };
 
-    let idxmap = write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
-    let data = writer.final();
-
-    //console.log("DATA FINAL", writer.i/1024 + "kb");
-
-    /*
-    console.log("datalen", data.byteLength, update_verts.length, update_segs.length, edge_segs.length, cons.length);
-    console.log((data.byteLength/cons.length).toFixed(3));
-    console.log(writer.buf);
-    //*/
-    
-    if (prof)
-      console.log("time c:", time_ms() - timestart);
-    
-    if (prof)
-      console.log("time d:", time_ms() - timestart, data.byteLength);
-    
-    postMessage(MessageTypes.SOLVE, data);
-
-    if (prof)
-      console.log("DATA " + (data.byteLength/1024).toFixed(3) + "kb");
-
-    if (prof)
-      console.log("time e:", time_ms() - timestart, "\n\n\n");
-  }
-  
-  ret.stage1 = function() {
-    //console.log("Got reply!", status.data.byteLength, data.byteLength);
-    //console.log(status, "<----");
-    
-    //okay, now read back data (from status.data)
-    let buf1 = status.data;
-    
-    data = new DataView(buf1);
-    status.value = wrap_unload(spline, data);
-  }
-  
   return ret;
 }
 

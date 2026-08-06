@@ -28,6 +28,7 @@ import {
 import * as util from "../../../path.ux/scripts/util/util.js";
 
 import {ToolMode} from "./toolmode.js";
+import type {ToolModeHit} from "./toolmode.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
 
@@ -36,10 +37,10 @@ import type {FullContext} from '../../../core/context.js';
 import type {View2DHandler} from '../view2d.js';
 import type {Spline} from '../../../curve/spline.js';
 import type {Scene} from '../../../scene/scene.js';
-import type {DataBlock} from '../../../core/lib_api.js';
+import type {GetBlockFunc, GetBlockUserFunc} from '../../../core/lib_api.js';
 import type {Container} from '../../../path.ux/scripts/core/ui.js';
 
-window.anim_to_playback = [];
+window.anim_to_playback = Object.assign([], {filesize: 0});
 
 /* NOTE: DeleteVertOp/DeleteSegmentOp, WidgetResizeOp/WidgetRotateOp and
    ToolModes are each imported twice above.  `this.view2d` and
@@ -65,11 +66,15 @@ export class SplineToolMode extends ToolMode {
   /* Pointer ids currently down, keyed by pointerId. */
   _undo_touches : Map<number, object>;
   _first_touch_id : number;
+  /* View2DHandler hands the mode its context before it goes active. */
+  declare ctx : FullContext;
 
   constructor() {
     super();
 
-    this.keymap = undefined;
+    /* NOTE: this cleared the keymap the base constructor had just built, and
+       getKeyMaps() lazily rebuilt it through defineKeyMap() on first use. */
+    this.defineKeyMap();
 
     this.mpos = new Vector2();
     this.last_mpos = new Vector2();
@@ -91,22 +96,22 @@ export class SplineToolMode extends ToolMode {
 
 
   duplicate() {
-    return new this.constructor();
+    return new this.cls();
   }
 
   static contextOverride() {
 
   }
 
-  static buildSideBar(container : Container) {
+  static buildSideBar(container : Container<FullContext>) {
 
   }
 
-  static buildHeader(container : Container) {
+  static buildHeader(container : Container<FullContext>) {
 
   }
 
-  static buildProperties(container : Container) {
+  static buildProperties(container : Container<FullContext>) {
     let panel = container.panel("Tools");
 
     panel.toolPanel("spline.vertex_smooth()");
@@ -196,7 +201,7 @@ export class SplineToolMode extends ToolMode {
       new HotKey("E", [], "spline.split_edges()|Split Segments"),
       new HotKey("M", [], "spline.mirror_verts()|Mirror Verts"),
       new HotKey("C", [], "view2d.circle_select()|Circle Select"),
-      new HotKey("Z", [], function (ctx : FullContext) {
+      new HotKey("Z", [], function (this : unknown, ctx : FullContext) {
         console.warn("ZKEY", arguments, this);
 
         ctx.view2d.only_render ^= 1;
@@ -268,8 +273,10 @@ export class SplineToolMode extends ToolMode {
       }
 
       console.log(spline._debug_id, this.highlight_spline._debug_id);
-      /* NOTE: `G` is not imported or declared anywhere in this module. */
-      console.log("new path!", G.active_splinepath, newpath); //, this.highlight_spline);
+      /* NOTE: this read `G.active_splinepath`; `G` is declared nowhere, so
+         switching between the draw and path splines threw a ReferenceError
+         here.  g_app_state is what owns active_splinepath. */
+      console.log("new path!", g_app_state.active_splinepath, newpath); //, this.highlight_spline);
 
       this.ctx.switch_active_spline(newpath);
       spline = this._get_spline();
@@ -283,7 +290,7 @@ export class SplineToolMode extends ToolMode {
     if (event.button === 0) {
       let can_append = toolmode === ToolModes.APPEND;
 
-      can_append = can_append && (this.selectmode & (SelMask.VERTEX | SelMask.HANDLE));
+      can_append = can_append && !!(this.selectmode & (SelMask.VERTEX | SelMask.HANDLE));
       can_append = can_append && spline.verts.highlight === undefined && spline.handles.highlight === undefined;
 
       if (can_append) {
@@ -354,11 +361,11 @@ export class SplineToolMode extends ToolMode {
 
   //returns [spline, element, mindis]
   findnearest(mpos: number[], selectmask: number, limit: number,
-              ignore_layers : boolean) {
+              ignore_layers : boolean) : ToolModeHit | undefined {
     let frameset = this.ctx.frameset;
     let editor = this.ctx.view2d;
 
-    let closest = [0, 0, 0];
+    let closest : ToolModeHit | undefined = undefined;
     let mindis = 1e17;
 
     let found = false;
@@ -387,14 +394,15 @@ export class SplineToolMode extends ToolMode {
     let pathspline = this.ctx.frameset.pathspline;
     let drawspline = this.ctx.frameset.spline;
 
-    let ret = drawspline.q.zrest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
+    /* NOTE: this called q.zrest(), which SplineQuery has never defined -- with
+       draw_anim_paths on, findnearest() threw TypeError before it got anywhere.
+       The other two copies of this method call findnearest() here. */
+    let ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
     if (ret !== undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
 
-      closest[0] = drawspline;
-      closest[1] = ret[0];
-      closest[2] = mindis;
+      closest = [drawspline, ret[0], mindis];
     }
 
     //for (let spline in frameset._selected_splines) {
@@ -403,9 +411,7 @@ export class SplineToolMode extends ToolMode {
       ret[1] -= pathspline === actspline ? 2 : 0;
 
       if (ret[1] < limit && ret[1] < mindis) {
-        closest[0] = pathspline;
-        closest[1] = ret[0];
-        closest[2] = ret[1] - (pathspline === actspline ? 3 : 0);
+        closest = [pathspline, ret[0], ret[1] - (pathspline === actspline ? 3 : 0)];
 
         mindis = ret[1];
         found = true;
@@ -460,7 +466,7 @@ export class SplineToolMode extends ToolMode {
     if (this.highlight_spline && ret && ret[1]) {
       let list = this.highlight_spline.get_elist(ret[1].type);
 
-      redraw |= list.highlight !== ret[1];
+      redraw = redraw || list.highlight !== ret[1];
 
       list.highlight = ret[1];
     }
@@ -495,7 +501,7 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  on_mousemove(event: PointerEvent) {
+  on_mousemove(event: PointerEvent) : boolean | undefined {
     if (this.ctx === undefined) return;
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
     let selectmode = this.selectmode;
@@ -554,7 +560,7 @@ export class SplineToolMode extends ToolMode {
     this._cancel_on_touch = cancel;
   }
 
-  on_mouseup(event: PointerEvent) {
+  on_mouseup(event: PointerEvent) : boolean | undefined {
     this._clear_undo_touch(false);
     this.start_mpos[0] = event.x;
     this.start_mpos[1] = event.y;
@@ -564,6 +570,7 @@ export class SplineToolMode extends ToolMode {
     spline.size = [window.innerWidth, window.innerHeight];
 
     this.mdown = false;
+    return;
   }
 
   do_alt_select(event : MouseEvent, mpos : Vector3, view2d : View2DHandler) {
@@ -600,21 +607,12 @@ export class SplineToolMode extends ToolMode {
     ];
   }
 
-  delete_menu(event : MouseEvent) {
-    let view2d = this.view2d;
-    let ctx = new Context();
+  /* NOTE: a delete_menu() sat here that called this.gen_delete_menu(true) --
+     no such method exists anywhere in the codebase, and nothing ever called
+     delete_menu on a toolmode, so it was dead and broken both. */
 
-    let menu = this.gen_delete_menu(true);
-
-    menu.close_on_right = true
-    menu.swap_mouse_button = 2;
-
-    view2d.call_menu(menu, view2d, [event.x, event.y]);
-  }
-
-
-  dataLink(scene: Scene, getblock: (ref) => DataBlock,
-           getblock_us: (ref) => DataBlock) {
+  dataLink(scene: Scene, getblock: GetBlockFunc,
+           getblock_us: GetBlockUserFunc) {
     this.ctx = g_app_state.ctx;
   }
 

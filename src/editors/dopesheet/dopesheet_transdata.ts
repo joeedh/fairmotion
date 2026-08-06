@@ -8,8 +8,7 @@ import {TransDataItem, TransDataType} from '../viewport/transdata.js';
 import {get_vtime, set_vtime} from '../../core/animdata.js';
 import type {TransData, TransUndoData} from '../viewport/transdata.js';
 import type {FullContext} from '../../core/context.js';
-import type {SplineVertex} from '../../curve/spline_types.js';
-//import {ScreenArea, Area} from 'ScreenArea';
+import {SplineVertex} from '../../curve/spline_types.js';
 
 class TransKey {
   v : SplineVertex;
@@ -22,8 +21,15 @@ class TransKey {
   }
 }
 
-export class TransDopeSheetType {
-  static apply(ctx : FullContext, td : TransData, item : TransDataItem,
+/* What TransDopeSheetType puts in each item: the key vertex and the time it
+   sat at when the transform started. */
+export type DopeTransItem = TransDataItem<SplineVertex, number>;
+
+/* NOTE: nothing ever puts this in a TransformOp's `types` list -- see
+   TransformOp.ensure_transdata(), which only ever registers TransSplineVert --
+   so none of the methods below have ever run. */
+export class TransDopeSheetType extends TransDataType {
+  static apply(ctx : FullContext, td : TransData, item : DopeTransItem,
                mat : Matrix4, w : number) {
   }
 
@@ -47,19 +53,20 @@ export class TransDopeSheetType {
     var doprop = td.doprop;
     var proprad = td.propradius;
 
-    var vs = new set();
+    var vs = new set<SplineVertex>();
 
     for (var eid of td.top.inputs.data) {
-      var v = ctx.frameset.pathspline.eidmap[eid];
+      var elem = ctx.frameset.pathspline.eidmap[eid];
 
-      if (v == undefined) {
+      if (elem == undefined) {
         console.log("WARNING: transdata corruption in dopesheet!!");
-        /* NOTE: `continuel` is a typo for `continue` -- it parses as a
-           reference to an undeclared name and throws a ReferenceError. */
-        continuel
+        /* NOTE: this said `continuel`, a typo that parsed as a reference to an
+           undeclared name and threw a ReferenceError instead of skipping. */
+        continue;
       }
 
-      vs.add(v);
+      /* The eids handed in here are pathspline keyframe vertices. */
+      vs.add((elem instanceof SplineVertex ? elem : undefined)!);
     }
 
     for (var v of vs) {
@@ -68,20 +75,12 @@ export class TransDopeSheetType {
     }
   }
 
-  //for calc_draw_aabb()
-  /* NOTE: neither ScreenArea nor DopeSheetEditor is imported in this file
-     (the ScreenArea import is commented out above), so this throws. */
-  static find_dopesheet(ctx : FullContext) {
-    var active = ctx.screen.active;
-    if (active instanceof ScreenArea && active.editor instanceof DopeSheetEditor) {
-      return active;
-    }
-
-    for (var c of ctx.screen.children) {
-      if (c instanceof ScreenArea && c.editor instanceof DopeSheetEditor)
-        return c;
-    }
-  }
+  /* NOTE: a find_dopesheet() sat here for the commented-out calc_draw_aabb
+     below.  It had no callers and was broken three ways: neither ScreenArea
+     nor DopeSheetEditor was imported (so it threw a ReferenceError), Screen
+     has no `active` -- the areas live on screen.sareas, which carries its own
+     `active` -- and screen.children is the DOM child list, whose entries have
+     no `editor`. */
 
   //this one gets a modal context
   static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
@@ -107,7 +106,7 @@ export class TransDopeSheetType {
     }*/
   }
 
-  static aabb(ctx : FullContext, td : TransData, item : TransDataItem,
+  static aabb(ctx : FullContext, td : TransData, item : DopeTransItem,
               minmax : MinMax, selected_only : boolean) {
     /*
     static vec = new Vector2();

@@ -12,7 +12,7 @@ import {
 } from './vectordraw_base.js';
 import type {DrawCanvas} from './vectordraw_base.js';
 
-var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
+var canvaspath_draw_mat_tmps = new cachering(() => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(8);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
@@ -164,7 +164,7 @@ export class StubCanvasPath extends PathBase {
   gen(draw : StubCanvasDraw2D, _check_tag = 0) {
   }
 
-  reset(draw : VectorDraw) {
+  reset(draw? : VectorDraw) {
     //this.recalc = 1;
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -193,7 +193,7 @@ export class StubCanvasDraw2D extends VectorDraw {
     this.path_idmap = {};
     this.dosort = true;
 
-    this.matstack = new Array(256);
+    this.matstack = Object.assign(new Array<Matrix4>(256), {cur : 0});
     this.matrix = new Matrix4();
 
     for (var i=0; i<this.matstack.length; i++) {
@@ -204,9 +204,10 @@ export class StubCanvasDraw2D extends VectorDraw {
 
   static get_canvas(id : string, width : number, height : number,
                     zindex : number) {
-    var ret = document.getElementById(id);
+    let ret = document.getElementById(id) as HTMLCanvasElement | null;
 
-    if (ret == undefined) {
+    /* the loose `== undefined` also matched the null getElementById returns. */
+    if (ret === null) {
       ret = document.createElement("canvas");
       ret.id = id;
     }
@@ -214,9 +215,8 @@ export class StubCanvasDraw2D extends VectorDraw {
     ret.width = width;
     ret.height = height;
 
-    if (ret.style != undefined) {
-      ret.style["z-index"] = zindex;
-    }
+    /* the `ret.style != undefined` guard around this was always true. */
+    ret.style.zIndex = "" + zindex;
 
     return ret;
   }

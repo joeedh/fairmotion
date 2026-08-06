@@ -6,6 +6,8 @@ import {BrushTool, BrushToolClasses} from './brush_types.js';
 import {BrushFlags} from './brush_base.js';
 
 export class Brush extends DataBlock {
+  declare ["constructor"] : typeof Brush;
+
   static STRUCT : string;
 
   tool : BrushTool;

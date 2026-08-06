@@ -74,8 +74,27 @@ declare global {
     dpi_scale: number;
     width: number;
     height: number;
-    canvas: HTMLCanvasElement & {dpi_scale: number};
+    /* NOTE: view2d stamps the inverse render matrix on both of its contexts
+       every draw; nothing reads it back. */
+    _irender_mat: Matrix4;
   };
+
+  /* Every canvas this app draws through is stamped with the ratio it was sized
+     at -- Editor.getCanvas() does it, and the two off-screen export canvases
+     copy that.  It cannot live on Canvas2D's `canvas` field instead: that one
+     is a getter with no setter, so writing it throws. */
+  interface HTMLCanvasElement {
+    dpi_scale: number;
+  }
+
+  /* Two properties this codebase reads off mouse and pointer events that the
+     DOM does not define: `commandKey` (the Mac modifier is spelled `metaKey`)
+     and `touches` (a TouchEvent property). Both are always undefined at
+     runtime, so every branch guarded on them is dead. */
+  interface MouseEvent {
+    commandKey?: boolean;
+    touches?: TouchList;
+  }
 
   /* The iterator convention fairmotion's element lists follow: an iterator that
      also carries `.editable`, the sub-iterator of items on unhidden/unlocked
@@ -94,6 +113,9 @@ declare global {
     /* Present on the ToolOp subclasses in the list. init_toolop_structs()
        filters on it, so it is optional here rather than in a separate type. */
     tooldef?: () => {toolpath?: string; apiname?: string};
+
+    /* Stamped by _ESClass.register(); eventdag.ts walks the chain back up. */
+    __parent__?: ESClassRegistryEntry;
   }
 
   const _ESClass: {
@@ -123,15 +145,98 @@ declare global {
 
   const coverage: CoverageModule;
 
+  /*
+   * CanvasKit (Skia compiled to wasm), loaded at runtime by
+   * vectordraw_skia_simple.ts and the skia worker. Only what fairmotion
+   * touches is declared. A few members -- SkMatrix.Ka, and Lk/mm on the
+   * emulated canvas -- are minified internals of the CanvasKit build the app
+   * ships, not part of its published API.
+   */
+  interface SkPaint {
+    setColor(color: number): void;
+    setStyle(style: number): void;
+    setBlendMode(mode: number): void;
+    setAntiAlias(state: boolean): void;
+    delete(): void;
+  }
+
+  interface SkPath {
+    moveTo(x: number, y: number): void;
+    lineTo(x: number, y: number): void;
+    cubicTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
+    quadTo(x1: number, y1: number, x2: number, y2: number): void;
+    transform(matrix: number[]): void;
+    translate(x: number, y: number): void;
+    scale(x: number, y: number): void;
+    delete(): void;
+  }
+
+  interface SkCanvas {
+    save(): void;
+    restore(): void;
+    rotate(degrees: number, px?: number, py?: number): void;
+    clipPath(path: SkPath, op?: number, antialias?: boolean): void;
+    drawPath(path: SkPath, paint: SkPaint): void;
+    flush(): void;
+  }
+
+  interface SkSurface {
+    getCanvas(): SkCanvas;
+    flush(): void;
+    delete(): void;
+  }
+
+  /* What MakeCanvas() hands back: an HTMLCanvasElement work-alike.  It goes
+     into the same slots as a real canvas -- VectorDraw.canvas, window.skcanvas
+     -- and only width/height/getContext/toDataURL are ever used, so it is
+     declared as one.  `Lk`, `mm` and `cf` are minified CanvasKit internals. */
+  type SkEmulatedCanvas = import("./vectordraw/vectordraw_base.js").DrawCanvas & {
+    dispose(): void;
+    Lk: unknown;
+    mm: {Lk: unknown; flush(): void};
+    cf: {flush(): void};
+  };
+
+  /* The global the canvaskit.js script tag installs. */
+  interface CanvasKitInitPromise extends Promise<CanvasKitModule> {
+    ready(): Promise<CanvasKitModule>;
+  }
+
+  function CanvasKitInit(opts: {locateFile(file: string): string}): CanvasKitInitPromise;
+
+  interface CanvasKitModule {
+    MakeCanvas(width: number, height: number): SkEmulatedCanvas;
+    MakeSWCanvasSurface(canvas: unknown): SkSurface;
+    currentContext(): unknown;
+    Color(r: number, g: number, b: number, a: number): number;
+    BlendMode: {[name: string]: number};
+    PaintStyle: {[name: string]: number};
+    SkMatrix: {
+      identity(): number[];
+      scaled(sx: number, sy: number): number[];
+      translated(x: number, y: number): number[];
+      multiply(a: number[], b: number[]): number[];
+      /* Minified internal. */
+      Ka(m: number[]): number[];
+    };
+    SkPaint: {new (): SkPaint};
+    SkPath: {new (): SkPath};
+  }
+
+  const CanvasKit: CanvasKitModule;
+
   const g_app_state: AppState;
   const _appstate: AppState;
   /* The class itself, parked on window by AppState.ts; data_api_define.ts uses
      the bare name rather than importing it. */
   const AppState: typeof import("./core/AppState.js").AppState;
-  const the_global_dag: EventDag | undefined;
+  /* Undefined until init_event_graph() runs; every bare read happens after
+     startup, so the bare name is typed as always present. Reach for it through
+     window (or globalDag()) where that is not yet true. */
+  const the_global_dag: EventDag;
 
   const RELEASE: boolean;
-  const DEBUG: {[k: string]: boolean};
+  const DEBUG: {[k: string]: boolean | number};
   /* Fairmotion's own debug flags (config.ts); DEBUG above is path.ux's.
      A couple of the flags are numbers rather than booleans. */
   const _DEBUG: {[k: string]: boolean | number};
@@ -168,7 +273,9 @@ declare global {
   const _SOLVING: boolean;
   const _solve_idgen: number;
 
-  function redraw_viewport(): Promise<void> | undefined;
+  /* The bounds pair several callers still pass is ignored -- the
+     implementation takes no arguments and always redraws everything. */
+  function redraw_viewport(min?: unknown, max?: unknown): Promise<void> | undefined;
   function redraw_all(): void;
   function redraw_all_full(): void;
   function force_viewport_redraw(): void;
@@ -193,11 +300,13 @@ declare global {
   function init_redraw_globals_2(): void;
   function init_theme(): void;
 
+  /* Defined as window.gen_default_file in AppState.ts, but every caller
+     names it bare. */
+  function gen_default_file(size?: number[] | Vector2, force_new?: boolean): void;
+
   function push_solve(spline: Spline): number;
   function pop_solve(id: number): void;
   function _handle_key_exclude(e: KeyboardEvent): void;
-
-  function parseToolPath(path: string): {name: string; args: {[k: string]: string}};
 
   /* A snapshot of `window` taken once init_struct_packer() finishes, used as
      the evaluation environment for STRUCT helper expressions. */
@@ -218,7 +327,9 @@ declare global {
    */
   interface MyLocalStorage {
     set(key: string, val: string): void;
-    getCached(key: string): string;
+    /* null is what the chrome.storage backend caches for a key it failed to
+       read; the localStorage one only ever returns strings. */
+    getCached(key: string): string | null;
     getAsync(key: string): Promise<string>;
     hasCached(key: string): boolean;
 
@@ -236,10 +347,6 @@ declare global {
   /* A for-in over own and inherited keys, from polyfill_fairmotion.ts.
      typesystem.ts's __get_in_iter() is the only caller left. */
   function _my_object_keys(obj: object): string[];
-
-  /* The legacy settings-upload queue in core/UserSettings.ts. Only the dead
-     OldAppSettings path still reaches it. */
-  const _settings_manager: import("./core/UserSettings.js").SettUploadManager;
 
   /*
    * The live theme. init_theme() builds it from the two ColorThemes that
@@ -385,7 +492,7 @@ declare global {
     theHeight: number;
 
     /* Flat color maps the theme publishes for the data api. */
-    uicolors: {[key: string]: number[]};
+    uicolors: {[key: string]: number[] | number[][]};
     colors3d: {[key: string]: number[]};
 
     anim_to_playback: AnimPlaybackBuffer;
@@ -393,7 +500,7 @@ declare global {
     import_json(): void;
     _dom_input_node: HTMLElement | null;
     _testParseFile(): void;
-    loadCanvasKit(): Promise<unknown>;
+    loadCanvasKit(): void;
 
     /* Per-render-start timestamps, keyed by the redraw source's name. */
     redraw_start_times: {[k: string]: number};
@@ -429,18 +536,18 @@ declare global {
     NetJob: typeof NetJob;
     api_exec: typeof api_exec;
     call_api: typeof call_api;
-    create_folder: NetApiGen;
-    get_user_info: NetApiGen;
-    get_dir_files: NetApiGen;
-    upload_file: NetApiGen;
-    get_file_data: NetApiGen;
+    create_folder: typeof create_folder;
+    get_user_info: typeof get_user_info;
+    get_dir_files: typeof get_dir_files;
+    upload_file: typeof upload_file;
+    get_file_data: typeof get_file_data;
     AuthSessionGen: (job: NetJob, user: string, password: string,
                      refresh_token?: string) => Generator;
     auth_session: (user: string, password: string, finish?: Function,
                    error?: Function, status?: Function) => object;
 
     RELEASE: boolean;
-    DEBUG: {[k: string]: boolean};
+    DEBUG: {[k: string]: boolean | number};
     _DEBUG: {[k: string]: boolean | number};
     IsMobile: boolean;
 
@@ -479,7 +586,6 @@ declare global {
 
     _SOLVING: boolean;
     _solve_idgen: number;
-    _cacherings: unknown[];
     _killscreen_handlers: KillscreenCallback[];
 
     /* Debugging leftovers: the last file <input> and the last download <a>
@@ -497,7 +603,7 @@ declare global {
     _addEventListener: typeof window.addEventListener;
     _removeEventListener: typeof window.removeEventListener;
 
-    redraw_viewport(): Promise<void> | undefined;
+    redraw_viewport(min?: unknown, max?: unknown): Promise<void> | undefined;
     redraw_all(): void;
     redraw_all_full(): void;
     redraw_webgl(): void;
@@ -522,8 +628,6 @@ declare global {
        Installed by core/startup/startup.ts, called bare from its own listener. */
     _handle_key_exclude(e: KeyboardEvent): void;
 
-    parseToolPath(path: string): {name: string; args: {[k: string]: string}};
-
     safe_global: {[k: string]: unknown};
     istruct: import("nstructjs").STRUCT;
     _struct_scripts: string;
@@ -536,7 +640,6 @@ declare global {
     save_local_storage(): void;
 
     _my_object_keys(obj: object): string[];
-    _settings_manager: import("./core/UserSettings.js").SettUploadManager;
 
     /* The live theme, plus the two ColorThemes init_theme() builds it from.
        theme.ts keeps a .original copy of each so the defaults can be restored. */
@@ -563,7 +666,7 @@ declare global {
     startup(): void;
     startup_intern(): void;
     startup_file_example: string;
-    gen_default_file(size?: number[], force_new?: boolean): void;
+    gen_default_file(size?: number[] | Vector2, force_new?: boolean): void;
 
     /* Loads the embedded startup file; console helper, no callers in-tree. */
     test_load_file(): void;
@@ -592,10 +695,10 @@ declare global {
     /* _Shapes and _ShapeOBJs are deliberately absent: simplemesh_shapes.ts is
        one unassigned template literal, so nothing in it runs. */
     glRanges: {[gltype: number]: number[]};
-    debugproxy(data: number[], min?: number, max?: number, isint?: boolean): number[];
+    debugproxy: typeof import("./webgl/simplemesh.js").debugproxy;
 
     /* Assigned by the wasm and CanvasKit loaders once their modules resolve. */
-    CanvasKit: unknown;
+    CanvasKit: CanvasKitModule | undefined;
     wasmBinaryFile: string | undefined;
     /* Set under node only; the browser hands emscripten a path instead. */
     solverwasm_binary: ArrayBufferView | undefined;
@@ -671,8 +774,9 @@ declare global {
   const NetJob: typeof import("./core/ajax.js").NetJob;
 
   /* Every api endpoint is a generator: it fires api_exec() and yields until the
-     XMLHttpRequest callback pumps it. */
-  type NetApiGen = (job: NetJob, args?: {[k: string]: unknown}) => Generator;
+     XMLHttpRequest callback pumps it.  Args is the endpoint's own query shape;
+     call_api() pairs an endpoint with the args object it reads. */
+  type NetApiGen<Args = Record<string, never>> = (job: NetJob, args: Args) => Generator;
 
   function api_exec(
     path: string,
@@ -684,19 +788,23 @@ declare global {
     responseType?: XMLHttpRequestResponseType
   ): void;
 
-  function call_api(
-    iternew: NetApiGen,
-    args: {[k: string]: unknown},
+  function call_api<Args>(
+    iternew: NetApiGen<Args>,
+    args: Args,
     finishcb?: Function,
     errorcb?: Function,
     status?: Function
   ): Promise<unknown>;
 
-  const create_folder: NetApiGen;
+  const create_folder: NetApiGen<{folderid: string; name: string}>;
   const get_user_info: NetApiGen;
-  const get_dir_files: NetApiGen;
-  const upload_file: NetApiGen;
-  const get_file_data: NetApiGen;
+  const get_dir_files: NetApiGen<{path?: string; id?: string}>;
+  const upload_file: NetApiGen<{data: ArrayBuffer; url: string; chunk_url: string}>;
+  const get_file_data: NetApiGen<{path?: string; id?: string}>;
+
+  /* auth_session() is the only caller, and it has no callers itself. */
+  const AuthSessionGen: (job: NetJob, user: string, password: string,
+                         refresh_token?: string) => Generator;
 
   /*
    * Classes and enums parked on window by the module that defines them, then
@@ -706,8 +814,8 @@ declare global {
   const Context: typeof FullContext;
   const SavedContext: typeof import("./core/AppState.js").SavedContext;
   const Icons: typeof import("./datafiles/icon_enum.js").Icons;
-  const charmap: {[k: string]: number};
-  const charmap_rev: {[k: number]: string};
+  const charmap: typeof import("./editors/events.js").charmap;
+  const charmap_rev: typeof import("./editors/events.js").charmap_rev;
   const error_dialog: PlatformErrorDialog;
   const TouchEventManager: typeof import("./editors/events.js").TouchEventManager;
   const touch_manager: import("./editors/events.js").TouchEventManager;
@@ -736,11 +844,11 @@ declare global {
    */
   interface HTMLElementTagNameMap {
     "fairmotion-screen-x": import("./editors/editor_base.js").FairmotionScreen;
-    "screenarea-x": import("./path.ux/scripts/screen/ScreenArea.js").ScreenArea;
-    "container-x": import("./path.ux/scripts/core/ui.js").Container;
-    "menu-x": import("./path.ux/scripts/widgets/ui_menu.js").Menu;
-    "noteframe-x": import("./path.ux/scripts/widgets/ui_noteframe.js").NoteFrame;
-    "theme-editor-x": import("./path.ux/scripts/widgets/theme_editor.js").ThemeEditor;
+    "screenarea-x": import("./path.ux/scripts/screen/ScreenArea.js").ScreenArea<FullContext>;
+    "container-x": import("./path.ux/scripts/core/ui.js").Container<FullContext>;
+    "menu-x": import("./path.ux/scripts/widgets/ui_menu.js").Menu<FullContext>;
+    "noteframe-x": import("./path.ux/scripts/widgets/ui_noteframe.js").NoteFrame<FullContext>;
+    "theme-editor-x": import("./path.ux/scripts/widgets/theme_editor.js").ThemeEditor<FullContext>;
 
     "view2d-editor-x": import("./editors/viewport/view2d.js").View2DHandler;
     "console-editor-x": import("./editors/console/console.js").ConsoleEditor;
@@ -752,6 +860,7 @@ declare global {
     "dopesheet-treepanel-x": import("./editors/dopesheet/DopeSheetEditor.js").TreePanel;
     "material-editor-x": import("./editors/material/MaterialEditor.js").MaterialEditor;
     "last-tool-panel-fairmotion-x": import("./editors/material/MaterialEditor.js").MyLastToolPanel;
+    "layerpanel-x": import("./editors/material/MaterialEditor.js").LayerPanel;
     "menubar-editor-x": import("./editors/menubar/MenuBar.js").MenuBar;
     "opstack-editor-x": import("./editors/ops/ops_editor.js").OpStackEditor;
     "settings-editor-x": import("./editors/settings/SettingsEditor.js").SettingsEditor;

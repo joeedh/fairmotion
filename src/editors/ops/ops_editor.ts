@@ -1,3 +1,4 @@
+import type {FullContext} from "../../core/context.js";
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
@@ -9,7 +10,7 @@ export class OpStackEditor extends Editor {
 
   /* "<undostack length>:<cur>", so update() can skip the rebuild. */
   _last_toolstack_hash : string;
-  frame! : Container;
+  frame! : Container<FullContext>;
 
   constructor() {
     super();
@@ -29,7 +30,7 @@ export class OpStackEditor extends Editor {
       let tool = stack.undostack[i];
 
       let cls = tool.constructor;
-      let name;
+      let name : string | undefined;
 
       if (cls.tooldef) {
         name = cls.tooldef().uiname;

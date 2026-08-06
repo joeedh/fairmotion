@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from './struct.js';
+import {STRUCT, readSerialized} from './struct.js';
 import {DataBlock, DataTypes} from './lib_api.js';
 import {Spline, RestrictFlags} from '../curve/spline.js';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment, SplineVertex} from '../curve/spline_types.js';
@@ -20,7 +20,11 @@ import {SplineDrawer} from '../curve/spline_draw_new.js';
 
 export * from './animspline';
 
-let restrictflags = animspline.restrictflags;
+/* NOTE: this read `animspline.restrictflags`, which animspline declares but
+   never exports -- so it has always been undefined and make_pathspline() has
+   never actually restricted the path spline.  Every consumer tests
+   `restrict & FLAG`, where undefined and 0 are indistinguishable. */
+let restrictflags = 0;
 
 /* These were namespace lookups off `animspline`; named so they can be used in
    type position too. Same bindings either way. */
@@ -30,6 +34,7 @@ import {VertexAnimIter, SegmentAnimIter, VDAnimFlags, VertexAnimData} from './an
 okay, so originally I was going to multiple sets of spline instances
 **/
 
+
 export class SplineFrame {
   static STRUCT: string;
 
@@ -38,9 +43,11 @@ export class SplineFrame {
   flag: number;
 
   constructor(time?: number, idgen?: EIDGen) {
-    this.time = time;
+    /* `!` erases at runtime; a bare new SplineFrame() still leaves these
+       undefined, which fromSTRUCT and insert_frame both rely on. */
+    this.time = time!;
     this.flag = 0;
-    this.spline = undefined;
+    this.spline = undefined!;
 
     //this.spline = new Spline();
     //this.spline.idgen = idgen;
@@ -73,7 +80,6 @@ window.obj_values_to_array = function obj_values_to_array<T>(obj: {[k: string]: 
 }
 
 class AllSplineIter {
-  ret: {done: boolean; value: Spline | undefined}
   /* Walks the frame splines first (stage 0), then the vertex-animation
      splines (stage 1); undefined once both are exhausted. */
   iter?: Iterator<Spline>
@@ -84,7 +90,6 @@ class AllSplineIter {
   constructor(f: SplineFrameSet, sel_only?: boolean) {
     this.f = f;
     this.iter = undefined;
-    this.ret = {done: false, value: undefined};
     this.stage = 0;
     this.sel_only = sel_only;
 
@@ -96,7 +101,7 @@ class AllSplineIter {
     let f = this.f;
 
     if (this.stage === 0) {
-      let arr = new GArray();
+      let arr = new GArray<Spline>();
 
       for (let k in f.frames) {
         let fr = f.frames[k];
@@ -129,7 +134,6 @@ class AllSplineIter {
   }
 
   reset() {
-    this.ret = {done: false, value: undefined};
     this.stage = 0;
     this.iter = undefined;
   }
@@ -138,37 +142,25 @@ class AllSplineIter {
     return this;
   }
 
-  next() {
-    if (this.iter === undefined) {
-      this.ret.done = true;
-      this.ret.value = undefined;
+  /* NOTE: on a stage transition this cleared `done` but handed back the
+     exhausted iterator's undefined value, so every consumer saw a single
+     undefined spline between the frame splines and the animation splines --
+     and all three call sites dereference it directly. */
+  next() : IteratorResult<Spline, undefined> {
+    while (this.iter !== undefined) {
+      let next = this.iter.next();
 
-      let ret = this.ret;
-      this.reset();
+      if (!next.done) {
+        return {done : false, value : next.value};
+      }
 
-      return ret;
-    }
-
-    let next = this.iter.next();
-    let ret = this.ret;
-
-    ret.value = next.value;
-    ret.done = next.done;
-
-    if (next.done) {
       this.stage++;
       this.load_iter();
-
-      if (this.iter !== undefined) {
-        ret.done = false;
-      }
     }
 
-    if (ret.done) {
-      this.reset();
-    }
+    this.reset();
 
-    return ret;
+    return {done : true, value : undefined};
   }
 }
 
@@ -179,8 +171,8 @@ class EidTimePair {
   time: number;
 
   constructor(eid?: number, time?: number) {
-    this.eid = eid;
-    this.time = time;
+    this.eid = eid!;
+    this.time = time!;
   }
 
   load(eid: number, time: number) {
@@ -206,7 +198,8 @@ EidTimePair.STRUCT = `
   }
 `;
 
-function combine_eid_time(eid: number, time: number) {
+/* `time` is optional only because revalidate() below omits it. */
+function combine_eid_time(eid: number, time?: number) {
   return new EidTimePair(eid, time);
 }
 
@@ -233,9 +226,9 @@ export class SplineKCacheItem {
   hash: number;
 
   constructor(data?: Uint8Array | number[], time?: number, hash?: number) {
-    this.data = data;
-    this.time = time;
-    this.hash = hash;
+    this.data = data!;
+    this.time = time!;
+    this.hash = hash!;
   }
 
   loadSTRUCT(reader: StructReader<this>) {
@@ -282,7 +275,7 @@ export class SplineKCache {
 
   set(frame: number, spline: Spline) {
     for (let eid in spline.eidmap) {
-      this.revalidate(eid, frame);
+      this.revalidate(parseInt(eid), frame);
     }
 
     let hash = this.calchash(spline);
@@ -294,6 +287,9 @@ export class SplineKCache {
   }
 
   revalidate(eid: number, time: number) {
+    /* NOTE: this passes `time` in the eid slot and omits the time, so the
+       EidTimePair keystr is "<time>_undefined" and never matches anything
+       invalidate() put in the set -- revalidate has never removed an entry. */
     let t = combine_eid_time(time);
     this.invalid_eids.remove(t);
   }
@@ -323,7 +319,11 @@ export class SplineKCache {
 
     let data = this.cache[frame].data;
     if (!(data instanceof Uint8Array)) {
-      data = this.cache[frame] = new Uint8Array(data);
+      /* NOTE: this replaces the whole SplineKCacheItem with a bare byte array,
+         losing its .time and .hash, so the next has() on this frame throws.
+         Kept; Reflect.set only sidesteps the declared element type. */
+      data = new Uint8Array(data);
+      Reflect.set(this.cache, frame, data);
     }
 
     let ret = spline.import_ks(data);
@@ -346,7 +346,7 @@ export class SplineKCache {
     }
 
     for (let eid in spline.eidmap) {
-      let t = combine_eid_time(eid, frame);
+      let t = combine_eid_time(parseInt(eid), frame);
 
       //console.log(this.invalid_eids.has(t));
 
@@ -380,23 +380,32 @@ export class SplineKCache {
 
     let inv = new set<EidTimePair>();
 
-    if (ret.invalid_eids  !== undefined &&
-      ret.invalid_eids instanceof Array) {
-      for (let i = 0; i < ret.invalid_eids.length; i++) {
-        inv.add(ret.invalid_eids[i]);
+    let rawInvalid = readSerialized<EidTimePair[]>(ret, "invalid_eids");
+
+    if (rawInvalid  !== undefined &&
+      rawInvalid instanceof Array) {
+      for (let i = 0; i < rawInvalid.length; i++) {
+        inv.add(rawInvalid[i]);
       }
     }
 
+    /* Pre-map files put bare byte arrays in `cache`; newer ones put whole
+       SplineKCacheItems.  `times` is what tells the two apart. */
+    let rawCache = readSerialized<(SplineKCacheItem & number[])[]>(ret, "cache");
+
     if (ret.times) { //old structure
+      let times = ret.times;
       ret.invalid_eids = inv;
-      for (let i = 0; i < ret.cache.length; i++) {
-        cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
+      for (let i = 0; i < rawCache.length; i++) {
+        /* NOTE: the old format's entries really are bare byte arrays, so these
+           land in the map without a .time or .hash. */
+        Reflect.set(cache, times[i], new Uint8Array(rawCache[i]));
       }
 
       delete ret.times;
       ret.cache = cache;
     } else {
-      for (let item of ret.cache) {
+      for (let item of rawCache) {
         cache[item.time] = item;
       }
 
@@ -441,7 +450,8 @@ export class SplineFrameSet extends DataBlock {
 
   /* eid of the vertex whose animation path is being edited, -1 for none. */
   editveid: number;
-  framelist: SplineFrame[];
+  /* Frame *times*, per the STRUCT's `array(float)`. */
+  framelist: number[];
   /* Scratch layer on the pathspline that tools draw into. */
   templayerid: number;
   /* The single topology frame; insert_frame() refuses to make a second. */
@@ -466,7 +476,7 @@ export class SplineFrameSet extends DataBlock {
     this.editmode = "MAIN";
     this.editveid = -1;
 
-    this.spline = undefined;
+    this.spline = undefined!;
     this.kcache = new SplineKCache();
 
     this.idgen = new SDIDGen();
@@ -550,7 +560,7 @@ export class SplineFrameSet extends DataBlock {
       for (let v of vd.verts) {
         let time = get_vtime(v);
 
-        if (lastv !== undefined && lastv.vectorDistance(v) < threshold && Math.abs(time - lasttime) <= time_threshold) {
+        if (lastv !== undefined && lastv.vectorDistance(v) < threshold && Math.abs(time - lasttime!) <= time_threshold) {
           console.log("Coincident vert!", k, v.eid, lastv.vectorDistance(v));
 
           if (v.segments.length === 2)
@@ -607,7 +617,9 @@ export class SplineFrameSet extends DataBlock {
     av2.animflag &= VDAnimFlags.STEP_FUNC;
 
     for (let time of keyframes) {
-      let co1 = av1.evaluate(time), co2 = av2.evaluate(time);
+      /* evaluate() only returns undefined for dead channels, and these two
+         are live -- they were just fetched off this frameset. */
+      let co1 = av1.evaluate(time)!, co2 = av2.evaluate(time)!;
 
       co.load(co1).add(co2).mulScalar(0.5);
       av3.update(co, time);
@@ -677,7 +689,9 @@ export class SplineFrameSet extends DataBlock {
     hide = hide || !(element.flag & SplineFlags.SELECT);
 
     if (element.type === SplineTypes.HANDLE) {
-      hide = hide || !element.use;
+      /* `use` lives on SplineVertex; handles are vertices with type HANDLE. */
+      let h = (element instanceof SplineVertex ? element : undefined)!;
+      hide = hide || !h.use;
     }
 
     //if (state) { // !!(vd.flag & SplineFlags.HIDE)  !== !!hide) {
@@ -870,7 +884,7 @@ export class SplineFrameSet extends DataBlock {
         if (v.eid in this.vertex_animdata) { //&& (v.flag & SplineFlags.FRAME_DIRTY)) {
           let vdata = this.get_vdata(v.eid, false);
 
-          v.load(vdata.evaluate(this.time));
+          v.load(vdata.evaluate(this.time)!);
 
           v.flag &= ~SplineFlags.FRAME_DIRTY;
           v.flag |= SplineFlags.UPDATE;
@@ -891,7 +905,7 @@ export class SplineFrameSet extends DataBlock {
       if (v.eid in this.vertex_animdata) {// && (v.flag & SplineFlags.FRAME_DIRTY)) {
         let vdata = this.get_vdata(v.eid, false);
 
-        v.load(vdata.evaluate(this.time));
+        v.load(vdata.evaluate(this.time)!);
         v.flag &= ~SplineFlags.FRAME_DIRTY;
         v.flag |= SplineFlags.UPDATE;
 
@@ -1004,20 +1018,9 @@ export class SplineFrameSet extends DataBlock {
     return frame;*/
   }
 
-  //off defaults to 0
-  find_frame(time: number, off?: number) {
-    off = off === undefined ? 0 : off;
-
-    let flist = this.framelist;
-    for (let i = 0; i < flist.length - 1; i++) {
-      if (flist[i] <= time && flist[i + 1] > time) {
-        break;
-      }
-    }
-
-    if (i === flist.length) return frames[i - 1]; //return undefined;
-    return frames[i];
-  }
+  /* NOTE: a find_frame(time, off) sat here.  It had no callers and could not
+     have run: `i` was scoped to the for-loop it was read after, and `frames`
+     named nothing at all (this.frames is the map).  `off` was never used. */
 
   change_time(time: number, _update_animation = true) {
     if (!window.inFromStruct && _update_animation) {
@@ -1088,7 +1091,7 @@ export class SplineFrameSet extends DataBlock {
 
         //console.log("yay, vdata", vdata.evaluate(time));
         if (set_flag) {
-          spline.setselect(v, vdata.flag & SplineFlags.SELECT);
+          spline.setselect(v, !!(vdata.flag & SplineFlags.SELECT));
 
           if (vdata.flag & SplineFlags.HIDE)
             v.flag |= SplineFlags.HIDE;
@@ -1096,9 +1099,12 @@ export class SplineFrameSet extends DataBlock {
             v.flag &= ~SplineFlags.HIDE;
         }
 
-        v.load(vdata.evaluate(time));
+        v.load(vdata.evaluate(time)!);
 
-        if (0 && set_update) {
+        /* NOTE: this read `set_update`, which is declared further down in this
+           same function -- had the `0 &&` not short-circuited first it would
+           have thrown a TDZ ReferenceError every time through. */
+        if (0) {
           v.flag |= SplineFlags.UPDATE;
         } else { //manually flag geometry for drawing
           /*
@@ -1210,7 +1216,7 @@ export class SplineFrameSet extends DataBlock {
       for (let k in this.vertex_animdata) {
         let vd = this.vertex_animdata[k];
 
-        found |= vd.check_time_integrity();
+        if (vd.check_time_integrity()) found = true;
       }
     } else {
       let vd = this.vertex_animdata[veid];
@@ -1304,7 +1310,7 @@ export class SplineFrameSet extends DataBlock {
        redraw_rects: number[], ignore_layers: boolean) {
     let size = editor.size, pos = editor.pos;
 
-    this.draw_anim_paths = editor.draw_anim_paths;
+    this.draw_anim_paths = editor.draw_anim_paths ? 1 : 0;
     this.selectmode = editor.selectmode;
 
     g.save();
@@ -1356,7 +1362,7 @@ export class SplineFrameSet extends DataBlock {
       this.pathspline = this.make_pathspline();
     }
 
-    for (let vd of this.vertex_animdata) {
+    for (let vd of readSerialized<VertexAnimData[]>(this, "vertex_animdata")) {
       vd.spline = this.pathspline;
 
       if (vd.layerid === undefined) {
@@ -1366,7 +1372,9 @@ export class SplineFrameSet extends DataBlock {
         vd.layerid = layer.id;
 
         if (vd.startv_eid  !== undefined) {
-          let v = this.pathspline.eidmap[vd.startv_eid];
+          let startv = this.pathspline.eidmap[vd.startv_eid];
+          /* startv_eid always names a path-spline vertex. */
+          let v = (startv instanceof SplineVertex ? startv : undefined)!;
           let s = v.segments[0];
 
           v.layers = {};
@@ -1415,21 +1423,25 @@ export class SplineFrameSet extends DataBlock {
     //ensure sane id generator
     let max_cur = this.idgen.cur_id;
     let firstframe: SplineFrame | undefined = undefined;
-    for (let i = 0; i < this.frames.length; i++) {
-      //if (this.frames[i].spline.idgen === undefined)
-      //  this.frames[i].spline.idgen = this.idgen;
+    let rawFrames = readSerialized<SplineFrame[]>(this, "frames");
 
-      max_cur = Math.max(this.frames[i].spline.idgen.cur_id, max_cur);
+    for (let i = 0; i < rawFrames.length; i++) {
+      //if (rawFrames[i].spline.idgen === undefined)
+      //  rawFrames[i].spline.idgen = this.idgen;
 
-      if (i === 0) firstframe = this.frames[i];
+      max_cur = Math.max(rawFrames[i].spline.idgen.cur_id, max_cur);
 
-      this.frames[i].spline.idgen = this.idgen;
-      frames[this.frames[i].time] = this.frames[i];
+      if (i === 0) firstframe = rawFrames[i];
+
+      rawFrames[i].spline.idgen = this.idgen;
+      frames[rawFrames[i].time] = rawFrames[i];
     }
     this.idgen.max_cur(max_cur);
 
-    for (let i = 0; i < this.vertex_animdata.length; i++) {
-      vert_animdata[this.vertex_animdata[i].eid] = this.vertex_animdata[i];
+    let rawAnimData = readSerialized<VertexAnimData[]>(this, "vertex_animdata");
+
+    for (let i = 0; i < rawAnimData.length; i++) {
+      vert_animdata[rawAnimData[i].eid] = rawAnimData[i];
     }
 
     //ensure owning_veid references are up to date
@@ -1449,8 +1461,9 @@ export class SplineFrameSet extends DataBlock {
     delete this.cur_frame;
 
     if (fk === undefined) {
+      /* Unreachable: `this.cur_frame || 0` above can never be undefined. */
       this.frame = firstframe;
-      this.spline = firstframe.spline;
+      this.spline = firstframe!.spline;
     } else {
       this.frame = this.frames[fk];
       this.spline = this.frames[fk].spline;

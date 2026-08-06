@@ -1,3 +1,4 @@
+import type {FullContext} from "../../core/context.js";
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {Editor} from '../editor_base.js';
@@ -5,6 +6,8 @@ import {
   keymap, reverse_keymap, saveUIData, loadUIData, pushModalLight, popModalLight, exportTheme
 } from '../../path.ux/scripts/pathux.js';
 import type {Container} from '../../path.ux/scripts/core/ui.js';
+import type {ThemeEditor} from '../../path.ux/scripts/widgets/theme_editor.js';
+import type {KeyModifiers} from '../../path.ux/scripts/pathux.js';
 import type {KeyMap, HotKey} from '../../core/keymap.js';
 
 let basic_colors = {
@@ -28,7 +31,7 @@ export class SettingsEditor extends Editor {
   static STRUCT : string;
 
   /* The "Hotkeys" tab, kept so buildHotKeys() can rebuild it in place. */
-  hotkeyTab! : Container;
+  hotkeyTab! : Container<FullContext>;
 
   constructor() {
     super();
@@ -65,7 +68,9 @@ export class SettingsEditor extends Editor {
 
       console.log(theme);
 
-      let blob = new Blob([theme], {mime: "application/javascript"});
+      /* NOTE: this passed {mime: ...}, which is not a Blob option -- the blob
+         has always been typeless.  The key is `type`. */
+      let blob = new Blob([theme]);
       let url = URL.createObjectURL(blob);
 
       console.log("url", url);
@@ -73,9 +78,9 @@ export class SettingsEditor extends Editor {
     });
 
 
-    this.style["overflow-y"] = "scroll";
+    this.style.overflowY = "scroll";
 
-    let th = document.createElement("theme-editor-x");
+    let th : ThemeEditor<FullContext> = document.createElement("theme-editor-x");
     th.onchange = () => {
       console.log("settings change");
       g_app_state.settings.save();
@@ -97,7 +102,7 @@ export class SettingsEditor extends Editor {
     this.buildHotKeys(tab);
   }
 
-  buildHotKeys(tab : Container = this.hotkeyTab) {
+  buildHotKeys(tab : Container<FullContext> = this.hotkeyTab) {
     if (!this.ctx || !this.ctx.screen) {
       this.doOnce(this.buildHotKeys);
       return;
@@ -114,20 +119,20 @@ export class SettingsEditor extends Editor {
       this.buildHotKeys(tab);
     });
 
-    let build = (tab : Container, label : string, keymaps : Iterable<KeyMap>) => {
+    let build = (tab : Container<FullContext>, label : string, keymaps : Iterable<KeyMap>) => {
       let panel = tab.panel(label);
 
-      let changePre = (hk : HotKey, handler, keymap : KeyMap) => {
+      let changePre = (hk : HotKey, handler : HotKey["action"], keymap : KeyMap) => {
         keymap.ensureWrite();
       }
 
-      let changePost = (hk : HotKey, handler, keymap : KeyMap) => {
+      let changePost = (hk : HotKey, handler : HotKey["action"], keymap : KeyMap) => {
         this.ctx.state.settings.updateKeyDeltas(keymap.typeName, keymap);
       }
 
       let getHotKeyLabel = (hk : HotKey) => {
         let key = hk.buildString(); //hk[Symbol.keystr]();
-        let name = hk.uiname ?? hk.action;
+        let name : HotKey["action"] | undefined = hk.uiname ?? hk.action;
 
         if (!hk.uiname && typeof hk.action === "string") {
           let cls = this.ctx.api.parseToolPath(hk.action);
@@ -142,27 +147,29 @@ export class SettingsEditor extends Editor {
         return name + ": " + key;
       }
 
-      let makeKeyPanel = (panel2 : Container, hk : HotKey, handler,
-                          keymap : KeyMap) => {
+      let makeKeyPanel = (panel2 : Container<FullContext>, hk : HotKey,
+                          handler : HotKey["action"], keymap : KeyMap) => {
         let row = panel2.row();
 
+        /* NOTE: each of these was followed by a `panel2.headerLabel = ...`.
+           panel() hands back the panel's contents rather than the frame, so
+           that assignment only ever stuck a stray property on the contents --
+           the header label has never tracked the hotkey. */
         panel2.title = getHotKeyLabel(hk);
-        panel2.headerLabel = getHotKeyLabel(hk);
 
         function setPanel2Title() {
           console.warn("LABEL UPDATE", getHotKeyLabel(hk));
 
           panel2.title = getHotKeyLabel(hk);
-          panel2.headerLabel = getHotKeyLabel(hk);
         }
 
-        function makeModifier(mod : string) {
-          row.button(mod, () => {
+        /* Uppercase because that is what hk.mods holds; the button shows the
+           lowercase spelling it always did. */
+        function makeModifier(mod : KeyModifiers) {
+          row.button(mod.toLowerCase(), () => {
             keymap.ensureWrite();
 
             changePre(hk, handler, keymap);
-
-            mod = mod.toUpperCase();
 
             if (hk.mods.indexOf(mod) >= 0) {
               hk.mods.remove(mod);
@@ -178,13 +185,16 @@ export class SettingsEditor extends Editor {
           });
         }
 
-        makeModifier("ctrl");
-        makeModifier("shift");
-        makeModifier("alt");
+        makeModifier("CTRL");
+        makeModifier("SHIFT");
+        makeModifier("ALT");
 
-        let keyButton = row.button(hk.key, () => {
-          let modaldata;
-          let start_time;
+        /* NOTE: hk.key is a keycode, so this button comes up labelled with a
+           number until the key is changed, at which point the handler below
+           relabels it through reverse_keymap. */
+        let keyButton = row.button("" + hk.key, () => {
+          let modaldata : ReturnType<typeof pushModalLight> | undefined;
+          let start_time = 0;
 
           let checkEnd = () => {
             if (!modaldata || time_ms() - start_time < 500) {

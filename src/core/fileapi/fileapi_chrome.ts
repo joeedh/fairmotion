@@ -45,9 +45,15 @@ export function open_file(callback: OpenFileCallback, thisvar: Object,
       reader.onerror = errorHandler;
       reader.onload = function(e: ProgressEvent<FileReader>) {
         var id = chrome.fileSystem.retainEntry(readOnlyEntry);
-        console.log("\n\n           ->", e.target.result, readOnlyEntry, id, "<-\n\n");
+        var result = e.target === null ? undefined : e.target.result;
 
-        callback.call(thisvar, e.target.result, file.name, id);
+        console.log("\n\n           ->", result, readOnlyEntry, id, "<-\n\n");
+
+        if (!(result instanceof ArrayBuffer)) {
+          throw new Error("readAsArrayBuffer() did not produce an ArrayBuffer");
+        }
+
+        callback.call(thisvar, result, file.name, id);
       };
 
       reader.readAsArrayBuffer(file);
@@ -64,7 +70,7 @@ export function save_file(data: FileData, save_as_mode: boolean, set_current_fil
   function chooseFile() {
     var params: ChooseEntryParams = {type: 'saveFile'};
 
-    if (g_app_state.filepath != "" & g_app_state.filepath != undefined) {
+    if (g_app_state.filepath != "" && g_app_state.filepath != undefined) {
       params.suggestedName = g_app_state.filepath;
     }
     params.accepts = [{
@@ -96,12 +102,14 @@ export function save_file(data: FileData, save_as_mode: boolean, set_current_fil
     });
   }
 
-  function error() {
-    console.log("Error writing file", arguments);
+  function error(...args: unknown[]) {
+    console.log("Error writing file", args);
     current_chromeapp_file = undefined;
 
+    /* NOTE: this was `error_cb.apply(this, arguments)`; `this` is undefined in
+       a strict-mode function, and every error callback in-tree takes none. */
     if (error_cb != undefined)
-      error_cb.apply(this, arguments); //pass on any arguments
+      error_cb(args[0]);
   }
 
   if (save_as_mode || current_chromeapp_file == undefined) {

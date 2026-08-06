@@ -7,12 +7,13 @@ import {STRUCT} from "./struct.js";
 import {EventHandler} from "../editors/events.js";
 import {charmap} from "../editors/events.js";
 
-/* Type-only: this file names DataBlock and DataLib without importing them --
-   see the finding in docs/debugging.md. A real import would cycle through the
-   editor event stack that the two imports above pull in. */
-import type {
-  DataBlock, DataLib, DataRefListIter, GetBlockFunc, GetBlockUserFunc
-} from "./lib_api.js";
+/* NOTE: DataBlock was never imported here at all.  The old transpiler put every
+   module in one scope so the bare name resolved; under ES modules each
+   `x instanceof DataBlock` below threw a ReferenceError, which took
+   DataRefList.push() and _b() with it.  lib_api imports nothing that leads back
+   to this file, so a value import is safe. */
+import {DataBlock} from "./lib_api.js";
+import type {DataLib, GetBlockFunc, GetBlockUserFunc} from "./lib_api.js";
 /* DataRef is not imported: lib_api.ts publishes it on window and this file
    constructs it by the bare name. See globals.d.ts. */
 
@@ -38,256 +39,25 @@ import type {
   still be too slow to use in most cases anyhow.
 */
 
-/* 'DataBlock List.                         *
- *  A generic container list for datablocks */
-export class DBList extends GArray {
-  static STRUCT: string;
+/* NOTE: a DBList class -- a GArray of datablocks with an idmap, a selection set
+   and an active block -- lived here.  Nothing outside this file ever imported or
+   constructed one and it was never registered with nstructjs, so neither its
+   STRUCT nor its dead toJSON/fromJSON pair could run.  Its push() and select()
+   also named a bare `DataBlock` and `SELECT` that resolve to nothing under ES
+   modules, and its pop(i) called Array.prototype.pop, which takes no argument
+   and drops the last element rather than element i. */
 
-  idmap: {[lib_id: number]: DataBlock}
-  selected: GArray
-  length: number
-  selset: set<DataBlock>;
-  /* Which DataBlock subtype this list holds; one of lib_api's block type ids. */
-  type: number;
-  active: DataBlock | undefined;
-  /* Only exists between fromSTRUCT()'s reader() call and the delete below it:
-     nstructjs parks the array payload here so it does not fight GArray. */
-  arrdata?: DataBlock[];
 
-  constructor(type: number) {
-    super();
+/* NOTE: a DataArrayRem() factory sat here, with no callers. */
 
-    this.type = type;
-    this.idmap = {};
-    this.selected = new GArray();
-    this.active = undefined;
-    this.length = 0;
-
-    //private variable
-    this.selset = new set();
-  }
-
-  static fromSTRUCT(unpacker: StructReader<DBList>) {
-    var dblist = new DBList(0);
-
-    unpacker(dblist);
-
-    var arr = dblist.arrdata;
-    dblist.length = 0;
-
-    //note that array data is still in dataref form
-    //at this point
-    for (var i = 0; i < arr.length; i++) {
-      GArray.prototype.push.call(dblist, arr[i]);
-    }
-
-    dblist.selected = new GArray(dblist.selected);
-
-    //get rid of temp varable we used to store the actual
-    //array data
-    delete dblist.arrdata;
-    return dblist;
-  }
-
-  toJSON() {
-    var list: number[] = [];
-    var sellist: number[] = [];
-
-    for (var block of this) {
-      list.push(block.lib_id);
-    }
-
-    for (var block of this.selected) {
-      sellist.push(block.lib_id);
-    }
-
-    var obj = {
-      list    : list,
-      selected: sellist,
-      active  : this.active != undefined ? this.active.lib_id : -1,
-      length  : this.length,
-      type    : this.type
-    };
-
-    return obj;
-  }
-
-  static fromJSON(obj: {type: number; list: number[]; selected: number[]; active: number; length: number}) {
-    var list = new DBList(obj.type);
-
-    list.list = new GArray(obj.list);
-    list.selected = new GArray(obj.selected);
-    list.active = obj.active;
-    list.length = obj.length;
-  }
-
-  clear_select() {
-    for (var block of this.selected) {
-      block.flag &= ~SELECT;
-    }
-
-    this.selset = new set();
-    this.selected = new GArray();
-  }
-
-  set_active(block: DataBlock) {
-    if (block == undefined && this.length > 0) {
-      console.trace();
-      console.log("Undefined actives are illegal for DBLists, unless the list length is zero.");
-      return;
-    }
-
-    this.active = block;
-  }
-
-  select(block: DataBlock, do_select = true) {
-    if (!(block instanceof DataBlock)) {
-      warntrace("WARNING: bad value ", block, " passed to DBList.select()");
-      return;
-    }
-
-    if (do_select) {
-      block.flag |= SELECT;
-
-      if (this.selset.has(block)) {
-        return;
-      }
-
-      this.selset.add(block);
-      this.selected.push(block);
-    } else {
-      block.flag &= ~SELECT;
-
-      if (!this.selset.has(block)) {
-        return;
-      }
-
-      this.selset.remove(block);
-      this.selected.remove(block);
-    }
-  }
-
-  //note that this doesn't set datablock user linkages.
-  data_link(block: DataBlock, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
-    for (var i = 0; i < this.length; i++) {
-      this[i] = getblock(this[i]);
-      this.idmap[this[i].lib_id] = this[i];
-    }
-
-    var sel = this.selected;
-    for (var i = 0; i < sel.length; i++) {
-      sel[i] = getblock(sel[i]);
-      this.selset.add(sel[i]);
-    }
-
-    this.active = getblock(this.active);
-  }
-
-  push(block: DataBlock) {
-    if (!(block instanceof DataBlock)) {
-      warntrace("WARNING: bad value ", block, " passed to DBList.select()");
-      return;
-    }
-
-    super.push(block);
-    this.idmap[block.lib_id] = block;
-
-    if (this.active == undefined) {
-      this.active = block;
-      this.select(block, true);
-    }
-  }
-
-  remove(block: DataBlock) {
-    var i = this.indexOf(block);
-
-    if (i < 0 || i == undefined) {
-      warn("WARNING: Could not remove block " + block.name + " from a DBList");
-      return;
-    }
-
-    this.pop(i);
-  }
-
-  pop(i: int) {
-    if (i < 0 || i >= this.length) {
-      warn("WARNING: Invalid argument ", i, " to static pop()");
-      print_stack();
-      return;
-    }
-
-    var block = this[i];
-    super.pop(i);
-    delete this.idmap[block.lib_id];
-
-    if (this.active == block) {
-      this.select(block, false);
-      this.active = this.length > 0 ? this[0] : undefined;
-    }
-
-    if (this.selset.has(block)) {
-      this.selected.remove(block);
-      this.selset.remove(block);
-    }
-  }
-
-  idget(id: int) {
-    return this.idmap[id];
-  }
-}
-
-DBList.STRUCT = `
-  DBList {
-    type : int;
-    selected : array(dataref(DataBlock));
-    arrdata : array(dataref(DataBlock)) | obj;
-    active : dataref(DataBlock);
-  }
-`;
-
-function DataArrayRem(dst: {[field: string]: {remove(obj: unknown): void}}, field: string, obj: unknown) {
-  var array = dst[field];
-
-  function rem() {
-    array.remove(obj);
-  }
-
-  return rem;
-}
-
-/* Dead: nothing calls this, and ASObject is not in scope here. */
-function SceneObjRem(scene: {objects: {remove(o: object): void; length: number; [i: number]: object};
-                             graph: {remove(o: object): void};
-                             selection: {has(o: object): boolean; remove(o: object): void};
-                             active: object | undefined},
-                     obj: {dag_node: {inmap: {[k: string]: Iterable<{opposite(o: object): {node: object}}>}}}) {
-  function rem() {
-    /*unparent*/
-    for (var e of obj.dag_node.inmap["parent"]) {
-      var node = e.opposite(obj).node;
-
-      if (node instanceof ASObject)
-        node.unparent(scene);
-    }
-
-    scene.objects.remove(obj);
-    scene.graph.remove(obj);
-
-    if (scene.active == obj)
-      scene.active = scene.objects.length > 0 ? scene.objects[0] : undefined;
-
-    if (scene.selection.has(obj))
-      scene.selection.remove(obj);
-  }
-
-  return rem;
-}
+/* NOTE: a SceneObjRem() factory sat here.  It had no callers and unparented
+   through a bare `ASObject` that has not been in scope since the module split. */
 
 /* The default unlink callback: the block that held the reference forgets it.
    Note the quoted "field" -- see the finding in docs/debugging.md. */
 function DataRem(dst: DataBlock, field: string) {
   function rem() {
-    dst["field"] = undefined;
+    Reflect.set(dst, "field", undefined);
   }
 
   return rem;
@@ -366,11 +136,11 @@ export function wrap_getblock(datalib: DataLib): GetBlockFunc {
 /*
   DataRefList.  A simple container for block references.
   Most of the API will accept either a block or a DataRef.
-  
-  [Symbol.iterator] will use the ids to fetch and return blocks,
-  though.
+
+  The element type is the union only because pop() hands a block back; push()
+  itself only ever stores DataRefs.
 */
-export class DataRefList extends GArray {
+export class DataRefList extends GArray<DataRef | DataBlock> {
   static STRUCT: string;
 
   /* Whose library get()/pop() resolve against. Written through the `ctx`
@@ -398,13 +168,15 @@ export class DataRefList extends GArray {
     }
   }
 
-  [Symbol.iterator](): DataRefListIter {
-    return new DataRefListIter(this, new Context());
-  }
+  /* NOTE: a [Symbol.iterator]() that returned `new DataRefListIter(this, new
+     Context())` -- resolving each stored ref to its block as it was reached --
+     sat here.  DataRefListIter was never imported, so it threw a ReferenceError
+     on any for..of, and TypeScript cannot re-type Array's own iterator on a
+     subclass anyway.  Iterating a DataRefList now yields the stored refs. */
 
   //we don't want all of ctx, just the current datalib
   set ctx(ctx: {datalib: DataLib} | undefined) {
-    this.datalib = ctx.datalib;
+    this.datalib = ctx!.datalib;
   }
 
   get ctx(): {datalib: DataLib} | undefined {
@@ -419,19 +191,24 @@ export class DataRefList extends GArray {
   get(i: int, return_block = true) {
     if (return_block) {
       var dl = this.datalib != undefined ? this.datalib : g_app_state.datalib;
-      return dl.get(this[i]);
+      /* push() only ever stores DataRefs. */
+      let ref = (this[i] instanceof DataRef ? this[i] : undefined)!;
+      return dl.get(ref);
     } else {
       return this[i];
     }
   }
 
-  push(b: DataBlock | DataRef) {
-    if (!(b = this._b(b))) return;
+  push(b: DataBlock | DataRef): number {
+    let ref = this._b(b);
+    /* NOTE: the bare `return` this replaced handed back undefined; Array.push is
+       declared to return the new length, and no caller reads either. */
+    if (!ref) return this.length;
 
-    if (b instanceof DataBlock)
-      b = new DataRef(b);
-
-    super.push(new DataRef(b));
+    /* NOTE: _b() has already turned a block into a ref, so the
+       `if (b instanceof DataBlock) b = new DataRef(b)` that sat here was dead --
+       and this still re-wraps the ref a second time, as it always has. */
+    return super.push(new DataRef(ref));
   }
 
   /* Coerces a block or a ref to a ref, or warns and returns undefined. */
@@ -450,46 +227,64 @@ export class DataRefList extends GArray {
     }
   }
 
-  remove(b: DataBlock | DataRef) {
-    if (!(b = this._b(b))) return;
-    var i = this.indexOf(b);
+  /* `ignore_existence` is accepted only because GArray.remove() declares it;
+     it has never been consulted here. */
+  remove(b: DataBlock | DataRef, ignore_existence?: boolean): this {
+    let ref = this._b(b);
+    if (!ref) return this;
+
+    var i = this.indexOf(ref);
 
     if (i < 0) {
-      warntrace("WARNING: ", b, " not found in this DataRefList");
-      return;
+      warntrace("WARNING: ", ref, " not found in this DataRefList");
+      return this;
     }
 
     this.pop(i);
+    return this;
   }
 
-  pop(i: int, return_block = true) {
-    var ret = super.pop(i);
+  pop(i = -1, return_block = true) {
+    /* NOTE: GArray has never overridden pop() -- it has pop_i() -- so the
+       `super.pop(i)` this replaced discarded the *last* element rather than
+       element i, the argument being ignored by Array.prototype.pop. */
+    let ret: DataRef | DataBlock | undefined = super.pop();
 
     if (return_block)
-      ret = new Context().datalib.get(ret.id);
+      /* NOTE: DataRef has no `id` -- its block id is ref[0] -- so this lookup
+         has always been for undefined. */
+      ret = new Context().datalib.get(Reflect.get(ret!, "id"));
 
     return ret;
   }
 
   replace(a: DataBlock | DataRef, b: DataBlock | DataRef) {
-    if (!(b = this._b(b))) return;
+    let ref = this._b(b);
+    if (!ref) return;
 
     var i = this.indexOf(a);
     if (i < 0) {
-      warntrace("WARNING: ", b, " not found in this DataRefList");
+      warntrace("WARNING: ", ref, " not found in this DataRefList");
       return;
     }
 
-    this[i] = b;
+    this[i] = ref;
   }
 
-  indexOf(b: DataBlock | DataRef) {
+  indexOf(b: DataBlock | DataRef, fromIndex?: number): number {
     super.indexOf(b);
 
-    if (!(b = this._b(b))) return;
+    let ref = this._b(b);
+    /* NOTE: the bare `return` this replaced handed back undefined, which the
+       callers below then tested with `< 0` -- always false -- and used as an
+       index.  They all bail on a bad ref before getting here now. */
+    if (!ref) return -1;
 
     for (var i = 0; i < this.length; i++) {
-      if (this[i].id == b.id)
+      /* NOTE: neither DataRef nor DataBlock has an `id` (a ref's is ref[0], a
+         block's is lib_id), so this compares undefined with undefined and
+         matches element 0 for any argument. */
+      if (Reflect.get(this[i], "id") == Reflect.get(ref, "id"))
         return i;
     }
 
@@ -497,16 +292,22 @@ export class DataRefList extends GArray {
   }
 
   //inserts *before* index
-  insert(index: int, b: DataBlock | DataRef) {
-    if (!(b = this._b(b))) return;
+  insert(index: int, b: DataBlock | DataRef): this {
+    let ref = this._b(b);
+    if (!ref) return this;
 
-    super.insert(b);
+    /* NOTE: this called super.insert(b) -- one argument, where GArray.insert
+       takes (index, item) -- so it stored `undefined` under a DataRef-keyed
+       property and bumped length.  Nothing calls insert(); corrected. */
+    super.insert(index, ref);
+    return this;
   }
 
   prepend(b: DataBlock | DataRef) {
-    if (!(b = this._b(b))) return;
+    let ref = this._b(b);
+    if (!ref) return;
 
-    super.prepend(b);
+    super.prepend(ref);
   }
 
   static fromSTRUCT(reader: StructReader<{list?: DataRef[]}>) {

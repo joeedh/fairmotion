@@ -1,5 +1,6 @@
 "use strict";
 import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
+import type {BoundConstructor, CallbackThis} from '../../path.ux/scripts/pathux.js';
 import {BlockClasses, DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
@@ -47,8 +48,9 @@ import {Spline} from "../../curve/spline.js";
 import {DataLib, DataBlock, DataList} from "../lib_api.js";
 import {initToolModeAPI} from '../../editors/viewport/toolmodes/toolmode.js';
 
-export function makeAPI(api = new DataAPI()) {
+export function makeAPI(api = new DataAPI<FullContext>()) {
   var FullContextStruct = api.mapStruct(FullContext, true);
+  var AnimKeyStruct = api.mapStruct(AnimKey, true);
 
   function api_define_FullContext(api: DataAPI) {
     FullContextStruct.struct("view2d", "view2d", "undefined", api.mapStruct(View2DHandler, true));
@@ -69,6 +71,11 @@ export function makeAPI(api = new DataAPI()) {
         return g_app_state.toolstack.undostack[key];
       },
       function getStruct(api: DataAPI, list: ToolOp[], key: number) {
+        /* NOTE: this read a free `tool` that was never declared, so displaying
+           the operator stack threw a ReferenceError.  The list key is the
+           undostack index, which is what get() above resolves too. */
+        let tool = g_app_state.toolstack.undostack[key];
+
         //OpStackArray.flag |= DataFlags.RECALC_CACHE;
         if (tool.apistruct != undefined) {
           //tool.apistruct.flag |= DataFlags.RECALC_CACHE;
@@ -103,10 +110,8 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_View2DHandler(api: DataAPI) {
     View2DHandlerStruct.float("propradius", "propradius", "Magnet Radius").range(0.1, 1024).step(0.5).expRate(1.75).decimalPlaces(2);
-    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function (old) {
-      return (function () {
-        redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function () {
+      redraw_viewport();
     });
     View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "Half Resolution")
       .icon(Icons.HALF_PIXEL_SIZE);
@@ -116,10 +121,8 @@ export function makeAPI(api = new DataAPI()) {
         redraw_viewport();
       });
 
-    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function (old) {
-      return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function () {
+      window.redraw_viewport();
     });
     View2DHandlerStruct.color4("default_stroke", "default_stroke", "Stroke");
     View2DHandlerStruct.color4("default_fill", "default_fill", "Fill");
@@ -211,10 +214,8 @@ export function makeAPI(api = new DataAPI()) {
       SEGMENT: Icons.EDGE_MODE,
       FACE   : Icons.FACE_MODE,
       OBJECT : Icons.OBJECT_MODE
-    }).on("change", function (old) {
-      return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+    }).on("change", function () {
+      window.redraw_viewport();
     });
     View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls")
       .icon(Icons.ONLY_RENDER);
@@ -232,29 +233,21 @@ export function makeAPI(api = new DataAPI()) {
     });
     View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode")
       .icon(Icons.CURSOR_ARROW);
-    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function (old) {
-      return (function () {
-        this.ctx.spline.regen_sort();
-        redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function () {
+      this.dataref.ctx.spline.regen_sort();
+      redraw_viewport();
     })
       .icon(Icons.ENABLE_BLUR);
-    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function (old) {
-      return (function () {
-        this.ctx.spline.regen_sort();
-        redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function () {
+      this.dataref.ctx.spline.regen_sort();
+      redraw_viewport();
     })
       .icon(Icons.MAKE_POLYGON);
-    View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function (old) {
-      return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function () {
+      window.redraw_viewport();
     });
-    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function (old) {
-      return (function () {
-        redraw_viewport();
-      }).call(this.dataref, old)
+    View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function () {
+      redraw_viewport();
     })
       .icon(Icons.DRAW_NORMALS);
     View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths")
@@ -293,7 +286,7 @@ export function makeAPI(api = new DataAPI()) {
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api: DataAPI) {
-    function prop_update() {
+    function prop_update(this : CallbackThis<Material, FullContext>) {
       this.dataref.update(this.ctx.spline);
 
       window.redraw_viewport();
@@ -364,28 +357,28 @@ export function makeAPI(api = new DataAPI()) {
   var DopeSheetEditorStruct = api.mapStruct(DopeSheetEditor, true);
 
   function api_define_DopeSheetEditor(api: DataAPI) {
-    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function (old) {
-      return (function (owner: boolean) {
-        owner.rebuild();
-      }).call(this.dataref, old)
+    DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function () {
+      /* NOTE: this called (function (owner) {owner.rebuild()}).call(this.dataref, old),
+         which binds `owner` to the changed value rather than to the editor, so it
+         threw every time the checkbox was toggled. */
+      this.dataref.rebuild();
     });
     DopeSheetEditorStruct.bool("pinned", "pinned", "Pin");
-    DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (owner: number) {
-        owner.updateKeyPositions();
-      }).call(this.dataref, old)
+    DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function () {
+      /* NOTE: same defect as selected_only above -- `owner` was the new
+         timescale, not the editor. */
+      this.dataref.updateKeyPositions();
     });
   }
 
   var CurveEditorStruct = api.mapStruct(CurveEditor, true);
 
   function api_define_CurveEditor(api: DataAPI) {
-    CurveEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function (old) {
-      return (function () {
-        if (this.ctx != undefined && this.ctx.editcurve != undefined)
-          this.ctx.editcurve.do_full_recalc();
-      }).call(this.dataref, old)
-    });
+    /* NOTE: CurveEditor has no `selected_only`, so this path never resolves and
+       its change callback could never have fired.  The callback called
+       ctx.editcurve.do_full_recalc(), a method the editor no longer has, and has
+       been dropped. */
+    CurveEditorStruct.bool("selected_only", "selected_only", "Selected Only");
     CurveEditorStruct.bool("pinned", "pinned", "Pin");
   }
 
@@ -401,7 +394,9 @@ export function makeAPI(api = new DataAPI()) {
         return list[key];
       },
       function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
-        return AnimKeyStruct2;
+        /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
+           so walking any of the three animkeys lists threw. */
+        return AnimKeyStruct;
       },
       function getLength(api: DataAPI, list: {[id: int]: object}) {
         var tot = 0.0;
@@ -432,7 +427,8 @@ export function makeAPI(api = new DataAPI()) {
         return list[key];
       },
       function getStruct(api: DataAPI, list: {[eid: int]: VertexAnimData}, key: int) {
-        return animdata_struct;
+        /* NOTE: was a free `animdata_struct`, never declared. */
+        return VertexAnimDataStruct;
       },
       function getLength(api: DataAPI, list: {[eid: int]: VertexAnimData}) {
         let i = 0;
@@ -468,7 +464,9 @@ export function makeAPI(api = new DataAPI()) {
         return list[key];
       },
       function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
-        return AnimKeyStruct2;
+        /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
+           so walking any of the three animkeys lists threw. */
+        return AnimKeyStruct;
       },
       function getLength(api: DataAPI, list: {[id: int]: object}) {
         var tot = 0.0;
@@ -515,7 +513,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("segments", "segments", [
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "segments", [
       function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
         return list[Symbol.iterator]();
       },
@@ -608,7 +606,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("faces", "editable_faces", [
+    SplineStruct.list<ElementArray<SplineFace>, number, SplineFace>("faces", "editable_faces", [
       function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
         return list.editable(g_app_state.ctx)[Symbol.iterator]();
       },
@@ -642,7 +640,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("segments", "editable_segments", [
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "editable_segments", [
       function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
         return list.editable(g_app_state.ctx)[Symbol.iterator]();
       },
@@ -673,7 +671,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("segments", "editable_selected_segments", [
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "editable_selected_segments", [
       function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
         return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
       },
@@ -766,7 +764,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("faces", "selected_facese", [
+    SplineStruct.list<ElementArray<SplineFace>, number, SplineFace>("faces", "selected_facese", [
       function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
         return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
       },
@@ -797,7 +795,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("segments", "selected_segments", [
+    SplineStruct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "selected_segments", [
       function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
         return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
       },
@@ -890,7 +888,7 @@ export function makeAPI(api = new DataAPI()) {
               return ".local_idmap["+key+"]";
             }*/
     ]);
-    SplineStruct.list("layerset", "layerset", [
+    SplineStruct.list<SplineLayerSet, number, SplineLayer>("layerset", "layerset", [
       function getIter(api: DataAPI, list: SplineLayerSet) {
         return list[Symbol.iterator]();
       },
@@ -985,7 +983,8 @@ export function makeAPI(api = new DataAPI()) {
       //let ctx = this.ctx;
       let ctx = window.g_app_state.ctx;
 
-      let ok = seg.flag & SplineFlags.SELECT;
+      /* was a number, and so returned 0 rather than false when unselected. */
+      let ok = !!(seg.flag & SplineFlags.SELECT);
       ok = ok && !(seg.flag & SplineFlags.HIDE);
 
       if (!ok) {
@@ -1000,7 +999,7 @@ export function makeAPI(api = new DataAPI()) {
       return ok;
     });
 
-    let segment_update = function () {
+    let segment_update = function (this : CallbackThis<SplineSegment, FullContext>) {
       let segment = this.dataref;
       segment.mat.update();
 
@@ -1163,10 +1162,8 @@ export function makeAPI(api = new DataAPI()) {
       MASK      : "Mask"
     }).descriptions({
       MASK: "Use previous layer as a mask"
-    }).icons(DataTypes).on("change", function (old) {
-      return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+    }).icons(DataTypes).on("change", function () {
+      window.redraw_viewport();
     });
   }
 
@@ -1204,10 +1201,8 @@ export function makeAPI(api = new DataAPI()) {
     }).descriptions({
       imperial: "Imperial",
       metric  : "Metric"
-    }).icons(DataTypes).on("change", function (old) {
-      return (function () {
-        g_app_state.session.settings.save();
-      }).call(this.dataref, old)
+    }).icons(DataTypes).on("change", function () {
+      g_app_state.session.settings.save();
     });
     AppSettingsStruct.enum("unit", "default_unit", {
       cm  : "cm",
@@ -1225,10 +1220,8 @@ export function makeAPI(api = new DataAPI()) {
       mm  : "Mm",
       km  : "Km",
       mile: "Mile"
-    }).icons(DataTypes).on("change", function (old) {
-      return (function () {
-        g_app_state.session.settings.save();
-      }).call(this.dataref, old)
+    }).icons(DataTypes).on("change", function () {
+      g_app_state.session.settings.save();
     });
   }
 
@@ -1236,14 +1229,11 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_SceneObject(api: DataAPI) {
     ;
-    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4)
-      .on("change", function (old) {
-        if (this.ctx.mesh !== undefined)
-          this.ctx.mesh.regen_render();
-        if (this.ctx.view2d !== undefined && this.ctx.view2d.selectmode & EditModes.GEOMETRY) {
-          this.ctx.object.dag_update();
-        }
-      });
+    /* NOTE: SceneObject has no `ctx_bb`, so this path never resolves and the
+       change callback that used to hang off it could never have fired.  It read
+       ctx.mesh and ctx.object, neither of which exists on fairmotion's context,
+       and has been dropped. */
+    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
   }
 
   var SceneStruct = api.mapStruct(Scene, true);
@@ -1258,7 +1248,9 @@ export function makeAPI(api = new DataAPI()) {
         return list[key];
       },
       function getStruct(api: DataAPI, list: {[id: int]: object}, key: int) {
-        return AnimKeyStruct2;
+        /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
+           so walking any of the three animkeys lists threw. */
+        return AnimKeyStruct;
       },
       function getLength(api: DataAPI, list: {[id: int]: object}) {
         var tot = 0.0;
@@ -1277,24 +1269,28 @@ export function makeAPI(api = new DataAPI()) {
     ;
     SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5)
       .on("change", function (old) {
+        /* the "change" callback is fired with the value that was just set. */
         let time = this.dataref.time;
-        this.dataref.time = old;
+        this.dataref.time = old!;
         this.dataref.change_time(g_app_state.ctx, time);
         window.redraw_viewport();
       });
+    /* NOTE: the three accessors below read list.object_idmap and list.objects.
+       ObjectList spells them `idmap` and is itself the array, so every one of
+       them was undefined and this list threw whenever it was walked. */
     SceneStruct.list("objects", "objects", [
       function getIter(api: DataAPI, list: ObjectList) {
-        return new obj_value_iter(list.object_idmap);
+        return new obj_value_iter(list.idmap);
       },
       function get(api: DataAPI, list: ObjectList, key: int) {
         console.log("get key", key, list);
-        return list.object_idmap[key];
+        return list.idmap[key];
       },
       function getStruct(api: DataAPI, list: ObjectList, key: int) {
         return SceneObjectStruct;
       },
       function getLength(api: DataAPI, list: ObjectList) {
-        return list.objects.length;
+        return list.length;
       },
       /*function getkeyiter() {
             return new obj_key_iter(this.object_idmap);
@@ -1320,7 +1316,7 @@ export function makeAPI(api = new DataAPI()) {
       DataLibStruct.struct(DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), DataLib.getAccessorKey(cls), api.mapStruct(DataList, true));
     }
 
-    DataLibStruct.list("", "items", [
+    DataLibStruct.list<DataLib, string, DataBlock>("", "items", [
       function getIter(api: DataAPI, datalib: DataLib) {
 
         return (function* () {
@@ -1332,15 +1328,13 @@ export function makeAPI(api = new DataAPI()) {
         })();
       },
       function get(api: DataAPI, datalib: DataLib, key: string) {
-        key = parseInt(key);
-        return datalib.idmap[key];
+        return datalib.idmap[parseInt(key)];
       },
       function getKey(api: DataAPI, datalib: DataLib, obj: DataBlock) {
         return obj.lib_id;
       },
       function getStruct(api: DataAPI, datalib: DataLib, key: string) {
-        key = parseInt(key);
-        return api.mapStruct(datalib.idmap[key].constructor, false);
+        return api.mapStruct(datalib.idmap[parseInt(key)].constructor as BoundConstructor, false);
       },
       function getLength(api: DataAPI, datalib: DataLib) {
         let tot = 0;
@@ -1371,7 +1365,10 @@ export function makeAPI(api = new DataAPI()) {
         return list[key];
       },
       function getStruct(api: DataAPI, list: {[lib_id: int]: DataBlock}, key: int) {
-        return datablock_structs[item.lib_type];
+        /* NOTE: this read `datablock_structs[item.lib_type]`, neither of which
+           was ever declared -- a ReferenceError.  DataLib's own items list
+           (above) resolves the same thing by mapping the block's class. */
+        return api.mapStruct(list[key].constructor as BoundConstructor, false);
       },
       function getLength(api: DataAPI, list: {[lib_id: int]: DataBlock}) {
         let count = 0;
@@ -1435,7 +1432,9 @@ export function makeAPI(api = new DataAPI()) {
 
   api.rootContextStruct = FullContextStruct;
 
-  FullContextStruct.struct("last_tool", "last_tool");
+  /* struct() discards its uiname; the spelling matches the definition of the
+     same path in api_define_FullContext. */
+  FullContextStruct.struct("last_tool", "last_tool", "undefined", undefined);
   buildToolSysAPI(api, true, FullContextStruct);
 
   return api;

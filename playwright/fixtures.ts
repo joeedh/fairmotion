@@ -41,26 +41,7 @@ export interface Sweep {
   failed: {path: string; error: string}[];
 }
 
-declare global {
-  interface Window {
-    __fm: {
-      ready(timeout?: number): Promise<boolean>;
-      waitIdle(timeout?: number): Promise<boolean>;
-      getPath(path: string): unknown;
-      setPath(path: string, value: unknown): boolean;
-      execTool(toolpath: string, args?: Record<string, unknown>): unknown;
-      listTools(): string[];
-      listEditors(): string[];
-      switchEditor(name: string): Promise<boolean>;
-      walkPaths(maxDepth?: number): PathEntry[];
-      sweepPaths(maxDepth?: number): Sweep;
-      snapshot(): Snapshot;
-      canvasReport(): {id?: string; width: number; height: number; distinct?: number}[];
-      loadFile(bytes: number[]): Promise<Snapshot>;
-      saveFile(): number[];
-    };
-  }
-}
+/* window.__fm is declared in src/globals.d.ts, off debug_api's own type. */
 
 /*
  * Open the app and wait for it to be interactive.

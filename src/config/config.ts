@@ -2,11 +2,13 @@
 
 //import pathux because it initializes window.DEBUG, which we also make use of
 import '../path.ux/scripts/config/const.js';
+import type {IPathUXConstants} from '../path.ux/scripts/config/const.js';
 
-export let PathUXConstants = {
+export let PathUXConstants : IPathUXConstants = {
   colorSchemeType : "dark",
   autoSizeUpdate : true,
-  useAreaTabSwitcher : false,
+  /* NOTE: a `useAreaTabSwitcher : false` sat here.  path.ux has no such
+     constant, so loadConstants() only ever parked it on cconst unread. */
   addHelpPickers : true,
   showPathsInToolTips : true,
   DEBUG : {
@@ -116,10 +118,18 @@ window._DEBUG = {
 
 //make sure debug global is declared;
 if (window.DEBUG === undefined) {
-  window.DEBUG = config_local.DEBUG !== undefined ? config_local.DEBUG : {};
-} else {
-  for (let k in config_local.DEBUG) {
-    window.DEBUG[k] = config_local.DEBUG[k];
+  window.DEBUG = {};
+}
+
+/* NOTE: an unset window.DEBUG used to be aliased straight to
+   config_local.DEBUG; the flags are copied in either way now.  path.ux owns
+   the global's type and declares the flags boolean, but a couple of
+   fairmotion's are numbers. */
+let localDebug = config_local.DEBUG;
+
+if (localDebug !== undefined) {
+  for (let k in localDebug) {
+    Reflect.set(window.DEBUG, k, localDebug[k]);
   }
 }
 

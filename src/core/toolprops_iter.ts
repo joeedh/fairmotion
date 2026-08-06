@@ -32,15 +32,26 @@ import type {DataBlock, DataRef} from './lib_api.js';
   iterating, but *only then*.
 */
 
+/* The iterator protocol as the tool system uses it: next() hands back a
+   reusable IterRet (see util/utils.ts) rather than TS's IteratorResult union,
+   plus an optional reset() and a ctx the collection is resolved against. */
+export interface ToolIterLike<T = object> {
+  next() : IterRet<T>;
+
+  reset?() : void;
+
+  ctx? : FullContext;
+}
+
 //a generic abstract class,
 //for container types that can
 //be stored directly in tool
 //properties.
-export class TPropIterable {
+export abstract class TPropIterable<T = object> {
   constructor() {
   }
 
-  [Symbol.iterator]() : ToolIter { }
+  abstract [Symbol.iterator]() : ToolIterLike<T>;
 
   /* A marker, not a method. The test below is `"_is_tprop_iterable" in obj`, so
      only the name matters -- it is never called. */
@@ -53,34 +64,45 @@ export class TPropIterable {
 }
 window.TPropIterable = TPropIterable;
 
-export class TCanSafeIter {
+export abstract class TCanSafeIter<T = object> {
   constructor() {
   }
-  
-  __tooliter__() : TPropIterable {}
+
+  abstract __tooliter__() : TPropIterable<T>;
 }
 
 window.TCanSafeIter = TCanSafeIter;
 
-export class ToolIter extends TPropIterable {
+/* `ctx` is declared here rather than in the class body so type_filter_iter can
+   implement it as an accessor pair; the constructor still initializes it. */
+export interface ToolIter<T = object> {
+  ctx? : FullContext;
+}
+
+export class ToolIter<T = object> extends TPropIterable<T> {
   static STRUCT : string;
 
-  ret : {done: boolean; value: object | undefined};
+  ret : IterRet<T>;
 
   /* Classes an iterated item may be an instance of. Empty means unfiltered. */
   itemtypes : Array<Function>;
-  ctx? : FullContext;
 
   constructor(itemtypes? : Array<Function>) {
     super();
 
     this.itemtypes = itemtypes || [];
     this.ctx = undefined; //is set by IterProperty, which gets it from calling code
-    this.ret = {done : true, value : undefined}; //might try cached_iret() later. . .
+    this.ret = new IterRet<T>(); //might try cached_iret() later. . .
+    this.ret.done = true;
   }
 
-  next() {
+  /* NOTE: this stub used to fall off the end and return undefined; subclasses
+     always override it, and the only ToolIter built directly is the empty one
+     fromSTRUCT() makes, so handing back an already-done ret is safer. */
+  next() : IterRet<T> {
     //calls this.parent._iter_end at iteration end
+    this.ret.done = true;
+    return this.ret;
   }
 
   reset() {
@@ -89,18 +111,13 @@ export class ToolIter extends TPropIterable {
   spawn() { //spawn a copy of this iterator
   }
 
+  /* NOTE: the paranoid ctx.object shortcut that used to live here compared
+     `ref.lib_id`, which DataRef has no such property for -- its id is ref[0] --
+     so the test was always false and the datalib lookup always ran. */
   //a utility function for child classes
-  _get_block(ref: DataRef): DataBlock | undefined {
+  _get_block(ref : DataRef) : DataBlock | undefined {
     if (this.ctx !== undefined) {
-      //a very paranoid test, for edge cases
-      //where ctx.object is not the same as
-      //ctx.datalib.get(new DataRef(ctx.object))
-      //
-      //I might get rid of it later.
-      if (ref.lib_id === this.ctx.object.lib_id)
-        return this.ctx.object;
-      else
-        return this.ctx.datalib.get(ref);
+      return this.ctx.datalib.get(ref);
     }
   }
   
@@ -109,7 +126,7 @@ export class ToolIter extends TPropIterable {
   }
   
   //subclasses are required to implement this
-  static fromSTRUCT(reader: StructReader<ToolIter>) {
+  static fromSTRUCT(reader : StructReader<ToolIter>) {
     var obj = new ToolIter();
     reader(obj);
     return obj;

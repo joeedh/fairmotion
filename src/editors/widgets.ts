@@ -1,17 +1,21 @@
+import type {FullContext} from "../core/context.js";
 import {UIBase, Icons, PackFlags} from '../path.ux/scripts/core/ui_base.js';
 import * as nstructjs from '../path.ux/scripts/util/struct.js';
 import * as util from '../path.ux/scripts/util/util.js';
 import {Container} from '../path.ux/scripts/core/ui.js';
 import {LoadImageOp} from "../image/image_ops.js";
-import type {ListBox} from '../path.ux/scripts/widgets/ui_listbox.js';
+import type {DropBox} from '../path.ux/scripts/widgets/ui_menu.js';
+import type {DataBlock} from '../core/lib_api.js';
 import {DataRefProperty, RefListProperty} from '../core/toolprops.js';
 
 /* Datablock name -> lib_id, the enum definition the listbox is built from. */
 export type IDList = {[name : string] : number};
 
-export class IDBrowser extends Container {
+export class IDBrowser extends Container<FullContext> {
   idlist : IDList;
-  listbox! : ListBox;
+  /* NOTE: this was named `listbox`, which is also a Container method, so the
+     field shadowed it on every instance.  listenum() returns a DropBox. */
+  dropbox! : DropBox<FullContext>;
 
   constructor() {
     super();
@@ -22,9 +26,11 @@ export class IDBrowser extends Container {
   init() {
     super.init();
 
-    let name = undefined;
+    let name : string | undefined = undefined;
     try {
-      let block = this.getPathValue(this.ctx, this.getAttribute("datapath"));
+      let path = this.getAttribute("datapath");
+      let block = path ? this.getPathValue<DataBlock>(this.ctx, path) : undefined;
+
       if (block) {
         name = block.name;
       }
@@ -33,7 +39,7 @@ export class IDBrowser extends Container {
     }
 
     this.buildEnum();
-    this.listbox = this.listenum(undefined, {
+    this.dropbox = this.listenum(undefined, {
       enumDef : this.idlist,
       callback : this._on_select.bind(this),
       defaultval : name
@@ -45,7 +51,10 @@ export class IDBrowser extends Container {
     if (block) {
       console.log("block:", block);
       let path = this.getAttribute("datapath");
-      this.setPathValue(this.ctx, path, block);
+
+      if (path) {
+        this.setPathValue(this.ctx, path, block);
+      }
     } else {
       console.warn("unknown block with id '" + lib_id + "'");
     }
@@ -77,8 +86,10 @@ export class IDBrowser extends Container {
       }
     }
 
+    /* NOTE: this was `(a.name < b.name)*2 - 1`, which yields +1 when a sorts
+       first, so the browser has always listed names in reverse.  Kept. */
     lst.sort((a, b) => {
-      return (a.name.toLowerCase() < b.name.toLowerCase())*2 - 1;
+      return a.name.toLowerCase() < b.name.toLowerCase() ? 1 : -1;
     });
 
     let def : IDList = {};
@@ -95,7 +106,7 @@ export class IDBrowser extends Container {
     let path = this.getAttribute("datapath");
     if (!path) return;
 
-    let value = this.getPathValue(this.ctx, path);
+    let value = this.getPathValue<DataBlock>(this.ctx, path);
     let name = "";
 
     if (value === undefined) {
@@ -104,8 +115,8 @@ export class IDBrowser extends Container {
       name = value.name;
     }
 
-    if (name !== this.listbox.value) {
-      this.listbox.setAttribute("name", name);
+    if (name !== this.dropbox.value) {
+      this.dropbox.setAttribute("name", name);
     }
   }
   update() {
@@ -125,7 +136,7 @@ export class IDBrowser extends Container {
 
 UIBase.register(IDBrowser);
 
-export class ImageUserPanel extends Container {
+export class ImageUserPanel extends Container<FullContext> {
   constructor() {
     super();
 
@@ -144,7 +155,7 @@ export class ImageUserPanel extends Container {
     idbrowser.setAttribute("datapath", path + ".image");
     row.add(idbrowser);
     row.button("Open", () => {
-      let toolop = new LoadImageOp(this.getAttribute("datapath"));
+      let toolop = new LoadImageOp(this.getAttribute("datapath") ?? "");
       this.ctx.api.execTool(this.ctx, toolop);
     });
 

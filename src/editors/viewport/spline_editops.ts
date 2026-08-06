@@ -1,7 +1,8 @@
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, TPropFlags, StringProperty} from '../../core/toolprops.js';
 import {ToolOp, UndoFlags, ToolFlags, ModalStates, ToolMacro} from '../../core/toolops_api.js';
-import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js';
+import {SplineFlags, SplineTypes, RecalcFlags, SplineVertex, SplineSegment,
+        SplineFace} from '../../curve/spline_types.js';
 import {RestrictFlags, Spline} from '../../curve/spline.js';
 import {VDAnimFlags} from '../../core/frameset.js';
 import '../../path.ux/scripts/util/struct.js'; //get istruct
@@ -9,7 +10,9 @@ import {redo_draw_sort} from '../../curve/spline_draw.js';
 
 import {FullContext} from "../../core/context.js";
 import {TranslateOp} from './transform.js';
-import type {SplineVertex, SplineSegment} from '../../curve/spline_types.js';
+import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
+import type {SplineFrameSet} from '../../core/frameset.js';
+import type {VertexAnimData} from '../../core/animspline.js';
 
 /* NOTE: `Icons` (three tooldefs), `charmap` (three on_keydown switches) and
    `istruct` (SplineLocalToolOp's undo pair) are all used bare and never
@@ -45,7 +48,11 @@ export class KeyCurrentFrame extends ToolOp {
   }
 }
 
-export class ShiftLayerOrderOp extends ToolOp {
+export class ShiftLayerOrderOp extends ToolOp<{
+  layer_id    : IntProperty,
+  off         : IntProperty,
+  spline_path : StringProperty
+}> {
   constructor(layer_id? : number, off? : number) {
     super();
 
@@ -75,8 +82,9 @@ export class ShiftLayerOrderOp extends ToolOp {
   exec(ctx : FullContext) {
     let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
 
-    let layer = this.inputs.layer_id.data;
-    layer = spline.layerset.idmap[layer];
+    if (!(spline instanceof Spline)) return;
+
+    let layer = spline.layerset.idmap[this.inputs.layer_id.data];
 
     if (layer === undefined) return;
 
@@ -88,7 +96,10 @@ export class ShiftLayerOrderOp extends ToolOp {
 }
 
 //for tools that modify both the draw spline and the path spline
-export class SplineGlobalToolOp extends ToolOp {
+export class SplineGlobalToolOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends ToolOp<InputSlots, OutputSlots> {
   /* NOTE: ToolOp's constructor takes no arguments, and none of these four
      are used anyway; subclasses still pass them. */
   constructor(apiname? : string, uiname? : string, description? : string,
@@ -130,7 +141,7 @@ export class SplineGlobalToolOp extends ToolOp {
     let idgen2 = pathspline.idgen;
 
     for (let k in spline2) {
-      spline[k] = spline2[k];
+      Reflect.set(spline, k, Reflect.get(spline2, k));
     }
 
     let max_cur = spline2.idgen.cur_id;
@@ -183,7 +194,10 @@ export class SplineGlobalToolOp extends ToolOp {
 
 //for tools that modify the active spline only, not both splines
 //(drawspline and pathspline) at once
-export class SplineLocalToolOp extends ToolOp {
+export class SplineLocalToolOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends ToolOp<InputSlots, OutputSlots> {
   /* The whole spline, serialized by undo_pre and read back by undo. */
   _undo! : {data : DataView};
 
@@ -202,13 +216,12 @@ export class SplineLocalToolOp extends ToolOp {
   undo_pre(ctx : FullContext) {
     let spline = ctx.spline;
 
-    let data = [];
+    let data : number[] = [];
 
     istruct.write_object(data, spline);
-    data = new DataView(new Uint8Array(data).buffer);
 
     this._undo = {
-      data : data
+      data : new DataView(new Uint8Array(data).buffer)
     };
 
     //XXX flag redraw here?
@@ -233,7 +246,7 @@ export class SplineLocalToolOp extends ToolOp {
         continue;
       }
 
-      spline[k] = spline2[k];
+      Reflect.set(spline, k, Reflect.get(spline2, k));
     }
 
     let max_cur = spline.idgen.cur_id;
@@ -292,12 +305,20 @@ export class KeyEdgesOp extends SplineLocalToolOp {
         path += "." + k;
       }
 
-      ctx.api.setAnimPathKey(ctx, frameset, path, ctx.scene.time);
+      /* NOTE: DataAPI has no setAnimPathKey() and never has, so this tool
+         throws on its first segment.  Kept as a dynamic lookup rather than
+         invented, since the intended replacement is unknown. */
+      const setAnimPathKey = Reflect.get(ctx.api, "setAnimPathKey") as
+        (ctx : FullContext, frameset : SplineFrameSet, path : string,
+         time : number) => void;
+
+      setAnimPathKey.call(ctx.api, ctx, frameset, path, ctx.scene.time);
     }
   }
 }
 
-let pose_clipboards = {};
+/* splinepath -> that spline's copied pose, as eid -> position. */
+let pose_clipboards : {[path : string] : {[eid : number] : Vector3}} = {};
 
 export class CopyPoseOp extends SplineLocalToolOp {
   constructor() {
@@ -323,18 +344,21 @@ export class CopyPoseOp extends SplineLocalToolOp {
       ctx.spline.handles.selected.editable(ctx)
     ]
 
-    let pose_clipboard = {};
+    let pose_clipboard : {[eid : number] : Vector3} = {};
     pose_clipboards[ctx.splinepath] = pose_clipboard;
 
     for (let i=0; i<2; i++) {
       for (let v of lists[i]) {
-        pose_clipboard[v.eid] = new Vector3(v);
+        //verts are 2d; load2() leaves the third slot at zero, as new Vector3(v) did
+        pose_clipboard[v.eid] = new Vector3().load2(v);
       }
     }
   }
 }
 
-export class PastePoseOp extends SplineLocalToolOp {
+export class PastePoseOp extends SplineLocalToolOp<{
+  pose : CollectionProperty<number>
+}> {
   constructor() {
     super();
   }
@@ -365,23 +389,25 @@ export class PastePoseOp extends SplineLocalToolOp {
     let pose_clipboard = pose_clipboards[ctx.splinepath];
     if (pose_clipboard === undefined) {
       console.trace("No pose for splinepath", ctx.splinepath);
-      this.end_modal(ctx);
+      /* NOTE: this passed `ctx` where the base takes `cancelled`; a context
+         object is truthy, so the modal always ended as cancelled. */
+      this.end_modal(true);
       return;
     }
 
-    let array = [];
+    let array : number[] = [];
     for (let k in pose_clipboard) {
-      let v = spline.eidmap[k];
+      let v = spline.eidmap[+k];
 
       if (v === undefined) {
         console.trace("Bad vertex");
         continue;
       }
 
-      let co = pose_clipboard[k];
+      let co = pose_clipboard[+k];
 
       array.push(v.eid);
-      array.push(co[0]); array.push(co[1]); array.push(co[2]);
+      array.push(co[0]!); array.push(co[1]!); array.push(co[2]!);
     }
 
     this.inputs.pose.flag |= TPropFlags.COLL_LOOSE_TYPE;
@@ -394,10 +420,15 @@ export class PastePoseOp extends SplineLocalToolOp {
     let spline = ctx.spline;
 
     if (this.modalRunning) {
-      this.end_modal(this.modal_ctx);
+      /* NOTE: this passed the context where the base takes `cancelled`; a
+         context object is truthy, so the modal always ended as cancelled. */
+      this.end_modal(true);
     }
 
-    let pose = this.inputs.pose.data;
+    /* setValue() is only ever handed a flat number array, but the slot type
+       also admits an iterable; anything else iterates zero times, as the old
+       `pose.length` read of undefined did. */
+    let pose = Array.isArray(this.inputs.pose.data) ? this.inputs.pose.data : [];
 
     console.log("poselen", pose.length);
 
@@ -410,7 +441,8 @@ export class PastePoseOp extends SplineLocalToolOp {
 
       let v = spline.eidmap[eid];
 
-      if (v === undefined || v.type > 2) {
+      //vert and handle are types 1 and 2, and both are SplineVertex
+      if (!(v instanceof SplineVertex)) {
         console.log("bad eid: eid, v:", eid, v);
 
         i += 3;
@@ -418,7 +450,7 @@ export class PastePoseOp extends SplineLocalToolOp {
       }
 
       let skip = !(v.flag & SplineFlags.SELECT);
-      skip = skip || (v.flag & SplineFlags.HIDE);
+      skip = skip || !!(v.flag & SplineFlags.HIDE);
       skip = skip || !(actlayer.id in v.layers);
 
       if (skip) {
@@ -429,9 +461,9 @@ export class PastePoseOp extends SplineLocalToolOp {
 
       console.log("loading. . .", v, eid, pose[i], pose[i+1], pose[i+2]);
 
-      v[0] = pose[i++];
-      v[1] = pose[i++];
-      v[2] = pose[i++];
+      v[0] = pose[i++]!;
+      v[1] = pose[i++]!;
+      v[2] = pose[i++]!;
       //console.log("            ", v, eid, pose[i], pose[i+1], pose[i+2]);
 
       v.flag |= SplineFlags.UPDATE;
@@ -464,7 +496,7 @@ export class InterpStepModeOp extends ToolOp {
   }}
 
   get_animverts(ctx : FullContext) {
-    let vds = new set();
+    let vds = new set<VertexAnimData>();
     let spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     let frameset = ctx.frameset;
 
@@ -481,7 +513,7 @@ export class InterpStepModeOp extends ToolOp {
   //this operator is interesting, it operates on pathspline
   //but can get selection data from geometry spline
   undo_pre(ctx : FullContext) {
-    let undo = {};
+    let undo : EidUndo = {};
     let pathspline = ctx.frameset.pathspline;
 
     for (let vd of this.get_animverts(ctx)) {
@@ -647,8 +679,8 @@ export class DeleteFaceOp extends SplineLocalToolOp {
     console.log("delete op!");
     let spline = ctx.spline;
 
-    let vset = new set(), sset = new set(), fset = new set();
-    let dellist = [];
+    let vset = new set<SplineVertex>(), sset = new set<SplineSegment>(),
+      fset = new set<SplineFace>();
 
     for (let f of spline.faces.selected.editable(ctx)) {
       fset.add(f);
@@ -657,7 +689,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
     for (let f of fset) {
       for (let path of f.paths) {
         for (let l of path) {
-          let l2 = l.s.l;
+          let l2 = l.s.l!;
           let _c=0, del=true;
 
           do {
@@ -668,7 +700,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
 
             if (!fset.has(l2.f))
               del = false;
-            l2 = l2.radial_next;
+            l2 = l2.radial_next!;
           } while (l2 !== l.s.l);
 
           if (del)
@@ -712,7 +744,10 @@ export class DeleteFaceOp extends SplineLocalToolOp {
 }
 
 
-export class ChangeFaceZ extends SplineLocalToolOp {
+export class ChangeFaceZ extends SplineLocalToolOp<{
+  offset  : IntProperty,
+  selmode : IntProperty
+}> {
   constructor(offset? : number, selmode? : number) {
     super(undefined);
 
@@ -739,7 +774,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
 
 
   static canRun(ctx : FullContext) {
-    return 1;// !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
+    return true;// !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
 
   exec(ctx : FullContext) {
@@ -787,7 +822,10 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   }
 }
 
-export class DissolveVertOp extends SplineLocalToolOp {
+export class DissolveVertOp extends SplineLocalToolOp<{
+  verts     : CollectionProperty<number>,
+  use_verts : BoolProperty
+}> {
   constructor() {
     super();
   }
@@ -813,15 +851,24 @@ export class DissolveVertOp extends SplineLocalToolOp {
 
   exec(ctx : FullContext) {
     let spline = ctx.spline;
-    let dellist = [];
+    let dellist : SplineVertex[] = [];
 
-    let verts = spline.verts.selected.editable(ctx);
+    let verts : Iterable<SplineVertex> = spline.verts.selected.editable(ctx);
+
     if (this.inputs.use_verts.data) {
-      verts = new set();
+      let vset = new set<SplineVertex>();
 
-      for (let eid of this.inputs.verts.data) {
-        verts.add(spline.eidmap[eid]);
+      /* NOTE: an eid that is missing, or names a segment or face, used to go
+         into the set unfiltered and throw on `v.segments` below. */
+      for (let eid of this.inputs.verts.data ?? []) {
+        let v = spline.eidmap[eid];
+
+        if (v instanceof SplineVertex) {
+          vset.add(v);
+        }
       }
+
+      verts = vset;
     }
 
     for (let v of verts) {
@@ -853,7 +900,7 @@ function frameset_split_edge(ctx : FullContext, spline : Spline,
 
   let e_v = spline.split_edge(s, t);
 
-  if (interp_animdata) {
+  if (frameset !== undefined) {
     frameset.create_path_from_adjacent(e_v[1], e_v[0]);
   }
 
@@ -918,11 +965,16 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
   }
 }
 
-export class SplitPickEdgeTransformOp extends ToolMacro {
+export class SplitPickEdgeTransformOp extends ToolMacro<FullContext> {
+  /* NOTE: the constructor used to assign `tool.description`/`tool.icon` onto an
+     undeclared `ret`, throwing ReferenceError before the macro was ever built.
+     Copying the picked-edge tool's def here is what that meant to do. */
   static tooldef() {
     return {
       uiname   : "Split Segment",
-      toolpath : "spline.split_pick_edge_transform"
+      toolpath : "spline.split_pick_edge_transform",
+      description : SplitEdgePickOp.tooldef().description,
+      icon     : SplitEdgePickOp.tooldef().icon
     }
   }
 
@@ -932,29 +984,27 @@ export class SplitPickEdgeTransformOp extends ToolMacro {
     let tool = new SplitEdgePickOp();
     let tool2 = new TranslateOp(undefined, 1 | 2); //XXX import SplineTypes and use instead of this dumb magic number
 
-    /* NOTE: `ret` is not declared anywhere, so constructing this macro
-       throws ReferenceError. */
-    ret.description = tool.description;
-    ret.icon = tool.icon;
-
     this.add(tool);
     this.add(tool2);
 
     //XXX stupidly hackish way of passing last mouse position between tools
     let modalEnd = tool.modalEnd;
 
-    tool.modalEnd = function () {
-      let ctx = tool.modal_ctx;
-
+    tool.modalEnd = function (was_cancelled : boolean) {
       tool2.user_start_mpos = tool.mpos;
       console.log("                 on_modal_end successfully called", tool2.user_start_mpos);
 
-      modalEnd.apply(tool, arguments);
+      modalEnd.call(tool, was_cancelled);
     };
   }
 }
 
-export class SplitEdgePickOp extends SplineGlobalToolOp {
+export class SplitEdgePickOp extends SplineGlobalToolOp<{
+  segment_eid : IntProperty,
+  segment_t   : FloatProperty,
+  spline_path : StringProperty,
+  deselect    : BoolProperty
+}> {
   mpos : Vector2;
 
   constructor() {
@@ -1006,12 +1056,13 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
   on_pointermove(e : PointerEvent) {
     let ctx = this.modal_ctx;
 
-    let mpos = [e.x, e.y];
-    mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
+    let mpos = ctx.view2d.getLocalMouse(e.x, e.y);
 
     this.mpos.load(mpos);
 
-    let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105, ctx.view2d.edit_all_layers);
+    //a modal tool always has a toolmode; that is what launched it
+    let ret = ctx.view2d.editor!.findnearest([mpos[0]!, mpos[1]!], SplineTypes.SEGMENT,
+                                             105, ctx.view2d.edit_all_layers);
 
     if (ret === undefined) {
       this.reset_drawlines();
@@ -1022,6 +1073,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
     let seg = ret[1];
     let spline = ret[0];
+
+    if (!(seg instanceof SplineSegment)) return;
 
     if (spline === ctx.frameset.pathspline) {
       this.inputs.spline_path.setValue("pathspline");
@@ -1037,7 +1090,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
        and Math.min gets one, so this is just max(len/20, 3, 18). */
     let steps = Math.min(Math.max(seg.length / 20, 3, 18));
     let ds = 1.0 / (steps - 1), s = 0;
-    let lastco;
+    let lastco : Vector2 | undefined;
 
     let view2d = ctx.view2d;
     let canvas = view2d.get_bg_canvas();
@@ -1047,7 +1100,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
       view2d.project(co);
 
-      if (i > 0) {
+      if (lastco !== undefined) {
         this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
       }
       lastco = co;
@@ -1066,16 +1119,20 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
       //console.log("  p", p[1].toFixed(4), p[0]);
 
-      p = new Vector2(p.co);
-      view2d.project(p);
+      let pco = new Vector2(p.co);
+      view2d.project(pco);
 
-      let y = p[1];
+      let y = pco[1]!;
+      let x = pco[0]!;
       let w = 4;
 
-      this.new_drawline([p[0]-w, y-w], [p[0]-w, y+w], "blue");
-      this.new_drawline([p[0]-w, y+w], [p[0]+w, y+w], "blue");
-      this.new_drawline([p[0]+w, y+w], [p[0]+w, y-w], "blue");
-      this.new_drawline([p[0]+w, y-w], [p[0]-w, y-w], "blue");
+      /* NOTE: these passed the string "blue" as the colour, which drawline's
+         constructor indexes character by character -- every channel came out
+         NaN and the box never drew.  [0, 0, 1, 1] is what it wanted. */
+      this.new_drawline([x-w, y-w], [x-w, y+w], [0, 0, 1, 1]);
+      this.new_drawline([x-w, y+w], [x+w, y+w], [0, 0, 1, 1]);
+      this.new_drawline([x+w, y+w], [x+w, y-w], [0, 0, 1, 1]);
+      this.new_drawline([x+w, y-w], [x-w, y-w], [0, 0, 1, 1]);
     }
   }
 
@@ -1089,9 +1146,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
   }
 
   exec(ctx : FullContext) {
-    let spline = this.inputs.spline_path.data;
-
-    spline = spline === "pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
+    let spline = this.inputs.spline_path.data === "pathspline"
+                 ? ctx.frameset.pathspline : ctx.frameset.spline;
 
     if (this.inputs.deselect.data) {
       spline.select_none(ctx, SplineTypes.ALL);
@@ -1100,7 +1156,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let seg = spline.eidmap[this.inputs.segment_eid.data];
     let t = this.inputs.segment_t.data;
 
-    if (seg === undefined) {
+    if (!(seg instanceof SplineSegment)) {
       console.warn("Unknown segment", this.inputs.segment_eid.data);
       return;
     }
@@ -1115,7 +1171,7 @@ export class VertPropertyBaseOp extends ToolOp {
 
   undo_pre(ctx : FullContext) {
     let spline = ctx.spline;
-    let vdata = {};
+    let vdata : EidUndo = {};
 
     for (let v of spline.verts.selected.editable(ctx)) {
       vdata[v.eid] = v.flag;
@@ -1261,8 +1317,13 @@ export class ConnectHandlesOp extends ToolOp {
     h1.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
     h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
 
+    /* NOTE: handle_vertex() returns undefined for a handle the segment does
+       not own; two undefineds compare equal, so the test above lets that
+       through and this used to throw. */
     let v = s1.handle_vertex(h1);
-    v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+    if (v !== undefined) {
+      v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+    }
 
     spline.connect_handles(h1, h2);
     spline.resolve = 1;
@@ -1301,7 +1362,11 @@ export class DisconnectHandlesOp extends ToolOp {
 
       h.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
       h.hpair.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+
+      /* NOTE: see ConnectHandlesOp -- handle_vertex() can return undefined. */
+      if (v !== undefined) {
+        v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+      }
 
       spline.disconnect_handle(h);
       spline.resolve = 1;
@@ -1328,7 +1393,7 @@ export class CurveRootFinderTest extends ToolOp {
   }}
 
   on_mousemove(event : MouseEvent) {
-    let mpos = [event.x, event.y];
+    let mpos = new Vector2([event.x, event.y]);
 
     let ctx = this.modal_ctx;
     let spline = ctx.spline;
@@ -1342,21 +1407,22 @@ export class CurveRootFinderTest extends ToolOp {
       let dl = this.new_drawline(ret.co, mpos);
       dl.clr[3] = 0.1;
 
-      /* NOTE: everything below this continue is unreachable. */
-      continue;
-
+      /* NOTE: everything below this continue was unreachable; commented out
+         so it stops being typechecked as live code.
       ret = seg.closest_point(mpos, 3);
       for (let p of ret) {
         this.new_drawline(p.co, mpos);
       }
+      */
+      continue;
     }
   }
 
-  /* NOTE: the base method is end_modal(cancelled); _end_modal does not
-     exist on ToolOp. */
-  end_modal() {
+  /* NOTE: this called this._end_modal(), which does not exist -- finishing
+     the tool threw TypeError.  The base method is end_modal(cancelled). */
+  end_modal(cancelled = false) {
     this.reset_drawlines();
-    this._end_modal();
+    return super.end_modal(cancelled);
   }
 
   on_mousedown(event : MouseEvent) {
@@ -1426,7 +1492,7 @@ export class ToggleManualHandlesOp extends ToolOp {
 
   undo_pre(ctx : FullContext) {
     let spline = ctx.spline;
-    let ud = this._undo = {};
+    let ud : EidUndo = this._undo = {};
 
     for (let v of spline.verts.selected.editable(ctx)) {
       ud[v.eid] = v.flag & SplineFlags.USE_HANDLES;
@@ -1438,14 +1504,14 @@ export class ToggleManualHandlesOp extends ToolOp {
     let ud = this._undo;
 
     for (let k in ud) {
-      let v = spline.eidmap[k];
+      let v = spline.eidmap[+k];
 
       if (v === undefined || v.type !== SplineTypes.VERTEX) {
         console.log("WARNING: bad v in toggle manual handles op's undo handler!", v);
         continue;
       }
 
-      v.flag = (v.flag&~SplineFlags.USE_HANDLES) | ud[k] | SplineFlags.UPDATE;
+      v.flag = (v.flag&~SplineFlags.USE_HANDLES) | ud[+k] | SplineFlags.UPDATE;
     }
 
     spline.resolve = 1;
@@ -1467,7 +1533,7 @@ export class ToggleManualHandlesOp extends ToolOp {
 import {TimeDataLayer, get_vtime, set_vtime} from '../../core/animdata.js';
 import {ClosestModes} from "../../curve/spline_base.js";
 
-export class ShiftTimeOp extends ToolOp {
+export class ShiftTimeOp extends ToolOp<{factor : FloatProperty}> {
   start_mpos : Vector3;
   /* Set until the first on_mousemove has anchored start_mpos. */
   first! : boolean;
@@ -1497,7 +1563,7 @@ export class ShiftTimeOp extends ToolOp {
   }}
 
   get_curframe_animverts(ctx : FullContext) {
-    let vset = new set();
+    let vset = new set<SplineVertex>();
     let spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     let frameset = ctx.frameset;
 
@@ -1579,7 +1645,7 @@ export class ShiftTimeOp extends ToolOp {
   }
 
   undo_pre(ctx : FullContext) {
-    let ud = this._undo = {};
+    let ud : EidUndo = this._undo = {};
     for (let v of this.get_curframe_animverts(ctx)) {
       ud[v.eid] = get_vtime(v);
     }
@@ -1589,7 +1655,10 @@ export class ShiftTimeOp extends ToolOp {
     let spline = ctx.frameset.pathspline;
 
     for (let k in this._undo) {
-      let v = spline.eidmap[k], time = this._undo[k];
+      let v = spline.eidmap[+k], time = this._undo[+k];
+
+      /* NOTE: an eid the pathspline no longer holds used to throw here. */
+      if (!(v instanceof SplineVertex)) continue;
 
       set_vtime(spline, v, time);
       v.dag_update("depend");
@@ -1600,7 +1669,7 @@ export class ShiftTimeOp extends ToolOp {
 
   exec(ctx : FullContext) {
     let spline = ctx.frameset.pathspline;
-    let starts = {};
+    let starts : EidUndo = {};
     let off = this.inputs.factor.data;
 
     let vset = this.get_curframe_animverts(ctx);
@@ -1620,7 +1689,7 @@ export class ShiftTimeOp extends ToolOp {
     }
 
     for (let v of vset) {
-      let min=undefined, max=undefined;
+      let min = 0, max = 0;
 
       if (v.segments.length === 1) {
         let s = v.segments[0];
@@ -1701,14 +1770,15 @@ export class DuplicateOp extends SplineLocalToolOp {
   }
 
   exec(ctx : FullContext) {
-    let vset = new set();
-    let sset = new set();
-    let fset = new set();
-    let hset = new set();
+    let vset = new set<SplineVertex>();
+    let sset = new set<SplineSegment>();
+    let fset = new set<SplineFace>();
+    let hset = new set<SplineVertex>();
 
     let spline = ctx.spline;
 
-    let eidmap = {};
+    //handles are SplineVertexes too, and only verts are ever read back out
+    let eidmap : {[eid : number] : SplineVertex} = {};
     for (let v of spline.verts.selected.editable(ctx)) {
       vset.add(v);
     }
@@ -1761,7 +1831,10 @@ export class DuplicateOp extends SplineLocalToolOp {
       hset.add(s.h1);
       hset.add(s.h2);
 
-      eidmap[ns.eid] = ns;
+      /* NOTE: nothing ever reads a segment back out of eidmap; this entry is
+         write-only. */
+      Reflect.set(eidmap, ns.eid, ns);
+
       spline.segments.setselect(s, false);
       spline.segments.setselect(ns, true);
 
@@ -1771,17 +1844,23 @@ export class DuplicateOp extends SplineLocalToolOp {
       spline.handles.setselect(ns.h2, true);
     }
 
+    /* NOTE: this loop tested h.pair, which SplineVertex has never had -- the
+       property is spelled hpair -- so the test was always false and duplicated
+       handles were never reconnected.  Left inert; spelling it correctly would
+       change behaviour.
+
     for (let h of hset) {
       let nh = eidmap[h.eid];
       if (h.pair !== undefined && h.pair.eid in eidmap) {
         spline.connect_handles(nh, eidmap[h.pair.eid]);
       }
     }
+    */
 
     for (let f of fset) {
-      let vlists = [];
+      let vlists : SplineVertex[][] = [];
       for (let path of f.paths) {
-        let verts = []
+        let verts : SplineVertex[] = []
         vlists.push(verts);
 
         for (let l of path) {
@@ -1856,8 +1935,9 @@ export class SplineMirrorOp extends SplineLocalToolOp {
     exec(ctx : FullContext) {
       let spline = ctx.spline;
 
-      let points = new set();
-      let cent = new Vector3();
+      let points = new set<SplineVertex>();
+      //verts are 2d, so the third slot of the old Vector3 only ever went unused
+      let cent = new Vector2();
 
       for (let i=0; i<2; i++) {
         let list = i ? spline.handles : spline.verts;
@@ -1889,7 +1969,11 @@ export class SplineMirrorOp extends SplineLocalToolOp {
     }
 }
 
-export class VertexSmoothOp extends SplineLocalToolOp {
+export class VertexSmoothOp extends SplineLocalToolOp<{
+  repeat     : IntProperty,
+  factor     : FloatProperty,
+  projection : FloatProperty
+}> {
   static tooldef() {return {
     uiname : "Smooth Control Points",
     toolpath : "spline.vertex_smooth",

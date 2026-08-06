@@ -62,10 +62,12 @@ if (typeof String.prototype.toUTF8 != "function") {
 }
 
 Number.prototype.pack = function(data: number[]) {
-  if (Number(Math.ceil(this)) == Number(this)) {
-    pack_int(data, Number(this));
+  let n = Number(this);
+
+  if (Math.ceil(n) == n) {
+    pack_int(data, n);
   } else {
-    pack_float(data, Number(this));
+    pack_float(data, n);
   }
 }
 
@@ -198,13 +200,16 @@ export function pack_vec2(data: number[], vec: ArrayLike<number>, lendian=false)
   profile_end("pack_vec2");
 }
 
-export function pack_vec3(data: number[], vec: ArrayLike<number>, lendian=false)
+/* Callers pass path.ux vectors as well as plain arrays, and a 2d vector really
+   does pack NaN for z here. */
+export function pack_vec3(data: number[], vec: {[k: number]: number | undefined},
+                          lendian=false)
 {
   profile_start("pack_vec3");
-  
-  pack_float(data, vec[0], lendian);
-  pack_float(data, vec[1], lendian);
-  pack_float(data, vec[2], lendian);
+
+  pack_float(data, vec[0]!, lendian);
+  pack_float(data, vec[1]!, lendian);
+  pack_float(data, vec[2]!, lendian);
   
   //discard pack records from composite pack
   profile_end("pack_vec3");
@@ -288,7 +293,7 @@ export function pack_static_string(data: number[], str: string, length: number)
 
 export function test_str_packers() {
   function static_string_test() {
-    var arr = []
+    var arr : number[] = []
     //pack_string(arr, "yay");
     
     //this string tests whether
@@ -298,7 +303,7 @@ export function test_str_packers() {
     var teststr = "12345678" + String.fromCharCode(8800)
     console.log(teststr);
     
-    var arr2 = [];
+    var arr2 : number[] = [];
     encode_utf8(arr2, teststr);
     console.log(arr2.length);
     
@@ -306,9 +311,9 @@ export function test_str_packers() {
     if (arr.length != 9)
       throw new UnitTestError("Bad length " + arr.length.toString());
     
-    arr = new DataView(new Uint8Array(arr).buffer)
-    
-    var str2 = unpack_static_string(arr, new unpack_ctx(), 9)
+    var view = new DataView(new Uint8Array(arr).buffer)
+
+    var str2 = unpack_static_string(view, new unpack_ctx(), 9)
     
     console.log(teststr, str2);
     console.log("'12345678'", "'"+str2+"'");
@@ -486,10 +491,11 @@ export function debug_unpack_bytes(data: DataView, uctx: unpack_ctx, length: num
   arr.length = 0;
 
   for (var i=0; i<length; i++) {
-    var c = unpack_byte(data, uctx);
-    
+    var b = unpack_byte(data, uctx);
+    var c : string;
+
     try {
-      c = c ? String.fromCharCode(c) : "?";
+      c = b ? String.fromCharCode(b) : "?";
     } catch (_err) {
       c = "?";
     }
@@ -559,11 +565,11 @@ export class unpack_ctx {
 //function NetJobError(job, owner, error);
 //function NetJobStatus(job, owner, status) : NetStatus;
 
-window.NetStatus = function NetStatus(this: NetStatus) {
-  this.progress = 0;
-  this.status_msg = "";
-  this.cancel = false;
-  this._client_control = false; //client api code is controlling this NetStatus, not XMLHttpRequest callbacks
+window.NetStatus = class NetStatus {
+  progress = 0;
+  status_msg = "";
+  cancel = false;
+  _client_control = false; //client api code is controlling this NetStatus, not XMLHttpRequest callbacks
 }
 
 export class NetJob {
@@ -654,7 +660,9 @@ window.api_exec = function api_exec(path: string, netjob: NetJob, mode?: string,
     responseType?: XMLHttpRequestResponseType) //mode, data are optional
 {
   var owner = netjob.owner;
-  var iter = netjob.iter;
+  /* call_api()/auth_session() both assign job.iter before the generator body
+     they created can reach api_exec, so this is never undefined here. */
+  var iter = netjob.iter!;
   
   if (mode == undefined)
     mode = "GET";
@@ -666,11 +674,10 @@ window.api_exec = function api_exec(path: string, netjob: NetJob, mode?: string,
     data = "";
   }  
   
-  var error = netjob.error;
-  
-  if (error == undefined) {
-    error = function(netjob: NetJob, owner: object, msg: string) { console.log("Network Error: " + msg) };
-  }
+  /* const, so the callbacks below keep the not-undefined narrowing. */
+  const error: Function = netjob.error ?? function(netjob: NetJob, owner: object, msg: string) {
+    console.log("Network Error: " + msg)
+  };
   
   var req = new XMLHttpRequest();
   netjob.req = req;
@@ -698,7 +705,9 @@ window.api_exec = function api_exec(path: string, netjob: NetJob, mode?: string,
     if (netjob.status_data._client_control || evt.total == 0) return;
     
     if (DEBUG.netio)
-      console.log("progress: ", evt, evt.status, evt.loaded, evt.total);
+      /* NOTE: an `evt.status` argument was logged here too; ProgressEvent has
+         no status, so it was always undefined. */
+      console.log("progress: ", evt, evt.loaded, evt.total);
     
     var perc = evt.loaded / evt.total;
     netjob.status_data.progress = perc;
@@ -759,6 +768,9 @@ window.api_exec = function api_exec(path: string, netjob: NetJob, mode?: string,
   var ret = req.send(data);
 }
 
+/* The JSON bodies /api/auth and /api/auth/session return. */
+type AuthTokens = {refresh_token?: string; access_token?: string};
+
 window.AuthSessionGen = function* AuthSessionGen(job: NetJob, user: string, password: string,
                                                  refresh_token?: string) {
   if (refresh_token == undefined) {
@@ -768,13 +780,13 @@ window.AuthSessionGen = function* AuthSessionGen(job: NetJob, user: string, pass
     
     console.log("auth value: ", job.value);
   
-    refresh_token = job.value["refresh_token"];
+    refresh_token = (job.value as AuthTokens).refresh_token;
   }
   
   api_exec("/api/auth/session?refreshToken="+refresh_token, job);
   yield 1;
   
-  var access_token = job.value["access_token"];
+  var access_token = (job.value as AuthTokens).access_token;
   job.value = {refresh : refresh_token, access : access_token};
   
   if (job.finish != undefined)
@@ -783,46 +795,54 @@ window.AuthSessionGen = function* AuthSessionGen(job: NetJob, user: string, pass
 
 window.auth_session = function auth_session(user: string, password: string,
                                             finish?: Function, error?: Function, status?: Function) {
-  var obj = {};
-  
-  obj.job = new NetJob(obj, undefined, finish, error, status);
-  obj.job.finish = finish;
-  obj.iter = new AuthSessionGen(obj.job, user, password);
-  
-  obj.job.iter = obj.iter;
-  obj.iter.next();
-  
+  let obj : {job? : NetJob; iter? : Generator} = {};
+
+  let job = new NetJob(obj, undefined, finish, error, status);
+  job.finish = finish;
+
+  /* NOTE: this was `new AuthSessionGen(...)`, which throws TypeError -- a
+     generator function cannot be constructed.  auth_session has no callers. */
+  let iter = AuthSessionGen(job, user, password);
+
+  obj.job = job;
+  obj.iter = job.iter = iter;
+
+  iter.next();
+
   return obj;
 }
 
-window.call_api = function call_api(iternew: NetApiGen, args, finishcb?: Function,
-                                    errorcb?: Function, status?: Function) {
+window.call_api = function call_api<Args>(iternew: NetApiGen<Args>, args: Args, finishcb?: Function,
+                                          errorcb?: Function, status?: Function) {
   var promise = new Promise(function(accept, reject) {
-    var obj = {};
-    
+    let obj : {job? : NetJob; iter? : Generator} = {};
+
     //XXX todo: get rid of finishcb and errorcb
-    function finish() {
+    function finish(...args : unknown[]) {
       if (finishcb != undefined)
-        finishcb.apply(this, arguments);
-      
-      accept.apply(this, arguments);
+        finishcb(...args);
+
+      accept(args[0]);
     }
-    
-    function error() {
+
+    function error(...args : unknown[]) {
       if (errorcb != undefined)
-        errorcb.apply(this, arguments);
+        errorcb(...args);
       if (reject != undefined)
-        reject.apply(this, arguments);
+        reject(args[0]);
     }
-    
-    obj.job = new NetJob(obj, undefined, finish, error, status);
-    
-    var iter = iternew(obj.job, args);
-    
-    iter.job = obj.job;
-    obj.iter = obj.job.iter = iter;
-    
-    obj.iter.next();
+
+    let job = new NetJob(obj, undefined, finish, error, status);
+
+    let iter = iternew(job, args);
+
+    /* the generator was stamped with its job here; nothing reads it back. */
+    Reflect.set(iter, "job", job);
+
+    obj.job = job;
+    obj.iter = job.iter = iter;
+
+    iter.next();
   });
   
   return promise;
@@ -831,7 +851,7 @@ window.call_api = function call_api(iternew: NetApiGen, args, finishcb?: Functio
 window.get_user_info = function* get_user_info(job: NetJob, args) {
   if (g_app_state.session.tokens == undefined) {
     job.finish = undefined;
-    job.error(job, job.owner);
+    job.error!(job, job.owner);
     return;
   }
   
@@ -867,7 +887,7 @@ window.upload_file = function* upload_file(job: NetJob, args) {
   if (DEBUG.netio)
     console.log(job.value);
   
-  var upload_token = job.value.uploadToken;
+  var upload_token = (job.value as {uploadToken? : string}).uploadToken;
   
   var data = args.data;
   var len = data.byteLength;
@@ -910,9 +930,11 @@ window.upload_file = function* upload_file(job: NetJob, args) {
     job.status_data.progress = prog;
     if (job.status) {
       job.status(job, job.owner, job.status_data);
-      if (job.status.cancel) {
+      /* NOTE: `cancel` lives on job.status_data, not on the status callback,
+         so this is always undefined and the upload is never cancellable. */
+      if (Reflect.get(job.status, "cancel")) {
         job.finish = undefined;
-        job.req.abort();
+        job.req!.abort();
         break;
       }
     }

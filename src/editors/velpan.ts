@@ -1,5 +1,6 @@
 import {Matrix4, Vector2} from "../util/vectormath.js";
-import {ToolOp, UndoFlags} from '../path.ux/scripts/toolsys/simple_toolsys.js';
+import {UndoFlags} from '../path.ux/scripts/toolsys/simple_toolsys.js';
+import {ToolOp} from '../core/toolops_api.js';
 import {keymap} from '../path.ux/scripts/util/simple_events.js';
 import {StringProperty, Vec2Property} from '../path.ux/scripts/toolsys/toolprop.js';
 import '../datafiles/icon_enum.js';
@@ -148,7 +149,10 @@ VelPan {
 nstructjs.manager.add_class(VelPan);
 
 
-export class VelPanPanOp extends ToolOp {
+export class VelPanPanOp extends ToolOp<{
+  velpanPath : StringProperty,
+  pan        : Vec2Property
+}, {}> {
   start_pan : Vector2;
   /* True until the first modal mousemove seeds start_mpos/start_pan. */
   first : boolean;
@@ -156,7 +160,7 @@ export class VelPanPanOp extends ToolOp {
   start_mpos : Vector2;
   start_time : number;
   last_time : number;
-  _temps : cachering<Vector2>;
+  _temps : util.cachering<Vector2>;
 
   constructor() {
     super();
@@ -184,9 +188,9 @@ export class VelPanPanOp extends ToolOp {
   }}
 
   on_mousemove(e : MouseEvent) {
-    let ctx = this.modal_ctx;
+    let ctx = this.modal_ctx!;
     let path = this.inputs.velpanPath.getValue();
-    let velpan = ctx.api.getValue(ctx, path);
+    let velpan = ctx.api.getValue<VelPan>(ctx, path);
 
     if (velpan === undefined) {
       this.modalEnd();
@@ -221,7 +225,7 @@ export class VelPanPanOp extends ToolOp {
 
     velpan.pos.load(this.start_pan);
 
-    this.exec(this.modal_ctx);
+    this.exec(this.modal_ctx!);
 
     this.last_mpos.load(mpos);
   }
@@ -229,7 +233,7 @@ export class VelPanPanOp extends ToolOp {
   exec(ctx : FullContext) {
     let path = this.inputs.velpanPath.getValue();
 
-    let velpan = ctx.api.getValue(ctx, path);
+    let velpan = ctx.api.getValue<VelPan>(ctx, path);
     if (velpan === undefined) {
       throw new Error("bad velpan path " + path + ".");
     }

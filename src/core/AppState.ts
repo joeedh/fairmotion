@@ -91,8 +91,12 @@ export function get_app_div() {
 export function gen_screen(unused: undefined, w: int, h: int): void {
   let app = get_app_div();
 
-  let screen = document.getElementById("screenmain");
-  if (screen) {
+  //document.getElementById() knows nothing of the custom-element tag map
+  let existing = document.getElementById("screenmain");
+  let screen: FairmotionScreen;
+
+  if (existing instanceof FairmotionScreen) {
+    screen = existing;
     screen.clear();
   } else {
     screen = document.createElement("fairmotion-screen-x");
@@ -105,7 +109,7 @@ export function gen_screen(unused: undefined, w: int, h: int): void {
   screen.setAttribute("id", "screenmain");
   screen.id = "screenmain";
 
-  screen.size = [window.innerWidth, window.innerHeight];
+  screen.size = new Vector2([window.innerWidth, window.innerHeight]);
   screen.ctx = new FullContext();
 
   let sarea = document.createElement("screenarea-x");
@@ -119,7 +123,7 @@ export function gen_screen(unused: undefined, w: int, h: int): void {
   screen.makeBorders();
 
   sarea.switch_editor(View2DHandler);
-  sarea.area.setCSS();
+  sarea.area!.setCSS();
 
   let t = MenuBar.getHeight() / sarea.size[1];
 
@@ -148,7 +152,6 @@ import {wrap_getblock, wrap_getblock_us} from './lib_utils.js';
 import {urlencode, b64decode, b64encode} from '../util/strutils.js';
 import {BasicFileOp} from '../editors/viewport/view2d_ops.js';
 import {AppSettings} from './UserSettings.js';
-import {JobManager} from './jobs.js';
 import {RasterState} from './raster.js';
 import {NotificationManager} from './notifications.js';
 import {ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
@@ -161,6 +164,10 @@ import {Scene} from '../scene/scene.js';
    missing, which under the bundle is a ReferenceError, not a no-op. */
 import {Theme} from '../datafiles/theme.js';
 import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
+import type {Spline} from '../curve/spline.js';
+import type {SavedContextProperty} from './context.js';
+import {structReadObject} from './struct_facade.js';
+import {getAreaConstructor} from '../path.ux/scripts/screen/area_base.js';
 import type {DataAPI} from '../path.ux/scripts/pathux.js';
 
 import {
@@ -198,7 +205,10 @@ export interface FileBlock {
   type: string;
   subtype: string;
   len: int;
-  data: string | byte[] | [int, byte[]] | object;
+  /* What load_blocks() unpacked: a JSON/SDEF string, a STRT payload, or a
+     [datablock type, payload] pair.  link_blocks() then overwrites it with the
+     deserialized object. */
+  data: string | DataView<ArrayBuffer> | [int, DataView<ArrayBuffer>] | byte[] | object;
 }
 
 /* A .fmo file after the header has been read: the datablock payloads, the
@@ -206,10 +216,11 @@ export interface FileBlock {
    them. */
 export class FileData {
   blocks: FileBlock[];
-  fstructs: string;
+  fstructs: import("nstructjs").STRUCT;
   version: number;
 
-  constructor(blocks: FileBlock[], fstructs: string, version: number) {
+  constructor(blocks: FileBlock[], fstructs: import("nstructjs").STRUCT,
+              version: number) {
     this.blocks = blocks;
     this.fstructs = fstructs;
     this.version = version;
@@ -257,6 +268,18 @@ function ensureMenuBar(appstate: AppState, screen: FairmotionScreen) {
  * through a stand-in class so nstructjs fills a plain object instead of
  * constructing a real Screen.
  */
+/* The members of an old on-disk Screen that the rebuild below reads back. */
+interface PatchedScreen {
+  size: number[];
+  areas: {
+    size: number[];
+    pos: number[];
+    /* class name of the visible editor */
+    area: string;
+    editors: Editor[];
+  }[];
+}
+
 function patchScreen(appstate: AppState, fstructs: import("nstructjs").STRUCT, data: DataView) {
   let fakeclass = {
     fromSTRUCT: (reader: StructReader<object>) => {
@@ -270,24 +293,24 @@ function patchScreen(appstate: AppState, fstructs: import("nstructjs").STRUCT, d
     prototype : Object.create(Object.prototype)
   };
 
-  data = fstructs.read_object(data, fakeclass);
+  let sdata = structReadObject<PatchedScreen>(fstructs, data, fakeclass);
   let screen = document.createElement("fairmotion-screen-x");
   resetAreaStacks();
 
-  screen.size = data.size;
-  console.log(data);
+  screen.size = new Vector2(sdata.size);
+  console.log(sdata);
   console.log("SCREEN SIZE", screen.size);
 
-  for (let sarea of data.areas) {
+  for (let sarea of sdata.areas) {
     console.log("AREA!");
 
     let sarea2 = document.createElement("screenarea-x");
 
-    sarea2.size = sarea.size;
-    sarea2.pos = sarea.pos;
+    sarea2.size = new Vector2(sarea.size);
+    sarea2.pos = new Vector2(sarea.pos);
 
     for (let editor of sarea.editors) {
-      let areaname = editor.constructor.define().areaname;
+      let areaname = getAreaConstructor(editor).define().areaname!;
 
       sarea2.editors.push(editor);
       sarea2.editormap[areaname] = editor;
@@ -360,7 +383,7 @@ class UserSession {
 
     if (!override_settings && myLocalStorage.hasCached("session")) {
       try {
-        let old = JSON.parse(myLocalStorage.getCached("session"));
+        let old = JSON.parse(myLocalStorage.getCached("session") ?? "null");
         saveobj.settings = old;
       } catch (error) {
         print_stack(error);
@@ -471,7 +494,9 @@ window.gen_default_file = function gen_default_file(size = [512, 512], force_new
 }
 
 function output_startup_file(): string {
-  let str = myLocalStorage.getCached("startup_file");
+  /* NOTE: a failed chrome.storage read caches null here, which used to make
+     the loop below throw on str.length. */
+  let str = myLocalStorage.getCached("startup_file") ?? "";
   let out = ""
 
   for (let i = 0; i < str.length; i++) {
@@ -530,7 +555,6 @@ export class AppState {
   was_touch!: boolean;
 
   notes!: NotificationManager;
-  jobs!: JobManager;
   toolstack!: ToolStack;
   datalib!: DataLib;
   raster!: RasterState;
@@ -551,7 +575,8 @@ export class AppState {
   version!: number;
   /* Copied from the screen, whose .size is a Vector2, or a plain pair when
      there is no screen yet. */
-  size!: Vector2 | number[];
+  /* Normally the very same Vector2 the screen holds -- see AppState_init. */
+  size!: Vector2;
 
   /* Last-used inputs per tool class name, keyed by ToolOp constructor name.
      Shared across resets, hence the module-level object. */
@@ -561,7 +586,9 @@ export class AppState {
      datalib. Declared only because that assignment is still there. */
   scene?: Scene;
 
-  constructor(screen: FairmotionScreen, reset_mode: boolean = false) {
+  /* `screen` is optional because startup() builds the state first and hands
+     the screen over afterwards; AppState_init() has always allowed it. */
+  constructor(screen?: FairmotionScreen, reset_mode: boolean = false) {
     this.AppState_init(screen, reset_mode);
   }
 
@@ -570,8 +597,11 @@ export class AppState {
   AppState_init(screen?: FairmotionScreen, reset_mode: boolean = false) {
     this.modalStateStack = [];
 
-    this.screen = screen;
-    this.eventhandler = screen;
+    /* `screen` is declared non-optional because the app always has one once it
+       has started; gen_default_file() building the state first is the one
+       exception, and it hands the screen over immediately afterwards. */
+    this.screen = screen!;
+    this.eventhandler = screen!;
 
     this.active_editor = undefined;
 
@@ -594,7 +624,7 @@ export class AppState {
 
     this.filepath = ""
     this.version = g_app_version;
-    this.size = screen !== undefined ? screen.size : [512, 512];
+    this.size = screen !== undefined ? screen.size : new Vector2([512, 512]);
     this.raster = new RasterState(undefined, screen !== undefined ? screen.size : [512, 512]);
 
     this.toolop_input_cache = toolop_input_cache;
@@ -605,12 +635,12 @@ export class AppState {
     this.datalib = new DataLib();
 
     this.modalstate = 0; //see toolops_api.js
-    this.jobs = new JobManager();
 
     if (!reset_mode) {
       if (myLocalStorage.hasCached("session")) {
         try {
-          this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.getCached("session")));
+          this.session = UserSession.fromJSON(
+            JSON.parse(myLocalStorage.getCached("session") ?? "null"));
         } catch (error) {
           print_stack(error);
           console.log("Error loading json session object:", myLocalStorage.getCached("session"));
@@ -636,7 +666,7 @@ export class AppState {
   /** we do not enforce that calls to push/pop modalstate happen in order */
   popModalState(state: int) {
     if (this.modalstate === state) {
-      this.modalstate = this.modalStateStack.pop();
+      this.modalstate = this.modalStateStack.pop()!;
     } else {
       this.modalStateStack.remove(state);
     }
@@ -658,7 +688,7 @@ export class AppState {
 
     //console.log("SPATH 1", scene !== undefined ? scene.active_splinepath : "");
 
-    if (scene !== undefined)
+    if (scene instanceof Scene)
       return scene.active_splinepath;
 
     //console.log("SPATH 2");
@@ -672,7 +702,7 @@ export class AppState {
     //console.trace(val);
 
     let scene = this.datalib.get_active(DataTypes.SCENE);
-    if (scene !== undefined)
+    if (scene instanceof Scene)
       scene.active_splinepath = val;
   }
 
@@ -696,7 +726,7 @@ export class AppState {
   }
 
   pop_active_spline() {
-    this.switch_active_spline(this.spline_pathstack.pop());
+    this.switch_active_spline(this.spline_pathstack.pop()!);
   }
 
   reset_state(screen?: FairmotionScreen) {
@@ -743,7 +773,8 @@ export class AppState {
       save_toolstack: false
     });
 
-    buf = new Uint8Array(buf.buffer);
+    //gen_dataview above means this is always the DataView branch
+    let bytes = buf instanceof DataView ? new Uint8Array(buf.buffer) : new Uint8Array(buf);
 
     /*let ar = [];
     for (let i=0; i<buf.length; i++) {
@@ -751,15 +782,15 @@ export class AppState {
     }
     buf = JSON.stringify(ar);*/
 
-    buf = b64encode(buf);
+    let text = b64encode(bytes);
 
     ////XXX
     //warn("WARNING: not saving startup file, debugging file writing code");
 
-    myLocalStorage.set("startup_file", buf);
+    myLocalStorage.set("startup_file", text);
 
     g_app_state.notes.label("New file template saved");
-    return buf;
+    return text;
   }
 
   //file minus ui data, used by BasicFileDataOp
@@ -845,7 +876,9 @@ export class AppState {
 
     for (let sarea of screen.sareas) {
       for (let area of sarea.editors) {
-        area.on_fileload(this.ctx);
+        if (area instanceof Editor) {
+          area.on_fileload(this.ctx);
+        }
       }
     }
   }
@@ -872,6 +905,10 @@ export class AppState {
     data (of length data_length-4)
 
   */
+  /* Every caller leaves gen_dataview at its default of true, so that case gets
+     a concrete DataView back rather than the three-way union. */
+  create_user_file_new(args?: FileWriteArgs & {gen_dataview?: true}): DataView<ArrayBuffer>;
+  create_user_file_new(args: FileWriteArgs): DataView<ArrayBuffer> | Uint8Array<ArrayBuffer> | byte[];
   create_user_file_new(args: FileWriteArgs = {}) {
     let gen_dataview = true, compress = false;
     let save_screen = true, save_toolstack = false;
@@ -1002,29 +1039,29 @@ export class AppState {
     }
 
     if (compress) {
-      data = LZString.compress(new Uint8Array(data));
+      let cdata = LZString.compress(new Uint8Array(data));
       console.log("using compression");
 
-      let d = new Uint16Array(data.length);
-      for (let i = 0; i < data.length; i++) {
-        d[i] = data.charCodeAt(i);
+      let d16 = new Uint16Array(cdata.length);
+      for (let i = 0; i < cdata.length; i++) {
+        d16[i] = cdata.charCodeAt(i);
       }
 
-      d = new Uint8Array(d.buffer);
+      let d = new Uint8Array(d16.buffer);
       console.log("  file size", d.length);
 
-      data = new Uint8Array(d.length + headerdata.length)
+      let out = new Uint8Array(d.length + headerdata.length)
       for (let i = 0; i < headerdata.length; i++) {
-        data[i] = headerdata[i];
+        out[i] = headerdata[i];
       }
       for (let i = 0; i < d.length; i++) {
-        data[i + headerdata.length] = d[i];
+        out[i + headerdata.length] = d[i];
       }
 
       if (gen_dataview)
-        return new DataView(data.buffer);
+        return new DataView(out.buffer);
       else
-        return data;
+        return out;
     } else {
       console.log("  file size", data.length);
 
@@ -1037,6 +1074,10 @@ export class AppState {
 
   //blocks is a map from 4-byte ID strings to
   //STRUCT-compatible objects.
+  /* Both callers leave gen_dataview at its default of true, so that case gets
+     a concrete DataView back rather than the three-way union. */
+  write_blocks(args: BlockWriteArgs & {gen_dataview?: true}): DataView<ArrayBuffer>;
+  write_blocks(args: BlockWriteArgs): DataView<ArrayBuffer> | Uint8Array<ArrayBuffer> | byte[];
   write_blocks(args: BlockWriteArgs) {
     let gen_dataview = true, compress = false;
     let save_screen = args.save_screen !== undefined ? args.save_screen : true;
@@ -1093,28 +1134,28 @@ export class AppState {
 
     if (compress) {
       console.log("1 using compression");
-      data = LZString.compress(new Uint8Array(data));
+      let cdata = LZString.compress(new Uint8Array(data));
 
-      let d = new Uint16Array(data.length);
-      for (let i = 0; i < data.length; i++) {
-        d[i] = data.charCodeAt(i);
+      let d16 = new Uint16Array(cdata.length);
+      for (let i = 0; i < cdata.length; i++) {
+        d16[i] = cdata.charCodeAt(i);
       }
 
-      d = new Uint8Array(d.buffer);
+      let d = new Uint8Array(d16.buffer);
       console.log("  file size:", d.length);
 
-      data = new Uint8Array(d.length + headerdata.length)
+      let out = new Uint8Array(d.length + headerdata.length)
       for (let i = 0; i < headerdata.length; i++) {
-        data[i] = headerdata[i];
+        out[i] = headerdata[i];
       }
       for (let i = 0; i < d.length; i++) {
-        data[i + headerdata.length] = d[i];
+        out[i + headerdata.length] = d[i];
       }
 
       if (gen_dataview)
-        return new DataView(data.buffer);
+        return new DataView(out.buffer);
       else
-        return data;
+        return out;
     } else {
       console.log("  file size:", data.length);
 
@@ -1126,7 +1167,7 @@ export class AppState {
   }
 
   //version patching happens *before* block linking
-  do_versions(datalib: DataLib, blocks: DataBlock[], version: float) {
+  do_versions(datalib: DataLib, blocks: FileBlock[], version: float) {
     if (version < 0.053) {
       for (let scene of datalib.scenes) {
         if (!scene.collection) {
@@ -1145,7 +1186,15 @@ export class AppState {
             console.log("  -", h.owning_segment);
 
             let s = h.owning_segment;
-            let v1 = s.handle_vertex(h), v2 = s.other_vert(v1);
+            let v1 = s.handle_vertex(h);
+
+            /* handle_vertex() hands back undefined for a handle that is not the
+               segment's own; h came from that same segment's spline. */
+            if (v1 === undefined) {
+              continue;
+            }
+
+            let v2 = s.other_vert(v1);
 
             console.log("patching handle!", h.eid);
             h.load(v2).sub(v1).mulScalar(1.0 / 3.0).add(v1);
@@ -1208,7 +1257,9 @@ export class AppState {
   dataLinkScreen(screen: FairmotionScreen, getblock: GetBlockFunc, getblock_us: GetBlockUserFunc) {
     for (let sarea of screen.sareas) {
       for (let area of sarea.editors) {
-        area.data_link(area, getblock, getblock_us);
+        if (area instanceof Editor) {
+          area.data_link(area, getblock, getblock_us);
+        }
       }
     }
   }
@@ -1219,14 +1270,18 @@ export class AppState {
     if (this.screen !== undefined) {
       for (let sarea of this.screen.sareas) {
         for (let area of sarea.editors) {
-          area.on_destroy();
+          if (area instanceof Editor) {
+            area.on_destroy();
+          }
         }
       }
 
       this.screen.unlisten();
       this.screen.destroy();
       this.screen.remove();
-      this.screen = undefined;
+      /* declared non-optional (the app always has a screen once started); this
+         teardown path is the one moment it does not. */
+      this.screen = undefined!;
     }
   }
 
@@ -1247,20 +1302,26 @@ export class AppState {
           scene._initCollection(datalib);
         }
 
+        let collection = scene.collection;
+
+        if (collection === undefined) {
+          throw new Error("no collection for scene " + scene.lib_id);
+        }
+
         for (let ob of scene.objects) {
           if (ob.lib_id < 0) {
             console.error("Had to add object to datalib during file conversion", ob);
             datalib.add(ob);
           }
 
-          scene.collection.add(ob);
+          collection.add(ob);
         }
       }
     }
 
 
     if (version < 0.053) {
-      let map = {};
+      let map: {[lib_id: number]: number} = {};
       let max_id = -1;
 
       for (let block of this.datalib.allBlocks) {
@@ -1270,8 +1331,11 @@ export class AppState {
       this.datalib.idgen.set_cur(max_id);
       this.datalib.idmap = {};
 
-      for (let list of this.datalib.datalists) {
-        list = this.datalib.datalists.get(list);
+      /* Iterating a hashtable yields its keystrs, so the loop variable was
+         being overwritten with the list it had just looked up. */
+      for (let key of this.datalib.datalists) {
+        let list = this.datalib.datalists.get(key);
+
         list.idmap = {};
 
         for (let block of list) {
@@ -1288,11 +1352,11 @@ export class AppState {
     }
   }
 
-  load_path(path_handle) {
-    platform.app.openFile(path_handle).then((buf) => {
+  load_path(path_handle: string) {
+    platform.app.openFile(path_handle).then((buf: Uint8Array) => {
       let dview = new DataView(buf.buffer);
       this.load_user_file_new(dview, path_handle);
-    }).catch((error) => {
+    }).catch((error: {toString(): string}) => {
       this.ctx.error(error.toString());
     });
   }
@@ -1325,19 +1389,19 @@ export class AppState {
       if (DEBUG.compression)
         console.log("decompressing. . .");
 
-      data = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
+      let d16 = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
       let s = ""
-      for (let i = 0; i < data.length; i++) {
-        s += String.fromCharCode(data[i]);
+      for (let i = 0; i < d16.length; i++) {
+        s += String.fromCharCode(d16[i]);
       }
-      data = LZString.decompress(s)
+      let raw = LZString.decompress(s)
 
-      let data2 = new Uint8Array(data.length);
+      let data2 = new Uint8Array(raw.length);
       if (DEBUG.compression)
-        console.log("uncompressed length: ", data.length);
+        console.log("uncompressed length: ", raw.length);
 
-      for (let i = 0; i < data.length; i++) {
-        data2[i] = data.charCodeAt(i);
+      for (let i = 0; i < raw.length; i++) {
+        data2[i] = raw.charCodeAt(i);
       }
 
       data = new DataView(data2.buffer);
@@ -1346,7 +1410,7 @@ export class AppState {
 
     let blocks: FileBlock[] = [];
     let fstructs = new STRUCT();
-    let datalib = undefined;
+    let datalib: DataLib | undefined = undefined;
 
     let tmap = BlockTypeMap;
 
@@ -1389,26 +1453,32 @@ export class AppState {
       datalib = new DataLib();
     }
 
+    /* Settled from here on; load_state() below is a nested function, so it
+       cannot see the narrowing the check above performs. */
+    const lib: DataLib = datalib;
+
     for (let i = 0; i < blocks.length; i++) {
       let b = blocks[i];
 
       if (b.subtype === "JSON") {
-        b.data = JSON.parse(b.data);
+        if (typeof b.data === "string") {
+          b.data = JSON.parse(b.data);
+        }
       } else if (b.subtype === "STRT") { //struct data should only be lib blocks
         if (b.type === "BLCK") {
-          let lt = tmap[b.data[0]];
+          //a BLCK payload is packed as [datablock type id, struct bytes]
+          let [dtype, bytes] = b.data as [number, number[]];
 
-          lt = lt !== undefined ? lt.name : lt;
+          let block = structReadObject<DataBlock>(fstructs, bytes, tmap[dtype]);
+          block.lib_refs = 0; //reading code will re-calculate ref count
 
-          b.data = fstructs.read_object(b.data[1], tmap[b.data[0]]);
-          b.data.lib_refs = 0; //reading code will re-calculate ref count
-
-          datalib.add(b.data, false);
+          b.data = block;
+          lib.add(block, false);
         } else {
-          if (b.type === "SCRN") {
+          if (b.type === "SCRN" && b.data instanceof DataView) {
             b.data = this.readScreen(fstructs, b.data);
           } else if (b.type === "THME") {
-            b.data = fstructs.read_object(b.data, Theme);
+            b.data = structReadObject<Theme>(fstructs, b.data as number[], Theme);
           }
         }
       }
@@ -1418,7 +1488,7 @@ export class AppState {
     for (let i = 0; i < blocks.length; i++) {
       let block = blocks[i];
 
-      if (block.type === "THME") {
+      if (block.type === "THME" && block.data instanceof Theme) {
         let old = window.g_theme;
 
         window.g_theme = block.data;
@@ -1434,27 +1504,28 @@ export class AppState {
       this.datalib.on_destroy();
     }
 
-    this.datalib = datalib;
+    this.datalib = lib;
 
     //ensure we get an error if the unpacking code/
     //tries to access g_app_state.active_view2d.
     this.active_view2d = undefined;
 
-    let getblock = wrap_getblock(datalib);
-    let getblock_us = wrap_getblock_us(datalib);
-    let screen = undefined;
+    let getblock = wrap_getblock(lib);
+    let getblock_us = wrap_getblock_us(lib);
+    let screen: FairmotionScreen | undefined = undefined;
 
-    let toolstack = undefined;
+    let toolstack: number[] | undefined = undefined;
     let this2 = this;
 
     function load_state() {
       //handle version changes
-      this2.do_versions(datalib, blocks, version);
+      this2.do_versions(lib, blocks, version);
 
       for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
 
-        if (block.subtype === "STRT" && !_nonblocks.has(block.type)) {
+        if (block.subtype === "STRT" && !_nonblocks.has(block.type) &&
+            block.data instanceof DataBlock) {
           block.data.data_link(block.data, getblock, getblock_us);
         }
       }
@@ -1462,7 +1533,7 @@ export class AppState {
       for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
 
-        if (block.type === "SCRN") {
+        if (block.type === "SCRN" && block.data instanceof FairmotionScreen) {
           screen = block.data;
         }
       }
@@ -1477,7 +1548,7 @@ export class AppState {
         if (this2.datalib !== undefined) {
           this2.datalib.on_destroy();
         }
-        this2.datalib = datalib;
+        this2.datalib = lib;
         screen = this2.screen;
       } else {
         //argh, have to set a dummy DataLib here prior to reset_state,
@@ -1488,24 +1559,24 @@ export class AppState {
         if (this2.datalib !== undefined) {
           this2.datalib.on_destroy();
         }
-        this2.reset_state(screen, undefined);
-        this2.datalib = datalib;
+        this2.reset_state(screen);
+        this2.datalib = lib;
 
         get_app_div().appendChild(screen);
       }
 
-      this2.screen = screen;
+      this2.screen = screen!;
       resetAreaStacks();
 
-      if (!screen.listening) {
-        screen.listen();
-        screen.completeSetCSS();
+      if (!screen!.listening) {
+        screen!.listen();
+        screen!.completeSetCSS();
       }
 
       this2.size = size;
 
       //stupid. . .
-      for (let sa of screen.sareas) {
+      for (let sa of screen!.sareas) {
         //TODO: need to get rid of appstate.active_view2d
         if (sa.area instanceof View2DHandler) {
           this2.active_view2d = sa.area;
@@ -1524,7 +1595,7 @@ export class AppState {
       if (this2.datalib !== undefined) {
         this2.datalib.on_destroy();
       }
-      this2.datalib = datalib;
+      this2.datalib = lib;
 
       this2.eventhandler = this2.screen;
 
@@ -1532,35 +1603,38 @@ export class AppState {
       for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
 
-        if (block.type === "TSTK") {
+        if (block.type === "TSTK" && Array.isArray(block.data)) {
           console.warn("%cFound a tool stack block", "color : blue;", block);
-          toolstack = block.data;
+          toolstack = block.data as number[];
         }
       }
     }
 
     /* Flattens a macro's members into the two parallel patch lists, so the
        loop below can hand each member the macro's saved context. */
-    function add_macro(p1: ToolOp[], p2: SavedContext[], tool: ToolMacro) {
+    function add_macro(p1: ToolOp[], p2: SavedContext[],
+                       tool: ToolOp & ToolMacro<FullContext>) {
       p1.push(tool);
-      p2.push(tool.saved_context);
+      p2.push(tool.saved_context!);
 
-      for (let t of tool.tools) {
+      /* path.ux types a macro's members with its own ToolOp; everything
+         fairmotion puts in a macro is a fairmotion one. */
+      for (let t of tool.tools as ToolOp[]) {
         if (t instanceof ToolMacro)
           add_macro(p1, p2, t);
 
         t.parent = tool;
 
         p1.push(t);
-        p2.push(tool.saved_context);
+        p2.push(tool.saved_context!);
       }
     }
 
     load_state();
-    this.filepath = path;
+    this.filepath = path!;
 
     if (toolstack !== undefined) {
-      this.toolstack = fstructs.read_object(toolstack, ToolStack);
+      this.toolstack = structReadObject<ToolStack>(fstructs, toolstack, ToolStack);
       this.toolstack.undocur = this.toolstack.undostack.length;
 
       let patch_tools1 = new Array();
@@ -1586,7 +1660,7 @@ export class AppState {
 
         //tools in the undostack
         patch_tools1.push(tool);
-        patch_tools2.push(tool.saved_context);
+        patch_tools2.push(tool.saved_context!);
 
         //tools within macros
         if (tool instanceof ToolMacro) {
@@ -1622,13 +1696,13 @@ export class AppState {
     window.redraw_viewport();
   }
 
-  readScreen(fstructs: STRUCT, data: DataView) {
-    let screen;
+  readScreen(fstructs: import("nstructjs").STRUCT, data: DataView) {
+    let screen: FairmotionScreen;
 
     if (!(Screen.structName in fstructs.structs)) {
       screen = patchScreen(this, fstructs, data);
     } else {
-      screen = fstructs.read_object(data, FairmotionScreen);
+      screen = structReadObject<FairmotionScreen>(fstructs, data, FairmotionScreen);
     }
 
     screen.style["position"] = "absolute";
@@ -1667,26 +1741,26 @@ export class AppState {
       if (DEBUG.compression)
         console.log("decompressing. . .");
 
-      data = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
+      let d16 = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
       let s = ""
-      for (let i = 0; i < data.length; i++) {
-        s += String.fromCharCode(data[i]);
+      for (let i = 0; i < d16.length; i++) {
+        s += String.fromCharCode(d16[i]);
       }
-      data = LZString.decompress(s)
+      let raw = LZString.decompress(s)
 
-      let data2 = new Uint8Array(data.length);
+      let data2 = new Uint8Array(raw.length);
       if (DEBUG.compression)
-        console.log("uncompressed length: ", data.length);
+        console.log("uncompressed length: ", raw.length);
 
-      for (let i = 0; i < data.length; i++) {
-        data2[i] = data.charCodeAt(i);
+      for (let i = 0; i < raw.length; i++) {
+        data2[i] = raw.charCodeAt(i);
       }
 
       data = new DataView(data2.buffer);
       uctx.i = 0;
     }
 
-    let blocks = new Array();
+    let blocks: FileBlock[] = [];
     let fstructs = new STRUCT();
 
     let tmap = BlockTypeMap;
@@ -1728,24 +1802,26 @@ export class AppState {
     let version = filedata.version;
 
     let tmap = BlockTypeMap;
-    let screen = undefined;
+    let screen: FairmotionScreen | undefined = undefined;
 
     for (let i = 0; i < blocks.length; i++) {
       let b = blocks[i];
 
       if (b.subtype === "JSON") {
-        b.data = JSON.parse(b.data);
+        if (typeof b.data === "string") {
+          b.data = JSON.parse(b.data);
+        }
       } else if (b.subtype === "STRT") { //struct data should only be lib blocks
         if (b.type === "BLCK") {
-          let lt = tmap[b.data[0]];
+          //a BLCK payload is packed as [datablock type id, struct bytes]
+          let [dtype, bytes] = b.data as [number, number[]];
 
-          lt = lt !== undefined ? lt.name : lt;
+          let block = structReadObject<DataBlock>(fstructs, bytes, tmap[dtype]);
 
-          b.data = fstructs.read_object(b.data[1], tmap[b.data[0]]);
-
-          datalib.add(b.data, false);
+          b.data = block;
+          datalib.add(block, false);
         } else {
-          if (b.type === "SCRN") {
+          if (b.type === "SCRN" && b.data instanceof DataView) {
             b.data = screen = this.readScreen(fstructs, b.data);
           }
         }
@@ -1770,7 +1846,7 @@ export class AppState {
       if (block !== undefined && (typeof (block.data) === "string" || block.data instanceof String))
         continue;
 
-      if (block.data !== undefined && "data_link" in block.data &&
+      if (block.data instanceof DataBlock &&
         block.subtype === "STRT" && block.type !== "SCRN" && block.type !== "THME") {
         block.data.data_link(block.data, getblock, getblock_us);
       }
@@ -1779,7 +1855,7 @@ export class AppState {
     for (let block of blocks) {
       //for (let i=0; i<blocks.length; i++) {
       //let block = blocks[i];
-      if (block.type === "SCRN") {
+      if (block.type === "SCRN" && block.data instanceof FairmotionScreen) {
         screen = block.data;
       }
     }
@@ -1823,7 +1899,7 @@ export class SavedContext {
    * "path" a data-API path to re-evaluate, "passthru" a plain value, and
    * "lookup" a value that was an object and so could not be saved at all.
    */
-  _props: {[k: string]: {type: string; key: string; value?: number | string}};
+  _props: {[k: string]: {type: string; key: string; value?: unknown}};
 
   /* Only set when the saved context pinned a specific library; otherwise reads
      fall through to the live g_app_state.datalib. */
@@ -1837,7 +1913,9 @@ export class SavedContext {
   /* Written by the STRUCT script, consumed and deleted by loadSTRUCT(). */
   json?: string;
 
-  constructor(ctx: FullContext) {
+  /* ctx is optional: view2d_ops constructs an empty SavedContext, which the
+     else branch fills from g_app_state. */
+  constructor(ctx?: FullContext) {
     this._props = {};
 
     this._datalib = undefined;
@@ -1904,13 +1982,16 @@ export class SavedContext {
     this.screen = ctx.screen;
     this._props = {};
 
-    ctx = ctx.toLocked();
+    /* Reassigning the parameter would hide the locked type, so keep it apart. */
+    const lctx = ctx.toLocked();
 
-    for (let k in ctx.props) {
-      let v = ctx.props[k].data;
+    for (let k in lctx.props) {
+      /* path.ux types an overlay's payload `unknown`; what fairmotion puts
+         there is always BaseContext.saveProperty's record. */
+      let v = lctx.props[k].data as SavedContextProperty;
 
-      let val = v.value;
-      let type = v.type;
+      let val: unknown = v.value;
+      let type: string = v.type;
 
       if (v.type === "passthru" && typeof val === "object") {
         val = undefined;
@@ -1927,7 +2008,7 @@ export class SavedContext {
         value: val
       };
 
-      this.make(k, v);
+      this.make(k);
     }
   }
 
@@ -1941,7 +2022,7 @@ export class SavedContext {
     let json;
 
     try {
-      json = JSON.parse(this.json);
+      json = JSON.parse(this.json!);
     } catch (error) {
       console.warn("json error");
       json = {};
@@ -1963,147 +2044,9 @@ SavedContext {
 `;
 window.SavedContext = SavedContext;
 
-class SavedContextOld {
-  _frameset_editmode!: string
-  /* NOTE: `selectmode` is a getter with no setter, so the constructor's
-     `this.selectmode = 0` below throws in strict mode. */
-  _selectmode!: number
-  _scene: DataRef
-  _frameset: DataRef
-  time: number
-  _spline_path: string;
-  /* SceneObject id of the active object, -1 for none. */
-  _object!: number;
-  /* SplineLayer id of the active layer, -1 for none. */
-  _active_spline_layer!: number;
-
-  constructor(ctx = undefined) {
-    if (ctx !== undefined) {
-      this.time = ctx.scene !== undefined ? ctx.scene.time : undefined;
-      this.edit_all_layers = ctx.edit_all_layers;
-
-      this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
-      this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
-      this._object = ctx.scene && ctx.scene.objects.active ? ctx.scene.objects.active.id : -1;
-
-      this._selectmode = ctx.selectmode;
-      this._frameset_editmode = "MAIN";
-
-      this._spline_path = ctx.splinepath;
-      if (ctx.spline !== undefined) {
-        this._active_spline_layer = ctx.spline.layerset.active.id;
-      }
-    } else {
-      this.selectmode = 0;
-      this._scene = new DataRef(-1);
-      this._frameset = new DataRef(-1);
-      this.time = 0;
-      this._spline_path = "frameset.drawspline";
-      this._active_spline_layer = -1;
-    }
-  }
-
-  get splinepath() {
-    return this._spline_path;
-  }
-
-  //changes state so that normal Context() accessor structs have the right data
-  set_context(state: FullContext) {
-    let scene = state.datalib.get(this._scene);
-    let fset = state.datalib.get(this._frameset);
-
-    if (scene !== undefined && scene.time !== this.time)
-      scene.change_time(this, this.time, false);
-
-    //this._object = ctx.scene && ctx.scene.objects.active ? ctx.scene.objects.active.id : -1;
-    if (this._object >= 0 && (!scene.objects.active || this._object !== scene.objects.active.id)) {
-      try {
-        scene.setActiveObject(this._object);
-      } catch (error) {
-        util.print_stack(error);
-      }
-    }
-
-    this._selectmode = state.selectmode;
-
-    //console.log(this._spline_path);
-
-    if (fset !== undefined)
-      fset.editmode = this._frameset_editmode;
-    state.switch_active_spline(this._spline_path);
-
-    let spline = state.api.getObject(state, this._spline_path);
-    if (spline !== undefined) {
-      let layer = spline.layerset.idmap[this._active_spline_layer];
-
-      if (layer === undefined) {
-        warn("Warning: layer was undefined in SavedContext!");
-      } else {
-        spline.layerset.active = layer;
-      }
-    } else {
-      warn("Warning: spline was undefined in SavedContext!");
-    }
-  }
-
-  get spline(): FrameSet {
-    let ret = g_app_state.api.get_object(this, this._spline_path);
-
-    if (ret === undefined) {
-      warntrace("Warning: bad spline path", this._spline_path);
-      ret = g_app_state.api.get_object(this, "frameset.drawspline");
-
-      if (ret === undefined) {
-        console.trace("Even Worse: base spline path failed!");
-      }
-    }
-
-    return ret;
-  }
-
-  get selectmode(): int {
-    return this._selectmode;
-  }
-
-  get frameset(): SplineFrameSet {
-    return g_app_state.datalib.get(this._frameset);
-  }
-
-  get datalib(): DataLib {
-    return g_app_state.datalib;
-  }
-
-  get scene(): Scene {
-    return this._scene !== undefined ? g_app_state.datalib.get(this._scene) : undefined;
-  }
-
-  get api(): DataAPI {
-    return g_app_state.api;
-  }
-
-  static fromSTRUCT(reader): SavedContext {
-    let sctx = new SavedContext();
-
-    reader(sctx);
-
-    if (sctx._scene.id === -1)
-      sctx._scene = undefined;
-    return sctx;
-  }
-}
-
-SavedContextOld.STRUCT = `
-  SavedContext {
-    _scene               : DataRef | obj._scene === undefined ? new DataRef(-1) : obj._scene;
-    _frameset            : DataRef | obj._frameset === undefined ? new DataRef(-1) : obj._frameset;
-    _frameset_editmode   : static_string[12];
-    _spline_path         : string;
-    time                 : float;
-    edit_all_layers      : int;
-  }
-`;
-
-
+/* NOTE: an unreachable SavedContextOld class used to sit here -- never
+   instantiated, never exported, never registered, and its STRUCT script
+   duplicated SavedContext's own struct name. Removed. */
 /*
   The Context classes represent a set of common arguments that
   are passed to various parts of the API (especially the tool
@@ -2141,7 +2084,7 @@ export class _ToolContext {
 
     this.splinepath = splinepath;
     this.frameset = frameset;
-    this.spline = spline;
+    this.spline = spline!;
     this.scene = scene;
     this.edit_all_layers = ctx.edit_all_layers;
 

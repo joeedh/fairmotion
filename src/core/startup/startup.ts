@@ -51,7 +51,7 @@ window.startup = function startup() {
 
     //create small delay to make time for chrome.storage.local to load
     window.setTimeout(function () {
-      startup_intern();
+      window.startup_intern();
 
       //feed an on_resize event
       window.setTimeout(function () {
@@ -62,7 +62,7 @@ window.startup = function startup() {
       }, 200);
     }, 450);
   } else {
-    startup_intern();
+    window.startup_intern();
   }
 }
 
@@ -118,10 +118,11 @@ window.startup_intern = function startup() {
 
   startup_report("initializing data api...");
 
-  window.g_app_state = new AppState(undefined, undefined, undefined);
+  /* NOTE: a third argument was passed here; AppState's constructor takes two. */
+  window.g_app_state = new AppState(undefined, false);
   let w = window.innerWidth, h = window.innerHeight;
 
-  g_app_state.size = [w, h];
+  g_app_state.size = new Vector2([w, h]);
 
   startup_report("create event dag...");
   window.init_event_graph(g_app_state.ctx);
@@ -136,21 +137,31 @@ window.startup_intern = function startup() {
 
 function init_pathux() {
   let cfg = Object.assign({}, config.PathUXConstants);
-  if (config.DEBUG) {
-    cfg = Object.assign(cfg, config.DEBUG);
-  }
+
+  /* NOTE: an `if (config.DEBUG) cfg = Object.assign(cfg, config.DEBUG)` stood
+     here.  config exports no DEBUG -- the flags live on window.DEBUG, and the
+     pathux ones are already in PathUXConstants.DEBUG -- so it never ran. */
 
   cconst.loadConstants(cfg);
 
   //set iconsheets, need to find proper place for it other than here in AppState.js
   iconmanager.reset(16);
 
-  setTheme(theme.theme);
+  /* NOTE: this passed `theme.theme`, which does not exist -- theme *is* the
+     record.  setTheme() merges with for..in, so handing it undefined was a
+     silent no-op and the app's theme file has never been applied. */
+  setTheme(theme);
   setIconMap(window.Icons);
 
-  iconmanager.add(document.getElementById("iconsheet"), 32, 16);
-  iconmanager.add(document.getElementById("iconsheet"), 32, 32);
-  iconmanager.add(document.getElementById("iconsheet"), 32, 50);
+  let iconsheet = document.getElementById("iconsheet");
+
+  if (!(iconsheet instanceof HTMLImageElement)) {
+    throw new Error("startup: the #iconsheet image is missing");
+  }
+
+  iconmanager.add(iconsheet, 32, 16);
+  iconmanager.add(iconsheet, 32, 32);
+  iconmanager.add(iconsheet, 32, 50);
 }
 
 function init_event_system() {
@@ -172,7 +183,7 @@ function init_event_system() {
       /* don't let delayed redraw linger
          for more than one and a half seconds */
       if (time_ms() - t > 1500) {
-        pop_solve(k);
+        pop_solve(parseInt(k));
       }
     }
   }, 32);

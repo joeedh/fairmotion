@@ -44,10 +44,12 @@ export class FBO {
      Declared to match what the code reads, not what it writes. */
   size! : Vector2;
 
-  constructor(gl : webgl.WebGLContext, width = 512, height = 512) {
+  /* oldFBO.copy() and FrameStage both construct without a context -- the
+     first line here already guards on that -- and bind() fills this.gl in. */
+  constructor(gl? : webgl.WebGLContext, width = 512, height = 512) {
     this.target = gl !== undefined ? gl.TEXTURE_2D : 3553;
     this.type = FLOAT;
-    this.gl = gl;
+    this.gl = gl!;
     this.fbo = undefined;
     this.regen = true;
 
@@ -75,7 +77,7 @@ export class FBO {
       this.create(gl);
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo ?? null);
 
     gl.viewport(0, 0, this.size[0], this.size[1]);
     gl.scissor(0, 0, this.size[0], this.size[1]);
@@ -86,15 +88,16 @@ export class FBO {
                  tex = this.texColor, value_scale = 1.0, depth = this.texDepth) {
     let quad = this._getQuad(gl, width, height);
 
-    quad.program = this.blitshader;
-    quad.uniforms.rgba = tex;
-    quad.uniforms.depth = depth;
+    /* _getQuad() has just built the blit shader, and quad is this.smesh. */
+    quad.program = this.blitshader!;
+    quad.uniforms.rgba = tex!;
+    quad.uniforms.depth = depth!;
     quad.uniforms.valueScale = value_scale;
 
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    this.smesh.draw(gl);
+    quad.draw(gl);
   }
 
   /**
@@ -109,18 +112,18 @@ export class FBO {
     if (program) {
       quad.program = program;
     } else {
-      quad.program = this.blitshader;
+      quad.program = this.blitshader!;
     }
 
-    quad.uniforms.rgba = tex;
-    quad.uniforms.depth = depth;
+    quad.uniforms.rgba = tex!;
+    quad.uniforms.depth = depth!;
     quad.uniforms.valueScale = 1.0;
 
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     gl.disable(gl.CULL_FACE);
 
-    this.smesh.draw(gl, uniforms);
+    quad.draw(gl, uniforms);
   }
 
   _getQuad(gl : webgl.WebGLContext, width : number, height : number,
@@ -177,11 +180,14 @@ export class FBO {
       this.texDepth.initEmpty(gl, gl.TEXTURE_2D, this.width, this.height, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8);
     }
 
+    /* NOTE: the framebuffer is never stored on this.fbo, so bind() below binds
+       undefined -- i.e. the default framebuffer -- and destroy() never frees
+       this one. */
     let fbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture ?? null, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture ?? null, 0);
   }
 
   unbind(gl : webgl.WebGLContext) {
@@ -193,7 +199,8 @@ export class FBO {
       return;
     }
 
-    gl.scissor(sb[0], sb[1], sb[2], sb[3]);
+    /* bind() saves both boxes together. */
+    gl.scissor(sb![0], sb![1], sb![2], sb![3]);
     gl.viewport(vb[0], vb[1], vb[2], vb[3]);
   }
 
@@ -204,12 +211,12 @@ export class FBO {
       this.gl.deleteFramebuffer(this.fbo);
 
       if (this.deleteColor && this.texColor) {
-        this.gl.deleteTexture(this.texColor.texture);
+        this.gl.deleteTexture(this.texColor.texture ?? null);
         this.texColor = undefined;
       }
 
       if (this.deleteDepth && this.texDepth) {
-        this.gl.deleteTexture(this.texDepth.texture);
+        this.gl.deleteTexture(this.texDepth.texture ?? null);
         this.texDepth = undefined;
       }
 
@@ -322,7 +329,7 @@ export class oldFBO {
     let layer = this.layer;
 
     function texParams(target : number, tex : Texture) {
-      gl.bindTexture(target, tex.texture);
+      gl.bindTexture(target, tex.texture ?? null);
 
       tex.texParameteri(gl, target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
       tex.texParameteri(gl, target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -367,7 +374,7 @@ export class oldFBO {
     //UNSIGNED_INT_24_8
     let dtype3 = gl.UNSIGNED_INT_24_8;
 
-    gl.bindTexture(this.target, this.texDepth.texture);
+    gl.bindTexture(this.target, this.texDepth.texture ?? null);
 
     if (!haveDepth) {
       initTex(this.texDepth, dtype, dtype2, dtype3);
@@ -376,7 +383,7 @@ export class oldFBO {
     let ctype = this.ctype;
     let ctype2 = gl.RGBA, ctype3 = this.etype;
 
-    gl.bindTexture(target, this.texColor.texture);
+    gl.bindTexture(target, this.texColor.texture ?? null);
 
     if (!haveColor) {
       initTex(this.texColor, ctype, ctype2, ctype3);
@@ -385,24 +392,25 @@ export class oldFBO {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
 
     if (this.target === gl.TEXTURE_2D) {
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture ?? null, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.texDepth.texture ?? null, 0);
     } else {
       let target2 = target;
 
+      /* whoever sets a cube-map target sets the face layer with it. */
       if (target === gl.TEXTURE_CUBE_MAP) {
-        target2 = layer;
+        target2 = layer!;
       }
 
       if (DEBUG.fbo) {
         console.log("TARGET2", target2);
       }
 
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, target2, this.texColor.texture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, target2, this.texColor.texture ?? null, 0);
       if (target === gl.TEXTURE_2D) {
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture ?? null, 0);
       } else {
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, target2, this.texDepth.texture ?? null, 0);
         //gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, target2, this.texDepth.texture, 0);
       }
     }
@@ -417,12 +425,12 @@ export class oldFBO {
   }
 
   setTexColor(gl : webgl.WebGLContext, tex : Texture) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo ?? null);
 
     this.texColor = tex;
 
     if (this.target === gl.TEXTURE_2D) {
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texColor.texture ?? null, 0);
     }
 
     let errret = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
@@ -443,7 +451,7 @@ export class oldFBO {
       this.create(gl);
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo ?? null);
     gl.viewport(0, 0, this.size[0], this.size[1]);
   }
 
@@ -476,7 +484,7 @@ export class oldFBO {
   drawDepth(gl : webgl.WebGLContext, width : number, height : number, tex : Texture) {
     let quad = this._getQuad(gl, width, height);
 
-    quad.program = this.blitshader;
+    quad.program = this.blitshader!;
 
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
@@ -501,15 +509,16 @@ export class oldFBO {
                  tex = this.texColor, value_scale = 1.0, depth = this.texDepth) {
     let quad = this._getQuad(gl, width, height);
 
-    quad.program = this.blitshader;
-    quad.uniforms.rgba = tex;
-    quad.uniforms.depth = depth;
+    /* _getQuad() has just built the blit shader, and quad is this.smesh. */
+    quad.program = this.blitshader!;
+    quad.uniforms.rgba = tex!;
+    quad.uniforms.depth = depth!;
     quad.uniforms.valueScale = value_scale;
 
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    this.smesh.draw(gl);
+    quad.draw(gl);
   }
 
   /**
@@ -524,18 +533,18 @@ export class oldFBO {
     if (program) {
       quad.program = program;
     } else {
-      quad.program = this.blitshader;
+      quad.program = this.blitshader!;
     }
 
-    quad.uniforms.rgba = tex;
-    quad.uniforms.depth = depth;
+    quad.uniforms.rgba = tex!;
+    quad.uniforms.depth = depth!;
     quad.uniforms.valueScale = 1.0;
 
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     gl.disable(gl.CULL_FACE);
 
-    this.smesh.draw(gl, uniforms);
+    quad.draw(gl, uniforms);
   }
 
   unbind(gl : webgl.WebGLContext) {
@@ -554,12 +563,13 @@ export class oldFBO {
     if (this.fbo !== undefined) {
       this.gl.deleteFramebuffer(this.fbo);
 
+      /* create() always builds both textures before anything can destroy(). */
       if (this.target === this.gl.TEXTURE_2D) {
-        this.gl.deleteTexture(this.texDepth.texture);
-        this.gl.deleteTexture(this.texColor.texture);
+        this.gl.deleteTexture(this.texDepth!.texture ?? null);
+        this.gl.deleteTexture(this.texColor!.texture ?? null);
       }
 
-      this.texDepth.texture = this.texColor.texture = undefined;
+      this.texDepth!.texture = this.texColor!.texture = undefined;
       this.fbo = undefined;
     }
   }
@@ -704,7 +714,9 @@ void main(void) {
 };
 
 export class FramePipeline {
-  stages : FrameStage[] | undefined;
+  /* destroy() drops this, leaving the pipeline unusable; every other method
+     assumes the constructor's first stage is still there. */
+  stages : FrameStage[];
   size : Vector2;
   smesh : simplemesh.SimpleMesh | undefined;
   blitshader : webgl.ShaderProgram | undefined;
@@ -737,7 +749,7 @@ export class FramePipeline {
       this.smesh.destroy(gl);
       this.smesh = undefined;
     }
-    this.stages = undefined;
+    this.stages = undefined!;
   }
 
   //see webgl.getShader for shaderdef, ignore old loadShader cruft
@@ -797,18 +809,20 @@ export class FramePipeline {
 
       stage.update(gl, width, height);
 
-      this._texs[0].texture = laststage.texColor.texture;
-      stage.shader.uniforms.rgba = this._texs[0];
+      /* update() has just created both attachments, and only a stage built by
+         addStage() -- which always has a shader -- can appear past index 0. */
+      this._texs[0].texture = laststage.texColor!.texture;
+      stage.shader!.uniforms.rgba = this._texs[0];
 
-      this._texs[1].texture = laststage.texDepth.texture;
-      stage.shader.uniforms.depth = this._texs[1];
+      this._texs[1].texture = laststage.texDepth!.texture;
+      stage.shader!.uniforms.depth = this._texs[1];
 
-      stage.shader.uniforms.size = this.size;
+      stage.shader!.uniforms.size = this.size;
 
-      this.smesh.program = stage.shader;
+      this.smesh!.program = stage.shader!;
       stage.bind(gl);
 
-      this.smesh.draw(gl);
+      this.smesh!.draw(gl);
 
       laststage = stage;
     }
@@ -821,17 +835,18 @@ export class FramePipeline {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.disable(gl.DEPTH_TEST);
-    gl.depthMask(1);
+    gl.depthMask(true);
 
-    this.smesh.program = this.blitshader;
-    this.blitshader.uniforms.rgba = this._texs[0];
-    this.blitshader.uniforms.depth = this._texs[1];
-    this.blitshader.uniforms.size = this.size;
+    /* draw() runs first and builds both the quad and the blit shader. */
+    this.smesh!.program = this.blitshader!;
+    this.blitshader!.uniforms.rgba = this._texs[0];
+    this.blitshader!.uniforms.depth = this._texs[1];
+    this.blitshader!.uniforms.size = this.size;
 
-    this._texs[0].texture = stage.texColor.texture;
-    this._texs[1].texture = stage.texDepth.texture;
+    this._texs[0].texture = stage.texColor!.texture;
+    this._texs[1].texture = stage.texDepth!.texture;
 
-    this.smesh.draw(gl);
+    this.smesh!.draw(gl);
   }
 }
 

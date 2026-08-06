@@ -5,7 +5,7 @@ import {
 import {SelMask} from './selectmode.js';
 
 import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
-import type {SplineVertex, SplineSegment} from '../../curve/spline_types.js';
+import {SplineSegment, SplineVertex} from '../../curve/spline_types.js';
 import type {FullContext} from '../../core/context.js';
 import type {TransUndoData} from './transdata.js';
 import {ToolOp, ModalStates} from '../../core/toolops_api.js';
@@ -16,13 +16,27 @@ import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
   JobTypes} from '../../wasm/native_api.js';
 import {TransData} from "./transdata.js";
 
+/* The snapshot TransSplineVert takes of a vertex before the transform. */
+export interface SplineVertStart {
+  co    : Vector2;
+  width : number;
+}
+
+export type SplineTransItem = TransDataItem<SplineVertex, SplineVertStart>;
+
+/* td.data mixes items from every backend at once; the ones this backend
+   made all carry a SplineVertex. */
+function tdVert(item : TransDataItem) : SplineVertex {
+  return (item.data instanceof SplineVertex ? item.data : undefined)!;
+}
+
 var _tsv_apply_tmp1 = new Vector2();
 var _tsv_apply_tmp2 = new Vector2();
 var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
 export class TransSplineVert extends TransDataType {
-  static apply(ctx : FullContext, td : TransData, item : TransDataItem,
+  static apply(ctx : FullContext, td : TransData, item : SplineTransItem,
                mat : Matrix4, w : number, scaleWidths : boolean = false) {
     var co = _tsv_apply_tmp1;
     var v = item.data;
@@ -72,7 +86,8 @@ export class TransSplineVert extends TransDataType {
 
         s.update();
 
-        let hpair = s.update_handle(s.handle(v));
+        /* s comes out of v.segments, so v is on s and handle() finds it. */
+        let hpair = s.update_handle(s.handle(v)!);
         if (hpair !== undefined) {
           hpair.flag |= SplineFlags.FRAME_DIRTY;
         }
@@ -80,14 +95,14 @@ export class TransSplineVert extends TransDataType {
     }
   }
 
-  static getDataPath(ctx : FullContext, td : TransData, ti : TransDataItem) {
+  static getDataPath(ctx : FullContext, td : TransData, ti : SplineTransItem) {
     return `spline.verts[${ti.data.eid}]`;
   }
 
   static undo_pre(ctx : FullContext, td : TransData, undo_obj : TransUndoData) {
-    var doneset = new set();
-    var undo = [];
-    let segundo = [];
+    var doneset = new set<SplineVertex | SplineSegment>();
+    var undo : number[] = [];
+    let segundo : number[] = [];
 
     function push_vert(v : SplineVertex) {
       if (doneset.has(v))
@@ -118,7 +133,7 @@ export class TransSplineVert extends TransDataType {
 
       if (d.type !== TransSplineVert) continue;
 
-      var v = d.data;
+      var v = tdVert(d);
 
       //make sure we get all handles that might be affected by this one
       if (v.type === SplineTypes.HANDLE) {
@@ -154,11 +169,14 @@ export class TransSplineVert extends TransDataType {
   static undo(ctx : FullContext, undo_obj : TransUndoData) {
     var spline = ctx.spline;
 
-    let segundo = undo_obj['sseg'];
+    let segundo = undo_obj['sseg']!;
     for (let i=0; i < segundo.length; ) {
       let eid = segundo[i++], w1 = segundo[i++], w2 = segundo[i++];
 
-      let seg = spline.eidmap[eid];
+      /* eidmap holds every element kind; undo_pre only ever wrote segments. */
+      let elem = spline.eidmap[eid];
+      let seg = elem instanceof SplineSegment ? elem : undefined;
+
       if (!seg) {
         console.warn("Data corruption in transform undo! Missing segment " + eid);
         continue;
@@ -174,12 +192,14 @@ export class TransSplineVert extends TransDataType {
       }
     }
 
-    let undo = undo_obj['svert'];
-    let edit_all_layers = undo.edit_all_layers;
+    /* NOTE: an unused `let edit_all_layers = undo.edit_all_layers` sat here;
+       undo_pre writes a plain flat array, so it only ever read undefined. */
+    let undo = undo_obj['svert']!;
 
     for (let i=0; i < undo.length; ) {
       var eid = undo[i++];
-      var v = spline.eidmap[eid];
+      var elem2 = spline.eidmap[eid];
+      var v = elem2 instanceof SplineVertex ? elem2 : undefined;
 
       if (v === undefined) {
         console.log("Transform undo error!", eid);
@@ -222,9 +242,9 @@ export class TransSplineVert extends TransDataType {
     var doprop = td.doprop;
     var proprad = td.propradius;
     var spline = ctx.spline;
-    var propfacs = {};
+    var propfacs : {[eid : number] : number} = {};
     var shash = spline.build_shash();
-    var tdmap = {};
+    var tdmap : {[eid : number] : TransDataItem} = {};
     var layer = td.layer;
     var edit_all_layers = td.edit_all_layers;
 
@@ -232,7 +252,7 @@ export class TransSplineVert extends TransDataType {
       if (tv.type !== TransSplineVert)
         continue;
 
-      tdmap[tv.data.eid] = tv;
+      tdmap[tdVert(tv).eid] = tv;
     }
 
     for (var v of spline.verts.selected.editable(ctx)) {
@@ -252,9 +272,9 @@ export class TransSplineVert extends TransDataType {
     }
 
     for (var k in propfacs) {
-      var v = spline.eidmap[k];
-      var d = propfacs[k];
-      var tv = tdmap[k];
+      var eid = parseInt(k);
+      var d = propfacs[eid];
+      var tv = tdmap[eid];
 
       tv.dis = d;
     }
@@ -264,9 +284,9 @@ export class TransSplineVert extends TransDataType {
     var doprop = td.doprop;
     var proprad = td.propradius;
 
-    var selmap = {};
+    var selmap : {[eid : number] : number} = {};
     var spline = ctx.spline;
-    var tdmap = {};
+    var tdmap : {[eid : number] : TransDataItem} = {};
     var layer = td.layer;
     var edit_all_layers = td.edit_all_layers;
 
@@ -286,16 +306,16 @@ export class TransSplineVert extends TransDataType {
 
         let width = i ? 0.0 : v.width;
 
-        var td = new TransDataItem(v, TransSplineVert, {co : co, width : width});
+        var tdi = new TransDataItem(v, TransSplineVert, {co : co, width : width});
 
-        data.push(td);
-        tdmap[v.eid] = td;
+        data.push(tdi);
+        tdmap[v.eid] = tdi;
       }
     }
 
     if (!doprop) return;
 
-    var propfacs = {};
+    var propfacs : {[eid : number] : number} = {};
     var shash = spline.build_shash();
 
     for (var si=0; si<2; si++) {
@@ -319,11 +339,11 @@ export class TransSplineVert extends TransDataType {
         var co = new Vector2(v);
         let width = si ? 0.0 : v.width;
 
-        var td = new TransDataItem(v, TransSplineVert, {co, width});
-        data.push(td);
+        var tdi = new TransDataItem(v, TransSplineVert, {co, width});
+        data.push(tdi);
 
-        td.dis = 10000;
-        tdmap[v.eid] = td;
+        tdi.dis = 10000;
+        tdmap[v.eid] = tdi;
       }
     }
 
@@ -355,9 +375,9 @@ export class TransSplineVert extends TransDataType {
     }
 
     for (var k in propfacs) {
-      var v = spline.eidmap[k];
-      var d = propfacs[k];
-      var tv = tdmap[k];
+      var eid = parseInt(k);
+      var d = propfacs[eid];
+      var tv = tdmap[eid];
 
       tv.dis = d;
     }
@@ -365,17 +385,19 @@ export class TransSplineVert extends TransDataType {
 
   //this one gets a modal context
   static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
-    var vset = {};
-    var sset = {};
-    var hset = {};
+    var vset : {[eid : number] : number} = {};
+    var sset : {[eid : number] : number} = {};
+    var hset : {[eid : number] : number} = {};
 
     for (var i=0; i<td.data.length; i++) {
       var d = td.data[i];
       if (d.type != TransSplineVert)
         continue;
 
-      if (d.data.type == SplineTypes.HANDLE)
-        hset[d.data.eid] = 1;
+      let dv = tdVert(d);
+
+      if (dv.type == SplineTypes.HANDLE)
+        hset[dv.eid] = 1;
     }
 
     function rec_walk(v : SplineVertex, depth : number) {
@@ -418,11 +440,11 @@ export class TransSplineVert extends TransDataType {
 
       if (d.w <= 0.0) continue;
 
-      var v = d.data;
+      var v = tdVert(d);
       if (v.eid in vset) continue;
 
       if (v.type == SplineTypes.HANDLE)
-        v = v.owning_vertex;
+        v = v.owning_vertex!;
 
       for (var j=0; j<v.segments.length; j++) {
         var seg = v.segments[j];
@@ -449,7 +471,7 @@ export class TransSplineVert extends TransDataType {
     }
   }
 
-  static aabb(ctx : FullContext, td : TransData, item : TransDataItem,
+  static aabb(ctx : FullContext, td : TransData, item : SplineTransItem,
               minmax : MinMax, selected_only : boolean) {
     var co = _tsv_apply_tmp2;
 

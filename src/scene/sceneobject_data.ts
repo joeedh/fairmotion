@@ -29,7 +29,7 @@ export class SceneObjectData extends NodeDataBlock {
 
      uniforms are webgl-style uniforms even if we're not necassarily drawn
      with webgl. */
-  draw(scene : Scene, drawer, uniforms) {
+  draw(scene : Scene, drawer : unknown, uniforms : unknown) {
 
   }
 }

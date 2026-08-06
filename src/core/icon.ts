@@ -19,7 +19,9 @@ export class IconManager {
   te! : Object;
   texture : WebGLTexture | undefined;
 
-  constructor(gl: WebGLRenderingContext, sheet_path: string,
+  /* `gl` is optional because every use of it in load() is commented out, and
+     RasterState builds its two sheets before there is a context. */
+  constructor(gl: WebGLRenderingContext | undefined, sheet_path: string,
               imgsize: Array<number>, iconsize: Array<number>)
   {
     this.path = sheet_path;
@@ -31,7 +33,7 @@ export class IconManager {
     this.ready = false;
   }
   
-  load(gl: WebGLRenderingContext) {
+  load(gl: WebGLRenderingContext | undefined) {
     //load texture
     //this.tex = gl.createTexture();
     this.tex = {image: new Image()};

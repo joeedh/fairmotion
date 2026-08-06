@@ -103,32 +103,9 @@ function dom_bind(obj : object, name : string, dom_id : string) {
    triple directly now that both elements exist by the time it is made. */
 export type SplitEdgeRet = [SplineSegment, SplineVertex, number];
 
-/* eidmap holds every element kind at once, and after a load or a JSON read
-   the cross-reference fields still hold the eids they were written as.  These
-   three recover the kind the field itself implies.  A missing eid -- the -1
-   the STRUCT schemas write for an absent handle, face or radial link -- comes
-   back undefined here exactly as the raw eidmap lookup did, so the fields keep
-   the declared type the rest of the file already assumes of them. */
-export type EidMap = {[eid : number] : SplineElement};
-
-function lookupEid(eidmap : EidMap, ref : unknown) : SplineElement | undefined {
-  return typeof ref === "number" ? eidmap[ref] : undefined;
-}
-
-function refVert(eidmap : EidMap, ref : unknown) : SplineVertex {
-  let e = lookupEid(eidmap, ref);
-  return (e instanceof SplineVertex ? e : undefined)!;
-}
-
-function refSeg(eidmap : EidMap, ref : unknown) : SplineSegment {
-  let e = lookupEid(eidmap, ref);
-  return (e instanceof SplineSegment ? e : undefined)!;
-}
-
-function refLoop(eidmap : EidMap, ref : unknown) : SplineLoop {
-  let e = lookupEid(eidmap, ref);
-  return (e instanceof SplineLoop ? e : undefined)!;
-}
+import {refVert, refSeg, refLoop} from './spline_types.js';
+import type {EidMap} from './spline_types.js';
+export type {EidMap};
 
 let _elist_map : {[name : string] : number} = {
   "verts"   : SplineTypes.VERTEX,
@@ -255,7 +232,9 @@ export class Spline extends DataBlock {
   frame : number;
   rendermat : Matrix4;
   _idgen : SDIDGen;
-  draw_layerlist : number[];
+  /* Parallel to drawlist; each entry is the for..in key of the element's first
+     layer, so a string.  Nothing reads them back. */
+  draw_layerlist : (string | undefined)[];
   proportional : boolean;
   prop_radius : number;
   eidmap : {[eid : number] : SplineElement};
@@ -283,7 +262,7 @@ export class Spline extends DataBlock {
 
   /* Faces, segments and stroke groups mixed together, sorted back-to-front by
      spline_draw_sort.ts. */
-  drawlist : Array<SplineFace | SplineSegment | SplineStrokeGroup>;
+  drawlist : DrawListItem[];
   /* Highest z of any layer, cached by the draw sort. */
   _layer_maxz! : number;
   recalc : number;
@@ -297,7 +276,9 @@ export class Spline extends DataBlock {
   is_anim_path! : boolean;
 
   /* The draw id native_api.do_solve() tags this spline's job with. */
-  _solve_id : number | undefined;
+  /* Stamped by native_api's do_solve() before each solve and read back when
+     the job finishes, to tell whether it was superseded. */
+  _solve_id! : number;
   solvePromise : Promise<void> | undefined;
   solveTimeout : number | undefined;
   pending_solve : Promise<void> | undefined;
@@ -2594,10 +2575,13 @@ export class Spline extends DataBlock {
 
   /* `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
      rects; see view2d.ts. */
+  /* only_render and draw_normals are the view2d toggles, which are stored as
+     0/1 ints; every use of them here is a truth test. The two time-helper
+     arguments are optional because frameset.draw() passes neither. */
   draw(redraw_rects : number[], g : Canvas2D,
        editor : View2DHandler, matrix : Matrix4, selectmode : number,
-       only_render : boolean, draw_normals : boolean, alpha : number,
-       draw_time_helpers : boolean, curtime : number, ignore_layers? : boolean) {
+       only_render : number | boolean, draw_normals : number | boolean, alpha : number,
+       draw_time_helpers? : boolean, curtime? : number, ignore_layers? : boolean) {
     this.canvas = g;
     this.selectmode = selectmode;
 
@@ -2792,8 +2776,7 @@ export class Spline extends DataBlock {
     return this;
   }
 
-  //v is optional
-  flagUpdateVertTime(v: SplineVertex) {
+  flagUpdateVertTime(v? : SplineVertex) {
     if (v) {
       this._vert_time_set.add(v.eid);
     }
@@ -2858,3 +2841,4 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
 DataBlock.register(Spline);
 
 import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups, vertexIsSplit} from "./spline_strokegroup.js";
+import type {DrawListItem} from "./spline_strokegroup.js";

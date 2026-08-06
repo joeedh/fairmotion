@@ -50,6 +50,9 @@ export const SplineFlags = {
   COINCIDENT        : 1<<24
 };
 
+/* `as const` so element.type is a discriminant: SplineVertex/Segment/Loop/Face
+   each narrow their inherited `type` to the literal(s) they can hold, which is
+   what lets `e.type === SplineTypes.FACE` narrow a drawlist entry. */
 export const SplineTypes = {
   VERTEX : 1,
   HANDLE : 2,
@@ -57,7 +60,7 @@ export const SplineTypes = {
   LOOP   : 8,
   FACE   : 16,
   ALL    : 31
-};
+} as const;
 
 export const ClosestModes = {
   CLOSEST: 0,
@@ -202,8 +205,10 @@ CustomDataLayer.STRUCT = `
 export class CustomData {
   static STRUCT: string;
 
-  /* The ElementArray whose elements carry these layers. */
-  owner: ElementArray<SplineElement>;
+  /* The ElementArray whose elements carry these layers.  Typed as the bare
+     iterable it is used as: an ElementArray<T> is not an
+     ElementArray<SplineElement>, because on_select's parameter is. */
+  owner: Iterable<SplineElement>;
 
   callbacks: {
     on_add?: (cls: LayerTypeClass, i: number, shared: object) => void;
@@ -219,7 +224,7 @@ export class CustomData {
 
   /* Both callbacks are optional -- ElementArray builds its CustomData without
      them (see the commented-out arguments at that call site). */
-  constructor(owner: ElementArray<SplineElement>,
+  constructor(owner: Iterable<SplineElement>,
               layer_add_callback?: (cls: LayerTypeClass, i: number, shared: object) => void,
               layer_del_callback?: (cls: LayerTypeClass, i: number) => void) {
     this.owner = owner; //owning ElementArray

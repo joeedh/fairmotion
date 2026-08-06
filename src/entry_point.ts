@@ -30,7 +30,6 @@ import "./util/mathlib.js";
 import "./util/colorutils.js";
 import "./util/parseutil.js";
 import "./util/typedwriter.js";
-import "./core/jobs.js";
 import "./core/ajax.js";
 import "./core/raster.js";
 import "./core/imageblock.js";

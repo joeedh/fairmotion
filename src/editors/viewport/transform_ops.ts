@@ -17,12 +17,12 @@ import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
 
 import {Vec2Property} from '../../core/toolprops.js';
 import type {FullContext} from '../../core/context.js';
-import type {ManipulatorManager} from './manipulator.js';
+import type {ManipulatorManager, WidgetEvent} from './manipulator.js';
 import type {Spline} from '../../curve/spline.js';
 import type {View2DHandler} from './view2d.js';
 
 export class WidgetResizeOp extends TransformOp {
-  constructor(user_start_mpos? : number[], datamode? : number) {
+  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
     super(user_start_mpos, datamode)
   }
 
@@ -78,7 +78,7 @@ export class WidgetResizeOp extends TransformOp {
       return;
     }
 
-    let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    let cent = new Vector2(minmax.min).add(new Vector2(minmax.max)).mulScalar(0.5);
 
     let widget = manager.create(this);
 
@@ -185,7 +185,7 @@ export class WidgetResizeOp extends TransformOp {
       }
     };
 
-    let corner_onclick = function(e : MouseEvent, view2d : View2DHandler,
+    let corner_onclick = function(e : WidgetEvent, view2d : View2DHandler,
                                   id : number) {
       let ci = id;
       let anchor = corners[(ci + 2) % 4];
@@ -194,7 +194,7 @@ export class WidgetResizeOp extends TransformOp {
       co[0] = anchor.v1[0] + widget.co[0];
       co[1] = anchor.v1[1] + widget.co[1];
 
-      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      let mpos = new Vector2([e.origX, e.origY]);
       //view2d.project(mpos);
 
       let toolop = e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
@@ -212,11 +212,10 @@ export class WidgetResizeOp extends TransformOp {
       corners[i].on_click = corner_onclick;
     }
 
-    larrow.on_click = rarrow.on_click = function(e : MouseEvent,
+    larrow.on_click = rarrow.on_click = function(e : WidgetEvent,
                                                  view2d : View2DHandler,
                                                  id : string) {
-      //let mpos = new Vector3([e.origX, e.origY, 0.0]);
-      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      let mpos = new Vector2([e.origX, e.origY]);
       //view2d.project(mpos);
 
       let toolop = new ScaleOp(mpos, view2d.selectmode);
@@ -239,10 +238,10 @@ export class WidgetResizeOp extends TransformOp {
       return true;
     }
 
-    tarrow.on_click = barrow.on_click = function(e : MouseEvent,
+    tarrow.on_click = barrow.on_click = function(e : WidgetEvent,
                                                  view2d : View2DHandler,
                                                  id : string) {
-      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      let mpos = new Vector2([e.origX, e.origY]);
       //view2d.project(mpos);
 
       let toolop = new ScaleOp(mpos, view2d.selectmode);
@@ -273,7 +272,7 @@ export class WidgetResizeOp extends TransformOp {
 }
 
 export class WidgetRotateOp extends TransformOp {
-  constructor(user_start_mpos? : number[], datamode? : number) {
+  constructor(user_start_mpos? : Vector2 | number[], datamode? : number) {
     super(user_start_mpos, datamode)
   }
 
@@ -329,7 +328,7 @@ export class WidgetRotateOp extends TransformOp {
       return;
     }
 
-    let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    let cent = new Vector2(minmax.min).add(new Vector2(minmax.max)).mulScalar(0.5);
 
     let widget = manager.create(this);
 
@@ -337,14 +336,15 @@ export class WidgetRotateOp extends TransformOp {
     let h = (minmax.max[1] - minmax.min[1])*0.5;
     let len = 9;
 
-    if (w === 0  & h === 0) {
+    if (w === 0 && h === 0) {
       return;
     }
 
     let r = Math.sqrt(w*w + h*h)*Math.sqrt(2)*0.5;
 
-    /* NOTE: corner_onclick below closes over a `corners` array that this
-       method never declares, and nothing wires it to a handle anyway. */
+    /* NOTE: a corner_onclick() copied from WidgetResizeOp above sat further
+       down.  Nothing wired it to a handle, and it closed over a `corners`
+       array this method never declares, so it could only have thrown. */
 
     let circle = widget.circle([0, 0], r, "rotate_circle", [0.4, 0.4, 0.4, 0.7]);
     widget.co = new Vector2(cent);
@@ -385,53 +385,24 @@ export class WidgetRotateOp extends TransformOp {
         this.update();
       }
 
+      /* NOTE: a second, unreachable `if (update)` block sat after this return.
+         It too was copied from WidgetResizeOp, and called that method's
+         set_handles(), which does not exist in this scope. */
       return; //XXX
-
-      if (update) {
-        w = w2, h = h2;
-
-        this.co[0] = cx;
-        this.co[1] = cy;
-
-        set_handles();
-
-        this.update();
-
-        //console.log("update widget!", cx, cy);
-      }
     }
 
-    let corner_onclick = function(e : MouseEvent, view2d : View2DHandler,
-                                  id : number) {
-      let ci = id;
-      let anchor = corners[(ci + 2) % 4];
-      let co = new Vector3();
-
-      co[0] = anchor.v1[0] + widget.co[0];
-      co[1] = anchor.v1[1] + widget.co[1];
-
-      let mpos = new Vector3([e.origX, e.origY, 0.0]);
-      //view2d.project(mpos);
-
-      let toolop = e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
-
-      toolop.inputs.use_pivot.setValue(true);
-      toolop.inputs.pivot.setValue(co);
-
-      view2d.ctx.toolstack.execTool(view2d.ctx, toolop);
-
-      return true;
-    }
-
-    circle.on_click = function(e : MouseEvent, view2d : View2DHandler,
+    circle.on_click = function(e : WidgetEvent, view2d : View2DHandler,
                                id : string) {
 
-      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      let mpos = new Vector2([e.origX, e.origY]);
       //view2d.project(mpos);
 
       let toolop = new ScaleOp(mpos, view2d.selectmode);
 
-      let co = new Vector3(widget.co);
+      /* NOTE: this was `new Vector3(widget.co)`.  `co` is a Vector2, so the
+         third component came out undefined and the pivot handed to ScaleOp had
+         a garbage z. */
+      let co = new Vector3([widget.co[0], widget.co[1], 0.0]);
 
       if (!e.shiftKey) {
         co[1] += id === 'b' ? h : -h;

@@ -23,8 +23,9 @@ export class TypedCache {
     }
   }
   
-  /* Broken: `size` is not a parameter here, and ArrayBuffer[] has no insert(). */
-  free(arraybuffer : ArrayBuffer) {
+  /* NOTE: `size` was not a parameter here, so any call would have thrown a
+     ReferenceError. Never called. */
+  free(arraybuffer : ArrayBuffer, size : number) {
     var lst = this.freelist[size];
     
     if (lst == undefined) {
@@ -50,7 +51,7 @@ var f64 = new Float64Array(u8.buffer);
 
 export class TypedWriter {
   i : number
-  buf : Uint8Array;
+  buf : Uint8Array<ArrayBuffer>;
   maxsize : number;
 
   constructor(maxsize : number) {
@@ -86,10 +87,12 @@ export class TypedWriter {
     return this;
   }
   
-  vec3(v : number[]) {
-    this.float32(v[0]);
-    this.float32(v[1]);
-    this.float32(v[2]);
+  /* Callers pass path.ux vectors as well as plain arrays, and a 2d vector
+     really does write NaN for z here. */
+  vec3(v : {[k : number] : number | undefined}) {
+    this.float32(v[0]!);
+    this.float32(v[1]!);
+    this.float32(v[2]!);
     
     return this;
   }

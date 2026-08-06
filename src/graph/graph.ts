@@ -1,3 +1,4 @@
+import type {FullContext} from "../core/context.js";
 let _graph = undefined;
 
 
@@ -128,13 +129,38 @@ export interface GraphNodeDef {
   outputs?: SocketMap | InheritFlag<SocketMap>;
 }
 
-export let NodeSocketClasses: (typeof NodeSocketType)[] = [];
+/* The registry is only ever appended to -- nothing constructs from it -- so the
+   element type covers a socket class's statics and drops its construct
+   signature; EnumSocket takes its items map where the base takes flag. */
+export type NodeSocketClass = Omit<typeof NodeSocketType, "prototype">;
+
+export let NodeSocketClasses: NodeSocketClass[] = [];
+
+/* The class-hierarchy walks below hop up through prototype.__proto__ and call
+   each ancestor's static nodedef().  TypeScript models a class object as a
+   plain `Function`, so both accesses go through Reflect. */
+function classNodedef(cls: Function): (() => GraphNodeDef) | undefined {
+  return Reflect.get(cls, "nodedef");
+}
+
+function parentClass(cls: Function): Function {
+  return Reflect.get(cls, "prototype").__proto__.constructor;
+}
+
+/* nodedef().flag may be wrapped in GraphNode.inherit(); every bit test below
+   wants the raw number, and an InheritFlag coerced to 0 in all of them. */
+function flagBits(flag: number | InheritFlag<number> | undefined): number {
+  return typeof flag === "number" ? flag : 0;
+}
 
 export class NodeSocketType {
   static STRUCT: string;
   /* Set by the data API when the socket type gets a path; only _api_uiname
      reads it. */
   static dataref: {uiname: string};
+
+  /* `this.constructor` is typed Function without this. */
+  declare ["constructor"]: typeof NodeSocketType;
 
   uiname: string;
   name: string;
@@ -160,7 +186,9 @@ export class NodeSocketType {
     }
 
     //XXX shouldn't this be this.graph_uiname?
-    this.uiname = uiname;
+    /* SocketDef.uiname is optional; the node constructor substitutes the socket
+       key for an undefined one. */
+    this.uiname = uiname!;
 
     this.name = this.constructor.nodedef().name;
 
@@ -251,7 +279,7 @@ export class NodeSocketType {
    will have its path evaluated *relative to the node itself*,
    NOT Context as usual.
    */
-  buildUI(container: Container, onchange: () => void) {
+  buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
       let ret = container.prop("value");
 
@@ -266,7 +294,7 @@ export class NodeSocketType {
     }
   }
 
-  static register(cls: typeof NodeSocketType) {
+  static register(cls: NodeSocketClass) {
     NodeSocketClasses.push(cls);
   }
 
@@ -310,7 +338,9 @@ export class NodeSocketType {
       console.warn("graph corruption");
     } else {
       this.node.graphUpdate();
-      this.node.graph_graph.flagResort();
+      /* NOTE: graph_graph is undefined until the node is add()ed to a graph, so
+         connecting sockets on a free node throws here. */
+      this.node.graph_graph!.flagResort();
     }
 
     return this;
@@ -337,7 +367,8 @@ export class NodeSocketType {
 
     this.node.graphUpdate();
     sock.node.graphUpdate();
-    this.node.graph_graph.flagResort();
+    /* same free-node hazard as connect() above. */
+    this.node.graph_graph!.flagResort();
 
     return this;
   }
@@ -374,13 +405,14 @@ export class NodeSocketType {
     throw new Error("implement me!");
   }
 
-  copyTo(b: NodeSocketType) {
+  /* NOTE: this used to `return this`; no caller reads it, and the polymorphic
+     return type made every subclass override an incompatible signature. */
+  copyTo(b: NodeSocketType): void {
     b.graph_flag = this.graph_flag;
     b.name = this.name;
     b.uiname = this.uiname;
     b.socketName = this.socketName;
     //b.node = this.node;
-    return this;
   }
 
   get hasEdges() {
@@ -506,6 +538,9 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
   class GraphNode {
     static STRUCT: string;
 
+    /* `this.constructor` is typed Function without this. */
+    declare ["constructor"]: typeof GraphNode;
+
     graph_id: number;
     graph_name: string;
     graph_uiname: string;
@@ -546,36 +581,40 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
 
         //walk up class hiearchy andd see if NodeFlags.FORCE_SOCKET_INHERIT
         //is nodedef().flag of any ancestor
-        let p = this.constructor;
+        let p: Function = this.constructor;
         let def2 = def;
 
         while (p !== null && p !== undefined && p !== Object && p !== Node) {
-          if (p.nodedef) {
-            def2 = p.nodedef();
+          let nodedef = classNodedef(p);
 
-            inherit = inherit || (def2.flag & NodeFlags.FORCE_FLAG_INHERIT);
+          if (nodedef) {
+            def2 = nodedef();
+
+            inherit = inherit || !!(flagBits(def2.flag) & NodeFlags.FORCE_FLAG_INHERIT);
           }
-          p = p.prototype.__proto__.constructor;
+          p = parentClass(p);
         }
 
         if (inherit) {
-          let flag = def.flag !== undefined ? def.flag : 0;
+          let flag = flagBits(def.flag);
 
-          let p = this.constructor;
+          let p: Function = this.constructor;
           while (p !== null && p !== undefined && p !== Object && p !== Node) {
-            if (p.nodedef) {
-              def2 = p.nodedef();
+            let nodedef = classNodedef(p);
+
+            if (nodedef) {
+              def2 = nodedef();
 
               if (def2.flag) {
-                flag |= def2.flag;
+                flag |= flagBits(def2.flag);
               }
             }
-            p = p.prototype.__proto__.constructor;
+            p = parentClass(p);
           }
 
           return flag;
         } else {
-          return def.flag === undefined ? 0 : def.flag;
+          return flagBits(def.flag);
         }
       }
 
@@ -586,26 +625,29 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
         let ret: SocketMap = {};
 
         let inherit = obj instanceof InheritFlag;
-        inherit = inherit || (flag & NodeFlags.FORCE_SOCKET_INHERIT);
+        inherit = inherit || !!(flag & NodeFlags.FORCE_SOCKET_INHERIT);
 
         //walk up class hiearchy andd see if NodeFlags.FORCE_SOCKET_INHERIT
         //is nodedef().flag of any ancestor
-        let p = this.constructor;
+        let p: Function = this.constructor;
         while (p !== null && p !== undefined && p !== Object && p !== Node) {
-          if (p.nodedef) {
-            let def = p.nodedef();
+          let nodedef = classNodedef(p);
 
-            inherit = inherit || (def.flag & NodeFlags.FORCE_SOCKET_INHERIT);
+          if (nodedef) {
+            let def = nodedef();
+
+            inherit = inherit || !!(flagBits(def.flag) & NodeFlags.FORCE_SOCKET_INHERIT);
           }
-          p = p.prototype.__proto__.constructor;
+          p = parentClass(p);
         }
 
         if (inherit) {
-          let p = this.constructor;
+          let p: Function = this.constructor;
 
           while (p !== null && p !== undefined && p !== Object && p !== Node) {
-            if (p.nodedef === undefined) continue;
-            let obj2 = p.nodedef()[key];
+            let nodedef = classNodedef(p);
+            if (nodedef === undefined) continue;
+            let obj2 = nodedef()[key];
 
             if (obj2 instanceof InheritFlag) {
               obj2 = obj2.data;
@@ -613,21 +655,17 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
 
             if (obj2 !== undefined) {
               for (let k in obj2) {
-                let sock2 = obj2[k];
-
-                if (sock2 instanceof InheritFlag) {
-                  sock2 = sock2.data;
-                }
-
+                /* NOTE: an InheritFlag unwrap of the individual socket lived
+                   here; inherit() only ever wraps the whole map. */
                 if (!(k in ret)) {
-                  ret[k] = sock2.copy();
+                  ret[k] = obj2[k].copy();
                 }
               }
             }
 
-            p = p.prototype.__proto__.constructor;
+            p = parentClass(p);
           }
-        } else if (obj !== undefined) {
+        } else if (obj !== undefined && !(obj instanceof InheritFlag)) {
           for (let k in obj) {
             ret[k] = obj[k].copy();
           }
@@ -680,7 +718,7 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
         return false;
       }
 
-      return ob.constructor.isGraphNode !== undefined;
+      return Reflect.get(ob.constructor, "isGraphNode") !== undefined;
     }
 
     static defineAPI(nodeStruct: DataStruct) {
@@ -694,23 +732,20 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
     static getFinalNodeDef() {
       let def = this.nodedef();
 
-      //I'm a little nervous about using Object.create,
-      //dunno if I'm just being paranoid
-      let def2 = Object.assign({}, def);
-
       let getsocks = (key: "inputs" | "outputs") => {
         let obj = def[key];
         let ret: SocketMap = {};
 
         if (obj instanceof InheritFlag) {
-          let p = this;
+          let p: Function = this;
 
           while (p !== null && p !== undefined && p !== Object && p !== Node) {
-            if (p.nodedef === undefined) continue;
-            let obj2 = p.nodedef()[key];
+            let nodedef = classNodedef(p);
+            if (nodedef === undefined) continue;
+            let obj2 = nodedef()[key];
 
-            let inherit = obj2 && obj2 instanceof InheritFlag;
-            if (inherit) {
+            let inherit = obj2 instanceof InheritFlag;
+            if (obj2 instanceof InheritFlag) {
               obj2 = obj2.data;
             }
 
@@ -726,7 +761,7 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
               break;
             }
 
-            p = p.prototype.__proto__.constructor;
+            p = parentClass(p);
           }
         } else if (obj !== undefined) {
           for (let k in obj) {
@@ -737,10 +772,9 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
         return ret;
       }
 
-      def2.inputs = getsocks("inputs");
-      def2.outputs = getsocks("outputs");
-
-      return def2;
+      /* the copy exists so callers may not scribble on the class's own def;
+         inputs and outputs come back with inheritance already resolved. */
+      return {...def, inputs: getsocks("inputs"), outputs: getsocks("outputs")};
     }
 
     /**
@@ -795,8 +829,9 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
     }
 
     copyTo(b: GraphNodeType) {
+      /* NOTE: `b.uiname = this.uiname` sat here.  GraphNode spells it
+         graph_uiname, so it copied undefined onto a field nothing reads. */
       b.graph_name = this.graph_name;
-      b.uiname = this.uiname;
       b.icon = this.icon;
       b.graph_flag = this.graph_flag;
 
@@ -807,7 +842,9 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
         for (let k in sockets1) {
           let sock1 = sockets1[k];
 
-          if (!k in sockets2) {
+          /* NOTE: was `!k in sockets2`, which parses as (!k) in sockets2 and
+             is always false, so the sock2 lookup below threw on a missing key. */
+          if (!(k in sockets2)) {
             sockets2[k] = sock1.copy();
           }
 
@@ -914,11 +951,13 @@ export function mixinGraphNode(parent: Function, structName = parent.constructor
           let s1 = socks1[k];
           let s2 = socks2[k];
 
-          if (s1.constructor !== s2.constructor) {
+          let cls1 = s1.constructor, cls2 = s2.constructor;
+
+          if (cls1 !== cls2) {
             console.warn("==========================Node patch!", s1, s2);
 
             //our types differ?
-            if ((s2 instanceof s1.constructor) || (s1 instanceof s2.constructor)) {
+            if ((s2 instanceof cls1) || (s1 instanceof cls2)) {
               console.log("Inheritance");
 
               //easy case, the old file uses a parent class of a new one,
@@ -1095,12 +1134,14 @@ export class CallbackNode extends GraphNode {
     ret.inputs = inputs;
     ret.outputs = outputs;
 
+    /* NOTE: both loops assigned `this`, which in a static factory is the
+       CallbackNode class itself, so no socket knew its owning node. */
     for (let k in inputs) {
-      ret.inputs[k].node = this;
+      ret.inputs[k].node = ret;
     }
 
     for (let k in outputs) {
-      ret.outputs[k].node = this;
+      ret.outputs[k].node = ret;
     }
 
     return ret;
@@ -1277,7 +1318,10 @@ export class Graph {
     let sortlist = this.sortlist;
     let nodes = this.nodes;
 
-    this.graph_flag &= ~NodeFlags.CYCLIC;
+    /* NOTE: `this.graph_flag &= ~NodeFlags.CYCLIC` sat here.  NodeFlags has
+       no CYCLIC -- it is a GraphFlags bit -- so ~undefined is -1 and the
+       statement cleared nothing; the graph stays flagged cyclic once sort()
+       has seen a cycle.  Spelling it right would change exec()'s branch. */
 
     sortlist.length = 0;
 
@@ -1589,20 +1633,24 @@ export class Graph {
 
     for (let n of this.nodes) {
       for (let s of n.allsockets) {
-        for (let i=0; i<s.edges.length; i++) {
-          s.edges[i] = sock_idmap[s.edges[i]];
+        /* nstructjs read the edge list as graph_ids; this pass swaps in the
+           sockets those ids name. */
+        let edges: (NodeSocketType | number | undefined)[] = s.edges;
 
-          if (!s.edges[i]) {
+        for (let i=0; i<edges.length; i++) {
+          edges[i] = sock_idmap[edges[i] as number];
+
+          if (!edges[i]) {
             //probably a connection to a zombie node, which aren't saved?
             let j = i;
 
-            while (j < s.edges.length-1) {
-              s.edges[j] = s.edges[j+1];
+            while (j < edges.length-1) {
+              edges[j] = edges[j+1];
               j++;
             }
 
-            s.edges[s.edges.length-1] = undefined;
-            s.edges.length--;
+            edges[edges.length-1] = undefined;
+            edges.length--;
 
             i--;
           }
@@ -1834,162 +1882,6 @@ graph.Graph {
 `;
 nstructjs.manager.add_class(Graph);
 
-export function test(exec_cycles=true) {
-  let ob1, ob2;
-
-  class SceneObject extends GraphNode {
-    constructor(mesh) {
-      super();
-      this.mesh = mesh;
-    }
-
-    static nodedef() {return {
-      inputs : {
-        depend : new DependSocket("depend", SocketFlags.MULTI),
-        matrix : new Matrix4Socket("matrix"),
-        color  : new Vec4Socket("color"),
-        loc    : new Vec3Socket("loc")
-      },
-
-      outputs : {
-        color : new Vec4Socket("color"),
-        matrix : new Matrix4Socket("matrix"),
-        depend : new DependSocket("depend")
-      }
-    }}
-
-    getLoc() {
-      let p = new Vector3();
-
-      p.multVecMatrix(this.outputs.matrix.getValue());
-
-      return p;
-    }
-
-    exec() {
-      let pmat = this.inputs.matrix.getValue();
-      if (this.inputs.matrix.edges.length > 0) {
-        pmat = this.inputs.matrix.edges[0].getValue();
-      }
-      let loc = this.inputs.loc.getValue();
-
-      let mat = this.outputs.matrix.getValue();
-
-      mat.makeIdentity();
-      mat.translate(loc[0], loc[1], loc[2]);
-      mat.multiply(pmat);
-
-      this.outputs.matrix.setValue(mat);
-      this.outputs.depend.setValue(true);
-
-      this.outputs.matrix.graphUpdate();
-      this.outputs.depend.graphUpdate();
-
-      let color = this.inputs.color.getValue();
-
-      if (this.inputs.color.edges.length > 0) {
-        let ob1 = this, ob2 = this.inputs.color.edges[0].node;
-        let p1 = ob1.getLoc(), p2 = ob2.getLoc();
-
-        let f = p1.vectorDistance(p2);
-
-        color[0] = color[1] = f;
-        color[3] = 1.0;
-      }
-
-      this.outputs.color.setValue(color);
-      /* NOTE: was graphUdate(); it threw. */
-      this.outputs.color.graphUpdate();
-
-      this.mesh.uniforms.objectMatrix = this.outputs.matrix.getValue();
-      //console.log("node exec", this.graph_id, this.graph_graph.sortlist[0].graph_id, this.graph_graph .sortlist[1].graph_id);
-    }
-  }
-
-  let mesh = new simplemesh.SimpleMesh();
-  let gl = _appstate.gl;
-  mesh.program = gl.program;
-
-  let m1 = mesh.island;
-  let m2 = mesh.add_island();
-
-  m1.tri([-1, -1, 0], [0, 1, 0], [1, -1, 0]);
-  m2.tri([-1, -1, 0.1], [0, 1, 0.1], [1, -1, 0.1]);
-
-  m1.uniforms = {};
-  m2.uniforms = {};
-
-  ob1 = new SceneObject(m1);
-  ob2 = new SceneObject(m2);
-
-  let graph = new Graph();
-  graph.graph_flag |= GraphFlags.CYCLIC_ALLOWED;
-  graph.add(ob1);
-  graph.add(ob2);
-
-  ob1.inputs.color.setValue(new Vector4([0, 0, 0, 1]));
-  ob2.inputs.color.setValue(new Vector4([1, 0.55, 0.25, 1]));
-
-  //console.log(list(ob1.allsockets));
-
-  ob1.outputs.matrix.connect(ob2.inputs.matrix);
-  ob2.outputs.color.connect(ob1.inputs.color);
-
-  let last = ob2;
-  let x = 1.0;
-  let z = .2;
-
-  //make a chain!
-  for (let i=0; i<35; i++) {
-    let m2 = mesh.add_island();
-
-    m2.tri([-1, -1, z], [0, 1, z], [1, -1, z]);
-    z += .001;
-    m2.uniforms = {};
-
-    let ob = new SceneObject(m2);
-    graph.add(ob);
-
-    ob.inputs.loc.setValue(new Vector3([x-0.3, i*0.01, 0.0]));
-
-    last.inputs.color.connect(ob.outputs.color);
-    last.outputs.matrix.connect(ob.inputs.matrix);
-
-    last = ob;
-    m2.uniforms.objectMatrix = ob.outputs.matrix.getValue();
-    m2.uniforms.uColor = ob.outputs.color.getValue();
-
-    x += 0.001;
-  }
-  //don't start out in topological order
-  //graph.nodes.reverse();
-
-  _appstate.mesh = mesh;
-
-  let loc = new Vector3();
-
-  let t = 0.0;
-
-  ob2.inputs.loc.setValue(new Vector3([0.5, 0.0, 0.0]));
-  window.d = 0;
-
-  window.setInterval(() => {
-    loc[0] = Math.cos(t+window.d)*0.95 + window.d;
-    loc[1] = Math.sin(t)*0.95;
-
-    ob1.inputs.loc.setValue(loc);
-    ob1.graphUpdate();
-
-    graph.max_cycle_steps = 128;
-    graph.exec(undefined, !exec_cycles);
-
-    m1.uniforms.objectMatrix = ob1.outputs.matrix.getValue();
-    m2.uniforms.objectMatrix = ob2.outputs.matrix.getValue();
-
-    m1.uniforms.uColor = ob1.outputs.color.getValue();
-    m2.uniforms.uColor = [0, 0, 0, 1];//ob2.outputs.color.getValue();
-
-    t += 0.05;
-    window.redraw_all();
-  }, 10);
-}
+/* NOTE: a `test()` demo lived here.  It was exported but never imported,
+   and referred to DependSocket, Matrix4Socket, Vec3Socket, simplemesh and
+   _appstate.gl, none of which this module has.  Removed. */

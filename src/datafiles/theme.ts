@@ -13,13 +13,21 @@ export function darken(c : number[], m : number) {
 export class BoxColor {
   static STRUCT : string;
 
-  /* The four corner colors.  NOTE: BoxWColor replaces this with an accessor
-     pair, so the assignment below runs through its setter and trips the
-     "undefined was passed" warning on every construction. */
-  colors : number[][] | undefined;
+  /* Backing store for the colors accessor.  NOTE: BoxWColor overrides the
+     accessor pair, so the assignment below runs through its setter and trips
+     the "undefined was passed" warning on every construction. */
+  _colors : number[][] | undefined;
 
   constructor() {
     this.colors = undefined; //[clr1, clr2, clr3, clr4, can be a getter
+  }
+
+  get colors() : number[][] | undefined {
+    return this._colors;
+  }
+
+  set colors(c : number[][] | undefined) {
+    this._colors = c;
   }
 
   copy() {
@@ -93,18 +101,17 @@ export class BoxWColor extends BoxColor {
     this.weights = [weights[0], weights[1], weights[2], weights[3]];
   }
 
-  set colors(c : number[] | number[][]) {
+  /* NOTE: an `else this.color = c` branch handled a flat RGBA here.  Nothing
+     assigns colors on a BoxWColor -- the base constructor's
+     `this.colors = undefined` is the only call this setter ever sees. */
+  set colors(c : number[][] | undefined) {
     if (c === undefined) {
       if (DEBUG.theme)
         console.warn("undefined was passed to BoxWColor.colors setter")
       return;
     }
 
-    if (typeof c[0] == "object") {
-      this.color = c[0];
-    } else {
-      this.color = c;
-    }
+    this.color = c[0];
   }
 
   get colors() : number[][] {
@@ -163,6 +170,9 @@ export class ColorTheme {
   /* [key, color] pairs, rebuilt by gen_colors() for the data api. */
   flat_colors : GArray<[string, ThemeColor]>;
 
+  /* Set once by init_theme(); reload_default_theme() copies it back. */
+  original? : ColorTheme;
+
   /* Written by nstructjs, folded into colors/boxcolors and deleted by
      fromSTRUCT. */
   colorkeys? : string[];
@@ -203,13 +213,13 @@ export class ColorTheme {
     }
 
     for (var k of this.boxcolors) {
-      var c = this.boxcolors.get(k);
+      let c = this.boxcolors.get(k);
 
       ret.boxcolors.set(k, cpy(c));
     }
 
     for (var k of this.colors) {
-      var c = this.colors.get(k);
+      let c = this.colors.get(k);
 
       ret.colors.set(k, cpy(c));
     }
@@ -222,7 +232,10 @@ export class ColorTheme {
     if (newtheme == undefined)
       return;
 
-    var ks = new set<string>(newtheme.colors.keys()).union(newtheme.boxcolors.keys());
+    /* hashtable.keys() hands back keystrs, and union() wants a set; passing
+       the GArray straight in worked only because union() just iterates it. */
+    var ks = new set<KeyStr>(newtheme.colors.keys())
+      .union(new set<KeyStr>(newtheme.boxcolors.keys()));
 
     for (var k of this.colors) {
       if (!ks.has(k)) {
@@ -270,8 +283,10 @@ export class ColorTheme {
     return s;
   }
 
-  gen_colors() : {[key : string] : number[]} {
-    var ret : {[key : string] : number[]} = {};
+  /* Box colors contribute their four corners, so the values are not all flat
+     RGBA.  Nothing reads window.uicolors back. */
+  gen_colors() : {[key : string] : number[] | number[][]} {
+    var ret : {[key : string] : number[] | number[][]} = {};
 
     //used to communicate with the data api
     this.flat_colors = new GArray();
@@ -288,7 +303,7 @@ export class ColorTheme {
     }
 
     for (var k of this.boxcolors) {
-      ret[k] = this.boxcolors.get(k).colors;
+      ret[k] = this.boxcolors.get(k).colors ?? [];
       this.flat_colors.push([k, this.boxcolors.get(k)]);
     }
 
@@ -299,14 +314,14 @@ export class ColorTheme {
     var c = new ColorTheme({});
     reader(c);
 
-    var ks = c.colorkeys;
-    for (var i=0; i<ks.length; i++) {
-      c.colors.set(ks[i], c.colorvals[i]);
+    let colorkeys = c.colorkeys ?? [], colorvals = c.colorvals ?? [];
+    for (var i=0; i<colorkeys.length; i++) {
+      c.colors.set(colorkeys[i], colorvals[i]);
     }
 
-    var ks = c.boxkeys;
-    for (var i=0; i<ks.length; i++) {
-      c.boxcolors.set(ks[i], c.boxvals[i]);
+    let boxkeys = c.boxkeys ?? [], boxvals = c.boxvals ?? [];
+    for (var i=0; i<boxkeys.length; i++) {
+      c.boxcolors.set(boxkeys[i], boxvals[i]);
     }
 
     delete c.colorkeys;
@@ -342,12 +357,18 @@ window.colors3d = {};
 export class Theme {
   static STRUCT : string;
 
-  ui : ColorTheme;
-  view2d : ColorTheme;
+  /* Both are optional so fromSTRUCT can `new Theme()`; the reader fills them. */
+  ui! : ColorTheme;
+  view2d! : ColorTheme;
 
   constructor(ui? : ColorTheme, view2d? : ColorTheme) {
-    this.ui = ui;
-    this.view2d = view2d;
+    if (ui !== undefined) {
+      this.ui = ui;
+    }
+
+    if (view2d !== undefined) {
+      this.view2d = view2d;
+    }
   }
 
   patch(theme : Theme) {
@@ -397,6 +418,6 @@ window.init_theme = function() {
 
 export function reload_default_theme() {
   //UITheme.original
-  window.g_theme = new Theme(window.UITheme.original.copy(), window.View2DTheme.original.copy());
+  window.g_theme = new Theme(window.UITheme.original?.copy(), window.View2DTheme.original?.copy());
   window.g_theme.gen_globals();
 }

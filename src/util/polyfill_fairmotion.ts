@@ -41,7 +41,9 @@ function startup_report(message: string) {
   */
 }
 
-function startup_warning(message: string) {
+/* Extra arguments are accepted and ignored; the code that logged them is
+   commented out below. */
+function startup_warning(message: string, ..._args: unknown[]) {
   //args = new Array(arguments.length+2);
   
   console.trace("%c " + message + "\n\n", "color:red");
@@ -81,7 +83,9 @@ function warntrace(message: string, ...rest: unknown[]) {
 }
 
 if (Symbol.keystr === undefined) {
-  Symbol.keystr = Symbol("keystr");
+  /* Declared `readonly unique symbol`, which is what keeps every
+     [Symbol.keystr]() member from collapsing into a symbol index signature. */
+  Reflect.set(Symbol, "keystr", Symbol("keystr"));
 }
 
 /*check for various api calls that aren't implemented by all browsers*/
@@ -109,7 +113,7 @@ if (Array.prototype.remove === undefined) {
 
 /* These three test a *static* String member that has never existed, so they
    always run and always shadow the native String.prototype methods. */
-if (String.startsWith == undefined) {
+if (Reflect.get(String, "startsWith") == undefined) {
     String.prototype.startsWith = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
@@ -123,7 +127,7 @@ if (String.startsWith == undefined) {
     }
 }
 
-if (String.endsWith == undefined) {
+if (Reflect.get(String, "endsWith") == undefined) {
     String.prototype.endsWith = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
@@ -138,7 +142,7 @@ if (String.endsWith == undefined) {
 }
 
 //this needs to be converted to use regexpr's
-if (String.contains == undefined) {
+if (Reflect.get(String, "contains") == undefined) {
     String.prototype.contains = function (this: string, str: string) {
         if (str.length > this.length)
             return false;
@@ -170,20 +174,24 @@ window._my_object_keys = function(obj: object) {
 }
 
 //more consistent is_str function
+/* NOTE: a `|| typeof str == "String"` sat here.  typeof never returns that. */
 function is_str(str: unknown) : str is string {
-    return typeof str == "string" || typeof str == "String";
+    return typeof str == "string";
 }
 
 //get type name, even for mangled objects
-function get_type_name(obj) {
+function get_type_name(obj: object | null | undefined) {
     if (obj == undefined) return "undefined"
     if (obj.constructor != undefined && obj.constructor.name != undefined && obj.constructor.name != "")
         return obj.constructor.name;
 
-    var c;
+    var c = "";
 
     try {
-        var c = obj.toSource()
+        /* toSource() is a long-dead Gecko extension, so this has always thrown
+           and left c empty; the two contains() tests below never fire. */
+        var tosource = Reflect.get(obj, "toSource");
+        c = "" + tosource.call(obj);
     } catch (Error) {
         c = ""
     }
@@ -206,7 +214,9 @@ function get_type_name(obj) {
     if (obj.constructor == MouseEvent)
         return "MouseEvent"
 
-    if (obj.constructor == KeyEvent)
+    /* NOTE: KeyEvent was a Gecko global and is gone, so reaching this line
+       throws a ReferenceError; read off window instead of bare. */
+    if (obj.constructor == Reflect.get(window, "KeyEvent"))
         return "KeyEvent"
 
     if (obj.constructor == KeyboardEvent)

@@ -1,21 +1,21 @@
 import {STRUCT} from '../core/struct.js';
-import {DataBlock, DataTypes} from '../core/lib_api.js';
+import {DataBlock, DataRef, DataTypes} from '../core/lib_api.js';
 import {SplineFrameSet} from "../core/frameset.js";
 import {SceneObject, ObjectFlags} from './sceneobject.js';
 import {DataPathNode} from '../core/eventdag.js';
 import {SplineElement} from "../curve/spline_base.js";
-import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
+import {ToolModes, asNamedList, makeNamedList} from "../editors/viewport/toolmodes/toolmode.js";
 import {SelMask} from "../editors/viewport/selectmode.js";
 import {Collection} from './collection.js';
 
-import type {ToolMode} from "../editors/viewport/toolmodes/toolmode.js";
+import type {ToolMode, NamedList} from "../editors/viewport/toolmodes/toolmode.js";
 import type {DataLib, GetBlockFunc, GetBlockUserFunc} from '../core/lib_api.js';
 import type {FullContext} from '../core/context.js';
-import type {SocketMap, EventDag} from '../core/eventdag.js';
+import type {DagCallback, SocketValue} from '../core/eventdag.js';
 
-/* A dag callback as linkDag() registers them. */
-export type SceneDagNode = (ctx : FullContext, inputs : SocketMap,
-                            outputs : SocketMap, graph : EventDag) => void;
+/* A dag callback as linkDag() registers them; link() stamps NodeBase's
+   prototype onto the function object itself. */
+export type SceneDagNode = DagCallback;
 
 export class ObjectList extends Array<SceneObject> {
   /* Keyed on SceneObject.id, not lib_id. */
@@ -48,6 +48,8 @@ export class ObjectList extends Array<SceneObject> {
 
   push(ob: SceneObject) {
     this.add(ob);
+
+    return this.length;
   }
 
   add(ob: SceneObject) {
@@ -76,17 +78,17 @@ export class ObjectList extends Array<SceneObject> {
   }
 
   /* NOTE: all three of these hand back the generator *function*, not a
-     generator, and its body reads `this.objects` -- a field ObjectList does
-     not have, on a `this` that is undefined inside a non-arrow function*.
-     The only consumer, transform_object.ts, iterates the result with
-     `for..in`, which walks a function's own enumerable keys and so finds
-     nothing.  Object transform has been dead the whole time; annotating it
-     honestly rather than reviving it. */
+     generator, and its body walked `this.objects` -- a field ObjectList does
+     not have, on a `this` that is undefined inside a non-arrow function, so
+     iterating either one threw.  The only consumer, transform_object.ts,
+     iterates the result with `for..in`, which walks a function's own
+     enumerable keys and so finds nothing.  Object transform has been dead the
+     whole time; the loops walk the list itself now, but nothing reaches them. */
   get editable() : () => Generator<SceneObject> {
     let this2 = this;
 
     return (function* () {
-      for (let ob of this.objects) {
+      for (let ob of this2) {
         if (ob.flag & ObjectFlags.HIDE)
           continue;
 
@@ -100,11 +102,18 @@ export class ObjectList extends Array<SceneObject> {
     return this.editable;
   }
 
+  /* NOTE: `bad` was computed and then never tested, so this yielded hidden and
+     unselected objects too. */
   get selected_editable() : () => Generator<SceneObject> {
+    let this2 = this;
+
     return (function* () {
-      for (let ob of this.objects) {
-        let bad = (ob.flag & ObjectFlags.HIDE);
-        bad = bad | !(ob.flag & ObjectFlags.SELECT);
+      for (let ob of this2) {
+        if (ob.flag & ObjectFlags.HIDE)
+          continue;
+
+        if (!(ob.flag & ObjectFlags.SELECT))
+          continue;
 
         yield ob;
       }
@@ -212,6 +221,12 @@ LayerIDSet {
 
 export class ToolModeSwitchError extends Error {}
 
+/* mixin(Scene, DataPathNode) at the bottom of this file copies the whole
+   DataPathNode prototype across; this is the part of it Scene uses. */
+export interface Scene {
+  dag_update(output_socket_name : string, data? : SocketValue) : void;
+}
+
 export class Scene extends DataBlock {
   static STRUCT : string;
 
@@ -227,7 +242,7 @@ export class Scene extends DataBlock {
   dagnodes: SceneDagNode[];
   /* Instances, one per registered ToolModeClass, with the same by-name index
      the ToolModes registry carries. */
-  toolmodes: ToolMode[] & {map : {[name : string] : ToolMode}};
+  toolmodes: NamedList<ToolMode>;
   selectmode: number;
   collection: Collection | undefined;
   /* Written by nstructjs, consumed and deleted by loadSTRUCT. */
@@ -262,8 +277,7 @@ export class Scene extends DataBlock {
 
     //this.layer_idset = new LayerIDSet();
 
-    this.toolmodes = [];
-    this.toolmodes.map = {};
+    this.toolmodes = makeNamedList<ToolMode>();
     this.toolmode_i = 0;
 
     this.selectmode = SelMask.VERTEX;
@@ -281,10 +295,14 @@ export class Scene extends DataBlock {
   }
 
   _initCollection(datalib : DataLib) {
-    this.collection = new Collection();
-    datalib.add(this.collection);
+    let collection = new Collection();
 
-    this.collection.lib_adduser(this);
+    this.collection = collection;
+    datalib.add(collection);
+
+    /* NOTE: the reference name was omitted; nothing reads UserRef.name back
+       (lib_remuser matches on srcname), so this only fills in the blank. */
+    collection.lib_adduser(this, "collection");
   }
 
   switchToolMode(tname : string) {
@@ -421,7 +439,7 @@ export class Scene extends DataBlock {
     }
     this.objects = objs;
 
-    if (this.active_object >= 0) {
+    if (this.active_object !== undefined && this.active_object >= 0) {
       this.objects.active = this.objects.idmap[this.active_object];
     }
 
@@ -440,14 +458,19 @@ export class Scene extends DataBlock {
     super.data_link(block, getblock, getblock_us);
 
     if (this.collection !== undefined) {
-      this.collection = getblock_us(this.collection);
+      /* NOTE: getblock_us also wants the owning block and the field name; with
+         both dropped it built its rem_func out of a pair of undefineds.  The
+         field holds the on-disk DataRef at this point, not a Collection. */
+      let block = getblock_us(new DataRef(this.collection), this, "collection");
+
+      this.collection = block instanceof Collection ? block : undefined;
     }
 
     for (let i = 0; i < this.objects.length; i++) {
       this.objects[i].data_link(block, getblock, getblock_us);
     }
 
-    this.toolmodes.map = {};
+    this.toolmodes = asNamedList(this.toolmodes);
 
     for (let tool of this.toolmodes) {
       tool.dataLink(this, getblock, getblock_us);
@@ -458,7 +481,9 @@ export class Scene extends DataBlock {
     for (let cls of ToolModes) {
       let def = cls.toolDefine();
 
-      if (!(def.name in this.toolmodes)) {
+      /* NOTE: this tested the array rather than its by-name index, so it never
+         matched and every load appended a second instance of every mode. */
+      if (!(def.name in this.toolmodes.map)) {
         let tool = new cls();
         this.toolmodes.push(tool);
         this.toolmodes.map[def.name] = tool;

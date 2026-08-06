@@ -100,20 +100,26 @@ _b64_map["="] = 65;
 var _b64_arr = [0, 1, 2, 3];
 export function b64encode(arr : string | ArrayLike<number>, add_newlines=false, collimit=76) {
   var s = "";
-  var is_str = btypeof(arr) == "string";
-  
+  const is_str = typeof arr === "string";
+
   var ci = 0;
   for (let i=0; i<arr.length-2; i += 3) {
-    if (arr[i] < 0 || arr[i] > 255) {
+    /* The string form indexes to a one-character string, which compares false
+       against both bounds, so this check has only ever covered byte arrays. */
+    if (!is_str && (arr[i] < 0 || arr[i] > 255)) {
       console.log("Invalid input ", arr[i], " at index ", i, " passed to B64Encode")
       throw new Error("Invalid input " + arr[i] +" at index " + i +" passed to B64Encode");
     }
-    
-    var a = arr[i], b = arr[i+1], c = arr[i+2];
+
+    var a, b, c;
     if (is_str) {
-      a = a.charCodeAt(0);
-      b = b.charCodeAt(0);
-      c = c.charCodeAt(0);
+      a = arr.charCodeAt(i);
+      b = arr.charCodeAt(i+1);
+      c = arr.charCodeAt(i+2);
+    } else {
+      a = arr[i];
+      b = arr[i+1];
+      c = arr[i+2];
     }
     var n = a | (b << 8) | (c << 16)
     
@@ -140,25 +146,23 @@ export function b64encode(arr : string | ArrayLike<number>, add_newlines=false, 
     i = arr.length % 3;
     
     if (i == 1) {
-      var n = arr[arr.length-1];
-      if (is_str)
-        n = n.charCodeAt(0);
-      
-      var b1 = n & 63;
-      var b2 = (n>>6) & 63;
-      
+      let n2 = is_str ? arr.charCodeAt(arr.length-1) : arr[arr.length-1];
+
+      var b1 = n2 & 63;
+      var b2 = (n2>>6) & 63;
+
       s += _b64str.charAt(b1) + _b64str.charAt(b2) + "==";
     } else {
-      var n;
-      
+      let n2;
+
       if (is_str)
-        n = arr[arr.length-2].charCodeAt(0) | (arr[arr.length-1].charCodeAt(0)<<8);
-      else 
-        n = arr[arr.length-2] | (arr[arr.length-1]<<8);
-      
-      var b1 = n & 63;
-      var b2 = (n>>6) & 63;
-      var b3 = (n>>12) & 63;
+        n2 = arr.charCodeAt(arr.length-2) | (arr.charCodeAt(arr.length-1)<<8);
+      else
+        n2 = arr[arr.length-2] | (arr[arr.length-1]<<8);
+
+      var b1 = n2 & 63;
+      var b2 = (n2>>6) & 63;
+      var b3 = (n2>>12) & 63;
       
       s += _b64str.charAt(b1) + _b64str.charAt(b2) + _b64str.charAt(b3) + "=";
     }
@@ -180,8 +184,11 @@ export function b64decode(s: string, gen_str=false, gen_uint8arr=true): string |
   }
   
   s = s2;
-  s2 = gen_str ? "" : []
-  
+
+  /* The two output forms are built side by side; only one is ever filled. */
+  let str = "";
+  let bytes : byte[] = [];
+
   for (let i=0; i<s.length; i += 4) {
     var a = _b64_map[s[i]], b = _b64_map[s[i+1]], c = _b64_map[s[i+2]], d=_b64_map[s[i+3]];
     var n = a | (b<<6) | (c<<12) | (d<<18)
@@ -189,20 +196,20 @@ export function b64decode(s: string, gen_str=false, gen_uint8arr=true): string |
     if (c == 65) {
       a = n & 255;
       if (gen_str)
-        s2 += String.fromCharCode(a);
+        str += String.fromCharCode(a);
       else
-        s2.push(a);
-      
+        bytes.push(a);
+
       continue;
     } else if (d == 65) {
       a = n & 255;
       b = (n>>8) & 255;
       if (gen_str) {
-        s2 += String.fromCharCode(a) + String.fromCharCode(b);
+        str += String.fromCharCode(a) + String.fromCharCode(b);
       } else {
-        s2.push(a); s2.push(b);
+        bytes.push(a); bytes.push(b);
       }
-      
+
       continue;
     }
     
@@ -210,21 +217,23 @@ export function b64decode(s: string, gen_str=false, gen_uint8arr=true): string |
     b = (n>>8) & 255;
     c = (n>>16) & 255;
     
+    /* NOTE: the third byte used to be guarded by `d != "="`, but d is a
+       _b64_map lookup, i.e. a number, and the d === 65 padding case already
+       continued above -- so the guard was always true either way. */
     if (gen_str) {
-      s2 += String.fromCharCode(a) + String.fromCharCode(b);
-      if (d != "=")
-        s2 += String.fromCharCode(c);
+      str += String.fromCharCode(a) + String.fromCharCode(b) + String.fromCharCode(c);
     } else {
-      s2.push(a); s2.push(b); 
-      if (d != "=")
-        s2.push(c);
+      bytes.push(a); bytes.push(b); bytes.push(c);
     }
   }
-  
-  if (!gen_str && gen_uint8arr)
-    s2 = new Uint8Array(s2);
-  
-  return s2;
+
+  if (gen_str)
+    return str;
+
+  if (gen_uint8arr)
+    return new Uint8Array(bytes);
+
+  return bytes;
 }
 
 export function limit_line(s : string, limit=80) {
@@ -286,7 +295,7 @@ export function urlencode(s : string) {
   return s2;
 }
 
-export function encode_dataurl(mimetype : string, buffer : ArrayBuffer) {
+export function encode_dataurl(mimetype : string, buffer : ArrayBuffer | Uint8Array) {
   var uview = new Uint8Array(buffer);
   
   var ret = "data:"+mimetype+";base64,"

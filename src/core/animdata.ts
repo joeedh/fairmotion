@@ -122,7 +122,7 @@ export class AnimKey extends DataPathWrapperNode {
   mode: number;
   /* The keyed value, boxed in whatever ToolProperty the channel's proptype
      asks for. Unset until the channel first writes one. */
-  data?: ToolProperty;
+  data?: ToolProperty<number>;
   //used by spline code only
   owner_eid: number;
   channel?: AnimChannel;
@@ -145,14 +145,14 @@ export class AnimKey extends DataPathWrapperNode {
   }
 
   dag_get_datapath(ctx?: FullContext): string {
-    let owner = this.channel.owner;
+    let owner = this.channel!.owner!;
     let path;
 
     if (owner.lib_id <= -1) {
       //okay, this datablock isn't actually in the datalib,
       //it's direct data of another datablock.  lets assume it
       //has a .dag_get_datapath method. :) evil!
-      path = owner.dag_get_datapath();
+      path = Reflect.get(owner, "dag_get_datapath").call(owner);
     } else {
       let name = DataNames[owner.lib_type].toLowerCase();
       path = "datalib.items[" + owner.lib_id + "]";
@@ -165,7 +165,7 @@ export class AnimKey extends DataPathWrapperNode {
 
   set_time(time: number) {
     this.time = time;
-    this.channel.resort = true;
+    this.channel!.resort = true;
   }
 
   static fromSTRUCT(reader: StructReader<AnimKey>) {
@@ -220,14 +220,16 @@ export class AnimChannel {
   //these two members are references to the owning datablock's
   //lib_anim_idgen and lib_anim_idmap members
   idgen?: EIDGen;
-  idmap?: {[id: number]: AnimKey};
+  /* The owning DataBlock's lib_anim_idmap, which also holds the channels. */
+  idmap?: {[id: number]: AnimChannel | AnimKey};
 
-  constructor(proptype: number, name?: string, path?: string) {
+  /* fromSTRUCT() constructs one with nothing and lets the reader fill it in. */
+  constructor(proptype?: number, name?: string, path?: string) {
     this.keys = [];
     this.resort = false;
-    this.proptype = proptype;
+    this.proptype = proptype!;
     this.name = name === undefined ? "unnamed" : name;
-    this.path = path;
+    this.path = path!;
     this.id = -1;
 
     this.owner = undefined;
@@ -240,17 +242,17 @@ export class AnimChannel {
 
   add(key: AnimKey) {
     if (key.id === -1) {
-      key.id = this.idgen.gen_id();
+      key.id = this.idgen!.gen_id();
     }
 
-    this.idmap[key.id] = key;
+    this.idmap![key.id] = key;
     this.keys.push(key);
 
     return this;
   }
 
   remove(key: AnimKey) {
-    delete this.idmap[key.id];
+    delete this.idmap![key.id];
     this.keys.remove(key);
     this.resort = true;
 
@@ -287,7 +289,7 @@ export class AnimChannel {
 
     for (let i = 0; i < this.keys.length; i++) {
       if (this.keys[i].time === time) {
-        this.keys[i].data.setValue(val);
+        this.keys[i].data!.setValue(val);
         return this.keys[i];
       }
     }
@@ -296,11 +298,11 @@ export class AnimChannel {
 
     let key = new AnimKey();
 
-    key.id = this.idgen.gen_id();
-    this.idmap[key.id] = key;
+    key.id = this.idgen!.gen_id();
+    this.idmap![key.id] = key;
 
     key.channel = this;
-    key.data = new propcls();
+    key.data = new propcls!();
     key.data.setValue(val);
     key.time = time;
 
@@ -315,7 +317,10 @@ export class AnimChannel {
       this._do_resort();
     }
 
-    for (let i = 0; i < this.keys.length; i++) {
+    /* NOTE: `i` used to be declared in the for statement, so the four reads
+       below it threw a ReferenceError -- evaluate() has never returned. */
+    let i = 0;
+    for (; i < this.keys.length; i++) {
       let k = this.keys[i];
       if (k.time > time) {
         break;
@@ -333,7 +338,7 @@ export class AnimChannel {
     }
 
     //for now, just assume we're interpolating numbers
-    let a = prev.data.data, b = key.data.data;
+    let a = prev.data!.data, b = key.data!.data;
 
     let ret;
     if (key.mode === AnimInterpModes.STEP)

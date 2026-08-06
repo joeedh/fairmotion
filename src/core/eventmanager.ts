@@ -78,24 +78,28 @@ export class EventHandler {
   }
 }
 
-export function copyEvent(event: Event) {
-  let ret: CopiedEvent = {stopped : false};
-  
+/* Also called on an already-copied event, from bindDom()'s listener.  The two
+   methods are bound up front rather than after the loop; the loop only copies
+   numbers, booleans and objects, so it could never have overwritten them. */
+export function copyEvent(event: Event | CopiedEvent) {
+  let ret: CopiedEvent = {
+    stopped         : false,
+    stopPropagation : event.stopPropagation.bind(event),
+    preventDefault  : event.preventDefault.bind(event),
+  };
+
   for (let k in event) {
-    let v = event[k];
+    let v = Reflect.get(event, k);
     let ok = typeof v == "number" || typeof v == "boolean" || typeof v == "object";
     ok = ok || k.search("touch") >= 0;
-    
+
     if (ok) {
       ret[k] = v;
     }
   }
-  
+
   //ret = JSON.parse(JSON.stringify(ret));
-  
-  ret.stopPropagation = event.stopPropagation.bind(event);
-  ret.preventDefault = event.preventDefault.bind(event);
-  
+
   return ret;
 }
 
@@ -105,8 +109,7 @@ export class EventManager {
   /* Listener stacks, one per entry of `types`; the last one registered wins. */
   stacks : {[type: string]: EventCallback[]}
   _callbacks : {[type: string]: EventCallback}
-  /* Used as an array by pushModal()/popModal(), but built as `{}` -- see the
-     finding in docs/debugging.md. */
+  /* The modal handler stack; the top entry owns the listeners it pushed. */
   modal_stack : ModalData[];
   /* Events parked while _freeze is non-zero, replayed by _handleQueue(). */
   queue : CopiedEvent[];
@@ -119,7 +122,9 @@ export class EventManager {
     this.stacks = {}; //listener stacks
     this._callbacks = {};
     this.queue = [];
-    this.modal_stack = {};
+    /* NOTE: this was `{}`, which has no push(), so pushModal() threw a
+       TypeError the first time anything went modal. */
+    this.modal_stack = [];
     this.dom = undefined;
   }
   
@@ -132,7 +137,9 @@ export class EventManager {
       let key = "_on_" + type;
 
       return (e: CopiedEvent) => {
-        handler[key](e);
+        /* Dispatch is by name -- "_on_" + type -- and subclasses supply most of
+           the handlers, so the lookup has to stay dynamic. */
+        Reflect.get(handler, key).call(handler, e);
         e.stopPropagation();
         
         return true;
@@ -161,7 +168,11 @@ export class EventManager {
     }
     
     let modal_data = this.modal_stack.pop();
-    
+
+    if (modal_data === undefined) {
+      return;
+    }
+
     for (let k of modal_data.keys) {
       this.popEventListener(k);
     }
@@ -172,19 +183,18 @@ export class EventManager {
   }
   
   fireEvent(type: string, data?: CopiedEvent) {
+    /* The two `=== undefined` defaults that stood here are folded into the
+       literal below; a CopiedEvent always carries both methods. */
     if (data === undefined) {
-      data = {};
+      data = {
+        stopped         : false,
+        stopPropagation : () => {},
+        preventDefault  : () => {},
+      };
     }
-    
+
     data.type = type;
-    if (data.stopPropagation === undefined) {
-      data.stopPropagation = () => {};
-    }
-    
-    if (data.preventDefault === undefined) {
-      data.preventDefault = () => {};
-    }
-    
+
     return this._callbacks[type](data);
   }
   
@@ -203,7 +213,11 @@ export class EventManager {
     for (let i=0; i<queue.length; i++) {
       let e = queue[i];
       let type = e._event_type;
-      
+
+      if (type === undefined) {
+        continue;
+      }
+
       let stack = this.stacks[type];
       
       for (let i=stack.length-1; i>=0; i--) {
@@ -225,6 +239,12 @@ export class EventManager {
   }
   
   bindDom() {
+    let rootDom = this.dom;
+
+    if (rootDom === undefined) {
+      throw new Error("EventManager.bindDom() called before init()");
+    }
+
     let makecb = (type: string) => {
       let stop = false;
 
@@ -233,9 +253,9 @@ export class EventManager {
         this.stopped = true;
       }
 
-      return (e: CopiedEvent) => {
-        e = copyEvent(e);
-        
+      return (event: Event | CopiedEvent) => {
+        let e = copyEvent(event);
+
         if (this._freeze) {
           e._event_type = type;
           this.queue.push(e);
@@ -253,7 +273,8 @@ export class EventManager {
         
         stop = false;
         
-        let stack = this.stacks[type], ret = 0;
+        let stack = this.stacks[type];
+        let ret : unknown = 0;
         for (let i=stack.length-1; !stop && i>= 0; i--) {
           ret = stack[i](e);
         }
@@ -267,14 +288,14 @@ export class EventManager {
     }
     
     for (let type of types) {
-      let dom = undefined;
-      
+      let dom : EventTarget;
+
       if (window_events.has(type)) {
         dom = window;
       } else if (document_events.has(type)) {
         dom = document;
       } else {
-        dom = this.dom;
+        dom = rootDom;
       }
 
       let cb = this._callbacks[type] = makecb(type);

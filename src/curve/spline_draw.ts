@@ -40,7 +40,17 @@ export const ColorFlags = {
   HIGHLIGHT: 4
 };
 
-export const FlagMap = {
+/* The eight SELECT/ACTIVE/HIGHLIGHT combinations.  FlagMap and the two color
+   tables below are all keyed by exactly these, which is what lets the loops
+   that build the colormaps walk one and index another. */
+export const ColorStates = [
+  "UNSELECT", "SELECT", "ACTIVE", "HIGHLIGHT", "SELECT_ACTIVE",
+  "SELECT_HIGHLIGHT", "HIGHLIGHT_ACTIVE", "SELECT_HIGHLIGHT_ACTIVE"
+] as const;
+
+export type ColorStateName = typeof ColorStates[number];
+
+export const FlagMap : Record<ColorStateName, number> = {
   UNSELECT               : 0,
   SELECT                 : ColorFlags.SELECT,
   ACTIVE                 : ColorFlags.ACTIVE,
@@ -63,7 +73,7 @@ function mix(a : number[], b : number[], t : number) {
 }
 
 //unnest table
-export const ElementColor = {
+export const ElementColor : Record<ColorStateName, number[]> = {
   UNSELECT               : [1, 0.133, 0.07],
   SELECT                 : [1, 0.6, 0.26],
   HIGHLIGHT              : [1, 0.93, 0.4],
@@ -74,7 +84,7 @@ export const ElementColor = {
   SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]
 };
 
-export const HandleColor = {
+export const HandleColor : Record<ColorStateName, number[]> = {
   UNSELECT               : [0.2, 0.7, 0.07],
   SELECT                 : [0.1, 1, 0.26],
   HIGHLIGHT              : [0.2, 0.93, 0.4],
@@ -97,21 +107,21 @@ function rgb2css(color : number[]) {
 //create final lookup table
 export const element_colormap = new Array<string>(8);
 
-for (let k in ElementColor) {
+for (let k of ColorStates) {
   let f = FlagMap[k];
   element_colormap[f] = rgb2css(ElementColor[k]);
 }
 
 //create final lookup table
 export const handle_colormap = new Array<string>(8);
-for (let k in HandleColor) {
+for (let k of ColorStates) {
   let f = FlagMap[k];
   handle_colormap[f] = rgb2css(HandleColor[k]);
 }
 
 /* Which of the SELECT/ACTIVE/HIGHLIGHT bits `e` has, as an index into the two
    colormaps above. */
-function get_element_flag(e : SplineElement, list : ElementArray<SplineElement>) {
+function get_element_flag<T extends SplineElement>(e : T, list : ElementArray<T>) {
   let f = 0;
 
   f |= e.flag & SplineFlags.SELECT ? ColorFlags.SELECT : 0;
@@ -121,7 +131,7 @@ function get_element_flag(e : SplineElement, list : ElementArray<SplineElement>)
   return f;
 }
 
-export function get_element_color(e : SplineElement, list : ElementArray<SplineElement>) {
+export function get_element_color<T extends SplineElement>(e : T, list : ElementArray<T>) {
   if (e.type == SplineTypes.HANDLE)
     return handle_colormap[get_element_flag(e, list)];
   else
@@ -166,7 +176,11 @@ export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number)
       n.mulScalar(k*(window._d != undefined ? window._d : 1000)/zoom);
 
       g.lineWidth = 1;//*zoom;
-      g.strokeColor = "%2233bb";
+
+      /* NOTE: there is no `strokeColor` on a 2d context -- it is strokeStyle --
+         and "%2233bb" is not a color either, so this debug overlay has always
+         drawn in whatever stroke style was already set.  Left as it stands. */
+      Reflect.set(g, "strokeColor", "%2233bb");
 
       g.beginPath();
       g.moveTo(co[0], co[1]);
@@ -185,8 +199,8 @@ export function draw_curve_normals(spline : Spline, g : Canvas2D, zoom : number)
    rects.  `alpha` is forwarded to nothing and unused here. */
 export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas2D,
                             editor : View2DHandler, matrix : Matrix4, selectmode : number,
-                            only_render : boolean, draw_normals : boolean, alpha : number,
-                            draw_time_helpers : boolean, curtime : number,
+                            only_render : number | boolean, draw_normals : number | boolean,
+                            alpha : number, draw_time_helpers? : boolean, curtime? : number,
                             ignore_layers? : boolean) {
   spline.canvas = g;
 
@@ -198,12 +212,12 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
     spline.drawer = new SplineDrawer(spline);
   }
 
-  let zoom = editor.zoom;
-  zoom = matrix.m11;
-
-  if (isNaN(zoom)) {
-    zoom = 1.0;
-  }
+  /* NOTE: this was `zoom = matrix.m11`.  The components live on
+     matrix.$matrix, so zoom came out undefined and the isNaN() reset that
+     followed made it 1.0 on every call -- editor.zoom above never survived
+     either.  Preserved rather than corrected: the true matrix scale would
+     change every line width and vertex size this function draws. */
+  let zoom = 1.0;
 
 
   spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix,
@@ -258,7 +272,7 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
 
     for (let seg of spline.segments) {
       let skip = (!ignore_layers && !seg.in_layer(actlayer));
-      skip = skip || (seg.flag & SplineFlags.HIDE);
+      skip = skip || (seg.flag & SplineFlags.HIDE) !== 0;
       skip = skip || (!(seg.flag & SplineFlags.SELECT) && seg !== spline.segments.active && seg !== spline.segments.highlight);
 
       if (skip) {
@@ -339,6 +353,12 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
 
       let ov = v.owning_segment.handle_vertex(v);
 
+      /* A handle whose segment does not claim it has nothing to draw a line to;
+         this used to throw on the load() below. */
+      if (ov === undefined) {
+        continue;
+      }
+
       tmp2.load(ov).multVecMatrix(matrix);
 
       g.moveTo(tmp1[0], tmp1[1]);
@@ -386,7 +406,7 @@ export function draw_spline(spline : Spline, redraw_rects : number[], g : Canvas
   }
 
   //XXX this does not go here!
-  if (spline.transforming && spline.proportional) {
+  if (spline.transforming && spline.proportional && spline.trans_cent !== undefined) {
     g.beginPath();
     g.arc(spline.trans_cent[0], spline.trans_cent[1], spline.prop_radius, -PI, PI);
     g.stroke();

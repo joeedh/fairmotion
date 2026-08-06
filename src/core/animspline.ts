@@ -20,7 +20,9 @@ let vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 import {PropTypes} from './toolprops.js';
 
 export class VertexAnimIter {
-  ret: {done: boolean; value: SplineVertex | undefined}
+  /* `value` is only meaningful while `done` is false, which is what a for..of
+     over this iterator sees; the done case leaves it undefined. */
+  ret: {done: boolean; value: SplineVertex}
   stop: boolean;
 
   /* The path being walked, and the current vertex/segment along it. All three
@@ -30,11 +32,13 @@ export class VertexAnimIter {
   s?: SplineSegment;
 
   constructor(vd?: VertexAnimData) {
-    this.ret = {done: false, value: undefined};
+    this.ret = {done: false, value: undefined!};
     this.stop = false;
 
+    /* NOTE: this called VertexAnimIter.init(this, vd), but init() is an
+       instance method, so constructing one with a vd threw a TypeError. */
     if (vd !== undefined)
-      VertexAnimIter.init(this, vd);
+      this.init(vd);
   }
 
   init(vd: VertexAnimData) {
@@ -48,7 +52,7 @@ export class VertexAnimIter {
       this.s = undefined;
 
     this.ret.done = false;
-    this.ret.value = undefined;
+    this.ret.value = undefined!;
 
     return this;
   }
@@ -60,21 +64,21 @@ export class VertexAnimIter {
   next() {
     let ret = this.ret;
 
-    if (this.vd.startv === undefined) {
+    if (this.vd!.startv === undefined) {
       ret.done = true;
-      ret.value = undefined;
+      ret.value = undefined!;
 
       return ret;
     }
 
     if (this.stop && this.v === undefined) {
       ret.done = true;
-      ret.value = undefined;
+      ret.value = undefined!;
 
       return ret;
     }
 
-    ret.value = this.v;
+    ret.value = this.v!;
 
     if (this.stop || this.s === undefined) {
       this.v = undefined;
@@ -83,7 +87,7 @@ export class VertexAnimIter {
       return ret;
     }
 
-    this.v = this.s.other_vert(this.v);
+    this.v = this.s.other_vert(this.v!);
 
     if (this.v.segments.length < 2) {
       this.stop = true;
@@ -96,7 +100,8 @@ export class VertexAnimIter {
 }
 
 export class SegmentAnimIter {
-  ret: {done: boolean; value: SplineSegment | undefined}
+  /* Same shape as VertexAnimIter.ret. */
+  ret: {done: boolean; value: SplineSegment}
   stop: boolean;
 
   vd?: VertexAnimData;
@@ -104,12 +109,15 @@ export class SegmentAnimIter {
   s?: SplineSegment;
 
   constructor(vd?: VertexAnimData) {
-    this.ret = {done: false, value: undefined};
+    this.ret = {done: false, value: undefined!};
     this.stop = false;
 
+    /* NOTE: `this.v` is still unset here, so the outer test is always false
+       and init() is never reached; the call itself named the instance method
+       off the class, which would have thrown had it run. */
     if (this.v !== undefined && this.v.segments.length !== 0)
       if (vd !== undefined)
-        SegmentAnimIter.init(this, vd);
+        this.init(vd);
   }
 
   init(vd: VertexAnimData) {
@@ -123,7 +131,7 @@ export class SegmentAnimIter {
       this.s = undefined;
 
     this.ret.done = false;
-    this.ret.value = undefined;
+    this.ret.value = undefined!;
 
     return this;
   }
@@ -137,13 +145,13 @@ export class SegmentAnimIter {
 
     if (this.stop || this.s === undefined) {
       ret.done = true;
-      ret.value = undefined;
+      ret.value = undefined!;
 
       return ret;
     }
 
     ret.value = this.s;
-    this.v = this.s.other_vert(this.v);
+    this.v = this.s.other_vert(this.v!);
 
     if (this.v.segments.length < 2) {
       this.stop = true;
@@ -178,8 +186,8 @@ export class VertexAnimData {
   /* eid of the *scene* spline vertex this path animates. */
   eid: number;
   dead: boolean;
-  vitercache: cachering;
-  sitercache: cachering;
+  vitercache: cachering<VertexAnimIter>;
+  sitercache: cachering<SegmentAnimIter>;
   spline: Spline;
   startv_eid: number;
   layerid!: number;
@@ -199,7 +207,8 @@ export class VertexAnimData {
     this.vitercache = cachering.fromConstructor(VertexAnimIter, 4);
     this.sitercache = cachering.fromConstructor(SegmentAnimIter, 4);
 
-    this.spline = pathspline;
+    /* Every caller passes one; loadSTRUCT fills it in afterwards. */
+    this.spline = pathspline!;
 
     this.animflag = 0;
     this.flag = 0; //holds selection and hide flags?
@@ -259,7 +268,9 @@ export class VertexAnimData {
 
   get startv(): SplineVertex | undefined {
     if (this.startv_eid === -1) return undefined;
-    return this.spline.eidmap[this.startv_eid];
+
+    let v = this.spline.eidmap[this.startv_eid];
+    return (v instanceof SplineVertex ? v : undefined)!;
   }
 
   /* Accepts an eid directly, since loadSTRUCT and the tools both hand one over. */
@@ -314,12 +325,14 @@ export class VertexAnimData {
         }
       }
 
+      /* NOTE: both branches called this.spline.remove(), which Spline does not
+         have, so removing the path's start vertex threw a TypeError. */
       if (startv) {
         this.startv_eid = startv.eid;
-        this.spline.remove(v);
+        this.spline.kill_vertex(v);
       } else {
         this.dead = true;
-        this.spline.remove(v);
+        this.spline.kill_vertex(v);
       }
     } else {
       let ok = false;
@@ -382,7 +395,7 @@ export class VertexAnimData {
   }
 
   _get_animdata(v: SplineVertex): TimeDataLayer {
-    let ret = v.cdata.get_layer(TimeDataLayer);
+    let ret = v.cdata.get_layer(TimeDataLayer)!;
 
     ret.owning_veid = this.eid;
     return ret;
@@ -401,7 +414,7 @@ export class VertexAnimData {
 
     if (this.startv === undefined) {
       this.startv = this.spline.make_vertex(co);
-      this._get_animdata(this.startv).time = 1;
+      this._get_animdata(this.startv!).time = 1;
 
       update = true;
       this.spline.regen_sort();
@@ -412,7 +425,7 @@ export class VertexAnimData {
     let seg = this.find_seg(time);
 
     if (seg === undefined) {
-      let e = this.endv;
+      let e = this.endv!;
 
       if (this._get_animdata(e).time === time) {
         update = update || e.vectorDistance(co) > 0.01;
@@ -484,8 +497,15 @@ export class VertexAnimData {
     let dv = new Vector4();
 
     for (let t = start; t < end; t += dt) {
-      let co = this.evaluate(t);
-      dv.load(this.derivative(t));
+      let co = this.evaluate(t)!;
+      let d = this.derivative(t);
+
+      /* NOTE: this was dv.load(d), but derivative() returns a Vector2, so
+         dv[2]/dv[3] loaded as undefined and the normalize() below turned the
+         whole vector into NaN -- these tangent ticks have never drawn. */
+      dv[0] = d[0];
+      dv[1] = d[1];
+      dv[2] = dv[3] = NaN;
 
       co.multVecMatrix(matrix);
       dv.multVecMatrix(matrix);
@@ -525,8 +545,8 @@ export class VertexAnimData {
 
   derivative(time: number) {
     let df = 0.001;
-    let a = this.evaluate(time);
-    let b = this.evaluate(time + df);
+    let a = this.evaluate(time)!;
+    let b = this.evaluate(time + df)!;
 
     b.sub(a).mulScalar(1.0/df);
     return dvcache.next().load(b);
@@ -599,7 +619,7 @@ export class VertexAnimData {
 
     nextv2 = nextv;
     if (nextv2.segments.length === 2) {
-      let nexts2 = nextv2.other_segment(nexts);
+      let nexts2 = nextv2.other_segment(nexts!);
       nextv2 = nexts2.other_vert(nextv2);
 
       alen3 = nexts2.length;
@@ -788,7 +808,7 @@ export class VertexAnimData {
         segs.add(s);
 
         let v2 = s.other_vert(v);
-        let h2 = s.other_handle(s.handle(v));
+        let h2 = s.other_handle(s.handle(v)!);
 
         //keep track of handles
         if (v2 === lastv) {
@@ -839,13 +859,13 @@ export class VertexAnimData {
     for (let v of verts) {
       for (let s of v.segments) {
         let v2 = s.other_vert(v);
-        let h2 = s.other_handle(s.handle(v));
+        let h2 = s.other_handle(s.handle(v)!)!;
 
         //XXX note: technically we are accessing dead data here
         if (v2 === lastv && handles[hi] !== undefined) {
-          h2.load(handles[hi]);
+          h2.load(handles[hi]!);
         } else if (v2 !== lastv && handles[hi + 1] !== undefined) {
-          h2.load(handles[hi + 1]);
+          h2.load(handles[hi + 1]!);
         }
       }
 

@@ -60,11 +60,43 @@ import {bez3, bez4} from '../util/bezier.js';
 import type {Spline} from './spline.js';
 import type {FullContext} from '../core/context.js';
 
+/* eidmap holds every element kind at once, and after a load or a JSON read
+   the cross-reference fields still hold the eids they were written as.  These
+   recover the kind the field itself implies.  A missing eid -- the -1 the
+   STRUCT schemas write for an absent handle, face or radial link -- comes back
+   undefined here exactly as the raw eidmap lookup did, so the fields keep the
+   declared type the rest of the code already assumes of them. */
+export type EidMap = {[eid : number] : SplineElement};
+
+export function lookupEid(eidmap : EidMap, ref : unknown) : SplineElement | undefined {
+  return typeof ref === "number" ? eidmap[ref] : undefined;
+}
+
+export function refVert(eidmap : EidMap, ref : unknown) : SplineVertex {
+  let e = lookupEid(eidmap, ref);
+  return (e instanceof SplineVertex ? e : undefined)!;
+}
+
+export function refSeg(eidmap : EidMap, ref : unknown) : SplineSegment {
+  let e = lookupEid(eidmap, ref);
+  return (e instanceof SplineSegment ? e : undefined)!;
+}
+
+export function refLoop(eidmap : EidMap, ref : unknown) : SplineLoop {
+  let e = lookupEid(eidmap, ref);
+  return (e instanceof SplineLoop ? e : undefined)!;
+}
+
 let _seg_aabb_ret = [new Vector3(), new Vector3()];
 
 /* Out-params the evaluators fill in; callers hand them plain arrays and
    cachering vectors interchangeably. */
 type VecOut = number[] | Vector2 | Vector3;
+
+/* Which of the two sides of a stroke something applies to.  Callers pass 0/1
+   or the boolean they compared a direction sign with, and every use of it is a
+   truthiness test. */
+export type StrokeSide = number | boolean;
 
 /* SplineVertex is not a Vector2 subclass -- mixin(SplineVertex, Vector2) at
    the bottom of this class copies the whole Vector2 prototype onto it, so
@@ -98,6 +130,14 @@ export interface SplineSegmentJSON {
 
 export class SplineVertex extends SplineElement {
   static STRUCT : string;
+
+  /* Handles are SplineVertexes too -- spline.ts flips `type` over after the
+     fact -- so this holds either tag. */
+  declare type : typeof SplineTypes.VERTEX | typeof SplineTypes.HANDLE;
+
+  /* Stamped by redo_draw_sort() on whatever ends up in spline.drawlist; not
+     serialized. */
+  finalz! : number;
 
   /* The handle this one is paired with in shared-tangents mode. */
   hpair : SplineVertex | undefined;
@@ -580,6 +620,8 @@ let shiftout = [0];
 export class SplineSegment extends SplineElement {
   static STRUCT : string;
 
+  declare type : typeof SplineTypes.SEGMENT;
+
   _evalwrap: EffectWrapper
   has_multires: boolean
   mat: Material
@@ -1051,12 +1093,12 @@ export class SplineSegment extends SplineElement {
   /**
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
-  closest_point(p : Vector2, mode : 3, fast? : boolean,
+  closest_point(p : Vector2 | Vector3, mode : 3, fast? : boolean,
                 widthSide? : number) : ClosestPointRecord[] | undefined;
-  closest_point(p : Vector2, mode? : number, fast? : boolean,
+  closest_point(p : Vector2 | Vector3, mode? : number, fast? : boolean,
                 widthSide? : number) : ClosestPointRecord | undefined;
 
-  closest_point(p : Vector2, mode : number = 0, fast : boolean = false,
+  closest_point(p : Vector2 | Vector3, mode : number = 0, fast : boolean = false,
                 widthSide? : number) : ClosestPointRecord | ClosestPointRecord[] | undefined {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
@@ -1499,7 +1541,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
 
-  curvatureSide(s : number, side : number, no_out? : number[]) {
+  curvatureSide(s : number, side : number, no_out? : VecOut) {
     let df = 0.0001;
     let dv0 = this.evaluateSide(s, side);
     let dv1 = this.evaluateSide(s + df, side);
@@ -1545,7 +1587,7 @@ export class SplineSegment extends SplineElement {
      half the local width, adjusted by the local shift. `side` picks which
      boundary; the three out params receive the boundary's derivative, its
      normal, and [width, dwidth]. */
-  evaluateSide(s : number, side : number = 0, dv_out? : VecOut,
+  evaluateSide(s : number, side : StrokeSide = 0, dv_out? : VecOut,
                normal_out? : VecOut, lw_dlw_out? : VecOut) {
     //s = Math.min(Math.max(s, 0.00001), 0.99999);
 
@@ -1565,16 +1607,16 @@ export class SplineSegment extends SplineElement {
       return evaluateSide_rets.next().load(this.v1);
     }
 
-    side = side ? 1.0 : -1.0;
+    let sidesign = side ? 1.0 : -1.0;
 
     let co = evaluateSide_rets.next().load(this.evaluate(s));
 
     let dv = this.derivative(s);
-    let shift = this.shift(s)*side;
-    let dshift = this.dshift(s)*side;
+    let shift = this.shift(s)*sidesign;
+    let dshift = this.dshift(s)*sidesign;
 
-    let lw = this.width(s)*side;
-    let dlw = this.dwidth(s)*side;
+    let lw = this.width(s)*sidesign;
+    let dlw = this.dwidth(s)*sidesign;
 
     dlw = dlw*shift + dlw + dshift*lw;
     lw = lw + lw*shift;
@@ -1763,6 +1805,8 @@ SplineSegment.STRUCT = structInherit(SplineSegment, SplineElement) + `
 export class SplineLoop extends SplineElement {
   static STRUCT : string;
 
+  declare type : typeof SplineTypes.LOOP;
+
   /* Every loop is created through SplineFace.make_path(), which passes all
      three; the ring links are stitched up right after. */
   f! : SplineFace;
@@ -1944,6 +1988,8 @@ SplineLoopPath.STRUCT = `
 
 export class SplineFace extends SplineElement {
   static STRUCT : string;
+
+  declare type : typeof SplineTypes.FACE;
 
   finalz: number
   mat: Material
@@ -2144,7 +2190,7 @@ Material.STRUCT = `
 import {ToolIter, TPropIterable} from '../core/toolprops_iter.js';
 
 //stores elements as eid's, for tool operators
-export class ElementRefIter extends ToolIter {
+export class ElementRefIter extends ToolIter<SplineElement> {
   static STRUCT : string;
 
   ret : IterRet<SplineElement>;
@@ -2306,3 +2352,8 @@ export class ElementRefSet extends set<SplineElement | number> {
 mixin(ElementRefSet, TPropIterable);
 
 import * as native_api from '../wasm/native_api.js';
+
+/* Every concrete SplineElement.  The base class tags itself with a plain
+   `number`, but each subclass narrows `type` to a literal, so this union
+   discriminates on `.type` where the base class cannot. */
+export type AnySplineElement = SplineVertex | SplineSegment | SplineLoop | SplineFace;

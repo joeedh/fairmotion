@@ -1,3 +1,4 @@
+import type {FullContext} from "../core/context.js";
 import {EnumKeyPair, Matrix4, Vector2, Vector3, Vector4, util, nstructjs} from '../path.ux/scripts/pathux.js';
 import type {Container, DataAPI, DataStruct} from '../path.ux/scripts/pathux.js';
 import {NodeSocketType, NodeFlags, SocketFlags} from './graph.js';
@@ -19,7 +20,10 @@ export class Matrix4Socket extends NodeSocketType {
   }
 
   addToUpdateHash(digest: util.HashDigest) {
-    digest.add(this.value);
+    /* NOTE: was digest.add(this.value).  HashDigest.add only takes numbers,
+       strings, booleans and array-likes, and Matrix4 is none of those, so it
+       fell through to the `throw new Error("unreachable code")`. */
+    this.value.addToHashDigest(digest);
   }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
@@ -34,7 +38,9 @@ export class Matrix4Socket extends NodeSocketType {
   }}
 
   copy() {
-    let ret = new Matrix4Socket(this.uiname, this.flag);
+    /* NOTE: was this.flag, which NodeSocketType spells graph_flag; the copy got
+       the default 0.  Harmless in practice -- copyTo() overwrites it below. */
+    let ret = new Matrix4Socket(this.uiname, this.graph_flag);
     this.copyTo(ret);
     return ret;
   }
@@ -54,15 +60,15 @@ export class Matrix4Socket extends NodeSocketType {
   }
 
   diffValue(b: Matrix4) {
-    let m1 = this.value.$matrix;
-    let m2 = b.$matrix;
+    /* was a `for (let k in $matrix)` walk; getAsArray() enumerates the same
+       sixteen components, in the same order for both matrices. */
+    let m1 = this.value.getAsArray();
+    let m2 = b.getAsArray();
 
     let diff = 0.0, tot=0.0;
 
-    for (let k in m1) {
-      let a = m1[k], b = m2[k];
-
-      diff += Math.abs(a-b);
+    for (let i = 0; i < m1.length; i++) {
+      diff += Math.abs(m1[i] - m2[i]);
       tot += 1.0;
     }
 
@@ -107,7 +113,7 @@ export class DependSocket extends NodeSocketType {
   }}
 
   diffValue(b: boolean) {
-    return (!!this.value != !!b)*0.001;
+    return (!!this.value != !!b) ? 0.001 : 0.0;
   }
 
   copyValue() {
@@ -155,11 +161,12 @@ export class IntSocket extends NodeSocketType {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.int("value", "value", "value").noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<IntSocket>('change', function() { this.dataref.graphUpdate(true)});
 
-    if (this.graph_flag & SocketFlags.NO_UNITS) {
-      def.noUnits();
-    }
+    /* NOTE: a `this.graph_flag & SocketFlags.NO_UNITS` guard around a second
+       def.noUnits() sat here.  apiDefine is static and there is no static
+       graph_flag, so it never fired -- and .noUnits() above already ran.
+       Vec3Socket.apiDefine below has the same block commented out by hand. */
   }
 
   static nodedef(): SocketDef {return {
@@ -220,11 +227,9 @@ export class Vec2Socket extends NodeSocketType {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.vec2('value', 'value', 'value').noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec2Socket>('change', function() { this.dataref.graphUpdate(true)});
 
-    if (this.graph_flag & SocketFlags.NO_UNITS) {
-      def.noUnits();
-    }
+    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
   }
 
   static nodedef(): SocketDef {return {
@@ -273,7 +278,7 @@ NodeSocketType.register(Vec2Socket);
 
 //abstract base class
 export class VecSocket extends NodeSocketType {
-  buildUI(container: Container, onchange: () => void) {
+  buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
       container.vecpopup("value");
     } else {
@@ -298,11 +303,9 @@ export class Vec3Socket extends VecSocket {
     let cb = NodeSocketType._api_uiname;
     let def = sockstruct.vec3('value', 'value', 'value').uiNameGetter(cb).noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec3Socket>('change', function() { this.dataref.graphUpdate(true)});
 
-    //if (this.graph_flag & SocketFlags.NO_UNITS) {
-      def.noUnits();
-    //}
+    def.noUnits();
   }
 
   static nodedef(): SocketDef {return {
@@ -371,11 +374,9 @@ export class Vec4Socket extends NodeSocketType {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.vec4('value', 'value', 'value').noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<Vec4Socket>('change', function() { this.dataref.graphUpdate(true)});
 
-    if (this.graph_flag & SocketFlags.NO_UNITS) {
-      def.noUnits();
-    }
+    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
   }
 
   addToUpdateHash(digest: util.HashDigest) {
@@ -441,10 +442,10 @@ export class RGBSocket extends Vec3Socket {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.color3('value', 'value', 'value').uiNameGetter(NodeSocketType._api_uiname).noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<RGBSocket>('change', function() { this.dataref.graphUpdate(true)});
   }
 
-  buildUI(container: Container, onchange: () => void) {
+  buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
       container.colorbutton("value");
       /*
@@ -483,10 +484,10 @@ export class RGBASocket extends Vec4Socket {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.color4('value', 'value', 'value').uiNameGetter(NodeSocketType._api_uiname).noUnits();
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<RGBASocket>('change', function() { this.dataref.graphUpdate(true)});
   }
 
-  buildUI(container: Container, onchange: () => void) {
+  buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
       container.colorbutton("value");
       /*
@@ -527,11 +528,9 @@ export class FloatSocket extends NodeSocketType {
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
     let def = sockstruct.float('value', 'value', 'value').noUnits();
 
-    if (this.graph_flag & SocketFlags.NO_UNITS) {
-      def.noUnits();
-    }
+    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
 
-    def.on('change', function() { this.dataref.graphUpdate(true)});
+    def.on<FloatSocket>('change', function() { this.dataref.graphUpdate(true)});
   }
 
   static nodedef(): SocketDef {return {
@@ -540,7 +539,7 @@ export class FloatSocket extends NodeSocketType {
     color : [1.25, 0.45, 1.0, 1]
   }}
 
-  buildUI(container: Container, onchange: () => void) {
+  buildUI(container: Container<FullContext>, onchange: () => void) {
     if (this.edges.length === 0) {
       let ret = container.prop("value");
       ret.setAttribute("name", this.uiname);
@@ -641,7 +640,7 @@ export class EnumSocket extends IntSocket {
     let def;
 
     def = sockstruct.enum('value', 'value', this.items, this.uiname).uiNames(this.uimap);
-    def.on('change', function() {
+    def.on<EnumSocket>('change', function() {
       this.dataref.graphUpdate(true);
     });
   }
@@ -714,17 +713,12 @@ export class EnumSocket extends IntSocket {
 
   /* Reverses _saveMap(); on a fresh file `obj` is already a map, in which case
      there is nothing to rebuild and an empty one is returned. */
-  _loadMap(obj: EnumKeyPair[] | EnumItems) {
+  _loadMap<VALUE extends string | number>(obj: EnumKeyPair[] | Record<string, VALUE>): Record<string, VALUE> {
     if (!obj || !Array.isArray(obj)) {
       return {};
     }
 
-    let ret: EnumItems = {};
-    for (let k of obj) {
-      ret[k.key] = k.val;
-    }
-
-    return ret;
+    return EnumKeyPair.loadMap<string, VALUE>(obj);
   }
 
   /*
@@ -766,13 +760,13 @@ export class BoolSocket extends NodeSocketType {
   static STRUCT: string;
 
   /* Every writer past the constructor stores a boolean, and STRUCT declares it
-     `bool`; the constructor's 0 is the odd one out. */
+     `bool`; the constructor used to seed it with 0 instead. */
   value: boolean;
 
   constructor(uiname?: string, flag = 0) {
     super(uiname, flag);
 
-    this.value = 0;
+    this.value = false;
   }
 
   static apiDefine(api: DataAPI, sockstruct: DataStruct) {
@@ -790,7 +784,9 @@ export class BoolSocket extends NodeSocketType {
   }
 
   diffValue(b: boolean) {
-    return (this.value - b);
+    /* spelled out; the original subtracted the booleans directly and relied on
+       JS coercing them to 0/1. */
+    return (this.value ? 1 : 0) - (b ? 1 : 0);
   }
 
   copyValue() {

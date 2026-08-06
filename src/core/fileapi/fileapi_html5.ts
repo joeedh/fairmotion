@@ -27,11 +27,11 @@ export function reset() {
   //nothing
 }
 
-export function open_file(callback: OpenFileCallback, thisvar: Object,
+export function open_file(callback: OpenFileCallback, thisvar: Object | undefined,
                           set_current_file: boolean, extslabel: string, exts: string[]) {
-    if (thisvar == undefined)
-        thisvar = this; //should point to global object
-        
+    /* NOTE: a `thisvar = this` fallback stood here, commented "should point to
+       global object".  The module is strict-mode ESM, so `this` is undefined. */
+
     var form = document.createElement("form")
     document.body.appendChild(form);
     
@@ -39,33 +39,46 @@ export function open_file(callback: OpenFileCallback, thisvar: Object,
     input.type = "file"
     input.id = "file"
     input.style.position = "absolute"
-    input.style["z-index"] = 10;
-    input.style.visible = "hidden";
+    input.style.zIndex = "10";
+    /* NOTE: an `input.style.visible = "hidden"` sat here; there is no such CSS
+       property, and the visibility line below is the one that works. */
     input.style.visibility = "hidden";
     
     var finished = false;
-    input.oncancel = input.onabort = input.close = function() {
+    var onabort = function() {
         console.log("aborted");
         if (!finished) {
             document.body.removeChild(form);
             finished = true;
         }
     }
-    
-    input.onchange = function(this: HTMLInputElement, e: Event) {
-        var files = this.files;
+
+    /* NOTE: `close` is not a property of HTMLInputElement, so the third
+       assignment in the chain only ever added an expando. */
+    Reflect.set(input, "close", onabort);
+    input.oncancel = input.onabort = onabort;
+
+    input.onchange = function(e: Event) {
+        var files = input.files;
 
         if (!finished) {
             document.body.removeChild(form);
             finished = true;
         }
-        
-        if (files.length == 0) return;
+
+        if (files === null || files.length == 0) return;
         var file = files[0];
         var reader = new FileReader();
         reader.onload = function(e: ProgressEvent<FileReader>) {
-            console.log(e.target.result);
-            callback.call(thisvar, e.target.result, file.name, file.name);
+            var result = e.target === null ? undefined : e.target.result;
+
+            console.log(result);
+
+            if (!(result instanceof ArrayBuffer)) {
+                throw new Error("readAsArrayBuffer() did not produce an ArrayBuffer");
+            }
+
+            callback.call(thisvar, result, file.name, file.name);
         }
         reader.readAsArrayBuffer(file);
     }
@@ -85,10 +98,10 @@ export function can_access_path(path: string) {
 //XXX refactor me!
 export function save_file(data: FileData, save_as_mode: boolean, set_current_file: boolean,
                           extslabel: string, exts: string[], error_cb: FileErrorCallback) {
-    if (config.CHROME_APP_MODE) {
-      return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
-    }
-    
+    /* NOTE: a chrome_app_save() call guarded by config.CHROME_APP_MODE stood
+       here.  No such function exists anywhere in the tree, and fileapi.ts
+       dispatches chrome-app mode to fileapi_chrome, so it was unreachable. */
+
     if (!(data instanceof Blob))
       data = new Blob([data], {type : "application/octet-binary"});
     
@@ -102,8 +115,8 @@ export function save_file(data: FileData, save_as_mode: boolean, set_current_fil
     
     name = name === undefined || name.trim() == "" ? "untitled.fmo" : name;
     
-    link.download = name; 
-    console.log(link, link.__proto__);
+    link.download = name;
+    console.log(link, Object.getPrototypeOf(link));
     window._link = link;
     
     link.click();

@@ -3,7 +3,7 @@
 import {util, nstructjs, cconst, Vector3, Vector4, Vector2, Matrix4, Quat} from "../path.ux/scripts/pathux.js";
 import {
   SplineSegment, SplineVertex, SplineTypes, SplineFlags,
-  SplineFace, SplineElement, MaterialFlags
+  SplineFace, SplineElement, MaterialFlags, refSeg
 } from "./spline_types.js";
 
 import {SplineLayerFlags} from './spline_element_array.js';
@@ -11,6 +11,10 @@ import {SplineLayerFlags} from './spline_element_array.js';
 import type {Spline} from './spline.js';
 
 let hashcache = util.cachering.fromConstructor(util.HashDigest, 8);
+
+/* What the draw sort leaves in spline.drawlist: faces, whole stroke groups,
+   and the loose segments and high-valence vertices that are left over. */
+export type DrawListItem = SplineVertex | SplineSegment | SplineFace | SplineStrokeGroup;
 
 /* A run of segments joined end to end through two-valence vertices, all sharing
    the same material and layer.  The renderer strokes one of these at a time.
@@ -21,6 +25,8 @@ export class SplineStrokeGroup {
   static STRUCT : string;
 
   hash : number;
+  /* Stamped by redo_draw_sort(); not serialized. */
+  finalz! : number;
   segments : Array<SplineSegment>;
   /* The segments' eids; the serialized form of `segments`. */
   eids : number[];
@@ -81,7 +87,7 @@ export class SplineStrokeGroup {
     this.eids = [];
 
     for (let eid of eids) {
-      let seg = spline.eidmap[eid];
+      let seg = refSeg(spline.eidmap, eid);
       if (!seg) {
         console.warn("Missing SplineSegment in SplineGroup!");
         continue;
@@ -114,7 +120,7 @@ let _color2 = new Vector4();
    fill-over-stroke, 6 second line width, 7 second stroke color, 8 opacity, 9 no
    layer in common -- and false when they can. */
 export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
-                              segments : SplineSegment[] = v.segments) {
+                              segments : SplineSegment[] = v!.segments) {
   function visible(seg : SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
     hide = hide || (seg.flag & SplineFlags.NO_RENDER);
@@ -122,8 +128,10 @@ export function vertexIsSplit(spline : Spline, v : SplineVertex | undefined,
     if (hide)
       return false;
 
+    /* for-in hands back the id as a string, and a missing layer throws here
+       exactly as it always did. */
     for (let k in seg.layers) {
-      if (spline.layerset.get(k).flag & SplineLayerFlags.HIDE) {
+      if (spline.layerset.get(+k)!.flag & SplineLayerFlags.HIDE) {
         return false;
       }
     }
@@ -241,7 +249,8 @@ export function splitSegmentGroups(spline: Spline) {
 
   /* Scratch pair handed to vertexIsSplit(); both slots are overwritten before
      it is ever read. */
-  let tempsegs : (SplineSegment | null)[] = [null, null];
+  /* Both slots are written immediately before the one read below. */
+  let tempsegs : SplineSegment[] = [];
 
   function visible(seg : SplineSegment) {
     let hide = seg.flag & SplineFlags.HIDE;
@@ -250,8 +259,10 @@ export function splitSegmentGroups(spline: Spline) {
     if (hide)
       return false;
 
+    /* for-in hands back the id as a string, and a missing layer throws here
+       exactly as it always did. */
     for (let k in seg.layers) {
-      if (spline.layerset.get(k).flag & SplineLayerFlags.HIDE) {
+      if (spline.layerset.get(+k)!.flag & SplineLayerFlags.HIDE) {
         return false;
       }
     }
@@ -294,11 +305,11 @@ export function splitSegmentGroups(spline: Spline) {
 
     /* Reuse old groups if hash compatible. */
     if (oldstrokes.has(hash)) {
-      group = oldstrokes.get(hash);
+      group = oldstrokes.get(hash)!;
 
       //make sure instance references are correct
       for (let i = 0; i < group.segments.length; i++) {
-        group.segments[i] = spline.eidmap[group.eids[i]];
+        group.segments[i] = refSeg(spline.eidmap, group.eids[i]);
       }
     } else {
       group = new SplineStrokeGroup(segs);
@@ -333,7 +344,7 @@ export function splitSegmentGroups(spline: Spline) {
 
     while (i < group.segments.length) {
       let s = group.segments[i];
-      let bad = false;
+      let bad : number | boolean = false;
 
       if (0) {
         let mat1 = seg.mat;
@@ -475,11 +486,11 @@ export function buildSegmentGroups(spline : Spline) {
       group.calcHash();
 
       if (oldstrokes.has(group.hash)) {
-        group = oldstrokes.get(group.hash);
+        group = oldstrokes.get(group.hash)!;
 
         //make sure instance references are correct
         for (let i = 0; i < group.segments.length; i++) {
-          group.segments[i] = spline.eidmap[group.eids[i]];
+          group.segments[i] = refSeg(spline.eidmap, group.eids[i]);
         }
       } else {
         group.id = spline.idgen.gen_id();
@@ -512,19 +523,14 @@ export function buildSegmentGroups(spline : Spline) {
       if (g.segments[j] === undefined) {
         console.warn("Corrupted group!", g);
 
-        g.segments.remove(undefined);
+        g.segments.remove(undefined!);
         j--;
       }
     }
 
-    /* NOTE: SplineStrokeGroup has no `length`, so this is always undefined ===
-       0 and no empty group is ever dropped.  The test wants
-       g.segments.length. */
-    if (g.length === 0) {
-      groups[i] = groups[groups.length - 1];
-      groups.length--;
-      i--;
-    }
+    /* NOTE: an `if (g.length === 0)` block dropping empty groups sat here.
+       SplineStrokeGroup has no `length` -- the test wants g.segments.length --
+       so it compared undefined against 0 and never ran. */
   }
   //console.warn("GROUPS", groups);
 }

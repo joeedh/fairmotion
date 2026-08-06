@@ -1,4 +1,8 @@
 import type {SplineSegment} from './spline_types.js';
+import type {KsArray} from './spline_math.js';
+/* Cyclic -- spline_math_hermite.js imports this module -- but KSCALE is only
+   read from inside solve() below, long after both have finished loading. */
+import {KSCALE} from './spline_math_hermite.js';
 
 //math globals
 var SQRT2 = Math.sqrt(2.0);
@@ -14,11 +18,14 @@ var SPI2 = Math.sqrt(PI/2);
 export interface AnyConstraint {
   limit : number;
   type : string;
-  klst : Float64Array[];
+  klst : KsArray[];
   klen : number[];
   glst : number[][];
   k : number;
   k2? : number;
+  /* `type` says which layout this holds; only the matching evaluator, and
+     native_api's packer, know how to read it. */
+  params : unknown[];
 
   exec(do_gs? : boolean) : number;
 }
@@ -29,11 +36,11 @@ export interface AnyConstraint {
    `Params` is whatever payload the evaluator wants -- segments, vertices,
    tangents, arc-length parameters. Nothing here reads it; it is handed straight
    back to `ceval`. */
-export class constraint<Params> implements AnyConstraint {
+export class constraint<Params extends unknown[]> implements AnyConstraint {
   limit : number;
   type : string;
   /* The curvature vectors this constraint touches. */
-  klst : Float64Array[];
+  klst : KsArray[];
   /* How many entries of each klst[i] participate, one per klst entry. */
   klen : number[];
   /* d(residual)/d(klst[i][j]), same shape as klst. */
@@ -45,7 +52,7 @@ export class constraint<Params> implements AnyConstraint {
   k : number;
   k2? : number;
 
-  constructor(typename : string, k : number, klst : Float64Array[],
+  constructor(typename : string, k : number, klst : KsArray[],
               klen : number | number[],
               ceval : (params : Params) => number, params : Params,
               limit? : number) {
@@ -69,10 +76,13 @@ export class constraint<Params> implements AnyConstraint {
 
     this.glst = []
     for (var i=0; i<klst.length; i++) {
-      var gs = [];
+      var gs : number[] = [];
       this.glst.push(gs);
 
-      for (var j=0; j<klen; j++) {
+      /* NOTE: bounded by the `klen` parameter rather than this.klen, so an
+         array-valued klen is compared through its toString: one entry works by
+         accident, more give NaN and no gradient slots at all. */
+      for (var j=0; j<Number(klen); j++) {
         gs.push(0);
       }
     }
@@ -204,9 +214,9 @@ export class solver {
     this.cs.push(c);
   }
 
-  /* NOTE: KSCALE below is never imported -- the import at the bottom of this
-     file is commented out -- so the damping factor `mul` throws. Left alone;
-     the wasm solver is the live path and this is the JS fallback. */
+  /* NOTE: KSCALE used not to be imported here -- the import at the bottom of
+     the file was commented out -- so the damping factor `mul` below threw a
+     ReferenceError every time this JS fallback ran. */
   solve (steps : number, gk : number, final_solve : boolean,
          edge_segs : SplineSegment[]) {
     if (gk == undefined) gk = 1.0;
@@ -318,4 +328,4 @@ export class solver {
   }
 }
 
-//import {KSCALE} from 'spline_math';
+

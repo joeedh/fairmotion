@@ -20,7 +20,14 @@ import {platform, Vector2} from '../path.ux/scripts/pathux.js';
 import * as config from '../config/config.js';
 import * as html5_fileapi from '../core/fileapi/fileapi.js';
 
-export class LoadImageOp extends ToolOp {
+export class LoadImageOp extends ToolOp<{
+  name          : StringProperty,
+  dest_datapath : StringProperty,
+  imagedata     : ArrayBufferProperty,
+  imagepath     : StringProperty
+}, {
+  block : DataRefProperty
+}> {
   static tooldef() {
     return {
       toolpath: "image.load_image",
@@ -52,7 +59,7 @@ export class LoadImageOp extends ToolOp {
     this.inputs.name.setValue(name)
   }
 
-  modalStart(ctx : FullContext) {
+  async modalStart(ctx : FullContext) {
     super.modalStart(ctx);
     super.modalEnd(false);
 
@@ -99,6 +106,12 @@ export class LoadImageOp extends ToolOp {
       this.inputs.name.setValue("" + file.filename);
 
       platform.platform.readFile(file, "application/x-octet-stream").then(buf => {
+        /* readFile() decodes to a string for text mimes; this one is binary. */
+        if (typeof buf === "string") {
+          ctx.error("failed to read " + file.filename);
+          return;
+        }
+
         this.inputs.imagedata.setValue(buf);
         this.exec(ctx);
       });
@@ -113,14 +126,16 @@ export class LoadImageOp extends ToolOp {
        ReferenceError. */
     ctx = new Context();
 
-    let name = this.inputs.name.data.trim();
-    name = name === "" ? undefined : name;
+    let namestr = this.inputs.name.data.trim();
+    let name = namestr === "" ? undefined : namestr;
 
     let image = new Image(name);
     ctx.datalib.add(image);
 
     image.path = this.inputs.imagepath.data;
-    image.data = this.inputs.imagedata.data;
+    /* loadSTRUCT() leaves an ArrayBuffer behind where setValue() leaves a
+       Uint8Array; _getDataU8() is the property's own normalizer for that. */
+    image.data = this.inputs.imagedata._getDataU8();
 
     this.outputs.block.setValue(image);
     let outpath = this.inputs.dest_datapath.data.trim();

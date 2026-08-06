@@ -11,6 +11,7 @@ import type {ImageCanvas} from '../paint/imagecanvas.js';
 import type {Collection} from '../scene/collection.js';
 import type {Scene} from '../scene/scene.js';
 import type {SceneObject} from '../scene/sceneobject.js';
+import type {AnimChannel, AnimKey} from './animdata.js';
 
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.
@@ -94,15 +95,19 @@ export class DataRef extends Array<int> {
       var block = block_or_id;
       this[0] = block.lib_id;
 
+      /* NOTE: this read `lib.id` off a value the branch above had already
+         reduced from a DataLib to its id, so a caller that passed a library
+         stored undefined here rather than the id. */
       if (lib !== undefined)
-        this[1] = lib ? lib.id : -1;
+        this[1] = lib;
       else
         this[1] = block.lib_lib !== undefined ? block.lib_lib.id : -1;
     } else if (block_or_id instanceof Array) {
       this[0] = block_or_id[0];
       this[1] = block_or_id[1];
     } else {
-      this[0] = block_or_id;
+      /* `new DataRef()` is a documented spelling; it leaves [0] unset. */
+      this[0] = block_or_id!;
       this[1] = lib !== undefined ? lib : -1;
     }
   }
@@ -206,7 +211,7 @@ window.__dataref = DataRefCompat;
 
 /* All the blocks of one type in a DataLib, plus that type's active block. */
 export class DataList<T extends DataBlock = DataBlock> {
-  list: GArray;
+  list: GArray<T>;
   namemap: {[name: string]: T};
   idmap: {[lib_id: number]: T};
   type: int;
@@ -265,7 +270,7 @@ export class DataLib {
   id: number;
   /* typeIndex -> DataList. Keyed by DataList[Symbol.keystr](), which is the
      type integer. */
-  datalists: hashtable;
+  datalists: hashtable<int, DataList>;
   idmap: {[lib_id: number]: DataBlock};
   idgen: EIDGen;
   lib_anim_idgen: EIDGen;
@@ -290,7 +295,7 @@ export class DataLib {
 
   constructor() {
     this.id = 0;
-    this.datalists = new hashtable();
+    this.datalists = new hashtable<int, DataList>();
     this.idmap = {};
     this.idgen = new EIDGen();
     this._destroyed = undefined;
@@ -302,9 +307,10 @@ export class DataLib {
 
       let typeId = def.typeIndex;
 
+      /* for-in hands the typeIndex back as a string. */
       for (let k in BlockTypeMap) {
         if (BlockTypeMap[k] === cls) {
-          typeId = k;
+          typeId = +k;
         }
       }
 
@@ -326,7 +332,7 @@ export class DataLib {
   clear() {
     this.on_destroy();
 
-    this.datalists = new hashtable();
+    this.datalists = new hashtable<int, DataList>();
     this.idmap = {};
     this._destroyed = undefined;
 
@@ -390,25 +396,14 @@ export class DataLib {
     var list: DataList = this.datalists.get(block.lib_type);
     list.remove(block);
 
-    block.lib_flag |= BlockFlags.DELETED;
+    /* NOTE: this set `lib_flag`, which DataBlock does not have, so the DELETED
+       bit never reached the block's `flag`.  Nothing reads DELETED. */
+    block.flag |= BlockFlags.DELETED;
   }
 
-  search(type: int, prefix: string): GArray {
-    //this is what red-black trees are for.
-    //oh well.
-
-    var list: DataList = this.datalists.get(type);
-    var ret = new GArray();
-
-    prefix = prefix.toLowerCase();
-    for (var i = 0; i < list.list.length; i++) {
-      if (list.list[i].strip().toLowerCase().startsWith(prefix)) {
-        ret.push(list.list[i]);
-      }
-    }
-
-    return ret;
-  }
+  /* NOTE: a search(type, prefix) helper sat here.  It had no callers and
+     called `.strip()` on each DataBlock -- a method nothing in the tree
+     defines -- so it threw a TypeError on the first block it looked at. */
 
   //clearly I need to write a simple string
   //processing language with regexpr's
@@ -437,11 +432,9 @@ export class DataLib {
             break;
         }
 
-        if (name == 0) {
-          name = name + "." + i.toString();
-          continue;
-        }
-
+        /* NOTE: an `if (name == 0)` test sat here, comparing a non-empty name
+           against a number, so the append-and-retry branch it guarded never
+           ran.  It most likely meant `j < 0`, i.e. no dot in the name. */
         var s = name.slice(j, name.length);
         if (!Number.isNaN(Number.parseInt(s))) {
           name = name.slice(0, j) + "." + i.toString();
@@ -495,7 +488,9 @@ export class DataLib {
       //we don't allow undefined active blocks
       if (lst.active === undefined && lst.list.length !== 0) {
         if (DEBUG.datalib)
-          console.log("Initializing active block for " + get_type_names()[data_type]);
+          /* NOTE: this called get_type_names(), which exists nowhere, so the
+             debug branch threw a ReferenceError whenever DEBUG.datalib was on. */
+          console.log("Initializing active block for " + DataNames[data_type]);
 
         lst.active = lst.list[0];
       }
@@ -527,8 +522,11 @@ DataLib {
  * always overwritten with an object and .rem_func with a function.
  */
 export class UserRef {
-  user: object | number;
-  rem_func: ((user: object, block: DataBlock) => void) | number;
+  user!: object;
+  /* NOTE: the constructor seeded this with 0 instead of leaving it unset, so
+     unlink()'s `rem_func !== undefined` guard passed for a user registered
+     without one and called 0 as a function. */
+  rem_func?: (user: object, block: DataBlock) => void;
   srcname: string;
   /* lib_adduser() writes the reference name here, but lib_remuser() matches on
      .srcname. See docs/debugging.md; left as-is because fixing it changes when
@@ -536,8 +534,6 @@ export class UserRef {
   name?: string;
 
   constructor() {
-    this.user = 0;
-    this.rem_func = 0; //is a function
     this.srcname = "";
   }
 }
@@ -563,6 +559,7 @@ export interface DataBlockClass {
   new (...args: never[]): DataBlock;
   blockDefine(): BlockDefine;
   STRUCT?: string;
+  datablock_type?: int;
 }
 
 export const BlockClasses: DataBlockClass[] = [];
@@ -612,12 +609,16 @@ export class DataBlock {
   /* Free-form per-addon storage. It is a plain map at runtime; loadSTRUCT()
      converts the _DictKey array the file carries back into one. */
   addon_data: {[key: string]: unknown};
-  lib_anim_channels: GArray;
+  declare ["constructor"]: DataBlockClass;
+
+  lib_anim_channels: GArray<AnimChannel>;
   /* Shared with the owning DataLib, and undefined until add() installs it. */
   lib_anim_idgen: EIDGen;
-  lib_anim_idmap: {[id: number]: object};
-  lib_anim_pathmap: {[path: string]: object};
-  lib_users: GArray;
+  /* data_link() registers each channel here under its own id and each of its
+     keys under theirs. */
+  lib_anim_idmap: {[id: number]: AnimChannel | AnimKey};
+  lib_anim_pathmap: {[path: string]: AnimChannel};
+  lib_users: GArray<UserRef>;
   lib_refs: number;
   flag: number;
 
@@ -707,9 +708,9 @@ export class DataBlock {
     if (name === undefined)
       name = "unnamed";
 
-    this.lib_anim_channels = new GArray();
+    this.lib_anim_channels = new GArray<AnimChannel>();
     //this.lib_anim_idgen = new EIDGen();
-    this.lib_anim_idgen = undefined; //is set by global DataLib now
+    this.lib_anim_idgen = undefined!; //is set by global DataLib now
     this.lib_anim_idmap = {};
 
     this.lib_anim_pathmap = {};
@@ -720,7 +721,7 @@ export class DataBlock {
     this.lib_lib = undefined; //this will be used for library linking
 
     this.lib_type = type;
-    this.lib_users = new GArray();
+    this.lib_users = new GArray<UserRef>();
 
     //regardless of whether we continue using ref counting
     //internally, the users do need to know how many users a given
@@ -805,7 +806,7 @@ export class DataBlock {
   }
 
   lib_remuser(user: object, refname?: string) {
-    var newusers = new GArray();
+    var newusers = new GArray<UserRef>();
 
     for (var i = 0; i < this.lib_users.length; i++) {
       if (this.lib_users[i].user != user && this.lib_users[i].srcname != refname) {
@@ -822,8 +823,10 @@ export class DataBlock {
     var users = this.lib_users;
 
     for (var i = 0; i < users.length; i++) {
-      if (users[i].rem_func !== undefined) {
-        users[i].rem_func(users[i].user, this);
+      let rem_func = users[i].rem_func;
+
+      if (rem_func !== undefined) {
+        rem_func(users[i].user, this);
       }
 
       this.lib_remuser(users[i]);
@@ -838,17 +841,20 @@ export class DataBlock {
   }
 
   /* The file carries addon_data as an array of _DictKey; flatten it back into
-     the map the rest of the code expects. */
-  loadSTRUCT(reader: StructReader<this>) {
+     the map the rest of the code expects.  The return type covers both shapes
+     subclasses use -- nstructjs keeps the object it already has when
+     loadSTRUCT returns undefined, so `return this` and no return agree. */
+  loadSTRUCT(reader: StructReader<this>): this | void {
     reader(this);
 
     var map: {[key: string]: unknown} = {};
 
-    if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
-      this.addon_data = [];
-    }
+    /* nstructjs leaves the _DictKey array the file carries in addon_data; it
+       becomes a map again below. */
+    let loaded: unknown = this.addon_data;
+    let dicts: _DictKey[] = Array.isArray(loaded) ? loaded : [];
 
-    for (var dk of this.addon_data) {
+    for (var dk of dicts) {
       map[dk.key] = dk.val;
     }
 
@@ -881,7 +887,8 @@ export class _DictKey {
   val: unknown;
 
   constructor(key?: string, val?: unknown) {
-    this.key = key;
+    /* fromSTRUCT() builds an empty one and lets the reader fill it in. */
+    this.key = key!;
     this.val = val;
   }
 
@@ -926,10 +933,9 @@ export const NodeDataBlock = mixinGraphNode(DataBlock, "NodeDataBlock");
  * is reached -- the rule for tool-property iterators, which must not hold live
  * block references between runs.
  */
-export class DataRefListIter<T extends DataBlock = DataBlock> extends ToolIter {
+export class DataRefListIter<T extends DataBlock = DataBlock> extends ToolIter<T> {
   lst: DataRef[];
   datalib: DataLib;
-  ret: {done: boolean; value: T | undefined};
   i: number;
   init: boolean;
 
@@ -939,20 +945,24 @@ export class DataRefListIter<T extends DataBlock = DataBlock> extends ToolIter {
     this.lst = lst;
     this.i = 0;
     this.datalib = ctx.datalib;
-    this.ret = undefined;
     this.init = true;
   }
 
-  next(): {done: boolean; value: T | undefined} {
+  next(): IterRet<T> {
+    /* NOTE: this replaced `ret` with the result of cached_iret(), which exists
+       nowhere, so the first next() threw a ReferenceError.  ToolIter's
+       constructor already builds the IterRet, done-flag set. */
     if (this.init) {
-      this.ret = cached_iret();
+      this.ret.done = false;
       this.init = false;
     }
 
     if (this.i < this.lst.length) {
-      this.ret.value = this.datalib.get(this.lst[this.i].id);
+      /* The library's idmap holds every block type; this iterator's list is
+         declared to hold T. */
+      this.ret.value = this.datalib.get(this.lst[this.i].id) as T;
     } else {
-      this.ret.value = undefined;
+      this.ret.clear();
       this.ret.done = true;
     }
 

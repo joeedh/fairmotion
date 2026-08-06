@@ -1,6 +1,7 @@
+import type {FullContext} from "../../core/context.js";
 import {Editor} from '../editor_base.js';
 import {readSerialized} from '../../core/struct.js';
-import {color2css, css2color, UIBase, keymap, util, cconst, nstructjs, Vector2, Vector3, Matrix4} from '../../path.ux/scripts/pathux.js';
+import {color2css, css2color, CSSFont, UIBase, keymap, util, cconst, nstructjs, Vector2, Vector3, Matrix4} from '../../path.ux/scripts/pathux.js';
 import { termColorMap } from '../../path.ux/scripts/util/util.js';
 import { loadFile } from '../../path.ux/scripts/util/html5_fileapi.js';
 
@@ -42,7 +43,24 @@ type ConsoleStateMachine = {
   base(c : string) : string | false;
 };
 
-let g_screen : Screen = undefined;
+/* The subset of a MouseEvent that _mouse() rebuilds in canvas pixel space. */
+export type ConsoleMouseEvent = {
+  preventDefault  : () => void;
+  stopPropagation : () => void;
+  buttons : number;
+  button  : number;
+  shiftKey : boolean;
+  ctrlKey  : boolean;
+  altKey   : boolean;
+  commandKey : boolean | undefined;
+  x : number;
+  y : number;
+  pageX : number;
+  pageY : number;
+  touches : TouchList | undefined;
+};
+
+let g_screen : Screen<FullContext> | undefined = undefined;
 let _silence = () => {};
 let _unsilence = () => {};
 
@@ -55,17 +73,17 @@ function patch_console() {
 
     _patched = true;
 
-    let methods = {};
+    let methods : {[k : string] : (...args : unknown[]) => void} = {};
     let ignore = 0;
 
     _silence = () => ignore = 1;
     _unsilence = () => ignore = 0;
 
-    let handlers = {
+    let handlers : {[k : string] : (...args : unknown[]) => void} = {
     }
 
     function patch(key : string) {
-        handlers[key] = function() {
+        handlers[key] = function(...args : unknown[]) {
             setTimeout(() => {
                 if (ignore || !g_screen) {
                     return;
@@ -73,17 +91,17 @@ function patch_console() {
 
                 for (let sarea of g_screen.sareas) {
                     if (sarea.area instanceof ConsoleEditor) {
-                        sarea.area[key](...arguments);
+                        Reflect.get(sarea.area, key).apply(sarea.area, args);
                     }
                 }
             }, 0);
         }
 
-        methods[key] = console[key].bind(console);
-        console[key] = function() {
-            methods[key](...arguments);
-            handlers[key](...arguments);
-        }
+        methods[key] = Reflect.get(console, key).bind(console);
+        Reflect.set(console, key, function(...args : unknown[]) {
+            methods[key](...args);
+            handlers[key](...args);
+        });
     }
 
     patch("log");
@@ -174,7 +192,7 @@ export class HitBox {
     /* A HitBoxTypes value. */
     type : number
     /* For CUSTOM boxes; nothing in this file ever sets or calls it. */
-    onhit : ((e : MouseEvent, box : HitBox) => void) | null
+    onhit : ((e : ConsoleMouseEvent, box : HitBox) => void) | null
     /* The lines this box toggles -- always exactly one, pushed by redraw(). */
     lines : ConsoleLineEntry[];
 
@@ -187,7 +205,7 @@ export class HitBox {
         this.lines = [];
     }
 
-    toggle(e : MouseEvent, editor : ConsoleEditor) {
+    toggle(e : ConsoleMouseEvent, editor : ConsoleEditor) {
         _silence();
 
         //console.log(this.lines);
@@ -213,7 +231,8 @@ export class HitBox {
                     break;
                 }
 
-                l2.closed ^= 1;
+                /* was `^= 1` on a boolean, which JS coerced to 0/1. */
+                l2.closed = !l2.closed;
 
                 i++;
             }
@@ -224,7 +243,7 @@ export class HitBox {
         _unsilence();
     }
 
-    click(e : MouseEvent, editor : ConsoleEditor) {
+    click(e : ConsoleMouseEvent, editor : ConsoleEditor) {
         if (this.type === HitBoxTypes.TOGGLE_CHILDREN) {
             this.toggle(e, editor);
             console.log("click!");
@@ -232,8 +251,6 @@ export class HitBox {
     }
 }
 
-/* NOTE: `Icons` (read by define()) and `termColor` (called by
-   formatMessage) are both used bare and never imported in this module. */
 export class ConsoleEditor extends Editor {
     static STRUCT : string;
 
@@ -254,7 +271,8 @@ export class ConsoleEditor extends Editor {
     history  : ConsoleHistory;
 
     canvas! : HTMLCanvasElement
-    g! : Canvas2D
+    /* A plain 2d context: nothing stamps the Canvas2D extras onto it. */
+    g! : CanvasRenderingContext2D
     textbox! : HTMLInputElement;
 
     constructor() {
@@ -267,10 +285,12 @@ export class ConsoleEditor extends Editor {
         this.hitboxes = [];
 
         this.fontsize = 12;
-        this.lines = [];
-        this.lines.active = undefined;
-        this.history = [];
-        this.history.cur = 0;
+
+        let lines : ConsoleLineEntry[] = [];
+        this.lines = Object.assign(lines, {active: undefined});
+
+        let history : ConsoleCommand[] = [];
+        this.history = Object.assign(history, {cur: 0});
         this.head = 0;
         this.bufferSize = 512;
 
@@ -296,11 +316,11 @@ export class ConsoleEditor extends Editor {
         patch_console();
     }
 
-    formatMessage() {
+    formatMessage(...args : unknown[]) {
         let s = "";
         let prev = "";
 
-        function safestr(obj) {
+        function safestr(obj : unknown) : string {
             if (typeof obj === "object" && Array.isArray(obj)) {
                let s = "[\n"
                let i = 0;
@@ -320,12 +340,12 @@ export class ConsoleEditor extends Editor {
             return typeof obj === "symbol" ? obj.toString() : ""+obj;
         }
 
-        for (let i=0; i<arguments.length; i++) {
-            let arg = safestr(arguments[i]);
+        for (let i=0; i<args.length; i++) {
+            let arg = safestr(args[i]);
 
             //Reflect.ownKeys(window)
             let s2 = ""+arg;
-            let next = i < arguments.length-1 ? (safestr(arguments[i+1])).trim() : "";
+            let next = i < args.length-1 ? (safestr(args[i+1])).trim() : "";
 
             if (s2.startsWith("%c")) {
                 s2 = s2.slice(2, s2.length);
@@ -333,13 +353,16 @@ export class ConsoleEditor extends Editor {
                 let style = next.replace(/\n/g, "").split(";");
 
                 for (let line of style) {
-                    line = (""+line).trim().split(":");
+                    let fields = (""+line).trim().split(":");
 
-                    if (line.length === 2 && (""+line[0]).trim() === "color") {
-                        let color = (""+line[1]).trim().toLowerCase();
+                    if (fields.length === 2 && (""+fields[0]).trim() === "color") {
+                        let color = (""+fields[1]).trim().toLowerCase();
 
                         if (color in util.termColorMap) {
-                            s2 = termColor(s2, color);
+                            /* NOTE: this called a bare `termColor`, which is a
+                               ReferenceError -- path.ux's TS sources never put
+                               it on globalThis, only the old dist bundle did. */
+                            s2 = util.termColor(s2, color);
                         }
                     }
                 }
@@ -354,9 +377,15 @@ export class ConsoleEditor extends Editor {
         return (""+s).trim();
     }
 
-    formatStackLine(stack : string, parts : boolean=false) {
+    formatStackLine(stack : string) : string;
+    formatStackLine(stack : string, parts : false) : string;
+    formatStackLine(stack : string, parts : true) : [string, string];
+
+    formatStackLine(stack : string, parts : boolean=false) : string | [string, string] {
         if (stack.search("at") < 0) {
-            return "";
+            /* NOTE: this returned a bare "" even for parts=true, and
+               printStack's `l[0] = ...` on that string threw in strict mode. */
+            return parts ? ["", ""] : "";
         }
 
         stack = ""+stack;
@@ -376,7 +405,7 @@ export class ConsoleEditor extends Editor {
 
         stack = stack.slice(i+1, stack.length-1)
         if (parts) {
-            return [prefix, stack];
+            return [prefix, stack] as [string, string];
         }
 
         return util.termColor(prefix, this.colors["object"]) + util.termColor(stack, this.colors["source"]);
@@ -391,20 +420,19 @@ export class ConsoleEditor extends Editor {
         let ls = msg.split("\n");
 
         for (let i=0; i<ls.length; i++) {
-            let l = ls[i];
             let loc = "";
 
             if (i === ls.length-1) {
                 loc = stack;
             }
 
-            l = new ConsoleLineEntry(l, loc, linefg, linebg);
+            let entry = new ConsoleLineEntry(ls[i], loc, linefg, linebg);
 
             if (childafter) {
-                l.children = ls.length-i;
+                entry.children = ls.length-i;
             }
 
-            this.pushLine(l)
+            this.pushLine(entry)
         }
     }
 
@@ -444,19 +472,18 @@ export class ConsoleEditor extends Editor {
         let off = -1;
         for (let i=start; i<stack.length; i++) {
             let s = stack[i];
-            let l = this.formatStackLine(s, true);
-            l[0] = "  " + (""+l[0]).trim();
+            let pair = this.formatStackLine(s, true);
 
-            l = new ConsoleLineEntry(l[0], l[1], fg, bg);
-            l.closed = closed;
-            l.parent = off--;
+            let entry = new ConsoleLineEntry("  " + (""+pair[0]).trim(), pair[1], fg, bg);
+            entry.closed = closed;
+            entry.parent = off--;
 
-            this.pushLine(l);
+            this.pushLine(entry);
         }
     }
 
-    warn() {
-        let msg = this.formatMessage(...arguments);
+    warn(...args : unknown[]) {
+        let msg = this.formatMessage(...args);
 
         msg = util.termColor(msg, 1);
 
@@ -465,8 +492,8 @@ export class ConsoleEditor extends Editor {
         this.printStack(5, undefined, this.colors["warning_bg"], true);
     }
 
-    error() {
-        let msg = this.formatMessage(...arguments);
+    error(...args : unknown[]) {
+        let msg = this.formatMessage(...args);
 
         msg = util.termColor(msg, 1);
         this.push(msg, this.colors["error"], this.colors["error_bg"], true);
@@ -474,21 +501,21 @@ export class ConsoleEditor extends Editor {
         this.printStack(5, undefined, this.colors["error_bg"], true);
     }
 
-    trace() {
-        let msg = this.formatMessage(...arguments);
+    trace(...args : unknown[]) {
+        let msg = this.formatMessage(...args);
         this.push(msg);
         this.printStack(5, undefined, undefined, false);
     }
 
-    log() {
-        let msg = this.formatMessage(...arguments);
+    log(...args : unknown[]) {
+        let msg = this.formatMessage(...args);
 
         this.push(msg);
     }
 
     /* Rebuilds the event in canvas pixel space.  NOTE: `commandKey` and
        `touches` are not MouseEvent properties, so both copy as undefined. */
-    _mouse(e : MouseEvent) {
+    _mouse(e : MouseEvent) : ConsoleMouseEvent {
         let x = e.x, y = e.y;
 
         let rect = this.canvas.getClientRects()[0]
@@ -521,24 +548,24 @@ export class ConsoleEditor extends Editor {
     }
 
     on_mousedown(e : MouseEvent) {
-        e = this._mouse(e);
+        let e2 = this._mouse(e);
 
-        let hb = this.updateActive(e.x, e.y);
+        let hb = this.updateActive(e2.x, e2.y);
 
         if (hb) {
-            hb.click(e, this);
+            hb.click(e2, this);
         }
 
         _silence();
-        console.log(e.x, e.y);
+        console.log(e2.x, e2.y);
         _unsilence();
     }
 
     on_mousemove(e : MouseEvent) {
         _silence();
-        e = this._mouse(e);
+        let e2 = this._mouse(e);
 
-        this.updateActive(e.x, e.y);
+        this.updateActive(e2.x, e2.y);
         _unsilence();
     }
 
@@ -547,9 +574,7 @@ export class ConsoleEditor extends Editor {
         let found = 0;
 
         for (let hb of this.hitboxes) {
-            let ok = 1;
-
-            ok = ok && (x > hb.pos[0] && x <= hb.pos[0]+hb.size[0]);
+            let ok = (x > hb.pos[0] && x <= hb.pos[0]+hb.size[0]);
             ok = ok && (y > hb.pos[1] && y <= hb.pos[1]+hb.size[1]);
 
             if (ok) {
@@ -579,16 +604,22 @@ export class ConsoleEditor extends Editor {
     }
 
     on_mouseup(e : MouseEvent) {
-        e = this._mouse(e);
+        let e2 = this._mouse(e);
         _silence();
-        console.log(e.x, e.y);
+        console.log(e2.x, e2.y);
         _unsilence();
     }
 
     init() {
         super.init();
 
-        this.addEventListener("mousewheel", (e : WheelEvent) => {
+        /* "mousewheel" is the legacy name, so it is not in HTMLElementEventMap
+           and the listener is typed against plain Event. */
+        this.addEventListener("mousewheel", (e : Event) => {
+            if (!(e instanceof WheelEvent)) {
+                return;
+            }
+
             this.scrollPos[1] += -e.deltaY;
             this.queueRedraw();
         });
@@ -601,7 +632,7 @@ export class ConsoleEditor extends Editor {
         //let canvas = this.getCanvas("console", undefined, false);
         //let g = this.g = canvas.g;
         let canvas = this.canvas = document.createElement("canvas");
-        let g = this.g = canvas.getContext("2d");
+        let g = this.g = canvas.getContext("2d")!;
 
         canvas.addEventListener("mousemove", this.on_mousemove.bind(this));
         canvas.addEventListener("mousedown", this.on_mousedown.bind(this));
@@ -615,9 +646,9 @@ export class ConsoleEditor extends Editor {
 
         textbox.style["width"] = "100%";
         textbox.style["height"] = "25px";
-        textbox.style["padding-left"] = "5px";
-        textbox.style["padding-top"] = "1px";
-        textbox.style["padding-bottom"] = "1px";
+        textbox.style.paddingLeft = "5px";
+        textbox.style.paddingTop = "1px";
+        textbox.style.paddingBottom = "1px";
 
         textbox.oninput = this._on_change.bind(this);
         textbox.onkeydown = this._on_keydown.bind(this);
@@ -714,25 +745,24 @@ export class ConsoleEditor extends Editor {
         let keys = Reflect.ownKeys(obj);
         keys = keys.concat(Object.keys(Object.getOwnPropertyDescriptors(obj)));
         keys = keys.concat(Object.keys(Object.getOwnPropertyDescriptors(obj.__proto__)));
-        keys = new Set(keys);
-        let keys2 = [];
-        for (let k of keys) {
-            keys2.push(k);
+        /* NOTE: the symbol keys Reflect.ownKeys returns were sorted below with
+           a NaN comparison and then skipped by a typeof test; they are dropped
+           up front now, which also makes the sort consistent. */
+        let keys2 : string[] = [];
+        for (let k of new Set(keys)) {
+            if (typeof k === "string") {
+                keys2.push(k);
+            }
         }
-        keys = keys2;
 
-        let list = [];
+        let list : string[] = [];
         let lsuffix = suffix.toLowerCase();
         let hit = suffix;
         let hit2 = undefined;
 
-        keys.sort((a, b) => a.length - b.length);
+        keys2.sort((a, b) => a.length - b.length);
 
-        for (let k of keys)  {
-            if (typeof k !== "string") {
-                continue;
-            }
-
+        for (let k of keys2)  {
             if (suffix.length === 0) {
                 list.push(k);
                 continue;
@@ -815,7 +845,7 @@ export class ConsoleEditor extends Editor {
             case keymap["R"]:
                 /* NOTE: `commandKey` is not a KeyboardEvent property; the
                    DOM spells it `metaKey`. */
-                if ((e.ctrlKey | e.commandKey) && !e.shiftKey && !e.altKey) {
+                if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
                     location.reload();
                 }
                 break;
@@ -851,12 +881,11 @@ export class ConsoleEditor extends Editor {
         let canvas = this.canvas;
         let g = this.g;
 
-        let c = this.getDefault("DefaultText").color;
-        let font = this.getDefault("DefaultText");
+        let font = this.getDefault<CSSFont>("DefaultText");
 
-        c = css2color(c);
+        let c = css2color(font.color);
 
-        for (let i=0; i<3; i++) {
+        for (const i of [0, 1, 2] as const) {
             let f = 1.0 - c[i];
             c[i] += (f - c[i])*0.75;
         }
@@ -893,6 +922,20 @@ export class ConsoleEditor extends Editor {
            Every other field is created by start(). */
         let stateMachine : ConsoleStateMachine = {
             stack : [],
+            x : 0,
+            y : 0,
+            d : 0,
+            param1 : 0,
+            param2 : 0,
+            color : color,
+            bgcolor : undefined,
+            font : g.font,
+
+            /* start() replaces this before a single character is drawn. */
+            state(c : string) {
+                return this.base(c);
+            },
+
             start(x : number, y : number, color : string) {
                 this.stack.length = 0;
                 this.x = x;
@@ -919,12 +962,12 @@ export class ConsoleEditor extends Editor {
                     this.param2 = c;
                     this.d++;
                 } else if (c === "m" && this.d >= 2) {
-                    let tcolor = this.param1;
+                    let digits = "" + this.param1;
                     if (this.d > 2) {
-                        tcolor += this.param2;
+                        digits += this.param2;
                     }
 
-                    tcolor = parseInt(tcolor);
+                    let tcolor = parseInt(digits);
                     if (tcolor === 0) {
                         font.copyTo(fontcpy);
                         fontcpy.color = color;
@@ -938,12 +981,18 @@ export class ConsoleEditor extends Editor {
                         //ignore
                         //this.font = font.genCSS(ts);
                     } else if (tcolor >= 40) {
-                        this.bgcolor = termColorMap[tcolor-10];
+                        /* termColorMap is bidirectional: a numeric key gives the
+                           color name back, anything else is a missing code. */
+                        let name = termColorMap[tcolor-10];
+
+                        this.bgcolor = typeof name === "string" ? name : undefined;
                         if (this.bgcolor && this.bgcolor in this2.colormap) {
                             this.bgcolor = this2.colormap[this.bgcolor];
                         }
                     } else {
-                        this.color = termColorMap[tcolor];
+                        let name = termColorMap[tcolor];
+
+                        this.color = typeof name === "string" ? name : "";
                         if (this.color && this.color in this2.colormap) {
                             this.color = this2.colormap[this.color];
                         }
@@ -988,9 +1037,7 @@ export class ConsoleEditor extends Editor {
             stateMachine.start(x, y, color);
 
             for (let i=0; i<s.length; i++) {
-                let c = s[i];
-
-                c = stateMachine.state(c);
+                let c = stateMachine.state(s[i]);
                 if (c === false) {
                     continue;
                 }
@@ -1020,9 +1067,7 @@ export class ConsoleEditor extends Editor {
             stateMachine.start(0, 0, color);
 
             for (let i=0; i<s.length; i++) {
-                let c = s[i];
-
-                c = stateMachine.state(c);
+                let c = stateMachine.state(s[i]);
                 if (c === false) {
                     continue;
                 }
@@ -1177,8 +1222,10 @@ export class ConsoleEditor extends Editor {
         this.history.cur = this.history.length;
 
         for (let i=0; i<this.lines.length; i++) {
-            if (typeof this.lines[i] === "string") {
-                this.lines[i] = new ConsoleLineEntry(this.lines[i], "");
+            let l : unknown = this.lines[i];
+
+            if (typeof l === "string") {
+                this.lines[i] = new ConsoleLineEntry(l, "");
             }
         }
     }

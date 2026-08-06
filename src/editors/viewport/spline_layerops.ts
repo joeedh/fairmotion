@@ -7,9 +7,15 @@ import {
   BoolProperty, CollectionProperty
 } from '../../core/toolprops.js';
 import type {FullContext} from '../../core/context.js';
+import type {ToolDef} from '../../core/toolops_api.js';
+import type {SplineElement} from '../../curve/spline_types.js';
+import type {PropertySlots} from '../../path.ux/scripts/pathux.js';
 
-export class SplineLayerOp extends SplineLocalToolOp {
-  static tooldef() {
+export class SplineLayerOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends SplineLocalToolOp<InputSlots & {spline_path : StringProperty}, OutputSlots> {
+  static tooldef() : ToolDef {
     return {
       inputs: ToolOp.inherit({
         spline_path: new StringProperty("frameset.drawspline")
@@ -18,11 +24,23 @@ export class SplineLayerOp extends SplineLocalToolOp {
   }
 
   get_spline(ctx : FullContext) : Spline {
-    return ctx.api.getValue(ctx, this.inputs.spline_path.data);
+    let spline = ctx.api.getValue<Spline>(ctx, this.inputs.spline_path.data);
+
+    /* Every caller dereferences the result immediately; a path that fails to
+       resolve threw a TypeError one line later before. */
+    if (spline === undefined) {
+      throw new Error("no spline at " + this.inputs.spline_path.data);
+    }
+
+    return spline;
   }
 }
 
-export class AddLayerOp extends SplineLayerOp {
+export class AddLayerOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends SplineLayerOp<InputSlots & {name : StringProperty, make_active : BoolProperty},
+                        OutputSlots & {layerid : IntProperty}> {
   constructor(name? : string) {
     super(undefined, "Add Layer");
 
@@ -30,7 +48,7 @@ export class AddLayerOp extends SplineLayerOp {
       this.inputs.name.set_data(name);
   }
 
-  static tooldef() {
+  static tooldef() : ToolDef {
     return {
       uiname  : "Add Layer",
       toolpath: "spline.layers.add",
@@ -48,7 +66,9 @@ export class AddLayerOp extends SplineLayerOp {
   }
 
   static canRun(ctx : FullContext) {
-    return this;
+    /* NOTE: this returned `this`, the class itself, which is merely truthy --
+       the commented-out body below is what it meant to do. */
+    return true;
     //let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
     //return spline !== undefined;
   }
@@ -72,9 +92,11 @@ export class AddLayerOp extends SplineLayerOp {
 
   exec(ctx : FullContext) {
     console.warn(ctx, ctx.api);
-    let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
+    let spline = this.get_spline(ctx);
 
-    let layer = spline.layerset.new_layer(this.inputs.name.data);
+    /* NOTE: new_layer() takes no arguments, so the `name` input has never
+       reached the new layer -- it always gets an auto-generated "Layer N". */
+    let layer = spline.layerset.new_layer();
     this.outputs.layerid.set_data(layer.id);
 
     if (this.inputs.make_active.data) {
@@ -90,8 +112,11 @@ export class AddLayerOp extends SplineLayerOp {
   }
 }
 
-export class ChangeLayerOp extends SplineLayerOp {
-  static tooldef() {
+export class ChangeLayerOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends SplineLayerOp<InputSlots & {layerid : IntProperty}, OutputSlots> {
+  static tooldef() : ToolDef {
     return {
       uiname  : "Change Layer",
       toolpath: "spline.layers.set",
@@ -104,8 +129,10 @@ export class ChangeLayerOp extends SplineLayerOp {
   }
 
   /* Layer id that was active before the op, plus the active element eid in
-     each of the spline's element lists. */
-  _undo! : {id : number, actives : number[]};
+     each of the spline's element lists.  Not `_undo`: the base class stores a
+     whole serialized spline there, and undo_pre/undo below replace both ends
+     of that. */
+  _undo_layer! : {id : number, actives : number[]};
 
   constructor(id? : number) {
     super(undefined);
@@ -122,7 +149,7 @@ export class ChangeLayerOp extends SplineLayerOp {
       actives.push(list.active !== undefined ? list.active.eid : -1);
     }
 
-    this._undo = {
+    this._undo_layer = {
       id     : this.get_spline(ctx).layerset.active.id,
       actives: actives
     }
@@ -130,8 +157,8 @@ export class ChangeLayerOp extends SplineLayerOp {
 
   undo(ctx : FullContext) {
     let spline = this.get_spline(ctx);
-    let layer = spline.layerset.idmap[this._undo.id];
-    let actives = this._undo.actives;
+    let layer = spline.layerset.idmap[this._undo_layer.id];
+    let actives = this._undo_layer.actives;
 
     for (let i = 0; i < actives.length; i++) {
       spline.elists[i].active = spline.eidmap[actives[i]];
@@ -164,7 +191,11 @@ export class ChangeLayerOp extends SplineLayerOp {
   }
 };
 
-export class ChangeElementLayerOp extends SplineLayerOp {
+export class ChangeElementLayerOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends SplineLayerOp<InputSlots & {old_layer : IntProperty, new_layer : IntProperty},
+                        OutputSlots> {
   constructor(old_layer? : number, new_layer? : number) {
     super(undefined, "Move to Layer");
 
@@ -175,7 +206,7 @@ export class ChangeElementLayerOp extends SplineLayerOp {
       this.inputs.new_layer.set_data(new_layer);
   }
 
-  static tooldef() {
+  static tooldef() : ToolDef {
     return {
       toolpath: "spline.move_to_layer",
       uiname  : "Move To Layer",
@@ -191,21 +222,21 @@ export class ChangeElementLayerOp extends SplineLayerOp {
   exec(ctx : FullContext) {
     let spline = this.get_spline(ctx);
 
-    let oldl = this.inputs.old_layer.data;
-    let newl = this.inputs.new_layer.data;
+    let oldid = this.inputs.old_layer.data;
+    let newid = this.inputs.new_layer.data;
 
-    let eset = new set();
+    let eset = new set<SplineElement>();
     for (let e of spline.selected) {
       if (e.hidden) continue;
-      if (!(oldl in e.layers)) continue;
+      if (!(oldid in e.layers)) continue;
 
       eset.add(e);
     }
 
-    console.log("ids", oldl, newl);
+    console.log("ids", oldid, newid);
 
-    oldl = spline.layerset.idmap[oldl];
-    newl = spline.layerset.idmap[newl];
+    let oldl = spline.layerset.idmap[oldid];
+    let newl = spline.layerset.idmap[newid];
 
     if (newl === undefined || oldl === undefined || oldl === newl) {
       console.log("Error in ChangeElementLayerOp!", "oldlayer", oldl, "newlayer", newl);
@@ -222,12 +253,15 @@ export class ChangeElementLayerOp extends SplineLayerOp {
   }
 }
 
-export class DeleteLayerOp extends SplineLayerOp {
+export class DeleteLayerOp<
+  InputSlots extends PropertySlots = PropertySlots,
+  OutputSlots extends PropertySlots = PropertySlots,
+> extends SplineLayerOp<InputSlots & {layer_id : IntProperty}, OutputSlots> {
   constructor() {
     super(undefined);
   }
 
-  static tooldef() {
+  static tooldef() : ToolDef {
     return {
       uiname  : "Delete Layer",
       toolpath: "spline.layers.remove",
@@ -253,7 +287,7 @@ export class DeleteLayerOp extends SplineLayerOp {
       return;
     }
 
-    let orphaned = new set();
+    let orphaned = new set<SplineElement>();
 
     for (let k in spline.eidmap) {
       let e = spline.eidmap[k];

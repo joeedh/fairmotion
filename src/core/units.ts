@@ -54,20 +54,21 @@ export class UnitAttr {
   geounit: number;
 
   constructor(attrs: UnitAttrs) {
-    function getval(defval: number | undefined, key: keyof UnitAttrs, required = false) {
-      if (key in attrs) return attrs[key];
-      
-      if (required)
+    function required(key: keyof UnitAttrs): number {
+      let val = attrs[key];
+
+      if (val === undefined)
         throw new Error("Missing required unit parameter");
-      return defval;
+
+      return val;
     }
-    
-    this.grid_steps = getval(undefined, "grid_steps", true);
-    this.grid_substeps = getval(undefined, "grid_substeps", true);
-    
+
+    this.grid_steps = required("grid_steps");
+    this.grid_substeps = required("grid_substeps");
+
     //unit size in unit space, in centimeters
     //basically, default size of new objects
-    this.geounit = getval(1.0, "geounit", false);
+    this.geounit = attrs.geounit ?? 1.0;
   }
 }
 
@@ -174,7 +175,13 @@ export class Unit {
     
     if (val == undefined || typeof(val) != "number" || isNaN(val)) {
       console.log(["haha ", val, string]);
-      errfunc(funcparam);
+
+      /* NOTE: this call was unguarded, unlike the identical one in the catch
+         above, so a bad string with no errfunc threw a TypeError here. */
+      if (errfunc != undefined) {
+        errfunc(funcparam);
+      }
+
       return oldval;
     }
     

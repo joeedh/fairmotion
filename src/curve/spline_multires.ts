@@ -10,11 +10,18 @@ var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
 //import {RestrictFlags, Spline} from 'spline';
 import {STRUCT} from '../core/struct.js';
 
-import {CustomDataLayer, SplineTypes, SplineFlags, CurveEffect} from './spline_base.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, CurveEffect,
+        FlipWrapper} from './spline_base.js';
 
 import type {Spline} from './spline.js';
 import type {SplineVertex, SplineSegment} from './spline_types.js';
-import type {CustomDataLayerDef} from './spline_base.js';
+import type {CustomDataLayerDef, SplineElement} from './spline_base.js';
+
+/* spline_types imports this module, so SplineSegment can only be a type here;
+   SplineElement's runtime tag stands in for `instanceof`. */
+export function isSegment(e : SplineElement | undefined) : e is SplineSegment {
+  return e !== undefined && e.type === SplineTypes.SEGMENT;
+}
 
 export var MResFlags = {
   SELECT    : 1,
@@ -103,25 +110,31 @@ var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
 /* Was `static` inside BoundPoint.recalc_offset(). */
 const _recalc_offset_p = new Vector3([0, 0, 0]);
 
+/* The pair of accessors BoundPoint's constructor installs on `offset`. */
+type PointOffset = {0 : number, 1 : number};
+
 /* A cursor into a MultiResLayer's flat Float64Array. Every named property is
    an accessor onto data[i + T*]; nothing is stored on the object itself. */
 export class BoundPoint {
     /* Accessors onto data[i+TVX] and data[i+TVY], installed per instance. */
-    offset : {0 : number, 1 : number};
+    offset : PointOffset;
     mr : MultiResLayer | undefined;
-    /* Offset of this point's record in `data`; undefined until bind(). */
-    i : number | undefined;
-    data : Float64Array | undefined;
+    /* Offset of this point's record in `data`, and the array it indexes. Both
+       are set by bind(); every accessor below reads them unconditionally, so
+       they are typed as always present. */
+    i! : number;
+    data! : Float64Array;
     composed_id : number;
 
     constructor() {
         this.mr = undefined;
-        this.i = undefined;
-        this.data = undefined;
+        this.i = undefined!;
+        this.data = undefined!;
 
         this.composed_id = -1;
 
-        this.offset = {}
+        /* Both entries arrive by defineProperty just below. */
+        this.offset = {} as PointOffset;
         var this2 = this;
 
         Object.defineProperty(this.offset, "0", {
@@ -145,6 +158,9 @@ export class BoundPoint {
 
     recalc_offset(spline : Spline) {
       var seg = spline.eidmap[this.seg];
+      if (!isSegment(seg)) {
+        return;
+      }
 
       var co = seg._evalwrap.evaluate(this.s);
 
@@ -283,15 +299,17 @@ var get_point_cache = cachering.fromConstructor(BoundPoint, 12);
 /* Walks one multires level's linked list. Reused out of a cachering, so `ret`
    must not be held onto across next() calls. */
 class point_iter {
-    ret : {done : boolean, value : BoundPoint | undefined};
-    mr : MultiResLayer | undefined;
+    /* `value` is only meaningful while `done` is false, but typing it as such
+       would make every for..of over this iterator yield BoundPoint|undefined. */
+    ret : {done : boolean, value : BoundPoint};
+    mr! : MultiResLayer;
     level! : number;
     data! : Float64Array;
     /* Offset of the current record, or -1 when the list is exhausted. */
     cur! : number;
 
     constructor() {
-        this.ret = {done : true, value : undefined};
+        this.ret = {done : true, value : undefined!};
     }
 
     [Symbol.iterator]() {
@@ -306,7 +324,7 @@ class point_iter {
         this.cur = mr.index[level*ITOT+IHEAD];
 
         this.ret.done = false;
-        this.ret.value = undefined;
+        this.ret.value = undefined!;
 
         return this;
     }
@@ -314,8 +332,8 @@ class point_iter {
     next() {
         if (this.cur == -1) {
             this.ret.done = true;
-            this.ret.value = undefined;
-            this.mr = undefined;
+            this.ret.value = undefined!;
+            this.mr = undefined!;
 
             return this.ret;
         }
@@ -361,9 +379,6 @@ function bernstein(degree : number, s : number) {
   return binomial(degree, half)*pow(s, half)*pow(1.0-s, degree-half);
 }
 
-/* NOTE: the `bernstein(a, mid, 0, a, ...)` call below passes five arguments to
-   a two-parameter function; the extras are ignored, so `height` is really
-   bernstein(a, mid). */
 function bernstein2(degree : number, s : number) {
   var a = floor(degree + 1);
   var b = ceil(degree + 1);
@@ -374,9 +389,15 @@ function bernstein2(degree : number, s : number) {
 
   var start=0.0, mid=0.5, end=1.0;
   if (a >= 0 && a < bernstein_offsets.length) {
-    start = bernstein_offsets[a][0];
-    mid = bernstein_offsets[a][1];
-    end = bernstein_offsets[a][2];
+    /* NOTE: entries 0..2 of bernstein_offsets are bare numbers rather than
+       triples, so for a < 3 all three come out undefined and bernstein2
+       returns NaN, which crappybasis() clamps to a zero weight. NaN stands in
+       for the undefined here; every use below is arithmetic, so it reads the
+       same. */
+    const row = bernstein_offsets[a];
+    start = Array.isArray(row) ? row[0] : NaN;
+    mid = Array.isArray(row) ? row[1] : NaN;
+    end = Array.isArray(row) ? row[2] : NaN;
   }
 
   var off = 0.5 - mid;
@@ -389,7 +410,9 @@ function bernstein2(degree : number, s : number) {
     s = start*(1.0-s) + mid*s;
   }
 
-  var height = bernstein(a, mid, 0, a, Math.floor(a/2));
+  /* NOTE: this passed five arguments to a two-parameter function; the extras
+     were ignored, so the height is bernstein(a, mid). */
+  var height = bernstein(a, mid);
 
   return bernstein(a, s)/height;
 }
@@ -444,10 +467,15 @@ export class MultiResEffector extends CurveEffect {
     this.mr = owner;
   }
 
-  /* NOTE: the three `for (var p in ...points(0))` loops below iterate an
-     iterator with for..in, which enumerates its properties, not its values --
-     so none of them run. Left alone; this whole file is slated for removal. */
+  /* NOTE: the three point loops below said `for (var p in ...)`, which walks
+     an iterator's own property names, not the points. `p` came out as "ret",
+     "mr", ... and the first `p.offset[0]` threw a TypeError, so evaluate()
+     never returned. Corrected to for..of. */
   evaluate(s : number) {
+    if (this.prior === undefined) {
+      throw new Error("multires effector with no prior effect");
+    }
+
     var n = this.prior.derivative(s);
     var t = n[0]; n[0] = n[1]; n[1] = t;
     n.normalize();
@@ -460,12 +488,18 @@ export class MultiResEffector extends CurveEffect {
     const ks = _evaluate_ks;
     var i = 0;
 
-    for (var p in this.mr.points(0)) {
+    /* NOTE: the neighbour loop below tests `support` before assigning it, so
+       the first point of each neighbour is weighed against undefined (and each
+       later neighbour against the previous one's last point). Hoisted here to
+       keep that as it was. */
+    var support : number = undefined!;
+
+    for (var p of this.mr.points(0)) {
       ks[i] = p.s;
       i++;
     }
 
-    for (var p in this.mr.points(0)) {
+    for (var p of this.mr.points(0)) {
       var w = crappybasis(s, p.s, p.support, p.degree);
       if (isNaN(w)) continue;
 
@@ -479,13 +513,24 @@ export class MultiResEffector extends CurveEffect {
       var sign = i ? -1.0 : 1.0;
 
       if (next != undefined) {
-        var mr = !(next instanceof MultiResEffector) ? next.eff.mr : next.mr;
+        /* The neighbour is either a multires effector or a FlipWrapper around
+           one. NOTE: this used to read `next.eff.mr` for everything that was
+           not a MultiResEffector, which threw for any other effect type. */
+        var eff : CurveEffect | undefined = next;
+        if (eff instanceof FlipWrapper) {
+          eff = eff.eff;
+        }
+        if (!(eff instanceof MultiResEffector)) {
+          continue;
+        }
 
-        for (var p in mr.points(0)) {
+        var mr = eff.mr;
+
+        for (var p of mr.points(0)) {
           if ((!i && p.s-support >= 0) || (i && p.s+support <= 1.0))
             continue;
 
-          var support = p.support;
+          support = p.support;
           var ps = p.s;
 
           var s2;
@@ -535,7 +580,7 @@ MultiResGlobal.STRUCT = `
    here: it is the default value of add_point()'s `co` parameter, which only
    worked because the transpiler hoisted it to module scope. */
 const _add_point_co = [0, 0];
-const _recalc_worldcos_level_sta = [0, 0, 0];
+const _recalc_worldcos_level_sta = new Vector3();
 
 export class MultiResLayer extends CustomDataLayer {
   static STRUCT : string;
@@ -673,7 +718,9 @@ export class MultiResLayer extends CustomDataLayer {
       return;
 
     for (var i=0; i<this.max_layers; i++) {
-      for (var p in this.points(i)) {
+      /* NOTE: was for..in, which walked the iterator's property names and
+         threw on the first `p.seg =` against a string. */
+      for (var p of this.points(i)) {
         p.seg = seg.eid;
       }
     }
@@ -683,7 +730,8 @@ export class MultiResLayer extends CustomDataLayer {
       return this.points_iter_cache.next().cache_init(this, level);
   }
 
-  add_point(level : number, co : ArrayLike<number> = _add_point_co) : BoundPoint {
+  add_point(level : number,
+            co : number[] | Vector2 | Vector3 = _add_point_co) : BoundPoint {
 
       //enforce boundary alignment
       this._freecur += TTOT - (this._freecur % TTOT);
@@ -756,7 +804,10 @@ export class MultiResLayer extends CustomDataLayer {
   recalc_worldcos_level(seg : SplineSegment, level : number) { //seg is owning segment
     const sta = _recalc_worldcos_level_sta;
 
-    for (var p in this.points(level)) {
+    /* NOTE: was for..in, which walked the iterator's property names; the
+       `p[0] =` below then threw against a string, so post_solve() never got
+       past its first multires segment. */
+    for (var p of this.points(level)) {
       sta[0] = p.s; sta[1] = p.t; sta[2] = p.a;
       var co = seg._evalwrap.local_to_global(sta);
       var co2 = seg._evalwrap.evaluate(sta[0]);
@@ -788,13 +839,12 @@ export class MultiResLayer extends CustomDataLayer {
     }
   }
 
-  /* NOTE: broken two ways -- `ret` is not in scope, and super.loadSTRUCT()
-     wants the reader, not the object. Both throw the moment a file with a
-     multires layer is loaded. */
+  /* NOTE: was `reader(this); super.loadSTRUCT(this); ret.max_layers = 8;` --
+     the super call handed the object over where the reader goes and `ret` was
+     never in scope, so loading a file with a multires layer threw twice over. */
   loadSTRUCT(reader : StructReader<this>) {
-    reader(this);
-    super.loadSTRUCT(this);
-    ret.max_layers = 8;
+    super.loadSTRUCT(reader);
+    this.max_layers = 8;
   }
 
   static define() : CustomDataLayerDef {return {
@@ -822,10 +872,13 @@ MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + `
 export function test_fix_points() {
   var spline = new Context().spline;
 
-  for (var seg in spline.segments) {
+  /* NOTE: was for..in, which walked the element array's property names. */
+  for (var seg of spline.segments) {
     var mr = seg.cdata.get_layer(MultiResLayer);
 
-    mr.fix_points(seg);
+    if (mr !== undefined) {
+      mr.fix_points(seg);
+    }
   }
 }
 
@@ -947,10 +1000,11 @@ var empty_iter = {
     this._ret.value = undefined;
 
     return this._ret;
+  },
+
+  [Symbol.iterator] : function() {
+    return this;
   }
-};
-empty_iter[Symbol.iterator] = function() {
-  return this;
 };
 
 /* Walks one multires level across every segment in the spline. */
@@ -960,8 +1014,7 @@ class GlobalIter {
   level : number;
   /* Yield compose_id()s instead of the points themselves. */
   return_keys : boolean;
-  /* Holds the segment iterator's result object first, then the segment. */
-  seg : SplineSegment | IteratorResult<SplineSegment> | undefined;
+  seg : SplineSegment | undefined;
   segiter : Iterator<SplineSegment>;
   pointiter : point_iter | undefined;
 
@@ -977,30 +1030,37 @@ class GlobalIter {
     this.ret = {done : false, value : undefined};
   }
 
-  next() {
+  next() : {done : boolean, value : BoundPoint | number | undefined} {
     if (this.pointiter == undefined) {
-      this.seg = this.segiter.next();
+      var segret = this.segiter.next();
 
-      if (this.seg.done == true) {
+      if (segret.done == true) {
         this.ret.done = true;
         this.ret.value = undefined;
 
         return this.ret;
       }
 
-      this.seg = this.seg.value;
+      this.seg = segret.value;
 
       var mr = this.seg.cdata.get_layer(MultiResLayer);
+      if (mr === undefined) {
+        /* NOTE: iterpoints() only builds a GlobalIter when the spline has a
+           multires layer, but that is a spline-wide check; a segment without
+           one used to throw here. */
+        return this.next();
+      }
+
       this.pointiter = mr.points(this.level);
     }
 
-    var p = this.pointiter.next();
-    if (p.done) {
+    var ret = this.pointiter.next();
+    if (ret.done) {
       this.pointiter = undefined;
       return this.next();
     }
 
-    p = p.value;
+    var p = ret.value;
     this.ret.value = this.return_keys ? compose_id(p.seg, p.id) : p;
 
     return this.ret;

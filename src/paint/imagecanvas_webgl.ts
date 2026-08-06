@@ -461,9 +461,13 @@ export function initWebGL() {
   /* getContext() hands back the WebGL1 interface; the extension patching below
      back-fills the WebGL2 names the rest of the app calls, exactly as
      init_webgl() does for its own context. */
+  /* No `desynchronized`: this canvas is a transparent full-window overlay at
+     z-index 100, and the low-latency hint makes Chromium promote it to an
+     overlay plane that composites opaquely -- under Electron 43 on Windows
+     that paints the entire app black.  The hint only ever bought latency; this
+     context is cleared to alpha 0 and nothing else draws to it. */
   gl = window._gl = canvas.getContext("webgl", {
     alpha                : true,
-    desynchronized       : true,
     antialias            : false,
     premultipliedAlpha   : false,
     powerPreference      : "high-performance",

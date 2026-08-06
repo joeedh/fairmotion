@@ -1,9 +1,95 @@
 # Demo
 [Demo](http://joeedh.github.io/fairmotion/index.html)
 
-# Installing and running the alpha package
-## Requirements:
-  1. Python [www.python.org](www.python.org)
+# Building and running
+
+## Requirements
+
+  1. [Node.js](https://nodejs.org) 22+ (developed against 24)
+  2. [pnpm](https://pnpm.io) — `npm i -g pnpm`. Do not use `npm` or `yarn`.
+
+Python is no longer required; the old Python build system has been removed.
+
+## Setup
+
+```sh
+git clone --recurse-submodules https://github.com/joeedh/fairmotion.git
+cd fairmotion
+pnpm install
+```
+
+The UI toolkit ([path.ux](https://github.com/joeedh/path.ux)) is a git submodule at
+`src/path.ux`. If you cloned without `--recurse-submodules`:
+
+```sh
+git submodule update --init --recursive
+```
+
+## Build
+
+```sh
+pnpm build             # html5 app   -> dist/html5app
+pnpm build:electron    # electron app -> dist/electron
+pnpm watch             # rebuild on change (implies --dev: sourcemaps, no minify)
+```
+
+Extra flags go straight to the build script: `node buildtools/esbuild.mjs --electron --watch`,
+`--dev` for sourcemaps, `--minify` for a minified bundle. Each build wipes its output
+directory first.
+
+## Run — browser
+
+```sh
+pnpm build
+pnpm serv              # http://localhost:5050
+```
+
+`pnpm serv [port] [--root=dist/html5app]` is a small static server rather than esbuild's
+built-in one because the app needs COOP/COEP headers to keep `SharedArrayBuffer` available
+to the wasm paths.
+
+For an edit/reload loop, run `pnpm watch` and `pnpm serv` in two terminals.
+
+## Run — Electron
+
+```sh
+pnpm electron
+```
+
+This builds `dist/electron` first if it isn't there, then launches Electron with the Chrome
+DevTools Protocol on port 9222 (`--port=<n>` to change it, `--no-wait` to skip waiting for
+the endpoint).
+
+With the app running, drive it from another terminal:
+
+```sh
+pnpm cdp pages                        # list debuggable pages
+pnpm cdp eval "<js expression>"       # evaluate in the app page
+pnpm cdp screenshot [file.png]        # capture the app page
+pnpm cdp click <x> <y>                # click at viewport coordinates
+pnpm cdp key <key>                    # press a key (Playwright key names)
+```
+
+`pnpm cdp eval "__fm.datapathCount()"` reaches the same debug bridge the Playwright specs
+use, so an Electron-only bug can be interrogated with the same oracles as the browser build.
+For richer scripting, import `connectApp` from `buildtools/cdp.mjs` directly.
+
+## Checks
+
+```sh
+pnpm typecheck         # tsgo --noEmit
+pnpm test              # vitest (pnpm test:watch to watch)
+pnpm playwright        # end-to-end; needs `pnpm build` first, starts pnpm serv itself
+pnpm format            # @pathtx/prettier over src/**/*.ts
+pnpm format:check      # same, non-mutating
+```
+
+Formatting uses joeedh's prettier fork (`@pathtx/prettier`), not stock prettier.
+
+## Documentation
+
+`docs/index.md` indexes everything: subsystem guides (rendering, stroking, animation,
+dopesheet), a symptom-indexed debugging log, plans, and research notes.
 
 #Intro
 
@@ -35,40 +121,4 @@ Fairmotion is very much a work in progress, and should be considered pre-alpha.
 
 ![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
-### Extjs
-
-Fairmotion was originally coded in my own type-annotated language based on ES6,
-and is currently being converted to typescript.  The old transpiler is gone;
-sources are now built with esbuild.
-
-### Build
-To build, open a command prompt where you downloaded fairmotion
-and execute these commands:
-
-    pnpm install
-    pnpm build            # html5 app  -> dist/html5app
-    pnpm build:electron   # electron   -> dist/electron
-
-`pnpm watch` rebuilds on change, and `pnpm serv` serves `dist/html5app`
-on http://localhost:5050.
-
-### Running The Electron App
-    pnpm electron
-
-That builds `dist/electron` if it is missing, launches Electron against it,
-and exposes a CDP endpoint on port 9222.  `pnpm cdp eval "<js>"` talks to it.
-
-## Refactoring
-
-Fairmotion was forked from an ancient 3D modeler of mine, which I later rewrote from scratch to create [webgl-app-framework](https://www.khronos.org/registry/webgl/specs/latest/1.0/).
-
-I've backported a lot of architectural changes from webgl-app-framework, but more remain.  
-
-Refactor todos (list may not be up to date):
-
-* Finish porting extjs code to typescript.
-* Replace event dag with webgl-app-framework's graph solver.
-* Finish scene graph refactor.
-* Review OffscreenCanvas and ImageBitmap usage in workers and make sure they do
-  what you'd expect (and don't copy excessively between GPU and CPU).
   

@@ -35,10 +35,24 @@ All docs live under `docs/`. Nothing goes in a top-level `doc/`.
 
 | Path | Contents |
 |---|---|
+| `docs/index.md` | Index of everything below — **add new docs here** |
 | `docs/plans/` | Implementation plans |
 | `docs/research/` | Research reports, investigations, findings |
 | `docs/archive/` | Pre-existing legacy notes; historical, do not edit |
-| `docs/` (root) | Living guides, e.g. `docs/debugging.md` |
+| `docs/` (root) | Living guides (see below) |
+
+Subsystem guides — read the relevant one before changing that subsystem:
+
+| Doc | Covers |
+|---|---|
+| `docs/rendering.md` | Repaint scheduling, `SplineDrawer`, batching, worker rasterization, overlays |
+| `docs/stroking.md` | Offset-curve geometry, width/shift, stroke groups, junctions |
+| `docs/animation.md` | Drawspline/pathspline, per-vertex motion paths, keyframes, playback |
+| `docs/dopesheet.md` | Timeline editor: DOM channel tree + canvas key area |
+| `docs/debugging.md` | Symptom → cause → fix log; **append to it** when something non-obvious breaks |
+
+Active plans: `docs/plans/typescript-port.md` (phase 8 outstanding; its *Known gotchas*
+section still applies), `docs/plans/remove-webgl.md` (not started).
 
 ## Source comments
 

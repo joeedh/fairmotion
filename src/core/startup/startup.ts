@@ -6,6 +6,7 @@ import { register_toolops } from "../data_api/data_api.js";
 import { theme } from "../../editors/theme.js";
 import { charmap } from "../../editors/events.js";
 import { AppState } from "../AppState.js";
+import * as platform from "../../../platforms/platform.js";
 
 import { iconmanager, setTheme, setIconMap } from "../../path.ux/scripts/core/ui_base.js";
 import cconst from "../../path.ux/scripts/config/const.js";
@@ -134,6 +135,15 @@ window.startup_intern = function startup() {
   g_app_state.session.validate_session();
   init_event_system();
   window.init_redraw_globals_2();
+
+  /* A file named on the command line replaces the default scene. This runs
+     after the screen exists, so load_user_file_new() has one to swap out. */
+  let startupPath = platform.app.getStartupFilePath();
+
+  if (startupPath !== undefined) {
+    startup_report("loading " + startupPath + "...");
+    g_app_state.load_path(startupPath);
+  }
 };
 
 function init_pathux() {

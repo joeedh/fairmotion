@@ -2,7 +2,9 @@
  * Launches the built electron target with the Chrome DevTools Protocol
  * enabled, for use via `pnpm electron`.
  *
- *   pnpm electron [--port=9222] [--no-wait] [-- <extra chromium args>]
+ *   pnpm electron [file.fmo] [--port=9222] [--no-wait] [-- <extra chromium args>]
+ *
+ * A .fmo path is resolved against the current directory and opened on startup.
  *
  * The CDP endpoint is http://127.0.0.1:<port>. Drive it with
  * `pnpm cdp <command>` (see buildtools/cdp.mjs).
@@ -24,6 +26,11 @@ for (const arg of process.argv.slice(2)) {
     port = parseInt(arg.slice("--port=".length));
   } else if (arg === "--no-wait") {
     wait = false;
+  } else if (arg.startsWith("--file=")) {
+    /* Electron's cwd is appDir, so resolve here where cwd is the user's. */
+    extraArgs.push(`--file=${path.resolve(arg.slice("--file=".length))}`);
+  } else if (!arg.startsWith("-")) {
+    extraArgs.push(`--file=${path.resolve(arg)}`);
   } else {
     extraArgs.push(arg);
   }

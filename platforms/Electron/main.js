@@ -114,6 +114,46 @@ ipcMain.handle('quit-fairmotion', async(event) => {
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("enable-unsafe-webgpu");
 
+/*
+ * A file to open on startup, from the command line:
+ *
+ *   fairmotion "path/to/scene.fmo"
+ *   fairmotion --file="path/to/scene.fmo"
+ *
+ * `electron .` puts the app directory in argv, so skip it in dev mode. The
+ * resolved path is handed to the renderer as --fm-open-file=<abs path>; see
+ * ElectronPlatformAPI.getStartupFilePath().
+ */
+function parseFileArg(argv) {
+  /* process.defaultApp is set when run as `electron <appdir>`; that appdir is
+     argv[1] and is not a file to open. */
+  let args = process.defaultApp ? argv.slice(2) : argv.slice(1);
+
+  for (let arg of args) {
+    if (arg.startsWith("--file=")) {
+      return arg.slice("--file=".length);
+    }
+
+    /* Chromium's own switches all start with '-'. */
+    if (!arg.startsWith("-")) {
+      return arg;
+    }
+  }
+
+  return undefined;
+}
+
+let startupFile = parseFileArg(process.argv);
+
+if (startupFile !== undefined) {
+  startupFile = path.resolve(startupFile);
+
+  if (!require("fs").existsSync(startupFile)) {
+    console.error(`fairmotion: no such file: ${startupFile}`);
+    startupFile = undefined;
+  }
+}
+
 function createWindow() {
   // Create the browser window.
   win = new BrowserWindow({
@@ -127,7 +167,11 @@ function createWindow() {
       enableRemoteModule        : true,
       contextIsolation          : false,
       nodeIntegrationInSubFrames: true,
-      additionalArguments       : ["--no-sandbox", "--enable-unsafe-webgpu"],
+      additionalArguments       : [
+        "--no-sandbox",
+        "--enable-unsafe-webgpu",
+        ...(startupFile !== undefined ? [`--fm-open-file=${startupFile}`] : []),
+      ],
       sandbox                   : false
     },
     darkTheme      : true,

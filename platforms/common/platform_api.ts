@@ -76,6 +76,14 @@ export class PlatformAPIBase {
   openLastFile() {
   }
 
+  /**
+    A file the app was asked to open at startup, e.g. from the command line.
+    Undefined on platforms that have no such concept.
+   */
+  getStartupFilePath() : string | undefined {
+    return undefined;
+  }
+
   //handler is a function, returns true if exit should be allowed
   exitCatcher(handler : () => boolean) {
   }

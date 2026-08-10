@@ -127,7 +127,21 @@ export class ElectronPlatformAPI extends PlatformAPIBase {
   //returns a promise
   openLastFile() {
   }
-  
+
+  /* main.js resolves the command line's file argument and forwards it through
+     webPreferences.additionalArguments. */
+  getStartupFilePath() : string | undefined {
+    const prefix = "--fm-open-file=";
+
+    for (let arg of require("process").argv) {
+      if (typeof arg === "string" && arg.startsWith(prefix)) {
+        return arg.slice(prefix.length);
+      }
+    }
+
+    return undefined;
+  }
+
   //handler is a function, returns true if exit should be allowed
   exitCatcher(handler : () => boolean) {
   }

@@ -829,11 +829,11 @@ Loading every historical blob of every example showed the split is exactly by ve
 15 v0.050/0.051/0.053 blobs read real geometry, all 7 v0.052 blobs read all-zero. So an
 earlier-or-later revision at any other version is intact.
 
-| File | Earlier intact blob |
+| File | Intact blob |
 |---|---|
-| `examples/ball anim 3.fmo` | `f0bbd05` (2017-11-15) v0.051, 134 verts |
-| `examples/scene.fmo` | `70bca60` (2015-07-04) v0.050, 3749 verts -- and `examples/scene - Copy.fmo` in the current tree is the same artwork re-saved at v0.053 |
-| `cthulu`, `Flowers`, `Flower Scene`, `StrokeMan` | none -- one v0.052 revision each, no other blob anywhere in history |
+| `examples/ball anim 3.fmo` | `f0bbd05` (2017-11-15) v0.051, 134 verts -- **restored into the tree** |
+| `examples/scene.fmo` | `70bca60` (2015-07-04) v0.050, 3749 verts -- **restored into the tree**; `examples/scene - Copy.fmo` is the same artwork re-saved at v0.053 |
+| `cthulu`, `Flowers`, `Flower Scene`, `StrokeMan` | none -- one v0.052 revision each, no other blob anywhere in history. Those four are gone. |
 
 `Rose.fmo` and `ball anim 4.fmo` were zeroed at v0.052 too and were re-saved at v0.053 with
 real geometry, so the versions in the tree are fine.

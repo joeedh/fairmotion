@@ -792,7 +792,7 @@ Every vertex reads back at `(0,0)`. Affects `ball anim 3`, `cthulu`, `Flower Sce
 `Flowers`, `scene`, `StrokeMan` -- exactly the files whose header says version 0.052.
 v0.05/0.051/0.053 files (`bugr`, `duck`, `Curves`, `ball anim 4`) are fine.
 
-This is not a reader bug and not recoverable. The zeros are on disk:
+This is not a reader bug. The zeros are on disk:
 
 - The file's own `SDEF` declares `SplineVertex` identically to a v0.053 file (only the struct
   id differs), and nstructjs reads against the file's SDEF, so there is no layout mismatch.
@@ -813,3 +813,31 @@ of plausible-looking coordinates, but at ~0.7% of all 4-byte offsets that is jus
 misaligned ints and strings. And when tracing splines through `loadSTRUCT`, the built-in
 startup file loads in the same tick -- its 8 verts *do* have real coordinates and will look
 like recovered geometry unless you check the call stack.
+
+### Recovering the artwork from git
+
+A given `.fmo` path can have several blobs in history at different file versions. Read the
+version straight out of the header -- `"FAIR"`, then three **big-endian** int32s
+(flags, major, minor/1000):
+
+```
+git cat-file blob <rev>:"examples/scene.fmo" | xxd -l16
+46 41 49 52  00000000  00000000  00000034     ->  v0.052
+```
+
+Loading every historical blob of every example showed the split is exactly by version: all
+15 v0.050/0.051/0.053 blobs read real geometry, all 7 v0.052 blobs read all-zero. So an
+earlier-or-later revision at any other version is intact.
+
+| File | Earlier intact blob |
+|---|---|
+| `examples/ball anim 3.fmo` | `f0bbd05` (2017-11-15) v0.051, 134 verts |
+| `examples/scene.fmo` | `70bca60` (2015-07-04) v0.050, 3749 verts -- and `examples/scene - Copy.fmo` in the current tree is the same artwork re-saved at v0.053 |
+| `cthulu`, `Flowers`, `Flower Scene`, `StrokeMan` | none -- one v0.052 revision each, no other blob anywhere in history |
+
+`Rose.fmo` and `ball anim 4.fmo` were zeroed at v0.052 too and were re-saved at v0.053 with
+real geometry, so the versions in the tree are fine.
+
+Unrelated, found in the same sweep: `examples/Strokey.fmo` was committed **empty** (0 bytes,
+`318880d`) and has no other blob, which is why it fails with "Offset is outside the bounds of
+the DataView" rather than the usual parse error.

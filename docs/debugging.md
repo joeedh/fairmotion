@@ -763,3 +763,53 @@ the raw `toEqual` diff, and checking each vanished toolpath for string reference
 Fix: re-record with `FM_UPDATE_BASELINE=1 npx playwright test`. Only the three datapath/tool
 baselines changed; the per-file count and console-error baselines stayed byte-identical,
 which is the evidence that nothing live regressed.
+
+## Symptom: `examples/ball anim 3.fmo` "crashes on load" -- window goes blank, no exception
+Nothing throws. The screen is there, but every `ScreenArea` ends up `width:0px; height:0px`,
+so the window is empty. `sarea.pos`/`sarea.size` read back as `NaN,NaN`.
+
+Careful with the oracle: `JSON.stringify([NaN,NaN])` is `[null,null]`, so a CDP `eval` that
+returns the vectors directly reports literal nulls and sends you looking for the wrong bug.
+Query `String(sa.pos)` instead. `screen.children.length === 0` is likewise not a signal --
+it is 0 for a healthy screen too.
+
+Cause: the file's `SCRN` block stores `Screen.size = [0,0]` with every `ScreenArea.pos/size`
+also `[0,0]`. `Screen.on_resize(oldsize, newsize)` scaled the layout by
+`newsize[i] / oldsize[i]`, which is `Infinity` when the old axis is 0; `0 * Infinity` is
+`NaN`, every screenvert is poisoned, and `loadFromVerts()` copies that into every area. NaN
+never washes out -- the areas stay 0x0 through every subsequent resize.
+
+Fix, two halves:
+- path.ux `Screen.on_resize` falls back to a 1:1 ratio on any zero/non-finite axis, so a
+  degenerate old size can no longer produce NaN.
+- `AppState.screenIsDegenerate()` rejects a saved screen with no usable geometry, and
+  `readScreen()` returns `undefined` for it. Both call sites leave the raw `DataView` in
+  `b.data`, so the later `instanceof FairmotionScreen` test misses it and `load_state()`
+  builds the default layout instead.
+
+## Symptom: v0.052 .fmo files open with a correct UI but a blank canvas
+Every vertex reads back at `(0,0)`. Affects `ball anim 3`, `cthulu`, `Flower Scene`,
+`Flowers`, `scene`, `StrokeMan` -- exactly the files whose header says version 0.052.
+v0.05/0.051/0.053 files (`bugr`, `duck`, `Curves`, `ball anim 4`) are fine.
+
+This is not a reader bug and not recoverable. The zeros are on disk:
+
+- The file's own `SDEF` declares `SplineVertex` identically to a v0.053 file (only the struct
+  id differs), and nstructjs reads against the file's SDEF, so there is no layout mismatch.
+- Hooking `SplineVertex.loadSTRUCT` to capture what the reader assigns to `co` shows `0,0`.
+- Scalar floats survived: `SplineSegment.ks` (solved from the vertex positions) is non-zero,
+  as is `frameset.time` and the per-vertex `TimeDataLayer`. Only vec2/vec3 fields are zeroed.
+- The split is by version, not by field type: `scene`/`StrokeMan`/`cthulu` declare
+  `co : vec3` and `ball anim 3`/`Flowers`/`Flower Scene` declare `co : vec2`; all six are
+  zeroed, while the v0.051 `duck.fmo` also declares `co : vec3` and reads fine.
+
+So the 0.052-era build (version bumped in 11df922, 2020-05-29; bumped to 0.053 in 8478a2d,
+2021-03-01) wrote zeros for every vector field. The geometry in those six example files was
+destroyed at save time. Nobody noticed because the screen-layout bug above made the same
+files open to a blank window.
+
+Watch out when hunting this: a raw float32 scan of the block payload does turn up a handful
+of plausible-looking coordinates, but at ~0.7% of all 4-byte offsets that is just noise from
+misaligned ints and strings. And when tracing splines through `loadSTRUCT`, the built-in
+startup file loads in the same tick -- its 8 verts *do* have real coordinates and will look
+like recovered geometry unless you check the call stack.

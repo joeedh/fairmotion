@@ -1484,7 +1484,14 @@ export class AppState {
           lib.add(block, false);
         } else {
           if (b.type === "SCRN" && b.data instanceof DataView) {
-            b.data = this.readScreen(fstructs, b.data);
+            /* A dropped screen leaves the raw payload in place, so the
+               `instanceof FairmotionScreen` check below simply misses it and
+               load_state() builds the default layout. */
+            let scr = this.readScreen(fstructs, b.data);
+
+            if (scr !== undefined) {
+              b.data = scr;
+            }
           } else if (b.type === "THME") {
             b.data = structReadObject<Theme>(fstructs, b.data as number[], Theme);
           }
@@ -1705,6 +1712,28 @@ export class AppState {
     window.redraw_viewport();
   }
 
+  /*
+   * True when a saved screen carries no usable geometry. Every file written by
+   * version 0.052 stores a 0x0 screen with 0x0 areas -- a save-side bug in that
+   * release. There is nothing to scale such a layout from, so the caller drops
+   * the screen and lets the default one be built instead.
+   */
+  screenIsDegenerate(screen: FairmotionScreen) {
+    let bad = (v: number) => !isFinite(v) || v <= 0;
+
+    if (bad(screen.size[0]) || bad(screen.size[1])) {
+      return true;
+    }
+
+    for (let sarea of screen.sareas) {
+      if (!sarea.hidden && !bad(sarea.size[0]) && !bad(sarea.size[1])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   readScreen(fstructs: import("nstructjs").STRUCT, data: DataView) {
     let screen: FairmotionScreen;
 
@@ -1712,6 +1741,13 @@ export class AppState {
       screen = patchScreen(this, fstructs, data);
     } else {
       screen = structReadObject<FairmotionScreen>(fstructs, data, FairmotionScreen);
+    }
+
+    if (this.screenIsDegenerate(screen)) {
+      console.warn("File has no usable screen layout; falling back to the default one");
+
+      screen.remove();
+      return undefined;
     }
 
     screen.style["position"] = "absolute";
@@ -1835,7 +1871,11 @@ export class AppState {
           datalib.add(block, false);
         } else {
           if (b.type === "SCRN" && b.data instanceof DataView) {
-            b.data = screen = this.readScreen(fstructs, b.data);
+            let scr = this.readScreen(fstructs, b.data);
+
+            if (scr !== undefined) {
+              b.data = screen = scr;
+            }
           }
         }
       }

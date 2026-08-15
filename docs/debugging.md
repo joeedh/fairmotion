@@ -937,3 +937,19 @@ Fix: migrate explicitly rather than assume -- `StrokeScene.patchSeg()` calls `ch
 before it captures the view. For growth, register with `native_api.onHeapMove()` and rebuild
 views from the pointer; addresses survive a move even though views do not. When checking such a
 cache, compare `ks.ptr`, not object identity, and flag a zero pointer while native eval is on.
+
+## Symptom: a recorded artifact is different every time it is recorded
+Cause: element flags are the drawer's bookkeeping and a dump captures them mid-pass.
+`SplineFlags.REDRAW` is set as work is queued and cleared as the drawer consumes it, so what
+`dumpScene()` writes is how far the pass had got when the extract ran, not a property of the
+document. Re-recording flipped that bit on 111 of Panda's vertices and 86 of love and thunder's,
+in both directions between runs.
+Made harder to spot by: the geometry is fine. `.evalref` was byte-identical across the same two
+recordings, so every parity harness passed and the only evidence was `git status` -- which is
+easy to read as "I re-ran the spec" rather than as a defect. It is also one bit inside an int
+array, so the diff is `Bin 19040 -> 19040 bytes` with nothing to look at.
+Fix: scrub what is process state on the way out, the way the dump already zeroes `SegI.KSPTR`.
+`TRANSIENT_FLAGS` (`REDRAW | REDRAW_PRE`) is masked out of both vertex and segment flags in
+`dumpScene()`. Nothing downstream reads them; the stroker's flags are `BREAK_TANGENTS` and
+`COINCIDENT`. Check the property directly rather than trusting it -- record twice and `cmp` --
+because a recording-based harness has no teeth against a recording that moves on its own.

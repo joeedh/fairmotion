@@ -1,2 +1,9 @@
 eval_ref
 eval_ref.exe
+outline_buffer
+outline_buffer.exe
+outline_ref
+outline_ref.exe
+trim_ref
+trim_ref.exe
+wasm-out/

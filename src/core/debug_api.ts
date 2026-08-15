@@ -14,17 +14,13 @@ import { trimState } from "../curve/trim_state.js";
 import { checkScene, SEG_I, SegI, strokeScene, VERT_F } from "../curve/stroke_scene.js";
 import { OutlineBuffer } from "../curve/outline_buffer.js";
 import { dumpEvalRef } from "../curve/stroke_eval_ref.js";
+import { dumpOutlineRef } from "../curve/outline_ref.js";
+import { dumpTrimRef } from "../curve/trim_ref.js";
 import { useNativeEval } from "../curve/spline_math.js";
 import { strokeAll } from "../curve/stroker.js";
-import {
-  dumpScene,
-  hashBuffer,
-  hashOutlines,
-  loadScene,
-  newTrims,
-  sceneTrimSlots,
-} from "../curve/stroke_dump.js";
-import type { OutlineDigest } from "../curve/stroke_dump.js";
+import { dumpScene, loadScene, newTrims, sceneTrimSlots } from "../curve/stroke_dump.js";
+import { hashBuffer, hashOutlines } from "../curve/outline_hash.js";
+import type { OutlineDigest } from "../curve/outline_hash.js";
 import {
   sceneCurvature,
   sceneDerivative,
@@ -1141,17 +1137,28 @@ function toBase64(buf: ArrayBuffer): string {
 }
 
 /* The same scene the golden harness hashes, written out for a compiler to
-   read: the blob itself, and a recording of what stroker_eval.ts computes from
-   it (stroke_eval_ref.ts).  playwright/stroke-artifacts.spec.ts saves both
-   under playwright/artifacts/, and src/wasm/tests/eval_ref.cc is what consumes
-   them.  Base64 because Playwright's evaluate() will not carry a buffer back.
+   read: the blob itself, a recording of what stroker_eval.ts computes from it
+   (stroke_eval_ref.ts), one of what trimmer.ts does to it (trim_ref.ts), and one
+   of the outlines stroker.ts builds from it (outline_ref.ts).
+   playwright/stroke-artifacts.spec.ts saves all four under
+   playwright/artifacts/, and src/wasm/tests/ is what consumes them.  Base64
+   because Playwright's evaluate() will not carry a buffer back.
 
-   The reference is probed on a scene loaded from those exact bytes, not on the
-   live one -- which is the state a port starts from, and the only state the
-   numbers below are true of. */
+   Each reference is probed on its *own* scene, loaded from those exact bytes --
+   which is the state a port starts from, and the only state the numbers are
+   true of.  Its own, because both passes evaluate segments and evaluating a
+   segment rewrites the arc length the next read sees; sharing one scene would
+   make each recording depend on the one before it. */
 type StrokeArtifacts =
   | { skipped: true }
-  | { skipped: false; native: boolean; scene: string; evalRef: string };
+  | {
+      skipped: false;
+      native: boolean;
+      scene: string;
+      evalRef: string;
+      trimRef: string;
+      outRef: string;
+    };
 
 function strokeArtifacts(): Promise<StrokeArtifacts> {
   let ctx = getCtx();
@@ -1178,12 +1185,16 @@ function strokeArtifacts(): Promise<StrokeArtifacts> {
   return waitIdle().then(() => {
     let dump = dumpScene(strokeScene(spline));
     let evalRef = dumpEvalRef(loadScene(dump));
+    let trimRef = dumpTrimRef(loadScene(dump));
+    let outRef = dumpOutlineRef(loadScene(dump));
 
     return {
       skipped: false as const,
       native : useNativeEval(),
       scene  : toBase64(dump),
       evalRef: toBase64(evalRef),
+      trimRef: toBase64(trimRef),
+      outRef : toBase64(outRef),
     };
   });
 }

@@ -16,6 +16,8 @@
    are evaluated (eval_curve stores the arc length back into it), so a scene
    needs its own mutable copy and cannot point into read-only memory. */
 
+#include <algorithm>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -115,6 +117,46 @@ static inline double *scene_ks(const StrokeScene *scene, int slot) {
 static inline void scene_free(StrokeScene *scene) {
   free(scene->mem);
   memset(scene, 0, sizeof(*scene));
+}
+
+/* The far end of `seg` from vertex slot `v`. */
+static inline int scene_other_vert(const StrokeScene *scene, int seg, int v) {
+  int v1 = scene->segi[seg * SEG_I + SEGI_V1];
+  return v == v1 ? scene->segi[seg * SEG_I + SEGI_V2] : v1;
+}
+
+/* The segments around vertex slot `v`, by the angle they leave it at, into
+   `out` (which must hold the vertex's valence).  Returns how many.
+
+   std::stable_sort and not std::sort: the JS is Array#sort, which V8 implements
+   with TimSort, and two segments leaving a vertex at the same angle -- a
+   coincident pair -- would otherwise come out in a different order here than
+   there.  The order decides which segment is `prev` and which is `next` in the
+   mitre solve, so it is not cosmetic. */
+static int scene_sort_segments(const StrokeScene *scene, int v, int *out) {
+  int n = scene->verti[v * VERT_I + VERTI_VALENCE];
+  int off = scene->vsegOff[v];
+
+  double vx = scene->vertf[v * VERT_F + VERTF_X];
+  double vy = scene->vertf[v * VERT_F + VERTF_Y];
+
+  for (int i = 0; i < n; i++) {
+    out[i] = scene->vsegs[off + i];
+  }
+
+  const StrokeScene *sc = scene;
+
+  std::stable_sort(out, out + n, [sc, v, vx, vy](int a, int b) {
+    int oa = scene_other_vert(sc, a, v) * VERT_F;
+    int ob = scene_other_vert(sc, b, v) * VERT_F;
+
+    double a1 = atan2(sc->vertf[oa + VERTF_Y] - vy, sc->vertf[oa + VERTF_X] - vx);
+    double a2 = atan2(sc->vertf[ob + VERTF_Y] - vy, sc->vertf[ob + VERTF_X] - vx);
+
+    return a1 - a2 < 0.0;
+  });
+
+  return n;
 }
 
 /* Fills `scene` from `buf`.  Returns 0, or a message describing why not.  The

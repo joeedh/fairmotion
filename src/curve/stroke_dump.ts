@@ -1,11 +1,11 @@
-/* Serializing a StrokeScene, and hashing what the stroker makes of one.
+/* Serializing a StrokeScene.
 
-   This is stage 5 of the draw refactor: the parity gate.  A C++ stroker is
-   unverifiable without a way to hand both implementations the same document and
-   compare the geometry byte for byte, so this writes the scene out as a flat
-   binary blob and reduces an OutlineBuffer to a hash a port can reproduce.  The
-   JS side of the comparison is playwright/stroke-golden.spec.ts; see
-   docs/plans/draw-refactor.md stage 5 and stage 6.
+   This is half of stage 5 of the draw refactor: the parity gate.  A C++ stroker
+   is unverifiable without a way to hand both implementations the same document,
+   so this writes the scene out as a flat binary blob.  What they then make of
+   it is compared by outline_hash.ts.  The JS side of the comparison is
+   playwright/stroke-golden.spec.ts; see docs/plans/draw-refactor.md stage 5 and
+   stage 6.
 
    The blob is deliberately dull -- a header of int32s and then the scene's own
    arrays, in slot order, at their own capacities.  Slot indices are preserved
@@ -21,15 +21,10 @@
    - **Trim state.**  The stroker is run behind a trim pass that writes every
      value it later reads (trimmer.ts), so the harness starts from a fresh set of
      untrimmed defaults -- newTrims() below -- rather than carrying a pass's
-     scratch across.  That also makes the run reproducible from the blob alone.
-
-   The hash is FNV-1a, 32-bit, over little-endian bytes: `h = 2166136261`, then
-   `h = (h ^ byte) * 16777619` per byte, truncated to 32 bits.  Spelled out
-   because the C++ side has to compute the same number, and because a hash over
-   IEEE754 bytes is portable in a way one over formatted decimals is not. */
+     scratch across.  That also makes the run reproducible from the blob alone. */
 
 import * as native_api from "../wasm/native_api.js";
-import { OUTLINE_I, OutlineI } from "./outline_buffer.js";
+import { SplineFlags } from "./spline_base.js";
 import { KTOTKS, useNativeEval } from "./spline_math.js";
 import {
   GROUP_I,
@@ -45,7 +40,6 @@ import {
 } from "./stroke_scene.js";
 import { TRIM_STRIDE } from "./trim_state.js";
 
-import type { OutlineBuffer } from "./outline_buffer.js";
 import type { TrimView } from "./trim_view.js";
 
 /* Coefficients per segment.  Sixteen, not KTOTKS: that is how much
@@ -77,6 +71,10 @@ const enum H {
 /* Bit 0 of the FLAGS word: the dump was taken while the native evaluator was
    live, so its coefficients are the ones wasm left. */
 export const SCENE_FLAG_NATIVE = 1;
+
+/* Element flags that are the drawer's bookkeeping rather than the document's,
+   and are cleared on the way out; see the loop that does it. */
+const TRANSIENT_FLAGS = SplineFlags.REDRAW | SplineFlags.REDRAW_PRE;
 
 /* Byte offsets of every section, derived from the header alone so the writer
    and the reader cannot drift apart. */
@@ -218,7 +216,10 @@ export function dumpScene(scene: StrokeScene): ArrayBuffer {
 
   i32(l.vertLive, vertLive.length).set(vertLive);
   i32(l.segLive, segLive.length).set(segLive);
-  i32(l.verti, scene.vertMax * VERT_I).set(scene.verti.subarray(0, scene.vertMax * VERT_I));
+
+  const verti = i32(l.verti, scene.vertMax * VERT_I);
+  verti.set(scene.verti.subarray(0, scene.vertMax * VERT_I));
+
   i32(l.netSeg, scene.segMax * NET_STEPS).set(scene.netSeg.subarray(0, scene.segMax * NET_STEPS));
   i32(l.groups, scene.groupCount * GROUP_I).set(
     scene.groups.subarray(0, scene.groupCount * GROUP_I)
@@ -233,6 +234,19 @@ export function dumpScene(scene: StrokeScene): ArrayBuffer {
 
   for (let slot = 0; slot < scene.segMax; slot++) {
     segi[slot * SEG_I + SegI.KSPTR] = 0;
+  }
+
+  /* Same argument as the pointer, one level up: the redraw bits say how far the
+     drawer had got when the extract ran, so two dumps of one document disagree
+     on them and a recorded artifact is different every time it is taken.  No
+     one downstream reads them -- the stroker's flags are BREAK_TANGENTS and
+     COINCIDENT -- so they are scrubbed rather than preserved. */
+  for (let slot = 0; slot < scene.vertMax; slot++) {
+    verti[slot * VERT_I + VertI.FLAG] &= ~TRANSIENT_FLAGS;
+  }
+
+  for (let slot = 0; slot < scene.segMax; slot++) {
+    segi[slot * SEG_I + SegI.FLAG] &= ~TRANSIENT_FLAGS;
   }
 
   new Uint8Array(buf, l.netV1, scene.segMax * NET_STEPS).set(
@@ -372,83 +386,4 @@ export function newTrims(slots: number): TrimView {
 /* How many trim slots a scene's segments name; what to pass newTrims(). */
 export function sceneTrimSlots(scene: StrokeScene): number {
   return trimSlots(scene, liveSlots(scene.segMap));
-}
-
-/* --- hashing -------------------------------------------------------------- */
-
-export function fnv1a(bytes: Uint8Array, h = 2166136261): number {
-  for (let i = 0; i < bytes.length; i++) {
-    h = Math.imul(h ^ bytes[i], 16777619) >>> 0;
-  }
-
-  return h;
-}
-
-export function hashBuffer(buf: ArrayBuffer): number {
-  return fnv1a(new Uint8Array(buf));
-}
-
-/* One row per outline, and one number over all of them. */
-export interface OutlineRow {
-  owner: number;
-  role: number;
-  finish: number;
-  cmds: number;
-  pts: number;
-  hash: number;
-}
-
-export interface OutlineDigest {
-  count: number;
-  cmds: number;
-  pts: number;
-  hash: number;
-  rows: OutlineRow[];
-}
-
-/* Reduces a finished OutlineBuffer to something comparable across
-   implementations: each outline's opcodes and coordinates hashed as bytes, and
-   the rows themselves folded into a total.  Rows are kept in emission order --
-   unlike the path dump, which sorts, because here the order is part of what the
-   port has to reproduce. */
-export function hashOutlines(out: OutlineBuffer): OutlineDigest {
-  const rows: OutlineRow[] = [];
-  const fold = new Int32Array(6);
-  const foldBytes = new Uint8Array(fold.buffer);
-
-  let total = 2166136261;
-
-  for (let i = 0; i < out.count; i++) {
-    const o = i * OUTLINE_I;
-
-    const cmd0 = out.outlines[o + OutlineI.CMD0];
-    const cmd1 = out.outlines[o + OutlineI.CMD1];
-    const pt0 = out.outlines[o + OutlineI.PT0];
-    const pt1 = out.outlines[o + OutlineI.PT1];
-
-    let h = fnv1a(out.cmds.subarray(cmd0, cmd1));
-    h = fnv1a(new Uint8Array(out.pts.buffer, out.pts.byteOffset + pt0 * 8, (pt1 - pt0) * 8), h);
-
-    const row: OutlineRow = {
-      owner : out.owner(i),
-      role  : out.role(i),
-      finish: out.finishOf(i),
-      cmds  : cmd1 - cmd0,
-      pts   : pt1 - pt0,
-      hash  : h,
-    };
-
-    rows.push(row);
-
-    fold[0] = row.owner;
-    fold[1] = row.role;
-    fold[2] = row.finish;
-    fold[3] = row.cmds;
-    fold[4] = row.pts;
-    fold[5] = row.hash | 0;
-
-    total = fnv1a(foldBytes, total);
-  }
-
-  return { count: out.count, cmds: out.cmdCount, pts: out.ptCount, hash: total, rows };
 }

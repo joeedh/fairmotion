@@ -825,6 +825,243 @@ Coverage gap worth recording: **`shift` is zero everywhere in both sample files*
 `shift == 0` form. A sample document with a shifted stroke would close it — the same kind of
 gap as the tight-corner join left by stage 5.
 
+#### 6b — the outline buffer — **done**
+
+`src/curve/outline_buffer.ts` as `src/wasm/outline_buffer.h`, plus `src/wasm/outline_hash.h`,
+the C++ twin of `hashOutlines`. No curve arithmetic in either, so this one is pinned **exactly**
+rather than by tolerance — which is the whole reason it is a separate step. It is the only
+piece of stage 6 where a byte-for-byte comparison is legitimate, and a byte-for-byte comparison
+of a command stream catches things a geometry tolerance never would: an off-by-one in a point
+count, a `finish` written to the wrong outline, a growth policy that reallocs at a different
+size and reorders nothing but happens to hide an overrun.
+
+The growth policy is copied deliberately (256, then doubling) even though nothing external can
+observe it, so that a length mismatch between the two sides is a real disagreement about
+content and not a difference between two allocators.
+
+The pin is a scripted workload rather than a recorded artifact: an LCG
+(`state = state * 1103515245 + 12345`, masked to 31 bits) drives 200 outlines through
+`begin`/`moveTo`/`lineTo`/`cubicTo`/`fill`/`stroke`, and both sides must reach the same digest.
+`tests/outline_buffer.test.ts` is the JS half, `src/wasm/tests/outline_buffer.cc` the C++ half,
+and the constant they meet at is **`count 200, cmds 422, pts 1436, hash 828189321`**. They
+agreed on the first run. Two details make that meaningful: 200 outlines rather than 100,
+because at 100 the `cmds` array never outgrows its initial 256 and the growth path goes
+untested; and every coordinate is drawn into a local before the call in the C++, because
+argument evaluation order is unspecified there and left to right in JS.
+
+`hashOutlines` had to move out of `stroke_dump.ts` into `src/curve/outline_hash.ts` to make the
+JS half runnable at all — importing it dragged in `native_api` → `load_wasm` → the electron
+platform shim, which is fine in a browser and fatal under vitest.
+
+Negative controls, each a one-line mutation compiled as a throwaway copy:
+
+| Control | Digest |
+|---|---|
+| (reference) | 828189321 |
+| `role = i % 9` → `i % 8` | 1638732656 |
+| coordinate divisor `8.0` → `8.0000000001` | 1400234420 |
+| `outline_stroke` → `outline_fill` | 2375237509 |
+
+#### 6c — the trimmer — **done**
+
+`src/curve/trimmer.ts` as `src/wasm/trimmer.h`, over two new headers it needs —
+`src/wasm/trim_view.h` (the twelve-doubles-and-a-mask-byte layout) and `src/wasm/flat_vec.h`
+(path.ux's `Vector2` quirks: `dot()` snapping within 1e-11 of ±1, `normalize()` multiplying by
+a reciprocal and giving up below 1e-8). `scene_sort_segments()` and `scene_other_vert()` join
+`stroke_scene.h`; the sort is `std::stable_sort`, because the JS is `Array#sort` and V8's is
+TimSort, and two segments leaving a vertex at the same angle decide which one is `prev` in the
+mitre solve.
+
+The third dump format, `src/curve/trim_ref.ts` (`<name>.trimref`), and the same shape as the
+second: run the pass over a scene loaded from the blob, in an order written down rather than
+inherited — live vertex slots ascending, one `trimVertex()` each — and write out the arrays.
+That order is not what a frame does, and that is the point; a frame trims only the vertices an
+edit touched. It matters twice here, because trimming evaluates segments and evaluating a
+segment rewrites the arc length its neighbours' widths are read against. Note that
+`strokeArtifacts()` now calls `loadScene(dump)` separately for each reference for the same
+reason.
+
+Two comparisons, because there are two kinds of output. **The mask is exact** — it is a set of
+decisions, whether a join got a mitre at all, and a port that mitres a corner the JS left plain
+has a bug rather than a rounding difference. **The doubles get a tolerance**, 1e-9, the same
+libm gap 6a explains arriving through `sceneEvalSide`.
+
+Both amplify, which is why the reader reports a count of differing slots and not only a
+worst case. The bisection is a discontinuity: `a` and `b` are exact binary fractions of 0.65
+and stay bit-identical as long as every crossing test answers the same way, so a trim value off
+by 0.0025 is one flipped decision eight halvings up, not accumulated rounding. And the mitre
+points are floored, so a crossing landing within an ulp of a whole number can differ by a full
+1.0.
+
+Result: **masks exact on every slot of both samples** (60 for Panda, 42 for love and thunder,
+over 61 and 44 trimmed vertices), mitre points bit-identical, and the largest disagreement
+anywhere is **4.3e-19** in one trim value.
+
+Negative controls:
+
+| Control | Caught by |
+|---|---|
+| bisection bracket `0.65` → `0.6499999` | all four trim values, 18 slots over at 6.9e-8 |
+| mitre point not floored | all eight point coordinates, 11 slots over at up to 1.5e-3 |
+| shallow-join threshold `π*0.3` → `π*0.6` | the mask (11 and 20 slots), and every double row |
+| shallow-join threshold `π*0.3` → `π*0.05` | the mask (6 and 2 slots), and every double row |
+
+Two things the controls taught. `π*0.3` → `π*0.29` passes on both samples: no join in either
+document has outer edges diverging into that narrow band, so the threshold is pinned by where
+the decisions actually sit rather than by an arbitrary nudge. And `side2 = k / 2` →
+`(k / 2) % 2` also passes — not a weak test but a genuine no-op, since `side` is used as
+`side ? 1 : -1` and the eight `(side1, side2)` pairs cover the same four combinations either
+way. The JS `~~(k / 2)` really does run to 3.
+
+#### 6d — the stroker — **done**
+
+`src/curve/stroker.ts` as `src/wasm/stroker.h`. A header rather than the `.cc` the stage names
+because the harness compiles one translation unit per test; `src/wasm/stroker.cc` stays the
+emscripten entry point that includes this. It brings over the record buffer (ten doubles and
+four bytes per record, growing 256-then-doubling as the JS does), the two-pass group walk, the
+break and far-side-break paths, the cubic sampler, and the join solve.
+
+Two ports where the transcription had to be careful. `record()` returns a `double *` and not an
+index, so the out-of-memory path can hand back a scratch row without advancing the count — the
+JS gets this for free by writing into an array that simply grew. And `bez4`/`dbez4` keep the
+JS's operator grouping verbatim: `3.0 * (s - 1.0) ** 2 * k2` is `(3 * (s-1)^2) * k2`, not
+`((3 * (s-1)) * (s-1)) * k2`, and although the two agree for every `s` this code passes — 0,
+0.5 and 1, where both forms are exact — writing the second would be a difference waiting for
+the first sampler that isn't on those points.
+
+The fourth and last dump format, `src/curve/outline_ref.ts` (`<name>.outref`): run `strokeAll()`
+over a scene loaded from the blob and write the `OutlineBuffer` out whole. Recorded with the
+debug overlays **on** — they only append outlines, so they are a strict superset of the plain
+output, and they reach `dline()`, whose unguarded division nothing else in the harness runs.
+
+Stage 5 already hashes outlines, and that hash is the wrong gate here: it is exact, and §5.6
+forbids comparing two libms bit for bit, so folding coordinates into a digest can only ever say
+"different". This splits the two. **The table and the command stream are structure** — which
+outline, in which role, how many commands, which opcodes, what finish — and are compared
+exactly, because a port emitting a lineTo where the JS emitted a cubic has a bug. **The points
+are measurements** and get 1e-9. The reader stops at the first structural disagreement: once
+two command streams are out of step, every later index is noise.
+
+Result, first run, both samples:
+
+| Sample | Outlines | Commands | Points | Worst point |
+|---|---|---|---|---|
+| Panda | 80 | 17284 | 40504 | 4.4e-16 |
+| love and thunder | 79 | 13597 | 31890 | 3.4e-16 |
+
+Table and command stream exact on both.
+
+Negative controls, and the three of seven that did **not** fire, each for a reason worth
+writing down:
+
+| Control | Caught by |
+|---|---|
+| `dfac = ds / 3.0` → `3.0000001` | 1.5e-7 over 671 points (l&t), 1.0e-9 over 27 (Panda) |
+| join `scl = 0.7` → `0.70001` | 1.3e-6 over 72 points — **love and thunder only** |
+| debug marker size `4` → `5` | 2.6e-1 over 6260 points (l&t), 1.1e-3 over 8020 (Panda) |
+| `steps` clamp `16` → `15` | nothing |
+| tight-corner threshold `π*0.2` → `π*0.4` | nothing |
+| tight-corner threshold `π*0.2` → `π*0.02` | nothing |
+| dropping `lastdvsx = lastdvsy = 0.0` in the break branch | nothing |
+
+Instrumenting the same build with counters turns those inferences into measurements:
+
+| | `steps` max | joins | tight corners | breaks | far-side breaks |
+|---|---|---|---|---|---|
+| Panda | 7 | 0 | 0 | 32 | 2 |
+| love and thunder | 13 | 12 | 0 | 28 | 6 |
+
+So: the `steps` clamp at 16 is unreachable in both documents — a segment would need to be
+roughly 850 units long to ask for it, and the longest here asks for 13, with Panda never leaving
+the floor of 7. `stroke_join()` never runs on Panda at all, which is why the `scl` control is a
+one-sample control: Panda has no vertex of valence greater than two. And the tight-corner
+quadratic fallback is dead in **both** samples in either direction, because `len1 * 0.25 > lw2`
+short-circuits true every time and the angle is never consulted — the same gap stage 5 recorded,
+now confirmed at the C++ level rather than inferred.
+
+The seventh is not a coverage gap but dead code, in the JS as much as the port:
+`lastdvsx`/`lastdvsy` are reassigned at the top of every iteration of the inner loop before
+anything reads them, so zeroing them in the break branch cannot be observed. It is transcribed
+anyway, under §5.7.
+
+#### 6e — the same harness, through emscripten — **done**
+
+`src/wasm/tests/build.sh` now builds all four programs twice: once with the host compiler and
+once with `emcc`, run under node. The wasm pass is skipped with a note, not a failure, when
+`emcc` is neither on PATH nor under `$WASM_EMSDK`, because the point of the native pass is that
+a plain checkout can still run it.
+
+This is worth doing before any app wiring, and it is not the same test. A host compiler proves
+the transcription; only `emcc` proves the thing that will actually run, on the toolchain and
+target that ship. Two practical traps on the way in, both of which make the harness pass in
+silence rather than fail: `-o foo.mjs` makes emscripten emit a module *factory*, so `main()`
+never runs, and the repo's `"type": "module"` makes node read the CommonJS glue as ESM — so the
+output is `.js` into a directory carrying its own `{"type": "commonjs"}`.
+
+**The result is stronger than the native pass, and this is the headline: through emscripten the
+trimmer and the stroker match the recording bit for bit.** Not within tolerance — zero, over
+40,504 and 31,890 doubles, and over every trim value that was 4.3e-19 under mingw. It holds at
+`-O3 -flto` as well as at `-O0`, and without `-ffp-contract=off`, which is what you would expect
+on a target with no scalar fma to contract into.
+
+The reason is that §5.6's tolerance exists to compare two libms, and through emscripten there is
+only one. The recording's geometry did not come from V8 — §5.6 pins the evaluator, so it came
+out of `_built_wasm.wasm`. Compiling the same source with the same toolchain reproduces it
+exactly.
+
+What survives is a residue in the geometry probe alone, and it localises cleanly. Under `emcc`
+`evaluate`, `co`, `curvature`, `length`, `dwidth` and `dlw` are all exact; what still differs —
+by about one ulp, an order of magnitude tighter than the host pass — is `derivative`, and `n`
+and `dv`, which are computed from it. The one operation under all three that nothing else
+touches is `sceneDerivative`'s `Math.sin`/`Math.cos` pair: `sceneEvaluate` goes through the wasm
+evaluator, and `sceneCurvature` is a JS polynomial with no transcendental in it, and both come
+out exact. So `eval_ref` keeps its tolerance.
+
+That the stroker is nonetheless exact while consuming those same normals is consistent with
+where they land: `sceneEvalSide` adds the normal to the centre-line point as a small correction
+to a much larger coordinate, and a one-ulp difference in `dv` is absorbed in the add. Stated as
+the likely reading rather than a measured one — it is not load-bearing, since the stroker's
+exactness is measured directly.
+
+**What this changes downstream.** §5.6 says the port can only be compared to a tolerance, and
+for a host-compiled harness that stays true. For the shipped path it is now too weak: the wasm
+stroker should reproduce the JS stroker exactly, which means **stage 5's golden digest — the
+exact one — can gate `config.USE_WASM`** rather than needing a tolerant twin. That is the gate
+6f should use, and any drift from it is a bug and not a rounding difference.
+
+Negative control on the harness itself, since a two-pass runner that reports nothing is
+indistinguishable from one that passes: perturbing a single recorded point by 1e-3 is caught by
+both passes (`1 of 31890 over`) and `build.sh` exits 1.
+
+**And the recordings are now reproducible, which they were not.** Re-recording produced a
+`.scene` that differed from the committed one while `.evalref` was byte-identical — geometry
+stable, blob not. It was one bit, `REDRAW` (1 << 23), on 111 of Panda's vertices and 86 of love
+and thunder's, and it moved in both directions between runs. That is 4b's note about flags being
+a snapshot rather than an invariant, showing up in a recording: the drawer clears them as it
+consumes them, so what a dump captures is how far the pass had got. Nothing downstream reads
+them — the stroker's flags are `BREAK_TANGENTS` and `COINCIDENT` — so `dumpScene()` now scrubs
+`REDRAW` and `REDRAW_PRE` on the way out, beside the loop that already zeroes `KSPTR` for the
+same kind of reason. Two consecutive recordings are now byte-identical across all eight files.
+
+Worth being blunt about why that mattered rather than being tidiness: every gate in stage 6 is a
+comparison against a recording, and a recording that changes on its own has no teeth. It also
+puts a permanent diff in front of anyone who runs the spec, which is how a real change gets
+waved through.
+
+#### 6f — the entry point and the wiring — *next*
+
+`src/wasm/stroker.cc` as the emscripten entry point, into the module `../build.sh` already
+builds, and the JS side behind `config.USE_WASM` at the three call sites the drawer uses —
+`trimVertex()`, `strokeGroup()` and `strokeJoin()`, not `strokeAll()`, which only the harnesses
+call.
+
+Two things this needs that are not yet in place. `../build.sh` still writes `built_wasm.js`,
+which the TypeScript port renamed to `built_wasm.ts` (generated glue, `@ts-nocheck`, with a
+hand-written header); it has not been run since. And the scene is only *partly* heap-resident
+today — §5.1 relocates `ks` and nothing else, so `StrokeScene`'s flat arrays, the `TrimView` and
+the `OutlineBuffer` all still have to move behind the boundary before C++ can read them at the
+addresses it expects. Gate it on the stage-5 digest, per 6e.
+
 ## 5. Constraints the port has to respect
 
 1. **`checkSegment()` coverage is conditional.** `ks` is only relocated into the heap by

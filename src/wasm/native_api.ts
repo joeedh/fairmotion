@@ -287,6 +287,22 @@ function heapAlloc(size: number): number {
   return ptr;
 }
 
+/* A fresh block of coefficients in the heap, zeroed, with nothing on the JS
+   side owning it.  checkSegment() below is the same allocation made on behalf
+   of a SplineSegment; this one is for a scene rebuilt from a dump, which has no
+   segments to migrate and still has to give the evaluator an address (§5.6 --
+   the parity harness must run the same evaluator the app does).  Never freed:
+   the only caller loads a handful of scenes in a test. */
+export function allocKs(): KsArray {
+  const ks = viewKs(heapAlloc(8 * KS_SLOTS));
+
+  for (let i = 0; i < KS_SLOTS; i++) {
+    ks[i] = 0.0;
+  }
+
+  return ks;
+}
+
 export function viewKs(ptr: number): KsArray {
   /* Not ks.length: a detached view reports 0. */
   const ks: KsArray = new Float64Array(wasm.HEAPU8.buffer, ptr, KS_SLOTS);

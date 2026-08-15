@@ -12,6 +12,18 @@ import { manager as renderThreads } from "../vectordraw/vectordraw_jobs.js";
 import { beginWidthChains, endWidthChains } from "../curve/width_chain.js";
 import { trimState } from "../curve/trim_state.js";
 import { checkScene, SEG_I, SegI, strokeScene, VERT_F } from "../curve/stroke_scene.js";
+import { OutlineBuffer } from "../curve/outline_buffer.js";
+import { useNativeEval } from "../curve/spline_math.js";
+import { strokeAll } from "../curve/stroker.js";
+import {
+  dumpScene,
+  hashBuffer,
+  hashOutlines,
+  loadScene,
+  newTrims,
+  sceneTrimSlots,
+} from "../curve/stroke_dump.js";
+import type { OutlineDigest } from "../curve/stroke_dump.js";
 import {
   sceneCurvature,
   sceneDerivative,
@@ -1015,6 +1027,105 @@ function strokerEvalParity(steps = 9) {
   });
 }
 
+function bytesEqual(a: ArrayBuffer, b: ArrayBuffer): boolean {
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+
+  let x = new Uint8Array(a),
+    y = new Uint8Array(b);
+
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] !== y[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/* The parity gate for the port: a whole document's stroker output, reduced to
+   numbers a C++ rewrite can be held to.
+
+   Three things are checked at once.  The scene serializes and deserializes
+   without loss -- dump, load, dump again, compare bytes.  A scene rebuilt from
+   that blob strokes to the same outlines as the live one, which is what makes
+   the blob a self-contained test case: hand stroke_dump's format to a port and
+   its output has something to be equal to.  And the digest itself is recorded
+   as a baseline, so a refactor that changes the geometry says so.
+
+   The dump is taken before anything strokes, because evaluating a segment
+   rewrites ks[KSCALE] -- a dump of a stroked scene is a dump of different
+   numbers.  Both runs then start from identical state.
+
+   See docs/plans/draw-refactor.md stage 5 and playwright/stroke-golden.spec.ts. */
+type StrokeGolden =
+  | { skipped: true }
+  | {
+      skipped: false;
+      native: boolean;
+      bytes: number;
+      dump: number;
+      roundTrip: boolean;
+      verts: number;
+      segs: number;
+      groups: number;
+      live: OutlineDigest;
+      loaded: OutlineDigest;
+    };
+
+function strokeGolden(debug = false): Promise<StrokeGolden> {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return Promise.resolve({ skipped: true as const });
+  }
+
+  let spline = ctx.frameset.spline;
+
+  /* UPDATE | FRAME_DIRTY | REDRAW: force a full pass so the scene is current. */
+  const dirty = 8 | 128 | (1 << 23);
+
+  for (let seg of spline.segments) {
+    seg.flag |= dirty;
+  }
+  for (let v of spline.verts) {
+    v.flag |= dirty;
+  }
+
+  if (spline.drawer) {
+    spline.drawer.recalc_all = true;
+  }
+
+  return waitIdle().then(() => {
+    let scene = strokeScene(spline);
+
+    let dump = dumpScene(scene);
+    let loaded = loadScene(dump);
+    let roundTrip = bytesEqual(dump, dumpScene(loaded));
+
+    let live = hashOutlines(
+      strokeAll(scene, newTrims(sceneTrimSlots(scene)), debug, new OutlineBuffer())
+    );
+    let copy = hashOutlines(
+      strokeAll(loaded, newTrims(sceneTrimSlots(loaded)), debug, new OutlineBuffer())
+    );
+
+    return {
+      skipped: false as const,
+      native : useNativeEval(),
+      bytes  : dump.byteLength,
+      dump   : hashBuffer(dump),
+      roundTrip,
+      verts : scene.vertMap.size,
+      segs  : scene.segMap.size,
+      groups: scene.groupCount,
+      live,
+      loaded: copy,
+    };
+  });
+}
+
 export const debug_api = {
   ready,
   waitIdle,
@@ -1038,6 +1149,7 @@ export const debug_api = {
   pathDump,
   sceneCheck,
   strokerEvalParity,
+  strokeGolden,
 };
 
 window.__fm = debug_api;

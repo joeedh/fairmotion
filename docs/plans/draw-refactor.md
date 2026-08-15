@@ -694,11 +694,58 @@ written before it was clear how much of the file is face handling (§5.9 keeps f
 `updateIntern()`'s drawlist walk, neither of which the stroker extraction touches; 1,304 with all
 stroke geometry behind a pure boundary is what the stage actually buys.
 
-### Stage 5 — golden-output harness
+### Stage 5 — golden-output harness — **done**
 
 Serialize a `StrokeScene` from a handful of `.fmo` files, run the stroker, hash the
 `OutlineBuffer`. **This is the parity gate for the port** — a C++ rewrite without it is
 unverifiable.
+
+**Done.** `src/curve/stroke_dump.ts` is the format and the hash; `strokeAll()` in `stroker.ts` is
+the whole-document entry point; `playwright/stroke-golden.spec.ts` runs both over the samples.
+
+The dump is a header of int32s followed by the scene's own arrays at capacity, slot indices
+preserved, so a loader is `slice()` and not a rebuild. Two things are deliberately absent.
+`KSPTR` is zeroed, because a live heap address would make two dumps of the same document differ.
+Trim state is left out entirely and regenerated: `trimVertex()` writes both endpoints of every
+incident segment, `strokeAll()` visits every vertex, so `newTrims()` — untrimmed, unmitred, the
+same values `TrimState.begin()` gives a segment it has not seen — is a complete starting state.
+That is what makes a run reproducible from the blob alone. The hash is FNV-1a over
+little-endian bytes with the constants written out in the file header, so C++ reproduces it
+without a shared library, and it is taken over IEEE754 bytes rather than formatted decimals for
+the same reason.
+
+A loaded scene gets *real* heap blocks for its coefficients — `native_api.allocKs()` was added
+for it, since `heapAlloc` is private and a dump has no `SplineSegment` to migrate — because
+§5.6 pins the evaluator: a scene with `KSPTR` zero silently falls through to the JS evaluator
+and the comparison would stop being about the stroker.
+
+`strokeAll(scene, trims, debug, out)` is the deterministic whole-document order — trim every
+vertex in ascending slot order, stroke every group, then fill the wedge at each segment of a
+many-valence vertex. It is **not** what the drawer calls: a frame trims only the vertices an
+edit touched and strokes in drawlist order interleaved with the faces, which is what
+incrementality costs (§5.8). So the harness compares JS-over-live-scene against
+JS-over-loaded-scene, both through `strokeAll()`, and records `strokeAll()`'s own digest as the
+baseline. The dump is taken before either run, because evaluating a segment rewrites
+`ks[KSCALE]` and a dump of a stroked scene is a dump of different numbers.
+
+Panda strokes 60 segments in 16 groups to 32 outlines and 9,284 points; *love and thunder*, 42
+segments in 11 groups to 46 outlines and 7,470 points. The role mix is the useful part: Panda is
+`ELEMENT`/`DOUBLE_STROKE` only, while *love and thunder* covers all four join roles and all
+three `OutFinish` modes, so the two samples together exercise every emission path except the
+tight-corner fallback stage 4e already flagged as uncovered. Scene size (19,040 and 18,648
+bytes) is logged but kept out of the baseline — it follows array *capacity*, so it would report
+a diff for a growth that changed no geometry.
+
+Three assertions, and a negative control apiece proving they are independent:
+
+| Control | Caught by |
+|---|---|
+| one loaded coefficient off by 1e-9 | the byte-exact round trip, before anything strokes |
+| `netV1` dropped from the dump | the row comparison — the round trip still passes, since both dumps agree |
+| `strokeAll()` one group short | the recorded baselines — both digests still agree with each other |
+
+Full Playwright 33/33 and vitest 6/6. What stage 6 gets from this is a self-contained test case:
+hand a rewrite the blob and the number, with no `Spline`, no `VectorDraw` and no DOM in the way.
 
 ### Stage 6 — the C++ port
 

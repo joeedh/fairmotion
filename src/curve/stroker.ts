@@ -42,6 +42,7 @@ import {
   VertI,
 } from "./stroke_scene.js";
 import { sceneDerivative, sceneEvalSide, segLength } from "./stroker_eval.js";
+import { trimVertex } from "./trimmer.js";
 import { trimEnd, trimGetp, trimGets, trimHasp, trimStart } from "./trim_view.js";
 
 import type { StrokeScene } from "./stroke_scene.js";
@@ -616,6 +617,63 @@ export function strokeJoin(
   out.fill();
 
   return out;
+}
+
+/* --- the whole pass ------------------------------------------------------- */
+
+/* `stroke(scene) -> outlines`: everything the stroker does to a document, in
+   the order the drawer does it -- trim every junction, stroke every group, then
+   fill the wedge at each segment of a many-valence vertex.
+
+   This is the entry point a port implements and the one the golden harness
+   calls (stroke_dump.ts, playwright/stroke-golden.spec.ts).  It is not what the
+   drawer calls: a frame trims only the vertices an edit touched and strokes in
+   drawlist order, interleaved with the faces, because that is what
+   incrementality costs (§5.8).  The order here is the deterministic whole-
+   document one, which is what a parity comparison needs -- and order is not
+   cosmetic, since evaluating a segment rewrites the arc length its neighbours'
+   widths are read against.
+
+   `trims` is written as well as read.  Every value the walk below reads is set
+   by the trim pass above it, so a fresh set of defaults (stroke_dump.newTrims)
+   is the right thing to hand in. */
+export function strokeAll(
+  scene: StrokeScene,
+  trims: TrimView,
+  debug: boolean,
+  out: OutlineBuffer
+): OutlineBuffer {
+  /* Ascending, so the order is a property of the scene rather than of how its
+     maps happened to fill. */
+  const slots = Array.from(scene.vertMap.values()).sort((a, b) => a - b);
+
+  for (const v of slots) {
+    trimVertex(scene, trims, v);
+  }
+
+  for (let gi = 0; gi < scene.groupCount; gi++) {
+    strokeGroup(scene, trims, gi, debug, out);
+  }
+
+  for (const v of slots) {
+    const valence = scene.verti[v * VERT_I + VertI.VALENCE];
+
+    if (valence <= 2) {
+      continue;
+    }
+
+    const off = scene.vsegOff[v];
+
+    for (let i = 0; i < valence; i++) {
+      const seg = scene.vsegs[off + i];
+
+      if (seg !== NO_SLOT) {
+        strokeJoin(scene, trims, seg, v, out);
+      }
+    }
+  }
+
+  return out.finish();
 }
 
 /* --- small scene lookups ------------------------------------------------- */

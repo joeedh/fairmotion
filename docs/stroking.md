@@ -512,6 +512,12 @@ The usual bisection when a stroke looks wrong:
 4. `vertexIsSplit(spline, v)` from the console — returns the reason code for an unexpected
    split.
 
+The stroker also has a golden harness, which is the fastest way to tell a geometry change from a
+drawer change: `__fm.strokeGolden()` serializes the scene (`src/curve/stroke_dump.ts`), runs
+`strokeAll()` over both the live scene and one rebuilt from the blob, and hashes the outlines.
+`playwright/stroke-golden.spec.ts` holds that digest to a recorded baseline. Re-record with
+`FM_UPDATE_BASELINE=1`, and only for an intended change in output.
+
 ## Known quirks
 
 - **The side loop tests four combinations twice.** `side2 = ~~(k/2)` for `k` in `0..7` yields

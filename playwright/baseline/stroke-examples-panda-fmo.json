@@ -1,0 +1,270 @@
+{
+  "native": true,
+  "verts": 61,
+  "segs": 60,
+  "groups": 16,
+  "live": {
+    "count": 32,
+    "cmds": 1674,
+    "pts": 9284,
+    "hash": 2398583420,
+    "rows": [
+      {
+        "owner": 980,
+        "role": 0,
+        "finish": 0,
+        "cmds": 62,
+        "pts": 340,
+        "hash": 115698875
+      },
+      {
+        "owner": 980,
+        "role": 1,
+        "finish": 0,
+        "cmds": 62,
+        "pts": 340,
+        "hash": 2352849312
+      },
+      {
+        "owner": 981,
+        "role": 0,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 699287870
+      },
+      {
+        "owner": 981,
+        "role": 1,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 496393231
+      },
+      {
+        "owner": 982,
+        "role": 0,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 922029535
+      },
+      {
+        "owner": 982,
+        "role": 1,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 773447082
+      },
+      {
+        "owner": 983,
+        "role": 0,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 2361805423
+      },
+      {
+        "owner": 983,
+        "role": 1,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 3146635950
+      },
+      {
+        "owner": 984,
+        "role": 0,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 198194134
+      },
+      {
+        "owner": 984,
+        "role": 1,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 3479720155
+      },
+      {
+        "owner": 985,
+        "role": 0,
+        "finish": 0,
+        "cmds": 46,
+        "pts": 252,
+        "hash": 2614530674
+      },
+      {
+        "owner": 985,
+        "role": 1,
+        "finish": 0,
+        "cmds": 46,
+        "pts": 252,
+        "hash": 1688737257
+      },
+      {
+        "owner": 986,
+        "role": 0,
+        "finish": 0,
+        "cmds": 72,
+        "pts": 424,
+        "hash": 3730338758
+      },
+      {
+        "owner": 986,
+        "role": 1,
+        "finish": 0,
+        "cmds": 72,
+        "pts": 424,
+        "hash": 2615977719
+      },
+      {
+        "owner": 987,
+        "role": 0,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 1278917619
+      },
+      {
+        "owner": 987,
+        "role": 1,
+        "finish": 0,
+        "cmds": 16,
+        "pts": 88,
+        "hash": 268048806
+      },
+      {
+        "owner": 988,
+        "role": 0,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 2035072680
+      },
+      {
+        "owner": 988,
+        "role": 1,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 3962891933
+      },
+      {
+        "owner": 989,
+        "role": 0,
+        "finish": 0,
+        "cmds": 78,
+        "pts": 420,
+        "hash": 649569988
+      },
+      {
+        "owner": 989,
+        "role": 1,
+        "finish": 0,
+        "cmds": 79,
+        "pts": 422,
+        "hash": 955444166
+      },
+      {
+        "owner": 990,
+        "role": 0,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 42323900
+      },
+      {
+        "owner": 990,
+        "role": 1,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 2814448129
+      },
+      {
+        "owner": 991,
+        "role": 0,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 3668616547
+      },
+      {
+        "owner": 991,
+        "role": 1,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 3169972174
+      },
+      {
+        "owner": 992,
+        "role": 0,
+        "finish": 0,
+        "cmds": 78,
+        "pts": 412,
+        "hash": 2191578935
+      },
+      {
+        "owner": 992,
+        "role": 1,
+        "finish": 0,
+        "cmds": 78,
+        "pts": 412,
+        "hash": 3682835176
+      },
+      {
+        "owner": 993,
+        "role": 0,
+        "finish": 0,
+        "cmds": 170,
+        "pts": 908,
+        "hash": 3958081802
+      },
+      {
+        "owner": 993,
+        "role": 1,
+        "finish": 0,
+        "cmds": 171,
+        "pts": 910,
+        "hash": 874044083
+      },
+      {
+        "owner": 994,
+        "role": 0,
+        "finish": 0,
+        "cmds": 46,
+        "pts": 252,
+        "hash": 3690780744
+      },
+      {
+        "owner": 994,
+        "role": 1,
+        "finish": 0,
+        "cmds": 46,
+        "pts": 252,
+        "hash": 2238504767
+      },
+      {
+        "owner": 995,
+        "role": 0,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 1213988585
+      },
+      {
+        "owner": 995,
+        "role": 1,
+        "finish": 0,
+        "cmds": 44,
+        "pts": 256,
+        "hash": 1540825832
+      }
+    ]
+  }
+}

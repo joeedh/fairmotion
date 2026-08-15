@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Four test/build jobs at a time, project-wide -- see vitest.config.ts. emcc
+# sizes its own pool from the CPU count unless told otherwise.
+export EMCC_CORES="${EMCC_CORES:-4}"
+
 SDKROOT=`cygpath $WASM_EMSDK`
 echo Using WASM_EMSDK in: $SDKROOT
 

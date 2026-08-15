@@ -32,5 +32,11 @@ export default defineConfig({
        not be collected here. */
     include    : ["tests/**/*.test.ts"],
     environment: "happy-dom",
+
+    /* Four test/build jobs at a time, project-wide: this, playwright.config.ts's
+       `workers`, GOMAXPROCS in buildtools/esbuild.mjs and EMCC_CORES in
+       src/wasm/build.sh. Vitest would otherwise size the pool from the CPU
+       count. */
+    maxWorkers: 4,
   },
 });

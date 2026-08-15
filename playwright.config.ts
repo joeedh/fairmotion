@@ -13,7 +13,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly   : !!process.env.CI,
   retries      : process.env.CI ? 2 : 0,
-  workers      : process.env.CI ? 1 : undefined,
+  /* Four test/build jobs at a time, project-wide -- see vitest.config.ts.
+     Undefined here would mean half the CPU count. */
+  workers      : process.env.CI ? 1 : 4,
   reporter     : process.env.CI ? "html" : [["list"], ["html", {open: "never"}]],
   timeout      : 120000,
   expect       : {timeout: 30000},

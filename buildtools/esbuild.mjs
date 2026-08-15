@@ -16,6 +16,15 @@ import path from "node:path";
 import ts from "typescript";
 import {fileURLToPath} from "node:url";
 
+/*
+ * Four test/build jobs at a time, project-wide -- see vitest.config.ts. esbuild
+ * is a Go binary in a child process which sizes its own pool from the CPU
+ * count, so the cap goes in the environment that process inherits. This runs
+ * after the import above -- imports are hoisted -- but esbuild does not spawn
+ * the service until the first build() call, which is far below.
+ */
+process.env.GOMAXPROCS ??= "4";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const argv = process.argv.slice(2);

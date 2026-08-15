@@ -13,6 +13,7 @@ import { beginWidthChains, endWidthChains } from "../curve/width_chain.js";
 import { trimState } from "../curve/trim_state.js";
 import { checkScene, SEG_I, SegI, strokeScene, VERT_F } from "../curve/stroke_scene.js";
 import { OutlineBuffer } from "../curve/outline_buffer.js";
+import { dumpEvalRef } from "../curve/stroke_eval_ref.js";
 import { useNativeEval } from "../curve/spline_math.js";
 import { strokeAll } from "../curve/stroker.js";
 import {
@@ -1126,6 +1127,67 @@ function strokeGolden(debug = false): Promise<StrokeGolden> {
   });
 }
 
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let s = "";
+
+  /* One character per byte, in chunks: String.fromCharCode is applied to the
+     whole slice and a megabyte of arguments overflows the stack. */
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+
+  return btoa(s);
+}
+
+/* The same scene the golden harness hashes, written out for a compiler to
+   read: the blob itself, and a recording of what stroker_eval.ts computes from
+   it (stroke_eval_ref.ts).  playwright/stroke-artifacts.spec.ts saves both
+   under playwright/artifacts/, and src/wasm/tests/eval_ref.cc is what consumes
+   them.  Base64 because Playwright's evaluate() will not carry a buffer back.
+
+   The reference is probed on a scene loaded from those exact bytes, not on the
+   live one -- which is the state a port starts from, and the only state the
+   numbers below are true of. */
+type StrokeArtifacts =
+  | { skipped: true }
+  | { skipped: false; native: boolean; scene: string; evalRef: string };
+
+function strokeArtifacts(): Promise<StrokeArtifacts> {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return Promise.resolve({ skipped: true as const });
+  }
+
+  let spline = ctx.frameset.spline;
+
+  const dirty = 8 | 128 | (1 << 23);
+
+  for (let seg of spline.segments) {
+    seg.flag |= dirty;
+  }
+  for (let v of spline.verts) {
+    v.flag |= dirty;
+  }
+
+  if (spline.drawer) {
+    spline.drawer.recalc_all = true;
+  }
+
+  return waitIdle().then(() => {
+    let dump = dumpScene(strokeScene(spline));
+    let evalRef = dumpEvalRef(loadScene(dump));
+
+    return {
+      skipped: false as const,
+      native : useNativeEval(),
+      scene  : toBase64(dump),
+      evalRef: toBase64(evalRef),
+    };
+  });
+}
+
 export const debug_api = {
   ready,
   waitIdle,
@@ -1150,6 +1212,7 @@ export const debug_api = {
   sceneCheck,
   strokerEvalParity,
   strokeGolden,
+  strokeArtifacts,
 };
 
 window.__fm = debug_api;

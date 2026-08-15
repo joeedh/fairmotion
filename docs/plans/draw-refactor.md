@@ -747,7 +747,7 @@ Three assertions, and a negative control apiece proving they are independent:
 Full Playwright 33/33 and vitest 6/6. What stage 6 gets from this is a self-contained test case:
 hand a rewrite the blob and the number, with no `Spline`, no `VectorDraw` and no DOM in the way.
 
-### Stage 6 — the C++ port
+### Stage 6 — the C++ port — *in progress*
 
 `src/wasm/stroker.cc`, reusing `eval_curve` / `spiraltheta` / `spiralcurvature`, which are
 already in `src/wasm/spline.h`. Keep the JS stroker as the reference implementation behind
@@ -764,6 +764,66 @@ There is a dormant precedent already in the tree: `GEN_DRAW_BEZIERS` / `SplineDr
 "flatten segments to beziers in wasm" and **nothing calls them**. Wrong granularity —
 per-segment centre line, no width, no joins — but it is proof the ABI style works, and a
 reasonable starting point for the buffer layout.
+
+#### 6a — the geometry layer, and a harness that can build without emscripten — **done**
+
+The port is being built bottom-up, in the order stage 4 was: geometry first, then the outline
+builder, then the trimmer, then the join. 6a is the geometry — `src/curve/stroker_eval.ts`
+as `src/wasm/stroker_eval.h`, over `src/wasm/stroke_scene.h`, which reads stage 5's blob.
+
+**There is no emscripten SDK on this machine** (`emcc` is absent and `$WASM_EMSDK` is empty),
+so `src/wasm/build.sh` cannot run here and the port cannot yet be wired into the app. That
+does not block writing it, because what the port needs to be held to is arithmetic, and a host
+compiler can check arithmetic. `src/wasm/tests/build.sh` builds `src/wasm/tests/eval_ref.cc`
+with a plain `g++` and runs it over recorded artifacts. Getting emscripten installed is what
+stands between 6a and shipping this code; everything below is true without it.
+
+The comparison, and why it needs a second dump format. Stage 5's digest is a hash, which is
+the right gate at the end of the pipeline and useless in the middle of one: it cannot say
+*where*, and §5.6 forbids comparing two libms bit for bit anyway. So `stroke_eval_ref.ts`
+records every quantity the geometry layer produces — evaluate, derivative, curvature, length,
+width, shift, the two finite differences, and both sides of `evaluateSide` with all four of its
+out-params — at eleven parameter values on every live segment, and `eval_ref.cc` recomputes
+them and subtracts. `playwright/stroke-artifacts.spec.ts` writes the pair
+(`<name>.scene`, `<name>.evalref`) under `playwright/artifacts/`; both are committed, so the
+C++ side builds and runs in a plain checkout with no browser in the loop.
+
+Three things make that comparable rather than merely dumped. **Call order is part of the
+answer** — every evaluation rewrites `ks[KSCALE]`, which is the arc length the width nets read,
+so both sides walk live slots ascending, samples in order, fields in call order, and make the
+same redundant calls. **Segments with no width net are marked, not skipped**: the reference
+records the evaluator fields for them and leaves the rest zero, because the width walk would
+run off the end of the arrays. And **tolerance is per field group**: 1e-9 for everything except
+the quantities carrying a centred difference over 2e-4 — `dwidth`, `dshift`, and the
+`evaluateSide` outputs built from them — which get 1e-6.
+
+What it actually measures: 60 segments × 11 samples for Panda, 42 × 11 for love and thunder,
+and the worst disagreement anywhere is **3.5e-14** (`derivative.y`), with coordinates at 2e-16
+and the finite differences at 4e-12. That is libm noise — five orders below the tolerance —
+which is what "the port is correct" looks like when the same `eval_curve` is on both sides of
+it but not the same build of it. Compile with `-ffp-contract=off`: an fma the recording's
+compiler did not emit is a difference in arithmetic, not in libm, and gcc contracts by default.
+
+Two quirks are carried deliberately, both from §5.7. `wasm_main.cc:evalCurve()` copies the
+endpoints into `float` and zeroes z, so the port does too — the recorded numbers were produced
+from those coordinates and no others. And `native_api.evalCurvePtr()` passes six arguments to a
+seven-argument function, so the flag JS calls `angle_only` lands in C++'s `angle_only` and
+C++'s `no_update` is always zero; the port hardcodes `false` there rather than plumbing a flag
+that cannot be set.
+
+Negative controls, each caught by the field it should be:
+
+| Control | Caught by |
+|---|---|
+| one width-net control point scaled by 1 + 1e-9 | `width`, `side*.lw`, and both normals — on love and thunder; on Panda it lands exactly *at* the 1e-9 threshold, which is where the tolerance was aimed |
+| `evaluate()`'s endpoint nudge dropped | `evaluate.*` and both sides' `co`, at 5e-9 to 8e-7 |
+| endpoints perturbed by 1e-7 — the scale the float downcast itself operates at | everything, up to 7e-5 on `derivative.*` |
+
+Coverage gap worth recording: **`shift` is zero everywhere in both sample files**, so
+`sceneShift`/`sceneDshift` are exercised but never with a value. The shift terms in
+`evaluateSide` (`dlw * shift`, `lw + lw * shift`) are therefore only checked in their
+`shift == 0` form. A sample document with a shifted stroke would close it — the same kind of
+gap as the tight-corner join left by stage 5.
 
 ## 5. Constraints the port has to respect
 

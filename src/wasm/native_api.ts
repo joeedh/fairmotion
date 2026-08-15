@@ -193,33 +193,145 @@ window._wasm_post_message = function (type: number, ptr: number, len: number) {
   }
 };
 
+/* Growing a WebAssembly.Memory swaps in a fresh ArrayBuffer and detaches every
+   view onto the old one. The bytes survive, at the same addresses; the views do
+   not -- a detached Float64Array reads as length 0, so `seg.ks[KSCALE]` becomes
+   undefined and NaN spreads from there. Emscripten rebuilds its own HEAPU8 in
+   updateGlobalBufferAndViews(); ours are ours to rebuild.
+
+   The heap is built with ALLOW_MEMORY_GROWTH=1 (src/wasm/build.sh), so this can
+   happen. It is invisible today only because the solver allocates little.
+
+   Every way to make the heap grow runs through either heapAlloc() or a call
+   into wasm, and both end in checkHeap(), which compares the buffer's identity
+   and re-views on a change. That is eager on purpose: `ks` is read all over the
+   drawer without anything calling in here first, so a lazy scheme would leave
+   detached views reachable. */
+const KS_SLOTS = 16; /* matches the _malloc(8 * 16) in checkSegment(). */
+
+let heapBuffer: ArrayBufferLike | undefined = undefined;
+let evalMemReady = false;
+
+/* Every segment whose ks lives in the heap. Weak because a spline dropped
+   without on_destroy() must not be held alive by this; such entries are pruned
+   the next time the heap moves. */
+const wasmSegs = new Set<WeakRef<SplineSegment>>();
+
+/* Holders of heap views that are not `seg.ks` -- StrokeScene keeps one per
+   segment slot. They rebuild their own, since this module does not know their
+   layout; weak for the same reason wasmSegs is. */
+export interface HeapViewHolder {
+  reviewHeapViews(): void;
+}
+
+const heapHolders = new Set<WeakRef<HeapViewHolder>>();
+
+export function onHeapMove(holder: HeapViewHolder) {
+  heapHolders.add(new WeakRef(holder));
+}
+
+export const heapStats = { grows: 0, reviewed: 0 };
+
+/* Re-views everything if the heap moved. Returns whether it had. */
+export function checkHeap(): boolean {
+  const buf = wasm.HEAPU8.buffer;
+
+  if (buf === heapBuffer) {
+    return false;
+  }
+
+  const first = heapBuffer === undefined;
+  heapBuffer = buf;
+
+  if (first) {
+    return false;
+  }
+
+  heapStats.grows++;
+
+  if (evalMemReady) {
+    viewEvalMem();
+  }
+
+  for (const ref of wasmSegs) {
+    const seg = ref.deref();
+
+    if (seg === undefined || !seg.ks._has_wasm) {
+      /* Collected, or freed by onSegmentDestroy(). */
+      wasmSegs.delete(ref);
+      continue;
+    }
+
+    seg.ks = viewKs(seg.ks.ptr!);
+    heapStats.reviewed++;
+  }
+
+  for (const ref of heapHolders) {
+    const holder = ref.deref();
+
+    if (holder === undefined) {
+      heapHolders.delete(ref);
+      continue;
+    }
+
+    holder.reviewHeapViews();
+  }
+
+  return true;
+}
+
+/* _malloc plus the re-view its growth may have made necessary. */
+function heapAlloc(size: number): number {
+  const ptr = wasm._malloc(size);
+  checkHeap();
+  return ptr;
+}
+
+export function viewKs(ptr: number): KsArray {
+  /* Not ks.length: a detached view reports 0. */
+  const ks: KsArray = new Float64Array(wasm.HEAPU8.buffer, ptr, KS_SLOTS);
+
+  ks._has_wasm = true;
+  ks.ptr = ptr;
+
+  return ks;
+}
+
 /* Views into the wasm heap that evalCurve() marshals through, and the raw
-   pointers to the same memory. Allocated once by init_eval_mem(). */
+   pointers to the same memory. Allocated once by init_eval_mem(); the views are
+   rebuilt from the pointers whenever the heap moves. */
 let wv1: Float64Array, wv2: Float64Array, wks: Float64Array, wco: Float64Array;
 let pv1: number, pv2: number, pks: number, pco: number;
 
-function init_eval_mem() {
-  let ptr = wasm._malloc(8 * 3 + 8 * 16 + 8 * 3 * 2);
-  let mem = wasm.HEAPU8;
+function viewEvalMem() {
+  const buf = wasm.HEAPU8.buffer;
 
-  wv1 = new Float64Array(mem.buffer, ptr, 2);
+  wv1 = new Float64Array(buf, pv1, 2);
+  wv2 = new Float64Array(buf, pv2, 2);
+  wks = new Float64Array(buf, pks, 16);
+  wco = new Float64Array(buf, pco, 3);
+}
+
+function init_eval_mem() {
+  let ptr = heapAlloc(8 * 3 + 8 * 16 + 8 * 3 * 2);
+
   pv1 = ptr;
   ptr += 8 * 2;
-  wv2 = new Float64Array(mem.buffer, ptr, 2);
   pv2 = ptr;
   ptr += 8 * 2;
-  wks = new Float64Array(mem.buffer, ptr, 16);
   pks = ptr;
   ptr += 16 * 8;
-  wco = new Float64Array(mem.buffer, ptr, 3);
   pco = ptr;
+
+  viewEvalMem();
+  evalMemReady = true;
 }
 
 export function onSegmentDestroy(seg: SplineSegment) {
   if (seg.ks._has_wasm) {
     /* checkSegment() sets both together. */
     wasm._free(seg.ks.ptr!);
-    seg.ks = new Float64Array(16);
+    seg.ks = new Float64Array(KS_SLOTS);
   }
 }
 
@@ -227,17 +339,15 @@ export function onSegmentDestroy(seg: SplineSegment) {
 export function checkSegment(seg: SplineSegment) {
   if (!seg.ks._has_wasm) {
     let ks = seg.ks;
-    let ptr2 = wasm._malloc(8 * 16);
-    let ks2: KsArray = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+    let ptr2 = heapAlloc(8 * KS_SLOTS);
+    let ks2 = viewKs(ptr2);
 
     for (let i = 0; i < ks.length; i++) {
       ks2[i] = ks[i];
     }
 
-    ks2._has_wasm = true;
-    ks2.ptr = ptr2;
-
     seg.ks = ks2;
+    wasmSegs.add(new WeakRef(seg));
   }
 }
 
@@ -254,23 +364,40 @@ export function evalCurve(
   ks: ArrayLike<number>,
   no_update = false
 ) {
+  checkSegment(seg);
+
+  /* checkSegment() just moved ks into wasm memory. */
+  return evalCurvePtr(seg.ks.ptr!, s, v1[0]!, v1[1]!, v2[0]!, v2[1]!, no_update);
+}
+
+/* The same call with no segment on the JS side of it: coefficients named by
+   address, endpoints by value.  This is the shape the boundary has to have --
+   StrokeScene calls it, and C++ will not have a SplineSegment to be handed.
+   `z` never appears because the marshalling below has always copied two
+   coordinates. */
+export function evalCurvePtr(
+  ksPtr: number,
+  s: number,
+  v1x: number,
+  v1y: number,
+  v2x: number,
+  v2y: number,
+  no_update = false
+) {
   if (!wv1) {
     init_eval_mem();
   }
 
-  for (let i = 0; i < 2; i++) {
-    wv1[i] = v1[i]!;
-    wv2[i] = v2[i]!;
-  }
+  wv1[0] = v1x;
+  wv1[1] = v1y;
+  wv2[0] = v2x;
+  wv2[1] = v2y;
 
-  /*for (let i=0; i<ks.length; i++) {
-      wks[i] = ks[i];
-  }//*/
+  wasm._evalCurve(pco, s, ksPtr, pv1, pv2, no_update ? 1 : 0);
 
-  checkSegment(seg);
-
-  /* checkSegment() just moved ks into wasm memory. */
-  wasm._evalCurve(pco, s, seg.ks.ptr!, pv1, pv2, no_update ? 1 : 0);
+  /* C++ can allocate, so wco may have been detached by the call that filled
+     it -- the write landed at pco either way. */
+  checkHeap();
 
   /*
   if (!no_update) {
@@ -292,7 +419,7 @@ export function postToWasm(type: number, msg: ArrayBuffer) {
   }
 
   let bytes = new Uint8Array(msg);
-  let ptr = wasm._malloc(msg.byteLength * 2);
+  let ptr = heapAlloc(msg.byteLength * 2);
   let mem = wasm.HEAPU8;
 
   for (let i = ptr; i < ptr + bytes.length; i++) {
@@ -300,6 +427,10 @@ export function postToWasm(type: number, msg: ArrayBuffer) {
   }
 
   wasm._gotMessage(type, ptr, msg.byteLength);
+
+  /* The solver runs inside that call and allocates as it goes. */
+  checkHeap();
+
   wasm._free(ptr);
 }
 

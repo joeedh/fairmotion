@@ -24,6 +24,7 @@ import {
 } from "./manipulator.js";
 import { KeyMap, HotKey } from "../../core/keymap.js";
 import { CurveRootFinderTest } from "./spline_editops.js";
+import { draw_spline_overlay } from "../../curve/spline_overlay.js";
 import * as video from "../../core/video.js";
 import type { Video } from "../../core/video.js";
 import type { DataBlock, GetBlockFunc, GetBlockUserFunc } from "../../core/lib_api.js";
@@ -850,17 +851,11 @@ export class View2DHandler extends Editor {
       if (this.only_render && pathspline.resolve) {
         pathspline.solve();
       } else if (!this.only_render) {
-        /* NOTE: hoisted.  This was `var alpha` inside the loop, so the
-           pathspline.draw() below read the last iteration's value -- or
-           undefined when the loop never ran.  A var->let cleanup (1ff87d5)
-           turned that into a ReferenceError; this restores the original. */
-        let alpha: number | undefined;
-
         for (let v of spline.verts.selected) {
           if (!(v.eid in frameset.vertex_animdata)) continue;
 
           let vdata = frameset.vertex_animdata[v.eid];
-          alpha = vdata.spline === actspline ? 1.0 : 0.2;
+          let alpha = vdata.spline === actspline ? 1.0 : 0.2;
 
           /* NOTE: VertexAnimData.draw() takes four arguments; the
              redraw_rects this used to pass as a fifth was ignored. */
@@ -868,15 +863,15 @@ export class View2DHandler extends Editor {
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        pathspline.draw(
-          redraw_rects,
+        pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, false);
+
+        draw_spline_overlay(
+          pathspline,
           g,
           this,
           matrix,
           this.selectmode,
-          this.only_render,
           this.draw_normals,
-          alpha!,
           true,
           this.ctx.frameset.time,
           false

@@ -841,3 +841,99 @@ real geometry, so the versions in the tree are fine.
 Unrelated, found in the same sweep: `examples/Strokey.fmo` was committed **empty** (0 bytes,
 `318880d`) and has no other blob, which is why it fails with "Offset is outside the bounds of
 the DataView" rather than the usual parse error.
+
+# Draw refactor -- stage 0
+
+## Symptom: every Playwright spec fails with `page.goto: Page crashed`
+Cause: infinite recursion between `load_blocks()`'s `load_state()` and `gen_default_file()`.
+`readScreen()` drops a degenerate screen and returns `undefined`; `load_state()` answered
+that by calling `gen_default_file()`, which loads the **startup file** -- whose own screen is
+one of the degenerate 0x0 ones -- so it re-entered `load_state()` with `screen === undefined`
+again, forever. The renderer OOMs and Chromium kills the tab, which surfaces as `Page
+crashed` before `load` ever fires. Introduced by `ecf8d29`, which added the degeneracy check
+without noticing that the fallback path reads a file that trips it.
+Found by: a throwaway `chromium.launch()` probe dumping every console message, which showed
+`File has no usable screen layout` / `destroyScreen called` repeating without end. The suite
+itself only reports the crash.
+Fix: call `gen_screen()` directly instead of `gen_default_file()`. The default *layout* is
+all that was ever wanted there, and building it over the datalib already loaded skips the
+file round-trip entirely -- along with the `reset_state()`/`datalib = lib` dance that the old
+code did only to undo `gen_default_file()`'s side effects.
+
+Two dead ends worth recording. `gen_default_file(size, true)` -- force_new, to skip the
+startup file -- stops the recursion but leaves `g_app_state.screen` undefined: `force_new`
+resets the app state first, so `gen_screen()` builds a View2D against a datalib with no
+active object, `RowFrame.prop` throws on `frameset.drawspline`, and `load_default_file()`'s
+own try/catch swallows it. The failure then presents as `__fm.ready(): app did not start`,
+one layer removed from the actual throw. And `git stash` alone does not establish a baseline
+here -- see the note under phase 6; `pnpm build` has to run between the two states.
+
+## Symptom: a headless benchmark says blur costs 7x, a headed one says it costs nothing
+Cause: headless Chromium rasterizes through swiftshader, and a canvas `g.filter =
+"blur(...)"` is one of the operations software rasterization is worst at. Frame time on
+`Panda.fmo` went 22.4ms -> 154.7ms with blur on under swiftshader, and did not move at all on
+a real GPU -- not at blur 40, not at blur 200. Any absolute cost measured under
+`--use-angle=swiftshader` describes swiftshader, not either shipping target.
+Made harder to spot by: every JS timer stayed flat. Main-thread `updateBatches` and blit were
+unchanged, and the worker round-trip -- timed from `postRenderJob()` to its `.then()` --
+actually *fell*. The cost lands in the raster pipeline and shows up only as rAF cadence, so
+the profile looks innocent while the frame rate collapses.
+Fix: measure with `chromium.launch({headless: false})` before believing a raster number.
+
+## Symptom: every headed measurement reports exactly 17.11ms/frame
+Cause: an `await requestAnimationFrame` loop is pinned to the display refresh, so it reports
+the vsync interval no matter what it is drawing. Three different documents at three blur
+levels all read 17.11ms.
+Fix: launch with `--disable-gpu-vsync --disable-frame-rate-limit`. The same runs then spread
+across 4.2-13.2ms/frame and the comparison means something. Treat any headed number sitting at
+16.7-17.2ms as "at or below the floor", not as a result.
+
+## Symptom: a measurement harness reports 3 `Batch.gen()` calls where a drag would make hundreds
+Cause: mutating verts and calling `regen_*` does not reliably dirty batches, and driving
+`spline.translate` through `__fm.execTool` mostly fails argument validation
+(`expected a number for a number property`).
+Fix: set `regen = 1` on every live `Batch` once per animation frame. That is precisely what a
+drag does to the batch layer, and it is reproducible.
+
+## Symptom: setting `Material.blur` changes nothing the drawer can see
+Cause: a bare field assignment does not re-stroke the material's owners, so the aabb padding
+(`blur + 15`) never reaches the tile size and `path.blur` never updates. Iterating
+`datalib.materials` finds 0 materials -- the live ones hang off `spline.segments[i].mat` and
+`spline.faces[i].mat`.
+Fix: collect the distinct `Material` objects off the spline, then mirror what `prop_update` in
+`data_api_define.ts` does: `mat.blur = x; mat.update(spline);`. Verify with a counter over
+paths per `Batch.gen()` -- blur 0 must report 0 blurred paths -- rather than assuming it took.
+
+## Symptom: a cache of segment arc lengths is right after a load and wrong during a drag
+Cause: `SplineSegment.length` is `ks[KSCALE]`, and `eval_curve()` recomputes it from the
+vertex coordinates on every call made with `no_update` false -- which is what the drawer does
+as it evaluates each segment. Arc length therefore changes *during* a draw pass, and is a step
+stale at its start: after deserialization the stored value is float32, and mid-drag
+`TransSplineVert.apply()` moves verts and calls `SplineSegment.update()`, which does not
+re-solve `ks`.
+Made harder to spot by: post-load parity looked like a rounding bug. Widths were bit-identical
+and only ~168 knots out of 4836 differed, by ~1.4e-6 -- exactly float32 spacing near 168
+(2^7 * 2^-23 = 1.5e-5, half that when rounding). That reads as "someone stored a float32",
+not as "the value is recomputed underneath me". Dragging made it unmissable: 3088/46156
+samples bad, one knot -109.30 against -90.83.
+Fix: cache topology, not values. `width_chain.ts` records which segment and which end each
+walk step landed on and reads `w1`/`w2`/`shift`/`length`/`linewidth` live at `width()` time,
+which is bit-identical to walking by construction. Forcing a length refresh up front is not an
+alternative: the native solver treats `angle_only` updates as a no-op and it would mutate `ks`
+on untouched and `COINCIDENT` segments.
+
+## Symptom: a flat copy of the spline strokes *almost* the right curve
+Cause: `seg.ks` is not a stable object. `native_api.checkSegment()` relocates it into the wasm
+heap the first time a segment is evaluated or solved natively -- replacing the array, not
+writing through it -- and `checkHeap()` replaces it again whenever the heap grows. A cache that
+captures the view at the start of a pass therefore holds a plain JS array that the pass's first
+native evaluation abandons, and its recorded `ptr` is 0, which is not an address.
+Made harder to spot by: the error is invisible at the endpoints. `eval_curve` normalises the
+spiral through `v1` and `v2`, so stale coefficients still land within 2e-6 of both ends and go
+wrong only in the middle -- 2.7 units at s=0.125 on Panda. It is also document-dependent: `love
+and thunder.fmo` was bit-identical throughout while Panda was not, because whether the capture
+happens before or after the first native evaluation depends on load order.
+Fix: migrate explicitly rather than assume -- `StrokeScene.patchSeg()` calls `checkSegment()`
+before it captures the view. For growth, register with `native_api.onHeapMove()` and rebuild
+views from the pointer; addresses survive a move even though views do not. When checking such a
+cache, compare `ks.ptr`, not object identity, and flag a zero pointer while native eval is on.

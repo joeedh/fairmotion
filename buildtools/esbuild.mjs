@@ -54,10 +54,7 @@ const GLOBAL_SCRIPTS = [
  * `new Worker("vectordraw_canvas2d_worker.js")` in vectordraw_jobs.ts names the
  * output, so these are transpiled to the target root under their old extension.
  */
-const WORKERS = [
-  "src/vectordraw/vectordraw_canvas2d_worker.ts",
-  "src/vectordraw/vectordraw_skia_worker.ts",
-];
+const WORKERS = ["src/vectordraw/vectordraw_canvas2d_worker.ts"];
 
 /* Node builtins reachable only from the electron code paths. In the html5
    bundle these become throwing stubs, which is what they were before. */
@@ -150,12 +147,10 @@ function copyAssets() {
     for (const f of ["config.js", "main.js", "preload.js", "package.json"]) {
       copyFile("platforms/Electron/" + f, path.join(target.outDir, f));
     }
-    copyDir("node_modules/canvaskit-wasm", path.join(target.outDir, "node_modules/canvaskit-wasm"));
   } else {
     for (const f of ["config.js", "nodeserver.js", "package.json"]) {
       copyFile("platforms/html5/" + f, path.join(target.outDir, f));
     }
-    copyDir("node_modules/canvaskit-wasm", path.join(target.outDir, "canvaskit-wasm"));
   }
 
   writeHtml();
@@ -251,13 +246,13 @@ async function buildGlobals() {
 
 /*
  * Bundled to IIFE, not ESM: the output is still a classic script (the Worker
- * constructor is called without {type:"module"}, and the skia worker uses
- * importScripts), but bundling lets the two share the opcode and message
- * constants in vectordraw_jobs_base.ts instead of hand-copying them.
+ * constructor is called without {type:"module"}), but bundling lets the worker
+ * share the opcode and message constants in vectordraw_jobs_base.ts instead of
+ * hand-copying them.
  *
  * No classRegistryPlugin: these run in their own worker global, where nothing
  * has loaded typesystem.js, so `_ESClass` does not exist. Their classes were
- * never in `defined_classes` either -- the old build copied these two files
+ * never in `defined_classes` either -- the old build copied these files
  * through untouched.
  */
 async function buildWorkers() {

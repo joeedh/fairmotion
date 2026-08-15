@@ -28,7 +28,8 @@ import { DataBlock, DataTypes } from "../core/lib_api.js";
 import { SessionFlags } from "../editors/viewport/view2d_editor.js";
 import { SelMask } from "../editors/viewport/selectmode.js";
 import { SplineQuery } from "./spline_query.js";
-import { draw_spline, redo_draw_sort } from "./spline_draw.js";
+import { redo_draw_sort } from "./spline_draw_sort.js";
+import { SplineDrawer } from "./spline_draw_new.js";
 import { solve } from "./solver_new.js";
 import { ModalStates } from "../core/toolops_api.js";
 import { DataPathNode, globalDag } from "../core/eventdag.js";
@@ -77,7 +78,6 @@ import {
   SplineLayerSet,
 } from "./spline_element_array.js";
 
-import type { SplineDrawer } from "./spline_draw_new.js";
 import type { BaseContext, FullContext } from "../core/context.js";
 import type { SocketMap, SocketValue, EventDag } from "../core/eventdag.js";
 import type { View2DHandler } from "../editors/viewport/view2d.js";
@@ -269,7 +269,7 @@ export class Spline extends DataBlock {
   selectmode: number;
   _drawStrokeVertSplits: Set<number>;
   layerset: SplineLayerSet;
-  /* Built lazily by spline_draw.ts the first time this spline is drawn. */
+  /* Built lazily by draw() below, the first time this spline is drawn. */
   drawer: SplineDrawer | undefined;
   selected: ElementArraySet<SplineElement>;
   draw_verts: boolean;
@@ -317,7 +317,7 @@ export class Spline extends DataBlock {
   _internal_id: number;
 
   /* NOTE: nothing assigns `transforming`, so the proportional-edit circle in
-     spline_draw.ts is dead, and `trans_cent` is only ever read -- the transform
+     spline_overlay.ts is dead, and `trans_cent` is only ever read -- the transform
      state moved to TransData.  The two methods that still went with it,
      duplicate_verts() and do_mirror(), had no callers left and threw a
      TypeError on their first line; they are gone. */
@@ -2595,11 +2595,13 @@ export class Spline extends DataBlock {
     }
   }
 
-  /* `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
-     rects; see view2d.ts. */
-  /* only_render and draw_normals are the view2d toggles, which are stored as
-     0/1 ints; every use of them here is a truth test. The two time-helper
-     arguments are optional because frameset.draw() passes neither. */
+  /* Renders the spline through the retained pipeline and returns the drawer's
+     promise.  The editing overlay -- handles, vertices, selection -- is not
+     drawn here; callers that want it call draw_spline_overlay() afterwards.
+
+     `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
+     rects; see view2d.ts.  `only_render` is a view2d toggle stored as a 0/1
+     int, and every use of it below is a truth test. */
   draw(
     redraw_rects: number[],
     g: Canvas2D,
@@ -2607,10 +2609,6 @@ export class Spline extends DataBlock {
     matrix: Matrix4,
     selectmode: number,
     only_render: number | boolean,
-    draw_normals: number | boolean,
-    alpha: number,
-    draw_time_helpers?: boolean,
-    curtime?: number,
     ignore_layers?: boolean
   ) {
     this.canvas = g;
@@ -2620,20 +2618,31 @@ export class Spline extends DataBlock {
 
     this.checkSolve();
 
-    return draw_spline(
+    if (this.drawlist === undefined || this.recalc & RecalcFlags.DRAWSORT) {
+      redo_draw_sort(this);
+    }
+
+    if (this.drawer === undefined) {
+      this.drawer = new SplineDrawer(this);
+    }
+
+    /* update() takes no zoom; it reads matrix.$matrix.m11 itself.  The
+       overlay's zoom is a separate quirk; see spline_overlay.ts. */
+    this.drawer.update(
       this,
+      this.drawlist,
+      this.draw_layerlist,
+      matrix,
       redraw_rects,
+      only_render,
+      selectmode,
       g,
       editor,
-      matrix,
-      selectmode,
-      only_render,
-      draw_normals,
-      alpha,
-      draw_time_helpers,
-      curtime,
-      ignore_layers
+      ignore_layers,
+      editor.draw_stroke_debug
     );
+
+    return this.drawer.draw(editor.drawg);
   }
 
   loadSTRUCT(reader: StructReader<this>) {
@@ -2838,6 +2847,10 @@ export class Spline extends DataBlock {
     for (let seg of this.segments) {
       seg.updateCoincident();
     }
+
+    /* Render scratch that used to be written into the file; trim_state.ts owns
+       it now, and the layer is dropped so a re-save stops carrying it. */
+    this.segments.cdata.remove_layer("drawdata");
 
     return this;
   }

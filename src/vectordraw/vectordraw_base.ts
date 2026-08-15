@@ -36,6 +36,12 @@ VectorVertex {
 `;
 
 /*
+ * Derivation for approximating a cubic by quadratics: match value and tangent
+ * at each end, then find the shared control point as the intersection of the
+ * two end tangents. Every live backend emits a CUBICTO opcode instead, so
+ * nothing here is called; it is kept as source material for any future backend
+ * without native cubics.
+ *
 on factor;
 off period;
 
@@ -77,7 +83,7 @@ export interface PathBase {
   recalc: number;
 }
 
-export class PathBase {
+export abstract class PathBase {
   off: Vector2;
   blur: number;
   color: Vector4;
@@ -149,24 +155,20 @@ export class PathBase {
     this.clip_paths.reset();
   }
 
-  update_aabb(draw: VectorDraw, fast_mode = false) {
-    throw new Error("implement me!");
-  }
+  abstract update_aabb(draw: VectorDraw, fast_mode?: boolean): void;
 
-  beginPath() {
-    throw new Error("implement me");
-  }
+  abstract beginPath(): void;
 
-  undo() {
-    //remove last added path
-    throw new Error("implement me");
-  }
+  //remove last added path
+  abstract undo(): void;
 
-  moveTo(x: number, y: number) {
-    this.lastx = x;
-    this.lasty = y;
-    throw new Error("implement me");
-  }
+  abstract moveTo(x: number, y: number): void;
+
+  abstract lineTo(x2: number, y2: number): void;
+
+  abstract bezierTo(x2: number, y2: number, x3: number, y3: number): void;
+
+  abstract cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number): void;
 
   makeLine(x1: number, y1: number, x2: number, y2: number, w = 2.0) {
     let dx = y1 - y2,
@@ -189,95 +191,27 @@ export class PathBase {
     this.lineTo(x1 - dx, y1 - dy);
   }
 
-  bezierTo(x2: number, y2: number, x3: number, y3: number) {
-    this.lastx = x3;
-    this.lasty = y3;
-    throw new Error("implement me");
-  }
-
-  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, subdiv = 1) {
-    var x1 = this.lastx,
-      y1 = this.lasty;
-
-    if (subdiv > 0) {
-      var dx1 = (x2 - x1) * 0.5,
-        dy1 = (y2 - y1) * 0.5;
-      var dx2 = (x4 - x3) * 0.5,
-        dy2 = (y4 - y3) * 0.5;
-
-      var dxmid = (x3 + x4 - x2 - x1) * 0.25;
-      var dymid = (y3 + y4 - y2 - y1) * 0.25;
-
-      var midx = (3 * x3 + x4 + 3 * x2 + x1) / 8.0;
-      var midy = (3 * y3 + y4 + 3 * y2 + y1) / 8.0;
-
-      this.cubicTo(x2 + dx1, y2 + dy1, midx - dxmid, midy - dymid, midx, midy, subdiv - 1);
-      this.cubicTo(midx + dxmid, midy + dymid, x4 - dx2, y4 - dy2, x4, y4, subdiv - 1);
-      return;
-    }
-
-    var dx1 = (x2 - x1) * 3.0,
-      dy1 = (y2 - y1) * 3.0;
-    var dx2 = (x4 - x3) * 3.0,
-      dy2 = (y4 - y3) * 3.0;
-
-    var tdiv = dx1 * dy2 - dx2 * dy1;
-    var t = -(x1 - x4) * dy2 + (y1 - y4) * dx2;
-
-    if (tdiv !== 0.0) {
-      t /= tdiv;
-
-      midx = x1 + dx1 * t;
-      midy = y1 + dy1 * t;
-    } else {
-      midx = (x2 + x3) * 0.5;
-      midy = (y2 + y3) * 0.5;
-    }
-
-    this.bezierTo(midx, midy, x4, y4);
-
-    this.lastx = x4;
-    this.lasty = y4;
-  }
-
-  lineTo(x2: number, y2: number) {
-    throw new Error("implement me");
-    this.lastx = x2;
-    this.lasty = y2;
-  }
-
   destroy(draw: VectorDraw) {}
 
-  /* NOTE: this zeroed this.pan, which lives on VectorDraw rather than here,
-     so it threw for any backend that did not override reset() -- every backend
-     does.  No backend reads `draw`, and every call site passes nothing. */
-  reset(draw?: VectorDraw) {
-    throw new Error("implement me");
-  }
+  /* NOTE: the base used to zero this.pan, which lives on VectorDraw rather than
+     here, so it threw for any backend that did not override reset() -- every
+     backend does.  No backend reads `draw`, and every call site passes
+     nothing. */
+  abstract reset(draw?: VectorDraw): void;
 
   //called only by VectorDraw implementing class
   //args can be whatever you want
-  draw(...args: unknown[]) {
-    throw new Error("implement me!");
-  }
+  abstract draw(...args: any[]): void;
 
-  pushStroke(color?: ColorLike, linewidth?: number) {
-    throw new Error("implement me!");
-  }
+  abstract pushStroke(color?: ColorLike, linewidth?: number): void;
 
-  pushFill() {
-    throw new Error("implement me!");
-  }
+  abstract pushFill(): void;
 
-  noAutoFill() {
-    throw new Error("implement me!");
-  }
+  abstract noAutoFill(): void;
 
   /* `draw` is accepted only because CanvasDraw2D.update() passes it; no
      backend has ever read it. */
-  update(draw?: VectorDraw) {
-    throw new Error("implement me!");
-  }
+  abstract update(draw?: VectorDraw): void;
 
   [Symbol.keystr]() {
     return this.id;
@@ -296,7 +230,7 @@ export interface VectorDraw<PathType extends PathBase = PathBase> {
   regen: number | boolean;
 }
 
-export class VectorDraw<PathType extends PathBase = PathBase> {
+export abstract class VectorDraw<PathType extends PathBase = PathBase> {
   pan: Vector2;
   do_blur: boolean;
   /* A preallocated matrix stack; `cur` is the write head. */
@@ -334,22 +268,11 @@ export class VectorDraw<PathType extends PathBase = PathBase> {
   clear() {}
 
   //creates new path if necessary.  z is required
-  get_path(id: number, z: number, check_z = true): PathType {
-    if (z === undefined) {
-      throw new Error("z cannot be undefined");
-    }
-
-    throw new Error("implement me");
-  }
+  abstract get_path(id: number, z: number, check_z?: boolean): PathType;
 
   //returns false if path with id does not exist,
   //and also false if it does, but has a different z value.
-  has_path(id: number, z: number, check_z = true): boolean {
-    if (z === undefined) {
-      throw new Error("z cannot be undefined");
-    }
-    throw new Error("implement me");
-  }
+  abstract has_path(id: number, z: number, check_z?: boolean): boolean;
 
   remove(path: PathType) {
     for (var path2 of path.clip_users) {
@@ -363,18 +286,12 @@ export class VectorDraw<PathType extends PathBase = PathBase> {
     path.destroy(this);
   }
 
-  update() {
-    throw new Error("implement me");
-  }
+  abstract update(): void;
 
-  destroy() {
-    throw new Error("implement me");
-  }
+  abstract destroy(): void;
 
-  draw(g: Canvas2D): Promise<void> | void {
-    //should return a promise
-    throw new Error("implement me");
-  }
+  //should return a promise
+  abstract draw(g: Canvas2D): Promise<void> | void;
 
   push_transform(mat?: Matrix4, multiply_instead_of_load = true) {
     this.matstack[this.matstack.cur++].load(this.matrix);

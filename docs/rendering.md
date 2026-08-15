@@ -16,11 +16,14 @@ canvas 2D context every frame.
 | Schedule a repaint | `window.redraw_viewport()` — `src/core/startup/redraw_globals.ts` |
 | Viewport frame | `View2DHandler.do_draw_viewport()` — `src/editors/viewport/view2d.ts` |
 | Pick a backend, draw the frameset | `FrameSet.draw()` — `src/core/frameset.ts` |
-| Solve, then draw the spline | `Spline.draw()` — `src/curve/spline.ts` |
-| Draw sort + drawer update + overlay | `draw_spline()` — `src/curve/spline_draw.ts` |
+| Solve, draw sort, drawer update | `Spline.draw()` — `src/curve/spline.ts` |
 | Build the retained path list | `SplineDrawer.update()` — `src/curve/spline_draw_new.ts` |
 | Batch, serialize, dispatch | `CanvasDraw2D` — `src/vectordraw/vectordraw_canvas2d.ts` |
 | Rasterize off-thread | `src/vectordraw/vectordraw_canvas2d_worker.ts` |
+
+The editing overlay is not part of that chain. `draw_spline_overlay()`
+(`src/curve/spline_overlay.ts`) is called separately, after `Spline.draw()`, by whoever wants
+handles on top — see §6.
 
 ## 1. Scheduling
 
@@ -90,7 +93,9 @@ not free but is correct.
 
 Then `Spline.draw()` (`src/curve/spline.ts`) sets `this.canvas = g`, calls `checkSolve()`
 — which kicks off the async constraint solve, guarded by a 1000 ms timeout, and queues
-another redraw when it finishes — and delegates to `draw_spline()`.
+another redraw when it finishes — then runs the draw sort, lazily builds the `SplineDrawer`,
+and calls `update()` and `draw()` on it. `FrameSet.draw()` follows that with the overlay,
+unless `only_render` is set.
 
 ## 4. Draw sort
 
@@ -143,10 +148,19 @@ reuses the same object (and therefore its cached paths).
 the draw list and emits retained paths into the backend, reusing paths whose input has not
 changed.
 
+It no longer computes stroke geometry itself. `update()` extracts the spline into a
+`StrokeScene` (flat arrays, `src/curve/stroke_scene.ts`), and the geometry is produced from
+that scene by pure functions — `strokeGroup()` and `strokeJoin()` in `src/curve/stroker.ts`,
+`trimVertex()` in `src/curve/trimmer.ts` — which write an `OutlineBuffer`
+(`src/curve/outline_buffer.ts`) the drawer replays onto retained paths. Faces, clipping,
+colours, path GC and dirty tracking stay in the drawer. See
+`docs/plans/draw-refactor.md` for why the boundary is where it is.
+
 ### Stroke outlines
 
 Stroke geometry comes from `SplineSegment.evaluateSide(s, side)` in
-`src/curve/spline_types.ts`, which offsets the centre line by half the local width along
+`src/curve/spline_types.ts` — and, on the scene side, its twin `sceneEvalSide()` in
+`src/curve/stroker_eval.ts` — which offsets the centre line by half the local width along
 the normal:
 
 ```ts
@@ -160,28 +174,64 @@ let dx = -dv[1]*lw*0.5/this.length, dy = dv[0]*lw*0.5/this.length;
 The derivative output is curvature-corrected (`k = -seglen * curvature(s)`), which is what
 lets the outline be emitted as cubics instead of dense polylines.
 
-`update_stroke_group()` samples both sides — a forward pass down side 0 and a reverse pass
-back up side 1 — into a single closed path. Sample count is
-`clamp(~~(seglen/55 + 0.5), 7, 16)` per segment, and consecutive samples are joined with
-`path.cubicTo(lastp + lastdvs, p - dvs, p)` where `dfac = ds/3`.
+### Width chains
 
-Each group emits up to two paths: the fill at the group's z (`id = g.id`), and, when
-`mat.linewidth2 > 0`, an outline-of-the-outline at z+1 (`id = g.id | (1<<20)`, marked
+`width(s)` and `shift(s)` are not per-segment: width is a cubic B-spline through the width
+samples of a nine-vertex neighbourhood, so it stays smooth across two-valence joins. Gathering
+that neighbourhood means stepping outward through two-valence vertices, four segments each way,
+and the step ignores stroke-group boundaries — the neighbourhood is a *chain*, the maximal run of
+segments joined at two-valence vertices, which is strictly coarser than a `SplineStrokeGroup`.
+
+That walk is pure topology, and topology does not change inside a draw pass, so
+`src/curve/width_chain.ts` resolves it once. `SplineDrawer.update()` brackets its body with
+`beginWidthChains()` / `endWidthChains()`; inside, `width()` looks its segment's seven recorded
+walk steps up in a flat array instead of chasing pointers. Outside a pass — picking, tools —
+there is no set and `width()` falls through to `widthWalk()`, the reference implementation.
+
+**Only the topology is cached.** Segment arc length is `ks[KSCALE]`, which `eval_curve()`
+recomputes from the vertex coordinates as the drawer evaluates each segment, so lengths change
+*during* a pass and are a step stale at its start — after a load, or mid-drag, where
+`TransSplineVert.apply()` moves vertices without re-solving. Widths, shifts, linewidth and length
+are therefore read live at `width()` time and the knot vector is assembled per call. That makes
+the result bit-identical to the walk by construction; `playwright/width-chain.spec.ts` checks it
+against `widthWalk()` through `window.__fm.widthNetParity()`, including with the geometry
+deliberately moved ahead of the solved lengths.
+
+`strokeGroup()` in `src/curve/stroker.ts` samples both sides — a forward pass down side 0
+and a reverse pass back up side 1 — into a single closed path. Sample count is
+`clamp(~~(seglen/55 + 0.5), 7, 16)` per segment, and consecutive samples are joined with
+`cubicTo(lastp + lastdvs, p - dvs, p)` where `dfac = ds/3`.
+
+Each group emits up to two paths: the fill at the group's z (role `ELEMENT`), and, when
+`mat.linewidth2 > 0`, an outline-of-the-outline at z+1 (role `DOUBLE_STROKE`, marked
 `noAutoFill()`) pushed with `pushStroke(mat.strokecolor2, mat.linewidth2)`.
+`SplineDrawer.update_stroke_group()` is the assembly that replays them onto retained paths.
 
 ### Joints
 
-Where strokes meet, their outlines overlap. `update_vertex_strokes(v)` trims every stroke
-meeting at `v` back far enough that none of them overlaps another, by **bisecting on the
-trim distance** until the outlines stop intersecting.
+Where strokes meet, their outlines overlap. `trimVertex()` in `src/curve/trimmer.ts` trims
+every stroke meeting at `v` back far enough that none of them overlaps another, by
+**bisecting on the trim distance** until the outlines stop intersecting.
 
-Trim parameters live in a per-segment custom data layer, `SplineDrawData` (a
-`CustomDataLayer` registered as `"drawdata"`): `start1/end1/start2/end2` per side, plus
-explicit mitre points `sp1/sp2/ep1/ep2` and a `mask` of which of those are valid.
+Trim parameters live in `src/curve/trim_state.ts`: `start`/`end` per side, plus explicit
+mitre points and a mask of which of those are valid, twelve doubles and a mask byte per
+segment in flat arrays. `trimState(spline)` hands out the state — one per `Spline`, so a
+frameset's drawspline and pathspline never share slots — and `TrimState.begin(spline)` at
+the top of each `update()` renumbers segments and carries their trims forward. They do have
+to carry: only flagged vertices are recomputed, so an untouched group draws from the last
+pass, and `spline_createops.ts` reads them outside a pass entirely.
 
-`update_stroke_points(v)` computes the mitre endpoints for vertices flagged
-`BREAK_TANGENTS` or of valence > 2. `update_vertex_join(seg, v)` then fills the remaining
-wedge between the segment's two stroke sides.
+This used to be a per-segment custom data layer, `SplineDrawData` (registered as
+`"drawdata"`), and so was written into every `.fmo`. The class still exists in
+`spline_draw_new.ts` with its `STRUCT` so old files parse, but nothing reads a loaded
+instance and `Spline.afterSTRUCT()` drops the layer — see `docs/plans/draw-refactor.md`
+stage 3.
+
+The same call computes the mitre endpoints for vertices flagged `BREAK_TANGENTS` or of
+valence > 2. `strokeJoin()` in `src/curve/stroker.ts` then fills the remaining wedge between
+the segment's two stroke sides; `SplineDrawer.update_vertex_join()` is the assembly around
+it. Both read the trims through `TrimView` (`src/curve/trim_view.ts`), the flat pair
+`TrimState` hands the scene side.
 
 Set `window.FANCY_JOINS = false` to disable all of this and get plain untrimmed overlaps —
 a useful bisection when a joint looks wrong.
@@ -216,12 +266,14 @@ for (let k in this.drawer.path_idmap) {
 }
 ```
 
-Because path ids are derived from element ids plus bit tags (`1<<17`…`1<<20` for joins and
-secondary strokes, `+50000`/`+60002` for debug paths), the same element maps to the same
-path across frames and gets updated in place.
+Because a path id is `pathKey(ownerId, role)` — see `src/curve/path_key.ts`, where `role` is
+one of `ELEMENT`, `DOUBLE_STROKE`, the four join roles or the three debug ones — the same
+element maps to the same path across frames and gets updated in place.
 
 `DrawParams` bundles the per-frame arguments (redraw rects, active layer, `only_render`,
-selectmode, zoom, …) and is recycled through a 16-deep cachering.
+selectmode, zoom, `ignore_layers`, …) and is recycled through a 16-deep cachering. The
+matrix work above is `SplineDrawer.beginPass()`, shared by `update()` and `fastDraw()`;
+neither takes a `zoom` argument, both read it off the matrix.
 
 ### Fast draw
 
@@ -231,9 +283,10 @@ or rasterization.
 
 ## 6. Editing overlay
 
-Everything above produces *rendered* output. The editing overlay is separate: after
-`SplineDrawer.draw()`, and only when `!only_render`, `draw_spline()` in
-`src/curve/spline_draw.ts` draws directly onto the 2D context each frame:
+Everything above produces *rendered* output. The editing overlay is separate, in the code as
+well as conceptually: after `Spline.draw()` returns, and only when `!only_render`, the caller
+calls `draw_spline_overlay()` in `src/curve/spline_overlay.ts`, which draws directly onto the
+2D context each frame:
 
 - Segment outlines when `selectmode & SelMask.SEGMENT` — both sides sampled with
   `evaluateSide`.
@@ -390,7 +443,7 @@ even when hidden), `COINCIDENT` (segment collapses to `v1` in `evaluateSide`).
 
 These are real, load-bearing oddities that will confuse anyone reading the source:
 
-- **`zoom` is hardcoded to 1.0 in `draw_spline()`.** It was written as `matrix.m11`, but the
+- **`zoom` is hardcoded to 1.0 in `draw_spline_overlay()`.** It was written as `matrix.m11`, but the
   components live on `matrix.$matrix`, so it was always `undefined` and fell back to 1.0.
   The overlay's handle and vertex sizes therefore do not scale with zoom. Preserved
   deliberately — "fixing" it changes how the editor looks.

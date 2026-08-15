@@ -11,7 +11,7 @@ import {
 } from "../../core/toolprops.js";
 import { RestrictFlags } from "../../curve/spline.js";
 import { SplineLocalToolOp } from "./spline_editops.js";
-import { SplineDrawData } from "../../curve/spline_draw_new.js";
+import { trimState } from "../../curve/trim_state.js";
 import type { FullContext } from "../../core/context.js";
 import type { Spline } from "../../curve/spline.js";
 import type { SplineVertex, SplineSegment } from "../../curve/spline_types.js";
@@ -581,10 +581,9 @@ export function strokeSegments(
 
       doneset.add(ekey(seg, realside));
 
-      let data = seg.cdata.get_layer(SplineDrawData);
-      if (!data) {
-        throw new Error("data was not defined");
-      }
+      /* The trims the last draw pass left behind; an outline of a stroke that
+         has never been drawn is an outline of the untrimmed centre line. */
+      let data = trimState(spline);
 
       /* NOTE: gets() takes a side as its third argument; the call here passed
          none, and an undefined side reads as side 0 in every branch of it. */

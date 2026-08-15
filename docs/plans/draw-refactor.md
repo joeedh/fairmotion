@@ -10,8 +10,21 @@ Analysis of the spline → stroke → batch → pixels path, aimed at two goals:
 Read [rendering.md](../rendering.md) and [stroking.md](../stroking.md) first; this document
 assumes both and does not repeat them.
 
-Status: **not started.** Nothing below has been implemented. Claims have been checked against
-the source once; where a claim is a guess rather than a reading, it says so.
+Status: **stages 0 and 1 done; stages 2–6 not started.** Claims have been checked against the
+source once; where a claim is a guess rather than a reading, it says so.
+
+What stage 0 measured, and what each gate decided, is written up in
+[../research/draw-refactor-stage0-measurements.md](../research/draw-refactor-stage0-measurements.md).
+All three §7 gates came out as deletions:
+
+- **§7.1** the retained `Float64Array` in `CachedF64Array` hit 0 times in 1051 calls, because
+  its buffer is transferred to the worker. Replaced by `CommandBuffer`.
+- **§7.2** blur costs nothing measurable on a real GPU, at any blur radius tried. The 7×
+  penalty is a swiftshader artifact. `isBlurBatch`, `Batch.dpi_scale` and the dead
+  `needsblur` branch are gone.
+- **§7.3** cancelling in-flight jobs orphaned their promises and wedged the drawer. Fixed in
+  `Thread.clearOutstandingJobs()` and `cancelRenderJob()`, with the repro kept as
+  `playwright/renderjobs.spec.ts`.
 
 ## 1. Layer census
 
@@ -24,7 +37,7 @@ the source once; where a claim is a guess rather than a reading, it says so.
 | 5 | Draw sort → `drawlist` | `spline_draw_sort.ts` | 417 |
 | 6 | Stroke grouping | `spline_strokegroup.ts` | 556 |
 | 7 | **Everything else** | `SplineDrawer` in `spline_draw_new.ts` | 2,350 |
-| 8 | Editing overlay | `draw_spline()` in `spline_draw.ts` | 492 |
+| 8 | Editing overlay | `draw_spline_overlay()` in `spline_overlay.ts` | 414 |
 | 9 | Retained path model | `vectordraw_base.ts` | 417 |
 | 10 | Command stream + batching | `vectordraw_canvas2d.ts` | 1,411 |
 | 11 | Worker pool | `vectordraw_jobs.ts` | 459 |
@@ -129,12 +142,30 @@ The reason this is nearer than "documents with 131k elements" suggests: group id
 only when the group's eid-set hash matches (`:327`), so every *new chain shape ever seen*
 burns an id. The counter tracks edit history, not element count.
 
+**Done** (stage 4a). `src/curve/path_key.ts` replaces the tag bits with a composed key,
+`pathKey(owner, role) = owner * 16 + role`, injective for every owner id rather than only for
+ids under 131,072. `PathRole` names the nine roles the drawer actually uses; `NO_PATH` names
+the one lookup that is meant to miss (`fastDraw` probes a key no owner can produce, and always
+has). 22 call sites in `spline_draw_new.ts`; no tag bit survives.
+
+The change is inert by construction, not just by test: path keys are only ever map keys into
+`path_idmap`, and the backend sorts paths by `a.z - b.z` alone (`vectordraw_canvas2d.ts:1296`,
+a stable sort), so renaming a path cannot move it in draw order. Confirmed empirically too —
+a mechanically reverted build produces byte-identical `pathDump()` output.
+
+**The oracle this needed.** Every later stage renames path keys, so the regression gate had to
+be key-independent: `window.__fm.pathDump()` (`debug_api.ts`) forces a full recalc and returns
+one row per retained path — `z`, command-count, an FNV hash of the command stream, colour,
+blur, hidden, clip count — sorted by `z` then content, never by key. `playwright/path-dump.spec.ts`
+holds it against recorded baselines. It has teeth: moving one vertex by (3, −2) changes the
+document hash. This is what stage 5's harness grows out of.
+
 ### P6 — the editing overlay lives inside the render path
 
-`draw_spline()` is ~40 lines of pipeline plumbing followed by ~250 lines of handle, vertex and
-selection drawing straight onto the 2D context. The overlay has no relationship to the
-retained pipeline; it is in the same function because that is where `g` happened to be in
-scope. It is also where the documented `zoom = 1.0` quirk lives.
+*Fixed in stage 1.* `draw_spline()` was ~40 lines of pipeline plumbing followed by ~250 lines of
+handle, vertex and selection drawing straight onto the 2D context. The overlay has no
+relationship to the retained pipeline; it was in the same function because that is where `g`
+happened to be in scope. It is also where the documented `zoom = 1.0` quirk lives.
 
 ### P7 — dead backends keep `VectorDraw`/`PathBase` abstract for nobody
 
@@ -368,6 +399,43 @@ backend is live, and one less cache that isn't.
 *Buys:* the overlay's `zoom = 1.0` quirk is isolated where it can be fixed or documented
 deliberately rather than by accident.
 
+**Done.** `spline_draw.ts` is gone; its render half became `Spline.draw()` and its overlay half
+became `draw_spline_overlay()` in `spline_overlay.ts`. The colour tables, `get_element_color()`,
+`redraw_element()` and `draw_curve_normals()` moved with the overlay, and the
+`export * from "./spline_draw_sort"` re-export hop was dropped — the five files that used it now
+import `redo_draw_sort` from `spline_draw_sort.js` directly.
+
+`Spline.draw()` lost four parameters that only ever fed the overlay (`draw_normals`,
+`draw_time_helpers`, `curtime`) or nothing at all (`alpha`). The `zoom` argument it still passes
+to `SplineDrawer.update()` is documented as ignored: `update()` overwrites it on its first line
+from `matrix.$matrix.m11`. That is what let the `zoom = 1.0` quirk be confined to
+`spline_overlay.ts`, where the doc comment now explains that it was `matrix.m11` reading
+`undefined` through an `isNaN()` reset, and that correcting it resizes every overlay element at
+every zoom level — a change to make on its own.
+
+Two deliberate deviations from the text above:
+
+- **The overlay is called from `FrameSet.draw()`, not from `view2d`.** `view2d` calls
+  `frameset.draw()` nine times in its tiled branch, once per tile with a translated matrix;
+  hoisting the overlay up a level would have turned nine overlay draws into one. `view2d` does
+  call it directly for the pathspline, which has no tiled path.
+- **`ExportCanvasImage` had a double `drawer.update()`** — its own, then `draw_spline()`'s.
+  Collapsed to one. The second ran with `recalc_all` already cleared by the first, so only the
+  first was ever doing the full update the op asks for.
+
+Dead code deleted in passing: the two loops clearing `SplineFlags.DRAW_TEMP` (nothing in `src/`
+ever sets that flag), an unused `let r`, a dozen commented-out matrix lines, four unused imports
+and two cacherings, and `svg_export.ts`'s import of `draw_spline`, which it never called.
+
+Two pre-existing bugs were preserved with `NOTE:` comments rather than silently fixed: the
+`zoom = 1.0` above, and `ExportCanvasImage` handing `drawer.draw()` the *viewport's* context, so
+the strokes land in the viewport and the exported PNG gets only the overlay.
+
+Verified: `tsgo --noEmit` clean, `pnpm build` clean, Playwright 18/18. A throwaway spec confirmed
+the overlay still paints after the split — 870 px of `element_colormap[UNSELECT]` on Panda.fmo.
+No handle pixels, which is correct and not a regression: all 120 of that file's handles have
+`use === false`, and the `if (!v.use) continue;` gate is byte-identical to the old code's.
+
 ### Stage 2 — the WidthChain pass
 
 Name the chain (P3). Compute knots and width/shift control values once per frame per chain;
@@ -388,6 +456,51 @@ cheap test before committing to the stage: set a counter in `walk()` and one in
 split across extract / stroke / batch / worker-wait. If the frame is actually worker-bound,
 this stage is still correct but should be reprioritized below stage 4.
 
+**Pre-check done — the stage stands, at this priority.** Full numbers in
+`docs/research/draw-refactor-stage2-precheck.md`. On a 60-frame vertex drag over `Panda.fmo` and
+`love and thunder.fmo`, on real hardware: `SplineDrawer.update()` is 15–16 ms/frame against a
+1.3–1.9 ms worker round-trip at ~2 jobs/frame, so the frame is stroke-bound, not worker-bound.
+A prototype per-frame net cache cut update time 3.7–4.9× and roughly halved wall-clock, with
+`width()` and `deBoor()` counts unchanged and walks down ~500× (60 504 → 93.9/frame) — the walk
+is the redundancy, the evaluation is not, exactly as P2 says. Parity held bit-exact: 7 392
+`width()`/`shift` samples per pass across three files, fresh and dragged nets, zero mismatches
+under `Object.is`.
+
+Two caveats the pre-check turned up. `cthulu.fmo` (10 segments, ~119 `width()` calls/frame) has
+nothing to save and is dominated by `SplineDrawer.draw()` and the worker instead — a document can
+be draw-bound rather than stroke-bound, and this stage does nothing for that. And one of the eight
+`walk()` calls in `width()` is already dead: the fourth backward walk's `w0b`/`s0b`/`l0b` are
+never read and its `seg`/`v` mutation is overwritten two lines later. Free 1/8, fold it in.
+
+**Done**, in `src/curve/width_chain.ts` — but not as written above. **Cache the walk, not the
+net.** The prototype the pre-check measured stored knots and control values, and that is not
+bit-exact: a segment's arc length is `ks[KSCALE]`, which `eval_curve()` recomputes from the
+vertex coordinates *as the drawer evaluates each segment*. At the top of a pass those lengths
+are a step behind — freshly deserialized (the file stores float32) or mid-drag, where
+`TransSplineVert.apply()` moves vertices and calls `SplineSegment.update()`, which does not
+re-solve them. Measured mid-drag on `Panda.fmo`, a knot-caching build was off by ~20 % on
+individual knots and ~1.4 % on width, on 3 088 of 46 156 samples. The premise in the file header
+— "nothing inside a draw pass mutates a segment length" — was simply false.
+
+So the pass stores only what is genuinely constant for the pass: the topology. Per segment, the
+seven walk steps whose value or length the net needs, as a segment slot plus a flag for which end
+of it the walk arrived at. `loadWidthNet()` then reads `w1`/`w2`/`shift1`/`shift2`/`linewidth`
+and `length` live and assembles the knot vector at call time, in `width()`'s own expression order.
+That is bit-identical to the walk by construction, whatever the drawer has done to the geometry so
+far — verified at 249 936 samples across three documents in three states (post-load, settled
+redraw, mid-drag) with zero mismatches under `Object.is`, and now guarded permanently by
+`playwright/width-chain.spec.ts` against `SplineSegment.widthWalk()`, the reference implementation
+split out of `width()` for exactly that purpose.
+
+Cheaper than the knot cache predicted, still most of the win. Full-recalc
+`SplineDrawer.update()`, cache toggled at runtime in one build: `Panda.fmo` 79.99 → 23.13 ms,
+`love and thunder.fmo` 77.24 → 31.41 ms, `cthulu.fmo` 0.59 → 0.47 ms (draw-bound, as predicted).
+The dead fourth backward `walk()` is gone. `beginWidthChains()`/`endWidthChains()` bracket
+`update()` through a thin wrapper over `updateIntern()` so the pair survives an exception, and
+`loadWidthNet()` returns `-1` outside a pass, so picking and tools still walk.
+
+Verified: `tsgo --noEmit` clean, `pnpm build` clean, Playwright 20/20 including the new spec.
+
 ### Stage 3 — transient trim state
 
 Replace the `SplineDrawData` cdata layer with per-frame arrays indexed by segment (P4). Keep
@@ -396,7 +509,39 @@ the loader so old files still open; stop writing it.
 *Buys:* smaller files, no further migration debt, and the trim scratch ends up on the correct
 side of the future wasm boundary.
 
-### Stage 4 — `StrokeScene` / `OutlineBuffer`
+**Done**, in `src/curve/trim_state.ts` — but the arrays are not per-frame, and cannot be.
+`updateIntern()` only recomputes the vertices it sees flagged, so a stroke group whose vertices
+did not move is drawn from *last* frame's trims; and `spline_createops.ts` reads them outside any
+draw pass at all, to build an outline. Only the *serialization* goes away. So `begin()` renumbers
+the whole spline at the top of a pass and carries each live segment's twelve doubles and mask
+byte across by identity, into a double-buffered pair of flat arrays — which also renumbers around
+added and removed segments and hands a brand-new one exactly the untrimmed defaults
+(`0, 1, 0, 1`, mask 0) a fresh `CustomDataLayer` had. Cost is one O(segments × 12) copy per pass.
+`slotOf()` returns `-1` for a segment made since the last pass, and reads fall back to those same
+defaults rather than throwing, so an outline of a stroke that has never been drawn is an outline
+of its centre line — which is what the old code did too, by way of a freshly constructed layer.
+
+State is per `Spline`, in a `WeakMap`, not in module globals like `width_chain.ts`: a frameset
+draws a drawspline and a pathspline through the same drawer and the two must not share slots.
+
+Keeping the loader is not enough on its own — a file that parses the layer and then re-saves it
+carries it forever. `CustomData.remove_layer()` is new, and `Spline.afterSTRUCT()` calls it once
+the layer has been read, so `SplineDrawData` survives only as a registered `STRUCT` that old
+files parse into and nothing reads. Both sample files do carry it: with the drop disabled, a
+re-save of `Panda.fmo` is 88 985 bytes against 83 613 with it (−6.0 %), and `love and thunder.fmo`
+2 431 743 against 2 427 955 (−0.16 % — 42 segments in a 2.4 MB document).
+
+Verified the same way stage 2 was, with a temporary parity shadow: an identity-keyed record per
+segment, i.e. exactly the storage `SplineDrawData` was, so any disagreement is a slot-arithmetic
+bug in `begin()`/`slotOf()`. Zero mismatches under `Object.is` across both files, on a full
+recalc and on a partial redraw where one segment is flagged and every other group is read from
+what `begin()` carried forward. The shadow is gone; `playwright/trim-state.spec.ts` keeps the
+part of it that does not need instrumentation — a partial redraw must report the same trimmed and
+mitred counts as a full one, and a loaded pre-stage-3 file must come out with no `drawdata` layer.
+
+`tsgo --noEmit` clean, `pnpm build` clean, Playwright 22/22.
+
+### Stage 4 — `StrokeScene` / `OutlineBuffer` — **done**
 
 Rewrite the stroker as `stroke(scene) -> outlines`: pure, no `VectorDraw`, no `Spline`.
 `SplineDrawer` becomes an assembler — extract scene, call stroker, map outlines onto retained
@@ -405,6 +550,149 @@ explicit `(ownerId, role)` key (P5).
 
 *Buys:* the wasm boundary now exists. The stroker becomes unit-testable. The drawer should
 land somewhere near 700 lines.
+
+**4a done.** Both prerequisites landed first: §5.2 (heap growth detaching `ks` views) and
+§5.9 (faces stay in JS, decided). Then P5, with `pathDump()` as the gate it needed. What is
+left is the body: `StrokeScene`, `OutlineBuffer`, the pure stroker, and the drawer's reduction
+to an assembler.
+
+**4b done — the scene and the evaluator boundary.**
+
+`src/curve/stroke_scene.ts` is the extract: flat arrays, stable slots, a free list, `eid ->
+slot` maps, stamp-based sweep, and the width *walk* (not its knots) rebuilt only when topology
+moves. Two things are deliberately never cached — arc length and the net's knot vector — because
+`ks[KSCALE]` is rewritten by `eval_curve()` *during* a pass; the scene reads length live through
+the `ks` view, which is what preserves width_chain's bit-parity argument by construction.
+`playwright/stroke-scene.spec.ts` runs `checkScene()` over the samples, once after a full pass
+and again after deleting a segment; disabling `sweepSegs()` makes it fail, so it has teeth.
+
+The evaluator was made pure by refactoring rather than duplicating: `eval_curve_flat(ksPtr, ks,
+s, v1x…v2z)` is now the single implementation and `eval_curve(seg, …)` delegates to it, so the
+scene path and the `Spline` path cannot drift. `native_api.evalCurvePtr()` is the same call with
+coefficients named by address. `src/curve/stroker_eval.ts` holds the scene-side twins of the
+`SplineSegment` methods; the methods stay as the reference implementation.
+
+**What the parity spec caught.** `playwright/stroker-eval.spec.ts` compares every twin against
+its method over every segment of the samples, bit-for-bit, and it failed on Panda immediately:
+`sameKs: false`, `scenePtr: 0`, `segPtr: 5261312`. That is §5.1 exactly — the scene extracted
+`ks` before anything had evaluated the segment natively, the first evaluation of the pass then
+*replaced* `seg.ks` with a heap view, and the scene spent the rest of the pass reading a plain
+array the drawer had already abandoned. Rendering from it was close enough to look right:
+endpoints were off by 2e-6 and the middle of the curve by 2.7 units, because the spiral is
+normalised through `v1` and `v2`.
+
+The fix is the explicit migration pass the constraint asks for — `patchSeg()` calls
+`native_api.checkSegment()` before it captures the view. Heap growth is handled beside it:
+addresses survive a move but views do not, so `native_api.onHeapMove()` takes a weakly-held
+`HeapViewHolder` and the scene rebuilds its `ksv` from `KSPTR`. `checkScene()` now compares
+pointers rather than object identity, and says so when a segment was never migrated.
+
+Two notes from the same investigation. `checkScene()` no longer compares flags: the scene
+copies them at extract and the drawer clears them as it consumes them, so agreement is a matter
+of how many passes have run — a snapshot, not an invariant. And the parity comparison is
+stronger than it first appears, because width chains are inactive outside a pass: the reference
+`width()` falls through to `widthWalk()`, so the spec is holding the recorded walk against an
+independently written one. Both sample files now match on every quantity — 9,828 comparisons
+for the smaller — and widening `sceneDwidth`'s finite-difference step by 1e-4 fails both.
+
+**4c done — the stroker and the outline buffer.** `src/curve/stroker.ts` strokes a group out of
+the scene and writes `src/curve/outline_buffer.ts`; `SplineDrawer.update_stroke_group()` is now
+assembly — find the group, call `strokeGroup()`, replay the outlines onto retained paths, hang
+the colours, the double stroke's `pushStroke` and the clip wiring off them. No `Spline`, no
+`VectorDraw` and no `Vector2` cross into the stroker; what comes back is a command stream,
+because that is what the paths take and what the trimming produces.
+
+Two outlines share one traversal. The stroke path and the double stroke walk identical geometry
+but break it differently — where a tangent break makes the stroke draw a line across, the double
+stroke lifts the pen — so each point is recorded once with the opcode each path wants, and the
+two streams are flushed from the records afterwards. That is not just tidiness: evaluating a
+segment rewrites its arc length and its neighbours' width nets read that, so the traversal has to
+evaluate exactly once, in the old order. The same records carry the stroke-debug overlays, which
+are emitted as ordinary outlines under `DEBUG_1` and `DEBUG_3` rather than dropped.
+
+`path-dump.spec.ts` is byte-identical on both samples, and perturbing `dfac` by 1e-7 fails both,
+so the gate has teeth here too. The overlays got their own baseline (`pathDump(true)` turns the
+viewport toggle on for the pass) — recorded after the move, so it locks them going forward
+rather than proving this move left them alone. The drawer is at 1,862 lines, down from 2,030;
+the junction trimming is what is left between it and the ~700 stage 4 asks for.
+
+**4d done — the trimmer.** `src/curve/trimmer.ts` is `update_vertex_strokes()` and
+`update_stroke_points()` over the scene: `trimVertex(scene, trims, v)` bisects the trim distance
+until the strokes meeting at a vertex stop crossing, nudges it out by their widths, and sets the
+mitre points at a two-valence break. What is left in the drawer is the `FANCY_JOINS` switch, the
+three empty debug paths — the trimmer cannot create paths — and the slot lookup. The trim
+accessors both sides needed moved to `src/curve/trim_view.ts` (a `{data, mask}` pair and flat
+`trimGets`/`trimSetp`/… over it), so `TrimState` is now only what the graph side calls.
+
+The port carries path.ux's arithmetic quirks by hand, because they change results:
+`Vector2.dot()` snaps to ±1 within 1e-11, and `normalize()` multiplies by `1.0/l` and gives up
+below 1e-8. `line_isect()` and `line_line_cross4()` stayed in `util/mathlib.ts` with their
+signatures widened to accept flat coordinates; on the 2D path neither touches anything but slots
+0 and 1, so a C++ port takes them along unchanged. Dead locals went (the outer `t0/t1/t2` and the
+`Math.random()` NaN log), but every evaluation stayed, including `seg.evaluate(s1a)` whose result
+is unused — it refreshes the arc length the next segment's width is read against.
+
+`path-dump.spec.ts` is byte-identical on both samples again, and both halves have teeth: shifting
+the mitre point by one unit fails all four baselines, and so does moving the bisection bracket
+from 0.65 by 1e-7. The drawer is at 1,544 lines.
+
+**4e done — the join.** `strokeJoin(scene, trims, seg, v, out)` in `stroker.ts` is
+`update_vertex_join()`: it walks to the previous segment in the angular order around the vertex,
+reads both trimmed boundary points, and emits the wedge between them — a cubic from one to the
+other closed back through the vertex, plus the double-stroke cap. `update_vertex_join()` in the
+drawer is now assembly only: the retained-path pair, their colours, the dirty check that skips
+both, and a loop that plays each outline onto the path its role names.
+
+Joins forced one addition to `OutlineBuffer`. A stroke group's outlines all finish the same way
+and the drawer has always known which, but a join chooses between filling the wedge and stroking
+it from geometry only the producer can see, so an outline now carries a seventh int, `OutFinish`
+(`NONE`/`FILL`/`STROKE`), written by `out.fill()` / `out.stroke()`. The C++ boundary needs that
+field regardless; nothing else about the record changed. Two helpers the trimmer and the join
+both wanted — `sortSegments()` (the atan2 order around a vertex) and `otherVert()` — moved into
+`stroke_scene.ts`, and the Vector2 quirks moved into `src/curve/flat_vec.ts` rather than being
+copied a third time.
+
+All four `path-dump` baselines are byte-identical, and the join is load-bearing in two places:
+perturbing the tangent scale `0.7` by 1e-7 fails both *love and thunder* baselines, and shifting
+the double-stroke cap's first control point by one unit fails them too. Neither touches Panda,
+which has no fancy joins. The tight-corner branch — where the cap collapses to a quad across the
+corner — is **not** covered by either sample; widening its threshold from `0.2π` to `0.9π`
+changes nothing, so it needs a sample of its own before the C++ port relies on it. Full
+Playwright 31/31, vitest 6/6. The drawer is at 1,425 lines.
+
+**4f done — P8, the pass prologue.** With the geometry gone the drawer's remaining bulk was
+argument plumbing, so P8 got cleared out:
+
+- The y-flip / pan-extraction matrix dance is now `beginPass(matrix, master_g, editor,
+  recalc_all)`, called by both `updateIntern()` and `fastDraw()` instead of appearing verbatim in
+  each. What the two decide differently — `recalc_all` — comes in as an argument. Both copies also
+  carried `m1`/`m2` for an `if` whose body is entirely commented out; that went.
+- `zoom` is no longer a parameter of `update()` / `updateIntern()` / `fastDraw()`. All three
+  overwrote it from `matrix.$matrix.m11` on the first line, so all three call sites
+  (`spline.draw()`, `view2d_ops.ts`, `svg_export.ts`) were passing a value nothing read.
+- `update_polygon()` and `update_polygon_color()` take `(f, drawparams)` instead of the ten
+  unpacked arguments `DrawParams` was introduced to replace. `DrawParams` gained `ignore_layers`,
+  the one field the face colouring needed and did not have.
+- `_sortSegments()` is gone — `sortSegments()` in the scene replaced its last caller in 4e.
+
+The six write-only `last_*` fields P8 also listed were already removed in stage 0; the four that
+remain (`last_totvert`/`last_totseg`/`last_totface`/`last_selectmode`) are all read, by the
+`recalc_all` test. What is left of P8 is the parameter list of `update()` itself, still nine
+positional arguments wide because its three callers are outside this file.
+
+`update_normals()` is the last geometry in the drawer that evaluates the spline directly. It is
+the `draw_normals` debug overlay, off by default, and the only thing in the tree that wants
+`curvatureSide()`, so it stayed on the graph side rather than dragging curvature across the
+boundary for a view the renderer never uses.
+
+Playwright 31/31 and vitest 6/6 with all four `path-dump` baselines byte-identical. `fastDraw()`
+is the one path none of that covers — it runs only under `window.DEBUG.fastDrawMode` — so its
+share of this change was made by matching text, not by test.
+
+**The drawer is at 1,304 lines**, from 2,351 at the start of stage 4. The stage's ~700 was
+written before it was clear how much of the file is face handling (§5.9 keeps faces in JS) and
+`updateIntern()`'s drawlist walk, neither of which the stroker extraction touches; 1,304 with all
+stroke geometry behind a pure boundary is what the stage actually buys.
 
 ### Stage 5 — golden-output harness
 
@@ -438,6 +726,10 @@ reasonable starting point for the buffer layout.
    never been natively evaluated or solved still holds a plain JS array, and a stroker that
    assumes `seg.ks.ptr` exists will read address `undefined`. Extract needs an explicit
    migration pass over the scene's segments, not an assumption.
+
+   **Done** (stage 4b), in `stroke_scene.patchSeg()`. Worth recording that this was not a
+   theoretical risk: the first run of `playwright/stroker-eval.spec.ts` failed on it, with the
+   scene holding a pre-migration `ks` and `KSPTR` of 0. See the stage 4 notes.
 2. **Heap growth detaches every view — and there is no handler.** `src/wasm/build.sh` passes
    `-s ALLOW_MEMORY_GROWTH=1` with a 32 MB initial heap. Growing a `WebAssembly.Memory`
    detaches the old `ArrayBuffer`, which silently zero-lengths *every* outstanding view onto
@@ -448,6 +740,16 @@ reasonable starting point for the buffer layout.
    scene arrays live in the heap, since that is exactly what will force growth. The fix is
    cheap and should land before stage 4: cache `wasm.HEAPU8.buffer`, and after any allocation
    that could grow it, compare and rebuild every view.
+
+   **Done**, in `native_api.ts`. `checkHeap()` compares the buffer's identity, and every route
+   that can grow the heap ends in it: `heapAlloc()` (all three `_malloc` sites) and every call
+   into wasm, since C++ allocates on its own during `_gotMessage` and `_evalCurve`. Re-viewing
+   is eager, not lazy, because `seg.ks[KSCALE]` is read all over the drawer without anything
+   calling in here first. Live segments are tracked in a `Set<WeakRef<SplineSegment>>` — weak
+   so a spline dropped without `on_destroy()` is not held alive by the registry, and pruned on
+   the next growth. `playwright/wasm-heap.spec.ts` allocates 64 MB past the 32 MB initial heap
+   and checks every segment's `ks` afterwards; with the re-view line commented out it reports
+   60 of 60 detached, so the check has teeth.
 3. **Scattered per-segment allocation.** Each segment gets its own `_malloc(8 * 16)`. Correct,
    but strokers walk a chain linearly, so the 128-byte blocks want to be contiguous. An arena
    per `StrokeScene` (with `ks` slots as indices into it) is the natural fit — an
@@ -490,8 +792,13 @@ reasonable starting point for the buffer layout.
    stroke path samples on arc length alone — `~~(seglen / 55 + 0.5)` clamped to `[7, 16]` at
    line 1328 — so **stroke output is zoom-independent and faces are not.** Either faces stay
    in JS (simplest, and the stroker keeps a clean zoom-free signature), or `zoom` enters the
-   scene and every zoom change dirties every face. Decide before stage 4; the plan currently
-   assumes the former without saying so.
+   scene and every zoom change dirties every face.
+
+   **Decided: faces stay in JS**, on the assembler side, and `StrokeScene` keeps no faces and
+   no zoom. The alternative buys nothing — faces are 120 lines of polygon emission with no
+   offset-curve geometry in them, so porting them later would not reuse a line of the stroker
+   — and it would cost the stroker its zoom-free signature, which is what makes its output
+   cacheable and its golden harness (stage 5) meaningful.
 10. **wasm is main-thread.** The module is instantiated on the main thread, so a wasm stroker
     runs where the JS stroker runs today — no regression, but no free parallelism either. The
     worker pool rasterizes; it does not stroke. Nothing in this plan changes that.

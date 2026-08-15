@@ -1560,13 +1560,10 @@ export class AppState {
 
       let size = new Vector2(this2.size);
       if (screen === undefined) {
-        //generate default UI layout
-        gen_default_file(this2.size);
-
-        if (this2.datalib !== undefined) {
-          this2.datalib.on_destroy();
-        }
-        this2.datalib = lib;
+        /* Default UI layout, built straight over the datalib just loaded.
+           gen_default_file() would go through the startup file, whose own
+           screen is degenerate -- so it lands back here and recurses. */
+        gen_screen(undefined, this2.size[0], this2.size[1]);
         screen = this2.screen;
       } else {
         //argh, have to set a dummy DataLib here prior to reset_state,

@@ -29,8 +29,9 @@ export type ThreadMessage = {
   data: Transferable[] | undefined;
 };
 
-/* A finished render job hands back the worker's transferToImageBitmap(). */
-export type RenderJobCallback = (image: ImageBitmap) => void;
+/* A finished render job hands back the worker's transferToImageBitmap().
+   A cancelled one hands back undefined -- see clearOutstandingJobs(). */
+export type RenderJobCallback = (image: ImageBitmap | undefined) => void;
 
 //uses web workers
 export class Thread {
@@ -43,9 +44,6 @@ export class Thread {
   msgid_ownerid_map: { [msgid: number]: number };
   cancelset: Set<number>;
   freezelvl: number;
-  /* NOTE: written only by clearOutstandingJobs(), which meant `callbacks`;
-     nothing reads it. */
-  callback!: object;
 
   id: number;
   manager: ThreadManager;
@@ -102,12 +100,23 @@ export class Thread {
         );
       this.freezelvl--;
 
-      let oldid = this.msgid_ownerid_map[ownerid];
+      /* ownerid -> msgid, which is ownerid_msgid_map; the guard above reads
+         that map too.  Looking it up in msgid_ownerid_map left `oldid`
+         undefined and cancelled nothing. */
+      let oldid = this.ownerid_msgid_map[ownerid];
 
       this.postMessage(MS.CANCEL_JOB, oldid);
 
       delete this.ownerid_msgid_map[ownerid];
       delete this.msgid_ownerid_map[oldid];
+
+      /* Same settling rule as clearOutstandingJobs(), for one job. */
+      let callback = this.callbacks[oldid];
+
+      if (callback !== undefined) {
+        delete this.callbacks[oldid];
+        callback(undefined);
+      }
     } else {
       if (Debug) console.log("Bad owner id", ownerid);
     }
@@ -132,8 +141,8 @@ export class Thread {
       }
     }
 
-    return new Promise<ImageBitmap>((accept, reject) => {
-      let callback = (data: ImageBitmap) => {
+    return new Promise<ImageBitmap | undefined>((accept, reject) => {
+      let callback = (data: ImageBitmap | undefined) => {
         accept(data);
       };
 
@@ -142,14 +151,31 @@ export class Thread {
     });
   }
 
+  /*
+   * Settle every outstanding job, then forget it.
+   *
+   * Dropping the resolvers is not enough: a cancelled job's RESULT still
+   * arrives, and onmessage() discards it because the maps cleared below no
+   * longer know the msgid.  Whoever awaited postRenderJob() would then wait
+   * forever -- for Batch.gen() that means `pending` never clears and the
+   * drawer's promise never resolves.
+   *
+   * Resolve with undefined rather than reject: Batch.gen()'s .then() has no
+   * .catch, so a rejection would surface as an unhandled promise instead.
+   */
   clearOutstandingJobs() {
     this.freezelvl = 0;
     this.postMessage(MS.CLEAR_QUEUE, 0);
-    /* NOTE: `callback` is a typo for `callbacks`, so the outstanding job
-       resolvers are never actually dropped. */
-    this.callback = {};
+
+    let callbacks = this.callbacks;
+
+    this.callbacks = {};
     this.msgid_ownerid_map = {};
     this.ownerid_msgid_map = {};
+
+    for (let id in callbacks) {
+      callbacks[id](undefined);
+    }
   }
 
   onmessage(e: MessageEvent) {
@@ -291,11 +317,7 @@ export class ThreadManager {
     }
 
     while (this.threads.length < n) {
-      if (config.HAVE_SKIA) {
-        this.spawnThread("vectordraw_skia_worker.js");
-      } else {
-        this.spawnThread("vectordraw_canvas2d_worker.js");
-      }
+      this.spawnThread("vectordraw_canvas2d_worker.js");
     }
   }
 
@@ -367,19 +389,11 @@ export class ThreadManager {
     //we want at last one gpu-capable render thread
     if (this.threads.length === 0) {
       thread = this.spawnThread("vectordraw_canvas2d_worker.js");
-      //thread = this.spawnThread("vectordraw_skia_worker.js");
       thread.ready = true; //canvas2d worker starts out in ready state
 
-      //*
       for (let i = 0; i < this.max_threads - 1; i++) {
-        if (config.HAVE_SKIA) {
-          this.spawnThread("vectordraw_skia_worker.js");
-        } else {
-          this.spawnThread("vectordraw_canvas2d_worker.js");
-        }
+        this.spawnThread("vectordraw_canvas2d_worker.js");
       }
-
-      //*/
     } else {
       thread = this.getRandomThread();
     }

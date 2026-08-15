@@ -293,6 +293,37 @@ export class CustomData {
     if (this.callbacks.on_add !== undefined) this.callbacks.on_add(templ, i, shared);
   }
 
+  /* Drops every layer of `type`, from the layout and from every element.
+     Renumbering is why startmap is rebuilt wholesale rather than patched. */
+  remove_layer(type: string) {
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      if (this.layers[i]._getDef().typeName !== type) {
+        continue;
+      }
+
+      let cls = this.layers[i];
+
+      this.layers.pop_i(i);
+      this.shared_data.pop_i(i);
+
+      for (let e of this.owner) {
+        e.cdata.on_del(cls, i);
+      }
+
+      if (this.callbacks.on_del !== undefined) this.callbacks.on_del(cls, i);
+    }
+
+    this.startmap = {};
+
+    for (let i = 0; i < this.layers.length; i++) {
+      let name = this.layers[i]._getDef().typeName;
+
+      if (!(name in this.startmap)) {
+        this.startmap[name] = i;
+      }
+    }
+  }
+
   gen_edata() {
     let ret = new CustomDataSet();
 

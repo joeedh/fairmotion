@@ -242,7 +242,7 @@ export class FrameChangeOp extends ToolOp<{ frame: FloatProperty }> {
 }
 
 import { SimpleCanvasDraw2D } from "../../vectordraw/vectordraw_canvas2d_simple.js";
-import { draw_spline } from "../../curve/spline_draw.js";
+import { draw_spline_overlay } from "../../curve/spline_overlay.js";
 import { save_file } from "../../core/fileapi/fileapi.js";
 import { SplineDrawer } from "../../curve/spline_draw_new.js";
 
@@ -291,32 +291,39 @@ export class ExportCanvasImage extends ToolOp {
 
     console.log("saving image. . .");
 
-    //force full update
-    drawer.recalc_all = true;
-    drawer.update(
-      spline,
-      spline.drawlist,
-      spline.draw_layerlist,
-      view2d.genMatrix(),
-      [],
-      view2d.only_render,
-      view2d.selectmode,
-      g,
-      view2d.zoom,
-      view2d
-    );
+    let matrix = view2d.genMatrix();
 
     try {
-      draw_spline(
+      //force full update
+      drawer.recalc_all = true;
+      drawer.update(
         spline,
+        spline.drawlist,
+        spline.draw_layerlist,
+        matrix,
         [],
+        view2d.only_render,
+        view2d.selectmode,
         g,
         view2d,
-        view2d.genMatrix(),
+        undefined,
+        view2d.draw_stroke_debug
+      );
+
+      /* NOTE: this hands the drawer the *viewport's* context, not the export
+         one -- and SimpleCanvasDraw2D.draw() overwrites its own canvas/g with
+         whatever it is given, so the strokes land in the viewport and the
+         exported image gets only the overlay below.  Preserved as it was; it
+         is a bug in this op, not in the split. */
+      drawer.draw(view2d.drawg);
+
+      draw_spline_overlay(
+        spline,
+        g,
+        view2d,
+        matrix,
         view2d.selectmode,
-        view2d.only_render,
         view2d.draw_normals,
-        1.0,
         true,
         ctx.frameset.time
       );

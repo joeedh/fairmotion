@@ -605,7 +605,9 @@ export function line_line_cross(l1: Coord[], l2: Coord[]) {
 let _llc4_1 = [new Vector2(), new Vector2()];
 let _llc4_2 = [new Vector2(), new Vector2()];
 
-export function line_line_cross4(v1: Vector2, v2: Vector2, v3: Vector2, v4: Vector2): boolean {
+/* The points are copied into Vector2 scratch, so anything with a [0] and a [1]
+   works -- which is how the trimmer passes flat coordinates. */
+export function line_line_cross4(v1: Coord, v2: Coord, v3: Coord, v4: Coord): boolean {
   _llc4_1[0].load(v1);
   _llc4_1[1].load(v2);
   _llc4_2[0].load(v3);
@@ -686,13 +688,11 @@ export function line_isect(
   v4: VecLike,
   calc_t?: boolean
 ): LineIsect;
-export function line_isect(
-  v1: VecLike,
-  v2: VecLike,
-  v3: VecLike,
-  v4: VecLike,
-  calc_t = false
-): LineIsect {
+/* Only slots 0 and 1 are read on the 2D path, so flat coordinates work there --
+   which is how the trimmer calls this.  A `number[]` has length 2, so it takes
+   the 2D branch and never reaches the Vector2 arithmetic below. */
+export function line_isect(v1: Coord, v2: Coord, v3: Coord, v4: Coord, calc_t?: boolean): LineIsect;
+export function line_isect(v1: Coord, v2: Coord, v3: Coord, v4: Coord, calc_t = false): LineIsect {
   //code may be copyright tainted; replace
   var div = (v2[0] - v1[0]) * (v4[1] - v3[1]) - (v2[1] - v1[1]) * (v4[0] - v3[0]);
   if (div === 0.0) return [new Vector3(), COLINEAR, 0.0];
@@ -709,8 +709,9 @@ export function line_isect(
     div;
 
   if (calc_t || v1.length === 3) {
-    var n1 = new Vector2(v2).sub(v1);
-    var n2 = new Vector2(vi).sub(v1);
+    var o = new Vector2([v1[0], v1[1]]);
+    var n1 = new Vector2(v2).sub(o);
+    var n2 = new Vector2(vi).sub(o);
 
     var t = n2.vectorLength() / n1.vectorLength();
 

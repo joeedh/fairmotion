@@ -16,6 +16,7 @@ var PI = Math.PI,
   atan2 = Math.atan2;
 
 import * as bspline from "./bspline.js";
+import { loadWidthNet, netKnots, netWidths, netShifts } from "./width_chain.js";
 
 import { MinMax } from "../util/mathlib.js";
 
@@ -675,6 +676,16 @@ export class SplineSegment extends SplineElement {
   z: number;
   _aabb: Vector3[];
 
+  /* Pass-scoped scratch owned by width_chain.ts: where this segment's width
+     net lives in the current chain set, and which set that was. */
+  _widthSlot = -1;
+  _widthGen = -1;
+
+  /* Scratch owned by trim_state.ts: where this segment's trims live in its
+     spline's TrimState, and which renumbering of it that slot belongs to. */
+  _trimSlot = -1;
+  _trimGen = -1;
+
   /* copy() and fromJSON() build bare segments and fill v1/v2 in themselves. */
   constructor(v1?: SplineVertex, v2?: SplineVertex) {
     super(SplineTypes.SEGMENT);
@@ -854,6 +865,25 @@ export class SplineSegment extends SplineElement {
   width(s: number, outShift?: number[]): number {
     //return this.w1 + (this.w2 - this.w1)*s;
 
+    /* Inside a draw pass the net was built for the whole chain already. */
+    const span = loadWidthNet(this);
+    if (span >= 0.0) {
+      const ss = s * span;
+
+      if (outShift) {
+        outShift[0] = bspline.deBoor(3, ss, netKnots, netShifts, 3);
+      }
+
+      return bspline.deBoor(3, ss, netKnots, netWidths, 3);
+    }
+
+    return this.widthWalk(s, outShift);
+  }
+
+  /* The reference implementation: builds this segment's own eight-knot window
+     by stepping outward through two-valence vertices, four segments each way.
+     width_chain.ts caches exactly this, one chain at a time. */
+  widthWalk(s: number, outShift?: number[]): number {
     let seg: SplineSegment = this;
     let v: SplineVertex;
     let len = 0;
@@ -879,7 +909,7 @@ export class SplineSegment extends SplineElement {
     v = this.v1;
     seg = this;
 
-    let l0b, l0, l1, l2, l3, l4, l5, l6, l7, l8;
+    let l0, l1, l2, l3, l4, l5, l6, l7, l8;
 
     l3 = Math.max(seg.length, 0.0001);
     l4 = l3;
@@ -893,10 +923,6 @@ export class SplineSegment extends SplineElement {
     l1 = len;
     let [w0, s0] = walk();
     l0 = len;
-    let [w0b, s0b] = walk();
-    l0b = len;
-
-    //let w1 = walk();
 
     seg = this;
     v = this.v2;

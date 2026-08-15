@@ -8,6 +8,22 @@ import { areaclasses, getAreaConstructor } from "../path.ux/scripts/screen/area_
 import { DataList, DataStruct } from "../path.ux/scripts/pathux.js";
 import { ToolClasses } from "../path.ux/scripts/path-controller/toolsys/toolsys.js";
 import { unpack_ctx } from "./ajax.js";
+import { manager as renderThreads } from "../vectordraw/vectordraw_jobs.js";
+import { beginWidthChains, endWidthChains } from "../curve/width_chain.js";
+import { trimState } from "../curve/trim_state.js";
+import { checkScene, SEG_I, SegI, strokeScene, VERT_F } from "../curve/stroke_scene.js";
+import {
+  sceneCurvature,
+  sceneDerivative,
+  sceneDshift,
+  sceneDwidth,
+  sceneEvalSide,
+  sceneEvaluate,
+  sceneHasNet,
+  sceneShift,
+  sceneWidth,
+} from "../curve/stroker_eval.js";
+import * as native_api from "../wasm/native_api.js";
 import type { DataAPI, DataPath } from "../path.ux/scripts/pathux.js";
 
 /* Mirror of path.ux's DataTypes. Duplicated on purpose: the walker below is
@@ -446,6 +462,559 @@ function saveFile() {
   return Array.from(bytes);
 }
 
+/* The render-worker layer, and a way to pull the rug out from under it.
+   `outstanding` counts posted jobs whose promise has not settled, which is
+   the thing a cancel is supposed to leave at zero. */
+function renderJobs() {
+  let outstanding = 0;
+
+  for (let thread of renderThreads.threads) {
+    outstanding += Object.keys(thread.callbacks).length;
+  }
+
+  return {
+    threads : renderThreads.threads.length,
+    drawing : renderThreads.drawing,
+    haveJobs: renderThreads.haveJobs,
+    outstanding,
+  };
+}
+
+function cancelRenderJobs() {
+  renderThreads.cancelAllJobs();
+  return renderJobs();
+}
+
+/* SplineSegment.width() reads a per-chain control net that width_chain.ts
+   resolves once per draw pass; widthWalk() is the reference implementation it
+   replaces, and the two are required to agree bit for bit.  Samples every
+   segment of the active spline with the nets built, and reports how many
+   results were not identical. */
+function widthNetParity(steps = 11, jitter = 0) {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return { total: 0, bad: 0, error: "no spline" };
+  }
+
+  let spline = ctx.frameset.spline;
+  let shift: number[] = [0];
+  let shiftWalk: number[] = [0];
+  let total = 0,
+    bad = 0;
+
+  /* Moving vertices without re-solving leaves each segment's arc length --
+     ks[KSCALE], which eval_curve() recomputes as the drawer walks the frame --
+     a step behind the coordinates. That is the state a cache holding knots
+     rather than topology would get wrong, so the check runs in it too. */
+  if (jitter !== 0.0) {
+    for (let v of spline.verts) {
+      v[0] += jitter;
+      v[1] -= jitter;
+    }
+  }
+
+  beginWidthChains(spline);
+
+  try {
+    for (let seg of spline.segments) {
+      for (let i = 0; i < steps; i++) {
+        let s = i / (steps - 1);
+        let w = seg.width(s, shift);
+        let wWalk = seg.widthWalk(s, shiftWalk);
+
+        total++;
+
+        if (!Object.is(w, wWalk) || !Object.is(shift[0], shiftWalk[0])) {
+          bad++;
+        }
+      }
+    }
+  } finally {
+    endWidthChains();
+
+    if (jitter !== 0.0) {
+      for (let v of spline.verts) {
+        v[0] -= jitter;
+        v[1] += jitter;
+      }
+    }
+  }
+
+  return { total, bad };
+}
+
+/* Re-strokes the active spline and reports what the trim pass produced: how
+   many segments ended up trimmed or mitred, and whether the file still carries
+   the dead `drawdata` cdata layer.  With `all` false only one segment is
+   flagged, so the rest are read from what TrimState.begin() carried forward. */
+function trimReport(all = true) {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return { segments: 0, trimmed: 0, mitred: 0, layer: false };
+  }
+
+  let spline = ctx.frameset.spline;
+
+  /* UPDATE | FRAME_DIRTY | REDRAW. */
+  const dirty = 8 | 128 | (1 << 23);
+
+  if (all) {
+    for (let seg of spline.segments) {
+      seg.flag |= dirty;
+    }
+    for (let v of spline.verts) {
+      v.flag |= dirty;
+    }
+
+    if (spline.drawer) {
+      spline.drawer.recalc_all = true;
+    }
+  } else {
+    /* One segment only, so every other stroke group is drawn from the trims
+       begin() carried forward rather than from a fresh recompute. */
+    for (let seg of spline.segments) {
+      seg.flag |= dirty;
+      seg.v1.flag |= dirty;
+      seg.v2.flag |= dirty;
+      break;
+    }
+  }
+
+  return waitIdle().then(() => {
+    let trims = trimState(spline);
+    let trimmed = 0,
+      mitred = 0;
+
+    for (let seg of spline.segments) {
+      if (trims.start(seg, 0) !== 0.0 || trims.end(seg, 0) !== 1.0) {
+        trimmed++;
+      } else if (trims.start(seg, 1) !== 0.0 || trims.end(seg, 1) !== 1.0) {
+        trimmed++;
+      }
+
+      if (trims.hasp(seg, seg.v1, 0) || trims.hasp(seg, seg.v2, 0)) {
+        mitred++;
+      }
+    }
+
+    return {
+      segments: spline.segments.length,
+      trimmed,
+      mitred,
+      layer: spline.segments.cdata.has_layer("drawdata"),
+    };
+  });
+}
+
+/* Forces the wasm heap to grow and reports whether the views onto it survived.
+
+   Growth detaches every view of the old ArrayBuffer, so without the re-view in
+   native_api.checkHeap() every segment's `ks` silently reads as length 0 --
+   which is not a hypothetical, just untriggered: the solver allocates far less
+   than the 32 MB initial heap.  This allocates past it on purpose. */
+function heapGrowthCheck(bytes = 64 * 1024 * 1024) {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset || !native_api.isReady()) {
+    return { skipped: true };
+  }
+
+  let spline = ctx.frameset.spline;
+  let segs = Array.from(spline.segments);
+
+  for (let seg of segs) {
+    native_api.checkSegment(seg);
+  }
+
+  /* Compared after the growth: same addresses, same bytes, new views. */
+  let before = segs.map((seg) => Array.from(seg.ks));
+  let grows = native_api.heapStats.grows;
+
+  let wasm = native_api.wasmModule;
+  let ptr = wasm._malloc(bytes);
+  native_api.checkHeap();
+  wasm._free(ptr);
+
+  let grew = native_api.heapStats.grows > grows;
+  let detached = 0,
+    changed = 0;
+
+  for (let i = 0; i < segs.length; i++) {
+    let ks = segs[i].ks;
+
+    if (ks.length !== before[i].length) {
+      detached++;
+      continue;
+    }
+
+    for (let k = 0; k < ks.length; k++) {
+      if (!Object.is(ks[k], before[i][k])) {
+        changed++;
+        break;
+      }
+    }
+  }
+
+  return {
+    skipped: false,
+    grew,
+    segments: segs.length,
+    reviewed: native_api.heapStats.reviewed,
+    detached,
+    changed,
+  };
+}
+
+/* A key-independent fingerprint of everything the drawer built: one row per
+   retained path, sorted by z and then by content, never by path key.
+
+   Key-independent is the point.  Stage 4 of the draw refactor moves geometry
+   between passes and renames every path key on the way (see path_key.ts), so an
+   oracle that compared keys would report a diff for every rename and prove
+   nothing.  What must not change is the set of paths, their draw order, their
+   command streams and their styles -- which is what this hashes.
+
+   With `strokeDebug` the viewport's stroke-debug overlays are turned on for the
+   pass, so the debug geometry is in the dump too -- it is drawn by the same
+   stroker and a refactor can break it just as easily.
+
+   See docs/plans/draw-refactor.md stage 4. */
+function pathDump(strokeDebug = false) {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return { paths: [], hash: 0 };
+  }
+
+  let spline = ctx.frameset.spline;
+  let view2d = ctx.view2d;
+  let hadDebug = view2d ? view2d.draw_stroke_debug : false;
+
+  if (view2d) {
+    view2d.draw_stroke_debug = strokeDebug;
+  }
+
+  /* UPDATE | FRAME_DIRTY | REDRAW. */
+  const dirty = 8 | 128 | (1 << 23);
+
+  for (let seg of spline.segments) {
+    seg.flag |= dirty;
+  }
+  for (let v of spline.verts) {
+    v.flag |= dirty;
+  }
+  for (let f of spline.faces) {
+    f.flag |= dirty;
+  }
+
+  if (spline.drawer) {
+    spline.drawer.recalc_all = true;
+  }
+
+  return waitIdle().then(() => {
+    let hash = (h: number, s: string) => {
+      for (let i = 0; i < s.length; i++) {
+        h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+      }
+
+      return h;
+    };
+
+    let rows = [];
+    let paths = spline.drawer ? spline.drawer.drawer.paths : [];
+
+    for (let path of paths) {
+      /* Every live backend keeps its opcode stream here; PathBase does not
+         declare it because SVGDraw2D builds its own. */
+      let cmds = (path as unknown as { commands: number[] }).commands ?? [];
+      /* String(x) round-trips a double exactly, so this is a bit-exact hash. */
+      let h = 2166136261;
+
+      for (let i = 0; i < cmds.length; i++) {
+        h = hash(h, String(cmds[i]) + ",");
+      }
+
+      rows.push({
+        z     : path.z ?? 0,
+        len   : cmds.length,
+        cmds  : h,
+        color : Array.from(path.color).join(),
+        blur  : path.blur,
+        hidden: !!path.hidden,
+        clips : path.clip_paths ? path.clip_paths.length : 0,
+      });
+    }
+
+    rows.sort((a, b) => a.z - b.z || a.cmds - b.cmds || a.len - b.len);
+
+    let total = 2166136261;
+
+    for (let r of rows) {
+      total = hash(total, `${r.z}|${r.len}|${r.cmds}|${r.color}|${r.blur}|${r.hidden}|${r.clips};`);
+    }
+
+    if (view2d) {
+      view2d.draw_stroke_debug = hadDebug;
+    }
+
+    return { paths: rows, hash: total };
+  });
+}
+
+/* Checks the extracted scene against the spline it was extracted from, after a
+   full pass and again after an edit that changes topology -- the case the
+   incremental patching is there for and the one that can go wrong.  Reports the
+   scene's size and every invariant violation; see stroke_scene.checkScene(). */
+function sceneCheck() {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return { skipped: true, verts: 0, segs: 0, bad: [] as string[], badAfterEdit: [] as string[] };
+  }
+
+  let spline = ctx.frameset.spline;
+
+  /* UPDATE | FRAME_DIRTY | REDRAW. */
+  const dirty = 8 | 128 | (1 << 23);
+
+  for (let seg of spline.segments) {
+    seg.flag |= dirty;
+  }
+  for (let v of spline.verts) {
+    v.flag |= dirty;
+  }
+
+  if (spline.drawer) {
+    spline.drawer.recalc_all = true;
+  }
+
+  return waitIdle().then(() => {
+    let scene = strokeScene(spline);
+    let bad = checkScene(scene, spline);
+
+    /* Now delete a segment and redraw: slots must be freed, the maps must
+       shrink, and every remaining width net must have been rebuilt. */
+    let victim = spline.segments[(spline.segments.length / 2) | 0];
+
+    if (victim) {
+      spline.kill_segment(victim);
+      spline.regen_render();
+    }
+
+    for (let seg of spline.segments) {
+      seg.flag |= dirty;
+    }
+    for (let v of spline.verts) {
+      v.flag |= dirty;
+    }
+
+    if (spline.drawer) {
+      spline.drawer.recalc_all = true;
+    }
+
+    return waitIdle().then(() => {
+      return {
+        skipped: false,
+        verts  : scene.vertMap.size,
+        segs   : scene.segMap.size,
+        bad,
+        badAfterEdit: checkScene(scene, spline),
+      };
+    });
+  });
+}
+
+/* Holds stroker_eval.ts to the standard its header claims: every scene-side
+   twin is bit-identical to the SplineSegment method it replaces, over every
+   segment of the document and `steps` values of s.
+
+   The comparison is stronger than it looks.  Width chains are not active out
+   here, so the reference width()/shift() fall through to widthWalk() -- the
+   independent implementation that steps the graph -- while the twin reads the
+   net the scene recorded.  A diff means the extract, the walk or the evaluator
+   disagree, and the three are written separately.
+
+   Order matters and is deliberate: each metric's reference call is made
+   immediately before its twin, because eval_curve() rewrites ks[KSCALE] as it
+   goes.  Both sides refresh it at the same points in the same sequence, so the
+   values compared are read from identical state.
+
+   See docs/plans/draw-refactor.md stage 4 and playwright/stroker-eval.spec.ts. */
+function strokerEvalParity(steps = 9) {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return Promise.resolve({
+      skipped: true,
+      total  : 0,
+      segs   : 0,
+      noSlot : 0,
+      noNet  : 0,
+      bad    : [] as string[],
+      diag   : undefined as Record<string, unknown> | undefined,
+    });
+  }
+
+  let spline = ctx.frameset.spline;
+
+  /* UPDATE | FRAME_DIRTY | REDRAW: force a full pass so the scene is current. */
+  const dirty = 8 | 128 | (1 << 23);
+
+  for (let seg of spline.segments) {
+    seg.flag |= dirty;
+  }
+  for (let v of spline.verts) {
+    v.flag |= dirty;
+  }
+
+  if (spline.drawer) {
+    spline.drawer.recalc_all = true;
+  }
+
+  return waitIdle().then(() => {
+    let scene = strokeScene(spline);
+
+    let bad: string[] = [];
+    let total = 0,
+      segs = 0,
+      noSlot = 0,
+      noNet = 0;
+
+    /* Out-params, one pair per quantity so a stale write cannot pass for a
+       match. */
+    let co1 = [0, 0],
+      co2 = [0, 0];
+    let dv1 = [0, 0],
+      dv2 = [0, 0];
+    let no1 = [0, 0],
+      no2 = [0, 0];
+    let lw1 = [0, 0],
+      lw2 = [0, 0];
+    let sh1 = [0],
+      sh2 = [0];
+
+    let firstBad = -1;
+
+    let cmp = (what: string, eid: number, s: number, a: number, b: number) => {
+      total++;
+
+      if (Object.is(a, b)) {
+        return;
+      }
+
+      if (firstBad < 0) {
+        firstBad = eid;
+      }
+
+      if (bad.length < 40) {
+        bad.push(`${what} seg ${eid} s=${s}: ${a} vs ${b}`);
+      }
+    };
+
+    for (let seg of spline.segments) {
+      let slot = scene.segSlot(seg.eid);
+
+      if (slot < 0) {
+        noSlot++;
+        continue;
+      }
+
+      /* A degenerate chain gets no net; the drawer falls back to widthWalk()
+         for those, and so must this. */
+      if (!sceneHasNet(scene, slot)) {
+        noNet++;
+        continue;
+      }
+
+      segs++;
+
+      for (let i = 0; i < steps; i++) {
+        let s = i / (steps - 1);
+
+        /* no_effects forced on: ks cannot express a curve effect, so that is
+           the only mode the twin implements (§5.4). */
+        let a = seg.evaluate(s, undefined, undefined, undefined, true);
+        sceneEvaluate(scene, slot, s, co2);
+        cmp("evaluate.x", seg.eid, s, a[0], co2[0]);
+        cmp("evaluate.y", seg.eid, s, a[1], co2[1]);
+
+        let d = seg.derivative(s);
+        sceneDerivative(scene, slot, s, dv2);
+        cmp("derivative.x", seg.eid, s, d[0], dv2[0]);
+        cmp("derivative.y", seg.eid, s, d[1], dv2[1]);
+
+        cmp("curvature", seg.eid, s, seg.curvature(s), sceneCurvature(scene, slot, s));
+
+        let w = seg.width(s, sh1);
+        let w2 = sceneWidth(scene, slot, s, sh2);
+        cmp("width", seg.eid, s, w, w2);
+        cmp("width.shift", seg.eid, s, sh1[0], sh2[0]);
+
+        cmp("shift", seg.eid, s, seg.shift(s), sceneShift(scene, slot, s));
+        cmp("dwidth", seg.eid, s, seg.dwidth(s), sceneDwidth(scene, slot, s));
+        cmp("dshift", seg.eid, s, seg.dshift(s), sceneDshift(scene, slot, s));
+
+        for (let side = 0; side < 2; side++) {
+          let c = seg.evaluateSide(s, side as 0 | 1, dv1, no1, lw1);
+
+          co1[0] = c[0];
+          co1[1] = c[1];
+
+          sceneEvalSide(scene, slot, s, side, co2, dv2, no2, lw2);
+
+          for (let j = 0; j < 2; j++) {
+            cmp(`side${side}.co[${j}]`, seg.eid, s, co1[j], co2[j]);
+            cmp(`side${side}.dv[${j}]`, seg.eid, s, dv1[j], dv2[j]);
+            cmp(`side${side}.no[${j}]`, seg.eid, s, no1[j], no2[j]);
+            cmp(`side${side}.lw[${j}]`, seg.eid, s, lw1[j], lw2[j]);
+          }
+        }
+      }
+    }
+
+    /* A failure here is almost always a stale reference rather than wrong
+       arithmetic -- the wrong coefficient address, a ks view the scene no longer
+       shares, or endpoints it copied a pass ago.  Reporting those beside the
+       first bad segment saves the round trip of asking. */
+    let diag: Record<string, unknown> | undefined;
+
+    if (firstBad >= 0) {
+      for (let seg of spline.segments) {
+        if (seg.eid !== firstBad) {
+          continue;
+        }
+
+        let slot = scene.segSlot(seg.eid);
+        let io = slot * SEG_I;
+        let v1 = scene.segi[io + SegI.V1] * VERT_F;
+        let v2 = scene.segi[io + SegI.V2] * VERT_F;
+
+        diag = {
+          native   : native_api.isReady() && !(DEBUG.no_native || DEBUG.no_nativeEval),
+          sameKs   : scene.ksv[slot] === (seg.ks as unknown as Float64Array | number[]),
+          segPtr   : seg.ks.ptr,
+          scenePtr : scene.segi[io + SegI.KSPTR],
+          hasWasm  : !!seg.ks._has_wasm,
+          v1       : [seg.v1[0], seg.v1[1], Reflect.get(seg.v1, 2)],
+          sceneV1  : [scene.vertf[v1], scene.vertf[v1 + 1], scene.vertf[v1 + 2]],
+          v2       : [seg.v2[0], seg.v2[1], Reflect.get(seg.v2, 2)],
+          sceneV2  : [scene.vertf[v2], scene.vertf[v2 + 1], scene.vertf[v2 + 2]],
+          ks       : Array.from(seg.ks),
+          sceneKs  : Array.from(scene.ksv[slot]),
+          flag     : seg.flag,
+          sceneFlag: scene.segi[io + SegI.FLAG],
+        };
+
+        break;
+      }
+    }
+
+    return { skipped: false, total, segs, noSlot, noNet, bad, diag };
+  });
+}
+
 export const debug_api = {
   ready,
   waitIdle,
@@ -461,6 +1030,14 @@ export const debug_api = {
   canvasReport,
   loadFile,
   saveFile,
+  renderJobs,
+  cancelRenderJobs,
+  widthNetParity,
+  trimReport,
+  heapGrowthCheck,
+  pathDump,
+  sceneCheck,
+  strokerEvalParity,
 };
 
 window.__fm = debug_api;

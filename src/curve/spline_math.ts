@@ -80,6 +80,16 @@ const eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 
 const eval_ret_vs = cachering.fromConstructor(Vector2, 256);
 
+/* loadVec2Into3 with the source unpacked; `z` may be undefined and must stay
+   that way -- see eval_curve_flat. */
+function loadXYZ(dst: Vector3, x: number, y: number, z: number): Vector3 {
+  dst[0] = x;
+  dst[1] = y;
+  Reflect.set(dst, 2, z);
+
+  return dst;
+}
+
 /* NOTE: `angle_only` goes into native_api.evalCurve()'s `no_update` slot and
    this function's own `no_update` is dropped -- the seventh argument the call
    used to carry was ignored by the callee anyway. Left alone: correcting it
@@ -96,8 +106,60 @@ export function eval_curve(
   angle_only?: boolean | number,
   no_update?: boolean
 ): Vector2 | undefined {
-  if (native_api.isReady() && !(DEBUG.no_native || DEBUG.no_nativeEval)) {
-    return native_api.evalCurve(seg, s, v1, v2, ks, !!angle_only);
+  let ksPtr = 0;
+
+  if (useNativeEval()) {
+    /* Relocates ks into the wasm heap the first time, which is what makes the
+       pointer below valid. */
+    native_api.checkSegment(seg);
+    ksPtr = seg.ks.ptr!;
+  }
+
+  /* Reflect.get rather than v1[2]: a Vector2 has no third element, and the
+     undefined that produces is load-bearing -- see the note in eval_curve_flat. */
+  return eval_curve_flat(
+    ksPtr,
+    ks,
+    s,
+    v1[0],
+    v1[1],
+    Reflect.get(v1, 2) as number,
+    v2[0],
+    v2[1],
+    Reflect.get(v2, 2) as number,
+    order,
+    angle_only,
+    no_update
+  );
+}
+
+export function useNativeEval(): boolean {
+  return native_api.isReady() && !(DEBUG.no_native || DEBUG.no_nativeEval);
+}
+
+/* eval_curve with no segment: coefficients by address (and by view, for the JS
+   fallback), endpoints by value.  This is the whole of what the evaluator needs
+   from a Spline, and StrokeScene calls it directly.
+
+   `v1z`/`v2z` are carried because the fallback's `scale` is a 3d length, and a
+   Vector2 endpoint makes it NaN -- a quirk callers may depend on, so it is
+   reproduced rather than fixed (§5.7). */
+export function eval_curve_flat(
+  ksPtr: number,
+  ks: KsArray,
+  s: number,
+  v1x: number,
+  v1y: number,
+  v1z: number,
+  v2x: number,
+  v2y: number,
+  v2z: number,
+  order?: number,
+  angle_only?: boolean | number,
+  no_update?: boolean
+): Vector2 | undefined {
+  if (useNativeEval()) {
+    return native_api.evalCurvePtr(ksPtr, s, v1x, v1y, v2x, v2y, !!angle_only);
   }
 
   if (order === undefined) order = ORDER;
@@ -117,8 +179,8 @@ export function eval_curve(
 
     /* Vector3.load()/sub() against a 2d vector leave z undefined and then NaN;
        these two keep that, one ring slot each. */
-    let vec = loadVec2Into3(eval_curve_vs.next(), v2);
-    vec.sub(loadVec2Into3(eval_curve_vs.next(), v1));
+    let vec = loadXYZ(eval_curve_vs.next(), v2x, v2y, v2z);
+    vec.sub(loadXYZ(eval_curve_vs.next(), v1x, v1y, v1z));
 
     let a2 = atan2(vec[0], vec[1]);
 
@@ -139,7 +201,7 @@ export function eval_curve(
 
   if (!angle_only) {
     let co = approx(s, ks, order);
-    co.sub(start!).rot2d(-ang).mulScalar(scale).add(loadVec2Into3(eval_curve_vs.next(), v1));
+    co.sub(start!).rot2d(-ang).mulScalar(scale).add(loadXYZ(eval_curve_vs.next(), v1x, v1y, v1z));
 
     return loadVec3Into2(eval_ret_vs.next(), co);
   }

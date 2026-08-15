@@ -33,8 +33,6 @@ export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== 
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
 export var HTML5_APP_MODE = document.getElementById("Html5AppMode") !== null;
 
-export var HAVE_SKIA = false;
-
 let platform = "web";
 if (ELECTRON_APP_MODE) {
   platform = process.platform.toLowerCase();

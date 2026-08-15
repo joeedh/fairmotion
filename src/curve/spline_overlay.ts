@@ -1,54 +1,34 @@
-import { aabb_isect_minmax2d } from "../util/mathlib.js";
-import { ENABLE_MULTIRES } from "../config/config.js";
+/*
+ * The editing overlay: segment outlines, handles, vertices and the curve-normal
+ * debug draw, painted straight onto the viewport's 2D context.
+ *
+ * This has no relationship to the retained render pipeline below it
+ * (spline_draw_sort -> SplineDrawer -> VectorDraw -> worker).  It used to share
+ * a function with that pipeline's entry point -- `draw_spline()` -- only because
+ * that is where the canvas context happened to be in scope.  The two are now
+ * called separately: Spline.draw() renders, and whoever wants handles on top
+ * calls draw_spline_overlay() afterwards.  Callers gate on `only_render`; there
+ * is no such parameter here.
+ *
+ * The colour tables are shared with nothing else, but get_element_color() and
+ * redraw_element() are used by the select/edit ops, which is why they live in a
+ * module rather than inside the draw function.
+ */
 
-import { SessionFlags } from "../editors/viewport/view2d_editor.js";
 import { SelMask } from "../editors/viewport/selectmode.js";
-import {
-  ORDER,
-  KSCALE,
-  KANGLE,
-  KSTARTX,
-  KSTARTY,
-  KSTARTZ,
-  KTOTKS,
-  INT_STEPS,
-} from "./spline_math.js";
+import { KSCALE } from "./spline_math.js";
 import { get_vtime } from "../core/animdata.js";
+import { Vector2 } from "../util/vectormath.js";
 
-let spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
-let spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
-
-let PI = Math.PI;
-let pow = Math.pow,
-  cos = Math.cos,
-  sin = Math.sin,
-  abs = Math.abs,
-  floor = Math.floor,
-  ceil = Math.ceil,
-  sqrt = Math.sqrt,
-  log = Math.log,
-  acos = Math.acos,
-  asin = Math.asin;
-
-export const DRAW_MAXCURVELEN = 10000;
-
-import {
-  SplineFlags,
-  SplineTypes,
-  SplineElement,
-  SplineVertex,
-  SplineSegment,
-  SplineLoop,
-  SplineLoopPath,
-  SplineFace,
-  RecalcFlags,
-  MaterialFlags,
-} from "./spline_types.js";
-
-import { ElementArray, SplineLayerFlags } from "./spline_element_array.js";
+import { SplineFlags, SplineTypes, SplineElement } from "./spline_types.js";
+import { ElementArray } from "./spline_element_array.js";
 
 import type { Spline } from "./spline.js";
 import type { View2DHandler } from "../editors/viewport/view2d.js";
+
+const PI = Math.PI;
+
+export const DRAW_MAXCURVELEN = 10000;
 
 //obsolete:
 //var uclr_h = "#22ff11"
@@ -175,12 +155,6 @@ export function get_element_color<T extends SplineElement>(e: T, list: ElementAr
 const VERT_SIZE = 3.0;
 const SMALL_VERT_SIZE = 1.0;
 
-import { SplineDrawer } from "./spline_draw_new.js";
-import { redo_draw_sort } from "./spline_draw_sort.js";
-import { Vector2 } from "../util/vectormath.js";
-
-export * from "./spline_draw_sort";
-
 /* NOTE: `g.strokeColor` below is not a canvas property -- the assignment is a
    no-op and the normals draw in whatever stroke style was already set.  The
    canvas spelling is strokeStyle. */
@@ -224,93 +198,43 @@ export function draw_curve_normals(spline: Spline, g: Canvas2D, zoom: number) {
   }
 }
 
-/* Draws the spline's faces and strokes through the SplineDrawer, then the
-   editing overlay -- segment outlines, handles and vertices -- straight onto
-   `g`.  Returns the drawer's promise.
-
-   `redraw_rects` is a flat run of x1, y1, x2, y2 quadruples, not a list of
-   rects.  `alpha` is forwarded to nothing and unused here. */
-export function draw_spline(
+/*
+ * Draws the editing overlay for `spline` onto `g`: selected segment outlines,
+ * handles and their tangent lines, vertices, the proportional-edit radius, and
+ * optionally the curve normals.
+ *
+ * Callers are responsible for the `only_render` gate -- when the viewport is in
+ * render mode this function is simply not called.
+ *
+ * The `zoom` used below is hardcoded to 1.0.  That is not a placeholder: it is
+ * what the code has always done.  The value used to be read as `matrix.m11`,
+ * but a Matrix4's components live on `matrix.$matrix`, so it came out undefined
+ * and an `isNaN()` reset behind it substituted 1.0 on every call.  Every vertex
+ * size and handle-box size in this function is therefore in raw pixels rather
+ * than screen pixels.  Correcting it would resize every overlay element at
+ * every zoom level, which is a deliberate change to make on its own, not a
+ * side effect of moving this code.
+ */
+export function draw_spline_overlay(
   spline: Spline,
-  redraw_rects: number[],
   g: Canvas2D,
   editor: View2DHandler,
   matrix: Matrix4,
   selectmode: number,
-  only_render: number | boolean,
   draw_normals: number | boolean,
-  alpha: number,
   draw_time_helpers?: boolean,
   curtime?: number,
   ignore_layers?: boolean
 ) {
-  spline.canvas = g;
-
-  if (spline.drawlist === undefined || spline.recalc & RecalcFlags.DRAWSORT) {
-    redo_draw_sort(spline);
-  }
-
-  if (spline.drawer === undefined) {
-    spline.drawer = new SplineDrawer(spline);
-  }
-
-  /* NOTE: this was `zoom = matrix.m11`.  The components live on
-     matrix.$matrix, so zoom came out undefined and the isNaN() reset that
-     followed made it 1.0 on every call -- editor.zoom above never survived
-     either.  Preserved rather than corrected: the true matrix scale would
-     change every line width and vertex size this function draws. */
-  let zoom = 1.0;
-
-  spline.drawer.update(
-    spline,
-    spline.drawlist,
-    spline.draw_layerlist,
-    matrix,
-    redraw_rects,
-    only_render,
-    selectmode,
-    g,
-    zoom,
-    editor,
-    ignore_layers,
-    editor.draw_stroke_debug
-  );
-
-  let promise = spline.drawer.draw(editor.drawg);
+  const zoom = 1.0;
 
   let actlayer = spline.layerset.active;
 
-  /*
-    matrix = new Matrix4(matrix);
-    let matrix2 = new Matrix4();
-
-    matrix2.translate(0.0, g.canvas.height, 0.0);
-
-    let mm = new Matrix4();
-    mm.scale(1.0, -1.0, 1.0);
-    matrix2.multiply(mm);
-
-    matrix.preMultiply(matrix2);
-
-  //*/
-
-  if (!only_render && draw_normals) draw_curve_normals(spline, g, zoom);
-
-  let r = [
-    [0, 0],
-    [0, 0],
-  ];
-
-  for (let s of spline.segments) {
-    s.flag &= ~SplineFlags.DRAW_TEMP;
-  }
-  for (let f of spline.faces) {
-    f.flag &= ~SplineFlags.DRAW_TEMP;
+  if (draw_normals) {
+    draw_curve_normals(spline, g, zoom);
   }
 
   let vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
-
-  if (only_render) return promise;
 
   //draw element handles
 
@@ -462,8 +386,6 @@ export function draw_spline(
     g.arc(spline.trans_cent[0], spline.trans_cent[1], spline.prop_radius, -PI, PI);
     g.stroke();
   }
-
-  return promise;
 }
 
 let __margin = new Vector2([15, 15]);

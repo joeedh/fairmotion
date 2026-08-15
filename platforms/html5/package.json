@@ -7,8 +7,5 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Joseph Eagar",
-  "license": "ISC",
-  "dependencies": {
-    "canvaskit-wasm": "^0.3.1"
-  }
+  "license": "ISC"
 }

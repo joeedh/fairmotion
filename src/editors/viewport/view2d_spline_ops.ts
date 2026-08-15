@@ -22,7 +22,7 @@ import { SplineTypes, SplineFlags } from "../../curve/spline_types.js";
 
 import { View2DEditor, SessionFlags } from "./view2d_editor.js";
 import { DataBlock } from "../../core/lib_api.js";
-import { redraw_element } from "../../curve/spline_draw.js";
+import { redraw_element } from "../../curve/spline_overlay.js";
 import { UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro } from "../../core/toolops_api.js";
 
 import { get_vtime } from "../../core/animdata.js";

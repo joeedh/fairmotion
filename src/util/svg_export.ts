@@ -3,7 +3,6 @@
 import * as math from "./mathlib.js";
 import { SplineFlags, MaterialFlags, SplineTypes } from "../curve/spline_base.js";
 import { SplineDrawer } from "../curve/spline_draw_new.js";
-import { draw_spline } from "../curve/spline_draw.js";
 import { SVGDraw2D } from "../vectordraw/vectordraw_svg.js";
 import { IndexRange } from "../path.ux/scripts/path-controller/util/indexRange.js";
 import type { Spline } from "../curve/spline.js";
@@ -91,7 +90,6 @@ export function export_svg(spline: Spline, visible_only = false) {
     true,
     1,
     g,
-    1.0,
     view2d,
     true
   );

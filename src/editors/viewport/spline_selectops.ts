@@ -32,7 +32,7 @@ import {
   SplineSegment,
   SplineFace,
 } from "../../curve/spline_types.js";
-import { redraw_element } from "../../curve/spline_draw.js";
+import { redraw_element } from "../../curve/spline_overlay.js";
 import { get_vtime } from "../../core/animdata.js";
 import type { FullContext } from "../../core/context.js";
 import type { SplineElement } from "../../curve/spline_base.js";

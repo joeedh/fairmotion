@@ -145,86 +145,6 @@ declare global {
 
   const coverage: CoverageModule;
 
-  /*
-   * CanvasKit (Skia compiled to wasm), loaded at runtime by
-   * vectordraw_skia_simple.ts and the skia worker. Only what fairmotion
-   * touches is declared. A few members -- SkMatrix.Ka, and Lk/mm on the
-   * emulated canvas -- are minified internals of the CanvasKit build the app
-   * ships, not part of its published API.
-   */
-  interface SkPaint {
-    setColor(color: number): void;
-    setStyle(style: number): void;
-    setBlendMode(mode: number): void;
-    setAntiAlias(state: boolean): void;
-    delete(): void;
-  }
-
-  interface SkPath {
-    moveTo(x: number, y: number): void;
-    lineTo(x: number, y: number): void;
-    cubicTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
-    quadTo(x1: number, y1: number, x2: number, y2: number): void;
-    transform(matrix: number[]): void;
-    translate(x: number, y: number): void;
-    scale(x: number, y: number): void;
-    delete(): void;
-  }
-
-  interface SkCanvas {
-    save(): void;
-    restore(): void;
-    rotate(degrees: number, px?: number, py?: number): void;
-    clipPath(path: SkPath, op?: number, antialias?: boolean): void;
-    drawPath(path: SkPath, paint: SkPaint): void;
-    flush(): void;
-  }
-
-  interface SkSurface {
-    getCanvas(): SkCanvas;
-    flush(): void;
-    delete(): void;
-  }
-
-  /* What MakeCanvas() hands back: an HTMLCanvasElement work-alike.  It goes
-     into the same slots as a real canvas -- VectorDraw.canvas, window.skcanvas
-     -- and only width/height/getContext/toDataURL are ever used, so it is
-     declared as one.  `Lk`, `mm` and `cf` are minified CanvasKit internals. */
-  type SkEmulatedCanvas = import("./vectordraw/vectordraw_base.js").DrawCanvas & {
-    dispose(): void;
-    Lk: unknown;
-    mm: { Lk: unknown; flush(): void };
-    cf: { flush(): void };
-  };
-
-  /* The global the canvaskit.js script tag installs. */
-  interface CanvasKitInitPromise extends Promise<CanvasKitModule> {
-    ready(): Promise<CanvasKitModule>;
-  }
-
-  function CanvasKitInit(opts: { locateFile(file: string): string }): CanvasKitInitPromise;
-
-  interface CanvasKitModule {
-    MakeCanvas(width: number, height: number): SkEmulatedCanvas;
-    MakeSWCanvasSurface(canvas: unknown): SkSurface;
-    currentContext(): unknown;
-    Color(r: number, g: number, b: number, a: number): number;
-    BlendMode: { [name: string]: number };
-    PaintStyle: { [name: string]: number };
-    SkMatrix: {
-      identity(): number[];
-      scaled(sx: number, sy: number): number[];
-      translated(x: number, y: number): number[];
-      multiply(a: number[], b: number[]): number[];
-      /* Minified internal. */
-      Ka(m: number[]): number[];
-    };
-    SkPaint: { new (): SkPaint };
-    SkPath: { new (): SkPath };
-  }
-
-  const CanvasKit: CanvasKitModule;
-
   const g_app_state: AppState;
   const _appstate: AppState;
   /* The class itself, parked on window by AppState.ts; data_api_define.ts uses
@@ -500,7 +420,6 @@ declare global {
     import_json(): void;
     _dom_input_node: HTMLElement | null;
     _testParseFile(): void;
-    loadCanvasKit(): void;
 
     /* Per-render-start timestamps, keyed by the redraw source's name. */
     redraw_start_times: { [k: string]: number };
@@ -705,8 +624,7 @@ declare global {
     glRanges: { [gltype: number]: number[] };
     debugproxy: typeof import("./webgl/simplemesh.js").debugproxy;
 
-    /* Assigned by the wasm and CanvasKit loaders once their modules resolve. */
-    CanvasKit: CanvasKitModule | undefined;
+    /* Assigned by the wasm loader once its module resolves. */
     wasmBinaryFile: string | undefined;
     /* Set under node only; the browser hands emscripten a path instead. */
     solverwasm_binary: ArrayBufferView | undefined;

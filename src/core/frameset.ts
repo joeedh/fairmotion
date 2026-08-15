@@ -34,6 +34,7 @@ import {
 
 import * as animspline from "./animspline.js";
 import { SplineDrawer } from "../curve/spline_draw_new.js";
+import { draw_spline_overlay } from "../curve/spline_overlay.js";
 
 export * from "./animspline";
 
@@ -1362,12 +1363,26 @@ export class SplineFrameSet extends DataBlock {
       matrix,
       editor.selectmode,
       editor.only_render,
-      editor.draw_normals,
-      this.spline === ctx.spline ? 1.0 : 0.3,
-      undefined,
-      undefined,
       ignore_layers
     );
+
+    /* The overlay is drawn here rather than one level up in view2d so that the
+       tiled path, which calls this method once per tile with a translated
+       matrix, keeps getting one overlay per tile as it always has. */
+    if (!editor.only_render) {
+      draw_spline_overlay(
+        this.spline,
+        g,
+        editor,
+        matrix,
+        editor.selectmode,
+        editor.draw_normals,
+        undefined,
+        undefined,
+        ignore_layers
+      );
+    }
+
     g.restore();
 
     return promise;

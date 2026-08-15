@@ -57,15 +57,24 @@ arglens[CUBICTO] = 6;
 let render_idgen = 1;
 let batch_iden = 1;
 
-export class CachedF64Array {
+/*
+ * A batch's opcode stream while it is being built, plus the one conversion to
+ * the Float64Array that goes over the wire.
+ *
+ * This used to hold that Float64Array across frames and grow it on demand.
+ * It never once hit: Batch.gen() hands the result to postRenderJob(), which
+ * puts `commands.buffer` in postMessage's transfer list, so the kept array was
+ * detached before the next frame could reuse it. Measured on three documents
+ * at 0.09-0.26% of frame time, against a copy loop that costs as much or more
+ * -- so the cache is gone rather than repaired. See draw-refactor.md 7.1.
+ *
+ * The exact-length array is load-bearing, not incidental: the worker wraps the
+ * transferred buffer with `new Float64Array(buf)` and interprets to its end,
+ * so anything longer than the command count would be read as trailing opcode
+ * 0 (LINESTYLE) and its four arguments.
+ */
+export class CommandBuffer {
   array: number[] = [];
-  /* Grown on demand and reused; finish() may hand back a subarray view. */
-  f64array: Float64Array | undefined = undefined;
-
-  constructor() {
-    this.array = [];
-    this.f64array;
-  }
 
   reset() {
     this.array.length = 0;
@@ -73,35 +82,19 @@ export class CachedF64Array {
   }
 
   finish() {
-    if (!this.f64array || this.f64array.length < this.array.length) {
-      this.f64array = new Float64Array(this.array.length);
-    }
-
-    const f64array = this.f64array;
-    const array = this.array;
-    for (let i = 0; i < this.array.length; i++) {
-      this.f64array[i] = array[i];
-    }
-
-    if (this.f64array.length === this.array.length) {
-      return this.f64array;
-    }
-
-    return new Float64Array(this.f64array.buffer, 0, this.array.length);
+    return new Float64Array(this.array);
   }
 }
 
 export class Batch {
   generation: number;
   path_idmap: { [id: number]: CanvasPath };
-  isBlurBatch: boolean;
   gen_req: number;
   #last_pan: Vector2 = new Vector2();
   viewport: Viewport;
   realViewport: Viewport;
   patharea: number;
-  dpi_scale: number;
-  _commands: CachedF64Array;
+  _commands: CommandBuffer;
 
   _batch_id: number;
   paths: CanvasPath[];
@@ -118,10 +111,8 @@ export class Batch {
   constructor() {
     this._batch_id = batch_iden++;
 
-    this._commands = new CachedF64Array();
+    this._commands = new CommandBuffer();
     this.generation = 0;
-    this.isBlurBatch = false;
-    this.dpi_scale = 1.0;
 
     this.paths = [];
     this.path_idmap = {};
@@ -292,8 +283,7 @@ export class Batch {
   }
 
   _getPaddedViewport(canvas: DrawCanvas, cpad = 128) {
-    let dpi_scale = canvas.dpi_scale * this.dpi_scale;
-    cpad /= dpi_scale;
+    cpad /= canvas.dpi_scale;
 
     return {
       pos : new Vector2([-cpad, -cpad]),
@@ -311,14 +301,6 @@ export class Batch {
 
     this.gen_req = 10;
     this.regen = false;
-
-    if (this.isBlurBatch) {
-      let matrix = new Matrix4(draw.matrix);
-
-      /* Matrix4.scale() copies x into an omitted z; spelled out. */
-      matrix.scale(this.dpi_scale, this.dpi_scale, this.dpi_scale);
-      draw.push_transform(matrix, false);
-    }
 
     let canvas = draw.canvas,
       g = draw.g;
@@ -383,9 +365,6 @@ export class Batch {
     let box = math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
 
     if (!box) {
-      if (this.isBlurBatch) {
-        draw.pop_transform();
-      }
       return;
     }
 
@@ -419,10 +398,6 @@ export class Batch {
       }
     }
 
-    if (this.isBlurBatch) {
-      draw.pop_transform();
-    }
-
     let renderid = render_idgen++;
 
     if (commands.length < 3) {
@@ -440,13 +415,22 @@ export class Batch {
     this.pending = true;
 
     //blocking = false;
+
     vectordraw_jobs.manager
       .postRenderJob(renderid, f64commands, undefined, !blocking)
-      .then((data: ImageBitmap) => {
+      .then((data: ImageBitmap | undefined) => {
         this.pending = false;
 
         if (this.onRenderDone) {
           this.onRenderDone(this);
+        }
+
+        /* Cancelled: no tile came back, so keep blitting the last one rather
+           than blanking, and ask for the job again on the next draw. */
+        if (data === undefined) {
+          this.gen_req = 0;
+          this.regen = 1;
+          return;
         }
 
         if (debug) console.warn("Got render result!");
@@ -499,7 +483,7 @@ export class Batch {
       return;
     }
 
-    g.imageSmoothingEnabled = !!this.isBlurBatch;
+    g.imageSmoothingEnabled = false;
 
     if (this.paths.length === 0 && this.generation > 2) {
       this._image = undefined;
@@ -719,9 +703,7 @@ export class CanvasPath extends PathBase {
     this.lasty = y;
   }
 
-  /* `subdiv` is here for PathBase's signature and ignored -- the batch
-     renderer emits the curve whole. */
-  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, subdiv?: number) {
+  cubicTo(x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
     this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
     this.lastx = x4;
     this.lasty = y4;
@@ -1064,7 +1046,6 @@ export class Batches extends Array<Batch> {
       ret = this[this.length - 1];
     }
 
-    ret.isBlurBatch = false;
     return ret;
   }
 
@@ -1328,32 +1309,10 @@ export class CanvasDraw2D extends VectorDraw<CanvasPath> {
         continue;
       }
 
-      /*let blurlimit = 25;
-       let needsblur = path.blur > blurlimit;
-       needsblur = needsblur && path.clip_paths.length === 0;
-
-       if (path._batch && Boolean(path._batch.isBlurBatch) !== Boolean(needsblur)) {
-          path.redraw = true;
-       }
-      */
-
-      //XXX This is not working, see above lines
-      let needsblur = false;
-
       if (!path._batch) {
         let w1 = batch.patharea / (canvas.width * canvas.height);
-        let w2 = this.batches.length > 10 ? 1.0 / (this.batches.length - 9) : 0.0;
 
-        if (needsblur) {
-          if (!batch.isBlurBatch) {
-            batch = this.batches.requestBatch(this.onBatchDone);
-            batch.isBlurBatch = true;
-            batch.dpi_scale = path.blur * zoom > 50 ? 0.1 : 0.25;
-          } else {
-            let scale = path.blur * zoom > 50 ? 0.1 : 0.25;
-            batch.dpi_scale = Math.min(batch.dpi_scale, scale);
-          }
-        } else if (batch.isBlurBatch || batch.paths.length * (1.0 + w1 * 4.0) > blimit) {
+        if (batch.paths.length * (1.0 + w1 * 4.0) > blimit) {
           batch = this.batches.requestBatch(this.onBatchDone);
         }
 

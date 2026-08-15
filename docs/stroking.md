@@ -13,9 +13,19 @@ batching and rasterization; this one covers the geometry.
 | Width evaluation | `SplineSegment.width()` — `src/curve/spline_types.ts` |
 | Boundary evaluation | `SplineSegment.evaluateSide()` — `src/curve/spline_types.ts` |
 | Stroke groups | `src/curve/spline_strokegroup.ts` |
-| Outline construction | `SplineDrawer.update_stroke_group()` — `src/curve/spline_draw_new.ts` |
-| Junctions | `update_vertex_strokes` / `update_stroke_points` / `update_vertex_join` |
-| Per-segment trim data | `SplineDrawData` — `src/curve/spline_draw_new.ts` |
+| Outline construction | `strokeGroup()` — `src/curve/stroker.ts` |
+| Junction trimming | `trimVertex()` — `src/curve/trimmer.ts` |
+| Join wedges | `strokeJoin()` — `src/curve/stroker.ts` |
+| Per-segment trim data | `TrimState` — `src/curve/trim_state.ts`, `TrimView` — `src/curve/trim_view.ts` |
+
+**Where the geometry lives.** All of it is now scene-side and pure: it reads
+`StrokeScene` (`src/curve/stroke_scene.ts`, flat arrays over the spline) through the
+evaluator twins in `src/curve/stroker_eval.ts`, and writes an `OutlineBuffer`
+(`src/curve/outline_buffer.ts`) — no `Spline`, no `VectorDraw`, no `Vector2`.
+`SplineDrawer` in `src/curve/spline_draw_new.ts` is the assembler on the other side: it
+calls these, replays the outlines onto retained paths, and hangs colours, clipping and
+dirty tracking off them. The method names in the sections below (`update_stroke_group`,
+`update_vertex_strokes`, `update_vertex_join`) still exist as those assembly steps.
 
 ## The model
 
@@ -311,7 +321,7 @@ Three distinct cases, handled by three different mechanisms.
 
 ### Case A — smooth two-valence interior
 
-Nothing to do. `update_vertex_strokes` short-circuits:
+Nothing to do. `trimVertex()` short-circuits:
 
 ```ts
 if (!((v.flag & SplineFlags.BREAK_TANGENTS) || v.segments.length > 2)) {
@@ -379,8 +389,8 @@ outline pen overlaps the neighbouring stroke.
 
 Trimming leaves a gap. Two things fill it, depending on valence.
 
-**Two segments with `BREAK_TANGENTS` — an explicit mitre.** `update_stroke_points(v)`
-intersects the two strokes' outer boundary tangent lines:
+**Two segments with `BREAK_TANGENTS` — an explicit mitre.** `trimPoints()`, the tail of
+`trimVertex()`, intersects the two strokes' outer boundary tangent lines:
 
 ```ts
 let th1 = Math.acos(d0b.dot(d1b));
@@ -396,7 +406,7 @@ Both sides must exceed the angle threshold (`doIsect1 = doIsect1 && doIsect2`) �
 bend does not need a mitre and gets its trim reset to untrimmed instead. Colinear boundaries
 fall back to the vertex position. The `r.floor()` snaps the mitre to integer coordinates.
 
-**Valence > 2 — a filled wedge.** `update_vertex_join(seg, v, drawparams)` runs once per
+**Valence > 2 — a filled wedge.** `strokeJoin(scene, trims, seg, v, out)` runs once per
 incident segment and fills the pie slice between that segment's two trimmed boundary points
 and the vertex:
 
@@ -409,13 +419,14 @@ path.noAutoFill();
 path.pushFill();
 ```
 
-Which segment is "previous" comes from `_sortSegments(v)`, which orders the incident
-segments by `atan2` of their direction away from `v`. The cubic's tangent handles are scaled
+Which segment is "previous" comes from `sortSegments(scene, v, out)` in `stroke_scene.ts`,
+which orders the incident segments by `atan2` of their direction away from `v` — the trimmer
+indexes off the same order. The cubic's tangent handles are scaled
 by how far the trim pulled each stroke back (`v.vectorDistance(p0)/prev.length`, over 1.5),
 so a heavily trimmed junction gets a correspondingly rounder fill.
 
-The wedge's own double stroke is at `id | (1<<19)`, `z + 1`, and picks one of two
-constructions:
+The wedge's own double stroke is at role `JOIN_V1_DOUBLE`/`JOIN_V2_DOUBLE`, `z + 1`, and
+picks one of two constructions:
 
 ```ts
 if (len1*0.25 > lw2 || th > Math.PI*0.2) {
@@ -427,29 +438,41 @@ if (len1*0.25 > lw2 || th > Math.PI*0.2) {
 ```
 
 The fallback exists because stroking a near-degenerate bezier — a wedge so small or so
-shallow that it is shorter than the pen is wide — produces artefacts.
+shallow that it is shorter than the pen is wide — produces artefacts. Which of the two an
+outline got is carried back to the assembler as its `OutFinish` (`FILL` or `STROKE`); it is
+the one thing about a join the drawer cannot work out from the role alone. Note that
+neither sample file reaches the fallback, so it is untested by the `path-dump` baselines.
 
 ### Where the trims live
 
-All of the above is stored in `SplineDrawData`, a `CustomDataLayer` registered as
-`"drawdata"` on every segment:
+All of the above is stored in `TrimState` — `src/curve/trim_state.ts` — twelve doubles and
+a mask byte per segment, in flat arrays indexed by the segment's position in
+`spline.segments`:
 
 ```
-start1, end1     trims for side 0, at v1 and v2
-start2, end2     trims for side 1
-sp1, sp2         explicit mitre points at v1, per side
-ep1, ep2         explicit mitre points at v2, per side
+0..3             start1, end1, start2, end2   trims per side, at v1 and v2
+4,5   6,7        mitre points at v1, side 0 and side 1
+8,9   10,11      mitre points at v2, side 0 and side 1
 mask             which of the four points are valid
 ```
 
 The accessors take `(seg, v, side)` and resolve to the right slot. `getp()` returns the
 explicit point when its mask bit is set, and otherwise falls back to
 `evaluateSide(gets(...), side)` — so the outline builder does not need to know which kind of
-join it is looking at.
+join it is looking at. Note that `getp()` hands back a rotating scratch vector rather than
+stored storage; nothing keeps one across a call.
 
-`loadSTRUCT` carries a back-compat fixup: old files stored `start`/`end` as plain numbers
-where the class now has methods of those names, so it reads them through an untyped view,
-splits them across both sides, and restores the methods.
+`trimState(spline)` returns the state, created on first use and keyed per `Spline`.
+`TrimState.begin(spline)` renumbers the slots at the top of every draw pass and carries the
+live ones forward by identity, so trims outlive the pass that wrote them — which they must,
+since only flagged vertices are recomputed. A segment made since the last `begin()` has no
+slot; reads of it return the untrimmed defaults it will get when it does.
+
+This used to be a `CustomDataLayer` registered as `"drawdata"`, written into every `.fmo`,
+with a `loadSTRUCT` fixup for files that stored `start`/`end` as plain numbers where the
+class later had methods of those names. The class is still registered so those files parse,
+but nothing reads a loaded instance and `Spline.afterSTRUCT()` drops the layer — see
+`docs/plans/draw-refactor.md` stage 3.
 
 ## 9. Masking strokes to faces
 
@@ -467,8 +490,8 @@ outside the fill it belongs to.
 | `editor.draw_normals` | `update_normals()` — boundary polylines with curvature spikes |
 | `window.DEBUG.fastDrawMode` | Centre lines only: 5-sample polylines, no joins, no faces |
 
-With `draw_stroke_debug` on, `update_stroke_group` emits three paths at `z + 50000`,
-`z + 50001` and `z + 60002`, and `update_vertex_strokes` emits three more at `z + 10000`,
+With `draw_stroke_debug` on, `strokeGroup()` emits three paths at `z + 50000`,
+`z + 50001` and `z + 60002`, and `update_vertex_strokes` emits three empty ones at `z + 10000`,
 `z + 10001` and `z + 10002`:
 
 | Colour | Shows |
@@ -491,19 +514,18 @@ The usual bisection when a stroke looks wrong:
 
 ## Known quirks
 
-- **`testIsect()`'s first test loop is dead.** It begins with a bare `break`, so the
-  closest-point-based overlap test never runs; only the cap-crossing test is live.
-- **The side loop tests four combinations twice.** `side2 = ~~(i/2)` for `i` in `0..7` yields
+- **The side loop tests four combinations twice.** `side2 = ~~(k/2)` for `k` in `0..7` yields
   `0,0,1,1,2,2,3,3`; values above 1 are truthy and behave as side 1.
 - **Bisection is fixed at 8 iterations over `[0, 0.65]`.** A junction needing more than 65%
   of the mean segment length trimmed will still overlap.
-- **`bad_corner` is computed but unused.** `_sortSegments` measures whether the incident
-  segments wrap a full turn, but the only consumer is an `else if (0)` branch.
-- **Mitres are two-segment only.** `update_stroke_points` has branches for higher valences,
-  but they are dead; valence > 2 clears the explicit points and relies on the wedge fill.
-- **`r.floor()` on mitre points** quantises them to integer coordinates.
-- **`path.color = seg.mat.strokecolor` aliases**, where `update_vertex_join` uses
+- **Mitres are two-segment only.** Valence > 2 clears the explicit points and relies on the
+  wedge fill; `trimPoints()` only ever runs its `n === 2` branch for real.
+- **`Math.floor()` on mitre points** quantises them to integer coordinates.
+- **`path.color = seg.mat.strokecolor` aliases**, where the join assembly uses
   `path.color.load(mat.strokecolor)` to copy. The stroke path and the material end up
   sharing one `Vector4`.
+- **`trimVertex()` evaluates results it discards.** Evaluating a segment rewrites
+  `ks[KSCALE]`, and the next segment's width net reads it, so calls whose return value goes
+  nowhere are load-bearing and the port kept them in order.
 - **`bstmp1.length = 5` / `bstmp2.length = 5`** in `width()` reset scratch arrays that are
   then grown back to 8 and 7 entries by the assignments below; `bstmp3` is not reset.

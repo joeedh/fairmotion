@@ -28,8 +28,8 @@ import { DataBlock, DataTypes } from "../core/lib_api.js";
 import { SessionFlags } from "../editors/viewport/view2d_editor.js";
 import { SelMask } from "../editors/viewport/selectmode.js";
 import { SplineQuery } from "./spline_query.js";
-import { redo_draw_sort } from "./spline_draw_sort.js";
-import { SplineDrawer } from "./spline_draw_new.js";
+import { redo_draw_sort } from "./draw/spline_draw_sort.js";
+import { SplineDrawer } from "./draw/spline_drawer.js";
 import { solve } from "./solver_new.js";
 import { ModalStates } from "../core/toolops_api.js";
 import { DataPathNode, globalDag } from "../core/eventdag.js";
@@ -2628,19 +2628,19 @@ export class Spline extends DataBlock {
 
     /* update() takes no zoom; it reads matrix.$matrix.m11 itself.  The
        overlay's zoom is a separate quirk; see spline_overlay.ts. */
-    this.drawer.update(
-      this,
-      this.drawlist,
-      this.draw_layerlist,
+    this.drawer.update({
+      spline           : this,
+      drawlist         : this.drawlist,
+      drawlist_layerids: this.draw_layerlist,
       matrix,
       redraw_rects,
       only_render,
       selectmode,
-      g,
+      master_g: g,
       editor,
       ignore_layers,
-      editor.draw_stroke_debug
-    );
+      draw_stroke_debug: editor.draw_stroke_debug,
+    });
 
     return this.drawer.draw(editor.drawg);
   }
@@ -2891,6 +2891,465 @@ export class Spline extends DataBlock {
       inputs : {},
     };
   }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+    this.defineAnimKeysAPI(api, struct);
+
+    struct.struct("faces.active", "active_face", "undefined", api.mapStruct(SplineFace, true));
+    struct.struct(
+      "segments.active",
+      "active_segment",
+      "undefined",
+      api.mapStruct(SplineSegment, true)
+    );
+    struct.struct("verts.active", "active_vertex", "undefined", api.mapStruct(SplineVertex, true));
+    struct.list("faces", "faces", [
+      function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getActive(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list.active;
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return api.mapStruct(SplineFace, true);
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list.length;
+      },
+      /*function getkeyiter() {
+            var keys=Object.keys(this.local_idmap);
+            var ret=new GArray();
+            for (var i=0; i<keys.length; i++) {
+                ret.push(keys[i]);
+            }
+            return ret;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<ElementArray<SplineSegment>, number, SplineSegment>("segments", "segments", [
+      function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+        return list[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+        return api.mapStruct(SplineSegment, true);
+      },
+      function getActive(api: DataAPI, list: ElementArray<SplineSegment>) {
+        return list.active;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+        return list.length;
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+        return obj.eid;
+      },
+      /*function getkeyiter() {
+            var keys=Object.keys(this.local_idmap);
+            var ret=new GArray();
+            for (var i=0; i<keys.length; i++) {
+                ret.push(keys[i]);
+            }
+            return ret;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list("verts", "verts", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getActive(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.active;
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.length;
+      },
+      /*function getkeyiter() {
+            var keys=Object.keys(this.local_idmap);
+            var ret=new GArray();
+            for (var i=0; i<keys.length; i++) {
+                ret.push(keys[i]);
+            }
+            return ret;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list("handles", "handles", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getActive(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.active;
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.length;
+      },
+      /*function getkeyiter() {
+            var keys=Object.keys(this.local_idmap);
+            var ret=new GArray();
+            for (var i=0; i<keys.length; i++) {
+                ret.push(keys[i]);
+            }
+            return ret;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<ElementArray<SplineFace>, number, SplineFace>("faces", "editable_faces", [
+      function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getActive(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list.active;
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return api.mapStruct(SplineFace, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineFace>, obj: SplineFace) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineFace>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "editable_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return api.mapStruct(SplineSegment, true);
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+        /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+      ]
+    );
+    struct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "editable_selected_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return api.mapStruct(SplineSegment, true);
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.selected.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+        /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+      ]
+    );
+    struct.list("verts", "editable_verts", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list("handles", "editable_handles", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<ElementArray<SplineFace>, number, SplineFace>("faces", "selected_facese", [
+      function getIter(api: DataAPI, list: ElementArray<SplineFace>) {
+        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineFace>, key: int) {
+        return api.mapStruct(SplineFace, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineFace>, obj: SplineFace) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineFace>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<ElementArray<SplineSegment>, number, SplineSegment>(
+      "segments",
+      "selected_segments",
+      [
+        function getIter(api: DataAPI, list: ElementArray<SplineSegment>) {
+          return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+        },
+        function get(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return list.local_idmap[key];
+        },
+        function getStruct(api: DataAPI, list: ElementArray<SplineSegment>, key: int) {
+          return api.mapStruct(SplineSegment, true);
+        },
+        function getKey(api: DataAPI, list: ElementArray<SplineSegment>, obj: SplineSegment) {
+          return obj.eid;
+        },
+        function getLength(api: DataAPI, list: ElementArray<SplineSegment>) {
+          let len = 0;
+          for (let e of list.selected.editable(g_app_state.ctx)) {
+            len++;
+          }
+          return len;
+        },
+        /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+        /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+      ]
+    );
+    struct.list("verts", "selected_verts", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list("handles", "selected_handles", [
+      function getIter(api: DataAPI, list: ElementArray<SplineVertex>) {
+        return list.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return list.local_idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ElementArray<SplineVertex>, key: int) {
+        return api.mapStruct(SplineVertex, true);
+      },
+      function getKey(api: DataAPI, list: ElementArray<SplineVertex>, obj: SplineVertex) {
+        return obj.eid;
+      },
+      function getLength(api: DataAPI, list: ElementArray<SplineVertex>) {
+        let len = 0;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
+      },
+      /*function getkeyiter(ctx) {
+            var keys=new GArray();
+            for (let e of this.editable(ctx)) {
+                keys.push(e.eid);
+            }
+            return keys;
+          }*/
+      /*function itempath(key) {
+            return ".local_idmap["+key+"]";
+          }*/
+    ]);
+    struct.list<SplineLayerSet, number, SplineLayer>("layerset", "layerset", [
+      function getIter(api: DataAPI, list: SplineLayerSet) {
+        return list[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: SplineLayerSet, key: int) {
+        return list.idmap[key];
+      },
+      function getStruct(api: DataAPI, list: SplineLayerSet, key: int) {
+        return api.mapStruct(SplineLayer, true);
+      },
+      function getKey(api: DataAPI, list: SplineLayerSet, obj: SplineLayer) {
+        return obj.id;
+      },
+      function getLength(api: DataAPI, list: SplineLayerSet) {
+        return list.length;
+      },
+      /*function getkeyiter() {
+          var keys=Object.keys(this.idmap);
+          var ret=new GArray();
+          for (var i=0; i<keys.length; i++) {
+              ret.push(keys[i]);
+          }
+          return ret;
+        }*/
+      /*function itempath(key) {
+          return ".idmap["+key+"]";
+        }*/
+    ]);
+    struct.struct("layerset.active", "active_layer", "undefined", api.mapStruct(SplineLayer, true));
+    return struct;
+  }
 }
 mixin(Spline, DataPathNode);
 
@@ -2923,5 +3382,6 @@ import {
   buildSegmentGroups,
   splitSegmentGroups,
   vertexIsSplit,
-} from "./spline_strokegroup.js";
-import type { DrawListItem } from "./spline_strokegroup.js";
+} from "./draw/spline_strokegroup.js";
+import type { DrawListItem } from "./draw/spline_strokegroup.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";

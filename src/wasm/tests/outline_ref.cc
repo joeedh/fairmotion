@@ -1,4 +1,4 @@
-/* Checks stroker.h against a recording of what src/curve/stroker.ts built from
+/* Checks stroker.h against a recording of what src/curve/draw/stroker.ts built from
    the same scene.
 
    Usage: outline_ref <name>.scene <name>.outref
@@ -31,7 +31,7 @@
 #include "../stroker.h"
 #include "../trim_view.h"
 
-/* "FMOR" little-endian; src/curve/outline_ref.ts writes it. */
+/* "FMOR" little-endian; src/curve/draw/outline_ref.ts writes it. */
 #define OUTREF_MAGIC 0x524f4d46
 #define OUTREF_VERSION 1
 #define OUTREF_HEADER_I 8

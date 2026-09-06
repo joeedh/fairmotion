@@ -1,7 +1,7 @@
 #ifndef _TRIM_VIEW_H
 #define _TRIM_VIEW_H
 
-/* The C++ side of src/curve/trim_view.ts: where each of a segment's two stroke
+/* The C++ side of src/curve/draw/trim_view.ts: where each of a segment's two stroke
    sides starts and ends, and the mitre points that replace those endpoints at a
    two-valence join.
 

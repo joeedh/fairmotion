@@ -340,9 +340,8 @@ export class BrushTool {
     };
   }
 
-  static defineAPI(api: DataAPI) {
-    let st = api.mapStruct(this, true);
-    return st;
+  static defineAPI(api: DataAPI, struct = api.mapStruct(this, true)) {
+    return struct;
   }
 
   copyTo(b: BrushTool) {

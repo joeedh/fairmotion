@@ -1,7 +1,7 @@
 #ifndef _TRIMMER_H
 #define _TRIMMER_H
 
-/* The C++ side of src/curve/trimmer.ts: junction geometry over a StrokeScene.
+/* The C++ side of src/curve/draw/trimmer.ts: junction geometry over a StrokeScene.
 
    Where strokes meet at a vertex their outlines overlap, and a stroke drawn
    through the overlap shows a bulge or a crossed corner.  This trims each

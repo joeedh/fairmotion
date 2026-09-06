@@ -66,7 +66,6 @@ node node_modules/@pathtx/prettier/bin/prettier.cjs --log-level warn --cache --w
 
 - Active plans:
   - `docs/plans/typescript-port.md` (phase 8 outstanding; its *Known gotchas* section still applies)
-  - `docs/plans/remove-webgl.md` (not started)
   - `docs/plans/draw-refactor-plan-final-notes.md` (final notes for the draw refactor)
 - `todos.md` (repo root) is a working todo list.
 
@@ -143,6 +142,30 @@ this file, and to everything under `documentation/`.
   "Dropping onto itself (or onto a neighbor it would split against) is not a rip". Drop any comma
   that would follow the closing bracket — it separates the subject from its verb.
 
+## Data API definitions
+
+- A class defines its own datapaths in `static defineAPI(api, struct = api.mapStruct(this, true))`,
+  in the same file as the fields those paths name.
+- The methods chain. A subclass takes the struct it was handed (or maps its own), passes it to
+  `super.defineAPI(api, struct)` for the inherited paths, adds its own, and returns it:
+
+```ts
+static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+  super.defineAPI(api, struct);
+
+  struct.float("z", "z", "z").range(-1e17, 1e17);
+
+  return struct;
+}
+```
+
+- `SplineElement`, `DataBlock` and `Editor` sit at the bottom of the three chains.
+  `SplineElement.defineFlagsAPI()` is split out of its `defineAPI()` because each element type
+  hangs a different change callback off the same flags definition.
+- `src/core/data_api/data_api_define.ts` is only the assembly: it calls each class's
+  `defineAPI()` once and names FullContext's struct as the API root.
+- Do not name such a method `apiDefine`; that spelling is gone.
+
 ## path.ux callback system
 
 - path.ux has a method-aspect system — `widget.update.after(cb)`, `widget.setCSS.after(cb)` —
@@ -169,5 +192,3 @@ this file, and to everything under `documentation/`.
   - bare `global x;` declarations
 - Old docs and research reports still show pre-port `.js` paths and stripped C-style
   annotations; treat those as history, not as the current code.
-- `#ifdef`/`#define` appearing inside template literals in `src/webgl/` is **GLSL preprocessor
-  source**, not transpiler syntax. Leave it alone.

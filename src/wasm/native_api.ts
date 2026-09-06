@@ -207,7 +207,7 @@ window._wasm_post_message = function (type: number, ptr: number, len: number) {
    and re-views on a change. That is eager on purpose: `ks` is read all over the
    drawer without anything calling in here first, so a lazy scheme would leave
    detached views reachable. */
-const KS_SLOTS = 16; /* matches the _malloc(8 * 16) in checkSegment(). */
+import { KS_SLOTS, allocKsCell, freeKsCell, ksCellPtr } from "./ks_arena.js";
 
 let heapBuffer: ArrayBufferLike | undefined = undefined;
 let evalMemReady = false;
@@ -262,7 +262,7 @@ export function checkHeap(): boolean {
       continue;
     }
 
-    seg.ks = viewKs(seg.ks.ptr!);
+    seg.ks = viewKs(seg.ks.ptr!, seg.ks.cell);
     heapStats.reviewed++;
   }
 
@@ -294,14 +294,15 @@ export function heapFree(ptr: number): void {
   wasm._free(ptr);
 }
 
-/* A fresh block of coefficients in the heap, zeroed, with nothing on the JS
-   side owning it.  checkSegment() below is the same allocation made on behalf
-   of a SplineSegment; this one is for a scene rebuilt from a dump, which has no
+/* A fresh cell of coefficients in the heap, zeroed, with nothing on the JS
+   side owning it.  checkSegment() below takes the same cell on behalf of a
+   SplineSegment; this one is for a scene rebuilt from a dump, which has no
    segments to migrate and still has to give the evaluator an address (§5.6 --
    the parity harness must run the same evaluator the app does).  Never freed:
    the only caller loads a handful of scenes in a test. */
 export function allocKs(): KsArray {
-  const ks = viewKs(heapAlloc(8 * KS_SLOTS));
+  const cell = allocKsCell();
+  const ks = viewKs(ksCellPtr(cell), cell);
 
   for (let i = 0; i < KS_SLOTS; i++) {
     ks[i] = 0.0;
@@ -310,12 +311,16 @@ export function allocKs(): KsArray {
   return ks;
 }
 
-export function viewKs(ptr: number): KsArray {
+/* `cell` is the arena cell the bytes came from, carried so that freeing and
+   re-viewing can find it again; a view onto memory the arena does not own --
+   the marshalling buffers below -- has none. */
+export function viewKs(ptr: number, cell?: number): KsArray {
   /* Not ks.length: a detached view reports 0. */
   const ks: KsArray = new Float64Array(wasm.HEAPU8.buffer, ptr, KS_SLOTS);
 
   ks._has_wasm = true;
   ks.ptr = ptr;
+  ks.cell = cell;
 
   return ks;
 }
@@ -352,8 +357,8 @@ function init_eval_mem() {
 
 export function onSegmentDestroy(seg: SplineSegment) {
   if (seg.ks._has_wasm) {
-    /* checkSegment() sets both together. */
-    wasm._free(seg.ks.ptr!);
+    /* checkSegment() sets all three together. */
+    freeKsCell(seg.ks.cell!);
     seg.ks = new Float64Array(KS_SLOTS);
   }
 }
@@ -362,11 +367,14 @@ export function onSegmentDestroy(seg: SplineSegment) {
 export function checkSegment(seg: SplineSegment) {
   if (!seg.ks._has_wasm) {
     let ks = seg.ks;
-    let ptr2 = heapAlloc(8 * KS_SLOTS);
-    let ks2 = viewKs(ptr2);
+    let cell = allocKsCell();
+    let ks2 = viewKs(ksCellPtr(cell), cell);
 
-    for (let i = 0; i < ks.length; i++) {
-      ks2[i] = ks[i];
+    /* A reused cell still holds the coefficients of whatever gave it up, and
+       `ks` is shorter than the cell when a segment was made with a smaller
+       ORDER, so clear the tail rather than leaving it. */
+    for (let i = 0; i < KS_SLOTS; i++) {
+      ks2[i] = i < ks.length ? ks[i] : 0.0;
     }
 
     seg.ks = ks2;

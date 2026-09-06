@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { OUTLINE_I, OutFinish, OutlineBuffer, OutlineI } from "../src/curve/outline_buffer.js";
-import { hashOutlines } from "../src/curve/outline_hash.js";
-import type { PathRole } from "../src/curve/path_key.js";
+import { OUTLINE_I, OutFinish, OutlineBuffer, OutlineI } from "../src/curve/draw/outline_buffer.js";
+import { hashOutlines } from "../src/curve/draw/outline_hash.js";
+import type { PathRole } from "../src/curve/draw/path_key.js";
 
 /* The reference half of a cross-language pin.  src/wasm/tests/outline_buffer.cc
    drives the C++ OutlineBuffer with the same script and asserts the same four

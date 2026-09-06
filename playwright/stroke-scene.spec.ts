@@ -6,7 +6,7 @@
    It runs twice: once after a full pass, and once after deleting a segment,
    because the second is what exercises the sweep, the free list, and the width
    walk rebuild.  See docs/plans/draw-refactor-plan-final-notes.md stage 4 and
-   src/curve/stroke_scene.ts. */
+   src/curve/draw/stroke_scene.ts. */
 
 import { expect, test } from "@playwright/test";
 

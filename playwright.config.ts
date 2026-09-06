@@ -1,7 +1,7 @@
 import {defineConfig, devices} from "@playwright/test";
 
-/* The viewport is WebGL, so headless chromium needs a software rasterizer.
-   Without these the context creation fails and every spec sees a blank canvas. */
+/* Force headless chromium onto a software rasterizer so canvas output is the
+   same on every machine. The app itself never asks for a GL context. */
 const GL_ARGS = [
   "--use-angle=swiftshader",
   "--enable-unsafe-swiftshader",

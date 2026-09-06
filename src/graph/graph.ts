@@ -241,7 +241,7 @@ export class NodeSocketType {
     return this;
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {}
+  static defineAPI(api: DataAPI, struct: DataStruct) {}
 
   has(node_or_socket: NodeSocketType | GraphNodeType) {
     for (let socket of this.edges) {
@@ -720,7 +720,7 @@ export function mixinGraphNode(
       return Reflect.get(ob.constructor, "isGraphNode") !== undefined;
     }
 
-    static defineAPI(nodeStruct: DataStruct) {}
+    static defineAPI(api: DataAPI, nodeStruct: DataStruct) {}
 
     /** get final node def with inheritance applied to input/output sockets
      *

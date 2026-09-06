@@ -2,7 +2,7 @@
 
 import * as math from "./mathlib.js";
 import { SplineFlags, MaterialFlags, SplineTypes } from "../curve/spline_base.js";
-import { SplineDrawer } from "../curve/spline_draw_new.js";
+import { SplineDrawer } from "../curve/draw/spline_drawer.js";
 import { SVGDraw2D } from "../vectordraw/vectordraw_svg.js";
 import { IndexRange } from "../path.ux/scripts/path-controller/util/indexRange.js";
 import type { Spline } from "../curve/spline.js";
@@ -81,18 +81,18 @@ export function export_svg(spline: Spline, visible_only = false) {
     _irender_mat: new Matrix4(),
   });
 
-  drawer.update(
+  drawer.update({
     spline,
-    spline.drawlist,
-    spline.draw_layerlist,
+    drawlist         : spline.drawlist,
+    drawlist_layerids: spline.draw_layerlist,
     matrix,
-    [],
-    true,
-    1,
-    g,
-    view2d,
-    true
-  );
+    redraw_rects : [],
+    only_render  : true,
+    selectmode   : 1,
+    master_g     : g,
+    editor       : view2d,
+    ignore_layers: true,
+  });
   drawer.draw(g);
 
   /* draw() builds the svg element; it is undefined before that and again

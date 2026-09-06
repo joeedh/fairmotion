@@ -120,10 +120,10 @@ export class NodeViewer extends Editor {
       console.log("Arranging graph", graph);
       if (graph) {
         sortGraphSpatially(graph, {
-          socksize: this.sockSize,
-          steps: 45,
+          socksize    : this.sockSize,
+          steps       : 45,
           headerHeight: 75,
-          extraWidth: this.extraNodeWidth,
+          extraWidth  : this.extraNodeWidth,
         });
 
         this.clear();

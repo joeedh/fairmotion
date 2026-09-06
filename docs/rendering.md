@@ -15,14 +15,14 @@ canvas 2D context every frame.
 |---|---|
 | Schedule a repaint | `window.redraw_viewport()` — `src/core/startup/redraw_globals.ts` |
 | Viewport frame | `View2DHandler.do_draw_viewport()` — `src/editors/viewport/view2d.ts` |
-| Pick a backend, draw the frameset | `FrameSet.draw()` — `src/core/frameset.ts` |
+| Pick a backend, draw the frameset | `FrameSet.draw()` — `src/core/frameset/frameset.ts` |
 | Solve, draw sort, drawer update | `Spline.draw()` — `src/curve/spline.ts` |
-| Build the retained path list | `SplineDrawer.update()` — `src/curve/spline_draw_new.ts` |
+| Build the retained path list | `SplineDrawer.update()` — `src/curve/draw/spline_drawer.ts` |
 | Batch, serialize, dispatch | `CanvasDraw2D` — `src/vectordraw/vectordraw_canvas2d.ts` |
 | Rasterize off-thread | `src/vectordraw/vectordraw_canvas2d_worker.ts` |
 
 The editing overlay is not part of that chain. `draw_spline_overlay()`
-(`src/curve/spline_overlay.ts`) is called separately, after `Spline.draw()`, by whoever wants
+(`src/curve/draw/spline_overlay.ts`) is called separately, after `Spline.draw()`, by whoever wants
 handles on top — see §6.
 
 ## 1. Scheduling
@@ -65,9 +65,6 @@ Related helpers in the same file:
    restores the 2D transform via `g.setTransform(...)`, and renders widgets/manipulators
    with `this.widgets.render(canvas, g)`.
 
-`drawWebgl()` exists but only scissors and clears — the vector viewport does not use WebGL
-(see [Not part of this path](#not-part-of-this-path)).
-
 ### Tiled mode
 
 `editor.draw_tiled` queues a 3×3 grid of matrices offset by `tileoff = 500` and draws the
@@ -76,7 +73,7 @@ synchronous backend (below) because nine worker round-trips per frame is not wor
 
 ## 3. Backend selection
 
-`FrameSet.draw()` in `src/core/frameset.ts` decides which vectordraw backend the spline's
+`FrameSet.draw()` in `src/core/frameset/frameset.ts` decides which vectordraw backend the spline's
 `SplineDrawer` wraps:
 
 ```ts
@@ -99,7 +96,7 @@ unless `only_render` is set.
 
 ## 4. Draw sort
 
-`redo_draw_sort(spline)` in `src/curve/spline_draw_sort.ts` runs whenever
+`redo_draw_sort(spline)` in `src/curve/draw/spline_draw_sort.ts` runs whenever
 `RecalcFlags.DRAWSORT` is set. It produces `spline.drawlist` (what to draw, in order) and
 `spline.draw_layerlist` (the owning layer id of each entry).
 
@@ -129,7 +126,7 @@ faces.
 
 ### Stroke groups
 
-A `SplineStrokeGroup` (`src/curve/spline_strokegroup.ts`) is a run of segments chained
+A `SplineStrokeGroup` (`src/curve/draw/spline_strokegroup.ts`) is a run of segments chained
 through 2-valence vertices that share a material and a layer, stroked as **one closed
 outline** rather than one outline per segment. That is what makes a long stroke look like a
 single brush mark instead of a chain of overlapping capsules.
@@ -144,23 +141,29 @@ reuses the same object (and therefore its cached paths).
 
 ## 5. Building the paths — `SplineDrawer`
 
-`src/curve/spline_draw_new.ts` is the heart of the system. `SplineDrawer.update()` walks
+`src/curve/draw/spline_drawer.ts` is the heart of the system. `SplineDrawer.update()` walks
 the draw list and emits retained paths into the backend, reusing paths whose input has not
-changed.
+changed.  It takes one `DrawPass` object (`src/curve/draw/draw_params.ts`) rather than a
+positional list, and `updateIntern()` and `fastDraw()` take the same object.
+
+The rest of the folder splits the drawer's own work up: `draw_strokes.ts` holds the
+per-segment and per-vertex stroke assembly, `draw_faces.ts` the polygon fills,
+`outline_play.ts` the replay of an `OutlineBuffer` onto a path, and `draw_params.ts` the
+per-element `DrawParams` the two former take.
 
 It no longer computes stroke geometry itself. `update()` extracts the spline into a
-`StrokeScene` (flat arrays, `src/curve/stroke_scene.ts`), and the geometry is produced from
-that scene by pure functions — `strokeGroup()` and `strokeJoin()` in `src/curve/stroker.ts`,
-`trimVertex()` in `src/curve/trimmer.ts` — which write an `OutlineBuffer`
-(`src/curve/outline_buffer.ts`) the drawer replays onto retained paths. Faces, clipping,
+`StrokeScene` (flat arrays, `src/curve/draw/stroke_scene.ts`), and the geometry is produced from
+that scene by pure functions — `strokeGroup()` and `strokeJoin()` in `src/curve/draw/stroker.ts`,
+`trimVertex()` in `src/curve/draw/trimmer.ts` — which write an `OutlineBuffer`
+(`src/curve/draw/outline_buffer.ts`) the drawer replays onto retained paths. Faces, clipping,
 colours, path GC and dirty tracking stay in the drawer. See
 `docs/plans/draw-refactor-plan-final-notes.md` for why the boundary is where it is.
 
 ### Stroke outlines
 
 Stroke geometry comes from `SplineSegment.evaluateSide(s, side)` in
-`src/curve/spline_types.ts` — and, on the scene side, its twin `sceneEvalSide()` in
-`src/curve/stroker_eval.ts` — which offsets the centre line by half the local width along
+`src/curve/types/segment.ts` — and, on the scene side, its twin `sceneEvalSide()` in
+`src/curve/draw/stroker_eval.ts` — which offsets the centre line by half the local width along
 the normal:
 
 ```ts
@@ -183,7 +186,7 @@ and the step ignores stroke-group boundaries — the neighbourhood is a *chain*,
 segments joined at two-valence vertices, which is strictly coarser than a `SplineStrokeGroup`.
 
 That walk is pure topology, and topology does not change inside a draw pass, so
-`src/curve/width_chain.ts` resolves it once. `SplineDrawer.update()` brackets its body with
+`src/curve/draw/width_chain.ts` resolves it once. `SplineDrawer.update()` brackets its body with
 `beginWidthChains()` / `endWidthChains()`; inside, `width()` looks its segment's seven recorded
 walk steps up in a flat array instead of chasing pointers. Outside a pass — picking, tools —
 there is no set and `width()` falls through to `widthWalk()`, the reference implementation.
@@ -197,7 +200,7 @@ the result bit-identical to the walk by construction; `playwright/width-chain.sp
 against `widthWalk()` through `window.__fm.widthNetParity()`, including with the geometry
 deliberately moved ahead of the solved lengths.
 
-`strokeGroup()` in `src/curve/stroker.ts` samples both sides — a forward pass down side 0
+`strokeGroup()` in `src/curve/draw/stroker.ts` samples both sides — a forward pass down side 0
 and a reverse pass back up side 1 — into a single closed path. Sample count is
 `clamp(~~(seglen/55 + 0.5), 7, 16)` per segment, and consecutive samples are joined with
 `cubicTo(lastp + lastdvs, p - dvs, p)` where `dfac = ds/3`.
@@ -209,11 +212,11 @@ Each group emits up to two paths: the fill at the group's z (role `ELEMENT`), an
 
 ### Joints
 
-Where strokes meet, their outlines overlap. `trimVertex()` in `src/curve/trimmer.ts` trims
+Where strokes meet, their outlines overlap. `trimVertex()` in `src/curve/draw/trimmer.ts` trims
 every stroke meeting at `v` back far enough that none of them overlaps another, by
 **bisecting on the trim distance** until the outlines stop intersecting.
 
-Trim parameters live in `src/curve/trim_state.ts`: `start`/`end` per side, plus explicit
+Trim parameters live in `src/curve/draw/trim_state.ts`: `start`/`end` per side, plus explicit
 mitre points and a mask of which of those are valid, twelve doubles and a mask byte per
 segment in flat arrays. `trimState(spline)` hands out the state — one per `Spline`, so a
 frameset's drawspline and pathspline never share slots — and `TrimState.begin(spline)` at
@@ -223,15 +226,15 @@ pass, and `spline_createops.ts` reads them outside a pass entirely.
 
 This used to be a per-segment custom data layer, `SplineDrawData` (registered as
 `"drawdata"`), and so was written into every `.fmo`. The class still exists in
-`spline_draw_new.ts` with its `STRUCT` so old files parse, but nothing reads a loaded
+`src/curve/draw/draw_data.ts` with its `STRUCT` so old files parse, but nothing reads a loaded
 instance and `Spline.afterSTRUCT()` drops the layer — see
 `docs/plans/draw-refactor-plan-final-notes.md`
 stage 3.
 
 The same call computes the mitre endpoints for vertices flagged `BREAK_TANGENTS` or of
-valence > 2. `strokeJoin()` in `src/curve/stroker.ts` then fills the remaining wedge between
+valence > 2. `strokeJoin()` in `src/curve/draw/stroker.ts` then fills the remaining wedge between
 the segment's two stroke sides; `SplineDrawer.update_vertex_join()` is the assembly around
-it. Both read the trims through `TrimView` (`src/curve/trim_view.ts`), the flat pair
+it. Both read the trims through `TrimView` (`src/curve/draw/trim_view.ts`), the flat pair
 `TrimState` hands the scene side.
 
 Set `window.FANCY_JOINS = false` to disable all of this and get plain untrimmed overlaps —
@@ -267,7 +270,7 @@ for (let k in this.drawer.path_idmap) {
 }
 ```
 
-Because a path id is `pathKey(ownerId, role)` — see `src/curve/path_key.ts`, where `role` is
+Because a path id is `pathKey(ownerId, role)` — see `src/curve/draw/path_key.ts`, where `role` is
 one of `ELEMENT`, `DOUBLE_STROKE`, the four join roles or the three debug ones — the same
 element maps to the same path across frames and gets updated in place.
 
@@ -286,7 +289,7 @@ or rasterization.
 
 Everything above produces *rendered* output. The editing overlay is separate, in the code as
 well as conceptually: after `Spline.draw()` returns, and only when `!only_render`, the caller
-calls `draw_spline_overlay()` in `src/curve/spline_overlay.ts`, which draws directly onto the
+calls `draw_spline_overlay()` in `src/curve/draw/spline_overlay.ts`, which draws directly onto the
 2D context each frame:
 
 - Segment outlines when `selectmode & SelMask.SEGMENT` — both sides sampled with
@@ -436,8 +439,10 @@ even when hidden), `COINCIDENT` (segment collapses to `v1` in `evaluateSide`).
 
 ## Not part of this path
 
-- **`src/webgl/`** is used by the raster paint system only. The vector viewport never
-  touches it; `View2DHandler.drawWebgl()` just scissors and clears.
+- **GPU rendering is deliberately absent.** A dormant WebGL stack (`src/webgl/`) and the
+  raster paint stubs it served (`src/paint/`) were deleted rather than carried; see
+  docs/plans/remove-webgl.md. Every backend on this path is CPU-side — canvas2d, SVG, or
+  Skia. A GPU backend would be written fresh, not revived.
 - **Multires** (`spline_multires.ts`) is gated behind `config.ENABLE_MULTIRES = false`.
 
 ## Known quirks

@@ -135,12 +135,10 @@ export class ToolMode extends NodeBase {
 
   static buildProperties(container: Container<FullContext>) {}
 
-  static defineAPI(api: DataAPI) {
-    let st = api.mapStruct(this, true);
+  static defineAPI(api: DataAPI, struct = api.mapStruct(this, true)) {
+    struct.string("name", "constructor.name", "Name", "Name");
 
-    st.string("name", "constructor.name", "Name", "Name");
-
-    return st;
+    return struct;
   }
 
   /* view2d passes its context; no implementation reads it -- they all use

@@ -12,6 +12,8 @@ import type { ToolMode, NamedList } from "../editors/viewport/toolmodes/toolmode
 import type { DataLib, GetBlockFunc, GetBlockUserFunc } from "../core/lib_api.js";
 import type { FullContext } from "../core/context.js";
 import type { DagCallback, SocketValue } from "../core/eventdag.js";
+import { AnimKey } from "../core/animdata.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
 
 /* A dag callback as linkDag() registers them; link() stamps NodeBase's
    prototype onto the function object itself. */
@@ -518,6 +520,50 @@ export class Scene extends DataBlock {
       },
       inputs : {},
     };
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+    this.defineAnimKeysAPI(api, struct);
+
+    struct
+      .int("time", "frame", "Frame")
+      .range(1, 10000)
+      .step(1)
+      .expRate(1.5)
+      .on("change", function (old) {
+        /* the "change" callback is fired with the value that was just set. */
+        let time = this.dataref.time;
+        this.dataref.time = old!;
+        this.dataref.change_time(g_app_state.ctx, time);
+        window.redraw_viewport();
+      });
+    /* NOTE: the three accessors below read list.object_idmap and list.objects.
+     ObjectList spells them `idmap` and is itself the array, so every one of
+     them was undefined and this list threw whenever it was walked. */
+    struct.list("objects", "objects", [
+      function getIter(api: DataAPI, list: ObjectList) {
+        return new obj_value_iter(list.idmap);
+      },
+      function get(api: DataAPI, list: ObjectList, key: int) {
+        console.log("get key", key, list);
+        return list.idmap[key];
+      },
+      function getStruct(api: DataAPI, list: ObjectList, key: int) {
+        return api.mapStruct(SceneObject, true);
+      },
+      function getLength(api: DataAPI, list: ObjectList) {
+        return list.length;
+      },
+      /*function getkeyiter() {
+          return new obj_key_iter(this.object_idmap);
+        }*/
+      /*function itempath(key) {
+          return ".object_idmap["+key+"]";
+        }*/
+    ]);
+    struct.struct("objects.active", "active_object", "undefined", api.mapStruct(SceneObject, true));
+    return struct;
   }
 }
 

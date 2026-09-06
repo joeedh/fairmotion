@@ -4,6 +4,7 @@ import { STRUCT } from "../../core/struct.js";
 import { UIBase } from "../../path.ux/scripts/core/ui_base.js";
 import { Editor } from "../editor_base.js";
 import type { Container } from "../../path.ux/scripts/core/ui.js";
+import type { DataAPI } from "../../path.ux/scripts/pathux.js";
 
 export class OpStackEditor extends Editor {
   static STRUCT: string;
@@ -87,6 +88,13 @@ export class OpStackEditor extends Editor {
 
   copy() {
     return document.createElement("opstack-editor-x");
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    struct.bool("filter_sel", "filter_sel", "Filter Sel").icon(Icons.FILTER_SEL_OPS);
+    return struct;
   }
 }
 OpStackEditor.STRUCT =

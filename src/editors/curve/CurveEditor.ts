@@ -8,6 +8,7 @@ import { DropBox } from "../../path.ux/scripts/pathux.js";
 import { pushModalLight, popModalLight } from "../../path.ux/scripts/util/simple_events.js";
 import type { ModalState } from "../../path.ux/scripts/path-controller/util/simple_events.js";
 import { IndexRange } from "../../path.ux/scripts/path-controller/util/indexRange.js";
+import type { DataAPI } from "../../path.ux/scripts/pathux.js";
 
 /* NOTE: CurveEdit.on_mousedown called this with only `edit`, so x and y came
    through undefined and startmpos/lastmpos were NaN.  Nothing read either
@@ -295,6 +296,18 @@ export class CurveEditor extends Editor {
 
   copy() {
     return document.createElement("curve-editor-x");
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    /* NOTE: CurveEditor has no `selected_only`, so this path never resolves and
+     its change callback could never have fired.  The callback called
+     ctx.editcurve.do_full_recalc(), a method the editor no longer has, and has
+     been dropped. */
+    struct.bool("selected_only", "selected_only", "Selected Only");
+    struct.bool("pinned", "pinned", "Pin");
+    return struct;
   }
 }
 

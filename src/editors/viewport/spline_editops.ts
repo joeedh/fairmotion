@@ -18,7 +18,7 @@ import {
 import { RestrictFlags, Spline } from "../../curve/spline.js";
 import { VDAnimFlags } from "../../core/frameset.js";
 import "../../path.ux/scripts/util/struct.js"; //get istruct
-import { redo_draw_sort } from "../../curve/spline_draw_sort.js";
+import { redo_draw_sort } from "../../curve/draw/spline_draw_sort.js";
 
 import { FullContext } from "../../core/context.js";
 import { TranslateOp } from "./transform.js";

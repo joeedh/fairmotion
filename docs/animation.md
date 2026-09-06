@@ -15,7 +15,7 @@ not animated: there is exactly one set of vertices, edges and faces for the whol
 |---|---|
 | Keyframe time on a path vertex | `TimeDataLayer`, `get_vtime`, `set_vtime` — `src/core/animdata.ts` |
 | One motion path | `VertexAnimData` — `src/core/animspline.ts` |
-| Owns the two splines and the clock | `SplineFrameSet` — `src/core/frameset.ts` |
+| Owns the two splines and the clock | `SplineFrameSet` — `src/core/frameset/frameset.ts` |
 | Scene clock | `Scene.change_time()` — `src/scene/scene.ts` |
 | Keying the current frame | `KeyCurrentFrame` (`spline.key_current_frame`) — `src/editors/viewport/spline_editops.ts` |
 | Playback loop | `FairmotionScreen.update()` / `togglePlayback()` — `src/editors/editor_base.ts` |

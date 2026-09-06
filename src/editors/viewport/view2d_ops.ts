@@ -242,9 +242,9 @@ export class FrameChangeOp extends ToolOp<{ frame: FloatProperty }> {
 }
 
 import { SimpleCanvasDraw2D } from "../../vectordraw/vectordraw_canvas2d_simple.js";
-import { draw_spline_overlay } from "../../curve/spline_overlay.js";
+import { draw_spline_overlay } from "../../curve/draw/spline_overlay.js";
 import { save_file } from "../../core/fileapi/fileapi.js";
-import { SplineDrawer } from "../../curve/spline_draw_new.js";
+import { SplineDrawer } from "../../curve/draw/spline_drawer.js";
 
 export class ExportCanvasImage extends ToolOp {
   static tooldef() {
@@ -296,19 +296,18 @@ export class ExportCanvasImage extends ToolOp {
     try {
       //force full update
       drawer.recalc_all = true;
-      drawer.update(
+      drawer.update({
         spline,
-        spline.drawlist,
-        spline.draw_layerlist,
+        drawlist         : spline.drawlist,
+        drawlist_layerids: spline.draw_layerlist,
         matrix,
-        [],
-        view2d.only_render,
-        view2d.selectmode,
-        g,
-        view2d,
-        undefined,
-        view2d.draw_stroke_debug
-      );
+        redraw_rects     : [],
+        only_render      : view2d.only_render,
+        selectmode       : view2d.selectmode,
+        master_g         : g,
+        editor           : view2d,
+        draw_stroke_debug: view2d.draw_stroke_debug,
+      });
 
       /* NOTE: this hands the drawer the *viewport's* context, not the export
          one -- and SimpleCanvasDraw2D.draw() overwrites its own canvas/g with

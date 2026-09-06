@@ -16,7 +16,7 @@ import { ToolOp, UndoFlags, ToolFlags, ModalStates } from "../core/toolops_api.j
 import { RestrictFlags, Spline } from "../curve/spline.js";
 import { VDAnimFlags } from "../core/frameset.js";
 import "../path.ux/scripts/util/struct.js"; //get istruct
-import { redo_draw_sort } from "../curve/spline_draw_sort.js";
+import { redo_draw_sort } from "../curve/draw/spline_draw_sort.js";
 import type { FullContext } from "../core/context.js";
 
 //$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';

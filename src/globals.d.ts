@@ -201,7 +201,7 @@ declare global {
   function force_viewport_redraw(): void;
   function complete_viewport_draw(tries?: number): void;
 
-  const _SplineDrawer: typeof import("./curve/spline_draw_new.js").SplineDrawer;
+  const _SplineDrawer: typeof import("./curve/draw/spline_drawer.js").SplineDrawer;
 
   /* The only event the killscreen channel carries. Its listeners are held in
      window._killscreen_handlers, not by the DOM. */
@@ -391,10 +391,9 @@ declare global {
     touch_manager: typeof touch_manager;
 
     _NodeBase: typeof import("./core/eventdag.js").NodeBase;
-    _SplineDrawer: typeof import("./curve/spline_draw_new.js").SplineDrawer;
+    _SplineDrawer: typeof import("./curve/draw/spline_drawer.js").SplineDrawer;
     MyKeyboardEvent: typeof import("./editors/events.js").MyKeyboardEvent;
     MyMouseEvent: typeof import("./editors/events.js").MyMouseEvent;
-    imagecanvas_webgl: typeof import("./paint/imagecanvas_webgl.js");
 
     /* The per-platform config.js overrides; only ORIGIN is ever honoured. */
     _platform_config?: { [k: string]: string };
@@ -438,11 +437,8 @@ declare global {
     skcanvas: import("./vectordraw/vectordraw_base.js").DrawCanvas | undefined;
     skg: Canvas2D | undefined;
 
-    /* The one shared WebGL context, created by imagecanvas_webgl.ts and used
-       as the default argument of its own resource-lifecycle methods. */
-    _gl: import("./webgl/webgl.js").WebGLContext;
     KSCALE: number;
-    /* Rate-limiter timestamp for a warning in spline_types.ts. */
+    /* Rate-limiter timestamp for a warning in src/curve/types/segment.ts. */
     __adssad: number;
     _setDebug(d: number): void;
     _do_frame_debug: boolean;
@@ -533,11 +529,9 @@ declare global {
     redraw_viewport(min?: unknown, max?: unknown): Promise<void> | undefined;
     redraw_all(): void;
     redraw_all_full(): void;
-    redraw_webgl(): void;
     force_viewport_redraw(): void;
     complete_viewport_draw(tries?: number): void;
     _all_draw_jobs_done(): void;
-    reshape(gl: WebGLRenderingContext): void;
 
     init_struct_packer(): void;
     init_toolop_structs(): void;
@@ -611,18 +605,6 @@ declare global {
     _testLoadFile(exts?: string[]): void;
     _testSaveFile(): void;
     _testAddons(): void;
-
-    /* Console handles for the WebGL layer. Written once at module scope and
-       never read back in-tree, but the writes still need a declared member. */
-    _ShaderDef: { [name: string]: import("./webgl/webgl.js").ShaderDef };
-    _Shaders: { [name: string]: import("./webgl/webgl.js").ShaderProgram };
-    _ShaderProgram: typeof import("./webgl/webgl.js").ShaderProgram;
-    /* GL enum value -> its name, built by init_webgl() off the live context. */
-    _constmap: { [value: number]: string };
-    /* _Shapes and _ShapeOBJs are deliberately absent: simplemesh_shapes.ts is
-       one unassigned template literal, so nothing in it runs. */
-    glRanges: { [gltype: number]: number[] };
-    debugproxy: typeof import("./webgl/simplemesh.js").debugproxy;
 
     /* Assigned by the wasm loader once its module resolves. */
     wasmBinaryFile: string | undefined;

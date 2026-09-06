@@ -1,4 +1,4 @@
-/* Checks trimmer.h against a recording of what src/curve/trimmer.ts computed
+/* Checks trimmer.h against a recording of what src/curve/draw/trimmer.ts computed
    from the same scene.
 
    Usage: trim_ref <name>.scene <name>.trimref
@@ -34,7 +34,7 @@
 #include "../trim_view.h"
 #include "../trimmer.h"
 
-/* "FMTR" little-endian; src/curve/trim_ref.ts writes it. */
+/* "FMTR" little-endian; src/curve/draw/trim_ref.ts writes it. */
 #define TRIMREF_MAGIC 0x52544d46
 #define TRIMREF_VERSION 1
 #define TRIMREF_HEADER_I 8

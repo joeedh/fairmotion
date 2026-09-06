@@ -65,45 +65,25 @@ export class RasterState {
   scissor_stack!: CacheStack<number[]>;
   /* AppState hands this the screen's Vector2 straight through. */
   size!: Array<number> | Vector2;
-  gl!: WebGLRenderingContext;
   /* [x, y, w, h] of the innermost scissor, or undefined outside one. */
   cur_scissor: Array<number> | undefined;
 
-  /* The body is unreachable, so `gl` is never touched; AppState builds one of
-     these before it has a context. */
-  constructor(gl: WebGLRenderingContext | undefined, size: Array<number> | Vector2) {
+  /* The body is unreachable; AppState builds one of these at startup. */
+  constructor(size: Array<number> | Vector2) {
     return;
 
     this.size = size;
 
     this.pos = [0, 0];
 
-    this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
-    this.iconsheet16 = new IconManager(
-      gl,
-      config.ICONPATH + "iconsheet16.png",
-      [256, 256],
-      [16, 16]
-    );
+    this.iconsheet = new IconManager(config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
+    this.iconsheet16 = new IconManager(config.ICONPATH + "iconsheet16.png", [256, 256], [16, 16]);
 
     this.viewport_stack = new CacheStack<number[][]>(2);
     this.scissor_stack = new CacheStack<number[]>(4);
   }
 
-  on_gl_lost(gl: WebGLRenderingContext) {
-    this.pos = [0, 0];
-
-    this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
-    this.iconsheet16 = new IconManager(
-      gl,
-      config.ICONPATH + "iconsheet16.png",
-      [256, 256],
-      [16, 16]
-    );
-  }
-
-  begin_draw(gl: WebGLRenderingContext, pos: Array<number>, size: Array<number>) {
-    this.gl = gl;
+  begin_draw(pos: Array<number>, size: Array<number>) {
     this.pos = pos;
     this.size = size;
 
@@ -155,7 +135,6 @@ export class RasterState {
 
   push_scissor(pos: Array<number>, size: Array<number>) {
     var rect;
-    var gl = this.gl;
 
     if (this.cur_scissor == undefined) {
       rect = this.scissor_stack.gen();

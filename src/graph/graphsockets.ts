@@ -34,8 +34,8 @@ export class Matrix4Socket extends NodeSocketType {
     this.value.addToHashDigest(digest);
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.struct("value", "value", "Value", api.mapStruct(Matrix4));
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct.struct("value", "value", "Value", api.mapStruct(Matrix4));
     //def.on('change', function() { this.dataref.graphUpdate(true)});
   }
 
@@ -174,17 +174,17 @@ export class IntSocket extends NodeSocketType {
     this.value = 0;
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.int("value", "value", "value").noUnits();
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct.int("value", "value", "value").noUnits();
 
     def.on<IntSocket>("change", function () {
       this.dataref.graphUpdate(true);
     });
 
     /* NOTE: a `this.graph_flag & SocketFlags.NO_UNITS` guard around a second
-       def.noUnits() sat here.  apiDefine is static and there is no static
+       def.noUnits() sat here.  defineAPI is static and there is no static
        graph_flag, so it never fired -- and .noUnits() above already ran.
-       Vec3Socket.apiDefine below has the same block commented out by hand. */
+       Vec3Socket.defineAPI below has the same block commented out by hand. */
   }
 
   static nodedef(): SocketDef {
@@ -246,14 +246,14 @@ export class Vec2Socket extends NodeSocketType {
     this.value = new Vector2(default_value);
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.vec2("value", "value", "value").noUnits();
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct.vec2("value", "value", "value").noUnits();
 
     def.on<Vec2Socket>("change", function () {
       this.dataref.graphUpdate(true);
     });
 
-    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
+    /* dead NO_UNITS guard removed; see IntSocket.defineAPI. */
   }
 
   static nodedef(): SocketDef {
@@ -326,9 +326,9 @@ export class Vec3Socket extends VecSocket {
     this.value = new Vector3(default_value);
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
+  static defineAPI(api: DataAPI, struct: DataStruct) {
     let cb = NodeSocketType._api_uiname;
-    let def = sockstruct.vec3("value", "value", "value").uiNameGetter(cb).noUnits();
+    let def = struct.vec3("value", "value", "value").uiNameGetter(cb).noUnits();
 
     def.on<Vec3Socket>("change", function () {
       this.dataref.graphUpdate(true);
@@ -406,14 +406,14 @@ export class Vec4Socket extends NodeSocketType {
     };
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.vec4("value", "value", "value").noUnits();
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct.vec4("value", "value", "value").noUnits();
 
     def.on<Vec4Socket>("change", function () {
       this.dataref.graphUpdate(true);
     });
 
-    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
+    /* dead NO_UNITS guard removed; see IntSocket.defineAPI. */
   }
 
   addToUpdateHash(digest: util.HashDigest) {
@@ -478,8 +478,8 @@ export class RGBSocket extends Vec3Socket {
     };
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct
       .color3("value", "value", "value")
       .uiNameGetter(NodeSocketType._api_uiname)
       .noUnits();
@@ -529,8 +529,8 @@ export class RGBASocket extends Vec4Socket {
     };
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct
       .color4("value", "value", "value")
       .uiNameGetter(NodeSocketType._api_uiname)
       .noUnits();
@@ -580,10 +580,10 @@ export class FloatSocket extends NodeSocketType {
     digest.add(this.value);
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    let def = sockstruct.float("value", "value", "value").noUnits();
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    let def = struct.float("value", "value", "value").noUnits();
 
-    /* dead NO_UNITS guard removed; see IntSocket.apiDefine. */
+    /* dead NO_UNITS guard removed; see IntSocket.defineAPI. */
 
     def.on<FloatSocket>("change", function () {
       this.dataref.graphUpdate(true);
@@ -696,10 +696,10 @@ export class EnumSocket extends IntSocket {
     digest.add(this.value);
   }
 
-  apiDefine(api: DataAPI, sockstruct: DataStruct) {
+  defineAPI(api: DataAPI, struct: DataStruct) {
     let def;
 
-    def = sockstruct.enum("value", "value", this.items, this.uiname).uiNames(this.uimap);
+    def = struct.enum("value", "value", this.items, this.uiname).uiNames(this.uimap);
     def.on<EnumSocket>("change", function () {
       this.dataref.graphUpdate(true);
     });
@@ -834,8 +834,8 @@ export class BoolSocket extends NodeSocketType {
     this.value = false;
   }
 
-  static apiDefine(api: DataAPI, sockstruct: DataStruct) {
-    sockstruct.bool("value", "value", "value");
+  static defineAPI(api: DataAPI, struct: DataStruct) {
+    struct.bool("value", "value", "value");
   }
 
   static nodedef(): SocketDef {

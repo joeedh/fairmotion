@@ -69,6 +69,7 @@ import type { FullContext } from "../../core/context.js";
 import type { DagCallback } from "../../core/eventdag.js";
 import { IconButton } from "../../path.ux/scripts/widgets/ui_widgets.js";
 import type { EditorCanvas } from "../editor_base.js";
+import type { DataAPI } from "../../path.ux/scripts/pathux.js";
 
 /* NOTE: STRUCT is imported twice (lines 1 and 16), and UIBase/color2css
    twice as well (lines 2 and 18); the "use strict" on line 8 is after the
@@ -1914,6 +1915,30 @@ export class DopeSheetEditor extends Editor {
     super.loadSTRUCT(reader);
 
     this.channels.loadTreeData(this.treeData);
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    struct.bool("selected_only", "selected_only", "Selected Only").on("change", function () {
+      /* NOTE: this called (function (owner) {owner.rebuild()}).call(this.dataref, old),
+       which binds `owner` to the changed value rather than to the editor, so it
+       threw every time the checkbox was toggled. */
+      this.dataref.rebuild();
+    });
+    struct.bool("pinned", "pinned", "Pin");
+    struct
+      .float("timescale", "timescale", "timescale")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4)
+      .on("change", function () {
+        /* NOTE: same defect as selected_only above -- `owner` was the new
+       timescale, not the editor. */
+        this.dataref.updateKeyPositions();
+      });
+    return struct;
   }
 }
 

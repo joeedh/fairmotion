@@ -108,11 +108,11 @@ export abstract class PathBase {
   lastx!: number;
   lasty!: number;
 
-  /* Both are set by spline_draw_new and read by nothing. */
+  /* Both are set by the spline drawer and read by nothing. */
   frame_first?: boolean;
   was_updated?: boolean;
 
-  /* Set by spline_draw_new; only the canvas2d backend honours it. */
+  /* Set by the spline drawer; only the canvas2d backend honours it. */
   hidden?: boolean;
 
   constructor() {

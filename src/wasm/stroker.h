@@ -1,7 +1,7 @@
 #ifndef _STROKER_H
 #define _STROKER_H
 
-/* The C++ side of src/curve/stroker.ts: a StrokeScene in, an OutlineBuffer out.
+/* The C++ side of src/curve/draw/stroker.ts: a StrokeScene in, an OutlineBuffer out.
 
    No Spline, no VectorDraw, no DOM -- the boundary stage 4 of the draw refactor
    exists to create, and this is the implementation that fits it.  See

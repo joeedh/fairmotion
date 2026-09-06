@@ -25,7 +25,7 @@ export interface WasmModule {
     noUpdate: number
   ): void;
 
-  /* stroker.cc's entry points; see src/curve/stroke_wasm.ts for the two blocks
+  /* stroker.cc's entry points; see src/curve/draw/stroke_wasm.ts for the two blocks
      the pointers name.  Optional because a module built before stage 6f has
      none of them, and saying so is how that build is detected. */
   _fmStrokerAbi?(which: number): number;

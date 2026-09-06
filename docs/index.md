@@ -30,7 +30,7 @@ Reading order for a new subsystem: [rendering.md](rendering.md) then [stroking.m
 | Doc | Status | What it covers |
 |---|---|---|
 | [plans/typescript-port.md](plans/typescript-port.md) | Phases 0–7 done; phase 8 done but for the manual app walkthrough and a deferred comment-length pass | The 88k-line JS → TS port and the replacement of the Python build system with esbuild. Its **Known gotchas** section is still worth reading — auto-accessors under vitest, barrel-vs-`dist` imports, module-scoped singletons, stale serialized state. |
-| [plans/remove-webgl.md](plans/remove-webgl.md) | Not started | Deleting the dormant `src/webgl/` stack and the stub `src/paint/` module it serves (~6,600 lines), including the `image_canvas` file-format entanglement and the doc edits that follow. |
+| [plans/remove-webgl.md](plans/remove-webgl.md) | Done | Deleting the dormant `src/webgl/` stack and the stub `src/paint/` module it served (~6,600 lines), including the `image_canvas` file-format entanglement and the doc edits that followed. Kept as the record of what was removed and why a GPU backend would be rewritten rather than revived. |
 | [plans/draw-refactor-plan-final-notes.md](plans/draw-refactor-plan-final-notes.md) | Done; the plan itself is deleted and this replaces it | What survives the draw refactor: the invariants the new code depends on (evaluation order rewrites arc length, heap views detach on growth, arc length and knots are never cached), the constraints the wasm port respects, why the parts that look wrong are not, the eight gates that verify a change, and the coverage gaps still open — chiefly that `shift` is zero in every sample. Target of the `see docs/plans/…` references in the source. |
 
 ## Research

@@ -41,9 +41,7 @@ export class SceneObjectData extends NodeDataBlock {
   /* NOTE: nothing extends SceneObjectData and nothing calls either stub --
      SceneObject.data holds a SplineFrameSet, which descends straight from
      DataBlock.  `drawer` and `uniforms` have no implementor to type against.
-
-     uniforms are webgl-style uniforms even if we're not necassarily drawn
-     with webgl. */
+     `uniforms` was meant to carry per-draw shader parameters. */
   draw(scene: Scene, drawer: unknown, uniforms: unknown) {}
 }
 SceneObjectData.STRUCT =

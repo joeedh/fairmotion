@@ -1,7 +1,7 @@
 #ifndef _STROKER_EVAL_H
 #define _STROKER_EVAL_H
 
-/* The C++ side of src/curve/stroker_eval.ts -- the stroker's geometry over a
+/* The C++ side of src/curve/draw/stroker_eval.ts -- the stroker's geometry over a
    StrokeScene.
 
    Every function here is the twin of the TypeScript function it is named after,
@@ -283,7 +283,7 @@ static double scene_dshift(const StrokeScene *scene, int slot, double s) {
 
 /* SplineSegment.evaluateSide(): the point on one stroke boundary, with the
    boundary's derivative, its normal and [width, dwidth] as out-params.  The
-   derivation is in the comment above the method in spline_types.ts. */
+   derivation is in the comment above the method in src/curve/types/segment.ts. */
 static double *scene_eval_side(const StrokeScene *scene, int slot, double s, int side,
                                double co_out[2], double dv_out[2], double normal_out[2],
                                double lw_dlw_out[2]) {

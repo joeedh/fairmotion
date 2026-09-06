@@ -28,6 +28,8 @@ let restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE | Restric
 let vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 
 import { PropTypes } from "./toolprops.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "./context.js";
 
 export class VertexAnimIter {
   /* `value` is only meaningful while `done` is false, which is what a for..of
@@ -898,6 +900,30 @@ export class VertexAnimData {
   loadSTRUCT(reader: StructReader<this>) {
     reader(this);
     //this.timechannel_verts = new set(this.timechannel_verts);
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct
+      .flags("animflag", "animflag", VDAnimFlags, "animflag")
+      .uiNames({
+        SELECT           : "Select",
+        STEP_FUNC        : "Step Func",
+        HIDE             : "Hide",
+        OWNER_IS_EDITABLE: "Owner Is Editable",
+      })
+      .descriptions({
+        SELECT           : "Select",
+        STEP_FUNC        : "Step Func",
+        HIDE             : "Hide",
+        OWNER_IS_EDITABLE: "Owner Is Editable",
+      })
+      .icons(DataTypes);
+    struct
+      .int("eid", "owning_vertex", "Owning Vertex")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    return struct;
   }
 }
 

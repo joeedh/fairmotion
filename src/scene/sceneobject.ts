@@ -4,6 +4,8 @@ import { DataTypes, DataBlock, DataRef } from "../core/lib_api.js";
 import type { GetBlockFunc, GetBlockUserFunc } from "../core/lib_api.js";
 import { SplineFrameSet } from "../core/frameset.js";
 import type { Scene } from "./scene.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "../core/context.js";
 
 export let UpdateFlags = {
   REDRAW   : 1,
@@ -70,8 +72,7 @@ export class SceneObject extends DataBlock {
   }
 
   /* NOTE: dead -- the viewport draws framesets directly, never through the
-     SceneObject.  uniforms are webgl-style uniforms even if we're not
-     necassarily drawn with webgl. */
+     SceneObject.  `uniforms` was meant to carry per-draw shader parameters. */
   draw(scene: Scene, drawer: unknown, uniforms: unknown) {}
 
   /* NOTE: getblock_us was called with only the dataref; it also wants the
@@ -86,6 +87,22 @@ export class SceneObject extends DataBlock {
   }
 
   update(flag = UpdateFlags.REDRAW) {}
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    /* NOTE: SceneObject has no `ctx_bb`, so this path never resolves and the
+     change callback that used to hang off it could never have fired.  It read
+     ctx.mesh and ctx.object, neither of which exists on fairmotion's context,
+     and has been dropped. */
+    struct
+      .vec3("ctx_bb", "ctx_bb", "Dimensions")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
+    return struct;
+  }
 }
 
 SceneObject.STRUCT =

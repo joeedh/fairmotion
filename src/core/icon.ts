@@ -12,48 +12,27 @@ export class IconManager {
   cellsize: Vector2;
   /* Set once the sheet image has decoded. */
   ready: boolean;
-  /* The GL upload was commented out, so this holds the <img> and nothing else. */
+  /* Holds the <img> the sheet decodes into. */
   tex!: { image: HTMLImageElement };
-  /* Both are written once and never read; the texture upload they belonged to
-     is commented out in load(). */
+  /* Written once and never read. */
   te!: Object;
-  texture: WebGLTexture | undefined;
 
-  /* `gl` is optional because every use of it in load() is commented out, and
-     RasterState builds its two sheets before there is a context. */
-  constructor(
-    gl: WebGLRenderingContext | undefined,
-    sheet_path: string,
-    imgsize: Array<number>,
-    iconsize: Array<number>
-  ) {
+  constructor(sheet_path: string, imgsize: Array<number>, iconsize: Array<number>) {
     this.path = sheet_path;
     this.size = new Vector2(imgsize);
     this.cellsize = new Vector2(iconsize);
 
-    this.load(gl);
-    this.texture = undefined;
+    this.load();
     this.ready = false;
   }
 
-  load(gl: WebGLRenderingContext | undefined) {
-    //load texture
-    //this.tex = gl.createTexture();
+  load() {
     this.tex = { image: new Image() };
     this.tex.image.src = this.path;
 
     this.te = {};
-    var thetex = this.tex;
     var this2 = this;
     this.tex.image.onload = function () {
-      var tex = thetex;
-
-      /*gl.bindTexture(gl.TEXTURE_2D, tex);
-      //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tex.image);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      */
       this2.ready = true;
     };
   }
@@ -130,10 +109,3 @@ export class IconManager {
     texcos.push(y); //3
   }
 }
-
-var icon_vshader = `
-
-`;
-
-var icon_fshader = `
-`;

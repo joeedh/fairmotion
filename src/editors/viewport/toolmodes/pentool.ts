@@ -431,13 +431,13 @@ export class PenToolMode extends ToolMode {
 
   static buildHeader(container: Container<FullContext>) {}
 
-  static defineAPI(api: DataAPI) {
-    let st = super.defineAPI(api);
+  static defineAPI(api: DataAPI, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
 
-    let def = st.float("limit", "limit", "Limit", "Minimum distance between points");
+    let def = struct.float("limit", "limit", "Limit", "Minimum distance between points");
     def.range(0, 300).noUnits();
 
-    return st;
+    return struct;
   }
 
   static buildProperties(container: Container<FullContext>) {}

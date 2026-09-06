@@ -21,7 +21,7 @@
 #
 # Everything the JS side calls has to be named in EXPORTED_FUNCTIONS -- an
 # export left out here is not a link error, it is a missing property at
-# runtime, which is what src/curve/stroke_wasm.ts's claim() reports.
+# runtime, which is what src/curve/draw/stroke_wasm.ts's claim() reports.
 
 set -e
 

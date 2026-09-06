@@ -7,6 +7,8 @@ import { SessionFlags } from "../editors/viewport/view2d_editor.js";
 import * as strutils from "../util/strutils.js";
 
 import "../path.ux/scripts/util/vectormath.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "./context.js";
 
 export var ImageFlags = {
   SELECT: 1,
@@ -91,6 +93,14 @@ export class Image extends DataBlock {
 
     this.afterSTRUCT();
   }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    struct.string("path", "path", "Image Path");
+    struct.vec2("size", "size", "Size").readOnly();
+    return struct;
+  }
 }
 
 Image.STRUCT =
@@ -134,6 +144,36 @@ export class ImageUser {
     reader(ret);
 
     return ret;
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    function image_update() {
+      window.redraw_viewport();
+    }
+
+    struct
+      .vec2("off", "off", "Offset")
+      .range(-10000, 10000)
+      .baseUnit("pixel")
+      .displayUnit("pixel")
+      .step(2)
+      .slideSpeed(3.0)
+      .expRate(1.75)
+      .decimalPlaces(1)
+      .on("change", image_update);
+
+    struct
+      .vec2("scale", "scale", "Scale")
+      .range(0.0001, 90)
+      .noUnits()
+      .step(0.1)
+      .expRate(1.33)
+      .slideSpeed(1.5)
+      .decimalPlaces(3)
+      .on("change", image_update);
+
+    struct.struct("image", "image", "image", api.mapStruct(Image, true));
+    return struct;
   }
 }
 

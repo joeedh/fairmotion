@@ -1,7 +1,6 @@
 "use strict";
 
 import * as config from "../../config/config.js";
-import * as imagecanvas_webgl from "../../paint/imagecanvas_webgl.js";
 import { register_toolops } from "../data_api/data_api.js";
 import { theme } from "../../editors/theme.js";
 import { charmap } from "../../editors/events.js";
@@ -89,13 +88,6 @@ window.startup_intern = function startup() {
   }//*/
 
   //return;
-
-  window.imagecanvas_webgl = imagecanvas_webgl;
-  imagecanvas_webgl.initWebGL();
-
-  window.setTimeout(() => {
-    window.redraw_webgl();
-  }, 500);
 
   window.init_theme();
   window.init_redraw_globals();

@@ -11,7 +11,7 @@ import {
 } from "../../core/toolprops.js";
 import { RestrictFlags } from "../../curve/spline.js";
 import { SplineLocalToolOp } from "./spline_editops.js";
-import { trimState } from "../../curve/trim_state.js";
+import { trimState } from "../../curve/draw/trim_state.js";
 import type { FullContext } from "../../core/context.js";
 import type { Spline } from "../../curve/spline.js";
 import type { SplineVertex, SplineSegment } from "../../curve/spline_types.js";

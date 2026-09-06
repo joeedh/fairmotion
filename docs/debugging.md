@@ -339,21 +339,6 @@ clean build log.
 Fix: the new `tsconfig.json` sets `useDefineForClassFields: false` explicitly. Treat
 that file as build configuration, not just typechecker configuration.
 
-## Symptom: `Cannot set property canvas of #<WebGLRenderingContext> which has only a getter`
-
-Cause: `"strict": true` in the new tsconfig implies `alwaysStrict`, and esbuild then
-emits `"use strict"` for the bundle. The transpiler produced sloppy-mode output, and
-the app relies on it — it monkey-patches read-only WebGL constants
-(`gl.COLOR_ATTACHMENT0`, `gl.HALF_FLOAT`, `gl.MIN`/`MAX`) onto live contexts, where
-sloppy mode silently drops the write.
-Found by: three different "which has only a getter" TypeErrors appearing one after
-another as each was fixed — a sign the class of problem was wider than the sites.
-Fix: `"alwaysStrict": false`, so runtime semantics match the old build. Strict *type*
-checking stays on for phase 5. Two of the sites were genuinely dead and were removed
-anyway: `gl.canvas = canvas` (readonly accessor that already returns it) and
-`AppState.js`'s manual re-binding of path.ux's `platform` export, which ESM's live
-bindings now do by themselves.
-
 ## Symptom: `EEXIST: symlink` then `ERR_FS_CP_NON_DIR_TO_DIR` copying `canvaskit-wasm`
 
 Cause: pnpm's `node_modules/canvaskit-wasm` is a symlink into `.pnpm/`, and
@@ -580,15 +565,6 @@ to a module and every global it declares vanishes from both scopes at once. The 
 the reasoning are in the header of `src/globals.d.ts:1-22`. Annotate them in place using
 only globally-visible types.
 
-## Symptom: `src/webgl/simplemesh_shapes.ts` exports nothing, and annotating it changed nothing
-Cause: The entire file is wrapped in a pair of backticks. It is one inert
-template-literal expression statement, so `Shapes` and `loadShapes` are never actually
-declared, let alone exported.
-Found by: Grepping for importers of `Shapes` and finding the callers reference an
-undefined global (`webgl.ts` `onContextLost()` — finding 1 in the wave-3 list).
-Fix: Left alone; it is already documented at `globals.d.ts:521`. A file this broken is
-phase-7 or later work, not something to fix mid-annotation.
-
 ## Symptom: annotations landed on code that never runs
 Cause: `MenuBar.ts:18-66` — `gen_file_menu`, `gen_session_menu` and `gen_tools_menu` are
 entirely inside one `/* */` block. A substitution matching `gen_session_menu(ctx, ...)`
@@ -596,14 +572,6 @@ hits it happily, and the edit is invisible to both esbuild and grep-for-usage.
 Found by: The added `import type {FullContext}` had no live consumer.
 Fix: Reverted both substitutions. Before annotating a function, confirm it is outside a
 comment block — `sed -n` around the match, not just the matched line.
-
-## Symptom: a context that is "WebGL2 plus our own fields" fails on every WebGL2-only call
-Cause: Modelling it as a union (`WebGLRenderingContext | WebGL2RenderingContext`) exposes
-only the members common to both.
-Fix: Model it as an **intersection**: `WebGL2RenderingContext & { ... }`. The same idiom
-covers the "array with extra properties hung off it" pattern that recurs throughout this
-codebase — `SelectUndo`, `ConsoleLines`, `ConsoleHistory`, `ActiveBoxes`, `KeyGrid` are
-all `T[] & {...}`.
 
 ## Symptom: `grep -cF 'Icons\.'` returned 0 in a file that plainly uses `Icons.Z_UP`
 Cause: `grep -F` matches the pattern literally, backslash and all — it searched for the
@@ -640,18 +608,6 @@ entry, verified to be exactly 21. `load()` strips trailing whitespace and `save(
 LF, so batches never produce line-ending churn in the diff.
 
 # Phase 6 -- coherence review
-
-## Symptom: every Playwright spec fails with "app did not start within 30000ms"
-Cause: `paint/imagecanvas_webgl.ts` copies the `WEBGL_draw_buffers` extension constants
-onto the context by stripping their `_WEBGL` suffix. `COLOR_ATTACHMENT0` already exists
-on `WebGLRenderingContext` as a read-only constant of the same value. Under the old
-transpiled build that assignment was a sloppy-mode no-op; ES modules are always strict,
-so it now throws `TypeError` and aborts `startup()` before `g_app_state` exists.
-Found by: A throwaway spec that dumps `pageerror` and every console message, rather than
-the suite's own readiness poll -- the poll only reports that readiness never arrived.
-Fix: Guard with `if (!(k in gl))`. This is the same class of bug as the already-fixed
-`gl.canvas = canvas`: **look for every sloppy-mode silent no-op**, because renaming to
-`.ts` turned all of them into throws.
 
 ## Symptom: stashing the working tree "proved" a failure was pre-existing -- it wasn't
 Cause: `pnpm serv` serves `dist/html5app` **statically**; it does not rebuild. Playwright's

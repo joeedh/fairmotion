@@ -9,20 +9,20 @@ batching and rasterization; this one covers the geometry.
 
 | Topic | Code |
 |---|---|
-| Width and shift storage | `SplineSegment.w1/w2/shift1/shift2` — `src/curve/spline_types.ts` |
-| Width evaluation | `SplineSegment.width()` — `src/curve/spline_types.ts` |
-| Boundary evaluation | `SplineSegment.evaluateSide()` — `src/curve/spline_types.ts` |
-| Stroke groups | `src/curve/spline_strokegroup.ts` |
-| Outline construction | `strokeGroup()` — `src/curve/stroker.ts` |
-| Junction trimming | `trimVertex()` — `src/curve/trimmer.ts` |
-| Join wedges | `strokeJoin()` — `src/curve/stroker.ts` |
-| Per-segment trim data | `TrimState` — `src/curve/trim_state.ts`, `TrimView` — `src/curve/trim_view.ts` |
+| Width and shift storage | `SplineSegment.w1/w2/shift1/shift2` — `src/curve/types/segment.ts` |
+| Width evaluation | `SplineSegment.width()` — `src/curve/types/segment.ts` |
+| Boundary evaluation | `SplineSegment.evaluateSide()` — `src/curve/types/segment.ts` |
+| Stroke groups | `src/curve/draw/spline_strokegroup.ts` |
+| Outline construction | `strokeGroup()` — `src/curve/draw/stroker.ts` |
+| Junction trimming | `trimVertex()` — `src/curve/draw/trimmer.ts` |
+| Join wedges | `strokeJoin()` — `src/curve/draw/stroker.ts` |
+| Per-segment trim data | `TrimState` — `src/curve/draw/trim_state.ts`, `TrimView` — `src/curve/draw/trim_view.ts` |
 
 **Where the geometry lives.** All of it is now scene-side and pure: it reads
-`StrokeScene` (`src/curve/stroke_scene.ts`, flat arrays over the spline) through the
-evaluator twins in `src/curve/stroker_eval.ts`, and writes an `OutlineBuffer`
-(`src/curve/outline_buffer.ts`) — no `Spline`, no `VectorDraw`, no `Vector2`.
-`SplineDrawer` in `src/curve/spline_draw_new.ts` is the assembler on the other side: it
+`StrokeScene` (`src/curve/draw/stroke_scene.ts`, flat arrays over the spline) through the
+evaluator twins in `src/curve/draw/stroker_eval.ts`, and writes an `OutlineBuffer`
+(`src/curve/draw/outline_buffer.ts`) — no `Spline`, no `VectorDraw`, no `Vector2`.
+`SplineDrawer` in `src/curve/draw/spline_drawer.ts` is the assembler on the other side: it
 calls these, replays the outlines onto retained paths, and hangs colours, clipping and
 dirty tracking off them. The method names in the sections below (`update_stroke_group`,
 `update_vertex_strokes`, `update_vertex_join`) still exist as those assembly steps.
@@ -445,7 +445,7 @@ neither sample file reaches the fallback, so it is untested by the `path-dump` b
 
 ### Where the trims live
 
-All of the above is stored in `TrimState` — `src/curve/trim_state.ts` — twelve doubles and
+All of the above is stored in `TrimState` — `src/curve/draw/trim_state.ts` — twelve doubles and
 a mask byte per segment, in flat arrays indexed by the segment's position in
 `spline.segments`:
 
@@ -513,7 +513,7 @@ The usual bisection when a stroke looks wrong:
    split.
 
 The stroker also has a golden harness, which is the fastest way to tell a geometry change from a
-drawer change: `__fm.strokeGolden()` serializes the scene (`src/curve/stroke_dump.ts`), runs
+drawer change: `__fm.strokeGolden()` serializes the scene (`src/curve/draw/stroke_dump.ts`), runs
 `strokeAll()` over both the live scene and one rebuilt from the blob, and hashes the outlines.
 `playwright/stroke-golden.spec.ts` holds that digest to a recorded baseline. Re-record with
 `FM_UPDATE_BASELINE=1`, and only for an intended change in output.
@@ -525,7 +525,7 @@ outline byte for byte. `playwright/stroke-wasm.spec.ts` drives it. The two imple
 agree exactly, so any nonzero delta is a real difference; the spec reports the offending
 outline row, not just a total. A run where `fellBack` is nonzero compared nothing on those
 calls — the wasm path declines when the scene is not heap-resident, which
-`src/curve/stroke_wasm.ts` explains.
+`src/curve/draw/stroke_wasm.ts` explains.
 
 ## Known quirks
 

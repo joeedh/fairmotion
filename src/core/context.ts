@@ -5,11 +5,11 @@ import {
 } from "../path.ux/scripts/path-controller/controller/context.js";
 import { SavedToolDefaults, DataAPI } from "../path.ux/scripts/pathux.js";
 import { DataLib } from "./lib_api.js";
-import type { AppState } from "./AppState.js";
+import { AppState } from "./appstate/appstate.js";
+import { AppSettings } from "./UserSettings.js";
 import type { ToolStack } from "./toolstack.js";
 import type { ToolOp } from "./toolops_api.js";
 import type { ToolMode } from "../editors/viewport/toolmodes/toolmode.js";
-import type { AppSettings } from "./UserSettings.js";
 
 /*
  * How BaseContext.saveProperty encodes one context member so it survives an
@@ -373,6 +373,76 @@ export class FullContext extends BaseContext {
     super.resetOverlays(state);
     this.pushOverlay(new ViewContextOverlay(state));
   }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct.struct("view2d", "view2d", "undefined", api.mapStruct(View2DHandler, true));
+    struct.struct("dopesheet", "dopesheet", "undefined", api.mapStruct(DopeSheetEditor, true));
+    struct.struct("editcurve", "editcurve", "undefined", api.mapStruct(CurveEditor, true));
+    struct.struct("frameset", "frameset", "undefined", api.mapStruct(SplineFrameSet, true));
+    struct.struct(
+      "settings_editor",
+      "settings_editor",
+      "undefined",
+      api.mapStruct(SettingsEditor, true)
+    );
+    struct.struct(
+      "appstate.session.settings",
+      "settings",
+      "undefined",
+      api.mapStruct(AppSettings, true)
+    );
+    struct.struct("object", "object", "undefined", api.mapStruct(SceneObject, true));
+    struct.struct("scene", "scene", "undefined", api.mapStruct(Scene, true));
+    struct.struct("last_tool", "last_tool", "undefined", undefined);
+    struct.struct("appstate", "appstate", "undefined", api.mapStruct(AppState, true));
+    struct.list("appstate.toolstack.undostack", "operator_stack", [
+      function getIter(api: DataAPI, list: ToolOp[]) {
+        return g_app_state.toolstack.undostack[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: ToolOp[], key: number) {
+        return g_app_state.toolstack.undostack[key];
+      },
+      function getStruct(api: DataAPI, list: ToolOp[], key: number) {
+        /* NOTE: this read a free `tool` that was never declared, so displaying
+         the operator stack threw a ReferenceError.  The list key is the
+         undostack index, which is what get() above resolves too. */
+        let tool = g_app_state.toolstack.undostack[key];
+
+        //OpStackArray.flag |= DataFlags.RECALC_CACHE;
+        if (tool.apistruct != undefined) {
+          //tool.apistruct.flag |= DataFlags.RECALC_CACHE;
+          return tool.apistruct;
+        }
+        tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
+        //tool.apistruct.flag |= DataFlags.RECALC_CACHE;
+        return tool.apistruct;
+      },
+      function getLength(api: DataAPI, list: ToolOp[]) {
+        return g_app_state.toolstack.undostack.length;
+      },
+      /*function getkeyiter() {
+        function* range(len) {
+          for (var i=0; i<len; i++) {
+              yield i;
+          }
+        }
+        return range(g_app_state.toolstack.undostack.length)[Symbol.iterator]();
+      }*/
+      /*function getitempath(key) {
+        return "["+key+"]";
+      }*/
+    ]);
+    struct.struct("spline", "spline", "undefined", api.mapStruct(Spline, true));
+    struct.struct("datalib", "datalib", "undefined", api.mapStruct(DataLib, true));
+    struct.struct("opseditor", "opseditor", "undefined", api.mapStruct(OpStackEditor, true));
+    struct.dynamicStruct(
+      "toolmode",
+      "active_tool",
+      "undefined",
+      api.mapStruct(SplineToolMode, true)
+    );
+    return struct;
+  }
 }
 
 window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
@@ -390,4 +460,6 @@ import { DopeSheetEditor } from "../editors/dopesheet/DopeSheetEditor.js";
 import { View2DHandler } from "../editors/viewport/view2d.js";
 import { Scene } from "../scene/scene.js";
 import { Spline } from "../curve/spline.js";
+import { SceneObject } from "../scene/sceneobject.js";
+import { SplineToolMode } from "../editors/viewport/toolmodes/splinetool.js";
 //import {ToolStack} from './toolstack.js';

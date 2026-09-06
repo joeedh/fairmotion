@@ -15,6 +15,7 @@ import type { Container } from "../../path.ux/scripts/core/ui.js";
 import type { ThemeEditor } from "../../path.ux/scripts/widgets/theme_editor.js";
 import type { KeyModifiers } from "../../path.ux/scripts/pathux.js";
 import type { KeyMap, HotKey } from "../../core/keymap.js";
+import type { DataAPI } from "../../path.ux/scripts/pathux.js";
 
 let basic_colors = {
   "white" : [1, 1, 1],
@@ -284,6 +285,12 @@ export class SettingsEditor extends Editor {
 
   copy() {
     return document.createElement("settings-editor-x");
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    return struct;
   }
 }
 

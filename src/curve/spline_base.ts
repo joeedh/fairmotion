@@ -25,6 +25,9 @@ import { util } from "../path.ux/scripts/pathux.js";
 
 import type { SplineSegment, SplineVertex } from "./spline_types.js";
 import type { ElementArray, SplineLayer } from "./spline_element_array.js";
+import { Icons } from "../datafiles/icon_enum.js";
+import type { DataAPI, DataStruct } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "../core/context.js";
 
 export const MaterialFlags = {
   SELECT      : 1,
@@ -662,6 +665,75 @@ export class SplineElement extends DataPathNode {
         eid      : 0.0,
       },
     };
+  }
+
+  /* The eid and flag paths every spline element carries.  Subclasses call this
+     through super and then add their own fields. */
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct
+      .int("eid", "eid", "eid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+
+    this.defineFlagsAPI(struct);
+
+    return struct;
+  }
+
+  /* Split out from defineAPI because each element type hangs a different change
+     callback off the same flags definition; overrides call super and add one. */
+  static defineFlagsAPI(struct: DataStruct<FullContext, SplineElement>) {
+    return struct
+      .flags("flag", "flag", SplineFlags, "Flags")
+      .uiNames({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Break Curvatures",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .descriptions({
+        SELECT            : "Select",
+        BREAK_TANGENTS    : "Break Tangents",
+        USE_HANDLES       : "Use Handles",
+        UPDATE            : "Update",
+        TEMP_TAG          : "Temp Tag",
+        BREAK_CURVATURES  : "Allows curve to more tightly bend at this point",
+        HIDE              : "Hide",
+        FRAME_DIRTY       : "Frame Dirty",
+        PINNED            : "Pinned",
+        NO_RENDER         : "No Render",
+        AUTO_PAIRED_HANDLE: "Auto Paired Handle",
+        UPDATE_AABB       : "Update Aabb",
+        DRAW_TEMP         : "Draw Temp",
+        GHOST             : "Ghost",
+        UI_SELECT         : "Ui Select",
+        FIXED_KS          : "Fixed Ks",
+        REDRAW_PRE        : "Redraw Pre",
+        REDRAW            : "Redraw",
+        COINCIDENT        : "Coincident",
+      })
+      .icons({
+        2               : Icons.EXTRUDE_MODE_G0,
+        32              : Icons.EXTRUDE_MODE_G1,
+        BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
+        BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1,
+      });
   }
 }
 

@@ -50,10 +50,10 @@ It was deliberately left alone apart from the three bugs in §7.
 |---|---|---|
 | P1 | No data boundary between spline and rasterizer | `StrokeScene` / `OutlineBuffer` (stage 4) |
 | P2 | Stroker pulls the whole graph, lazily, per sample | Width *walk* cached (stage 2); flat scene (stage 4) |
-| P3 | Width belongs to a chain, but no such object exists | `src/curve/width_chain.ts` |
-| P4 | Derived render state serialized into the document | `src/curve/trim_state.ts`; `SplineDrawData` reads but never writes |
-| P5 | Path ids are tag bits over `spline.idgen` | `src/curve/path_key.ts` — `pathKey(owner, role) = owner * 16 + role` |
-| P6 | Editing overlay inside the render path | `src/curve/spline_overlay.ts` (stage 1) |
+| P3 | Width belongs to a chain, but no such object exists | `src/curve/draw/width_chain.ts` |
+| P4 | Derived render state serialized into the document | `src/curve/draw/trim_state.ts`; `SplineDrawData` reads but never writes |
+| P5 | Path ids are tag bits over `spline.idgen` | `src/curve/draw/path_key.ts` — `pathKey(owner, role) = owner * 16 + role` |
+| P6 | Editing overlay inside the render path | `src/curve/draw/spline_overlay.ts` (stage 1) |
 | P7 | Dead backends keep `PathBase` abstract for nobody | ~2,220 lines deleted (stage 0) |
 | P8 | `update()` is 332 lines of 12 positional parameters | Mostly cleared in stage 4f; the signature itself is in `todos.md` |
 

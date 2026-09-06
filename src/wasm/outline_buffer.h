@@ -1,7 +1,7 @@
 #ifndef _OUTLINE_BUFFER_H
 #define _OUTLINE_BUFFER_H
 
-/* The C++ side of src/curve/outline_buffer.ts: what the stroker returns.
+/* The C++ side of src/curve/draw/outline_buffer.ts: what the stroker returns.
 
    Three parallel arrays, appended to and never rewritten -- one byte per
    command, the command's points in command order, and seven ints per outline
@@ -41,7 +41,7 @@ enum OutFinish {
   OUT_FINISH_STROKE = 2,
 };
 
-/* src/curve/path_key.ts's PathRole. */
+/* src/curve/draw/path_key.ts's PathRole. */
 enum PathRole {
   ROLE_ELEMENT = 0,
   ROLE_DOUBLE_STROKE = 1,

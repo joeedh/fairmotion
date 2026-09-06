@@ -1,4 +1,4 @@
-/* Checks stroker_eval.h against a recording of what src/curve/stroker_eval.ts
+/* Checks stroker_eval.h against a recording of what src/curve/draw/stroker_eval.ts
    computed from the same scene.
 
    Usage: eval_ref <name>.scene <name>.evalref
@@ -32,7 +32,7 @@
 #include "../stroke_scene.h"
 #include "../stroker_eval.h"
 
-/* "FMER" little-endian; src/curve/stroke_eval_ref.ts writes it. */
+/* "FMER" little-endian; src/curve/draw/stroke_eval_ref.ts writes it. */
 #define EVALREF_MAGIC 0x52454d46
 #define EVALREF_VERSION 1
 #define EVALREF_HEADER_I 8

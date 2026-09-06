@@ -332,7 +332,16 @@ export type EditorCanvas = HTMLCanvasElement & { dpi_scale: number; g: Canvas2D 
    accessor, which a class-level property may not override).  path.ux types it
    non-optional even though it is unset until the screen wires the widget up,
    which is why so much of this file still tests it against undefined. */
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+
 export class Editor extends Area<FullContext> {
+  /* The base of every editor's defineAPI chain.  It defines nothing itself;
+     the editors that have datapaths add them on top of the struct it hands
+     back, so each one starts the same way. */
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    return struct;
+  }
+
   /* path.ux types this as IUIBaseConstructor, whose define() returns the plain
      UIBaseDefinition; every editor here is an area, so its define() is an
      IAreaDef and carries uiname/areaname. */

@@ -24,7 +24,7 @@ import {
 } from "./manipulator.js";
 import { KeyMap, HotKey } from "../../core/keymap.js";
 import { CurveRootFinderTest } from "./spline_editops.js";
-import { draw_spline_overlay } from "../../curve/spline_overlay.js";
+import { draw_spline_overlay } from "../../curve/draw/spline_overlay.js";
 import * as video from "../../core/video.js";
 import type { Video } from "../../core/video.js";
 import type { DataBlock, GetBlockFunc, GetBlockUserFunc } from "../../core/lib_api.js";
@@ -58,6 +58,9 @@ import type { EventDag, EventNode, SocketMap } from "../../core/eventdag.js";
 import type { EditorCanvas } from "../editor_base.js";
 import type { View2DEditor } from "./view2d_editor.js";
 import type { TabContainer } from "../../path.ux/scripts/widgets/ui_tabs.js";
+import { ExtrudeModes } from "./spline_createops.js";
+import { Material } from "../../curve/spline_types.js";
+import type { DataAPI } from "../../path.ux/scripts/pathux.js";
 
 /* project()/unproject() accept any 2d-or-longer coordinate. */
 export type ProjCoord = Vector2 | Vector3 | number[];
@@ -142,8 +145,6 @@ export class View2DHandler extends Editor {
   /* The scene's toolmode instance as of the last update(), used to notice a
      switch and rebuild the toolbars. */
   _last_toolmode: object | undefined;
-  glPos: Vector2;
-  glSize: Vector2;
   draw_tiled: boolean;
 
   /* The dag node that fires this editor's onDrawPre output. */
@@ -198,9 +199,6 @@ export class View2DHandler extends Editor {
     super();
 
     this.draw_tiled = false;
-
-    this.glPos = new Vector2();
-    this.glSize = new Vector2([512, 512]);
 
     this._graphNode = undefined!;
 
@@ -644,32 +642,6 @@ export class View2DHandler extends Editor {
     matrix.preMultiply(matrix2);
 
     return matrix;
-  }
-
-  drawWebgl(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
-    if (!gl) {
-      return;
-    }
-    let dpi = window.devicePixelRatio;
-
-    this.glPos.load(this.pos).mulScalar(dpi).floor();
-    this.glSize.load(this.size).mulScalar(dpi).floor();
-
-    let y = this.glPos[1];
-    this.glPos[1] = canvas.height - (y + this.glSize[1]);
-
-    gl.enable(gl.SCISSOR_TEST);
-    gl.disable(gl.DEPTH_TEST);
-    gl.depthMask(false);
-    gl.disable(gl.DITHER);
-    gl.disable(gl.CULL_FACE);
-
-    gl.scissor(this.glPos[0], this.glPos[1], this.glSize[0], this.glSize[1]);
-    gl.viewport(this.glPos[0], this.glPos[1], this.glSize[0], this.glSize[1]);
-
-    gl.clearColor(0.2, 0.5, 1.0, 0.0);
-    gl.clearDepth(1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 
   /* redraw_rects is a flat run of [minx, miny, maxx, maxy] quadruples. */
@@ -1146,7 +1118,6 @@ export class View2DHandler extends Editor {
       areaname: "view2d_editor",
       uiname  : "Work Canvas",
       icon    : Icons.VIEW2D_EDITOR,
-      hasWebgl: true,
     };
   }
 
@@ -1753,6 +1724,236 @@ export class View2DHandler extends Editor {
   }
 
   on_view_change() {}
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    super.defineAPI(api, struct);
+
+    struct
+      .float("propradius", "propradius", "Magnet Radius")
+      .range(0.1, 1024)
+      .step(0.5)
+      .expRate(1.75)
+      .decimalPlaces(2);
+    struct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function () {
+      redraw_viewport();
+    });
+    struct.bool("half_pix_size", "half_pix_size", "Half Resolution").icon(Icons.HALF_PIXEL_SIZE);
+
+    struct.bool("draw_tiled", "draw_tiled", "Draw Tiles").on("change", function () {
+      redraw_viewport();
+    });
+
+    struct.color4("background_color", "background_color", "Background").on("change", function () {
+      window.redraw_viewport();
+    });
+    struct.color4("default_stroke", "default_stroke", "Stroke");
+    struct.color4("default_fill", "default_fill", "Fill");
+    struct
+      .enum("toolmode", "toolmode", ToolModes, "Active Tool")
+      .uiNames({
+        SELECT: "Select",
+        APPEND: "Append",
+        RESIZE: "Resize",
+        ROTATE: "Rotate",
+        PEN   : "Pen",
+      })
+      .descriptions({
+        SELECT: "Select",
+        APPEND: "Append",
+        RESIZE: "Resize",
+        ROTATE: "Rotate",
+        PEN   : "Pen",
+      })
+      .icons({
+        SELECT: Icons.CURSOR_ARROW,
+        APPEND: Icons.APPEND_VERTEX,
+        RESIZE: Icons.RESIZE,
+        ROTATE: Icons.ROTATE,
+        PEN   : Icons.PEN_TOOL,
+      });
+    struct
+      .bool("draw_small_verts", "draw_small_verts", "Small Points")
+      .icon(Icons.DRAW_SMALL_VERTS);
+    struct
+      .enum(
+        "selectmode",
+        "selectmode",
+        {
+          VERTEX : SelMask.VERTEX,
+          SEGMENT: SelMask.SEGMENT,
+          FACE   : SelMask.FACE,
+          OBJECT : SelMask.OBJECT,
+        },
+        "Selection Mode"
+      )
+      .uiNames({
+        VERTEX : "Vertex",
+        SEGMENT: "Segment",
+        FACE   : "Face",
+        OBJECT : "Object",
+      })
+      .descriptions({
+        VERTEX : "Vertex",
+        SEGMENT: "Segment",
+        FACE   : "Face",
+        OBJECT : "Object",
+      })
+      .icons({
+        VERTEX : Icons.VERT_MODE,
+        SEGMENT: Icons.EDGE_MODE,
+        FACE   : Icons.FACE_MODE,
+        OBJECT : Icons.OBJECT_MODE,
+        HANDLE : Icons.SHOW_HANDLES,
+      })
+      .customGetSet(
+        function () {
+          return this.ctx.scene.selectmode;
+        },
+        function (val) {
+          let scene = this.ctx.scene;
+
+          console.log("selmask_enum.userSetData", scene, val);
+          scene.selectmode = val | (scene.selectmode & SelMask.HANDLE);
+        }
+      );
+
+    struct.bool("draw_stroke_debug", "draw_stroke_debug", "Stroke Debug").on("change", function () {
+      this.ctx.spline.regen_sort();
+      this.ctx.spline.regen_render();
+
+      window.redraw_viewport();
+    });
+
+    struct
+      .flags("selectmode", "selectmask", SelMask, "[object Object]")
+      .uiNames({
+        VERTEX  : "Vertex",
+        HANDLE  : "Handle",
+        SEGMENT : "Segment",
+        FACE    : "Face",
+        TOPOLOGY: "Topology",
+        OBJECT  : "Object",
+      })
+      .descriptions({
+        VERTEX  : "Vertex",
+        HANDLE  : "Handle",
+        SEGMENT : "Segment",
+        FACE    : "Face",
+        TOPOLOGY: "Topology",
+        OBJECT  : "Object",
+      })
+      .icons({
+        1      : Icons.VERT_MODE,
+        2      : Icons.SHOW_HANDLES,
+        4      : Icons.EDGE_MODE,
+        16     : Icons.FACE_MODE,
+        32     : Icons.OBJECT_MODE,
+        VERTEX : Icons.VERT_MODE,
+        HANDLE : Icons.SHOW_HANDLES,
+        SEGMENT: Icons.EDGE_MODE,
+        FACE   : Icons.FACE_MODE,
+        OBJECT : Icons.OBJECT_MODE,
+      })
+      .on("change", function () {
+        window.redraw_viewport();
+      });
+    struct.bool("only_render", "only_render", "Hide Controls").icon(Icons.ONLY_RENDER);
+    struct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function () {
+      window.redraw_viewport();
+    });
+    struct
+      .flags("session_flag", "session_flag", SessionFlags, "Session Flags")
+      .uiNames({
+        PROP_TRANSFORM: "Prop Transform",
+      })
+      .descriptions({
+        PROP_TRANSFORM: "Prop Transform",
+      })
+      .icons({
+        1             : Icons.PROP_TRANSFORM,
+        PROP_TRANSFORM: Icons.PROP_TRANSFORM,
+      });
+    struct.bool("tweak_mode", "tweak_mode", "Tweak Mode").icon(Icons.CURSOR_ARROW);
+    struct
+      .bool("enable_blur", "enable_blur", "Blur")
+      .on("change", function () {
+        this.dataref.ctx.spline.regen_sort();
+        redraw_viewport();
+      })
+      .icon(Icons.ENABLE_BLUR);
+    struct
+      .bool("draw_faces", "draw_faces", "Show Faces")
+      .on("change", function () {
+        this.dataref.ctx.spline.regen_sort();
+        redraw_viewport();
+      })
+      .icon(Icons.MAKE_POLYGON);
+    struct.bool("draw_video", "draw_video", "Draw Video").on("change", function () {
+      window.redraw_viewport();
+    });
+    struct
+      .bool("draw_normals", "draw_normals", "Show Normals")
+      .on("change", function () {
+        redraw_viewport();
+      })
+      .icon(Icons.DRAW_NORMALS);
+    struct
+      .bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths")
+      .icon(Icons.SHOW_ANIMPATHS);
+    struct
+      .float("zoom", "zoom", "Zoom")
+      .range(0.1, 100)
+      .uiRange(0.1, 100)
+      .step(0.1)
+      .expRate(1.2)
+      .decimalPlaces(3)
+      .customGetSet(
+        function () {
+          if (!this.dataref) {
+            return 0;
+          }
+          return this.dataref.zoom;
+        },
+        function (val) {
+          if (this.dataref) {
+            this.dataref.set_zoom(val);
+          }
+        }
+      );
+
+    struct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
+    struct
+      .float("default_linewidth", "default_linewidth", "Line Wid")
+      .range(0.01, 100)
+      .step(0.1)
+      .expRate(1.33)
+      .decimalPlaces(4);
+    struct
+      .enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode")
+      .uiNames({
+        SMOOTH     : "Smooth",
+        LESS_SMOOTH: "Less Smooth",
+        BROKEN     : "Broken",
+      })
+      .descriptions({
+        SMOOTH     : "New Line Mode",
+        LESS_SMOOTH: "New Line Mode",
+        BROKEN     : "New Line Mode",
+      })
+      .icons({
+        SMOOTH     : Icons.EXTRUDE_MODE_G2,
+        LESS_SMOOTH: Icons.EXTRUDE_MODE_G1,
+        BROKEN     : Icons.EXTRUDE_MODE_G0,
+      });
+    struct.bool("pin_paths", "pin_paths", "Pin Paths");
+    struct.struct(
+      "background_image",
+      "background_image",
+      "undefined",
+      api.mapStruct(ImageUser, true)
+    );
+    return struct;
+  }
 }
 
 View2DHandler.STRUCT =

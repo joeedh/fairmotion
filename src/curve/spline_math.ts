@@ -54,10 +54,13 @@ export function do_solve(
 
 /* A segment's spiral coefficients.  A plain Array until
    native_api.checkSegment() swaps in a wasm-backed Float64Array; `ptr` is that
-   array's address inside the wasm heap and `_has_wasm` marks the swap. */
+   array's address inside the wasm heap and `_has_wasm` marks the swap.  `cell`
+   is which arena cell the bytes were taken from, so they can be given back; see
+   src/wasm/ks_arena.ts. */
 export type KsArray = (number[] | Float64Array) & {
   _has_wasm?: boolean;
   ptr?: number;
+  cell?: number;
 };
 
 export const KSCALE = ORDER + 1;
@@ -201,7 +204,10 @@ export function eval_curve_flat(
 
   if (!angle_only) {
     let co = approx(s, ks, order);
-    co.sub(start!).rot2d(-ang).mulScalar(scale).add(loadXYZ(eval_curve_vs.next(), v1x, v1y, v1z));
+    co.sub(start!)
+      .rot2d(-ang)
+      .mulScalar(scale)
+      .add(loadXYZ(eval_curve_vs.next(), v1x, v1y, v1z));
 
     return loadVec3Into2(eval_ret_vs.next(), co);
   }

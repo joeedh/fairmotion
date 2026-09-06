@@ -15,6 +15,9 @@ import { DataPathNode } from "../core/eventdag.js";
 
 import type { Spline } from "./spline.js";
 import type { BaseContext, LayerFilterContext } from "../core/context.js";
+import { DataTypes } from "../core/lib_api.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "../core/context.js";
 
 export let SplineLayerFlags = {
   //SELECT     : 1,
@@ -106,6 +109,30 @@ export class SplineLayer extends set<SplineElement> {
     }
 
     delete this.eids;
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct
+      .int("id", "id", "id")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    struct
+      .flags("flag", "flag", SplineLayerFlags, "flag")
+      .uiNames({
+        8         : "Mask To Prev",
+        HIDE      : "Hide",
+        CAN_SELECT: "Can Select",
+        MASK      : "Mask",
+      })
+      .descriptions({
+        MASK: "Use previous layer as a mask",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        window.redraw_viewport();
+      });
+    return struct;
   }
 }
 

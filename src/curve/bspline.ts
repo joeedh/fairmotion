@@ -8,7 +8,7 @@
    unconditional early return and are kept only as the reference the symbolic
    version was derived from.
 
-   Only deBoor() is imported by the rest of the tree (spline_types.ts, for the
+   Only deBoor() is imported by the rest of the tree (types/segment.ts, for the
    stroke-width spline). */
 
 /* Dead. */

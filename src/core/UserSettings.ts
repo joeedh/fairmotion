@@ -14,6 +14,9 @@ import { theme } from "../editors/theme.js";
 import * as util from "../path.ux/scripts/util/util.js";
 import { KeyMapDeltaSet, KeyMapDelta, KeyMap } from "./keymap.js";
 import type * as pathux from "../path.ux/scripts/pathux.js";
+import { DataTypes } from "./lib_api.js";
+import type { DataAPI } from "../path.ux/scripts/pathux.js";
+import type { FullContext } from "./context.js";
 
 let defaultTheme = exportTheme(theme);
 
@@ -360,6 +363,60 @@ export class AppSettings {
     if (typeof this.theme !== "string") {
       this.theme = defaultTheme;
     }
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct
+      .enum(
+        "unit_scheme",
+        "unit_system",
+        {
+          imperial: "imperial",
+          metric  : "metric",
+        },
+        "System"
+      )
+      .uiNames({
+        imperial: "Imperial",
+        metric  : "Metric",
+      })
+      .descriptions({
+        imperial: "Imperial",
+        metric  : "Metric",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        g_app_state.session.settings.save();
+      });
+    struct
+      .enum(
+        "unit",
+        "default_unit",
+        {
+          cm  : "cm",
+          "in": "in",
+          ft  : "ft",
+          m   : "m",
+          mm  : "mm",
+          km  : "km",
+          mile: "mile",
+        },
+        "Default Unit"
+      )
+      .descriptions({
+        cm  : "Cm",
+        "in": "In",
+        ft  : "Ft",
+        m   : "M",
+        mm  : "Mm",
+        km  : "Km",
+        mile: "Mile",
+      })
+      .icons(DataTypes)
+      .on("change", function () {
+        g_app_state.session.settings.save();
+      });
+    return struct;
   }
 }
 AppSettings.STRUCT = `

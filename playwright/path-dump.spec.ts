@@ -1,7 +1,7 @@
 /* Golden output for the draw pipeline, one row per retained path: draw order,
    command-stream hash, colour, blur, clip count.  Deliberately key-independent
    -- rows are sorted by z and content, never by path key -- because stage 4 of
-   the draw refactor renames every key it touches (see src/curve/path_key.ts)
+   the draw refactor renames every key it touches (see src/curve/draw/path_key.ts)
    and an oracle keyed on those would report a diff for every rename.
 
    This is what says a refactor of the drawer changed nothing that reaches the

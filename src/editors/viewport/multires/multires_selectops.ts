@@ -13,7 +13,7 @@ import {
 import { ToolOp, UndoFlags, ToolFlags, ModalStates } from "../../../core/toolops_api.js";
 import { SplineFlags, SplineTypes, RecalcFlags } from "../../../curve/spline_types.js";
 import { RestrictFlags, Spline } from "../../../curve/spline.js";
-import { redo_draw_sort } from "../../../curve/spline_draw_sort.js";
+import { redo_draw_sort } from "../../../curve/draw/spline_draw_sort.js";
 
 import { SplineLocalToolOp } from "../spline_editops.js";
 

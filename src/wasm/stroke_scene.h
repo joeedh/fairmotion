@@ -1,8 +1,8 @@
 #ifndef _STROKE_SCENE_H
 #define _STROKE_SCENE_H
 
-/* The C++ side of src/curve/stroke_scene.ts: a whole document's geometry as
-   flat arrays, and a reader for the blob src/curve/stroke_dump.ts writes.
+/* The C++ side of src/curve/draw/stroke_scene.ts: a whole document's geometry as
+   flat arrays, and a reader for the blob src/curve/draw/stroke_dump.ts writes.
 
    Nothing here knows what a Spline is -- that is the point of the format.  A
    scene arrives as bytes, from the wasm heap in the app or from a file in the
@@ -31,7 +31,7 @@
 #define SEG_F 6
 #define SEG_I 6
 
-/* Steps in a width net's walk; see src/curve/width_chain.ts. */
+/* Steps in a width net's walk; see src/curve/draw/width_chain.ts. */
 #define NET_STEPS 7
 
 /* Per-group ints: id, first groupSegs index, one past the last. */
@@ -117,10 +117,12 @@ struct StrokeScene {
    Two layouts, because the two callers store them differently.  A dump packs
    every slot's block into one array and indexes it, which is what the harness
    reads.  The app does not get that choice: checkSegment() relocates each
-   segment's `ks` on its own the first time that segment is evaluated, so the
-   blocks are scattered across the heap and the only thing that knows where one
-   is, is the address the scene recorded in SEGI_KSPTR (§5.3 would make these
-   one layout again, and has not been done). */
+   segment's `ks` the first time that segment is evaluated, so slot order and
+   storage order are unrelated and the only thing that knows where a block is,
+   is the address the scene recorded in SEGI_KSPTR.  Those blocks are cells of
+   one arena rather than separate mallocs (src/wasm/ks_arena.ts), so a chain
+   usually walks consecutive cells; §5.3 would make the two layouts one, and has
+   not been done. */
 static inline double *scene_ks(const StrokeScene *scene, int slot) {
   if (scene->ksScattered) {
     return (double *)(uintptr_t)(uint32_t)scene->segi[slot * SEG_I + SEGI_KSPTR];

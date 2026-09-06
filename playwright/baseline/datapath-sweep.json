@@ -1,5 +1,5 @@
 {
-  "total": 935,
+  "total": 932,
   "ok": [
     "active_tool",
     "appstate",
@@ -15,9 +15,6 @@
     "datalib.framesets",
     "datalib.framesets.items",
     "datalib.framesets.typeid",
-    "datalib.image_canvas",
-    "datalib.image_canvas.items",
-    "datalib.image_canvas.typeid",
     "datalib.images",
     "datalib.images.items",
     "datalib.images.typeid",

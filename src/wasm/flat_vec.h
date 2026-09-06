@@ -1,7 +1,7 @@
 #ifndef _FLAT_VEC_H
 #define _FLAT_VEC_H
 
-/* The C++ side of src/curve/flat_vec.ts: path.ux's Vector2 arithmetic over
+/* The C++ side of src/curve/draw/flat_vec.ts: path.ux's Vector2 arithmetic over
    plain pairs of doubles.
 
    Two of these are not what a fresh implementation would write, and both are

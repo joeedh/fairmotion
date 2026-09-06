@@ -38,7 +38,7 @@
 #include "trim_view.h"
 #include "trimmer.h"
 
-/* Fields of the bind block, in the order src/curve/stroke_wasm.ts writes them.
+/* Fields of the bind block, in the order src/curve/draw/stroke_wasm.ts writes them.
    Bumped whenever this list changes, and checked from there. */
 #define STROKER_ABI 1
 
@@ -149,7 +149,7 @@ static void stroker_publish(void) {
 
 extern "C" {
 
-/* The three numbers src/curve/stroke_wasm.ts checks its own constants against,
+/* The three numbers src/curve/draw/stroke_wasm.ts checks its own constants against,
    so a block that has grown on one side and not the other is caught at load
    rather than as corrupt geometry. */
 int fmStrokerAbi(int which) {

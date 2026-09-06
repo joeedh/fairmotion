@@ -7,11 +7,11 @@ import type { Brush } from "../brush/brush.js";
 import type { SplineFrameSet } from "./frameset.js";
 import type { Image } from "./imageblock.js";
 import type { Spline } from "../curve/spline.js";
-import type { ImageCanvas } from "../paint/imagecanvas.js";
 import type { Collection } from "../scene/collection.js";
 import type { Scene } from "../scene/scene.js";
 import type { SceneObject } from "../scene/sceneobject.js";
-import type { AnimChannel, AnimKey } from "./animdata.js";
+import { AnimKey } from "./animdata.js";
+import type { AnimChannel } from "./animdata.js";
 
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.
@@ -257,6 +257,50 @@ export class DataList<T extends DataBlock = DataBlock> {
   get length(): int {
     return this.list.length;
   }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    struct
+      .int("typeid", "typeid", "typeid")
+      .range(-100000000000000000, 100000000000000000)
+      .step(0.1)
+      .expRate(1.33);
+    struct.list("idmap", "items", [
+      function getIter(api: DataAPI, list: { [lib_id: int]: DataBlock }) {
+        let ret = [];
+        for (var k in list) {
+          ret.push(list[k]);
+        }
+        return ret[Symbol.iterator]();
+      },
+      function get(api: DataAPI, list: { [lib_id: int]: DataBlock }, key: int) {
+        return list[key];
+      },
+      function getStruct(api: DataAPI, list: { [lib_id: int]: DataBlock }, key: int) {
+        /* NOTE: this read `datablock_structs[item.lib_type]`, neither of which
+         was ever declared -- a ReferenceError.  DataLib's own items list
+         (above) resolves the same thing by mapping the block's class. */
+        return api.mapStruct(list[key].constructor as BoundConstructor, false);
+      },
+      function getLength(api: DataAPI, list: { [lib_id: int]: DataBlock }) {
+        let count = 0;
+        for (let k in list) {
+          count++;
+        }
+        return count;
+      },
+      /*function getkeyiter() {
+          let ret=[];
+          for (var k in this) {
+              ret.push(k);
+          }
+          return ret[Symbol.iterator]();
+        }*/
+      /*function itempath(key) {
+          return "["+key+"]";
+        }*/
+    ]);
+    return struct;
+  }
 }
 
 export class DataLib {
@@ -283,7 +327,6 @@ export class DataLib {
   brushes!: DataList<Brush>;
   collections!: DataList<Collection>;
   framesets!: DataList<SplineFrameSet>;
-  image_canvas!: DataList<ImageCanvas>;
   images!: DataList<Image>;
   object!: DataList<SceneObject>;
   scenes!: DataList<Scene>;
@@ -501,6 +544,48 @@ export class DataLib {
     if (id instanceof DataRef) id = id.id;
 
     return this.idmap[id];
+  }
+
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    for (let cls of BlockClasses) {
+      struct.struct(
+        DataLib.getAccessorKey(cls),
+        DataLib.getAccessorKey(cls),
+        DataLib.getAccessorKey(cls),
+        api.mapStruct(DataList, true)
+      );
+    }
+
+    struct.list<DataLib, string, DataBlock>("", "items", [
+      function getIter(api: DataAPI, datalib: DataLib) {
+        return (function* () {
+          for (let list of datalib.datalists.values()) {
+            for (let dblock of list) {
+              yield dblock;
+            }
+          }
+        })();
+      },
+      function get(api: DataAPI, datalib: DataLib, key: string) {
+        return datalib.idmap[parseInt(key)];
+      },
+      function getKey(api: DataAPI, datalib: DataLib, obj: DataBlock) {
+        return obj.lib_id;
+      },
+      function getStruct(api: DataAPI, datalib: DataLib, key: string) {
+        return api.mapStruct(datalib.idmap[parseInt(key)].constructor as BoundConstructor, false);
+      },
+      function getLength(api: DataAPI, datalib: DataLib) {
+        let tot = 0;
+
+        for (let list of datalib.datalists.values()) {
+          tot += list.length;
+        }
+
+        return tot;
+      },
+    ]);
+    return struct;
   }
 }
 
@@ -864,6 +949,39 @@ export class DataBlock {
 
     return ret;
   }
+
+  /* The base of the chain every datablock's own defineAPI runs through.  It
+     defines nothing on its own: the animation channels below are opt-in,
+     because only the three blocks that animate expose them today. */
+  static defineAPI(api: DataAPI<FullContext>, struct = api.mapStruct(this, true)) {
+    return struct;
+  }
+
+  /* The `animkeys` list, over the id map data_link() fills with every channel
+     and key the block owns.  Spline, Scene and SplineFrameSet each call this. */
+  static defineAnimKeysAPI(api: DataAPI<FullContext>, struct: DataStruct<FullContext, DataBlock>) {
+    return struct.list("lib_anim_idmap", "animkeys", [
+      function getIter(api: DataAPI, list: { [id: int]: object }) {
+        return new obj_value_iter(list);
+      },
+      function get(api: DataAPI, list: { [id: int]: object }, key: int) {
+        console.log("get key", key, list);
+        return list[key];
+      },
+      function getStruct(api: DataAPI, list: { [id: int]: object }, key: int) {
+        /* NOTE: this returned a free `AnimKeyStruct2` that was never declared,
+           so walking any of the three animkeys lists threw. */
+        return api.mapStruct(AnimKey, true);
+      },
+      function getLength(api: DataAPI, list: { [id: int]: object }) {
+        var tot = 0.0;
+        for (var k in list) {
+          tot++;
+        }
+        return tot;
+      },
+    ]);
+  }
 }
 
 /* One addon_data entry, so the map can be written as an array. */
@@ -913,6 +1031,7 @@ DataBlock.STRUCT = `
 `;
 
 import { ToolIter } from "./toolprops_iter.js";
+import type { BoundConstructor, DataAPI, DataStruct } from "../path.ux/scripts/pathux.js";
 
 export const NodeDataBlock = mixinGraphNode(DataBlock, "NodeDataBlock");
 

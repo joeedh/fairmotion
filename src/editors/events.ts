@@ -205,8 +205,6 @@ export class EventHandler {
   on_doubleclick(event: MouseEvent) {}
   on_pan(pan: number[], last_pan: number[]) {}
 
-  on_gl_lost(new_gl: WebGLRenderingContext) {}
-
   //touch events
   on_mouseup2(event: MouseEvent) {}
   on_mouseup3(event: MouseEvent) {}
@@ -221,7 +219,6 @@ export class EventHandler {
   on_mouseup(event: AnyMouseEvent) {}
   on_resize(newsize: number[]) {}
   on_contextchange(event: Event) {}
-  on_draw(gl: WebGLRenderingContext) {}
 
   has_modal() {
     return this.modalhandler != null;

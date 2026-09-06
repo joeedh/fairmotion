@@ -14,7 +14,7 @@
    Bytes, not formatted decimals: a coordinate that survived the port unchanged
    hashes the same on both sides, and one that drifted by an ulp does not.  That
    makes the digest the right gate for the outline *structure* and the wrong one
-   for its arithmetic -- see src/curve/stroke_eval_ref.ts for why the geometry
+   for its arithmetic -- see src/curve/draw/stroke_eval_ref.ts for why the geometry
    layer is compared by tolerance instead. */
 
 #include "outline_buffer.h"

@@ -215,11 +215,4 @@ window.init_redraw_globals = function init_redraw_globals() {
 
   var requestId: number | undefined;
   window._fps = 1;
-
-  window.reshape = function reshape(gl: WebGLRenderingContext) {
-    var g = window.g_app_state;
-    if (g === undefined) return;
-
-    window._ensure_thedimens();
-  };
 };

@@ -1,4 +1,8 @@
 node_modules
+.commentlint-cache
+.eslintcache-d
+.eslintcache
+.quickbuild
 .build_d
 build
 site

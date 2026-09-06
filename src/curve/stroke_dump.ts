@@ -24,6 +24,16 @@
      scratch across.  That also makes the run reproducible from the blob alone. */
 
 import * as native_api from "../wasm/native_api.js";
+import {
+  allocF64,
+  allocI32,
+  allocU8,
+  copyF64,
+  copyI32,
+  copyU8,
+  reviewF64,
+  reviewU8,
+} from "../wasm/heap_arrays.js";
 import { SplineFlags } from "./spline_base.js";
 import { KTOTKS, useNativeEval } from "./spline_math.js";
 import {
@@ -40,6 +50,7 @@ import {
 } from "./stroke_scene.js";
 import { TRIM_STRIDE } from "./trim_state.js";
 
+import type { HeapF64, HeapU8 } from "../wasm/heap_arrays.js";
 import type { TrimView } from "./trim_view.js";
 
 /* Coefficients per segment.  Sixteen, not KTOTKS: that is how much
@@ -311,20 +322,22 @@ export function loadScene(buf: ArrayBuffer): StrokeScene {
   scene.vertCount = vertMax;
   scene.segCount = segMax;
 
-  scene.verti = new Int32Array(buf, l.verti, vertMax * VERT_I).slice();
-  scene.segi = new Int32Array(buf, l.segi, segMax * SEG_I).slice();
-  scene.netSeg = new Int32Array(buf, l.netSeg, segMax * NET_STEPS).slice();
-  scene.netV1 = new Uint8Array(buf, l.netV1, segMax * NET_STEPS).slice();
-  scene.groups = new Int32Array(buf, l.groups, h[H.GROUP_COUNT] * GROUP_I).slice();
-  scene.groupSegs = new Int32Array(buf, l.groupSegs, h[H.GROUP_SEGS]).slice();
-  scene.vsegOff = new Int32Array(buf, l.vsegOff, vertMax).slice();
-  scene.vsegs = new Int32Array(buf, l.vsegs, h[H.VSEGS]).slice();
-  scene.vertf = new Float64Array(buf, l.vertf, vertMax * VERT_F).slice();
-  scene.segf = new Float64Array(buf, l.segf, segMax * SEG_F).slice();
+  /* Into the heap where there is one, so a loaded scene is strokeable by the
+     wasm stroker and not only by the JS one; see heap_arrays.ts. */
+  scene.verti = copyI32(new Int32Array(buf, l.verti, vertMax * VERT_I));
+  scene.segi = copyI32(new Int32Array(buf, l.segi, segMax * SEG_I));
+  scene.netSeg = copyI32(new Int32Array(buf, l.netSeg, segMax * NET_STEPS));
+  scene.netV1 = copyU8(new Uint8Array(buf, l.netV1, segMax * NET_STEPS));
+  scene.groups = copyI32(new Int32Array(buf, l.groups, h[H.GROUP_COUNT] * GROUP_I));
+  scene.groupSegs = copyI32(new Int32Array(buf, l.groupSegs, h[H.GROUP_SEGS]));
+  scene.vsegOff = copyI32(new Int32Array(buf, l.vsegOff, vertMax));
+  scene.vsegs = copyI32(new Int32Array(buf, l.vsegs, h[H.VSEGS]));
+  scene.vertf = copyF64(new Float64Array(buf, l.vertf, vertMax * VERT_F));
+  scene.segf = copyF64(new Float64Array(buf, l.segf, segMax * SEG_F));
 
   scene.groupCount = h[H.GROUP_COUNT];
-  scene.vertStamp = new Int32Array(vertMax);
-  scene.segStamp = new Int32Array(segMax);
+  scene.vertStamp = allocI32(vertMax);
+  scene.segStamp = allocI32(segMax);
 
   const vertLive = new Int32Array(buf, l.vertLive, h[H.VERT_LIVE]);
   const segLive = new Int32Array(buf, l.segLive, h[H.SEG_LIVE]);
@@ -373,14 +386,33 @@ export function loadScene(buf: ArrayBuffer): StrokeScene {
    TrimState.begin() gives a segment it has not seen before.  The stroker is
    always run behind a trim pass that overwrites all of it. */
 export function newTrims(slots: number): TrimView {
-  const data = new Float64Array(slots * TRIM_STRIDE);
+  return new LooseTrims(slots);
+}
 
-  for (let i = 0; i < slots; i++) {
-    data[i * TRIM_STRIDE + 1] = 1.0;
-    data[i * TRIM_STRIDE + 3] = 1.0;
+/* A TrimView with no TrimState behind it, for the harnesses.  A class and not
+   an object literal for one reason: the arrays may be heap views, and a heap
+   view has to be rebuilt when the heap grows -- which TrimState gets from being
+   registered with native_api and this would otherwise not. */
+class LooseTrims implements TrimView {
+  data: HeapF64;
+  mask: HeapU8;
+
+  constructor(slots: number) {
+    this.data = allocF64(slots * TRIM_STRIDE);
+    this.mask = allocU8(slots);
+
+    for (let i = 0; i < slots; i++) {
+      this.data[i * TRIM_STRIDE + 1] = 1.0;
+      this.data[i * TRIM_STRIDE + 3] = 1.0;
+    }
+
+    native_api.onHeapMove(this);
   }
 
-  return { data, mask: new Uint8Array(slots) };
+  reviewHeapViews() {
+    this.data = reviewF64(this.data);
+    this.mask = reviewU8(this.mask);
+  }
 }
 
 /* How many trim slots a scene's segments name; what to pass newTrims(). */

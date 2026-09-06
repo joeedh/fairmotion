@@ -518,6 +518,15 @@ drawer change: `__fm.strokeGolden()` serializes the scene (`src/curve/stroke_dum
 `playwright/stroke-golden.spec.ts` holds that digest to a recorded baseline. Re-record with
 `FM_UPDATE_BASELINE=1`, and only for an intended change in output.
 
+Since the C++ port landed there is a second one, and it is the one to reach for when the
+question is "did the port drift": `__fm.strokeWasmParity()` loads one dump twice and runs the
+JS stroker over one copy and the wasm stroker over the other, comparing the trims and every
+outline byte for byte. `playwright/stroke-wasm.spec.ts` drives it. The two implementations
+agree exactly, so any nonzero delta is a real difference; the spec reports the offending
+outline row, not just a total. A run where `fellBack` is nonzero compared nothing on those
+calls — the wasm path declines when the scene is not heap-resident, which
+`src/curve/stroke_wasm.ts` explains.
+
 ## Known quirks
 
 - **The side loop tests four combinations twice.** `side2 = ~~(k/2)` for `k` in `0..7` yields

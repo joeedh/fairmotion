@@ -953,3 +953,34 @@ Fix: scrub what is process state on the way out, the way the dump already zeroes
 `dumpScene()`. Nothing downstream reads them; the stroker's flags are `BREAK_TANGENTS` and
 `COINCIDENT`. Check the property directly rather than trusting it -- record twice and `cmp` --
 because a recording-based harness has no teeth against a recording that moves on its own.
+
+## Symptom: two loads of one document disagree by a subnormal
+Cause: `_malloc` does not zero and `new Float64Array(n)` does. Moving `StrokeScene`'s and
+`TrimState`'s arrays into the wasm heap (`src/wasm/heap_arrays.ts`) silently changed the
+initial contents of every one of them from zeros to whatever the allocator last held.
+`stroke_dump.newTrims()` is where it showed: it writes each slot's two trim ends and leaves the
+four mitre points to be zero, so it began publishing stale heap bytes, which read as
+`8.48798316386e-313` and differed between two loads of the same blob.
+Made harder to spot by: nothing dereferences it. The mitre points are read only where a mask
+bit says they are in use, so the garbage sat in memory doing no visible harm and would have
+become wrong geometry only later, on a document that set that bit. It was found because a
+parity check compared two loads of one dump and neither matched the other -- not because
+anything rendered wrong.
+Fix: `allocF64`/`allocI32`/`allocU8` zero what they return, so heap-backed and plain arrays
+start the same way and no caller has to know which it got. When moving an allocation onto the
+heap, audit every field the old code left to zero-initialisation rather than assuming the type
+carried it.
+
+## Symptom: a screenshot baseline shows an empty canvas
+Cause: the capture races the render. `playwright/screenshots/file-examples-panda-fmo.png` at
+HEAD holds the editor chrome and the red control points and no strokes at all; a later run of
+the same spec captured the drawn document. Which one you get depends on whether the repaint had
+finished when the screenshot was taken.
+Made harder to spot by: the specs pass either way -- these files are recordings, not assertions,
+so a blank baseline is committed as readily as a good one. It also looks like nondeterminism
+somewhere in the stroker: the set of screenshots that differ changes from run to run, and it
+does so at `--workers=1` as well as at 4, which rules out the worker count and points at
+timing.
+Fix: not fixed. Recorded here because a dirty screenshot after a draw-path change is the first
+thing that looks like a regression and is not one -- diff the images before believing it, and
+check whether the *baseline* is the degenerate one.

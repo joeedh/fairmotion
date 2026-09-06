@@ -281,10 +281,17 @@ export function checkHeap(): boolean {
 }
 
 /* _malloc plus the re-view its growth may have made necessary. */
-function heapAlloc(size: number): number {
+export function heapAlloc(size: number): number {
   const ptr = wasm._malloc(size);
   checkHeap();
   return ptr;
+}
+
+/* The other half, for the callers that do release what they took: heap_arrays
+   reallocates whenever a scene outgrows its capacity, so unlike `ks` these
+   blocks have a lifetime shorter than the document's. */
+export function heapFree(ptr: number): void {
+  wasm._free(ptr);
 }
 
 /* A fresh block of coefficients in the heap, zeroed, with nothing on the JS

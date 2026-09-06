@@ -99,6 +99,9 @@ struct StrokeScene {
   int groupCount, groupSegCount, vsegCount;
   int trimSlots, ksSlots, flags;
 
+  /* Where scene_ks() is to look; see it for the two cases. */
+  int ksScattered;
+
   const int32_t *vertLive, *segLive;
 
   int32_t *verti, *segi, *netSeg;
@@ -109,8 +112,20 @@ struct StrokeScene {
 };
 
 /* Coefficients for one segment slot: sixteen doubles, the block a heap-resident
-   `ks` occupies (native_api.checkSegment reserves that much). */
+   `ks` occupies (native_api.checkSegment reserves that much).
+
+   Two layouts, because the two callers store them differently.  A dump packs
+   every slot's block into one array and indexes it, which is what the harness
+   reads.  The app does not get that choice: checkSegment() relocates each
+   segment's `ks` on its own the first time that segment is evaluated, so the
+   blocks are scattered across the heap and the only thing that knows where one
+   is, is the address the scene recorded in SEGI_KSPTR (§5.3 would make these
+   one layout again, and has not been done). */
 static inline double *scene_ks(const StrokeScene *scene, int slot) {
+  if (scene->ksScattered) {
+    return (double *)(uintptr_t)(uint32_t)scene->segi[slot * SEG_I + SEGI_KSPTR];
+  }
+
   return scene->ks + (size_t)slot * scene->ksSlots;
 }
 

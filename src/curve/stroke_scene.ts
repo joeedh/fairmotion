@@ -36,6 +36,18 @@
    Float64Array is what the fallback has instead of an address. */
 
 import * as native_api from "../wasm/native_api.js";
+import {
+  EMPTY_F64,
+  EMPTY_I32,
+  EMPTY_U8,
+  ensureI32,
+  growF64,
+  growI32,
+  growU8,
+  reviewF64,
+  reviewI32,
+  reviewU8,
+} from "../wasm/heap_arrays.js";
 import { KSCALE, KTOTKS, useNativeEval } from "./spline_math.js";
 import {
   beginWidthChains,
@@ -46,6 +58,7 @@ import {
   widthNetSteps,
 } from "./width_chain.js";
 
+import type { HeapF64, HeapI32, HeapU8 } from "../wasm/heap_arrays.js";
 import type { Spline } from "./spline.js";
 import type { SplineSegment } from "./spline_types.js";
 import type { TrimState } from "./trim_state.js";
@@ -110,33 +123,15 @@ export const enum GroupI {
 /* A slot that never existed. */
 export const NO_SLOT = -1;
 
-function growF(a: Float64Array, n: number): Float64Array {
-  const b = new Float64Array(n);
-  b.set(a);
-  return b;
-}
-
-function growI(a: Int32Array, n: number): Int32Array {
-  const b = new Int32Array(n);
-  b.set(a);
-  return b;
-}
-
-function growU8(a: Uint8Array, n: number): Uint8Array {
-  const b = new Uint8Array(n);
-  b.set(a);
-  return b;
-}
-
 export class StrokeScene {
   /* Slot capacity, not live count; slots below this may be free. */
   vertMax = 0;
   segMax = 0;
 
-  vertf: Float64Array = new Float64Array(0);
-  verti: Int32Array = new Int32Array(0);
-  segf: Float64Array = new Float64Array(0);
-  segi: Int32Array = new Int32Array(0);
+  vertf: HeapF64 = EMPTY_F64;
+  verti: HeapI32 = EMPTY_I32;
+  segf: HeapF64 = EMPTY_F64;
+  segi: HeapI32 = EMPTY_I32;
 
   /* One view per segment slot onto that segment's sixteen coefficients --
      wasm heap memory when it has been evaluated natively. */
@@ -146,30 +141,30 @@ export class StrokeScene {
      landed on and whether the vertex it arrived at is that segment's v1.  A
      segment whose chain is degenerate (see width_chain.gatherChain) has
      netSeg[.] === NO_SLOT and falls back to the walk. */
-  netSeg: Int32Array = new Int32Array(0);
-  netV1: Uint8Array = new Uint8Array(0);
+  netSeg: HeapI32 = EMPTY_I32;
+  netV1: HeapU8 = EMPTY_U8;
 
   /* The stroke groups the drawer walks, in spline.drawStrokeGroups order, and
      the segment slots they run through.  Rebuilt whole every pass: a group is a
      handful of ints and the spline rebuilds the groups themselves whenever
      anything about them can have changed. */
-  groups: Int32Array = new Int32Array(0);
-  groupSegs: Int32Array = new Int32Array(0);
+  groups: HeapI32 = EMPTY_I32;
+  groupSegs: HeapI32 = EMPTY_I32;
   groupCount = 0;
   groupMap = new Map<number, number>();
 
   /* Vertex -> segment adjacency: the segments meeting at vertex slot `v` are
      vsegs[vsegOff[v] .. vsegOff[v] + valence).  The stroker needs it to step
      across a two-valence join; rebuilt only when topology moves. */
-  vsegOff: Int32Array = new Int32Array(0);
-  vsegs: Int32Array = new Int32Array(0);
+  vsegOff: HeapI32 = EMPTY_I32;
+  vsegs: HeapI32 = EMPTY_I32;
 
   vertMap = new Map<number, number>();
   segMap = new Map<number, number>();
 
   /* Pass number a slot was last seen in; older means deleted. */
-  vertStamp: Int32Array = new Int32Array(0);
-  segStamp: Int32Array = new Int32Array(0);
+  vertStamp: HeapI32 = EMPTY_I32;
+  segStamp: HeapI32 = EMPTY_I32;
 
   vertFree: number[] = [];
   segFree: number[] = [];
@@ -194,9 +189,9 @@ export class StrokeScene {
       cap *= 2;
     }
 
-    this.vertf = growF(this.vertf, cap * VERT_F);
-    this.verti = growI(this.verti, cap * VERT_I);
-    this.vertStamp = growI(this.vertStamp, cap);
+    this.vertf = growF64(this.vertf, cap * VERT_F);
+    this.verti = growI32(this.verti, cap * VERT_I);
+    this.vertStamp = growI32(this.vertStamp, cap);
     this.vertMax = cap;
   }
 
@@ -210,10 +205,10 @@ export class StrokeScene {
       cap *= 2;
     }
 
-    this.segf = growF(this.segf, cap * SEG_F);
-    this.segi = growI(this.segi, cap * SEG_I);
-    this.segStamp = growI(this.segStamp, cap);
-    this.netSeg = growI(this.netSeg, cap * NET_STEPS);
+    this.segf = growF64(this.segf, cap * SEG_F);
+    this.segi = growI32(this.segi, cap * SEG_I);
+    this.segStamp = growI32(this.segStamp, cap);
+    this.netSeg = growI32(this.netSeg, cap * NET_STEPS);
     this.netV1 = growU8(this.netV1, cap * NET_STEPS);
     this.ksv.length = cap;
     this.segMax = cap;
@@ -396,8 +391,25 @@ export class StrokeScene {
 
   /* Growing the wasm heap detaches every view onto it, and the scene's views
      outlive the pass that took them.  Addresses survive the move, so rebuilding
-     from KSPTR is enough; native_api calls this from checkHeap(). */
+     from the pointer is enough; native_api calls this from checkHeap().
+
+     segi first, and not in the loop below: the pointers the loop reads live in
+     it, so a detached segi would answer every one of them with undefined. */
   reviewHeapViews() {
+    this.segi = reviewI32(this.segi);
+
+    this.vertf = reviewF64(this.vertf);
+    this.verti = reviewI32(this.verti);
+    this.segf = reviewF64(this.segf);
+    this.netSeg = reviewI32(this.netSeg);
+    this.netV1 = reviewU8(this.netV1);
+    this.groups = reviewI32(this.groups);
+    this.groupSegs = reviewI32(this.groupSegs);
+    this.vsegOff = reviewI32(this.vsegOff);
+    this.vsegs = reviewI32(this.vsegs);
+    this.vertStamp = reviewI32(this.vertStamp);
+    this.segStamp = reviewI32(this.segStamp);
+
     for (const slot of this.segMap.values()) {
       const ptr = this.segi[slot * SEG_I + SegI.KSPTR];
 
@@ -436,9 +448,7 @@ export class StrokeScene {
      step across a join without the graph.  Valence is already extracted, so
      this is one counting pass and one filling pass. */
   private buildAdjacency(spline: Spline) {
-    if (this.vsegOff.length < this.vertMax) {
-      this.vsegOff = new Int32Array(this.vertMax);
-    }
+    this.vsegOff = ensureI32(this.vsegOff, this.vertMax);
 
     let total = 0;
 
@@ -449,9 +459,7 @@ export class StrokeScene {
       total += v.segments.length;
     }
 
-    if (this.vsegs.length < total) {
-      this.vsegs = new Int32Array(total);
-    }
+    this.vsegs = ensureI32(this.vsegs, total);
 
     for (const v of spline.verts) {
       const slot = this.vertMap.get(v.eid)!;
@@ -470,9 +478,7 @@ export class StrokeScene {
   private buildGroups(spline: Spline) {
     const gs = spline.drawStrokeGroups;
 
-    if (this.groups.length < gs.length * GROUP_I) {
-      this.groups = new Int32Array(gs.length * GROUP_I);
-    }
+    this.groups = ensureI32(this.groups, gs.length * GROUP_I);
 
     let total = 0;
 
@@ -480,9 +486,7 @@ export class StrokeScene {
       total += g.segments.length;
     }
 
-    if (this.groupSegs.length < total) {
-      this.groupSegs = new Int32Array(total);
-    }
+    this.groupSegs = ensureI32(this.groupSegs, total);
 
     this.groupMap.clear();
     this.groupCount = 0;

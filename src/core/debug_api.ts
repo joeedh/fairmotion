@@ -11,16 +11,27 @@ import { unpack_ctx } from "./ajax.js";
 import { manager as renderThreads } from "../vectordraw/vectordraw_jobs.js";
 import { beginWidthChains, endWidthChains } from "../curve/width_chain.js";
 import { trimState } from "../curve/trim_state.js";
-import { checkScene, SEG_I, SegI, strokeScene, VERT_F } from "../curve/stroke_scene.js";
+import {
+  checkScene,
+  NO_SLOT,
+  SEG_I,
+  SegI,
+  strokeScene,
+  VERT_F,
+  VERT_I,
+  VertI,
+} from "../curve/stroke_scene.js";
 import { OutlineBuffer } from "../curve/outline_buffer.js";
 import { dumpEvalRef } from "../curve/stroke_eval_ref.js";
 import { dumpOutlineRef } from "../curve/outline_ref.js";
 import { dumpTrimRef } from "../curve/trim_ref.js";
 import { useNativeEval } from "../curve/spline_math.js";
-import { strokeAll } from "../curve/stroker.js";
+import { strokeAll, strokeGroup, strokeJoin } from "../curve/stroker.js";
+import { trimVertex } from "../curve/trimmer.js";
+import { wasmStrokeGroup, wasmStrokeJoin, wasmTrimVertex } from "../curve/stroke_wasm.js";
 import { dumpScene, loadScene, newTrims, sceneTrimSlots } from "../curve/stroke_dump.js";
 import { hashBuffer, hashOutlines } from "../curve/outline_hash.js";
-import type { OutlineDigest } from "../curve/outline_hash.js";
+import type { OutlineDigest, OutlineRow } from "../curve/outline_hash.js";
 import {
   sceneCurvature,
   sceneDerivative,
@@ -1123,6 +1134,176 @@ function strokeGolden(debug = false): Promise<StrokeGolden> {
   });
 }
 
+/* Stage 6f's parity gate: the wasm stroker against the JS one, over the three
+   entry points the drawer actually calls.
+
+   Both sides are given the *same bytes* -- one dump, loaded twice -- rather
+   than one scene run twice, because evaluating a segment rewrites the arc
+   length the next read sees, so a second pass over a used scene starts
+   somewhere the first did not.  That is the same argument strokeArtifacts()
+   makes for its own four recordings.
+
+   Byte equality and not tolerance, for the reason 6e found: through emscripten
+   the stroker reproduces the JS geometry exactly, so a coordinate that differs
+   at all is a difference worth reporting.  The worst delta is measured anyway,
+   because "not equal" and "off by an ulp in one place" are different bugs. */
+type StrokeWasmParity =
+  | { skipped: true; reason: string }
+  | {
+      skipped: false;
+      native: boolean;
+      fellBack: number;
+      calls: number;
+      trimsEqual: boolean;
+      trimMax: number;
+      rowsEqual: boolean;
+      outlines: number;
+      ptMax: number;
+      firstBad: string | null;
+    };
+
+function strokeWasmParity(debug = false): Promise<StrokeWasmParity> {
+  let ctx = getCtx();
+
+  if (!ctx || !ctx.frameset) {
+    return Promise.resolve({ skipped: true as const, reason: "no scene" });
+  }
+
+  let spline = ctx.frameset.spline;
+
+  return waitIdle().then(() => {
+    const dump = dumpScene(strokeScene(spline));
+
+    const a = loadScene(dump);
+    const b = loadScene(dump);
+
+    const slots = Array.from(a.vertMap.values()).sort((x, y) => x - y);
+
+    const ta = newTrims(sceneTrimSlots(a));
+    const tb = newTrims(sceneTrimSlots(b));
+
+    let fellBack = 0;
+    let calls = 0;
+
+    for (const v of slots) {
+      trimVertex(a, ta, v);
+
+      calls++;
+      if (!wasmTrimVertex(b, tb, v)) {
+        fellBack++;
+        trimVertex(b, tb, v);
+      }
+    }
+
+    let trimMax = 0;
+
+    for (let i = 0; i < ta.data.length; i++) {
+      trimMax = Math.max(trimMax, Math.abs(ta.data[i] - tb.data[i]));
+    }
+
+    let trimsEqual = trimMax === 0;
+
+    for (let i = 0; i < ta.mask.length; i++) {
+      trimsEqual = trimsEqual && ta.mask[i] === tb.mask[i];
+    }
+
+    /* Group by group and join by join, the way the drawer asks for them: the
+       wasm buffer is reset per call on the C++ side, so each is hashed as it
+       comes back rather than accumulated. */
+    const rowsA: OutlineRow[] = [];
+    const rowsB: OutlineRow[] = [];
+
+    const outA = new OutlineBuffer();
+    const outB = new OutlineBuffer();
+
+    let ptMax = 0;
+
+    const take = (ja: OutlineBuffer, jb: OutlineBuffer | undefined) => {
+      rowsA.push(...hashOutlines(ja).rows);
+
+      if (jb === undefined) {
+        fellBack++;
+        return;
+      }
+
+      rowsB.push(...hashOutlines(jb).rows);
+
+      const n = Math.min(ja.ptCount, jb.ptCount);
+
+      for (let i = 0; i < n; i++) {
+        ptMax = Math.max(ptMax, Math.abs(ja.pts[i] - jb.pts[i]));
+      }
+    };
+
+    for (let gi = 0; gi < a.groupCount; gi++) {
+      calls++;
+      take(
+        strokeGroup(a, ta, gi, debug, outA.reset()).finish(),
+        wasmStrokeGroup(b, tb, gi, debug, outB)
+      );
+    }
+
+    for (const v of slots) {
+      const valence = a.verti[v * VERT_I + VertI.VALENCE];
+
+      if (valence <= 2) {
+        continue;
+      }
+
+      const off = a.vsegOff[v];
+
+      for (let i = 0; i < valence; i++) {
+        const seg = a.vsegs[off + i];
+
+        if (seg === NO_SLOT) {
+          continue;
+        }
+
+        calls++;
+        take(strokeJoin(a, ta, seg, v, outA.reset()).finish(), wasmStrokeJoin(b, tb, seg, v, outB));
+      }
+    }
+
+    let firstBad: string | null = null;
+    let rowsEqual = rowsA.length === rowsB.length;
+
+    for (let i = 0; i < Math.min(rowsA.length, rowsB.length); i++) {
+      const x = rowsA[i];
+      const y = rowsB[i];
+
+      if (
+        x.owner === y.owner &&
+        x.role === y.role &&
+        x.finish === y.finish &&
+        x.cmds === y.cmds &&
+        x.pts === y.pts &&
+        x.hash === y.hash
+      ) {
+        continue;
+      }
+
+      rowsEqual = false;
+
+      if (firstBad === null) {
+        firstBad = `row ${i}: ${JSON.stringify(x)} vs ${JSON.stringify(y)}`;
+      }
+    }
+
+    return {
+      skipped: false as const,
+      native : useNativeEval(),
+      fellBack,
+      calls,
+      trimsEqual,
+      trimMax,
+      rowsEqual,
+      outlines: rowsA.length,
+      ptMax,
+      firstBad,
+    };
+  });
+}
+
 function toBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let s = "";
@@ -1224,6 +1405,7 @@ export const debug_api = {
   strokerEvalParity,
   strokeGolden,
   strokeArtifacts,
+  strokeWasmParity,
 };
 
 window.__fm = debug_api;

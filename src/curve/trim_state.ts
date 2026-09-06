@@ -36,6 +36,18 @@
    the same code, and the two must not share slots. */
 
 import { Vector2 } from "../path.ux/scripts/pathux.js";
+import * as native_api from "../wasm/native_api.js";
+import {
+  allocF64,
+  allocU8,
+  EMPTY_F64,
+  EMPTY_U8,
+  freeHeap,
+  reviewF64,
+  reviewU8,
+} from "../wasm/heap_arrays.js";
+
+import type { HeapF64, HeapU8 } from "../wasm/heap_arrays.js";
 
 import type { Spline } from "./spline.js";
 import type { SplineSegment, SplineVertex, StrokeSide } from "./spline_types.js";
@@ -83,27 +95,44 @@ export class TrimState {
      that has never been through a begin(). */
   gen = 0;
 
-  data = new Float64Array(0);
-  mask = new Uint8Array(0);
+  /* Heap arrays where there is a heap: the wasm trimmer writes these in place.
+     Both pairs, because begin() swaps them and either can be the live one. */
+  data: HeapF64 = EMPTY_F64;
+  mask: HeapU8 = EMPTY_U8;
 
   /* The previous pass's arrays, reused as the destination of the next one. */
-  private spare = new Float64Array(0);
-  private spareMask = new Uint8Array(0);
+  private spare: HeapF64 = EMPTY_F64;
+  private spareMask: HeapU8 = EMPTY_U8;
+
+  constructor() {
+    native_api.onHeapMove(this);
+  }
+
+  /* Growth detaches the four views; the addresses they were made at survive. */
+  reviewHeapViews() {
+    this.data = reviewF64(this.data);
+    this.mask = reviewU8(this.mask);
+    this.spare = reviewF64(this.spare);
+    this.spareMask = reviewU8(this.spareMask);
+  }
 
   /* Renumbers every segment of `spline` and carries its trims across. */
   begin(spline: Spline) {
     const segs = spline.segments;
     const n = segs.length;
 
-    if (this.spare.length < n * STRIDE) {
+    if (this.spare.cap < n * STRIDE) {
       let cap = 64;
 
       while (cap < n) {
         cap *= 2;
       }
 
-      this.spare = new Float64Array(cap * STRIDE);
-      this.spareMask = new Uint8Array(cap);
+      freeHeap(this.spare);
+      freeHeap(this.spareMask);
+
+      this.spare = allocF64(cap * STRIDE);
+      this.spareMask = allocU8(cap);
     }
 
     const src = this.data;

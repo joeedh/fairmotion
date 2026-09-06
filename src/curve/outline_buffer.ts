@@ -172,6 +172,33 @@ export class OutlineBuffer {
     return this;
   }
 
+  /* Points this buffer at storage the wasm stroker filled and owns.
+
+     Nothing is copied: the three arrays are views onto the heap the C++ side
+     appended into, and everything below here reads rather than writes, so the
+     assembler walks them exactly as it walks the ones the JS stroker built.
+     Nothing is open -- C++ closed its last outline before publishing -- so a
+     finish() from the caller is a no-op rather than a corruption. */
+  adoptHeap(
+    cmds: Uint8Array,
+    pts: Float64Array,
+    outlines: Int32Array,
+    cmdCount: number,
+    ptCount: number,
+    count: number
+  ): OutlineBuffer {
+    this.cmds = cmds;
+    this.pts = pts;
+    this.outlines = outlines;
+
+    this.cmdCount = cmdCount;
+    this.ptCount = ptCount;
+    this.count = count;
+    this.open = -1;
+
+    return this;
+  }
+
   /* The four fields of outline `i`; call finish() first. */
   owner(i: number): number {
     return this.outlines[i * OUTLINE_I + OutlineI.OWNER];

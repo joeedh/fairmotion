@@ -157,6 +157,7 @@ import { TrimState, trimState } from "./trim_state.js";
 import { NO_SLOT, StrokeScene, strokeScene } from "./stroke_scene.js";
 import { NO_PATH, PathRole, pathKey } from "./path_key.js";
 import { OutCmd, OutFinish, OUTLINE_I, OutlineBuffer, OutlineI } from "./outline_buffer.js";
+import { wasmStrokeGroup, wasmStrokeJoin, wasmTrimVertex } from "./stroke_wasm.js";
 import { strokeGroup, strokeJoin } from "./stroker.js";
 import { trimVertex } from "./trimmer.js";
 
@@ -348,7 +349,11 @@ export class SplineDrawer {
 
     path2.reset();
 
-    const out = strokeJoin(this.scene, this.trims, si, vi, this.outlines.reset()).finish();
+    /* Wasm where it can, and the JS stroker as the reference implementation
+       where it cannot; see stroke_wasm.ts for what "cannot" covers. */
+    const out =
+      wasmStrokeJoin(this.scene, this.trims, si, vi, this.outlines) ??
+      strokeJoin(this.scene, this.trims, si, vi, this.outlines.reset()).finish();
 
     for (let i = 0; i < out.count; i++) {
       const role = out.role(i);
@@ -942,7 +947,9 @@ export class SplineDrawer {
       return;
     }
 
-    const out = strokeGroup(this.scene, this.trims, gi, !!debug, this.outlines.reset()).finish();
+    const out =
+      wasmStrokeGroup(this.scene, this.trims, gi, !!debug, this.outlines) ??
+      strokeGroup(this.scene, this.trims, gi, !!debug, this.outlines.reset()).finish();
 
     for (let i = 0; i < out.count; i++) {
       let dest: VDPath | undefined;
@@ -1066,7 +1073,9 @@ export class SplineDrawer {
       return;
     }
 
-    trimVertex(this.scene, this.trims, vi);
+    if (!wasmTrimVertex(this.scene, this.trims, vi)) {
+      trimVertex(this.scene, this.trims, vi);
+    }
   }
 
   /* The last geometry in this file that still evaluates the spline directly.

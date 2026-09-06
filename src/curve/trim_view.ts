@@ -12,11 +12,16 @@
 import { sceneEvalSide } from "./stroker_eval.js";
 import { TRIM_STRIDE } from "./trim_state.js";
 
+import type { HeapF64, HeapU8 } from "../wasm/heap_arrays.js";
 import type { StrokeScene } from "./stroke_scene.js";
 
+/* Heap arrays, not plain ones: the wasm stroker writes the trims in place, so
+   both sides have to be looking at the same bytes (see heap_arrays.ts, and
+   §5.1 of docs/plans/draw-refactor.md).  Where there is no heap they are
+   ordinary typed arrays and only the JS trimmer touches them. */
 export interface TrimView {
-  data: Float64Array;
-  mask: Uint8Array;
+  data: HeapF64;
+  mask: HeapU8;
 }
 
 /* A segment that has not been through a TrimState.begin() has no slot, and

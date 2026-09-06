@@ -747,7 +747,7 @@ Three assertions, and a negative control apiece proving they are independent:
 Full Playwright 33/33 and vitest 6/6. What stage 6 gets from this is a self-contained test case:
 hand a rewrite the blob and the number, with no `Spline`, no `VectorDraw` and no DOM in the way.
 
-### Stage 6 — the C++ port — *in progress*
+### Stage 6 — the C++ port — **done**
 
 `src/wasm/stroker.cc`, reusing `eval_curve` / `spiraltheta` / `spiralcurvature`, which are
 already in `src/wasm/spline.h`. Keep the JS stroker as the reference implementation behind
@@ -1048,19 +1048,70 @@ comparison against a recording, and a recording that changes on its own has no t
 puts a permanent diff in front of anyone who runs the spec, which is how a real change gets
 waved through.
 
-#### 6f — the entry point and the wiring — *next*
+#### 6f — the entry point and the wiring — **done**
 
-`src/wasm/stroker.cc` as the emscripten entry point, into the module `../build.sh` already
-builds, and the JS side behind `config.USE_WASM` at the three call sites the drawer uses —
-`trimVertex()`, `strokeGroup()` and `strokeJoin()`, not `strokeAll()`, which only the harnesses
-call.
+`src/wasm/stroker.cc` exports five functions and nothing else: `fmStrokerAbi`, `fmStrokerBind`,
+and the three the drawer calls — `fmTrimVertex`, `fmStrokeGroup`, `fmStrokeJoin`. Not
+`stroke_all()`, which only the harnesses run. Everything under them is the header set 6a–6d
+already built, so the code the app now executes is the code `src/wasm/tests/outline_ref.cc`
+checks against a recording.
 
-Two things this needs that are not yet in place. `../build.sh` still writes `built_wasm.js`,
-which the TypeScript port renamed to `built_wasm.ts` (generated glue, `@ts-nocheck`, with a
-hand-written header); it has not been run since. And the scene is only *partly* heap-resident
-today — §5.1 relocates `ks` and nothing else, so `StrokeScene`'s flat arrays, the `TrimView` and
-the `OutlineBuffer` all still have to move behind the boundary before C++ can read them at the
-addresses it expects. Gate it on the stage-5 digest, per 6e.
+**The result.** The wasm stroker reproduces the JS stroker **exactly**, in the browser, over
+both samples:
+
+| sample | calls | outlines | trim delta | point delta |
+|---|---|---|---|---|
+| Panda | 77 | 32 | 0 | 0 |
+| love and thunder | 67 | 46 | 0 | 0 |
+
+Zero fallbacks. `playwright/stroke-wasm.spec.ts` is the gate; `debug_api.strokeWasmParity()` is
+what it drives — one dump loaded twice, JS over one copy and wasm over the other, so neither
+side starts from a scene the other has already evaluated. Negative control:
+`stroker_out.pts[0] += 1e-12` after the stroke is caught, and reported as the offending outline
+row (`row 0: ...hash 115698875 vs 3367954934`) rather than as a bare total.
+
+**How the scene crosses: it does not.** `src/wasm/heap_arrays.ts` is §5.1 generalized from `ks`
+to everything — `allocF64`/`allocI32`/`allocU8` return typed arrays that are views onto the wasm
+heap and carry the address they were made at, or plain arrays with `ptr` 0 when there is no
+heap. `StrokeScene`'s ten arrays, `TrimState`'s four and the two ABI blocks all come from it.
+What crosses the boundary is the *description*: eighteen ints naming pointers and counts,
+re-read on every call rather than cached, because the scene reallocates when the document
+outgrows a capacity and eighteen loads is not worth a stale-pointer bug.
+
+Three details worth keeping:
+
+- **`cap` beside `ptr`.** A detached view reports `length` 0, so `length` cannot say how long
+  the view is meant to be. `cap` is what `review*()` rebuilds from, and it is why `grow*()`
+  reads its copy length *before* allocating the destination — allocating is exactly what
+  detaches the source, and `dst.set(src)` on a detached `src` writes nothing at all, silently.
+- **Scattered `ks`.** `scene_ks()` now dispatches. A dump packs every slot's coefficients into
+  one array; the app cannot, because `checkSegment()` relocates each segment's block on its own,
+  so the only thing that knows where one is, is `SEGI_KSPTR`. §5.3's arena would collapse these
+  back into one layout.
+- **The outline buffer is owned by C++.** Only that side knows how much geometry a stroke made.
+  It publishes three base pointers and three counts; `OutlineBuffer.adoptHeap()` views them.
+  Nothing is copied in either direction, and the assembler walks them unchanged.
+
+**The evaluator survived the rebuild.** `_built_wasm.wasm` had not been compiled since January
+2024 and 6e's whole finding rests on it, so this was checked before anything depended on it: at
+`-O3 -flto` through emcc 3.1.53, `evaluate`, `curvature`, `length`, `width` and `shift` are all
+`0.000e+00` against the recording, and `stroke-golden` reproduces both baseline hashes
+(`2398583420`, `3243051189`) after the rebuild. The residue is confined to `derivative`, which
+6e localised to JS's `Math.sin`/`Math.cos` rather than to the evaluator.
+
+**Two traps the rebuild found**, both in `../build.sh`, both silent:
+
+- `emsdk activate latest` resolves against the release list and fails on a machine holding an
+  older SDK. It is now skipped where `.emscripten` already exists.
+- The `sed` that neutralized the glue's own `wasmBinaryFile` stopped matching: emcc used to
+  emit the declaration and its value as one statement and now emits them apart, so the rename
+  caught the declaration and the assignment still overwrote the path — and the app 404'd on a
+  file it had asked for by the wrong name. Replaced with `Module.locateFile`, which is the
+  documented hook.
+
+**What is still JS.** `strokeAll()`, because the drawer does not call it. `update_normals()`,
+the `draw_normals` debug view, which is the last geometry in `spline_draw_new.ts` that
+evaluates the spline directly. Faces (§5.9) and incrementality (§5.8), by design.
 
 ## 5. Constraints the port has to respect
 

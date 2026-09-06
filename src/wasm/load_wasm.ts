@@ -24,6 +24,15 @@ export interface WasmModule {
     v2Ptr: number,
     noUpdate: number
   ): void;
+
+  /* stroker.cc's entry points; see src/curve/stroke_wasm.ts for the two blocks
+     the pointers name.  Optional because a module built before stage 6f has
+     none of them, and saying so is how that build is detected. */
+  _fmStrokerAbi?(which: number): number;
+  _fmStrokerBind?(bindPtr: number, outPtr: number): void;
+  _fmTrimVertex?(v: number): void;
+  _fmStrokeGroup?(gi: number, debug: number): void;
+  _fmStrokeJoin?(seg: number, v: number): void;
 }
 
 /* Only set under node; the browser hands emscripten a path instead. */

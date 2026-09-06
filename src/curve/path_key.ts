@@ -7,7 +7,7 @@
    eids, so the tags only stayed clear of them while the counter was under
    131 072 -- and it counts edit history, not elements, because a stroke group
    burns an id for every chain shape ever seen (`spline_strokegroup.ts:327`).
-   See docs/plans/draw-refactor.md P5.
+   See docs/plans/draw-refactor-plan-final-notes.md P5.
 
    So the key is composed rather than overlaid: `owner * ROLE_COUNT + role`, an
    injective map for any owner id at all. Owner ids are unique across a document

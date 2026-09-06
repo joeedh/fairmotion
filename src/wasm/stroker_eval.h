@@ -11,7 +11,7 @@
    the whole value of this port is that its output can be subtracted from the
    reference implementation's and give zero.
 
-   Two quirks are carried deliberately (§5.7 of docs/plans/draw-refactor.md):
+   Two quirks are carried deliberately (§5.7 of docs/plans/draw-refactor-plan-final-notes.md):
 
    - **The evaluator's endpoints are float, and z is dropped.**  That is what
      wasm_main.cc's evalCurve() wrapper does to them, and the app's JS calls the

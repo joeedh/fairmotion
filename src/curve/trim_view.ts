@@ -17,7 +17,7 @@ import type { StrokeScene } from "./stroke_scene.js";
 
 /* Heap arrays, not plain ones: the wasm stroker writes the trims in place, so
    both sides have to be looking at the same bytes (see heap_arrays.ts, and
-   §5.1 of docs/plans/draw-refactor.md).  Where there is no heap they are
+   §5.1 of docs/plans/draw-refactor-plan-final-notes.md).  Where there is no heap they are
    ordinary typed arrays and only the JS trimmer touches them. */
 export interface TrimView {
   data: HeapF64;

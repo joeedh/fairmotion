@@ -66,7 +66,7 @@ let batch_iden = 1;
  * puts `commands.buffer` in postMessage's transfer list, so the kept array was
  * detached before the next frame could reuse it. Measured on three documents
  * at 0.09-0.26% of frame time, against a copy loop that costs as much or more
- * -- so the cache is gone rather than repaired. See draw-refactor.md 7.1.
+ * -- so the cache is gone rather than repaired. See draw-refactor-plan-final-notes.md 7.1.
  *
  * The exact-length array is load-bearing, not incidental: the worker wraps the
  * transferred buffer with `new Float64Array(buf)` and interprets to its end,

@@ -3,7 +3,7 @@
    The other half of the boundary StrokeScene opens: the stroker reads flat
    arrays describing a document and writes flat arrays describing outlines, so
    the whole of it can move behind a wasm call with only two buffers crossing.
-   See docs/plans/draw-refactor.md stage 4.
+   See docs/plans/draw-refactor-plan-final-notes.md stage 4.
 
    An *outline* is one owner's worth of geometry in one role -- the pair that
    names a retained path (`path_key.ts`), and the pair the assembler maps back

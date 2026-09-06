@@ -1,6 +1,6 @@
 /* Trim state -- the stroke trims and mitre points that used to be serialized
    into every .fmo as a `drawdata` cdata layer and now live only in memory, in
-   src/curve/trim_state.ts.  See docs/plans/draw-refactor.md stage 3.
+   src/curve/trim_state.ts.  See docs/plans/draw-refactor-plan-final-notes.md stage 3.
 
    Two things are worth a standing check.  Old files must still open and must
    come out of afterSTRUCT() with the dead layer dropped, so a re-save stops

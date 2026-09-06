@@ -9,7 +9,7 @@
    Three entry points, matching the three the drawer uses -- trimVertex(),
    strokeGroup() and strokeJoin().  Not stroke_all(): the drawer interleaves
    them with its own dirty checks and its own retained paths, and calling it
-   would throw that away.  See docs/plans/draw-refactor.md stage 6f.
+   would throw that away.  See docs/plans/draw-refactor-plan-final-notes.md stage 6f.
 
    How the scene crosses.  It does not: the flat arrays are allocated out of the
    wasm heap by src/curve/heap_arrays.ts and JS writes into them through typed

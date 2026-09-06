@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Builds the wasm module the app loads: the solver, the curve evaluator, and --
-# since stage 6f of docs/plans/draw-refactor.md -- the stroker.
+# since stage 6f of docs/plans/draw-refactor-plan-final-notes.md -- the stroker.
 #
 # Two outputs.  _built_wasm.wasm is the binary, copied to fcontent/ by
 # buildtools/esbuild.mjs.  built_wasm.ts is emscripten's glue with a small

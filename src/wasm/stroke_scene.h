@@ -84,7 +84,7 @@ enum {
 
 /* Bit 0 of the header's flag word: the dump was taken with the wasm evaluator
    live, so the coefficients in it are the ones wasm left (see §5.6 of
-   docs/plans/draw-refactor.md). */
+   docs/plans/draw-refactor-plan-final-notes.md). */
 #define SCENE_FLAG_NATIVE 1
 
 #define SCENE_HEADER_I 16

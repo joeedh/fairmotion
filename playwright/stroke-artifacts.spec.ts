@@ -13,7 +13,7 @@
    build, which is why a re-run leaves the tree clean; a diff here means the
    evaluator or the extract changed, and that is worth noticing.
 
-   See docs/plans/draw-refactor.md stage 6. */
+   See docs/plans/draw-refactor-plan-final-notes.md stage 6. */
 
 import fs from "node:fs";
 import path from "node:path";

@@ -472,7 +472,7 @@ This used to be a `CustomDataLayer` registered as `"drawdata"`, written into eve
 with a `loadSTRUCT` fixup for files that stored `start`/`end` as plain numbers where the
 class later had methods of those names. The class is still registered so those files parse,
 but nothing reads a loaded instance and `Spline.afterSTRUCT()` drops the layer — see
-`docs/plans/draw-refactor.md` stage 3.
+`docs/plans/draw-refactor-plan-final-notes.md` stage 3.
 
 ## 9. Masking strokes to faces
 

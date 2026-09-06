@@ -4,7 +4,7 @@
    exists to create, and the shape a C++/wasm implementation has to fit.  What
    used to be SplineDrawer.update_stroke_group() is here; what is left there is
    an assembler that hands this a group index and plays the outlines back onto
-   retained paths.  See docs/plans/draw-refactor.md stage 4.
+   retained paths.  See docs/plans/draw-refactor-plan-final-notes.md stage 4.
 
    Two outlines per group, and the difference between them is the whole reason
    this is not a point list.  The stroke's own path and the double-stroke path

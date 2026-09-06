@@ -1,7 +1,7 @@
 /* Typed arrays that may live in the wasm heap, and the same arrays when they
    cannot.
 
-   §5.1 of docs/plans/draw-refactor.md asks for the scene to *be* heap-resident
+   §5.1 of docs/plans/draw-refactor-plan-final-notes.md asks for the scene to *be* heap-resident
    storage rather than a buffer that gets copied across the boundary each pass.
    `ks` has worked that way since long before the refactor -- checkSegment()
    relocates a segment's coefficients into the heap and JS keeps a view onto the

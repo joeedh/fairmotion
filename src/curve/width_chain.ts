@@ -14,7 +14,7 @@
    SplineStrokeGroup -- a group can end at a 2-valence vertex (material change,
    linewidth change, and the rest of vertexIsSplit's reasons) and the walk
    crosses that boundary regardless.  Nothing else in the code names this
-   object; see docs/plans/draw-refactor.md P3.
+   object; see docs/plans/draw-refactor-plan-final-notes.md P3.
 
    Layout.  One slot per segment; the seven walk steps that reach a value or a
    length the net needs are stored as a segment slot plus a flag saying which

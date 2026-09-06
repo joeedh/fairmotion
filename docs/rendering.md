@@ -154,7 +154,7 @@ that scene by pure functions — `strokeGroup()` and `strokeJoin()` in `src/curv
 `trimVertex()` in `src/curve/trimmer.ts` — which write an `OutlineBuffer`
 (`src/curve/outline_buffer.ts`) the drawer replays onto retained paths. Faces, clipping,
 colours, path GC and dirty tracking stay in the drawer. See
-`docs/plans/draw-refactor.md` for why the boundary is where it is.
+`docs/plans/draw-refactor-plan-final-notes.md` for why the boundary is where it is.
 
 ### Stroke outlines
 
@@ -224,7 +224,8 @@ pass, and `spline_createops.ts` reads them outside a pass entirely.
 This used to be a per-segment custom data layer, `SplineDrawData` (registered as
 `"drawdata"`), and so was written into every `.fmo`. The class still exists in
 `spline_draw_new.ts` with its `STRUCT` so old files parse, but nothing reads a loaded
-instance and `Spline.afterSTRUCT()` drops the layer — see `docs/plans/draw-refactor.md`
+instance and `Spline.afterSTRUCT()` drops the layer — see
+`docs/plans/draw-refactor-plan-final-notes.md`
 stage 3.
 
 The same call computes the mitre endpoints for vertices flagged `BREAK_TANGENTS` or of

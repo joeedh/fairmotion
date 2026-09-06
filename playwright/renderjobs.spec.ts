@@ -10,7 +10,7 @@ import {expectNoNewErrors, openApp, sampleBytes} from "./fixtures";
  * holder: its .then() clears `pending`, and a batch that never clears `pending`
  * keeps CanvasDraw2D.draw()'s promise from ever resolving.
  *
- * See docs/plans/draw-refactor.md 7.3.
+ * See docs/plans/draw-refactor-plan-final-notes.md 7.3.
  */
 test("cancelling render jobs mid-draw settles them", async ({page}) => {
   const errors = await openApp(page);

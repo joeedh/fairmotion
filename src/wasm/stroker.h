@@ -5,7 +5,7 @@
 
    No Spline, no VectorDraw, no DOM -- the boundary stage 4 of the draw refactor
    exists to create, and this is the implementation that fits it.  See
-   docs/plans/draw-refactor.md stage 6.
+   docs/plans/draw-refactor-plan-final-notes.md stage 6.
 
    Two outlines per group, and the difference between them is why this is not a
    point list.  The stroke's own path and the double-stroke path walk identical

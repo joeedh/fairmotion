@@ -2,7 +2,7 @@
 
    This is the data boundary stage 4 of the draw refactor exists to create: the
    stroker reads only what is here, so the same code can run against a wasm heap
-   with no Spline on the other side of it.  See docs/plans/draw-refactor.md §3.
+   with no Spline on the other side of it.  See docs/plans/draw-refactor-plan-final-notes.md §3.
 
    Persistent, not per-frame.  Slots are stable across passes -- a segment keeps
    its index until it is deleted -- because dirty tracking and every downstream

@@ -1,6 +1,6 @@
 # Draw refactor, stage 0 — measurements
 
-Stage 0 of `docs/plans/draw-refactor.md` gates three batch-layer decisions (§7.1, §7.2,
+Stage 0 of the draw refactor (`docs/plans/draw-refactor-plan-final-notes.md`) gates three batch-layer decisions (§7.1, §7.2,
 §7.3) on evidence rather than inspection. This records what was measured, how, and what
 was decided. The harnesses were throwaway scripts at the repo root, deleted afterwards;
 the instrumentation they read was temporary and is gone from the tree.

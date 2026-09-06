@@ -195,7 +195,7 @@ function playOutline(out: OutlineBuffer, i: number, path: VDPath) {
    Dead as of stage 3 of the draw refactor: trim_state.ts owns this now and
    nothing reads a loaded instance.  The class stays registered so old files
    still parse, and Spline.afterSTRUCT() drops the layer once they have --
-   see docs/plans/draw-refactor.md P4. */
+   see docs/plans/draw-refactor-plan-final-notes.md P4. */
 export class SplineDrawData extends CustomDataLayer {
   static STRUCT: string;
 

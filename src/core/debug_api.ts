@@ -700,7 +700,7 @@ function heapGrowthCheck(bytes = 64 * 1024 * 1024) {
    pass, so the debug geometry is in the dump too -- it is drawn by the same
    stroker and a refactor can break it just as easily.
 
-   See docs/plans/draw-refactor.md stage 4. */
+   See docs/plans/draw-refactor-plan-final-notes.md stage 4. */
 function pathDump(strokeDebug = false) {
   let ctx = getCtx();
 
@@ -861,7 +861,7 @@ function sceneCheck() {
    goes.  Both sides refresh it at the same points in the same sequence, so the
    values compared are read from identical state.
 
-   See docs/plans/draw-refactor.md stage 4 and playwright/stroker-eval.spec.ts. */
+   See docs/plans/draw-refactor-plan-final-notes.md stage 4 and playwright/stroker-eval.spec.ts. */
 function strokerEvalParity(steps = 9) {
   let ctx = getCtx();
 
@@ -1066,7 +1066,7 @@ function bytesEqual(a: ArrayBuffer, b: ArrayBuffer): boolean {
    rewrites ks[KSCALE] -- a dump of a stroked scene is a dump of different
    numbers.  Both runs then start from identical state.
 
-   See docs/plans/draw-refactor.md stage 5 and playwright/stroke-golden.spec.ts. */
+   See docs/plans/draw-refactor-plan-final-notes.md stage 5 and playwright/stroke-golden.spec.ts. */
 type StrokeGolden =
   | { skipped: true }
   | {

@@ -1,6 +1,7 @@
 # Draw refactor, stage 2 — pre-check
 
-Stage 2 of `docs/plans/draw-refactor.md` opens by gating itself on a measurement:
+Stage 2 of the draw refactor (`docs/plans/draw-refactor-plan-final-notes.md`) opened by gating
+itself on a measurement:
 
 > **"Largest win available" is a hypothesis, not a measurement.** Nobody has profiled this.
 > The cheap test before committing to the stage: set a counter in `walk()` and one in

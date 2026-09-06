@@ -2,7 +2,7 @@
  * SplineSegment.width() reads a control net that width_chain.ts resolves once
  * per draw pass; widthWalk() is the reference implementation it replaces. The
  * two must agree bit for bit -- that exactness is what makes the cache safe to
- * sit under the whole stroker. See docs/plans/draw-refactor.md stage 2.
+ * sit under the whole stroker. See docs/plans/draw-refactor-plan-final-notes.md stage 2.
  */
 import {expect, test} from "@playwright/test";
 

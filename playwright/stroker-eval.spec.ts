@@ -7,7 +7,7 @@
    walk the spline graph (width chains are inactive out here, so width() falls
    through to widthWalk()), while the twins read flat arrays the extract filled.
    See src/core/debug_api.ts strokerEvalParity() for why the call order matters,
-   and docs/plans/draw-refactor.md stage 4. */
+   and docs/plans/draw-refactor-plan-final-notes.md stage 4. */
 
 import { expect, test } from "@playwright/test";
 

@@ -15,7 +15,7 @@
    therefore a real disagreement, and ptMax is reported so a near-miss reads
    differently from a structural break.
 
-   See docs/plans/draw-refactor.md stage 6f. */
+   See docs/plans/draw-refactor-plan-final-notes.md stage 6f. */
 
 import { expect, test } from "@playwright/test";
 

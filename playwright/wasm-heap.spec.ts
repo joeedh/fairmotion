@@ -5,7 +5,7 @@
    forces it: allocate past the 32 MB initial heap, then check that every
    segment's coefficients are still readable and unchanged.
 
-   See docs/plans/draw-refactor.md §5.2.  This stops being a latent bug the
+   See docs/plans/draw-refactor-plan-final-notes.md §5.2.  This stops being a latent bug the
    moment scene arrays live in the heap, which is what stage 4 builds toward. */
 
 import { expect, test } from "@playwright/test";

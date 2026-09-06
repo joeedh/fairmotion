@@ -4,7 +4,7 @@
    is unverifiable without a way to hand both implementations the same document,
    so this writes the scene out as a flat binary blob.  What they then make of
    it is compared by outline_hash.ts.  The JS side of the comparison is
-   playwright/stroke-golden.spec.ts; see docs/plans/draw-refactor.md stage 5 and
+   playwright/stroke-golden.spec.ts; see docs/plans/draw-refactor-plan-final-notes.md stage 5 and
    stage 6.
 
    The blob is deliberately dull -- a header of int32s and then the scene's own

@@ -11,7 +11,7 @@
    segment cdata with a STRUCT, so every .fmo carried a copy of numbers the next
    draw pass would overwrite -- plus a permanent back-compat path, because the
    original layer wrote `start`/`end` as fields straight over what are now
-   methods.  See docs/plans/draw-refactor.md P4.  The class is still registered
+   methods.  See docs/plans/draw-refactor-plan-final-notes.md P4.  The class is still registered
    so old files parse; afterSTRUCT() drops the layer once they have.
 
    Layout.  One slot per segment, indexed by the segment's position in

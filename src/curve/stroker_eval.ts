@@ -10,7 +10,7 @@
    Why twins at all, rather than moving the methods: the methods stay as the
    reference implementation.  They are what picking, tools and the overlay call,
    they are what the parity spec compares against, and they are what says what
-   the C++ port has to reproduce.  See docs/plans/draw-refactor.md stage 4.
+   the C++ port has to reproduce.  See docs/plans/draw-refactor-plan-final-notes.md stage 4.
 
    The scene does not carry a Spline, so what a method reaches through `this`
    arrives here as a slot index.  Nothing in this file touches a SplineSegment,

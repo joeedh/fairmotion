@@ -14,7 +14,7 @@
    the stroker happened not to read it.
 
    Re-record deliberately, with FM_UPDATE_BASELINE=1, and only when the diff is
-   an intended change in output.  See docs/plans/draw-refactor.md stage 5. */
+   an intended change in output.  See docs/plans/draw-refactor-plan-final-notes.md stage 5. */
 
 import { expect, test } from "@playwright/test";
 

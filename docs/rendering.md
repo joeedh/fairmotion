@@ -15,7 +15,7 @@ canvas 2D context every frame.
 |---|---|
 | Schedule a repaint | `window.redraw_viewport()` — `src/core/startup/redraw_globals.ts` |
 | Viewport frame | `View2DHandler.do_draw_viewport()` — `src/editors/viewport/view2d.ts` |
-| Pick a backend, draw the frameset | `FrameSet.draw()` — `src/core/frameset/frameset.ts` |
+| Pick a backend, draw the frameset | `SplineFrameSet.draw()` — `src/core/frameset/frameset.ts` |
 | Solve, draw sort, drawer update | `Spline.draw()` — `src/curve/spline.ts` |
 | Build the retained path list | `SplineDrawer.update()` — `src/curve/draw/spline_drawer.ts` |
 | Batch, serialize, dispatch | `CanvasDraw2D` — `src/vectordraw/vectordraw_canvas2d.ts` |
@@ -73,7 +73,7 @@ synchronous backend (below) because nine worker round-trips per frame is not wor
 
 ## 3. Backend selection
 
-`FrameSet.draw()` in `src/core/frameset/frameset.ts` decides which vectordraw backend the spline's
+`SplineFrameSet.draw()` in `src/core/frameset/frameset.ts` decides which vectordraw backend the spline's
 `SplineDrawer` wraps:
 
 ```ts
@@ -91,7 +91,7 @@ not free but is correct.
 Then `Spline.draw()` (`src/curve/spline.ts`) sets `this.canvas = g`, calls `checkSolve()`
 — which kicks off the async constraint solve, guarded by a 1000 ms timeout, and queues
 another redraw when it finishes — then runs the draw sort, lazily builds the `SplineDrawer`,
-and calls `update()` and `draw()` on it. `FrameSet.draw()` follows that with the overlay,
+and calls `update()` and `draw()` on it. `SplineFrameSet.draw()` follows that with the overlay,
 unless `only_render` is set.
 
 ## 4. Draw sort
@@ -209,6 +209,26 @@ Each group emits up to two paths: the fill at the group's z (role `ELEMENT`), an
 `mat.linewidth2 > 0`, an outline-of-the-outline at z+1 (role `DOUBLE_STROKE`, marked
 `noAutoFill()`) pushed with `pushStroke(mat.strokecolor2, mat.linewidth2)`.
 `SplineDrawer.update_stroke_group()` is the assembly that replays them onto retained paths.
+
+### Where `ks` lives
+
+A segment's sixteen spiral coefficients are the input to everything above, and once a segment
+has been evaluated or solved natively they live in the wasm heap rather than in a plain JS
+array. `native_api.checkSegment(seg)` performs that migration once per segment, and
+`seg.ks` becomes a `Float64Array` view onto those exact bytes.
+
+The cells come from an arena (`src/wasm/ks_arena.ts`), not from one `_malloc` per segment.
+A cell is one segment's sixteen doubles and a chunk is 256 cells taken in a single
+allocation, so segments created in sequence — a chain drawn with the pen tool, or read off
+disk in `spline.segments` order — land in consecutive cells. That matters because the
+strokers walk a chain linearly: `width_chain.ts` gathers seven segments either side of the
+one being evaluated, and `StrokeScene` records that walk.
+
+Two invariants hold the scheme together. Chunks are never reallocated and never released,
+because a cell's address is its identity — `StrokeScene` stores it in `SegI.KSPTR`. Growing
+the heap does still detach every view onto it, which `native_api.checkHeap()` rebuilds
+eagerly; the addresses themselves survive untouched. Freed cells go on a free list, so a
+reused cell is cleared rather than inherited.
 
 ### Joints
 

@@ -10,8 +10,11 @@ target of the `see docs/plans/draw-refactor-plan-final-notes.md …` references 
 Section numbers below (§3, §5.n, §7.n) and the P- and stage- labels are the plan's, kept so
 those references still resolve.
 
-Two items were left open; both are in [`todos.md`](../../todos.md) rather than here — the
-per-segment `ks` arena (§5.3) and the tail of P8, `update()`'s nine-argument signature.
+Two items outlived the refactor and were tracked in [`todos.md`](../../todos.md) rather than
+here: the per-segment `ks` arena (§5.3) and the tail of P8, `update()`'s nine-argument
+signature. Both have since landed, and the sections below describe what shipped rather than
+what was proposed. The arena did not collapse `scene_ks()`'s two layouts, which the plan had
+expected it to — that part is still open.
 
 ## The goal, and whether it was met
 
@@ -21,7 +24,10 @@ per-segment `ks` arena (§5.3) and the tail of P8, `update()`'s nine-argument si
 
 Both met. The stroker is `src/wasm/stroker.h` plus its neighbours, it runs in the app behind
 `config.USE_WASM`, and it reproduces the JS stroker exactly. `SplineDrawer` went from 2,351
-lines to 1,304 with all stroke geometry behind a pure boundary.
+lines to 1,304 with all stroke geometry behind a pure boundary. Those 1,304 were later split
+across `src/curve/draw/`, leaving the drawer itself at about 500 lines: `draw_strokes.ts` has
+the per-segment and per-vertex assembly, `draw_faces.ts` the fills, `draw_params.ts` the two
+argument bundles, and `outline_play.ts` the replay of an `OutlineBuffer` onto a path.
 
 ## §3 — the four-stage shape
 
@@ -55,7 +61,7 @@ It was deliberately left alone apart from the three bugs in §7.
 | P5 | Path ids are tag bits over `spline.idgen` | `src/curve/draw/path_key.ts` — `pathKey(owner, role) = owner * 16 + role` |
 | P6 | Editing overlay inside the render path | `src/curve/draw/spline_overlay.ts` (stage 1) |
 | P7 | Dead backends keep `PathBase` abstract for nobody | ~2,220 lines deleted (stage 0) |
-| P8 | `update()` is 332 lines of 12 positional parameters | Mostly cleared in stage 4f; the signature itself is in `todos.md` |
+| P8 | `update()` is 332 lines of 12 positional parameters | Cleared: stage 4f took the body, and the signature became one `DrawPass` |
 
 Two of these are worth more than a table row.
 
@@ -107,9 +113,12 @@ they break.
 - **Heap allocations are zeroed.** `_malloc` does not and `new Float64Array(n)` does; every
   caller was written against the latter. See `docs/debugging.md`, "two loads of one document
   disagree by a subnormal".
-- **`ks` blocks are scattered, not contiguous.** `checkSegment()` relocates each segment's
-  coefficients on its own, so `scene_ks()` dispatches: a dump packs every slot into one array
-  and indexes it; the app reads the address in `SEGI_KSPTR`. §5.3 would collapse the two.
+- **`ks` blocks are not in slot order.** `checkSegment()` relocates each segment's coefficients
+  the first time that segment is evaluated, so storage order follows edit order rather than
+  scene slot. `scene_ks()` therefore dispatches: a dump packs every slot's block into one array
+  and indexes it, while the app reads the address recorded in `SEGI_KSPTR`. The blocks are now
+  arena cells rather than separate mallocs (§5.3), which makes a chain usually walk consecutive
+  cells, but it does not make slot order match storage order — the two layouts remain.
 
 ## §5 — constraints the port respects
 
@@ -123,8 +132,15 @@ they break.
    than lazily because `seg.ks[KSCALE]` is read all over the drawer without anything calling in
    first. Guarded by `playwright/wasm-heap.spec.ts`, which allocates 64 MB past the 32 MB
    initial heap; with the re-view line commented out it reports 60 of 60 detached.
-3. **Scattered per-segment allocation.** Each segment gets its own `_malloc(8 * 16)`. An arena
-   per `StrokeScene` is the natural fit. **Open — see `todos.md`.**
+3. **Scattered per-segment allocation.** Each segment used to get its own `_malloc(8 * 16)`,
+   which the allocator was free to scatter. **Done** — `src/wasm/ks_arena.ts` hands out cells
+   instead: a cell is one segment's sixteen doubles and a chunk is 256 cells taken in a single
+   `_malloc`, so segments created in sequence land in consecutive cells. The arena is global
+   rather than per-`StrokeScene`, which the plan had assumed, because a cell's lifetime is the
+   segment's and outlives any one scene. Chunks are never moved or released — a cell's address
+   is its identity, held by both `seg.ks` and `SEGI_KSPTR` — and freed cells go on a free list,
+   so a reused cell is cleared rather than inherited. What this does *not* do is collapse
+   `scene_ks()`'s two layouts; see the §3 bullet above.
 4. **Curve effects.** Carrying `ks` rather than a sampled centre line settles this by
    construction: `ks` cannot express a curve effect, so the wasm path is a no-effects path. If
    multires is ever revived it needs its own answer.
@@ -266,7 +282,8 @@ is arithmetic that runs constantly and is pinned to a value that hides bugs.
   13; Panda never leaves the floor of 7. A segment would need to be roughly 850 units long.
 - **`fastDraw()` has no coverage.** It runs only under `window.DEBUG.fastDrawMode` (centre
   lines only — no joins, no trims, no faces), which nothing in the suite sets. Its share of
-  stage 4f's prologue refactor was made by matching text, not by test.
+  stage 4f's prologue refactor, and its later conversion to a `DrawPass` argument, were both
+  made by matching text rather than by test.
 
 ## Things that look wrong and are not
 

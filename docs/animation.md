@@ -78,7 +78,8 @@ splitting an edge between two keys lands on a sensible intermediate frame.
 
 ### SplineFrame — the vestigial part
 
-`SplineFrame {time, spline, flag}` and the `frames` dict are the remains of a design where each
+`SplineFrame {time, spline, flag}` (`src/core/frameset/frame.ts`) and the `frames` dict are the
+remains of a design where each
 frame could have its own topology. `insert_frame(time)` opens with
 
 ```js
@@ -216,7 +217,8 @@ path when `switch_on_select` is on.
 
 ## 7. The keyframe cache
 
-`SplineKCache` memoizes solved output per frame: `SplineKCacheItem {data, time, hash}` where
+`SplineKCache` (`src/core/frameset/kcache.ts`) memoizes solved output per frame:
+`SplineKCacheItem {data, time, hash}` where
 `data` is `spline.export_ks()` bytes and `hash` is computed from the vertex positions
 (`calchash`). `change_time()` calls `has(time, spline)` and, on a hit, `load()`s the bytes
 instead of re-solving.
